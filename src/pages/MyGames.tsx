@@ -1,16 +1,5 @@
 import React, { useState } from "react";
-import {
-  Stack,
-  Modal,
-  Box,
-  Typography,
-  Snackbar,
-  Alert,
-  AppBar,
-  Toolbar,
-  IconButton,
-} from "@mui/material";
-import { Menu as MenuIcon } from "@mui/icons-material";
+import { Stack, Modal, Box, Typography, Snackbar, Alert } from "@mui/material";
 import GameCard from "../components/GameCard";
 
 const modalBoxStyle = {
@@ -27,7 +16,7 @@ const modalBoxStyle = {
 
 type Game = React.ComponentProps<typeof GameCard> & { link: string };
 
-const BrowseGames: React.FC<{
+const MyGames: React.FC<{
   games: Game[];
 }> = ({ games }) => {
   const [openPlayerInfo, setOpenPlayerInfo] = useState(false);
@@ -89,28 +78,23 @@ const BrowseGames: React.FC<{
 
   return (
     <>
-      <AppBar position="static">
-        <Toolbar>
-          <Typography variant="h6" component="h1" sx={{ flexGrow: 1 }}>
-            Diplicity
-          </Typography>
-          <IconButton edge="end" color="inherit" aria-label="menu">
-            <MenuIcon />
-          </IconButton>
-        </Toolbar>
-      </AppBar>
-      <Stack spacing={1}>
-        {games.map((game) => (
-          <GameCard
-            key={game.id}
-            users={game.users}
-            title={game.title}
-            id={game.id}
-            onClickPlayerInfo={() => onClickPlayerInfo(game)}
-            onClickGameInfo={() => onClickGameInfo(game)}
-            onClickShare={() => onClickShare(game.link)}
-          />
-        ))}
+      <Stack>
+        <Typography variant="h4" component="h1">
+          My games
+        </Typography>
+        <Stack spacing={1}>
+          {games.map((game) => (
+            <GameCard
+              key={game.id}
+              users={game.users}
+              title={game.title}
+              id={game.id}
+              onClickPlayerInfo={() => onClickPlayerInfo(game)}
+              onClickGameInfo={() => onClickGameInfo(game)}
+              onClickShare={() => onClickShare(game.link)}
+            />
+          ))}
+        </Stack>
       </Stack>
       <Modal
         open={openPlayerInfo}
@@ -181,4 +165,4 @@ const BrowseGames: React.FC<{
   );
 };
 
-export default BrowseGames;
+export default MyGames;

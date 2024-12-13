@@ -1,15 +1,15 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import BrowseGames from './BrowseGames';
+import MyGames from './MyGames';
 import * as GameCardStories from '../components/GameCard.stories';
 import GameCardDefault from '../components/GameCard.stories';
 
 const meta = {
-    title: 'Pages/BrowseGames',
-    component: BrowseGames,
+    title: 'Pages/MyGames',
+    component: MyGames,
     parameters: {
         layout: 'centered',
     },
-} satisfies Meta<typeof BrowseGames>;
+} satisfies Meta<typeof MyGames>;
 
 const link = 'https://example.com';
 
