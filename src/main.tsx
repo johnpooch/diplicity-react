@@ -6,9 +6,12 @@ import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 import App from "./App.tsx";
+import { BrowserRouter } from "react-router";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
   </StrictMode>
 );

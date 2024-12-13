@@ -1,5 +1,16 @@
 import React, { useState } from "react";
-import { Stack, Modal, Box, Typography, Snackbar, Alert } from "@mui/material";
+import {
+  Stack,
+  Modal,
+  Box,
+  Typography,
+  Snackbar,
+  Alert,
+  AppBar,
+  Toolbar,
+  IconButton,
+} from "@mui/material";
+import { Menu as MenuIcon } from "@mui/icons-material";
 import GameCard from "../components/GameCard";
 
 const modalBoxStyle = {
@@ -78,6 +89,16 @@ const BrowseGames: React.FC<{
 
   return (
     <>
+      <AppBar position="static">
+        <Toolbar>
+          <IconButton edge="start" color="inherit" aria-label="menu">
+            <MenuIcon />
+          </IconButton>
+          <Typography variant="h6" component="h1">
+            Browse Games
+          </Typography>
+        </Toolbar>
+      </AppBar>
       <Stack spacing={1}>
         {games.map((game) => (
           <GameCard
