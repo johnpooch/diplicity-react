@@ -77,6 +77,13 @@ const MyGames: React.FC<{
     setSnackbar(undefined);
   };
 
+  games = games.map((game) => ({
+    ...game,
+    onClickPlayerInfo: () => onClickPlayerInfo(game),
+    onClickGameInfo: () => onClickGameInfo(game),
+    onClickShare: () => onClickShare(game.link),
+  }));
+
   const stagingGames = games.filter((game) => game.status === "staging");
   const activeGames = games.filter((game) => game.status === "active");
   const finishedGames = games.filter((game) => game.status === "finished");
@@ -90,16 +97,7 @@ const MyGames: React.FC<{
             <Typography variant="h2">Staging Games</Typography>
             <Stack spacing={1} style={{ paddingTop: 12 }}>
               {stagingGames.map((game) => (
-                <GameCard
-                  key={game.id}
-                  users={game.users}
-                  title={game.title}
-                  status={game.status}
-                  id={game.id}
-                  onClickPlayerInfo={() => onClickPlayerInfo(game)}
-                  onClickGameInfo={() => onClickGameInfo(game)}
-                  onClickShare={() => onClickShare(game.link)}
-                />
+                <GameCard key={game.id} {...game} />
               ))}
               <GameCardSkeleton />
             </Stack>
@@ -110,16 +108,7 @@ const MyGames: React.FC<{
             </Typography>
             <Stack spacing={1} style={{ paddingTop: 12 }}>
               {activeGames.map((game) => (
-                <GameCard
-                  key={game.id}
-                  users={game.users}
-                  title={game.title}
-                  status={game.status}
-                  id={game.id}
-                  onClickPlayerInfo={() => onClickPlayerInfo(game)}
-                  onClickGameInfo={() => onClickGameInfo(game)}
-                  onClickShare={() => onClickShare(game.link)}
-                />
+                <GameCard key={game.id} {...game} />
               ))}
               <GameCardSkeleton />
             </Stack>
@@ -128,16 +117,7 @@ const MyGames: React.FC<{
             <Typography variant="h2">Finished Games</Typography>
             <Stack spacing={1} style={{ paddingTop: 12 }}>
               {finishedGames.map((game) => (
-                <GameCard
-                  key={game.id}
-                  users={game.users}
-                  title={game.title}
-                  status={game.status}
-                  id={game.id}
-                  onClickPlayerInfo={() => onClickPlayerInfo(game)}
-                  onClickGameInfo={() => onClickGameInfo(game)}
-                  onClickShare={() => onClickShare(game.link)}
-                />
+                <GameCard key={game.id} {...game} />
               ))}
               <GameCardSkeleton />
             </Stack>

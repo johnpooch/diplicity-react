@@ -5,66 +5,48 @@ import { Route, Routes } from "react-router";
 import NavigationWrapper from "./components/NavigationWrapper";
 import FindGames from "./pages/FindGames";
 import PageWrapper from "./components/PageWrapper";
+import GameCard from "./components/GameCard";
 
-const games = [
+const defaultGame = {
+  id: "1",
+  title: "Game 1",
+  users: [{ username: "User 1" }, { username: "User 2" }],
+  onClickPlayerInfo: () => {},
+  onClickGameInfo: () => {},
+  onClickShare: () => {},
+  onClickJoin: () => {},
+  onClickLeave: () => {},
+  link: "https://example.com",
+  canJoin: false,
+  canLeave: false,
+  private: false,
+  phaseDuration: "24h",
+  variant: "Classical",
+};
+
+const games: React.ComponentProps<typeof GameCard>[] = [
   {
-    id: "1",
-    title: "Game 1",
-    users: [{ username: "User 1" }, { username: "User 2" }],
-    onClickPlayerInfo: () => {},
-    onClickGameInfo: () => {},
-    onClickShare: () => {},
-    link: "https://example.com",
+    ...defaultGame,
     status: "staging",
   },
   {
-    id: "1",
-    title: "Game 1",
-    users: [{ username: "User 1" }, { username: "User 2" }],
-    onClickPlayerInfo: () => {},
-    onClickGameInfo: () => {},
-    onClickShare: () => {},
-    link: "https://example.com",
+    ...defaultGame,
     status: "staging",
   },
   {
-    id: "1",
-    title: "Game 1",
-    users: [{ username: "User 1" }, { username: "User 2" }],
-    onClickPlayerInfo: () => {},
-    onClickGameInfo: () => {},
-    onClickShare: () => {},
-    link: "https://example.com",
+    ...defaultGame,
     status: "active",
   },
   {
-    id: "1",
-    title: "Game 1",
-    users: [{ username: "User 1" }, { username: "User 2" }],
-    onClickPlayerInfo: () => {},
-    onClickGameInfo: () => {},
-    onClickShare: () => {},
-    link: "https://example.com",
+    ...defaultGame,
     status: "active",
   },
   {
-    id: "1",
-    title: "Game 1",
-    users: [{ username: "User 1" }, { username: "User 2" }],
-    onClickPlayerInfo: () => {},
-    onClickGameInfo: () => {},
-    onClickShare: () => {},
-    link: "https://example.com",
+    ...defaultGame,
     status: "finished",
   },
   {
-    id: "1",
-    title: "Game 1",
-    users: [{ username: "User 1" }, { username: "User 2" }],
-    onClickPlayerInfo: () => {},
-    onClickGameInfo: () => {},
-    onClickShare: () => {},
-    link: "https://example.com",
+    ...defaultGame,
     status: "finished",
   },
 ];

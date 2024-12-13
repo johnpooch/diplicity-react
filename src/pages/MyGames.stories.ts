@@ -19,12 +19,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
     args: {
         games: [
-            { ...GameCardDefault.args, ...GameCardStories.NoUsers.args, link },
-            { ...GameCardDefault.args, ...GameCardStories.UserOverflow.args, link },
-            { ...GameCardDefault.args, ...GameCardStories.NoUsers.args, link },
-            { ...GameCardDefault.args, ...GameCardStories.UserOverflow.args, link },
-            { ...GameCardDefault.args, ...GameCardStories.NoUsers.args, link },
-            { ...GameCardDefault.args, ...GameCardStories.UserOverflow.args, link }
+            { ...GameCardDefault.args, ...GameCardStories.StagingGameUserCanJoin.args, link },
         ]
     },
 };

@@ -57,13 +57,7 @@ const FindGames: React.FC<{
         </Stack>
         <Stack spacing={1} style={{ paddingTop: 12 }}>
           {games.map((game) => (
-            <GameCard
-              key={game.id}
-              users={game.users}
-              title={game.title}
-              status={game.status}
-              id={game.id}
-            />
+            <GameCard key={game.id} {...game} />
           ))}
           <GameCardSkeleton />
         </Stack>

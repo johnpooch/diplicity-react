@@ -121,7 +121,7 @@ const NavigationWrapper: React.FC<{
       <AppBar position="fixed" color="primary" sx={{ top: "auto", bottom: 0 }}>
         <BottomNavigation
           value={navigation}
-          onChange={(event, newValue) => {
+          onChange={(_event, newValue) => {
             setNavigation(newValue);
             navigate(navigationPathMap[newValue as Navigation]);
           }}

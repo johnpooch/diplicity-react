@@ -20,6 +20,7 @@ const meta = {
         onClickShare: () => alert('Share clicked!'),
         onClickJoin: () => alert('Join clicked!'),
         onClickLeave: () => alert('Leave clicked!'),
+        link: 'https://example.com',
     }
 } satisfies Meta<typeof GameCard>;
 

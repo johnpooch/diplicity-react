@@ -53,6 +53,7 @@ const GameCard: React.FC<{
   phaseDuration: string;
   timeLeft?: string;
   ordersStatus?: React.ComponentProps<typeof StatusChip>["status"];
+  link: string;
 }> = ({
   title,
   users,
