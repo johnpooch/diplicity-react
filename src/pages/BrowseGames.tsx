@@ -91,12 +91,12 @@ const BrowseGames: React.FC<{
     <>
       <AppBar position="static">
         <Toolbar>
-          <IconButton edge="start" color="inherit" aria-label="menu">
+          <Typography variant="h6" component="h1" sx={{ flexGrow: 1 }}>
+            Diplicity
+          </Typography>
+          <IconButton edge="end" color="inherit" aria-label="menu">
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" component="h1">
-            Browse Games
-          </Typography>
         </Toolbar>
       </AppBar>
       <Stack spacing={1}>
