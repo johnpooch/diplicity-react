@@ -4,6 +4,70 @@ import CreateGame from "./pages/CreateGame";
 import { Route, Routes } from "react-router";
 import NavigationWrapper from "./components/NavigationWrapper";
 import FindGames from "./pages/FindGames";
+import PageWrapper from "./components/PageWrapper";
+
+const games = [
+  {
+    id: "1",
+    title: "Game 1",
+    users: [{ username: "User 1" }, { username: "User 2" }],
+    onClickPlayerInfo: () => {},
+    onClickGameInfo: () => {},
+    onClickShare: () => {},
+    link: "https://example.com",
+    status: "staging",
+  },
+  {
+    id: "1",
+    title: "Game 1",
+    users: [{ username: "User 1" }, { username: "User 2" }],
+    onClickPlayerInfo: () => {},
+    onClickGameInfo: () => {},
+    onClickShare: () => {},
+    link: "https://example.com",
+    status: "staging",
+  },
+  {
+    id: "1",
+    title: "Game 1",
+    users: [{ username: "User 1" }, { username: "User 2" }],
+    onClickPlayerInfo: () => {},
+    onClickGameInfo: () => {},
+    onClickShare: () => {},
+    link: "https://example.com",
+    status: "active",
+  },
+  {
+    id: "1",
+    title: "Game 1",
+    users: [{ username: "User 1" }, { username: "User 2" }],
+    onClickPlayerInfo: () => {},
+    onClickGameInfo: () => {},
+    onClickShare: () => {},
+    link: "https://example.com",
+    status: "active",
+  },
+  {
+    id: "1",
+    title: "Game 1",
+    users: [{ username: "User 1" }, { username: "User 2" }],
+    onClickPlayerInfo: () => {},
+    onClickGameInfo: () => {},
+    onClickShare: () => {},
+    link: "https://example.com",
+    status: "finished",
+  },
+  {
+    id: "1",
+    title: "Game 1",
+    users: [{ username: "User 1" }, { username: "User 2" }],
+    onClickPlayerInfo: () => {},
+    onClickGameInfo: () => {},
+    onClickShare: () => {},
+    link: "https://example.com",
+    status: "finished",
+  },
+];
 
 const Router: React.FC = () => {
   return (
@@ -12,19 +76,9 @@ const Router: React.FC = () => {
         index
         element={
           <NavigationWrapper>
-            <MyGames
-              games={[
-                {
-                  id: "1",
-                  title: "Game 1",
-                  users: [{ username: "User 1" }, { username: "User 2" }],
-                  onClickPlayerInfo: () => {},
-                  onClickGameInfo: () => {},
-                  onClickShare: () => {},
-                  link: "https://example.com",
-                },
-              ]}
-            />
+            <PageWrapper>
+              <MyGames games={games} />
+            </PageWrapper>
           </NavigationWrapper>
         }
       />
@@ -32,7 +86,9 @@ const Router: React.FC = () => {
         path="find-games"
         element={
           <NavigationWrapper>
-            <FindGames />
+            <PageWrapper>
+              <FindGames games={games} />
+            </PageWrapper>
           </NavigationWrapper>
         }
       />
@@ -40,7 +96,9 @@ const Router: React.FC = () => {
         path="create-game"
         element={
           <NavigationWrapper>
-            <CreateGame />
+            <PageWrapper>
+              <CreateGame />
+            </PageWrapper>
           </NavigationWrapper>
         }
       />

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Stack, Modal, Box, Typography, Snackbar, Alert } from "@mui/material";
 import GameCard from "../components/GameCard";
+import GameCardSkeleton from "../components/GameCardSkeleton";
 
 const modalBoxStyle = {
   position: "absolute",
@@ -76,24 +77,71 @@ const MyGames: React.FC<{
     setSnackbar(undefined);
   };
 
+  const stagingGames = games.filter((game) => game.status === "staging");
+  const activeGames = games.filter((game) => game.status === "active");
+  const finishedGames = games.filter((game) => game.status === "finished");
+
   return (
     <>
       <Stack>
-        <Typography variant="h4" component="h1">
-          My games
-        </Typography>
-        <Stack spacing={1}>
-          {games.map((game) => (
-            <GameCard
-              key={game.id}
-              users={game.users}
-              title={game.title}
-              id={game.id}
-              onClickPlayerInfo={() => onClickPlayerInfo(game)}
-              onClickGameInfo={() => onClickGameInfo(game)}
-              onClickShare={() => onClickShare(game.link)}
-            />
-          ))}
+        <Typography variant="h1">My games</Typography>
+        <Stack spacing={2}>
+          <div style={{ paddingTop: 24, paddingBottom: 24 }}>
+            <Typography variant="h2">Staging Games</Typography>
+            <Stack spacing={1} style={{ paddingTop: 12 }}>
+              {stagingGames.map((game) => (
+                <GameCard
+                  key={game.id}
+                  users={game.users}
+                  title={game.title}
+                  status={game.status}
+                  id={game.id}
+                  onClickPlayerInfo={() => onClickPlayerInfo(game)}
+                  onClickGameInfo={() => onClickGameInfo(game)}
+                  onClickShare={() => onClickShare(game.link)}
+                />
+              ))}
+              <GameCardSkeleton />
+            </Stack>
+          </div>
+          <div style={{ paddingTop: 24, paddingBottom: 24 }}>
+            <Typography variant="h2" style={{ paddingBottom: 12 }}>
+              Active Games
+            </Typography>
+            <Stack spacing={1} style={{ paddingTop: 12 }}>
+              {activeGames.map((game) => (
+                <GameCard
+                  key={game.id}
+                  users={game.users}
+                  title={game.title}
+                  status={game.status}
+                  id={game.id}
+                  onClickPlayerInfo={() => onClickPlayerInfo(game)}
+                  onClickGameInfo={() => onClickGameInfo(game)}
+                  onClickShare={() => onClickShare(game.link)}
+                />
+              ))}
+              <GameCardSkeleton />
+            </Stack>
+          </div>
+          <div style={{ paddingTop: 24, paddingBottom: 24 }}>
+            <Typography variant="h2">Finished Games</Typography>
+            <Stack spacing={1} style={{ paddingTop: 12 }}>
+              {finishedGames.map((game) => (
+                <GameCard
+                  key={game.id}
+                  users={game.users}
+                  title={game.title}
+                  status={game.status}
+                  id={game.id}
+                  onClickPlayerInfo={() => onClickPlayerInfo(game)}
+                  onClickGameInfo={() => onClickGameInfo(game)}
+                  onClickShare={() => onClickShare(game.link)}
+                />
+              ))}
+              <GameCardSkeleton />
+            </Stack>
+          </div>
         </Stack>
       </Stack>
       <Modal
