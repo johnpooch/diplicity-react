@@ -26,50 +26,50 @@ const MyGames: React.FC = () => {
     undefined | Pick<React.ComponentProps<typeof Alert>, "severity" | "title">
   >();
 
-  const handleOpenPlayerInfo = (game: Game) => {
-    setSelectedGame(game);
-    setOpenPlayerInfo(true);
-  };
+  // const handleOpenPlayerInfo = (game: Game) => {
+  //   setSelectedGame(game);
+  //   setOpenPlayerInfo(true);
+  // };
 
   const handleClosePlayerInfo = () => {
     setSelectedGame(undefined);
     setOpenPlayerInfo(false);
   };
 
-  const handleOpenGameInfo = (game: Game) => {
-    setSelectedGame(game);
-    setOpenGameInfo(true);
-  };
+  // const handleOpenGameInfo = (game: Game) => {
+  //   setSelectedGame(game);
+  //   setOpenGameInfo(true);
+  // };
 
   const handleCloseGameInfo = () => {
     setSelectedGame(undefined);
     setOpenGameInfo(false);
   };
 
-  const onClickPlayerInfo = (game: Game) => {
-    handleOpenPlayerInfo(game);
-  };
+  // const onClickPlayerInfo = (game: Game) => {
+  //   handleOpenPlayerInfo(game);
+  // };
 
-  const onClickGameInfo = (game: Game) => {
-    handleOpenGameInfo(game);
-  };
+  // const onClickGameInfo = (game: Game) => {
+  //   handleOpenGameInfo(game);
+  // };
 
-  const onClickShare = (link: string) => {
-    navigator.clipboard.writeText(link).then(
-      () => {
-        setSnackbar({
-          severity: "success",
-          title: "Link copied to clipboard!",
-        });
-      },
-      () => {
-        setSnackbar({
-          severity: "error",
-          title: "Failed to copy link to clipboard!",
-        });
-      }
-    );
-  };
+  // const onClickShare = (link: string) => {
+  //   navigator.clipboard.writeText(link).then(
+  //     () => {
+  //       setSnackbar({
+  //         severity: "success",
+  //         title: "Link copied to clipboard!",
+  //       });
+  //     },
+  //     () => {
+  //       setSnackbar({
+  //         severity: "error",
+  //         title: "Failed to copy link to clipboard!",
+  //       });
+  //     }
+  //   );
+  // };
 
   const handleSnackbarClose = () => {
     setSnackbar(undefined);
