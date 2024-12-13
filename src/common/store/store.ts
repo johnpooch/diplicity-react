@@ -5,6 +5,7 @@ import {
 } from "./auth";
 import { configureStore, ThunkDispatch } from "@reduxjs/toolkit";
 import { IAuthService } from "../services";
+import listenerMiddleware from "./middleware";
 
 type CreateStoreOptions = {
     authService: IAuthService;
@@ -25,7 +26,8 @@ export const createStore = ({
         middleware: getDefaultMiddleware =>
             getDefaultMiddleware({ thunk: { extraArgument: { authService } } })
                 .concat(
-                    service.middleware
+                    service.middleware,
+                    listenerMiddleware.middleware
                 )
     });
 };

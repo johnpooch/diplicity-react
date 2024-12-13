@@ -12,12 +12,17 @@ import {
   ListItemButton,
   ListItem,
   Stack,
+  Button,
 } from "@mui/material";
 import {
   Home as HomeIcon,
   Search as SearchIcon,
   Add as AddIcon,
 } from "@mui/icons-material";
+import { authActions } from "../common/store/auth";
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "../common";
+import UserInfo from "./UserInfo";
 
 type Navigation = "home" | "find-games" | "create-game";
 
@@ -114,6 +119,11 @@ const NavigationWrapper: React.FC<{
   const isTablet = useMediaQuery(theme.breakpoints.between("sm", "md"));
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
   const navigate = useNavigate();
+  const dispatch = useDispatch<AppDispatch>();
+
+  const onClickLogout = () => {
+    dispatch(authActions.logout());
+  };
 
   return isMobile ? (
     <>
@@ -158,11 +168,15 @@ const NavigationWrapper: React.FC<{
           icon={<AddIcon />}
           path="/create-game"
         />
+        <Button onClick={onClickLogout}>Log out</Button>
       </TabletNavigation>
       {children}
+      <Stack>
+        <UserInfo />
+      </Stack>
     </Stack>
   ) : isDesktop ? (
-    <Stack direction="row" spacing={2}>
+    <Stack direction="row" spacing={2} style={{ padding: 8 }}>
       <DesktopNavigation>
         <DesktopNavigationAction label="Home" icon={<HomeIcon />} path="/" />
         <DesktopNavigationAction

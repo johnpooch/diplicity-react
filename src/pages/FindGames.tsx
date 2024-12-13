@@ -7,14 +7,9 @@ import {
   TextField,
   MenuItem,
 } from "@mui/material";
-import GameCard from "../components/GameCard";
-import GameCardSkeleton from "../components/GameCardSkeleton";
+import GameList from "../components/GameList";
 
-type Game = React.ComponentProps<typeof GameCard> & { link: string };
-
-const FindGames: React.FC<{
-  games: Game[];
-}> = ({ games }) => {
+const FindGames: React.FC = () => {
   const [snackbar, setSnackbar] = useState<
     undefined | Pick<React.ComponentProps<typeof Alert>, "severity" | "title">
   >();
@@ -55,12 +50,7 @@ const FindGames: React.FC<{
             <MenuItem value="48">48 hours</MenuItem>
           </TextField>
         </Stack>
-        <Stack spacing={1} style={{ paddingTop: 12 }}>
-          {games.map((game) => (
-            <GameCard key={game.id} {...game} />
-          ))}
-          <GameCardSkeleton />
-        </Stack>
+        <GameList my={false} status="Open" mastered={false} />
       </Stack>
       <Snackbar
         open={snackbar !== undefined}

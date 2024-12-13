@@ -15,7 +15,7 @@ const PageWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     >
       <Box
         sx={{
-          maxWidth: "630px",
+          maxWidth: 630 + 320,
           width: "100%",
           margin: "0 auto",
           padding: "16px",

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Stack, Modal, Box, Typography, Snackbar, Alert } from "@mui/material";
 import GameCard from "../components/GameCard";
-import GameCardSkeleton from "../components/GameCardSkeleton";
+import GameList from "../components/GameList";
 
 const modalBoxStyle = {
   position: "absolute",
@@ -17,9 +17,7 @@ const modalBoxStyle = {
 
 type Game = React.ComponentProps<typeof GameCard> & { link: string };
 
-const MyGames: React.FC<{
-  games: Game[];
-}> = ({ games }) => {
+const MyGames: React.FC = () => {
   const [openPlayerInfo, setOpenPlayerInfo] = useState(false);
   const [openGameInfo, setOpenGameInfo] = useState(false);
   const [selectedGame, setSelectedGame] = useState<Game | undefined>();
@@ -77,17 +75,6 @@ const MyGames: React.FC<{
     setSnackbar(undefined);
   };
 
-  games = games.map((game) => ({
-    ...game,
-    onClickPlayerInfo: () => onClickPlayerInfo(game),
-    onClickGameInfo: () => onClickGameInfo(game),
-    onClickShare: () => onClickShare(game.link),
-  }));
-
-  const stagingGames = games.filter((game) => game.status === "staging");
-  const activeGames = games.filter((game) => game.status === "active");
-  const finishedGames = games.filter((game) => game.status === "finished");
-
   return (
     <>
       <Stack>
@@ -95,32 +82,24 @@ const MyGames: React.FC<{
         <Stack spacing={2}>
           <div style={{ paddingTop: 24, paddingBottom: 24 }}>
             <Typography variant="h2">Staging Games</Typography>
-            <Stack spacing={1} style={{ paddingTop: 12 }}>
-              {stagingGames.map((game) => (
-                <GameCard key={game.id} {...game} />
-              ))}
-              <GameCardSkeleton />
-            </Stack>
+            <GameList my={true} status="Staging" mastered={false} />
           </div>
           <div style={{ paddingTop: 24, paddingBottom: 24 }}>
             <Typography variant="h2" style={{ paddingBottom: 12 }}>
               Active Games
             </Typography>
-            <Stack spacing={1} style={{ paddingTop: 12 }}>
-              {activeGames.map((game) => (
-                <GameCard key={game.id} {...game} />
-              ))}
-              <GameCardSkeleton />
-            </Stack>
+            <GameList
+              my={true}
+              status="Started"
+              mastered={false}
+              emptyMessage={
+                "You are not a member of any active games. Once enough players have joined a staging game, it will appear here."
+              }
+            />
           </div>
           <div style={{ paddingTop: 24, paddingBottom: 24 }}>
             <Typography variant="h2">Finished Games</Typography>
-            <Stack spacing={1} style={{ paddingTop: 12 }}>
-              {finishedGames.map((game) => (
-                <GameCard key={game.id} {...game} />
-              ))}
-              <GameCardSkeleton />
-            </Stack>
+            <GameList my={true} status="Finished" mastered={false} />
           </div>
         </Stack>
       </Stack>

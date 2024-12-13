@@ -88,7 +88,7 @@ const GameCard: React.FC<{
   };
 
   return (
-    <Card>
+    <Card elevation={0}>
       <CardContent>
         <Stack>
           <Grid container spacing={2}>

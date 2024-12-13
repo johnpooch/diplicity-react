@@ -272,7 +272,7 @@ export default createApi({
         }),
         getRoot: builder.query<User, undefined>({
             query: () => "/",
-            transformResponse: (response: ApiResponse<User>) => extractProperties(response)
+            transformResponse: (response: ApiResponse<{ User: User }>) => extractProperties(response).User
         }),
         listVariants: builder.query<Variant[], undefined>({
             query: () => "/Variants",

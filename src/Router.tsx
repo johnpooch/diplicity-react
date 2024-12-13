@@ -6,6 +6,11 @@ import NavigationWrapper from "./components/NavigationWrapper";
 import FindGames from "./pages/FindGames";
 import PageWrapper from "./components/PageWrapper";
 import GameCard from "./components/GameCard";
+import Login from "./pages/Login";
+import { useSelector } from "react-redux";
+import { selectAuth } from "./common/store/auth";
+import { Stack } from "@mui/material";
+import UserInfo from "./components/UserInfo";
 
 const defaultGame = {
   id: "1",
@@ -52,14 +57,21 @@ const games: React.ComponentProps<typeof GameCard>[] = [
 ];
 
 const Router: React.FC = () => {
-  return (
+  const { loggedIn } = useSelector(selectAuth);
+
+  return loggedIn ? (
     <Routes>
       <Route
         index
         element={
           <NavigationWrapper>
             <PageWrapper>
-              <MyGames games={games} />
+              <Stack direction="row" gap={4}>
+                <MyGames />
+                <Stack style={{ minWidth: 320 }}>
+                  <UserInfo />
+                </Stack>
+              </Stack>
             </PageWrapper>
           </NavigationWrapper>
         }
@@ -84,6 +96,10 @@ const Router: React.FC = () => {
           </NavigationWrapper>
         }
       />
+    </Routes>
+  ) : (
+    <Routes>
+      <Route index element={<Login />} />
     </Routes>
   );
 };
