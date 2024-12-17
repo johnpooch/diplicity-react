@@ -1,11 +1,29 @@
 import "./App.css";
-import { CssBaseline, ThemeProvider } from "@mui/material";
+import { Box, CssBaseline, Modal, ThemeProvider } from "@mui/material";
 import { Provider } from "react-redux";
 import Router from "./Router";
 import theme from "./theme";
 import { AuthService } from "./services";
 import { createStore } from "./common";
 import { authActions } from "./common/store/auth";
+import ConnectedFeedbackComponent from "./components/Feedback";
+import { GlobalModalProvider, useGlobalModal } from "./GlobalModalContext";
+import { PlayerInfo } from "./components/PlayerInfo";
+import { usePlayerInfoQuery } from "./common/hooks/usePlayerInfo";
+import { GameInfo } from "./components/GameInfo";
+import { useGameInfoQuery } from "./common/hooks/useGameInfo";
+
+const modalBoxStyle = {
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  width: 400,
+  bgcolor: "background.paper",
+  border: "2px solid #000",
+  boxShadow: 24,
+  p: 4,
+};
 
 function App() {
   const url = new URL(window.location.href);
@@ -21,10 +39,41 @@ function App() {
     <Provider store={store}>
       <CssBaseline />
       <ThemeProvider theme={theme}>
-        <Router />
+        <GlobalModalProvider>
+          <Router />
+          <ConnectedFeedbackComponent />
+          <GlobalModals />
+        </GlobalModalProvider>
       </ThemeProvider>
     </Provider>
   );
 }
+
+const GlobalModals = () => {
+  const { modalType, modalId, closeModal } = useGlobalModal();
+
+  return (
+    <>
+      {modalType === "playerInfo" && modalId && (
+        <Modal open={!!modalId} onClose={closeModal}>
+          <Box sx={modalBoxStyle}>
+            <PlayerInfo
+              usePlayerInfoQuery={usePlayerInfoQuery}
+              gameId={modalId}
+            />
+          </Box>
+        </Modal>
+      )}
+      {modalType === "gameInfo" && modalId && (
+        <Modal open={!!modalId} onClose={closeModal}>
+          <Box sx={modalBoxStyle}>
+            <GameInfo useGameInfoQuery={useGameInfoQuery} gameId={modalId} />
+          </Box>
+        </Modal>
+      )}
+      {/* Add other modals here */}
+    </>
+  );
+};
 
 export default App;

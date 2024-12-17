@@ -7,9 +7,8 @@ import {
   TextField,
   MenuItem,
 } from "@mui/material";
-import GameList from "../components/GameList";
 
-const FindGames: React.FC = () => {
+const BrowseGamesScreen: React.FC = () => {
   const [snackbar, setSnackbar] = useState<
     undefined | Pick<React.ComponentProps<typeof Alert>, "severity" | "title">
   >();
@@ -50,7 +49,14 @@ const FindGames: React.FC = () => {
             <MenuItem value="48">48 hours</MenuItem>
           </TextField>
         </Stack>
-        <GameList my={false} status="Open" mastered={false} />
+        {/* <>
+                      <GameCard
+                        key={game.id}
+                        {...game}
+                        {...props.gameCallbacks}
+                      />
+                      <Divider />
+                    </> */}
       </Stack>
       <Snackbar
         open={snackbar !== undefined}
@@ -70,4 +76,4 @@ const FindGames: React.FC = () => {
   );
 };
 
-export default FindGames;
+export default BrowseGamesScreen;

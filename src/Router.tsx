@@ -1,34 +1,37 @@
 import React from "react";
-import MyGames from "./pages/MyGames";
-import CreateGame from "./pages/CreateGame";
+import { HomeScreen } from "./screens/HomeScreen";
+import CreateGame from "./screens/CreateGame";
 import { Route, Routes } from "react-router";
 import NavigationWrapper from "./components/NavigationWrapper";
-import FindGames from "./pages/FindGames";
+import FindGames from "./screens/BrowseGamesScreen";
 import PageWrapper from "./components/PageWrapper";
-import Login from "./pages/Login";
+import Login from "./screens/Login";
 import { useSelector } from "react-redux";
 import { selectAuth } from "./common/store/auth";
-import { Stack } from "@mui/material";
-import UserInfo from "./components/UserInfo";
+import UserPage from "./screens/UserPage";
+import { useHomeQuery } from "./common";
+import { GameCallbacks } from "./components/GameCard";
 
 const Router: React.FC = () => {
   const { loggedIn } = useSelector(selectAuth);
+
+  const gameCallbacks: GameCallbacks = {
+    onClickPlayerInfo: (id) => console.log("onClickPlayerInfo", id),
+    onClickGameInfo: (id) => console.log("onClickGameInfo", id),
+    onClickShare: (id) => console.log("onClickShare", id),
+    onClickJoin: (id) => console.log("onClickJoin", id),
+    onClickLeave: (id) => console.log("onClickLeave", id),
+  };
 
   return loggedIn ? (
     <Routes>
       <Route
         index
         element={
-          <NavigationWrapper>
-            <PageWrapper>
-              <Stack direction="row" gap={4}>
-                <MyGames />
-                <Stack style={{ minWidth: 320 }}>
-                  <UserInfo />
-                </Stack>
-              </Stack>
-            </PageWrapper>
-          </NavigationWrapper>
+          <HomeScreen
+            useHomeQuery={useHomeQuery}
+            gameCallbacks={gameCallbacks}
+          />
         }
       />
       <Route
@@ -47,6 +50,16 @@ const Router: React.FC = () => {
           <NavigationWrapper>
             <PageWrapper>
               <CreateGame />
+            </PageWrapper>
+          </NavigationWrapper>
+        }
+      />
+      <Route
+        path="user"
+        element={
+          <NavigationWrapper>
+            <PageWrapper>
+              <UserPage />
             </PageWrapper>
           </NavigationWrapper>
         }

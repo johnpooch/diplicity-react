@@ -90,6 +90,12 @@ export default createApi({
                 responseHandler: (response) => response.text(),
             }),
         }),
+        getVariantFlagSVG: builder.query<string, { variantName: string; nationName: string }>({
+            query: ({ variantName, nationName }) => ({
+                url: `/Variant/${variantName}/Flags/${nationName}.svg`,
+                responseHandler: (response) => response.text(),
+            }),
+        }),
         getForumMail: builder.query<ApiResponse<ForumMail>, undefined>({
             query: () => "/ForumMail",
         }),

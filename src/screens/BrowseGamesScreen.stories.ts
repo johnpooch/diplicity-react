@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import FindGames from "./FindGames";
+import FindGames from "./BrowseGamesScreen";
 import * as GameCardStories from '../components/GameCard.stories';
 import GameCardDefault from '../components/GameCard.stories';
 

@@ -47,17 +47,16 @@ const PlayerAvatar: React.FC<{
 
   return (
     <Avatar
-      onClick={onClick}
       sx={{
-        bgcolor: bgColor,
-        color: textColor,
-        cursor: onClick ? "pointer" : undefined,
         width: SIZE,
         height: SIZE,
         fontSize: FONT_SIZE,
+        backgroundColor: bgColor,
+        color: textColor,
       }}
+      onClick={onClick}
     >
-      {username.charAt(0).toUpperCase()}
+      {username[0].toUpperCase()}
     </Avatar>
   );
 };

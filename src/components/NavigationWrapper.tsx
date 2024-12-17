@@ -13,6 +13,7 @@ import {
   ListItem,
   Stack,
   Button,
+  Avatar,
 } from "@mui/material";
 import {
   Home as HomeIcon,
@@ -23,13 +24,15 @@ import { authActions } from "../common/store/auth";
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "../common";
 import UserInfo from "./UserInfo";
+import service from "../common/store/service";
 
-type Navigation = "home" | "find-games" | "create-game";
+type Navigation = "home" | "find-games" | "create-game" | "user";
 
 const navigationPathMap: Record<Navigation, string> = {
   home: "/",
   "find-games": "/find-games",
   "create-game": "/create-game",
+  user: "/user",
 };
 
 const TabletNavigation: React.FC<{
@@ -48,7 +51,8 @@ const TabletNavigationAction: React.FC<{
   label: string;
   icon: React.ReactElement;
   path: string;
-}> = ({ label, icon, path }) => {
+  style?: React.CSSProperties;
+}> = ({ label, icon, path, style }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
@@ -62,7 +66,10 @@ const TabletNavigationAction: React.FC<{
       <ListItemButton onClick={() => navigate(path)} style={{ padding: 16 }}>
         <ListItemIcon style={{ minWidth: 0 }} aria-label={label}>
           {React.cloneElement(icon, {
-            style: location.pathname === path ? selectedItemIconStyle : {},
+            style:
+              location.pathname === path
+                ? { ...style, ...selectedItemIconStyle }
+                : { ...style },
           })}
         </ListItemIcon>
       </ListItemButton>
@@ -74,7 +81,8 @@ const DesktopNavigationAction: React.FC<{
   label: string;
   icon: React.ReactElement;
   path: string;
-}> = ({ label, icon, path }) => {
+  style?: React.CSSProperties;
+}> = ({ label, icon, path, style }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
@@ -93,7 +101,10 @@ const DesktopNavigationAction: React.FC<{
       <ListItemButton onClick={() => navigate(path)} style={{ padding: 16 }}>
         <ListItemIcon style={{ minWidth: 0 }}>
           {React.cloneElement(icon, {
-            style: location.pathname === path ? selectedItemIconStyle : {},
+            style:
+              location.pathname === path
+                ? { ...style, ...selectedItemIconStyle }
+                : { ...style },
           })}
         </ListItemIcon>
         <ListItemText
@@ -120,6 +131,7 @@ const NavigationWrapper: React.FC<{
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
+  const rootQuery = service.endpoints.getRoot.useQuery(undefined);
 
   const onClickLogout = () => {
     dispatch(authActions.logout());
@@ -132,6 +144,7 @@ const NavigationWrapper: React.FC<{
         <BottomNavigation
           value={navigation}
           onChange={(_event, newValue) => {
+            console.log(newValue);
             setNavigation(newValue);
             navigate(navigationPathMap[newValue as Navigation]);
           }}
@@ -151,6 +164,15 @@ const NavigationWrapper: React.FC<{
             icon={<AddIcon />}
             value="create-game"
           />
+          {rootQuery.isLoading ? (
+            <BottomNavigationAction label="Loading..." icon={<Avatar />} />
+          ) : (
+            <BottomNavigationAction
+              label="Profile"
+              icon={<Avatar src={rootQuery.data?.Picture} />}
+              value="user"
+            />
+          )}
         </BottomNavigation>
       </AppBar>
     </>
@@ -168,12 +190,22 @@ const NavigationWrapper: React.FC<{
           icon={<AddIcon />}
           path="/create-game"
         />
-        <Button onClick={onClickLogout}>Log out</Button>
+        {rootQuery.isLoading ? (
+          <TabletNavigationAction
+            label="Loading..."
+            path="/user"
+            icon={<Avatar style={{ width: 24, height: 24 }} />}
+          />
+        ) : (
+          <TabletNavigationAction
+            label="User"
+            icon={<Avatar src={rootQuery.data?.Picture} />}
+            style={{ width: 26, height: 26 }}
+            path="/user"
+          />
+        )}
       </TabletNavigation>
       {children}
-      <Stack>
-        <UserInfo />
-      </Stack>
     </Stack>
   ) : isDesktop ? (
     <Stack direction="row" spacing={2} style={{ padding: 8 }}>
@@ -189,6 +221,20 @@ const NavigationWrapper: React.FC<{
           icon={<AddIcon />}
           path="/create-game"
         />
+        {rootQuery.isLoading ? (
+          <DesktopNavigationAction
+            label="Loading..."
+            path="/user"
+            icon={<Avatar style={{ width: 24, height: 24 }} />}
+          />
+        ) : (
+          <DesktopNavigationAction
+            label="Profile"
+            icon={<Avatar src={rootQuery.data?.Picture} />}
+            style={{ width: 26, height: 26 }}
+            path="/user"
+          />
+        )}
       </DesktopNavigation>
       {children}
     </Stack>
