@@ -5,7 +5,6 @@ import {
     Message,
     Game,
     PhaseState,
-    Phase,
     Channel,
     Member,
     GameMasterInvitation,
@@ -231,6 +230,76 @@ const gameSchema = z.object({
 const rootSchema = z.object({
     User: userSchema,
 })
+
+const unitSchema = z.object({
+    Type: z.string(),
+    Nation: z.string(),
+});
+
+const unitStateSchema = z.object({
+    Province: z.string(),
+    Unit: unitSchema,
+});
+
+const scStateSchema = z.object({
+    Province: z.string(),
+    Owner: z.string(),
+});
+
+const dislodgedSchema = z.object({
+    Province: z.string(),
+    Dislodged: unitSchema,
+});
+
+const dislodgerSchema = z.object({
+    Province: z.string(),
+    Dislodger: z.string(),
+});
+
+const bounceSchema = z.object({
+    Province: z.string(),
+    BounceList: z.string(),
+});
+
+const resolutionSchema = z.object({
+    Province: z.string(),
+    Resolution: z.string(),
+});
+
+const phaseSchema = z.object({
+    PhaseOrdinal: z.number(),
+    Season: z.string(),
+    Year: z.number(),
+    Type: z.string(),
+    Resolved: z.boolean(),
+    CreatedAt: z.string(),
+    CreatedAgo: z.number(),
+    ResolvedAt: z.string(),
+    ResolvedAgo: z.number(),
+    DeadlineAt: z.string(),
+    NextDeadlineIn: z.number(),
+    UnitsJSON: z.string(),
+    SCsJSON: z.string(),
+    GameID: z.string(),
+    Units: z.array(unitStateSchema),
+    SCs: z.array(scStateSchema),
+    Dislodgeds: z.array(dislodgedSchema).nullable(),
+    Dislodgers: z.array(dislodgerSchema).nullable(),
+    ForceDisbands: z.array(z.string()).nullable(),
+    Bounces: z.array(bounceSchema).nullable(),
+    Resolutions: z.array(resolutionSchema).nullable(),
+    Host: z.string(),
+    SoloSCCount: z.number(),
+    PreliminaryScores: z.array(
+        z.object({
+            UserId: z.string(),
+            Member: z.string(),
+            SCs: z.number(),
+            Score: z.number(),
+            Explanation: z.string(),
+        })
+    ),
+});
 
 const baseUrl = "https://diplicity-engine.appspot.com/";
 
@@ -483,9 +552,12 @@ export default createApi({
                 return extractPropertiesList(parsed);
             }
         }),
-        listPhases: builder.query<Phase[], string>({
+        listPhases: builder.query({
             query: (gameId) => `/Game/${gameId}/Phases`,
-            transformResponse: (response: ListApiResponse<Phase>) => extractPropertiesList(response)
+            transformResponse: (response) => {
+                const parsed = listApiResponseSchema(phaseSchema).parse(response);
+                return extractPropertiesList(parsed);
+            }
         }),
         listGames: builder.query({
             query: ({ my, status, mastered }: ListGameFilters) => {
@@ -524,4 +596,9 @@ export default createApi({
         }),
     })
 });
+
+type Phase = z.infer<typeof phaseSchema>;
+type Variant = z.infer<typeof variantSchema>;
+
+export type { Phase, Variant }
 

@@ -54,7 +54,7 @@ const Router: React.FC = () => {
           </NavigationWrapper>
         }
       />
-      <Route path="game/:id" element={<GameScreen />} />
+      <Route path="game/:gameId" element={<GameScreen />} />
     </Routes>
   ) : (
     <Routes>
