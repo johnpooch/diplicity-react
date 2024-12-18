@@ -1,7 +1,7 @@
 import React from "react";
 import { HomeScreen } from "./screens/HomeScreen";
 import CreateGame from "./screens/CreateGame";
-import { Route, Routes } from "react-router";
+import { Route, Routes, useNavigate } from "react-router";
 import NavigationWrapper from "./components/NavigationWrapper";
 import { BrowseGamesScreen } from "./screens/BrowseGamesScreen";
 import PageWrapper from "./components/PageWrapper";
@@ -10,9 +10,11 @@ import { useSelector } from "react-redux";
 import { selectAuth } from "./common/store/auth";
 import UserPage from "./screens/UserPage";
 import { GameCallbacks } from "./components/GameCard";
+import { GameScreen } from "./screens/GameScreen";
 
 const Router: React.FC = () => {
   const { loggedIn } = useSelector(selectAuth);
+  const navigate = useNavigate();
 
   const gameCallbacks: GameCallbacks = {
     onClickPlayerInfo: (id) => console.log("onClickPlayerInfo", id),
@@ -20,6 +22,9 @@ const Router: React.FC = () => {
     onClickShare: (id) => console.log("onClickShare", id),
     onClickJoin: (id) => console.log("onClickJoin", id),
     onClickLeave: (id) => console.log("onClickLeave", id),
+    onClickViewGame: (id) => {
+      navigate(`/game/${id}`);
+    },
   };
 
   return loggedIn ? (
@@ -49,6 +54,7 @@ const Router: React.FC = () => {
           </NavigationWrapper>
         }
       />
+      <Route path="game/:id" element={<GameScreen />} />
     </Routes>
   ) : (
     <Routes>
