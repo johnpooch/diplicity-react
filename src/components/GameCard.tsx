@@ -7,6 +7,7 @@ import {
   Lock as LockIcon,
   Add as JoinIcon,
   TimerOutlined as PhaseTimeRemainingIcon,
+  Map as VariantIcon,
 } from "@mui/icons-material";
 import {
   Card,
@@ -48,6 +49,7 @@ type GameCallbacks = {
   onClickShare: GameCallback;
   onClickJoin: GameCallback;
   onClickLeave: GameCallback;
+  onClickViewGame: GameCallback;
 };
 
 const GameCard: React.FC<
@@ -144,6 +146,16 @@ const GameCard: React.FC<
                     >
                       <JoinIcon sx={{ marginRight: 1 }} />
                       Join
+                    </MenuItem>
+                  )}
+                  {props.game.Started && (
+                    <MenuItem
+                      onClick={withMenuClose(() =>
+                        props.onClickViewGame(props.game.ID)
+                      )}
+                    >
+                      <VariantIcon sx={{ marginRight: 1 }} />
+                      View
                     </MenuItem>
                   )}
                   {userCanLeave && (
