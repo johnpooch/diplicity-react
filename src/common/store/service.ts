@@ -329,13 +329,13 @@ export default createApi({
         mode: "cors",
     }),
     endpoints: (builder) => ({
-        getVariantSVG: builder.query<string, string>({
+        getVariantSvg: builder.query<string, string>({
             query: (variantName) => ({
                 url: `/Variant/${variantName}/Map.svg`,
                 responseHandler: (response) => response.text(),
             }),
         }),
-        getVariantUnitSVG: builder.query<
+        getVariantUnitSvg: builder.query<
             string,
             { variantName: string; unitType: string }
         >({
@@ -344,7 +344,7 @@ export default createApi({
                 responseHandler: (response) => response.text(),
             }),
         }),
-        getVariantFlagSVG: builder.query<string, { variantName: string; nationName: string }>({
+        getVariantFlagSvg: builder.query<string, { variantName: string; nationName: string }>({
             query: ({ variantName, nationName }) => ({
                 url: `/Variant/${variantName}/Flags/${nationName}.svg`,
                 responseHandler: (response) => response.text(),

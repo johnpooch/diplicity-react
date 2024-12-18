@@ -27,6 +27,10 @@ const Router: React.FC = () => {
     },
   };
 
+  const onClickBack = () => {
+    navigate(-1);
+  };
+
   return loggedIn ? (
     <Routes>
       <Route index element={<HomeScreen gameCallbacks={gameCallbacks} />} />
@@ -54,7 +58,10 @@ const Router: React.FC = () => {
           </NavigationWrapper>
         }
       />
-      <Route path="game/:gameId" element={<GameScreen />} />
+      <Route
+        path="game/:gameId"
+        element={<GameScreen onClickBack={onClickBack} />}
+      />
     </Routes>
   ) : (
     <Routes>

@@ -134,6 +134,7 @@ const NavigationWrapper: React.FC<{
         <BottomNavigation
           value={navigation}
           onChange={(_event, newValue) => {
+            console.log(newValue);
             setNavigation(newValue);
             navigate(navigationPathMap[newValue as Navigation]);
           }}
