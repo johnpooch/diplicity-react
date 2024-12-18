@@ -12,7 +12,6 @@ import {
   ListItemButton,
   ListItem,
   Stack,
-  Button,
   Avatar,
 } from "@mui/material";
 import {
@@ -20,10 +19,6 @@ import {
   Search as SearchIcon,
   Add as AddIcon,
 } from "@mui/icons-material";
-import { authActions } from "../common/store/auth";
-import { useDispatch } from "react-redux";
-import { AppDispatch } from "../common";
-import UserInfo from "./UserInfo";
 import service from "../common/store/service";
 
 type Navigation = "home" | "find-games" | "create-game" | "user";
@@ -130,12 +125,7 @@ const NavigationWrapper: React.FC<{
   const isTablet = useMediaQuery(theme.breakpoints.between("sm", "md"));
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
   const navigate = useNavigate();
-  const dispatch = useDispatch<AppDispatch>();
   const rootQuery = service.endpoints.getRoot.useQuery(undefined);
-
-  const onClickLogout = () => {
-    dispatch(authActions.logout());
-  };
 
   return isMobile ? (
     <>

@@ -1,14 +1,12 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import {
     Headers,
-    Variant,
     UserConfig,
     Message,
     Game,
     PhaseState,
     Phase,
     Channel,
-    User,
     Member,
     GameMasterInvitation,
     UserStats,
@@ -23,6 +21,19 @@ import {
     CreateGameFormValues,
 } from "./service.types";
 import { selectAuth } from "./auth";
+import { z } from "zod";
+
+const apiResponseSchema = <TObjSchema extends z.ZodRawShape>(schema: z.ZodObject<TObjSchema>) => z.object({
+    Properties: schema,
+    Links: z.array(z.object({
+        Rel: z.string(),
+        URL: z.string(),
+        Method: z.string(),
+    })),
+})
+const listApiResponseSchema = <TObjSchema extends z.ZodRawShape>(schema: z.ZodObject<TObjSchema>) => z.object({
+    Properties: z.array(apiResponseSchema(schema)),
+})
 
 enum TagType {
     Game = "Game",
@@ -46,6 +57,180 @@ const extractPropertiesList = <T>(response: ListApiResponse<T>) => {
     return response.Properties.map((response) => response.Properties);
 };
 
+const userSchema = z.object({
+    Email: z.string(),
+    FamilyName: z.string(),
+    Gender: z.string(),
+    GivenName: z.string(),
+    Hd: z.string(),
+    Id: z.string(),
+    Locale: z.string(),
+    Name: z.string(),
+    Picture: z.string().url(),
+    VerifiedEmail: z.boolean(),
+    ValidUntil: z.string(),
+});
+
+const phaseStateSchema = z.object({
+    GameID: z.string().nullable(),
+    PhaseOrdinal: z.number(),
+    Nation: z.string(),
+    ReadyToResolve: z.boolean(),
+    WantsDIAS: z.boolean(),
+    WantsConcede: z.boolean(),
+    OnProbation: z.boolean(),
+    NoOrders: z.boolean(),
+    Eliminated: z.boolean(),
+    Messages: z.string(),
+    ZippedOptions: z.string().nullable(),
+    Note: z.string(),
+});
+
+const memberSchema = z.object({
+    User: userSchema,
+    Nation: z.string(),
+    GameAlias: z.string(),
+    NationPreferences: z.string(),
+    UnreadMessages: z.number(),
+    Replaceable: z.boolean(),
+    NewestPhaseState: phaseStateSchema,
+});
+
+const variantSchema = z.object({
+    Name: z.string(),
+    Nations: z.array(z.string()),
+    PhaseTypes: z.array(z.string()),
+    Seasons: z.array(z.string()),
+    UnitTypes: z.array(z.string()),
+    SvgVersion: z.string().optional(),
+    ProvinceLongNames: z.record(z.string()).nullable(),
+    NationColors: z.record(z.string()).nullable(),
+    CreatedBy: z.string(),
+    Version: z.string(),
+    Description: z.string(),
+    Rules: z.string(),
+    OrderTypes: z.array(z.string()),
+    Start: z.object({
+        Year: z.number(),
+        Season: z.string(),
+        Type: z.string(),
+        SCs: z.record(z.string()),
+        Units: z.record(z.object({
+            Type: z.string(),
+            Nation: z.string(),
+        })),
+        Map: z.string(),
+    }),
+    Graph: z.object({
+        Nodes: z.record(z.object({
+            Name: z.string(),
+            Subs: z.record(z.object({
+                Name: z.string(),
+                Edges: z.record(z.object({
+                    Flags: z.record(z.boolean()),
+                })),
+                ReverseEdges: z.record(z.object({
+                    Flags: z.record(z.boolean()),
+                })),
+                Flags: z.record(z.boolean()),
+            })),
+            SC: z.optional(z.string().nullable()),
+        })),
+    }),
+    ExtraDominanceRules: z.record(z.object({
+        Priority: z.number(),
+        Nation: z.string(),
+        Dependencies: z.record(z.string()),
+    })).nullable(),
+})
+
+const phaseMetaSchema = z.object({
+    PhaseOrdinal: z.number(),
+    Season: z.string(),
+    Year: z.number(),
+    Type: z.string(),
+    Resolved: z.boolean(),
+    CreatedAt: z.string(),
+    CreatedAgo: z.number(),
+    ResolvedAt: z.string(),
+    ResolvedAgo: z.number(),
+    DeadlineAt: z.string(),
+    NextDeadlineIn: z.number(),
+    UnitsJSON: z.string(),
+    SCsJSON: z.string(),
+});
+
+const transformMinutesToDisplayString = (minutes: number) => {
+    if (minutes === 0) {
+        return undefined;
+    }
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    if (hours > 0 && remainingMinutes > 0) {
+        return `${hours} hours ${remainingMinutes} minutes`;
+    }
+    if (hours > 0) {
+        return `${hours} hours`;
+    }
+    return `${remainingMinutes} minutes`;
+}
+
+
+const transformReliabilityToDisplayString = (reliability: number) => {
+    if (reliability === 0) {
+        return undefined
+    };
+    return "Commited";
+}
+
+const transformRatingToDisplayString = (rating: number) => {
+    if (rating === 0) {
+        return undefined
+    };
+    return "Private first class";
+}
+
+const gameSchema = z.object({
+    Anonymous: z.boolean(),
+    ChatLanguageISO639_1: z.string(),
+    Desc: z.string(),
+    DisableConferenceChat: z.boolean(),
+    DisableGroupChat: z.boolean(),
+    DisablePrivateChat: z.boolean(),
+    Finished: z.boolean(),
+    GameMasterEnabled: z.boolean(),
+    ID: z.string(),
+    LastYear: z.number(),
+    MaxHated: z.number().nullable(),
+    MaxHater: z.number(),
+    MaxRating: z.number().transform(transformRatingToDisplayString),
+    Members: z.array(memberSchema),
+    MinQuickness: z.number(),
+    MinRating: z.number().transform(transformRatingToDisplayString),
+    MinReliability: z.number().transform(transformReliabilityToDisplayString),
+    NMembers: z.number(),
+    NationAllocation: z.number(),
+    NonMovementPhaseLengthMinutes: z.number().transform(transformMinutesToDisplayString),
+    PhaseLengthMinutes: z.number().transform(transformMinutesToDisplayString),
+    Private: z.boolean(),
+    RequireGameMasterInvitation: z.boolean(),
+    SkipMuster: z.boolean(),
+    Started: z.boolean(),
+    Variant: z.string(),
+    ActiveBans: z.array(z.object({
+        UserId: z.string(),
+        GameId: z.string(),
+        Reason: z.string(),
+        BannedBy: z.string(),
+        BannedAt: z.string(),
+    })).nullable(),
+    Closed: z.boolean(),
+    NewestPhaseMeta: z.nullable(z.array(phaseMetaSchema).min(1).max(1)),
+});
+
+const rootSchema = z.object({
+    User: userSchema,
+})
 
 const baseUrl = "https://diplicity-engine.appspot.com/";
 
@@ -271,25 +456,39 @@ export default createApi({
             }),
             invalidatesTags: [TagType.ListGames],
         }),
-        getGame: builder.query<Game, string>({
+        getGame: builder.query({
             query: (id) => `/Game/${id}`,
-            transformResponse: (response: ApiResponse<Game>) => extractProperties(response),
+            transformResponse: (response) => {
+                const parsed = apiResponseSchema(gameSchema).parse(response);
+                const extracted = extractProperties(parsed);
+                return {
+                    ...extracted,
+                    Links: parsed.Links,
+                };
+            },
             providesTags: [TagType.Game],
         }),
-        getRoot: builder.query<User, undefined>({
+        getRoot: builder.query({
             query: () => "/",
-            transformResponse: (response: ApiResponse<{ User: User }>) => extractProperties(response).User
+            // transformResponse: (response) => extractProperties(response).User
+            transformResponse: (response) => {
+                const parsed = apiResponseSchema(rootSchema).parse(response);
+                return extractProperties(parsed).User;
+            }
         }),
-        listVariants: builder.query<Variant[], undefined>({
+        listVariants: builder.query({
             query: () => "/Variants",
-            transformResponse: (response: ListApiResponse<Variant>) => extractPropertiesList(response)
+            transformResponse: (response) => {
+                const parsed = listApiResponseSchema(variantSchema).parse(response);
+                return extractPropertiesList(parsed);
+            }
         }),
         listPhases: builder.query<Phase[], string>({
             query: (gameId) => `/Game/${gameId}/Phases`,
             transformResponse: (response: ListApiResponse<Phase>) => extractPropertiesList(response)
         }),
-        listGames: builder.query<Game[], ListGameFilters>({
-            query: ({ my, status, mastered }) => {
+        listGames: builder.query({
+            query: ({ my, status, mastered }: ListGameFilters) => {
                 const titleStatus = status.charAt(0).toUpperCase() + status.slice(1);
                 if (my) {
                     if (mastered) {
@@ -299,7 +498,14 @@ export default createApi({
                 }
                 return `/Games/${titleStatus}`;
             },
-            transformResponse: (response: ListApiResponse<Game>) => extractPropertiesList(response),
+            transformResponse: (response) => {
+                const parsed = listApiResponseSchema(gameSchema).parse(response);
+                const extracted = extractPropertiesList(parsed);
+                return extracted.map((game, index) => ({
+                    ...game,
+                    Links: parsed.Properties[index].Links,
+                }));
+            },
             providesTags: [TagType.ListGames],
         }),
         getUserStats: builder.query<UserStats, string>({
@@ -318,3 +524,4 @@ export default createApi({
         }),
     })
 });
+

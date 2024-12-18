@@ -24,9 +24,9 @@ import {
   Avatar,
 } from "@mui/material";
 import StatusChip from "./StatusChip";
-import { Display } from "../common/display";
 import PlayerAvatar from "./PlayerAvatar";
 import { useGlobalModal } from "../GlobalModalContext";
+import service from "../common/store/service";
 
 const MAX_AVATARS = 7;
 
@@ -50,7 +50,12 @@ type GameCallbacks = {
   onClickLeave: GameCallback;
 };
 
-const GameCard: React.FC<Display.Game & GameCallbacks> = (props) => {
+const GameCard: React.FC<
+  {
+    game: (typeof service.endpoints.listGames.Types.ResultType)[0];
+    user: typeof service.endpoints.getRoot.Types.ResultType;
+  } & GameCallbacks
+> = (props) => {
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -70,8 +75,15 @@ const GameCard: React.FC<Display.Game & GameCallbacks> = (props) => {
     callback();
   };
 
-  const displayedUsers = props.users.slice(0, MAX_AVATARS);
-  const remainingUsersCount = props.users.length - displayedUsers.length;
+  const displayedUsers = props.game.Members.slice(0, MAX_AVATARS);
+  const remainingUsersCount = props.game.Members.length - displayedUsers.length;
+
+  const userMember = props.game.Members.find(
+    (member) => member.User.Id === props.user.Id
+  );
+
+  const userCanJoin = props.game.Links.some((link) => link.Rel === "join");
+  const userCanLeave = props.game.Links.some((link) => link.Rel === "leave");
 
   return (
     <Card elevation={0}>
@@ -80,20 +92,20 @@ const GameCard: React.FC<Display.Game & GameCallbacks> = (props) => {
           <Grid container spacing={2}>
             {/* Top */}
             <Grid container size={12} alignItems="center">
-              {props.user && props.user.nation && (
+              {userMember && userMember.Nation && (
                 <Grid size="auto">
                   <Avatar
                     style={{ width: 24, height: 24 }}
-                    src={`https://diplicity-engine.appspot.com/Variant/${props.variant.name}/Flags/${props.user?.nation}.svg`}
+                    src={`https://diplicity-engine.appspot.com/Variant/${props.game.Variant}/Flags/${userMember.Nation}.svg`}
                   />
                 </Grid>
               )}
               <Grid size="grow">
                 <Stack direction="row" alignItems="center" gap={1}>
                   <Typography variant="h4" style={{ fontSize: "18px" }}>
-                    {props.title}
+                    {props.game.Desc}
                   </Typography>
-                  {props.private && (
+                  {props.game.Private && (
                     <LockIcon style={{ width: 16, height: 16 }} />
                   )}
                   <StatusChip
@@ -109,7 +121,7 @@ const GameCard: React.FC<Display.Game & GameCallbacks> = (props) => {
                 <Menu anchorEl={anchorEl} open={open} onClose={handleMenuClose}>
                   <MenuItem
                     onClick={withMenuClose(() =>
-                      openModal("gameInfo", props.id)
+                      openModal("gameInfo", props.game.ID)
                     )}
                   >
                     <InfoIcon sx={{ marginRight: 1 }} />
@@ -117,32 +129,36 @@ const GameCard: React.FC<Display.Game & GameCallbacks> = (props) => {
                   </MenuItem>
                   <MenuItem
                     onClick={withMenuClose(() =>
-                      openModal("playerInfo", props.id)
+                      openModal("playerInfo", props.game.ID)
                     )}
                   >
                     <PeopleIcon sx={{ marginRight: 1 }} />
                     Player info
                   </MenuItem>
                   <Divider />
-                  {props.userCanJoin && (
+                  {userCanJoin && (
                     <MenuItem
-                      onClick={withMenuClose(() => props.onClickJoin(props.id))}
+                      onClick={withMenuClose(() =>
+                        props.onClickJoin(props.game.ID)
+                      )}
                     >
                       <JoinIcon sx={{ marginRight: 1 }} />
                       Join
                     </MenuItem>
                   )}
-                  {props.userCanLeave && (
+                  {userCanLeave && (
                     <MenuItem
                       onClick={withMenuClose(() =>
-                        props.onClickLeave(props.id)
+                        props.onClickLeave(props.game.ID)
                       )}
                     >
                       Leave
                     </MenuItem>
                   )}
                   <MenuItem
-                    onClick={withMenuClose(() => props.onClickShare(props.id))}
+                    onClick={withMenuClose(() =>
+                      props.onClickShare(props.game.ID)
+                    )}
                   >
                     <ShareIcon sx={{ marginRight: 1 }} />
                     Share
@@ -161,7 +177,7 @@ const GameCard: React.FC<Display.Game & GameCallbacks> = (props) => {
                       fontSize: "15px",
                     }}
                   >
-                    {props.variant.name}
+                    {props.game.Variant}
                   </Typography>
                   <Typography
                     variant="body2"
@@ -170,7 +186,7 @@ const GameCard: React.FC<Display.Game & GameCallbacks> = (props) => {
                       fontSize: "15px",
                     }}
                   >
-                    {props.movementPhaseDuration}
+                    {props.game.PhaseLengthMinutes}
                   </Typography>
                 </Stack>
               </Grid>
@@ -180,7 +196,7 @@ const GameCard: React.FC<Display.Game & GameCallbacks> = (props) => {
                 justifyContent="flex-end"
                 alignItems="center"
               >
-                {props.currentPhase && (
+                {props.game.NewestPhaseMeta && (
                   <>
                     <Typography
                       variant="body2"
@@ -189,16 +205,16 @@ const GameCard: React.FC<Display.Game & GameCallbacks> = (props) => {
                         fontSize: "15px",
                       }}
                     >
-                      {`${props.currentPhase.season} ${props.currentPhase.year}, ${props.currentPhase.type}`}
+                      {`${props.game.NewestPhaseMeta[0].Season} ${props.game.NewestPhaseMeta[0].Year}, ${props.game.NewestPhaseMeta[0].Type}`}
                     </Typography>
-                    {props.status === "started" && (
+                    {props.game.Started && !props.game.Finished && (
                       <Chip
                         icon={
                           <PhaseTimeRemainingIcon
                             style={{ width: 16, height: 16 }}
                           />
                         }
-                        label={props.currentPhase.remaining}
+                        label={props.game.NewestPhaseMeta[0].NextDeadlineIn}
                       />
                     )}
                   </>
@@ -212,11 +228,11 @@ const GameCard: React.FC<Display.Game & GameCallbacks> = (props) => {
                   direction="row"
                   spacing={-1}
                   alignItems="center"
-                  onClick={() => props.onClickPlayerInfo(props.id)}
+                  onClick={() => openModal("playerInfo", props.game.ID)}
                   sx={{ cursor: "pointer" }}
                 >
-                  {displayedUsers.map((user, index) => (
-                    <PlayerAvatar key={index} username={user.username} />
+                  {displayedUsers.map((member, index) => (
+                    <PlayerAvatar key={index} username={member.User.Name} />
                   ))}
                   {remainingUsersCount > 0 && (
                     <Typography
@@ -229,11 +245,11 @@ const GameCard: React.FC<Display.Game & GameCallbacks> = (props) => {
                 </Stack>
               </Grid>
               <Grid container justifyContent="flex-end" size="grow">
-                {props.userCanJoin && (
+                {userCanJoin && (
                   <Button
                     variant="contained"
                     color="primary"
-                    onClick={() => props.onClickJoin(props.id)}
+                    onClick={() => props.onClickJoin(props.game.ID)}
                     size="small"
                   >
                     Join

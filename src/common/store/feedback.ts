@@ -16,7 +16,7 @@ export const feedbackSlice = createSlice({
         clearFeedback: () => {
             return {};
         },
-        setFeedback: (state, action: PayloadAction<Feedback>) => {
+        setFeedback: (_, action: PayloadAction<Feedback>) => {
             return action.payload;
         },
     },

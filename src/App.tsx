@@ -9,9 +9,7 @@ import { authActions } from "./common/store/auth";
 import ConnectedFeedbackComponent from "./components/Feedback";
 import { GlobalModalProvider, useGlobalModal } from "./GlobalModalContext";
 import { PlayerInfo } from "./components/PlayerInfo";
-import { usePlayerInfoQuery } from "./common/hooks/usePlayerInfo";
 import { GameInfo } from "./components/GameInfo";
-import { useGameInfoQuery } from "./common/hooks/useGameInfo";
 
 const modalBoxStyle = {
   position: "absolute",
@@ -57,17 +55,14 @@ const GlobalModals = () => {
       {modalType === "playerInfo" && modalId && (
         <Modal open={!!modalId} onClose={closeModal}>
           <Box sx={modalBoxStyle}>
-            <PlayerInfo
-              usePlayerInfoQuery={usePlayerInfoQuery}
-              gameId={modalId}
-            />
+            <PlayerInfo gameId={modalId} />
           </Box>
         </Modal>
       )}
       {modalType === "gameInfo" && modalId && (
         <Modal open={!!modalId} onClose={closeModal}>
           <Box sx={modalBoxStyle}>
-            <GameInfo useGameInfoQuery={useGameInfoQuery} gameId={modalId} />
+            <GameInfo gameId={modalId} />
           </Box>
         </Modal>
       )}

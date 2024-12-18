@@ -3,13 +3,12 @@ import { HomeScreen } from "./screens/HomeScreen";
 import CreateGame from "./screens/CreateGame";
 import { Route, Routes } from "react-router";
 import NavigationWrapper from "./components/NavigationWrapper";
-import FindGames from "./screens/BrowseGamesScreen";
+import { BrowseGamesScreen } from "./screens/BrowseGamesScreen";
 import PageWrapper from "./components/PageWrapper";
 import Login from "./screens/Login";
 import { useSelector } from "react-redux";
 import { selectAuth } from "./common/store/auth";
 import UserPage from "./screens/UserPage";
-import { useHomeQuery } from "./common";
 import { GameCallbacks } from "./components/GameCard";
 
 const Router: React.FC = () => {
@@ -25,21 +24,13 @@ const Router: React.FC = () => {
 
   return loggedIn ? (
     <Routes>
-      <Route
-        index
-        element={
-          <HomeScreen
-            useHomeQuery={useHomeQuery}
-            gameCallbacks={gameCallbacks}
-          />
-        }
-      />
+      <Route index element={<HomeScreen gameCallbacks={gameCallbacks} />} />
       <Route
         path="find-games"
         element={
           <NavigationWrapper>
             <PageWrapper>
-              <FindGames />
+              <BrowseGamesScreen gameCallbacks={gameCallbacks} />
             </PageWrapper>
           </NavigationWrapper>
         }

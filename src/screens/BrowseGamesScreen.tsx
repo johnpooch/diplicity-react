@@ -1,79 +1,60 @@
-import React, { useState } from "react";
-import {
-  Stack,
-  Typography,
-  Snackbar,
-  Alert,
-  TextField,
-  MenuItem,
-} from "@mui/material";
+import React from "react";
+import { Stack, Typography } from "@mui/material";
+import { GameCard, GameCallbacks } from "../components/GameCard";
+import NavigationWrapper from "../components/NavigationWrapper";
+import PageWrapper from "../components/PageWrapper";
+import service from "../common/store/service";
+import GameCardSkeleton from "../components/GameCardSkeleton";
 
-const BrowseGamesScreen: React.FC = () => {
-  const [snackbar, setSnackbar] = useState<
-    undefined | Pick<React.ComponentProps<typeof Alert>, "severity" | "title">
-  >();
+const BrowseGamesScreen: React.FC<{
+  gameCallbacks: GameCallbacks;
+}> = (props) => {
+  const getRootQuery = service.endpoints.getRoot.useQuery(undefined);
+  const listStagingGamesQuery = service.endpoints.listGames.useQuery({
+    my: false,
+    status: "Staging",
+    mastered: false,
+  });
 
-  const handleSnackbarClose = () => {
-    setSnackbar(undefined);
-  };
+  if (!getRootQuery.isSuccess) {
+    return null;
+  }
 
   return (
-    <>
-      <Stack>
-        <Typography variant="h1">Find games</Typography>
-        <Stack spacing={1} direction="row" style={{ paddingTop: 12 }}>
-          {/* variant dropdown */}
-          <TextField
-            select
-            label="Variant"
-            variant="outlined"
-            value={undefined}
-            onChange={() => {}}
-            size="small"
-            style={{ width: 110 }}
-          >
-            <MenuItem value="Classical">Classical</MenuItem>
-          </TextField>
-          {/* deadline dropdown */}
-          <TextField
-            select
-            label="Deadline"
-            variant="outlined"
-            value={undefined}
-            onChange={() => {}}
-            size="small"
-            style={{ width: 110 }}
-          >
-            <MenuItem value="12">12 hours</MenuItem>
-            <MenuItem value="24">24 hours</MenuItem>
-            <MenuItem value="48">48 hours</MenuItem>
-          </TextField>
+    <NavigationWrapper>
+      <PageWrapper>
+        <Stack>
+          <Typography variant="h1">Browse games</Typography>
+          <Stack spacing={2}>
+            {listStagingGamesQuery.isLoading ? (
+              <div style={{ paddingTop: 24, paddingBottom: 24 }}>
+                <Typography variant="h2">Staging Games</Typography>
+                <Stack spacing={1} style={{ paddingTop: 12 }}>
+                  <GameCardSkeleton />
+                </Stack>
+              </div>
+            ) : listStagingGamesQuery.isError ? (
+              <Typography variant="h2">Error</Typography>
+            ) : listStagingGamesQuery.isSuccess ? (
+              <div style={{ paddingTop: 24, paddingBottom: 24 }}>
+                <Typography variant="h2">Staging Games</Typography>
+                <Stack spacing={1} style={{ paddingTop: 12 }}>
+                  {listStagingGamesQuery.data.map((game) => (
+                    <GameCard
+                      key={game.ID}
+                      game={game}
+                      user={getRootQuery.data}
+                      {...props.gameCallbacks}
+                    />
+                  ))}
+                </Stack>
+              </div>
+            ) : null}
+          </Stack>
         </Stack>
-        {/* <>
-                      <GameCard
-                        key={game.id}
-                        {...game}
-                        {...props.gameCallbacks}
-                      />
-                      <Divider />
-                    </> */}
-      </Stack>
-      <Snackbar
-        open={snackbar !== undefined}
-        autoHideDuration={3000}
-        onClose={handleSnackbarClose}
-      >
-        <Alert
-          onClose={handleSnackbarClose}
-          severity={snackbar?.severity}
-          variant="filled"
-          title={snackbar?.title}
-        >
-          {snackbar?.title}
-        </Alert>
-      </Snackbar>
-    </>
+      </PageWrapper>
+    </NavigationWrapper>
   );
 };
 
-export default BrowseGamesScreen;
+export { BrowseGamesScreen };

@@ -1,6 +1,5 @@
 import React from "react";
 import { Divider, Grid2 as Grid, Typography } from "@mui/material";
-import { useGameInfoQuery } from "../common/hooks/useGameInfo";
 import {
   Map as VariantIcon,
   TimerOutlined as DeadlinesIcon,
@@ -12,6 +11,7 @@ import {
   CalendarToday as StartYearIcon,
   Person as AuthorIcon,
 } from "@mui/icons-material";
+import service from "../common/store/service";
 
 const BlankIcon: React.FC = () => <div style={{ width: 20, height: 20 }}></div>;
 
@@ -37,11 +37,25 @@ const TableRow: React.FC<{
 
 const GameInfo: React.FC<{
   gameId: string;
-  useGameInfoQuery: typeof useGameInfoQuery;
+  getGameQuery?: typeof service.endpoints.getGame.useQuery;
+  listVariantsQuery?: typeof service.endpoints.listVariants.useQuery;
 }> = (props) => {
-  const query = props.useGameInfoQuery(props.gameId);
+  const getGameQuery = props.getGameQuery
+    ? props.getGameQuery(props.gameId)
+    : service.endpoints.getGame.useQuery(props.gameId);
 
-  if (query.isSuccess) {
+  const listVariantsQuery = props.listVariantsQuery
+    ? props.listVariantsQuery(undefined)
+    : service.endpoints.listVariants.useQuery(undefined);
+
+  if (listVariantsQuery.isSuccess && getGameQuery.isSuccess) {
+    const game = getGameQuery.data;
+    const variant = listVariantsQuery.data.find(
+      (variant) => variant.Name === game.Variant
+    );
+
+    if (!variant) throw new Error("Variant not found");
+
     return (
       <Grid container direction="column">
         <Grid
@@ -55,7 +69,7 @@ const GameInfo: React.FC<{
           <Grid>
             <TableRow
               label="Variant"
-              value={query.data.variant.name}
+              value={variant.Name}
               icon={<VariantIcon fontSize="small" />}
             />
             <TableRow
@@ -63,16 +77,20 @@ const GameInfo: React.FC<{
               value={""}
               icon={<DeadlinesIcon fontSize="small" />}
             />
-            <TableRow
-              label="Movement"
-              value={query.data.movementPhaseDuration}
-              icon={<BlankIcon />}
-            />
-            <TableRow
-              label="Non-Movement"
-              value={query.data.nonMovementPhaseDuration}
-              icon={<BlankIcon />}
-            />
+            {game.PhaseLengthMinutes && (
+              <TableRow
+                label="Movement"
+                value={game.PhaseLengthMinutes}
+                icon={<BlankIcon />}
+              />
+            )}
+            {game.NonMovementPhaseLengthMinutes && (
+              <TableRow
+                label="Non-Movement"
+                value={game.NonMovementPhaseLengthMinutes}
+                icon={<BlankIcon />}
+              />
+            )}
           </Grid>
         </Grid>
         <Divider />
@@ -85,38 +103,38 @@ const GameInfo: React.FC<{
             <Typography>Player settings</Typography>
           </Grid>
           <Grid>
-            {query.data.minCommitment && (
+            {game.MinReliability && (
               <TableRow
-                label="Min. commitment"
-                value={query.data.minCommitment}
+                label="Min. reliability"
+                value={game.MinReliability}
                 icon={<CommitmentIcon fontSize="small" />}
               />
             )}
-            {(query.data.minRank || query.data.maxRank) && (
+            {(game.MinRating || game.MaxRating) && (
               <TableRow
                 label="Rank"
                 value={""}
                 icon={<RankIcon fontSize="small" />}
               />
             )}
-            {query.data.minRank && (
+            {game.MinRating && (
               <TableRow
                 label="Min"
-                value={query.data.minRank}
+                value={game.MinRating}
                 icon={<BlankIcon />}
               />
             )}
-            {query.data.maxRank && (
+            {game.MaxRating && (
               <TableRow
                 label="Max"
-                value={query.data.maxRank}
+                value={game.MaxRating}
                 icon={<BlankIcon />}
               />
             )}
-            {query.data.language && (
+            {game.ChatLanguageISO639_1 && (
               <TableRow
-                label="Language"
-                value={query.data.language}
+                label="Chat language"
+                value={game.ChatLanguageISO639_1}
                 icon={<LanguageIcon fontSize="small" />}
               />
             )}
@@ -134,22 +152,22 @@ const GameInfo: React.FC<{
           <Grid>
             <TableRow
               label="Players"
-              value={query.data.variant.numPlayers.toString()}
+              value={variant.Nations.length.toString()}
               icon={<PlayersIcon fontSize="small" />}
             />
             <TableRow
               label="Win condition"
-              value={query.data.variant.winCondition}
+              value={variant.Rules}
               icon={<WinConditionIcon fontSize="small" />}
             />
             <TableRow
               label="Start year"
-              value={query.data.variant.startYear.toString()}
+              value={variant.Start.Year.toString()}
               icon={<StartYearIcon fontSize="small" />}
             />
             <TableRow
               label="Original author"
-              value={query.data.variant.author}
+              value={variant.CreatedBy}
               icon={<AuthorIcon fontSize="small" />}
             />
           </Grid>

@@ -8,7 +8,6 @@ type Link = {
     Rel: string;
     URL: string;
     Method: string;
-    JSONschema: string; // TODO
 };
 
 export enum GameStatus {
