@@ -30,7 +30,7 @@ const PlayerInfoCard: React.FC<{
             <Grid container direction="row">
               <Grid>
                 <Typography variant="body1">
-                  {props.member.User.Picture}
+                  {props.member.User.Name}
                 </Typography>
               </Grid>
               <Grid>
