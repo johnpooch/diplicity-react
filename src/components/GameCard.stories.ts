@@ -16,7 +16,9 @@ const meta = {
         private: false,
         userCanJoin: false,
         userCanLeave: false,
-        variant: "Classical",
+        variant: {
+            name: "Classic"
+        },
         movementPhaseDuration: "24h",
         nonMovementPhaseDuration: "24h",
         currentPhase: undefined,
