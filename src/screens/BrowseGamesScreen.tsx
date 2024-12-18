@@ -12,7 +12,7 @@ const BrowseGamesScreen: React.FC<{
   const getRootQuery = service.endpoints.getRoot.useQuery(undefined);
   const listStagingGamesQuery = service.endpoints.listGames.useQuery({
     my: false,
-    status: "Staging",
+    status: "Open",
     mastered: false,
   });
 
@@ -37,7 +37,7 @@ const BrowseGamesScreen: React.FC<{
               <Typography variant="h2">Error</Typography>
             ) : listStagingGamesQuery.isSuccess ? (
               <div style={{ paddingTop: 24, paddingBottom: 24 }}>
-                <Typography variant="h2">Staging Games</Typography>
+                <Typography variant="h2">Open games</Typography>
                 <Stack spacing={1} style={{ paddingTop: 12 }}>
                   {listStagingGamesQuery.data.map((game) => (
                     <GameCard
