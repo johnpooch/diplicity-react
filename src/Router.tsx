@@ -27,13 +27,7 @@ const Router: React.FC = () => {
       <Route index element={<HomeScreen gameCallbacks={gameCallbacks} />} />
       <Route
         path="find-games"
-        element={
-          <NavigationWrapper>
-            <PageWrapper>
-              <BrowseGamesScreen gameCallbacks={gameCallbacks} />
-            </PageWrapper>
-          </NavigationWrapper>
-        }
+        element={<BrowseGamesScreen gameCallbacks={gameCallbacks} />}
       />
       <Route
         path="create-game"
