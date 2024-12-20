@@ -27,7 +27,7 @@ const FeedbackComponent: React.FC<
 };
 
 const ConnectedFeedbackComponent = connect(selectFeedback, {
-  onClose: actions.clearFeedback,
+  onClose: () => actions.clearFeedback(),
 })(FeedbackComponent);
 
 export default ConnectedFeedbackComponent;

@@ -10,11 +10,14 @@ const HomeScreen: React.FC<{
   gameCallbacks: GameCallbacks;
 }> = (props) => {
   const getRootQuery = service.endpoints.getRoot.useQuery(undefined);
-  const listStagingGamesQuery = service.endpoints.listGames.useQuery({
-    my: true,
-    status: "Staging",
-    mastered: false,
-  });
+  const listStagingGamesQuery = service.endpoints.listGames.useQuery(
+    {
+      my: true,
+      status: "Staging",
+      mastered: false,
+    },
+    { refetchOnMountOrArgChange: true }
+  );
   const listStartedGamesQuery = service.endpoints.listGames.useQuery({
     my: true,
     status: "Started",

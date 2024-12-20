@@ -3,7 +3,6 @@ import {
     Headers,
     UserConfig,
     Message,
-    Game,
     PhaseState,
     Channel,
     Member,
@@ -17,7 +16,6 @@ import {
     ApiResponse,
     ForumMail,
     ListApiResponse,
-    CreateGameFormValues,
 } from "./service.types";
 import { selectAuth } from "./auth";
 import { z } from "zod";
@@ -143,22 +141,6 @@ const variantSchema = z.object({
     })).nullable(),
 })
 
-const phaseMetaSchema = z.object({
-    PhaseOrdinal: z.number(),
-    Season: z.string(),
-    Year: z.number(),
-    Type: z.string(),
-    Resolved: z.boolean(),
-    CreatedAt: z.string(),
-    CreatedAgo: z.number(),
-    ResolvedAt: z.string(),
-    ResolvedAgo: z.number(),
-    DeadlineAt: z.string(),
-    NextDeadlineIn: z.number(),
-    UnitsJSON: z.string(),
-    SCsJSON: z.string(),
-});
-
 const transformMinutesToDisplayString = (minutes: number) => {
     if (minutes === 0) {
         return undefined;
@@ -174,6 +156,21 @@ const transformMinutesToDisplayString = (minutes: number) => {
     return `${remainingMinutes} minutes`;
 }
 
+const phaseMetaSchema = z.object({
+    PhaseOrdinal: z.number(),
+    Season: z.string(),
+    Year: z.number(),
+    Type: z.string(),
+    Resolved: z.boolean(),
+    CreatedAt: z.string(),
+    CreatedAgo: z.number(),
+    ResolvedAt: z.string(),
+    ResolvedAgo: z.number(),
+    DeadlineAt: z.string(),
+    NextDeadlineIn: z.number().transform((val) => transformMinutesToDisplayString(Math.floor(val / 1000000000 / 60))),
+    UnitsJSON: z.string(),
+    SCsJSON: z.string(),
+});
 
 const transformReliabilityToDisplayString = (reliability: number) => {
     if (reliability === 0) {
@@ -299,6 +296,33 @@ const phaseSchema = z.object({
             Explanation: z.string(),
         })
     ),
+});
+
+const newGameSchema = z.object({
+    Anonymous: z.boolean(),
+    ChatLanguageISO639_1: z.string().optional(),
+    Desc: z.string(),
+    DisableConferenceChat: z.boolean(),
+    DisableGroupChat: z.boolean(),
+    DisablePrivateChat: z.boolean(),
+    FirstMember: z.object({
+        NationPreferences: z.string().optional(),
+    }).optional(),
+    GameMasterEnabled: z.boolean(),
+    LastYear: z.number(),
+    MaxHated: z.number().nullable(),
+    MaxHater: z.number(),
+    MaxRating: z.number(),
+    MinQuickness: z.number(),
+    MinRating: z.number(),
+    MinReliability: z.number(),
+    NationAllocation: z.number(),
+    NonMovementPhaseLengthMinutes: z.number(),
+    PhaseLengthMinutes: z.number(),
+    Private: z.boolean(),
+    RequireGameMasterInvitation: z.boolean(),
+    SkipMuster: z.boolean(),
+    Variant: z.string(),
 });
 
 const baseUrl = "https://diplicity-engine.appspot.com/";
@@ -474,6 +498,13 @@ export default createApi({
             }),
             invalidatesTags: [TagType.ListGames],
         }),
+        leaveGame: builder.mutation({
+            query: ({ gameId, userId }) => ({
+                url: `/Game/${gameId}/Member/${userId}`,
+                method: "DELETE",
+            }),
+            invalidatesTags: [TagType.ListGames],
+        }),
         rescheduleGame: builder.mutation<
             undefined,
             {
@@ -584,21 +615,27 @@ export default createApi({
             query: (id) => `/User/${id}/Stats`,
             transformResponse: (response: ApiResponse<UserStats>) => extractProperties(response),
         }),
-        createGame: builder.mutation<Game, CreateGameFormValues>({
-            query: (data) => {
+        createGame: builder.mutation({
+            query: (data: z.infer<typeof newGameSchema>) => {
+                const parsed = newGameSchema.parse(data);
                 return {
                     url: "/Game",
                     method: "POST",
-                    body: data
+                    body: parsed
                 };
             },
-            transformResponse: (response: ApiResponse<Game>) => extractProperties(response),
+            transformResponse: (response) => {
+                const parsed = apiResponseSchema(gameSchema).parse(response);
+                return extractProperties(parsed);
+            }
         }),
     })
 });
 
 type Phase = z.infer<typeof phaseSchema>;
 type Variant = z.infer<typeof variantSchema>;
+
+export { newGameSchema }
 
 export type { Phase, Variant }
 

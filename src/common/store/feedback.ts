@@ -26,6 +26,7 @@ export const feedbackSlice = createSlice({
 
 export const feedbackActions = {
     clearFeedback: feedbackSlice.actions.clearFeedback,
+    setFeedback: feedbackSlice.actions.setFeedback,
 };
 
 export const selectFeedback = (state: RootState) => state.feedback;
