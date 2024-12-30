@@ -1,2 +1,2 @@
-export type { CreateOrderReducer } from "./CreateOrder.types";
-export { CreateOrder } from "./CreateOrder";
+export * from "./CreateOrder";
+export * from "./CreateOrder.types";

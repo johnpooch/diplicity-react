@@ -1,40 +1,21 @@
-import { Reducer } from "react";
-
-type CreateOrderStatus = {
-    source?: string;
-    orderType?: string;
-    unitType?: string;
-    target?: string;
-    aux?: string;
+type Node = {
+    name: string;
+    icon?: React.ReactNode;
+    children: { [id: string]: Node };
 };
 
-type CreateOrderOptions = {
-    value: string;
-    label: string;
-    icon?: React.ReactNode;
-}[];
+type CreateOrderInjectedProps = {
+    options: { [id: string]: Node };
+    onSubmit: (selectedOptions: string[]) => void;
+    onClose: () => void;
+};
 
-type CreateOrderReducer = Reducer<CreateOrderState, CreateOrderAction>;
-
-type CreateOrderState = {
-    selectedOptions: string[];
-    status: CreateOrderStatus;
-    options: CreateOrderOptions | undefined;
+type CreateOrderStatus = {
+    source?: { name: string; icon?: React.ReactNode };
+    orderType?: { name: string; icon?: React.ReactNode };
+    target?: { name: string; icon?: React.ReactNode };
+    aux?: { name: string; icon?: React.ReactNode };
+    isComplete: boolean;
 }
 
-type CreateOrderAction =
-    | {
-        type: "INIT";
-    }
-    | {
-        type: "SELECT_OPTION";
-        payload: string;
-    }
-    | {
-        type: "CLICK_BACK";
-    };
-
-export type {
-    CreateOrderReducer,
-    CreateOrderStatus,
-}
+export type { CreateOrderInjectedProps, CreateOrderStatus, Node };

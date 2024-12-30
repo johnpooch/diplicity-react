@@ -1,12 +1,21 @@
-import { defineConfig } from 'vitest/config'
-import react from '@vitejs/plugin-react-swc'
+import { defineConfig as defineTestConfig } from "vitest/config";
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react-swc";
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [react()],
+const config = defineConfig({
+  plugins: react(),
+});
+
+const testConfig = defineTestConfig({
   test: {
     globals: true,
-    environment: 'jsdom',
-    setupFiles: './vitest.setup.ts',
+    environment: "jsdom",
+    setupFiles: "./vitest.setup.ts",
   },
-})
+});
+
+export default {
+  ...config,
+  ...testConfig
+}

@@ -1,16 +1,16 @@
 import React from "react";
 import {
   CircularProgress,
-  IconButton,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
   ListSubheader,
   Stack,
+  Typography,
 } from "@mui/material";
 
-import { Delete as DeleteIcon } from "@mui/icons-material";
+import { useOrders } from "./Orders.hook";
 
 type OrderProps = {
   source: string;
@@ -18,21 +18,7 @@ type OrderProps = {
   unitTypeSvg: string;
   target?: string;
   aux?: string;
-  onClickDelete?: () => void;
 };
-
-type OrdersProps =
-  | {
-      isLoading: true;
-      orders?: undefined;
-    }
-  | {
-      isLoading: false;
-      orders: {
-        nation: string;
-        orders: OrderProps[];
-      }[];
-    };
 
 const formatOrderText = (order: OrderProps) => {
   if (order.orderType === "Hold") {
@@ -44,8 +30,10 @@ const formatOrderText = (order: OrderProps) => {
   return `${order.source} ${order.orderType} to ${order.target}`;
 };
 
-const Orders: React.FC<OrdersProps> = (props) => {
-  if (props.isLoading) {
+const Orders: React.FC = () => {
+  const { isLoading, isError, orders } = useOrders();
+
+  if (isLoading) {
     return (
       <Stack spacing={2}>
         <CircularProgress />
@@ -53,22 +41,21 @@ const Orders: React.FC<OrdersProps> = (props) => {
     );
   }
 
+  if (isError) {
+    return (
+      <Stack spacing={2}>
+        <Typography>Error loading orders</Typography>
+      </Stack>
+    );
+  }
+
   return (
     <Stack spacing={2}>
-      {props.orders.map(({ nation, orders }) => (
+      {orders.map(({ nation, orders }) => (
         <Stack spacing={2} key={nation}>
           <List subheader={<ListSubheader>{nation}</ListSubheader>}>
             {orders.map((order, index) => (
-              <ListItem
-                key={index}
-                secondaryAction={
-                  order.onClickDelete && (
-                    <IconButton edge="end" aria-label="delete">
-                      <DeleteIcon />
-                    </IconButton>
-                  )
-                }
-              >
+              <ListItem key={index}>
                 <ListItemIcon>
                   <img src={order.unitTypeSvg} style={{ width: 32 }} />
                 </ListItemIcon>

@@ -1,6 +1,5 @@
-import React from "react";
 import service from "./store/service";
-import { CreateOrder } from "../components/CreateOrderNew";
+import { useCreateOrder } from "../components/CreateOrder/CreateOrder.hook";
 
 const getVariant = (listVariantsData: typeof service.endpoints.listVariants.Types.ResultType, getGameData: typeof service.endpoints.getGame.Types.ResultType) => {
     const variant = listVariantsData.find(
@@ -59,14 +58,16 @@ const getOptions = (options: typeof service.endpoints.listOptions.Types.ResultTy
     return { options: Object.keys(currentOptions), type };
 };
 
-const createCreateOrderOptions = (variant: ReturnType<typeof getVariant>, phase: ReturnType<typeof getNewestPhase>, options: typeof service.endpoints.listOptions.Types.ResultType): React.ComponentProps<typeof CreateOrder>["options"] => {
-    const transformOptions = (innerOptions: typeof options): React.ComponentProps<typeof CreateOrder>["options"] => {
-        const result: React.ComponentProps<typeof CreateOrder>["options"] = {};
+type Options = NonNullable<ReturnType<typeof useCreateOrder>["options"]>
+
+const createCreateOrderOptions = (variant: ReturnType<typeof getVariant>, _phase: ReturnType<typeof getNewestPhase>, options: typeof service.endpoints.listOptions.Types.ResultType): Options => {
+    const transformOptions = (innerOptions: typeof options): Options => {
+        const result: Options = {};
 
         for (const [key, value] of Object.entries(innerOptions)) {
             result[key] = {
                 name: variant.getProvinceLongName(key) || key,
-                children: value.Next ? transformOptions(value.Next) : undefined,
+                children: value.Next ? transformOptions(value.Next) : {},
             };
         }
 

@@ -13,7 +13,6 @@ import { GameCallbacks } from "./components/GameCard";
 import { GameScreen } from "./screens/GameScreen";
 import service from "./common/store/service";
 import { feedbackActions } from "./common/store/feedback";
-import { GameProvider } from "./components/GameProvider";
 
 const Router: React.FC = () => {
   const { loggedIn } = useSelector(selectAuth);
@@ -110,14 +109,7 @@ const Router: React.FC = () => {
         }
       />
       <Route path="game/:gameId">
-        <Route
-          index
-          element={
-            <GameProvider>
-              <GameScreen onClickBack={onClickBack} />
-            </GameProvider>
-          }
-        />
+        <Route index element={<GameScreen onClickBack={onClickBack} />} />
       </Route>
     </Routes>
   ) : (

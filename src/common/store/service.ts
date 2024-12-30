@@ -19,6 +19,7 @@ import {
 } from "./service.types";
 import { selectAuth } from "./auth";
 import { z } from "zod";
+import { listOrdersSchema } from "../schema";
 
 const apiResponseSchema = <TObjSchema extends z.ZodRawShape>(schema: z.ZodObject<TObjSchema>) => z.object({
     Properties: schema,
@@ -429,13 +430,13 @@ export default createApi({
             query: (gameId) => `/Game/${gameId}/Channels`,
             transformResponse: (response: ListApiResponse<Channel>) => extractPropertiesList(response)
         }),
-        listOrders: builder.query<
-            Corroboration,
-            { gameId: string; phaseId: string }
-        >({
+        listOrders: builder.query({
             query: ({ gameId, phaseId }) =>
                 `/Game/${gameId}/Phase/${phaseId}/Corroborate`,
-            transformResponse: extractProperties,
+            transformResponse: (response) => {
+                const parsed = listOrdersSchema.parse(response);
+                return extractProperties(parsed);
+            },
         }),
         listOptions: builder.query<Options, { gameId: string; phaseId: string }>({
             query: ({ gameId, phaseId }) =>
@@ -587,8 +588,12 @@ export default createApi({
                     return {
                         ...Properties,
                         Links: variant.Links,
-                        getProvinceLongName: (province: string) => Properties.ProvinceLongNames?.[province],
-                        getUnitTypeSrc: (unitType: string) => variant.Links.find((link) => link.Rel === `unit-${unitType}`)?.URL,
+                        getProvinceLongName: (province: string) => Properties.ProvinceLongNames?.[province] || province,
+                        getUnitTypeSrc: (unitType: string) => {
+                            const url = variant.Links.find((link) => link.Rel === `unit-${unitType}`)?.URL
+                            if (!url) throw new Error(`No unit type src for ${unitType} found`);
+                            return url;
+                        }
                     };
                 });
             }

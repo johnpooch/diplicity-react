@@ -125,7 +125,7 @@ const GameScreen: React.FC<{
         <AddIcon />
       </Fab> */}
       {tab === "map" && <MapScreen gameId={params.gameId} />}
-      {tab === "orders" && <Orders gameId={params.gameId} />}
+      {tab === "orders" && <Orders />}
       <Fab
         color="primary"
         aria-label="create-order"
@@ -160,10 +160,7 @@ const GameScreen: React.FC<{
         onClose={() => setOrderCreationOpen(false)}
       >
         <Box sx={modalBoxStyle}>
-          <CreateOrder
-            gameId={params.gameId}
-            onClickClose={() => setOrderCreationOpen(false)}
-          />
+          <CreateOrder />
         </Box>
       </Modal>
     </PageWrapper>
