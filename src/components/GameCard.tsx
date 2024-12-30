@@ -217,7 +217,7 @@ const GameCard: React.FC<
                         fontSize: "15px",
                       }}
                     >
-                      {`${props.game.NewestPhaseMeta[0].Season} ${props.game.NewestPhaseMeta[0].Year}, ${props.game.NewestPhaseMeta[0].Type}`}
+                      {`${props.game.NewestPhaseMeta.Season} ${props.game.NewestPhaseMeta.Year}, ${props.game.NewestPhaseMeta.Type}`}
                     </Typography>
                     {props.game.Started && !props.game.Finished && (
                       <Chip
@@ -226,7 +226,7 @@ const GameCard: React.FC<
                             style={{ width: 16, height: 16 }}
                           />
                         }
-                        label={props.game.NewestPhaseMeta[0].NextDeadlineIn}
+                        label={props.game.NewestPhaseMeta.NextDeadlineIn}
                       />
                     )}
                   </>

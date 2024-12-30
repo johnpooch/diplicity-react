@@ -1,10 +1,15 @@
-import { Variant } from "../store/service.types";
+import service from "../store/service";
 
-const variant: Variant = {
+const ProvinceLongNames: Record<string, string> = {
+    "Province1": "Province One",
+    "Province2": "Province Two",
+}
+
+const variant: typeof service.endpoints.listVariants.Types.ResultType[0] = {
     Name: "Dummy Variant",
     Nations: ["Nation1", "Nation2"],
     PhaseTypes: ["Spring", "Fall"],
-    Season: ["Spring", "Fall"],
+    Seasons: ["Spring", "Fall"],
     UnitTypes: ["Army", "Fleet"],
     SvgVersion: "1.0",
     ProvinceLongNames: {
@@ -20,10 +25,6 @@ const variant: Variant = {
     Description: "This is a dummy variant for testing purposes.",
     Rules: "Standard rules apply.",
     OrderTypes: ["Move", "Hold", "Support", "Convoy"],
-    nationAbbreviations: {
-        "Nation1": "N1",
-        "Nation2": "N2",
-    },
     Start: {
         Year: 1901,
         Season: "Spring",
@@ -52,8 +53,10 @@ const variant: Variant = {
             },
         },
     },
-    Links: null,
+    Links: [],
     ExtraDominanceRules: null,
+    getUnitTypeSrc: (unitType: string) => `https://diplicity-engine.appspot.com/Variant/Classical/Units/${unitType}.svg`,
+    getProvinceLongName: (province: string) => ProvinceLongNames[province] || province,
 };
 
 export { variant }

@@ -7,4 +7,18 @@ const withRouterDecorator: Decorator = (Story) => (
   </MemoryRouter>
 );
 
-export { withRouterDecorator };
+const withFullScreenContainerDecorator: Decorator = (Story) => (
+  <div
+    style={{
+      width: "100vw",
+      height: "100vh",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+    }}
+  >
+    <Story />
+  </div>
+);
+
+export { withRouterDecorator, withFullScreenContainerDecorator };

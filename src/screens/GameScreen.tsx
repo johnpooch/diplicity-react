@@ -72,9 +72,7 @@ const MapScreen: React.FC<{
   );
   if (!variant) throw new Error("Variant not found");
 
-  const newestPhaseMeta = getGameQuery.data.NewestPhaseMeta
-    ? getGameQuery.data.NewestPhaseMeta[0]
-    : null;
+  const newestPhaseMeta = getGameQuery.data.NewestPhaseMeta;
   if (!newestPhaseMeta) throw new Error("Newest phase meta not found");
 
   const newestPhase = listPhasesQuery.data.find(

@@ -27,7 +27,10 @@ const apiResponseSchema = <TObjSchema extends z.ZodRawShape>(schema: z.ZodObject
         URL: z.string(),
         Method: z.string(),
     })),
-})
+}).transform((val) => (
+    { ...val, Properties: { ...val.Properties, Links: val.Links } }
+));
+
 const listApiResponseSchema = <TObjSchema extends z.ZodRawShape>(schema: z.ZodObject<TObjSchema>) => z.object({
     Properties: z.array(apiResponseSchema(schema)),
 })
@@ -221,7 +224,7 @@ const gameSchema = z.object({
         BannedAt: z.string(),
     })).nullable(),
     Closed: z.boolean(),
-    NewestPhaseMeta: z.nullable(z.array(phaseMetaSchema).min(1).max(1)),
+    NewestPhaseMeta: z.nullable(z.array(phaseMetaSchema).min(1).max(1)).transform((val) => val?.[0]),
 });
 
 const rootSchema = z.object({
@@ -579,8 +582,15 @@ export default createApi({
         listVariants: builder.query({
             query: () => "/Variants",
             transformResponse: (response) => {
-                const parsed = listApiResponseSchema(variantSchema).parse(response);
-                return extractPropertiesList(parsed);
+                return listApiResponseSchema(variantSchema).parse(response).Properties.map((variant) => {
+                    const Properties = variant.Properties;
+                    return {
+                        ...Properties,
+                        Links: variant.Links,
+                        getProvinceLongName: (province: string) => Properties.ProvinceLongNames?.[province],
+                        getUnitTypeSrc: (unitType: string) => variant.Links.find((link) => link.Rel === `unit-${unitType}`)?.URL,
+                    };
+                });
             }
         }),
         listPhases: builder.query({
@@ -635,7 +645,7 @@ export default createApi({
 type Phase = z.infer<typeof phaseSchema>;
 type Variant = z.infer<typeof variantSchema>;
 
-export { newGameSchema }
+export { newGameSchema, gameSchema, apiResponseSchema, extractProperties, extractPropertiesList, listApiResponseSchema, phaseSchema }
 
 export type { Phase, Variant }
 
