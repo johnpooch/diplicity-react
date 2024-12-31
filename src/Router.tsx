@@ -10,9 +10,12 @@ import { useDispatch, useSelector } from "react-redux";
 import { selectAuth } from "./common/store/auth";
 import UserPage from "./screens/UserPage";
 import { GameCallbacks } from "./components/GameCard";
-import { GameScreen } from "./screens/GameScreen";
+import { Map } from "./components/Map";
 import service from "./common/store/service";
 import { feedbackActions } from "./common/store/feedback";
+import { GameDetailsLayout } from "./components/GameDetailsLayout";
+import { GameDetailsNavigation } from "./components/GameDetailsNavigation";
+import { Orders } from "./components/Orders";
 
 const Router: React.FC = () => {
   const { loggedIn } = useSelector(selectAuth);
@@ -22,6 +25,8 @@ const Router: React.FC = () => {
   const getRootQuery = service.endpoints.getRoot.useQuery(undefined);
   const [leaveGameMutationTrigger] = service.endpoints.leaveGame.useMutation();
   const [joinGameMutationTrigger] = service.endpoints.joinGame.useMutation();
+
+  const onClickCreateOrder = () => {};
 
   const gameCallbacks: GameCallbacks = {
     onClickPlayerInfo: (id) => console.log("onClickPlayerInfo", id),
@@ -77,10 +82,6 @@ const Router: React.FC = () => {
     },
   };
 
-  const onClickBack = () => {
-    navigate(-1);
-  };
-
   return loggedIn ? (
     <Routes>
       <Route index element={<HomeScreen gameCallbacks={gameCallbacks} />} />
@@ -109,7 +110,20 @@ const Router: React.FC = () => {
         }
       />
       <Route path="game/:gameId">
-        <Route index element={<GameScreen onClickBack={onClickBack} />} />
+        <Route
+          element={
+            <GameDetailsLayout
+              onClickBack={() => navigate("/")}
+              onClickCreateOrder={onClickCreateOrder}
+              navigation={<GameDetailsNavigation />}
+              modals={[]}
+            />
+          }
+        >
+          <Route index element={<Map />} />
+          <Route path="orders" element={<Orders />} />
+          <Route path="players" element={<div>Players</div>} />
+        </Route>
       </Route>
     </Routes>
   ) : (
