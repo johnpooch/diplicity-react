@@ -16,6 +16,10 @@ import { feedbackActions } from "./common/store/feedback";
 import { GameDetailsLayout } from "./components/GameDetailsLayout";
 import { GameDetailsNavigation } from "./components/GameDetailsNavigation";
 import { Orders } from "./components/Orders";
+import { CreateOrder } from "./components/CreateOrder";
+import { Modal } from "./components/Modal";
+import { CreateOrderAction } from "./components/CreateOrderAction";
+import { ConfirmOrdersAction } from "./components/ConfirmOrdersAction";
 
 const Router: React.FC = () => {
   const { loggedIn } = useSelector(selectAuth);
@@ -26,7 +30,11 @@ const Router: React.FC = () => {
   const [leaveGameMutationTrigger] = service.endpoints.leaveGame.useMutation();
   const [joinGameMutationTrigger] = service.endpoints.joinGame.useMutation();
 
-  const onClickCreateOrder = () => {};
+  const onClickCreateOrder = () => {
+    const searchParams = new URLSearchParams(location.search);
+    searchParams.set("createOrder", "true");
+    navigate({ search: searchParams.toString() });
+  };
 
   const gameCallbacks: GameCallbacks = {
     onClickPlayerInfo: (id) => console.log("onClickPlayerInfo", id),
@@ -116,7 +124,12 @@ const Router: React.FC = () => {
               onClickBack={() => navigate("/")}
               onClickCreateOrder={onClickCreateOrder}
               navigation={<GameDetailsNavigation />}
-              modals={[]}
+              actions={[<ConfirmOrdersAction />, <CreateOrderAction />]}
+              modals={[
+                <Modal name="createOrder">
+                  <CreateOrder />
+                </Modal>,
+              ]}
             />
           }
         >

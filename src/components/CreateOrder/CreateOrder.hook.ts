@@ -2,6 +2,7 @@ import { useState } from "react";
 import { mergeQueries, useCreateOrderMutation, useGetOptionsQuery, useGetVariantQuery } from "../../common";
 import { useParams } from "react-router";
 import { createOrderOptionTree, getNextOptionsNode, getOrderStatus } from "./CreateOrder.util";
+import { useModal } from "../Modal";
 
 type LoadingState = {
     isLoading: true;
@@ -44,6 +45,7 @@ type SuccessState = {
 
 const useCreateOrder = (): LoadingState | ErrorState | SuccessState => {
     const { gameId } = useParams<{ gameId: string }>();
+    const { onClose } = useModal();
     const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
 
     if (!gameId) throw new Error("No gameId found");
@@ -66,11 +68,10 @@ const useCreateOrder = (): LoadingState | ErrorState | SuccessState => {
         setSelectedOptions(selectedOptions.slice(0, -1));
     }
 
-    const handleClose = () => {
-        return
+    const handleSubmit = async () => {
+        await createOrder(selectedOptions)
+        onClose();
     };
-
-    const handleSubmit = () => createOrder(selectedOptions);
 
     const options = getNextOptionsNode(data, selectedOptions);
     const order = getOrderStatus(data, selectedOptions);
@@ -80,7 +81,7 @@ const useCreateOrder = (): LoadingState | ErrorState | SuccessState => {
     return {
         activeStep,
         handleBack,
-        handleClose,
+        handleClose: onClose,
         handleSelect,
         handleSubmit,
         isSubmitting,

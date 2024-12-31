@@ -8,7 +8,7 @@ const useCreateOrderMutation = (gameId: string) => {
     const simplifiedCreateOrderTrigger = (parts: string[]) => {
         if (!getGameQuery.data) throw new Error("No game data found");
         if (!getGameQuery.data.NewestPhaseMeta) throw new Error("No phase meta found");
-        createOrderTrigger({
+        return createOrderTrigger({
             Parts: parts,
             phaseId: getGameQuery.data.NewestPhaseMeta.PhaseOrdinal.toString(),
             gameId,

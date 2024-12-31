@@ -19,7 +19,7 @@ import {
 } from "./service.types";
 import { selectAuth } from "./auth";
 import { z } from "zod";
-import { listOrdersSchema } from "../schema";
+import { listOrdersSchema, listPhaseStatesSchema } from "../schema";
 
 const apiResponseSchema = <TObjSchema extends z.ZodRawShape>(schema: z.ZodObject<TObjSchema>) => z.object({
     Properties: schema,
@@ -404,13 +404,13 @@ export default createApi({
             transformResponse: (response: ListApiResponse<Message>) => extractPropertiesList(response),
             providesTags: [TagType.Messages],
         }),
-        listPhaseStates: builder.query<
-            PhaseState[],
-            { gameId: string; phaseId: string }
-        >({
+        listPhaseStates: builder.query({
             query: ({ gameId, phaseId }) =>
                 `/Game/${gameId}/Phase/${phaseId}/PhaseStates`,
-            transformResponse: extractPropertiesList,
+            transformResponse: (response) => {
+                const parsed = listPhaseStatesSchema.parse(response);
+                return extractPropertiesList(parsed);
+            },
             providesTags: [TagType.PhaseState],
         }),
         getGameState: builder.query<
