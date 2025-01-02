@@ -1,5 +1,5 @@
 import React from "react";
-import { Button } from "@mui/material";
+import { Button, Card, CardContent, Typography, Box } from "@mui/material";
 
 const getLoginUrl = (): string => {
   const redirectUrl = location.href;
@@ -17,7 +17,28 @@ const Login: React.FC = () => {
     }
   };
 
-  return <Button onClick={onClickLogin}>Log in</Button>;
+  return (
+    <Box
+      display="flex"
+      justifyContent="center"
+      alignItems="center"
+      height="100vh"
+      bgcolor="#f5f5f5"
+    >
+      <Card sx={{ minWidth: 300, padding: 2 }}>
+        <CardContent>
+          <Typography component="div" gutterBottom align="center">
+            Welcome to Diplicity!
+          </Typography>
+          <Box display="flex" justifyContent="center" mt={2}>
+            <Button variant="contained" color="primary" onClick={onClickLogin}>
+              Log in
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+    </Box>
+  );
 };
 
 export default Login;

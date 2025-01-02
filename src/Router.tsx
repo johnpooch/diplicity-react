@@ -1,6 +1,6 @@
 import React from "react";
 import CreateGame from "./screens/CreateGame";
-import { Outlet, Route, Routes, useNavigate } from "react-router";
+import { Navigate, Outlet, Route, Routes, useNavigate } from "react-router";
 import Login from "./screens/Login";
 import { useSelector } from "react-redux";
 import { selectAuth } from "./common/store/auth";
@@ -61,7 +61,8 @@ const Router: React.FC = () => {
     </Routes>
   ) : (
     <Routes>
-      <Route index element={<Login />} />
+      <Route path="*" element={<Navigate to="/" />} />
+      <Route path="/" element={<Login />} />
     </Routes>
   );
 };
