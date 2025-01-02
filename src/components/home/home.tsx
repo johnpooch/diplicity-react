@@ -3,11 +3,26 @@ import { CircularProgress, Stack, Typography } from "@mui/material";
 import { useHome } from "./use-home";
 import { GameCard } from "../game-card";
 
+const Layout: React.FC<{
+  children: React.ReactNode;
+}> = (props) => {
+  return (
+    <Stack>
+      <Typography variant="h1">My games</Typography>
+      <Stack alignItems="center">{props.children}</Stack>
+    </Stack>
+  );
+};
+
 const Home: React.FC = () => {
   const { isLoading, isError, data } = useHome();
 
   if (isLoading) {
-    return <CircularProgress />;
+    return (
+      <Layout>
+        <CircularProgress />
+      </Layout>
+    );
   }
 
   if (isError) {
@@ -17,8 +32,7 @@ const Home: React.FC = () => {
   if (!data) throw new Error("No data");
 
   return (
-    <Stack>
-      <Typography variant="h1">My games</Typography>
+    <Layout>
       <Stack spacing={2} gap={2}>
         {data.stagingGameCards.length > 0 && (
           <Stack>
@@ -51,7 +65,7 @@ const Home: React.FC = () => {
           </Stack>
         )}
       </Stack>
-    </Stack>
+    </Layout>
   );
 };
 

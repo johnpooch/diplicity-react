@@ -7,7 +7,6 @@ import { AuthService } from "./services";
 import { createStore } from "./common";
 import { authActions } from "./common/store/auth";
 import ConnectedFeedbackComponent from "./components/Feedback";
-import { GlobalModalProvider } from "./GlobalModalContext";
 
 function App() {
   const url = new URL(window.location.href);
@@ -23,18 +22,11 @@ function App() {
     <Provider store={store}>
       <CssBaseline />
       <ThemeProvider theme={theme}>
-        <GlobalModalProvider>
-          <Router />
-          <ConnectedFeedbackComponent />
-          <GlobalModals />
-        </GlobalModalProvider>
+        <Router />
+        <ConnectedFeedbackComponent />
       </ThemeProvider>
     </Provider>
   );
 }
-
-const GlobalModals = () => {
-  return <></>;
-};
 
 export default App;

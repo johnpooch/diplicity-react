@@ -7,7 +7,6 @@ import { configureStore, ThunkDispatch } from "@reduxjs/toolkit";
 import { IAuthService } from "../services";
 import listenerMiddleware from "./middleware";
 import { feedbackSlice } from "./feedback";
-import { modalSlice } from "./modal";
 
 type CreateStoreOptions = {
     authService: IAuthService;
@@ -24,7 +23,6 @@ export const createStore = ({
         reducer: combineReducers({
             auth: authSlice.reducer,
             feedback: feedbackSlice.reducer,
-            modal: modalSlice.reducer,
             [service.reducerPath]: service.reducer
         }),
         middleware: getDefaultMiddleware =>
