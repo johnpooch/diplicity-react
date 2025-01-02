@@ -17,7 +17,6 @@ const FeedbackComponent: React.FC<
       <Alert
         onClose={props.onClose}
         severity={props.severity}
-        variant="filled"
         title={props.message}
       >
         {props.message}

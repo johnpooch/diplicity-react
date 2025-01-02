@@ -4,6 +4,10 @@ export * from "./useGetCurrentPhaseQuery";
 export * from "./useGetOptionsQuery";
 export * from "./useGetVariantQuery";
 export * from "./useGetUserNewestPhaseStateQuery"
+export * from "./useGetUnitSvgQuery";
+export * from "./useGetMapSvgQuery";
 export * from "./useListNewestPhaseStatesQuery";
 export * from "./useListOrdersQuery";
+export * from "./useJoinGameMutation";
+export * from "./useLeaveGameMutation";
 export * from "./useUpdatePhaseStateMutation";

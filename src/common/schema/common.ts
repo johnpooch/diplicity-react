@@ -2,11 +2,11 @@ import { z } from "zod"
 
 const apiResponseSchema = <TObjSchema extends z.ZodRawShape>(schema: z.ZodObject<TObjSchema>) => z.object({
     Properties: schema,
-    Links: z.array(z.object({
+    Links: z.union([z.array(z.object({
         Rel: z.string(),
         URL: z.string(),
         Method: z.string(),
-    })),
+    })), z.null()]).transform((links) => links ?? []),
 })
 
 const listApiResponseSchema = <TObjSchema extends z.ZodRawShape>(schema: z.ZodObject<TObjSchema>) => z.object({

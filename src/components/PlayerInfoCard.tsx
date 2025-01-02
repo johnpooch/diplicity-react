@@ -3,12 +3,9 @@ import {
   Avatar,
   Card,
   CardContent,
-  Chip,
   Grid2 as Grid,
-  IconButton,
   Typography,
 } from "@mui/material";
-import { MoreHoriz as MenuIcon } from "@mui/icons-material";
 import service from "../common/store/service";
 
 const PlayerInfoCard: React.FC<{
@@ -33,25 +30,10 @@ const PlayerInfoCard: React.FC<{
                   {props.member.User.Name}
                 </Typography>
               </Grid>
-              <Grid>
-                <Chip label={"Consistent"} size="small" />
-              </Grid>
-            </Grid>
-            <Grid>
-              <Chip label={"Private first class"} size="small" />
             </Grid>
           </Grid>
           <Grid container size="auto" direction="column" alignItems="flex-end">
-            <Grid>
-              <IconButton onClick={() => alert("Clicked")}>
-                <MenuIcon />
-              </IconButton>
-            </Grid>
-            <Grid>
-              <Typography variant="body2">
-                {8}/{6}/{4}/{2}
-              </Typography>
-            </Grid>
+            <Grid></Grid>
           </Grid>
         </Grid>
       </CardContent>

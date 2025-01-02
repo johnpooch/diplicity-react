@@ -1,6 +1,7 @@
 import { DOMParser, XMLSerializer } from "xmldom";
-import { Variant, Phase } from "../store";
+import { Variant } from "../store";
 import { contrastColors } from "./contrast";
+import { Phase } from "../schema";
 
 interface Style {
     [key: string]: string;

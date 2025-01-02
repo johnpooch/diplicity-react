@@ -1,15 +1,14 @@
-import { useLocation, useNavigate } from "react-router";
 import { Fab } from "@mui/material";
 import { Add as CreateOrderIcon } from "@mui/icons-material";
+import { useCreateOrderAction } from "./CreateOrderAction.hook";
 
 const CreateOrderAction: React.FC = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const handleClick = () => {
-    const searchParams = new URLSearchParams(location.search);
-    searchParams.set("createOrder", "true");
-    navigate({ search: searchParams.toString() });
-  };
+  const { isLoading, isError, data, handleClick } = useCreateOrderAction();
+
+  if (isLoading) return <></>;
+  if (isError) return <></>;
+  if (!data?.canCreateOrder) return <></>;
+
   return (
     <Fab color="primary" aria-label="create-order" onClick={handleClick}>
       <CreateOrderIcon />

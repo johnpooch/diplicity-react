@@ -3,9 +3,10 @@ import { createTheme } from "@mui/material";
 const theme = createTheme({
     typography: {
         h1: {
-            fontSize: "32px",
-            lineHeight: "36px",
+            fontSize: "28px",
+            lineHeight: "34px",
             fontWeight: 600,
+            marginBottom: "8px",
         },
         h2: {
             fontSize: "22px",
@@ -15,6 +16,15 @@ const theme = createTheme({
         button: {
             textTransform: "none",
         }
+    },
+    palette: {
+        primary: {
+            main: "#281A1A",
+            contrastText: "#FDE2B5",
+        },
+        secondary: {
+            main: "#FDE2B5",
+        },
     },
 });
 

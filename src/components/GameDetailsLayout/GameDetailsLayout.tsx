@@ -1,6 +1,5 @@
 import { Outlet } from "react-router";
-import PageWrapper from "../PageWrapper";
-import { Fab, Stack } from "@mui/material";
+import { Fab, Stack, useTheme } from "@mui/material";
 import { ArrowBack as BackIcon } from "@mui/icons-material";
 
 const GameDetailsLayout: React.FC<{
@@ -10,8 +9,15 @@ const GameDetailsLayout: React.FC<{
   navigation: React.ReactNode;
   modals: React.ReactNode[];
 }> = (props) => {
+  const theme = useTheme();
   return (
-    <PageWrapper>
+    <Stack
+      sx={{
+        width: "100vw",
+        height: "calc(100vh - 56px)",
+        background: theme.palette.background.default,
+      }}
+    >
       <Fab
         color="primary"
         aria-label="back"
@@ -35,7 +41,7 @@ const GameDetailsLayout: React.FC<{
       </Stack>
       {props.navigation}
       {props.modals}
-    </PageWrapper>
+    </Stack>
   );
 };
 

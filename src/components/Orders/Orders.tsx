@@ -3,7 +3,6 @@ import {
   CircularProgress,
   List,
   ListItem,
-  ListItemIcon,
   ListItemText,
   ListSubheader,
   Stack,
@@ -15,7 +14,6 @@ import { useOrders } from "./Orders.hook";
 type OrderProps = {
   source: string;
   orderType: string;
-  unitTypeSvg: string;
   target?: string;
   aux?: string;
 };
@@ -50,15 +48,28 @@ const Orders: React.FC = () => {
   }
 
   return (
-    <Stack spacing={2}>
+    <Stack
+      spacing={2}
+      padding={2}
+      sx={{ maxWidth: 630, width: "100%", margin: "0 auto" }}
+    >
+      <Typography variant="h1">Orders</Typography>
       {orders.map(({ nation, orders }) => (
         <Stack spacing={2} key={nation}>
-          <List subheader={<ListSubheader>{nation}</ListSubheader>}>
+          <List
+            subheader={
+              <ListSubheader
+                sx={{
+                  textAlign: "left",
+                  fontWeight: "bold",
+                }}
+              >
+                {nation}
+              </ListSubheader>
+            }
+          >
             {orders.map((order, index) => (
               <ListItem key={index}>
-                <ListItemIcon>
-                  <img src={order.unitTypeSvg} style={{ width: 32 }} />
-                </ListItemIcon>
                 <ListItemText>{formatOrderText(order)}</ListItemText>
               </ListItem>
             ))}

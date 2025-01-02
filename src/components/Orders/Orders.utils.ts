@@ -2,7 +2,6 @@ import { useGetOrdersQuery, useGetVariantQuery } from "../../common";
 
 type Order = {
     source: string;
-    unitTypeSvg: string;
     orderType: string;
     target: string | undefined;
     aux: string | undefined;
@@ -24,7 +23,6 @@ const createOrders = (
             orderType: orderType,
             target: target ? variant.getProvinceLongName(target) : undefined,
             aux: aux ? variant.getProvinceLongName(aux) : undefined,
-            unitTypeSvg: variant.getUnitTypeSrc(source),
         };
 
         if (!ordersByNation.has(order.Nation)) {

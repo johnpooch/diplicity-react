@@ -1,59 +1,44 @@
-import { skipToken } from "@reduxjs/toolkit/query";
-import { createMap } from "../../common/map/map";
-import service from "../../common/store/service";
-import { useParams } from "react-router";
+import React from "react";
+import { CircularProgress, Box } from "@mui/material";
+import { useMap } from "./use-map";
+
+const MapContainer: React.FC<{
+  children: React.ReactNode;
+}> = ({ children }) => {
+  return (
+    <Box
+      display="flex"
+      justifyContent="center"
+      alignItems="center"
+      flexGrow="1"
+    >
+      {children}
+    </Box>
+  );
+};
 
 const Map: React.FC = () => {
-  const { gameId } = useParams<{ gameId: string }>();
-  if (!gameId) throw new Error("gameId is required");
-  const listVariantsQuery = service.endpoints.listVariants.useQuery(undefined);
-  const getGameQuery = service.endpoints.getGame.useQuery(gameId);
-  const listPhasesQuery = service.endpoints.listPhases.useQuery(gameId);
-  const variantName = getGameQuery.data?.Variant;
-  const getVariantMapSvgQuery = service.endpoints.getVariantSvg.useQuery(
-    variantName ?? skipToken
-  );
-  const getVariantArmySvgQuery = service.endpoints.getVariantUnitSvg.useQuery(
-    variantName ? { variantName: variantName, unitType: "Army" } : skipToken
-  );
-  const getVariantFleetSvgQuery = service.endpoints.getVariantUnitSvg.useQuery(
-    variantName ? { variantName: variantName, unitType: "Fleet" } : skipToken
-  );
+  const { isLoading, isError, isSuccess, data } = useMap();
 
-  if (
-    !listVariantsQuery.isSuccess ||
-    !getGameQuery.isSuccess ||
-    !listPhasesQuery.isSuccess ||
-    !getVariantMapSvgQuery.isSuccess ||
-    !getVariantArmySvgQuery.isSuccess ||
-    !getVariantFleetSvgQuery.isSuccess
-  ) {
-    return null;
+  if (isLoading) {
+    return (
+      <MapContainer>
+        <CircularProgress />
+      </MapContainer>
+    );
   }
 
-  const variant = listVariantsQuery.data.find(
-    (v) => v.Name === getGameQuery.data.Variant
+  if (isError) return <div>Error loading map</div>;
+  if (!isSuccess) return null;
+
+  return (
+    <MapContainer>
+      <div
+        dangerouslySetInnerHTML={{ __html: data }}
+        style={{ maxWidth: "100%", height: "100%" }}
+      />
+    </MapContainer>
   );
-  if (!variant) throw new Error("Variant not found");
-
-  const newestPhaseMeta = getGameQuery.data.NewestPhaseMeta;
-  if (!newestPhaseMeta) throw new Error("Newest phase meta not found");
-
-  const newestPhase = listPhasesQuery.data.find(
-    (p) => p.PhaseOrdinal === newestPhaseMeta.PhaseOrdinal
-  );
-
-  if (!newestPhase) throw new Error("Newest phase not found");
-
-  const xml = createMap(
-    getVariantMapSvgQuery.data,
-    getVariantArmySvgQuery.data,
-    getVariantFleetSvgQuery.data,
-    variant,
-    newestPhase
-  );
-
-  return <div dangerouslySetInnerHTML={{ __html: xml }} />;
 };
 
 export { Map };

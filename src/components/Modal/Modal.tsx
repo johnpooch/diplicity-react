@@ -16,12 +16,18 @@ const style = {
 
 const Modal: React.FC<{
   name: string;
-  children: React.ReactNode;
+  // Update children to be a render prop that passes the value and onClose function
+  // children: React.ReactNode;
+  children: (props: {
+    value: string | null;
+    onClose: () => void;
+  }) => React.ReactNode;
 }> = (props) => {
   const navigate = useNavigate();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const isOpen = queryParams.has(props.name);
+  const value = queryParams.get(props.name);
 
   const onClose = () => {
     const searchParams = new URLSearchParams(location.search);
@@ -33,8 +39,8 @@ const Modal: React.FC<{
     <MuiModal open={isOpen} onClose={onClose}>
       <Box sx={style}>
         <Stack spacing={2}>
-          <ModalContext.Provider value={{ onClose }}>
-            {props.children}
+          <ModalContext.Provider value={{ onClose, value }}>
+            {props.children({ value, onClose })}
           </ModalContext.Provider>
         </Stack>
       </Box>

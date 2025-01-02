@@ -23,46 +23,47 @@ import {
   Button,
   Chip,
   Avatar,
+  Link,
 } from "@mui/material";
-import StatusChip from "./StatusChip";
-import PlayerAvatar from "./PlayerAvatar";
-import { useGlobalModal } from "../GlobalModalContext";
-import service from "../common/store/service";
+import { useGameCard } from "./use-game-card";
 
 const MAX_AVATARS = 7;
+const AVATAR_SIZE = 28;
 
-const orderStatusLabelMap: Record<
-  React.ComponentProps<typeof StatusChip>["status"],
-  string
-> = {
-  missed: "Orders missed",
-  unconfirmed: "Orders not confirmed",
-  pending: "Orders pending",
-  confirmed: "Orders confirmed",
-};
-
-type GameCallback = (id: string) => void;
-
-type GameCallbacks = {
-  onClickPlayerInfo: GameCallback;
-  onClickGameInfo: GameCallback;
-  onClickShare: GameCallback;
-  onClickJoin: GameCallback;
-  onClickLeave: GameCallback;
-  onClickViewGame: GameCallback;
-};
-
-const GameCard: React.FC<
-  {
-    game: (typeof service.endpoints.listGames.Types.ResultType)[0];
-    user: typeof service.endpoints.getRoot.Types.ResultType;
-  } & GameCallbacks
-> = (props) => {
+const GameCard: React.FC<{
+  canJoin: boolean;
+  canLeave: boolean;
+  id: string;
+  isPrivate: boolean;
+  members: {
+    id: string;
+    src: string;
+  }[];
+  name: string;
+  phase:
+    | {
+        season: string;
+        year: number;
+        type: string;
+        timeRemaining?: string;
+      }
+    | undefined;
+  phaseLength?: string;
+  status: string;
+  variant: string;
+}> = (props) => {
   const theme = useTheme();
+  const {
+    onClickGameInfo,
+    onClickPlayerInfo,
+    onClickShare,
+    onClickJoin,
+    onClickLeave,
+    onClickViewGame,
+  } = useGameCard(props.id);
+
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
-
-  const { openModal } = useGlobalModal();
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -77,15 +78,8 @@ const GameCard: React.FC<
     callback();
   };
 
-  const displayedUsers = props.game.Members.slice(0, MAX_AVATARS);
-  const remainingUsersCount = props.game.Members.length - displayedUsers.length;
-
-  const userMember = props.game.Members.find(
-    (member) => member.User.Id === props.user.Id
-  );
-
-  const userCanJoin = props.game.Links.some((link) => link.Rel === "join");
-  const userCanLeave = props.game.Links.some((link) => link.Rel === "leave");
+  const displayedUsers = props.members.slice(0, MAX_AVATARS);
+  const remainingUsersCount = props.members.length - displayedUsers.length;
 
   return (
     <Card elevation={0}>
@@ -94,26 +88,27 @@ const GameCard: React.FC<
           <Grid container spacing={2}>
             {/* Top */}
             <Grid container size={12} alignItems="center">
-              {userMember && userMember.Nation && (
-                <Grid size="auto">
-                  <Avatar
-                    style={{ width: 24, height: 24 }}
-                    src={`https://diplicity-engine.appspot.com/Variant/${props.game.Variant}/Flags/${userMember.Nation}.svg`}
-                  />
-                </Grid>
-              )}
               <Grid size="grow">
                 <Stack direction="row" alignItems="center" gap={1}>
-                  <Typography variant="h4" style={{ fontSize: "18px" }}>
-                    {props.game.Desc}
-                  </Typography>
-                  {props.game.Private && (
+                  {props.status !== "staging" ? (
+                    <Link
+                      href="#"
+                      color="inherit"
+                      underline="none"
+                      onClick={onClickViewGame}
+                    >
+                      <Typography style={{ fontSize: "18px" }}>
+                        {props.name}
+                      </Typography>
+                    </Link>
+                  ) : (
+                    <Typography variant="h4" style={{ fontSize: "18px" }}>
+                      {props.name}
+                    </Typography>
+                  )}
+                  {props.isPrivate && (
                     <LockIcon style={{ width: 16, height: 16 }} />
                   )}
-                  <StatusChip
-                    status={"confirmed"}
-                    label={orderStatusLabelMap["confirmed"]}
-                  />
                 </Stack>
               </Grid>
               <Grid size="auto">
@@ -121,57 +116,33 @@ const GameCard: React.FC<
                   <MoreHoriz />
                 </IconButton>
                 <Menu anchorEl={anchorEl} open={open} onClose={handleMenuClose}>
-                  <MenuItem
-                    onClick={withMenuClose(() =>
-                      openModal("gameInfo", props.game.ID)
-                    )}
-                  >
+                  <MenuItem onClick={withMenuClose(() => onClickGameInfo())}>
                     <InfoIcon sx={{ marginRight: 1 }} />
                     Game info
                   </MenuItem>
-                  <MenuItem
-                    onClick={withMenuClose(() =>
-                      openModal("playerInfo", props.game.ID)
-                    )}
-                  >
+                  <MenuItem onClick={withMenuClose(() => onClickPlayerInfo())}>
                     <PeopleIcon sx={{ marginRight: 1 }} />
                     Player info
                   </MenuItem>
                   <Divider />
-                  {userCanJoin && (
-                    <MenuItem
-                      onClick={withMenuClose(() =>
-                        props.onClickJoin(props.game.ID)
-                      )}
-                    >
+                  {props.canJoin && (
+                    <MenuItem onClick={withMenuClose(() => onClickJoin())}>
                       <JoinIcon sx={{ marginRight: 1 }} />
                       Join
                     </MenuItem>
                   )}
-                  {props.game.Started && (
-                    <MenuItem
-                      onClick={withMenuClose(() =>
-                        props.onClickViewGame(props.game.ID)
-                      )}
-                    >
+                  {props.status === "started" && (
+                    <MenuItem onClick={withMenuClose(() => onClickViewGame())}>
                       <VariantIcon sx={{ marginRight: 1 }} />
                       View
                     </MenuItem>
                   )}
-                  {userCanLeave && (
-                    <MenuItem
-                      onClick={withMenuClose(() =>
-                        props.onClickLeave(props.game.ID)
-                      )}
-                    >
+                  {props.canLeave && (
+                    <MenuItem onClick={withMenuClose(() => onClickLeave())}>
                       Leave
                     </MenuItem>
                   )}
-                  <MenuItem
-                    onClick={withMenuClose(() =>
-                      props.onClickShare(props.game.ID)
-                    )}
-                  >
+                  <MenuItem onClick={withMenuClose(() => onClickShare())}>
                     <ShareIcon sx={{ marginRight: 1 }} />
                     Share
                   </MenuItem>
@@ -189,7 +160,7 @@ const GameCard: React.FC<
                       fontSize: "15px",
                     }}
                   >
-                    {props.game.Variant}
+                    {props.variant}
                   </Typography>
                   <Typography
                     variant="body2"
@@ -198,7 +169,7 @@ const GameCard: React.FC<
                       fontSize: "15px",
                     }}
                   >
-                    {props.game.PhaseLengthMinutes}
+                    {props.phaseLength}
                   </Typography>
                 </Stack>
               </Grid>
@@ -208,7 +179,7 @@ const GameCard: React.FC<
                 justifyContent="flex-end"
                 alignItems="center"
               >
-                {props.game.NewestPhaseMeta && (
+                {props.phase && (
                   <>
                     <Typography
                       variant="body2"
@@ -217,16 +188,16 @@ const GameCard: React.FC<
                         fontSize: "15px",
                       }}
                     >
-                      {`${props.game.NewestPhaseMeta.Season} ${props.game.NewestPhaseMeta.Year}, ${props.game.NewestPhaseMeta.Type}`}
+                      {`${props.phase.season} ${props.phase.year}, ${props.phase.type}`}
                     </Typography>
-                    {props.game.Started && !props.game.Finished && (
+                    {props.status === "started" && (
                       <Chip
                         icon={
                           <PhaseTimeRemainingIcon
                             style={{ width: 16, height: 16 }}
                           />
                         }
-                        label={props.game.NewestPhaseMeta.NextDeadlineIn}
+                        label={props.phase.timeRemaining}
                       />
                     )}
                   </>
@@ -240,11 +211,18 @@ const GameCard: React.FC<
                   direction="row"
                   spacing={-1}
                   alignItems="center"
-                  onClick={() => openModal("playerInfo", props.game.ID)}
+                  onClick={() => onClickPlayerInfo()}
                   sx={{ cursor: "pointer" }}
                 >
-                  {displayedUsers.map((member, index) => (
-                    <PlayerAvatar key={index} username={member.User.Name} />
+                  {displayedUsers.map((member) => (
+                    <Avatar
+                      sx={{
+                        width: AVATAR_SIZE,
+                        height: AVATAR_SIZE,
+                      }}
+                      key={member.id}
+                      src={member.src}
+                    />
                   ))}
                   {remainingUsersCount > 0 && (
                     <Typography
@@ -257,11 +235,11 @@ const GameCard: React.FC<
                 </Stack>
               </Grid>
               <Grid container justifyContent="flex-end" size="grow">
-                {userCanJoin && (
+                {props.canJoin && (
                   <Button
                     variant="contained"
                     color="primary"
-                    onClick={() => props.onClickJoin(props.game.ID)}
+                    onClick={() => onClickJoin()}
                     size="small"
                   >
                     Join
@@ -277,4 +255,3 @@ const GameCard: React.FC<
 };
 
 export { GameCard };
-export type { GameCallbacks };
