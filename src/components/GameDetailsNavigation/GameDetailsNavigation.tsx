@@ -23,8 +23,6 @@ const GameDetailsNavigation: React.FC = () => {
     players: `/game/${gameId}/players`,
   } as const;
 
-  console.log(location);
-
   return (
     <AppBar position="fixed" color="primary" sx={{ top: "auto", bottom: 0 }}>
       <BottomNavigation
