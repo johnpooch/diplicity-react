@@ -1,50 +1,63 @@
-# React + TypeScript + Vite
+# Diplicity React
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Welcome to the Diplicity React project! This project is a web client for [Diplicity](https://github.com/zond/diplicity). This project is maintained voluntarily by members of the online Diplomacy board game community.
 
-Currently, two official plugins are available:
+## Get involved
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+We are looking for developers to get involved with the project. If you want to contribute, come say hi on the [Diplomacy Discord](chttps://discord.gg/QETtwGR).
 
-## Expanding the ESLint configuration
+## Project Overview
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+Diplicity React is a React-based web application that allows users to play the Diplomacy board game online. The application communicates with the diplicity API to manage game state, player actions, and other game-related functionalities.
 
-- Configure the top-level `parserOptions` property like this:
+- **API Link**: [diplicity API](https://github.com/zond/diplicity)
+- **Application Deployment**: [Diplicity React App](https://blue-cliff-00777a403.4.azurestaticapps.net/)
+- **Storybook Deployment**: [Diplicity React Storybook](https://nice-sand-001bca703.4.azurestaticapps.net/)
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+## Technologies Used
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+- **React**: A JavaScript library for building user interfaces.
+- **TypeScript**: A typed superset of JavaScript that compiles to plain JavaScript.
+- **Vite**: A fast build tool and development server for modern web projects.
+- **Material UI**: A popular React UI framework for building responsive and accessible user interfaces.
+- **Storybook**: A tool for developing UI components in isolation.
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+## Getting Started
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
-```
+### Prerequisites
+
+Before you begin, ensure you have the following installed on your machine:
+
+- Node.js (v14 or higher)
+- NPM (v6 or higher)
+
+### Getting started
+
+1. Clone the repository:
+
+   ```sh
+   git clone https://github.com/johnpooch/diplicity-react.git
+   cd diplicity-react
+   ```
+
+2. Install the dependencies:
+
+   ```sh
+   npm install
+   ```
+
+3. Start the development server:
+
+   ```sh
+    npm run dev
+   ```
+
+   The application will be available at `http://localhost:5173`.
+
+4. To run Storybook, use the following command:
+
+   ```sh
+   npm run storybook
+   ```
+
+   Storybook will be available at `http://localhost:6006`.
