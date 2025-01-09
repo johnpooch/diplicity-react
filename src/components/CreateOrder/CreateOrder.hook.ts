@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { mergeQueries, useCreateOrderMutation, useGetOptionsQuery, useGetVariantQuery } from "../../common";
-import { useParams } from "react-router";
 import { createOrderOptionTree, getNextOptionsNode, getOrderStatus } from "./CreateOrder.util";
 import { useModal } from "../Modal";
+import { useGameDetailContext } from "../game-detail-context";
 
 type LoadingState = {
     isLoading: true;
@@ -44,11 +44,9 @@ type SuccessState = {
 };
 
 const useCreateOrder = (): LoadingState | ErrorState | SuccessState => {
-    const { gameId } = useParams<{ gameId: string }>();
+    const { gameId } = useGameDetailContext();
     const { onClose } = useModal();
     const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
-
-    if (!gameId) throw new Error("No gameId found");
 
     const getVariantQuery = useGetVariantQuery(gameId);
     const getOptionsQuery = useGetOptionsQuery(gameId);

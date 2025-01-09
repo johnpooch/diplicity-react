@@ -1,6 +1,9 @@
 import { Outlet } from "react-router";
-import { Fab, Stack, useTheme } from "@mui/material";
+import { AppBar, IconButton, Stack, Toolbar, useTheme } from "@mui/material";
 import { ArrowBack as BackIcon } from "@mui/icons-material";
+import { PhaseSelect } from "../phase-select";
+import { SelectedPhaseContextProvider } from "../selected-phase-context";
+import { GameDetailContextProvider } from "../game-detail-context";
 
 const GameDetailsLayout: React.FC<{
   onClickBack: () => void;
@@ -10,38 +13,49 @@ const GameDetailsLayout: React.FC<{
   modals: React.ReactNode[];
 }> = (props) => {
   const theme = useTheme();
+
   return (
-    <Stack
-      sx={{
-        width: "100vw",
-        height: "calc(100vh - 56px)",
-        background: theme.palette.background.default,
-      }}
-    >
-      <Fab
-        color="primary"
-        aria-label="back"
-        sx={{ position: "fixed", top: 16, left: 16 }}
-        onClick={props.onClickBack}
-      >
-        <BackIcon />
-      </Fab>
-      <Outlet />
-      <Stack
-        direction="row"
-        spacing={2}
-        alignItems="center"
-        sx={{
-          position: "fixed",
-          bottom: 16 + 50,
-          right: 16,
-        }}
-      >
-        {props.actions}
-      </Stack>
-      {props.navigation}
-      {props.modals}
-    </Stack>
+    <GameDetailContextProvider>
+      <SelectedPhaseContextProvider>
+        <Stack
+          sx={{
+            width: "100vw",
+            height: "calc(100vh - 56px)",
+            background: theme.palette.background.default,
+          }}
+        >
+          <AppBar position="static">
+            <Toolbar sx={{ justifyContent: "space-between" }}>
+              <IconButton
+                edge="start"
+                color="inherit"
+                aria-label="back"
+                onClick={props.onClickBack}
+              >
+                <BackIcon />
+              </IconButton>
+              <PhaseSelect />
+              <Stack></Stack>
+            </Toolbar>
+          </AppBar>
+          <Outlet />
+          <Stack
+            direction="row"
+            spacing={2}
+            alignItems="center"
+            sx={{
+              position: "fixed",
+              bottom: 16 + 50,
+              right: 16,
+            }}
+          >
+            {props.actions}
+          </Stack>
+          {props.navigation}
+          {props.modals}
+        </Stack>
+      </SelectedPhaseContextProvider>
+    </GameDetailContextProvider>
   );
 };
 

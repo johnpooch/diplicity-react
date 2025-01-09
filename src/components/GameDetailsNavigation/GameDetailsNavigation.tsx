@@ -8,14 +8,13 @@ import {
   Gavel as OrdersIcon,
   People as PlayersIcon,
 } from "@mui/icons-material";
-import { useLocation, useNavigate, useParams } from "react-router";
+import { useLocation, useNavigate } from "react-router";
+import { useGameDetailContext } from "../game-detail-context";
 
 const GameDetailsNavigation: React.FC = () => {
-  const { gameId } = useParams<{ gameId: string }>();
+  const { gameId } = useGameDetailContext();
   const location = useLocation();
   const navigate = useNavigate();
-
-  if (!gameId) throw new Error("gameId is required");
 
   const navigationPathMap = {
     map: `/game/${gameId}`,

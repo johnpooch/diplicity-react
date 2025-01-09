@@ -1,20 +1,20 @@
 import { createMap } from "../../common/map/map";
-import { useParams } from "react-router";
-import { mergeQueries, useGetCurrentPhaseQuery, useGetMapSvgQuery, useGetUnitSvgQuery, useGetVariantQuery } from "../../common";
+import { mergeQueries, useGetPhaseQuery, useGetMapSvgQuery, useGetUnitSvgQuery, useGetVariantQuery } from "../../common";
+import { useSelectedPhaseContext } from "../selected-phase-context";
+import { useGameDetailContext } from "../game-detail-context";
 
 const useMap = () => {
-    const { gameId } = useParams<{ gameId: string }>();
-
-    if (!gameId) throw new Error("gameId is required");
+    const { gameId } = useGameDetailContext();
+    const { selectedPhase } = useSelectedPhaseContext();
 
     const getVariantQuery = useGetVariantQuery(gameId);
-    const getCurrentPhaseQuery = useGetCurrentPhaseQuery(gameId);
+    const getPhaseQuery = useGetPhaseQuery(gameId, selectedPhase);
     const getMapSvgQuery = useGetMapSvgQuery(gameId);
     const getArmySvgQuery = useGetUnitSvgQuery(gameId, "Army");
     const getFleetSvgQuery = useGetUnitSvgQuery(gameId, "Fleet");
 
-    return mergeQueries([getVariantQuery, getCurrentPhaseQuery, getMapSvgQuery, getArmySvgQuery, getFleetSvgQuery], (variant, currentPhase, mapSvg, armySvg, fleetSvg) => {
-        return createMap(mapSvg, armySvg, fleetSvg, variant, currentPhase);
+    return mergeQueries([getVariantQuery, getPhaseQuery, getMapSvgQuery, getArmySvgQuery, getFleetSvgQuery], (variant, phase, mapSvg, armySvg, fleetSvg) => {
+        return createMap(mapSvg, armySvg, fleetSvg, variant, phase);
     });
 }
 
