@@ -20,11 +20,14 @@ const SelectedPhaseContextProvider: React.FC<{
   });
 
   useEffect(() => {
+    const params = new URLSearchParams(location.search);
     if (selectedPhase === undefined) {
-      navigate({ search: "" });
+      params.delete("selectedPhase");
     } else {
-      navigate({ search: `?selectedPhase=${selectedPhase}` });
+      params.set("selectedPhase", selectedPhase.toString());
     }
+    console.log("Params", params.toString());
+    navigate({ search: params.toString() }, { replace: true });
   }, [selectedPhase, location.search, navigate]);
 
   const defaultPhase = listPhasesQuery.data
