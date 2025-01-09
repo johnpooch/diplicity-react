@@ -1,10 +1,10 @@
 import service from "../store/service";
-import { useGetCurrentPhaseQuery } from "./useGetCurrentPhaseQuery";
+import { useGetPhaseQuery } from "./useGetPhaseQuery";
 
-const useGetOrdersQuery = (gameId: string) => {
+const useGetOrdersQuery = (gameId: string, phaseId: number) => {
     const { endpoints } = service;
 
-    const getCurrentPhaseQuery = useGetCurrentPhaseQuery(gameId);
+    const getCurrentPhaseQuery = useGetPhaseQuery(gameId, phaseId);
 
     return endpoints.listOrders.useQuery(
         { gameId, phaseId: getCurrentPhaseQuery.data?.PhaseOrdinal.toString() || "" },

@@ -1,6 +1,7 @@
-import { useParams } from "react-router";
 import { mergeQueries, useGetVariantQuery, useGetOrdersQuery } from "../../common";
 import { createOrders } from "./Orders.utils";
+import { useSelectedPhaseContext } from "../selected-phase-context";
+import { useGameDetailContext } from "../game-detail-context";
 
 type LoadingState = {
     isLoading: true;
@@ -21,12 +22,12 @@ type SuccessState = {
 };
 
 const useOrders = (): LoadingState | ErrorState | SuccessState => {
-    const { gameId } = useParams<{ gameId: string }>();
+    const { gameId } = useGameDetailContext();
 
-    if (!gameId) throw new Error("No gameId found");
+    const { selectedPhase } = useSelectedPhaseContext();
 
     const getVariantQuery = useGetVariantQuery(gameId);
-    const listOrdersQuery = useGetOrdersQuery(gameId);
+    const listOrdersQuery = useGetOrdersQuery(gameId, selectedPhase);
 
     const { isLoading, isError, data } = mergeQueries([getVariantQuery, listOrdersQuery], createOrders);
 

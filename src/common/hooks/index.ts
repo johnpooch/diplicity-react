@@ -6,6 +6,7 @@ export * from "./useGetVariantQuery";
 export * from "./useGetUserNewestPhaseStateQuery"
 export * from "./useGetUnitSvgQuery";
 export * from "./useGetMapSvgQuery";
+export * from "./useGetPhaseQuery";
 export * from "./useListNewestPhaseStatesQuery";
 export * from "./useListOrdersQuery";
 export * from "./useJoinGameMutation";
