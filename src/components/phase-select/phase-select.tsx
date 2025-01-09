@@ -35,10 +35,13 @@ const PhaseSelect = () => {
     handlePhaseSelect,
     handlePrevious,
     selectedPhase,
-    phases,
+    query,
     nextDisabled,
     previousDisabled,
   } = usePhaseSelect();
+
+  if (!query.data) return null;
+
   return (
     <Stack direction="row" alignItems="center">
       <IconButton
@@ -57,7 +60,7 @@ const PhaseSelect = () => {
           onChange={(event) => handlePhaseSelect(event.target.value as number)}
           input={<StyledInput />}
         >
-          {phases.map(({ key, label }) => (
+          {query.data.map(({ key, label }) => (
             <MenuItem key={key} value={key}>
               {label}
             </MenuItem>

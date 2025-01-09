@@ -1,16 +1,26 @@
 import { useState } from "react";
+import service from "../../common/store/service";
+import { useParams } from "react-router";
+import { mergeQueries } from "../../common";
 
 const usePhaseSelect = () => {
+    const { gameId } = useParams<{ gameId: string }>();
+
+    if (!gameId) throw new Error("gameId is required");
+
+    const listPhasesQuery = service.endpoints.listPhases.useQuery(gameId);
+
+    const query = mergeQueries([listPhasesQuery], (phases) =>
+        phases.map((phase) => ({
+            key: phase.PhaseOrdinal,
+            label: `${phase.Season} ${phase.Year}, ${phase.Type}`
+        }))
+    );
+
     const [selectedPhase, setSelectedPhase] = useState<number>(1);
 
-    const phases = [
-        { key: 1, label: "Spring 1900, Movement" },
-        { key: 2, label: "Spring 1900, Retreat" },
-        { key: 3, label: "Spring 1900, Adjustment" }
-    ]
-
-    const nextDisabled = selectedPhase === phases.length;
-    const previousDisabled = selectedPhase === 1;
+    const nextDisabled = !query.data || selectedPhase === query.data.length;
+    const previousDisabled = !query.data || selectedPhase === 1;
 
     const handlePhaseSelect = (phase: number) => {
         setSelectedPhase(phase);
@@ -25,7 +35,7 @@ const usePhaseSelect = () => {
 
     return {
         selectedPhase,
-        phases,
+        query,
         handlePhaseSelect,
         handleNext,
         handlePrevious,
