@@ -1,13 +1,26 @@
 import { Outlet } from "react-router";
 import {
   AppBar,
+  FormControl,
   IconButton,
+  MenuItem,
+  Select,
   Stack,
   Toolbar,
-  Typography,
   useTheme,
+  InputBase,
+  styled,
 } from "@mui/material";
-import { ArrowBack as BackIcon } from "@mui/icons-material";
+import {
+  ArrowBack as BackIcon,
+  ExpandMore as ExpandMoreIcon,
+  ArrowLeft as PreviousIcon,
+  ArrowRight as NextIcon,
+} from "@mui/icons-material";
+
+const StyledInput = styled(InputBase)`
+  color: ${({ theme }) => theme.palette.secondary.main};
+`;
 
 const GameDetailsLayout: React.FC<{
   onClickBack: () => void;
@@ -17,6 +30,14 @@ const GameDetailsLayout: React.FC<{
   modals: React.ReactNode[];
 }> = (props) => {
   const theme = useTheme();
+
+  const CustomExpandMoreIcon = () => (
+    <ExpandMoreIcon
+      {...props}
+      style={{ color: theme.palette.secondary.main }}
+    />
+  );
+
   return (
     <Stack
       sx={{
@@ -26,7 +47,7 @@ const GameDetailsLayout: React.FC<{
       }}
     >
       <AppBar position="static">
-        <Toolbar>
+        <Toolbar sx={{ justifyContent: "space-between" }}>
           <IconButton
             edge="start"
             color="inherit"
@@ -35,9 +56,39 @@ const GameDetailsLayout: React.FC<{
           >
             <BackIcon />
           </IconButton>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Game Details
-          </Typography>
+          <Stack direction="row" alignItems="center">
+            <IconButton
+              sx={{ height: "fit-content" }}
+              edge="start"
+              color="inherit"
+              aria-label="back"
+            >
+              <PreviousIcon />
+            </IconButton>
+            <FormControl sx={{ m: 1, minWidth: 120 }}>
+              <Select
+                labelId="demo-simple-select-standard-label"
+                id="demo-simple-select-standard"
+                value={1}
+                onChange={() => {}}
+                label="Phase"
+                IconComponent={CustomExpandMoreIcon}
+                input={<StyledInput />}
+              >
+                <MenuItem value={1}>Spring 1900, Movement</MenuItem>
+                <MenuItem value={2}>Spring 1900, Retreat</MenuItem>
+              </Select>
+            </FormControl>
+            <IconButton
+              sx={{ height: "fit-content" }}
+              edge="end"
+              color="inherit"
+              aria-label="forward"
+            >
+              <NextIcon />
+            </IconButton>
+          </Stack>
+          <Stack></Stack>
         </Toolbar>
       </AppBar>
       <Outlet />
