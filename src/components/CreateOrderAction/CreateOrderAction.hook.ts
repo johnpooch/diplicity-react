@@ -1,12 +1,11 @@
-import { useLocation, useNavigate, useParams } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { mergeQueries, useGetCurrentPhaseQuery } from "../../common";
+import { useGameDetailContext } from "../game-detail-context";
 
 const useCreateOrderAction = () => {
+    const { gameId } = useGameDetailContext();
     const location = useLocation();
     const navigate = useNavigate();
-    const { gameId } = useParams<{ gameId: string }>();
-
-    if (!gameId) throw new Error("No gameId provided");
 
     const currentPhaseQuery = useGetCurrentPhaseQuery(gameId);
 

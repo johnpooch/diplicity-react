@@ -3,16 +3,15 @@ import {
   CheckBox as OrdersConfirmedIcon,
   CheckBoxOutlineBlank as ConfirmOrdersIcon,
 } from "@mui/icons-material";
-import { useParams } from "react-router";
 import {
   mergeQueries,
   useGetUserNewestPhaseStateQuery,
   useUpdatePhaseStateMutation,
 } from "../../common";
+import { useGameDetailContext } from "../game-detail-context";
 
 const useConfirmOrdersAction = () => {
-  const { gameId } = useParams<{ gameId: string }>();
-  if (!gameId) throw new Error("No gameId provided");
+  const { gameId } = useGameDetailContext();
   const phaseStateQuery = useGetUserNewestPhaseStateQuery(gameId);
   const [updatePhaseStateTrigger, updatePhaseStateMutation] =
     useUpdatePhaseStateMutation(gameId);
