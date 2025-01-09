@@ -1,5 +1,12 @@
 import { Outlet } from "react-router";
-import { Fab, Stack, useTheme } from "@mui/material";
+import {
+  AppBar,
+  IconButton,
+  Stack,
+  Toolbar,
+  Typography,
+  useTheme,
+} from "@mui/material";
 import { ArrowBack as BackIcon } from "@mui/icons-material";
 
 const GameDetailsLayout: React.FC<{
@@ -18,14 +25,21 @@ const GameDetailsLayout: React.FC<{
         background: theme.palette.background.default,
       }}
     >
-      <Fab
-        color="primary"
-        aria-label="back"
-        sx={{ position: "fixed", top: 16, left: 16 }}
-        onClick={props.onClickBack}
-      >
-        <BackIcon />
-      </Fab>
+      <AppBar position="static">
+        <Toolbar>
+          <IconButton
+            edge="start"
+            color="inherit"
+            aria-label="back"
+            onClick={props.onClickBack}
+          >
+            <BackIcon />
+          </IconButton>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            Game Details
+          </Typography>
+        </Toolbar>
+      </AppBar>
       <Outlet />
       <Stack
         direction="row"
