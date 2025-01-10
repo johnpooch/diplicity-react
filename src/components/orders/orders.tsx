@@ -11,20 +11,12 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-
 import {
   CheckCircle as OrderOkIcon,
   Cancel as OrderErrorIcon,
 } from "@mui/icons-material";
-
 import { useOrders } from "./use-orders";
-
-type OrderProps = {
-  source: string;
-  orderType: string;
-  target?: string;
-  aux?: string;
-};
+import { formatOrderText } from "../../util";
 
 const StyledListItem = styled(ListItem)(({ theme }) => ({
   border: `1px solid ${theme.palette.grey[200]}`,
@@ -37,86 +29,65 @@ const StyledListSubheader = styled(ListSubheader)(({ theme }) => ({
   backgroundColor: theme.palette.grey[200],
 }));
 
-const formatOrderText = (order: OrderProps) => {
-  if (order.orderType === "Hold") {
-    return `${order.source} Hold`;
-  }
-  if (order.orderType === "Support") {
-    return `${order.source} Support ${order.target} ${order.aux}`;
-  }
-  return `${order.source} ${order.orderType} to ${order.target}`;
-};
-
-const OutcomeLabelMap = {
-  OK: "Succeeded",
-  Bounced: "Bounced",
-  SupportBroken: "Support broken",
-  Invalid: "Invalid order",
-} as const;
+const StyledContainer = styled(Stack)(({ theme }) => ({
+  maxWidth: 630,
+  width: "100%",
+  margin: "0 auto",
+  gap: theme.spacing(2),
+  padding: theme.spacing(2),
+}));
 
 const Orders: React.FC = () => {
   const theme = useTheme();
-  const { isLoading, isError, orders } = useOrders();
+  const { isLoading, orders } = useOrders();
 
   if (isLoading) {
     return (
-      <Stack spacing={2}>
+      <StyledContainer>
         <CircularProgress />
-      </Stack>
+      </StyledContainer>
     );
   }
 
-  if (isError) {
-    return (
-      <Stack spacing={2}>
-        <Typography>Error loading orders</Typography>
-      </Stack>
-    );
-  }
+  if (!orders) return null;
 
   return (
-    <Stack
-      spacing={2}
-      padding={2}
-      sx={{ maxWidth: 630, width: "100%", margin: "0 auto" }}
-    >
+    <StyledContainer>
       <Typography variant="h1">Orders</Typography>
       {orders.map(({ nation, orders }) => (
-        <Stack spacing={2} key={nation}>
-          <List subheader={<StyledListSubheader>{nation}</StyledListSubheader>}>
-            {orders.map((order, index) => (
-              <StyledListItem key={index}>
+        <List
+          key={nation}
+          subheader={<StyledListSubheader>{nation}</StyledListSubheader>}
+        >
+          {orders.map((order, index) => (
+            <StyledListItem key={index}>
+              {order.outcome && (
+                <ListItemIcon>
+                  {order.outcome.outcome === "Succeeded" ? (
+                    <OrderOkIcon sx={{ color: theme.palette.success.main }} />
+                  ) : (
+                    <OrderErrorIcon sx={{ color: theme.palette.error.main }} />
+                  )}
+                </ListItemIcon>
+              )}
+              <Stack>
+                <ListItemText>
+                  <Typography variant="h4">{formatOrderText(order)}</Typography>
+                </ListItemText>
                 {order.outcome && (
-                  <ListItemIcon>
-                    {order.outcome === "OK" ? (
-                      <OrderOkIcon sx={{ color: theme.palette.success.main }} />
-                    ) : (
-                      <OrderErrorIcon
-                        sx={{ color: theme.palette.error.main }}
-                      />
-                    )}
-                  </ListItemIcon>
-                )}
-                <Stack>
                   <ListItemText>
-                    <Typography variant="h4">
-                      {formatOrderText(order)}
+                    <Typography variant="caption">
+                      {order.outcome.outcome}
+                      {order.outcome.by ? ` by ${order.outcome.by}` : ""}
                     </Typography>
                   </ListItemText>
-                  {order.outcome && (
-                    <ListItemText>
-                      <Typography variant="caption">
-                        {OutcomeLabelMap[order.outcome]}
-                      </Typography>
-                    </ListItemText>
-                  )}
-                </Stack>
-              </StyledListItem>
-            ))}
-          </List>
-        </Stack>
+                )}
+              </Stack>
+            </StyledListItem>
+          ))}
+        </List>
       ))}
-    </Stack>
+    </StyledContainer>
   );
 };
 
