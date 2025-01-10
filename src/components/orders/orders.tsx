@@ -52,6 +52,7 @@ const OutcomeLabelMap = {
   OK: "Succeeded",
   Bounced: "Bounced",
   SupportBroken: "Support broken",
+  Invalid: "Invalid order",
 } as const;
 
 const OutcomeIconMap = {
@@ -62,6 +63,9 @@ const OutcomeIconMap = {
     <OrderErrorIcon sx={{ color: theme.palette.error.main }} />
   ),
   SupportBroken: (theme: Theme) => (
+    <OrderErrorIcon sx={{ color: theme.palette.error.main }} />
+  ),
+  Invalid: (theme: Theme) => (
     <OrderErrorIcon sx={{ color: theme.palette.error.main }} />
   ),
 } as const;

@@ -1,6 +1,6 @@
 import { useGetOrdersQuery, useGetPhaseQuery, useGetVariantQuery } from "../../common";
 
-type Outcome = "OK" | "Bounced" | "SupportBroken" | undefined;
+type Outcome = "OK" | "Bounced" | "SupportBroken" | "Invalid" | undefined;
 
 type Order = {
     source: string;
@@ -23,7 +23,7 @@ const createOrders = (
         if (!orderType) throw new Error("No orderType found");
         const resolution = phase.Resolutions?.find((resolution) => resolution.Province === source);
 
-        const outcome: Outcome = resolution?.Resolution.includes("OK") ? "OK" : resolution?.Resolution.includes("Bounce") ? "Bounced" : resolution?.Resolution.includes("SupportBroken") ? "SupportBroken" : undefined;
+        const outcome: Outcome = resolution?.Resolution.includes("OK") ? "OK" : resolution?.Resolution.includes("Bounce") ? "Bounced" : resolution?.Resolution.includes("SupportBroken") ? "SupportBroken" : resolution?.Resolution.includes("Invalid") ? "Invalid" : undefined;
 
         const orderData = {
             source: variant.getProvinceLongName(source),
