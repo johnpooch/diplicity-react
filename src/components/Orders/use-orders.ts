@@ -1,5 +1,5 @@
-import { mergeQueries, useGetVariantQuery, useGetOrdersQuery } from "../../common";
-import { createOrders } from "./Orders.utils";
+import { mergeQueries, useGetVariantQuery, useGetOrdersQuery, useGetPhaseQuery } from "../../common";
+import { createOrders } from "./orders-utils";
 import { useSelectedPhaseContext } from "../selected-phase-context";
 import { useGameDetailContext } from "../game-detail-context";
 
@@ -23,13 +23,13 @@ type SuccessState = {
 
 const useOrders = (): LoadingState | ErrorState | SuccessState => {
     const { gameId } = useGameDetailContext();
-
     const { selectedPhase } = useSelectedPhaseContext();
 
     const getVariantQuery = useGetVariantQuery(gameId);
+    const getPhaseQuery = useGetPhaseQuery(gameId, selectedPhase);
     const listOrdersQuery = useGetOrdersQuery(gameId, selectedPhase);
 
-    const { isLoading, isError, data } = mergeQueries([getVariantQuery, listOrdersQuery], createOrders);
+    const { isLoading, isError, data } = mergeQueries([getVariantQuery, getPhaseQuery, listOrdersQuery], createOrders);
 
     if (isLoading) return { isLoading: true };
     if (isError) return { isError: true };

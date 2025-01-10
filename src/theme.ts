@@ -13,6 +13,16 @@ const theme = createTheme({
             lineHeight: "26px",
             fontWeight: 600,
         },
+        h4: {
+            fontSize: "16px",
+            lineHeight: "24px",
+            fontWeight: 600,
+        },
+        caption: {
+            fontSize: "12px",
+            lineHeight: "18px",
+            color: "rgb(89, 99, 110)"
+        },
         button: {
             textTransform: "none",
         }

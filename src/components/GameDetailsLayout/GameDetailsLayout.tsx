@@ -20,8 +20,9 @@ const GameDetailsLayout: React.FC<{
         <Stack
           sx={{
             width: "100vw",
-            height: "calc(100vh - 56px)",
+            minHeight: "calc(100vh - 56px)",
             background: theme.palette.background.default,
+            paddingBottom: "56px",
           }}
         >
           <AppBar position="static">
