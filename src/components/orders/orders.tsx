@@ -8,7 +8,6 @@ import {
   ListSubheader,
   Stack,
   styled,
-  Theme,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -55,21 +54,6 @@ const OutcomeLabelMap = {
   Invalid: "Invalid order",
 } as const;
 
-const OutcomeIconMap = {
-  OK: (theme: Theme) => (
-    <OrderOkIcon sx={{ color: theme.palette.success.main }} />
-  ),
-  Bounced: (theme: Theme) => (
-    <OrderErrorIcon sx={{ color: theme.palette.error.main }} />
-  ),
-  SupportBroken: (theme: Theme) => (
-    <OrderErrorIcon sx={{ color: theme.palette.error.main }} />
-  ),
-  Invalid: (theme: Theme) => (
-    <OrderErrorIcon sx={{ color: theme.palette.error.main }} />
-  ),
-} as const;
-
 const Orders: React.FC = () => {
   const theme = useTheme();
   const { isLoading, isError, orders } = useOrders();
@@ -104,7 +88,13 @@ const Orders: React.FC = () => {
               <StyledListItem key={index}>
                 {order.outcome && (
                   <ListItemIcon>
-                    {OutcomeIconMap[order.outcome](theme)}
+                    {order.outcome === "OK" ? (
+                      <OrderOkIcon sx={{ color: theme.palette.success.main }} />
+                    ) : (
+                      <OrderErrorIcon
+                        sx={{ color: theme.palette.error.main }}
+                      />
+                    )}
                   </ListItemIcon>
                 )}
                 <Stack>
