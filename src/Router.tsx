@@ -8,7 +8,7 @@ import UserPage from "./screens/UserPage";
 import { Map } from "./components/Map";
 import { GameDetailsLayout } from "./components/GameDetailsLayout";
 import { GameDetailsNavigation } from "./components/GameDetailsNavigation";
-import { Orders } from "./components/Orders";
+import { Orders } from "./components/orders";
 import { CreateOrder } from "./components/CreateOrder";
 import { Modal } from "./components/Modal";
 import { CreateOrderAction } from "./components/CreateOrderAction";
