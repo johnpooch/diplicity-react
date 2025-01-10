@@ -2,7 +2,7 @@ import { useState } from "react";
 import { mergeQueries, useCreateOrderMutation, useGetOptionsQuery, useGetVariantQuery } from "../../common";
 import { createOrderOptionTree, getNextOptionsNode, getOrderStatus } from "./CreateOrder.util";
 import { useModal } from "../Modal";
-import { useGameDetailContext } from "../game-detail-context";
+import { useGameDetailContext } from "../../context";
 
 type LoadingState = {
     isLoading: true;

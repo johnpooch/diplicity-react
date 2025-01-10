@@ -8,7 +8,7 @@ import {
   useGetUserNewestPhaseStateQuery,
   useUpdatePhaseStateMutation,
 } from "../../common";
-import { useGameDetailContext } from "../game-detail-context";
+import { useGameDetailContext } from "../../context";
 
 const useConfirmOrdersAction = () => {
   const { gameId } = useGameDetailContext();
