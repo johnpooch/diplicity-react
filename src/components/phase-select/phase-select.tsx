@@ -29,6 +29,10 @@ const StyledFormControl = styled(FormControl)`
   min-width: 250px;
 `;
 
+const StyledIconButton = styled(IconButton)`
+  height: fit-content;
+`;
+
 const PhaseSelect = () => {
   const {
     handleNext,
@@ -44,8 +48,7 @@ const PhaseSelect = () => {
 
   return (
     <Stack direction="row" alignItems="center">
-      <IconButton
-        sx={{ height: "fit-content" }}
+      <StyledIconButton
         edge="start"
         color="inherit"
         aria-label="back"
@@ -53,7 +56,7 @@ const PhaseSelect = () => {
         disabled={previousDisabled}
       >
         <PreviousIcon />
-      </IconButton>
+      </StyledIconButton>
       <StyledFormControl>
         <StyledSelect
           value={selectedPhase}
@@ -67,8 +70,7 @@ const PhaseSelect = () => {
           ))}
         </StyledSelect>
       </StyledFormControl>
-      <IconButton
-        sx={{ height: "fit-content" }}
+      <StyledIconButton
         edge="end"
         color="inherit"
         aria-label="forward"
@@ -76,7 +78,7 @@ const PhaseSelect = () => {
         disabled={nextDisabled}
       >
         <NextIcon />
-      </IconButton>
+      </StyledIconButton>
     </Stack>
   );
 };
