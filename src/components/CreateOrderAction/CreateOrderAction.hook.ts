@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router";
 import { mergeQueries, useGetCurrentPhaseQuery } from "../../common";
-import { useGameDetailContext } from "../game-detail-context";
+import { useGameDetailContext } from "../../context";
 
 const useCreateOrderAction = () => {
     const { gameId } = useGameDetailContext();

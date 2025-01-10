@@ -1,7 +1,6 @@
 import service from "../../common/store/service";
 import { mergeQueries } from "../../common";
-import { useSelectedPhaseContext } from "../selected-phase-context";
-import { useGameDetailContext } from "../game-detail-context";
+import { useGameDetailContext, useSelectedPhaseContext } from "../../context";
 
 const usePhaseSelect = () => {
     const { gameId } = useGameDetailContext();

@@ -9,7 +9,7 @@ import {
   People as PlayersIcon,
 } from "@mui/icons-material";
 import { useLocation, useNavigate } from "react-router";
-import { useGameDetailContext } from "../game-detail-context";
+import { useGameDetailContext } from "../../context";
 
 const GameDetailsNavigation: React.FC = () => {
   const { gameId } = useGameDetailContext();

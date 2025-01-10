@@ -1,7 +1,6 @@
 import { mergeQueries, useGetVariantQuery, useGetOrdersQuery, useGetPhaseQuery } from "../../common";
 import { createOrders } from "./orders-utils";
-import { useSelectedPhaseContext } from "../selected-phase-context";
-import { useGameDetailContext } from "../game-detail-context";
+import { useGameDetailContext, useSelectedPhaseContext } from "../../context";
 
 type LoadingState = {
     isLoading: true;

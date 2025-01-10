@@ -2,8 +2,10 @@ import { Outlet } from "react-router";
 import { AppBar, IconButton, Stack, Toolbar, useTheme } from "@mui/material";
 import { ArrowBack as BackIcon } from "@mui/icons-material";
 import { PhaseSelect } from "../phase-select";
-import { SelectedPhaseContextProvider } from "../selected-phase-context";
-import { GameDetailContextProvider } from "../game-detail-context";
+import {
+  GameDetailContextProvider,
+  SelectedPhaseContextProvider,
+} from "../../context";
 
 const GameDetailsLayout: React.FC<{
   onClickBack: () => void;

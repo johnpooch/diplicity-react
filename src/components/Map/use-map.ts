@@ -1,7 +1,6 @@
 import { createMap } from "../../common/map/map";
 import { mergeQueries, useGetPhaseQuery, useGetMapSvgQuery, useGetUnitSvgQuery, useGetVariantQuery } from "../../common";
-import { useSelectedPhaseContext } from "../selected-phase-context";
-import { useGameDetailContext } from "../game-detail-context";
+import { useGameDetailContext, useSelectedPhaseContext } from "../../context";
 
 const useMap = () => {
     const { gameId } = useGameDetailContext();
