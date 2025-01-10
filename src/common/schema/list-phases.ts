@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { apiResponseSchema, listApiResponseSchema } from "./common";
+import { transformResolution } from "../../util";
 
 const unitSchema = z.object({
     Type: z.string(),
@@ -36,6 +37,7 @@ const resolutionSchema = z.object({
     Resolution: z.string(),
 });
 
+
 const phaseSchema = z.object({
     PhaseOrdinal: z.number(),
     Season: z.string(),
@@ -57,7 +59,13 @@ const phaseSchema = z.object({
     Dislodgers: z.array(dislodgerSchema).nullable(),
     ForceDisbands: z.array(z.string()).nullable(),
     Bounces: z.array(bounceSchema).nullable(),
-    Resolutions: z.array(resolutionSchema).nullable(),
+    Resolutions: z.union([z.array(resolutionSchema), z.null()]).transform((data) => {
+        if (data === null) return [];
+        return data.map((resolution) => {
+            const { outcome, by } = transformResolution(resolution.Resolution);
+            return { province: resolution.Province, outcome, by };
+        })
+    }),
     Host: z.string(),
     SoloSCCount: z.number(),
 });

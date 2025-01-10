@@ -1,13 +1,14 @@
 import { useGetOrdersQuery, useGetPhaseQuery, useGetVariantQuery } from "../../common";
 
-type Outcome = "OK" | "Bounced" | "SupportBroken" | "Invalid" | undefined;
-
 type Order = {
     source: string;
     orderType: string;
     target: string | undefined;
     aux: string | undefined;
-    outcome: Outcome;
+    outcome: {
+        outcome: string;
+        by?: string;
+    } | undefined;
 };
 
 const createOrders = (
@@ -21,16 +22,17 @@ const createOrders = (
         const [source, orderType, target, aux] = order.Parts;
         if (!source) throw new Error("No source found");
         if (!orderType) throw new Error("No orderType found");
-        const resolution = phase.Resolutions?.find((resolution) => resolution.Province === source);
-
-        const outcome: Outcome = resolution?.Resolution.includes("OK") ? "OK" : resolution?.Resolution.includes("Bounce") ? "Bounced" : resolution?.Resolution.includes("SupportBroken") ? "SupportBroken" : resolution?.Resolution.includes("Invalid") ? "Invalid" : undefined;
+        const outcome = phase.Resolutions?.find((resolution) => resolution.province === source);
 
         const orderData = {
             source: variant.getProvinceLongName(source),
             orderType: orderType,
             target: target ? variant.getProvinceLongName(target) : undefined,
             aux: aux ? variant.getProvinceLongName(aux) : undefined,
-            outcome: outcome
+            outcome: outcome ? {
+                outcome: outcome.outcome,
+                by: outcome.by ? variant.getProvinceLongName(outcome.by) : undefined,
+            } : undefined,
         };
 
         if (!ordersByNation.has(order.Nation)) {
