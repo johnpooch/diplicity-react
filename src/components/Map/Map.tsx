@@ -35,7 +35,7 @@ const Map: React.FC = () => {
     <MapContainer>
       <div
         dangerouslySetInnerHTML={{ __html: data }}
-        style={{ maxWidth: "100%", height: "100%" }}
+        style={{ width: "100%", maxWidth: "100%", height: "100%" }}
       />
     </MapContainer>
   );
