@@ -6,15 +6,15 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Stack,
   useTheme,
 } from "@mui/material";
-
-const drawerWidth = 240;
 
 const DrawerNavigationContext = React.createContext<
   | {
       value: string;
       onChange: (newValue: string) => void;
+      variant: "expanded" | "collapsed";
     }
   | undefined
 >(undefined);
@@ -22,9 +22,11 @@ const DrawerNavigationContext = React.createContext<
 type DrawerNavigationProps = React.PropsWithChildren<{
   value: string;
   onChange: (newValue: string) => void;
+  variant: "expanded" | "collapsed";
 }>;
 
 const DrawerNavigation: React.FC<DrawerNavigationProps> = (props) => {
+  const drawerWidth = props.variant === "expanded" ? 240 : 56;
   return (
     <Drawer
       variant="permanent"
@@ -32,7 +34,7 @@ const DrawerNavigation: React.FC<DrawerNavigationProps> = (props) => {
         width: drawerWidth,
         flexShrink: 0,
         "& .MuiDrawer-paper": {
-          position: "relative",
+          position: props.variant === "expanded" ? "relative" : "fixed",
           width: drawerWidth,
           boxSizing: "border-box",
           border: "none",
@@ -43,6 +45,7 @@ const DrawerNavigation: React.FC<DrawerNavigationProps> = (props) => {
         value={{
           value: props.value,
           onChange: props.onChange,
+          variant: props.variant,
         }}
       >
         <List>{props.children}</List>
@@ -83,17 +86,22 @@ const DrawerNavigationAction: React.FC<DrawerNavigationActionProps> = (
   return (
     <ListItem disablePadding>
       <ListItemButton onClick={() => context.onChange(props.value)}>
-        <ListItemIcon>
-          {React.cloneElement(props.icon, {
-            style: selected ? selectedItemIconStyle : {},
-          })}
-        </ListItemIcon>
-        <ListItemText
-          primary={props.label}
-          primaryTypographyProps={{
-            style: selected ? selectedItemTextStyle : {},
-          }}
-        />
+        <Stack direction="row" gap={1}>
+          <ListItemIcon sx={{ minWidth: "fit-content", alignItems: "center" }}>
+            {React.cloneElement(props.icon, {
+              style: selected ? selectedItemIconStyle : {},
+            })}
+          </ListItemIcon>
+          {context.variant === "expanded" && (
+            <ListItemText
+              primary={props.label}
+              primaryTypographyProps={{
+                style: selected ? selectedItemTextStyle : {},
+                sx: { fontSize: 18 },
+              }}
+            />
+          )}
+        </Stack>
       </ListItemButton>
     </ListItem>
   );

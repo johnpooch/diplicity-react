@@ -6,6 +6,16 @@ type ScreenTopBarProps = {
   title: string;
 };
 
+const styles: Styles = {
+  root: (theme) => ({
+    borderBottom: `1px solid ${theme.palette.divider}`,
+  }),
+  iconButton: (theme) => ({
+    padding: 0,
+    color: theme.palette.text.primary,
+  }),
+};
+
 const ScreenTopBar: React.FC<ScreenTopBarProps> = ({ title }) => {
   const navigate = useNavigate();
 
@@ -15,15 +25,9 @@ const ScreenTopBar: React.FC<ScreenTopBarProps> = ({ title }) => {
       direction="row"
       alignItems="center"
       padding={2}
-      sx={(theme) => ({ borderBottom: `1px solid ${theme.palette.divider}` })}
+      sx={styles.root}
     >
-      <IconButton
-        onClick={() => navigate("/")}
-        sx={(theme) => ({
-          padding: 0,
-          color: theme.palette.text.primary,
-        })}
-      >
+      <IconButton onClick={() => navigate("/")} sx={styles.iconButton}>
         <BackIcon />
       </IconButton>
       <Typography variant="h1">{title}</Typography>
