@@ -1,10 +1,8 @@
 import React from "react";
-import CreateGame from "./screens/CreateGame";
 import { Navigate, Outlet, Route, Routes, useNavigate } from "react-router";
 import Login from "./screens/Login";
 import { useSelector } from "react-redux";
 import { selectAuth } from "./common/store/auth";
-import UserPage from "./screens/UserPage";
 import { Map } from "./components/Map";
 import { GameDetailsLayout } from "./components/GameDetailsLayout";
 import { GameDetailsNavigation } from "./components/GameDetailsNavigation";
@@ -13,11 +11,15 @@ import { CreateOrder } from "./components/CreateOrder";
 import { Modal } from "./components/Modal";
 import { CreateOrderAction } from "./components/CreateOrderAction";
 import { ConfirmOrdersAction } from "./components/ConfirmOrdersAction";
-import { Home } from "./components/home";
-import { HomeLayout } from "./components/home-layout";
 import { PlayerInfo } from "./components/PlayerInfo";
 import { GameInfo } from "./components/GameInfo";
-import { BrowseGames } from "./components/browse-games";
+import {
+  CreateGame,
+  FindGames,
+  Layout as HomeLayout,
+  MyGames,
+  Profile,
+} from "./screens";
 
 const Router: React.FC = () => {
   const { loggedIn } = useSelector(selectAuth);
@@ -33,10 +35,10 @@ const Router: React.FC = () => {
     <Routes>
       <Route element={<HomeModals />}>
         <Route element={<HomeLayout />}>
-          <Route index element={<Home />} />
-          <Route path="find-games" element={<BrowseGames />} />
+          <Route index element={<MyGames />} />
+          <Route path="find-games" element={<FindGames />} />
           <Route path="create-game" element={<CreateGame />} />
-          <Route path="user" element={<UserPage />} />
+          <Route path="profile" element={<Profile />} />
         </Route>
       </Route>
       <Route path="game/:gameId">

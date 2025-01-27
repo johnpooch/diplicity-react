@@ -24,11 +24,14 @@ import {
   Chip,
   Avatar,
   Link,
+  styled,
 } from "@mui/material";
 import { useGameCard } from "./use-game-card";
 
 const MAX_AVATARS = 7;
 const AVATAR_SIZE = 28;
+
+const StyledCard = styled(Card)(() => ({}));
 
 const GameCard: React.FC<{
   canJoin: boolean;
@@ -82,7 +85,7 @@ const GameCard: React.FC<{
   const remainingUsersCount = props.members.length - displayedUsers.length;
 
   return (
-    <Card elevation={0}>
+    <StyledCard elevation={0}>
       <CardContent>
         <Stack>
           <Grid container spacing={2}>
@@ -250,7 +253,7 @@ const GameCard: React.FC<{
           </Grid>
         </Stack>
       </CardContent>
-    </Card>
+    </StyledCard>
   );
 };
 
