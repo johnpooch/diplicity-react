@@ -12,12 +12,23 @@ import {
   List,
 } from "@mui/material";
 import { MoreHoriz as MenuIcon } from "@mui/icons-material";
-import { QueryContainer } from "../../../components";
-import { useFindGames } from "./use-find-games";
-import { ScreenTopBar } from "../screen-title";
+import { QueryContainer } from "../../components";
+import { ScreenTopBar } from "./screen-top-bar";
+import { service } from "../../common";
+
+const options = { my: false, mastered: false };
+
+const useFindGames = () => {
+  const { endpoints } = service;
+  const query = endpoints.listGames.useQuery({
+    ...options,
+    status: "Open",
+  });
+  return { query };
+};
 
 const FindGames: React.FC = () => {
-  const query = useFindGames();
+  const { query } = useFindGames();
 
   return (
     <>
