@@ -154,7 +154,7 @@ const newGameSchema = z.object({
 
 const baseUrl = "https://diplicity-engine.appspot.com/";
 
-export default createApi({
+const service = createApi({
     tagTypes: [
         TagType.Game,
         TagType.ListGames,
@@ -471,7 +471,8 @@ export default createApi({
 
 type Variant = z.infer<typeof variantSchema>;
 
-export { newGameSchema, gameSchema, apiResponseSchema, extractProperties, extractPropertiesList, listApiResponseSchema }
+export { newGameSchema, gameSchema, apiResponseSchema, extractProperties, extractPropertiesList, listApiResponseSchema, service }
 
 export type { Variant }
 
+export default service;
