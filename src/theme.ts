@@ -36,6 +36,15 @@ const theme = createTheme({
             main: "#FDE2B5",
         },
     },
+    components: {
+        MuiTypography: {
+            styleOverrides: {
+                root: {
+                    textAlign: "left",
+                },
+            },
+        },
+    }
 });
 
 export default theme;
