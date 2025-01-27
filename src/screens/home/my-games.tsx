@@ -63,6 +63,9 @@ const styles: Styles = {
   noGamesText: {
     textAlign: "center",
   },
+  tabs: {
+    width: "100%",
+  },
 };
 
 const useMyGames = () => {
