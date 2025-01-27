@@ -1,3 +1,4 @@
+import { authActions } from "./auth";
 import { feedbackActions } from "./feedback";
 export { selectFeedback } from "./feedback";
 export * from "./store";
@@ -6,4 +7,5 @@ export * as Service from "./service.types";
 
 export const actions = {
     ...feedbackActions,
+    ...authActions
 };

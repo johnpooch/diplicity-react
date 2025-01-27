@@ -11,19 +11,24 @@ import {
   Typography,
 } from "@mui/material";
 import { MoreHoriz } from "@mui/icons-material";
-import { useProfile } from "./use-profile";
-import { QueryContainer } from "../../../components";
-import { AppDispatch } from "../../../common";
+import { QueryContainer } from "../../components";
+import { actions, AppDispatch, service } from "../../common";
 import { useDispatch } from "react-redux";
-import { authActions } from "../../../common/store/auth";
-import { ScreenTopBar } from "../screen-title";
+import { ScreenTopBar } from "./screen-top-bar";
+
+const useProfile = () => {
+  const dispatch = useDispatch<AppDispatch>();
+  const query = service.endpoints.getRoot.useQuery(undefined);
+  const handleLogout = () => {
+    dispatch(actions.logout());
+  };
+  return { query, handleLogout };
+};
 
 const Profile: React.FC = () => {
-  const query = useProfile();
-
-  const dispatch = useDispatch<AppDispatch>();
-
+  const { query, handleLogout } = useProfile();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+
   const open = Boolean(anchorEl);
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -39,10 +44,6 @@ const Profile: React.FC = () => {
       fn();
       handleMenuClose();
     };
-  };
-
-  const onClickLogout = () => {
-    dispatch(authActions.logout());
   };
 
   return (
@@ -71,7 +72,7 @@ const Profile: React.FC = () => {
                       open={open}
                       onClose={handleMenuClose}
                     >
-                      <MenuItem onClick={withMenuClose(onClickLogout)}>
+                      <MenuItem onClick={withMenuClose(handleLogout)}>
                         Logout
                       </MenuItem>
                     </Menu>
