@@ -1,5 +1,12 @@
 import React from "react";
-import { Button, Card, CardContent, Typography, Box } from "@mui/material";
+import {
+  Button,
+  Card,
+  CardContent,
+  Typography,
+  Box,
+  Stack,
+} from "@mui/material";
 
 const getLoginUrl = (): string => {
   const redirectUrl = location.href;
@@ -25,18 +32,21 @@ const Login: React.FC = () => {
       height="100vh"
       bgcolor="#f5f5f5"
     >
-      <Card sx={{ minWidth: 300, padding: 2 }}>
-        <CardContent>
-          <Typography component="div" gutterBottom align="center">
-            Welcome to Diplicity!
-          </Typography>
-          <Box display="flex" justifyContent="center" mt={2}>
-            <Button variant="contained" color="primary" onClick={onClickLogin}>
-              Log in
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
+      <Stack sx={{ minWidth: 300, padding: 2 }} spacing={2} alignItems="center">
+        <img
+          src="/otto.png"
+          alt="Diplicity Logo"
+          style={{ height: 48, width: 48 }}
+        />
+        <Typography variant="h1" component="div" align="center">
+          Welcome to Diplicity!
+        </Typography>
+        <Box display="flex" justifyContent="center" mt={2}>
+          <Button variant="contained" color="primary" onClick={onClickLogin}>
+            Log in with Google
+          </Button>
+        </Box>
+      </Stack>
     </Box>
   );
 };

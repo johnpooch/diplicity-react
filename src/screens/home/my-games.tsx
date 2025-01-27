@@ -126,7 +126,7 @@ const MyGames: React.FC = () => {
         <img
           src="/otto.png"
           alt="Diplicity"
-          style={{ height: 54, width: 54 }}
+          style={{ height: 48, width: 48 }}
         />
         <Tabs
           value={status}
