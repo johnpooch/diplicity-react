@@ -8,6 +8,8 @@ import {
   ListItem,
   ListItemAvatar,
   ListItemText,
+  Menu,
+  MenuItem,
   Stack,
   Tab,
   Tabs,
@@ -18,9 +20,13 @@ import {
   AddCircleOutline as StagingIcon,
   PlayCircleOutline as StartedIcon,
   StopCircleOutlined as FinishedIcon,
+  Info as InfoIcon,
+  Person as PlayerInfoIcon,
+  Share as ShareIcon,
 } from "@mui/icons-material";
 import { QueryContainer } from "../../components";
 import { mergeQueries, service } from "../../common";
+import { useNavigate } from "react-router";
 
 const styles: Styles = {
   header: (theme) => ({
@@ -106,9 +112,38 @@ type Status = (typeof statuses)[number]["value"];
 
 const MyGames: React.FC = () => {
   const { query } = useMyGames();
+  const navigate = useNavigate();
   const [selectedStatus, setSelectedStatus] = React.useState<
     Status | undefined
   >(undefined);
+
+  const [anchorEls, setAnchorEls] = React.useState<{
+    [key: string]: HTMLElement | null;
+  }>({});
+
+  const handleMenuOpen =
+    (gameId: string) => (event: React.MouseEvent<HTMLElement>) => {
+      setAnchorEls((prev) => ({ ...prev, [gameId]: event.currentTarget }));
+    };
+
+  const handleMenuClose = (gameId: string) => () => {
+    setAnchorEls((prev) => ({ ...prev, [gameId]: null }));
+  };
+
+  const handleClickGameInfo = (gameId: string) => {
+    console.log("gameId", gameId);
+    navigate(`/game-info/${gameId}`);
+  };
+
+  const handleClickPlayerInfo = (userId: string) => {
+    navigate(`/player-info/${userId}`);
+  };
+
+  const handleClickShare = (gameId: string) => {
+    navigator.clipboard.writeText(
+      `${window.location.origin}/game-info/${gameId}`
+    );
+  };
 
   const status = query.data
     ? selectedStatus
@@ -170,9 +205,48 @@ const MyGames: React.FC = () => {
               <ListItem
                 sx={styles.listItem}
                 secondaryAction={
-                  <IconButton edge="end" aria-label="delete">
-                    <MenuIcon />
-                  </IconButton>
+                  <>
+                    <IconButton
+                      edge="end"
+                      aria-label="menu"
+                      onClick={handleMenuOpen(game.ID)}
+                    >
+                      <MenuIcon />
+                    </IconButton>
+                    <Menu
+                      anchorEl={anchorEls[game.ID]}
+                      open={Boolean(anchorEls[game.ID])}
+                      onClose={handleMenuClose(game.ID)}
+                    >
+                      <MenuItem
+                        onClick={() => {
+                          handleClickGameInfo(game.ID);
+                          handleMenuClose(game.ID)();
+                        }}
+                      >
+                        <InfoIcon sx={{ marginRight: 1 }} />
+                        Game info
+                      </MenuItem>
+                      <MenuItem
+                        onClick={() => {
+                          handleClickPlayerInfo(game.ID);
+                          handleMenuClose(game.ID)();
+                        }}
+                      >
+                        <PlayerInfoIcon sx={{ marginRight: 1 }} />
+                        Player info
+                      </MenuItem>
+                      <MenuItem
+                        onClick={() => {
+                          handleClickShare(game.ID);
+                          handleMenuClose(game.ID)();
+                        }}
+                      >
+                        <ShareIcon sx={{ marginRight: 1 }} />
+                        Share
+                      </MenuItem>
+                    </Menu>
+                  </>
                 }
               >
                 <ListItemAvatar sx={styles.mapContainer}>

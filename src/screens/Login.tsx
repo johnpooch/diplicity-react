@@ -1,12 +1,5 @@
 import React from "react";
-import {
-  Button,
-  Card,
-  CardContent,
-  Typography,
-  Box,
-  Stack,
-} from "@mui/material";
+import { Button, Typography, Box, Stack } from "@mui/material";
 
 const getLoginUrl = (): string => {
   const redirectUrl = location.href;
