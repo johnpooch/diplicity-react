@@ -2,6 +2,7 @@ import { createTheme } from "@mui/material";
 
 const theme = createTheme({
     typography: {
+        fontFamily: "'Cabin', sans-serif",
         h1: {
             fontSize: "18px",
             lineHeight: "22px",
