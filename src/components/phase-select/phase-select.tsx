@@ -13,17 +13,9 @@ import {
 } from "@mui/icons-material";
 import { usePhaseSelect } from "./use-phase-select";
 
-const StyledInput = styled(InputBase)`
-  color: ${({ theme }) => theme.palette.secondary.main};
-`;
+const StyledInput = styled(InputBase)``;
 
-const StyledSelect = styled(Select)`
-  color: ${({ theme }) => theme.palette.secondary.main};
-
-  & .MuiSelect-icon {
-    color: ${({ theme }) => theme.palette.secondary.main};
-  }
-`;
+const StyledSelect = styled(Select)``;
 
 const StyledFormControl = styled(FormControl)`
   min-width: 250px;

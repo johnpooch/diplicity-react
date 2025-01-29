@@ -52,6 +52,13 @@ const theme = createTheme({
                 },
             },
         },
+        MuiListSubheader: {
+            styleOverrides: {
+                root: {
+                    textAlign: "left",
+                },
+            },
+        }
     }
 });
 
