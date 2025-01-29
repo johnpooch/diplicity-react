@@ -98,7 +98,7 @@ const InfoPanel: React.FC = () => {
   );
 };
 
-const Layout: React.FC = () => {
+const HomeLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
@@ -170,4 +170,4 @@ const Layout: React.FC = () => {
   );
 };
 
-export { Layout };
+export { HomeLayout };
