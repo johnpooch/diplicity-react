@@ -45,6 +45,13 @@ const theme = createTheme({
                 },
             },
         },
+        MuiAlert: {
+            styleOverrides: {
+                root: {
+                    textAlign: "left",
+                },
+            },
+        },
     }
 });
 

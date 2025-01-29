@@ -1,71 +1,19 @@
 import React from "react";
+import { List, Stack, Tab, Tabs, Typography } from "@mui/material";
 import {
-  Avatar,
-  Button,
-  IconButton,
-  Link,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  Menu,
-  MenuItem,
-  Stack,
-  Tab,
-  Tabs,
-  Typography,
-} from "@mui/material";
-import {
-  MoreHoriz as MenuIcon,
   AddCircleOutline as StagingIcon,
   PlayCircleOutline as StartedIcon,
   StopCircleOutlined as FinishedIcon,
-  Info as InfoIcon,
-  Person as PlayerInfoIcon,
-  Share as ShareIcon,
 } from "@mui/icons-material";
 import { QueryContainer } from "../../components";
 import { mergeQueries, service } from "../../common";
-import { useNavigate } from "react-router";
+import { GameCard } from "../../components";
 
 const styles: Styles = {
   header: (theme) => ({
     borderBottom: `1px solid ${theme.palette.divider}`,
     alignItems: "center",
   }),
-  headerIcon: {
-    fontSize: 48,
-  },
-  listItem: (theme) => ({
-    gap: 1,
-    borderBottom: `1px solid ${theme.palette.divider}`,
-    alignItems: "center",
-  }),
-  mapContainer: {
-    display: "flex",
-    width: 80,
-  },
-  map: {
-    borderRadius: 2,
-  },
-  secondaryContainer: {
-    gap: 1,
-  },
-  rulesContainer: {
-    gap: 1,
-    flexDirection: "row",
-  },
-  avatarStackButton: {
-    justifyContent: "flex-start",
-    width: "fit-content",
-  },
-  avatarStackContainer: {
-    alignItems: "center",
-  },
-  avatar: {
-    width: 24,
-    height: 24,
-  },
   noGamesText: {
     textAlign: "center",
   },
@@ -112,38 +60,9 @@ type Status = (typeof statuses)[number]["value"];
 
 const MyGames: React.FC = () => {
   const { query } = useMyGames();
-  const navigate = useNavigate();
   const [selectedStatus, setSelectedStatus] = React.useState<
     Status | undefined
   >(undefined);
-
-  const [anchorEls, setAnchorEls] = React.useState<{
-    [key: string]: HTMLElement | null;
-  }>({});
-
-  const handleMenuOpen =
-    (gameId: string) => (event: React.MouseEvent<HTMLElement>) => {
-      setAnchorEls((prev) => ({ ...prev, [gameId]: event.currentTarget }));
-    };
-
-  const handleMenuClose = (gameId: string) => () => {
-    setAnchorEls((prev) => ({ ...prev, [gameId]: null }));
-  };
-
-  const handleClickGameInfo = (gameId: string) => {
-    console.log("gameId", gameId);
-    navigate(`/game-info/${gameId}`);
-  };
-
-  const handleClickPlayerInfo = (userId: string) => {
-    navigate(`/player-info/${userId}`);
-  };
-
-  const handleClickShare = (gameId: string) => {
-    navigator.clipboard.writeText(
-      `${window.location.origin}/game-info/${gameId}`
-    );
-  };
 
   const status = query.data
     ? selectedStatus
@@ -201,96 +120,7 @@ const MyGames: React.FC = () => {
               );
             }
 
-            return games.map((game) => (
-              <ListItem
-                sx={styles.listItem}
-                secondaryAction={
-                  <>
-                    <IconButton
-                      edge="end"
-                      aria-label="menu"
-                      onClick={handleMenuOpen(game.ID)}
-                    >
-                      <MenuIcon />
-                    </IconButton>
-                    <Menu
-                      anchorEl={anchorEls[game.ID]}
-                      open={Boolean(anchorEls[game.ID])}
-                      onClose={handleMenuClose(game.ID)}
-                    >
-                      <MenuItem
-                        onClick={() => {
-                          handleClickGameInfo(game.ID);
-                          handleMenuClose(game.ID)();
-                        }}
-                      >
-                        <InfoIcon sx={{ marginRight: 1 }} />
-                        Game info
-                      </MenuItem>
-                      <MenuItem
-                        onClick={() => {
-                          handleClickPlayerInfo(game.ID);
-                          handleMenuClose(game.ID)();
-                        }}
-                      >
-                        <PlayerInfoIcon sx={{ marginRight: 1 }} />
-                        Player info
-                      </MenuItem>
-                      <MenuItem
-                        onClick={() => {
-                          handleClickShare(game.ID);
-                          handleMenuClose(game.ID)();
-                        }}
-                      >
-                        <ShareIcon sx={{ marginRight: 1 }} />
-                        Share
-                      </MenuItem>
-                    </Menu>
-                  </>
-                }
-              >
-                <ListItemAvatar sx={styles.mapContainer}>
-                  <img
-                    src={`https://diplicity-engine.appspot.com/Variant/${game.Variant}/Map.svg`}
-                    alt={game.Variant}
-                  />
-                </ListItemAvatar>
-                <ListItemText
-                  primary={
-                    <Link href="#" underline="hover">
-                      <Typography>{game.Desc}</Typography>
-                    </Link>
-                  }
-                  secondary={
-                    <Stack sx={styles.secondaryContainer}>
-                      <Stack sx={styles.rulesContainer}>
-                        <Typography variant="caption">
-                          {game.Variant}
-                        </Typography>
-                        <Typography variant="caption">
-                          {game.PhaseLengthMinutes}
-                        </Typography>
-                      </Stack>
-                      <Button sx={styles.avatarStackButton}>
-                        <Stack
-                          sx={styles.avatarStackContainer}
-                          direction="row"
-                          spacing={-1}
-                        >
-                          {game.Members.map((member) => (
-                            <Avatar
-                              sx={styles.avatar}
-                              key={member.User.Id}
-                              src={member.User.Picture}
-                            />
-                          ))}
-                        </Stack>
-                      </Button>
-                    </Stack>
-                  }
-                />
-              </ListItem>
-            ));
+            return games.map((game) => <GameCard key={game.ID} game={game} />);
           }}
         </QueryContainer>
       </List>
