@@ -18,6 +18,7 @@ import {
   useGetVariantQuery,
 } from "../../common";
 import { QueryContainer } from "../../components";
+import { GameDetailAppBar } from "./app-bar";
 
 const styles: Styles = {
   container: (theme) => ({
@@ -85,6 +86,7 @@ const Map: React.FC = () => {
 
   return (
     <Stack sx={styles.container} direction={"row"}>
+      {isMobile && <GameDetailAppBar />}
       <Stack sx={styles.mapContainer}>
         <img
           src="https://diplicity-engine.appspot.com/Variant/Classical/Map.svg"

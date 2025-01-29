@@ -1,8 +1,6 @@
 import React from "react";
 import {
-  AppBar,
   Divider,
-  IconButton,
   List,
   ListItem,
   ListItemText,
@@ -10,11 +8,6 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import {
-  ArrowBack as BackIcon,
-  MoreHoriz as MenuIcon,
-} from "@mui/icons-material";
-import { PhaseSelect } from "../../components/phase-select";
 import { formatOrderText } from "../../util";
 import { useGameDetailContext, useSelectedPhaseContext } from "../../context";
 import {
@@ -24,6 +17,7 @@ import {
   useGetVariantQuery,
 } from "../../common";
 import { QueryContainer } from "../../components";
+import { GameDetailAppBar } from "./app-bar";
 
 const styles: Styles = {
   container: (theme) => ({
@@ -82,17 +76,7 @@ const Orders: React.FC = () => {
   return (
     <Stack sx={styles.container} direction={"row"}>
       <Stack sx={styles.ordersContainer}>
-        <AppBar position="static" elevation={0}>
-          <Stack sx={{ p: 1 }} direction="row" justifyContent="space-between">
-            <IconButton edge="start" color="inherit">
-              <BackIcon />
-            </IconButton>
-            <PhaseSelect />
-            <IconButton edge="start" color="inherit">
-              <MenuIcon />
-            </IconButton>
-          </Stack>
-        </AppBar>
+        <GameDetailAppBar />
         <Divider />
         <QueryContainer query={query}>
           {(data) => {
