@@ -1,5 +1,19 @@
 import React from "react";
-import { Divider, List, ListItem, ListItemText, Stack } from "@mui/material";
+import {
+  AppBar,
+  Divider,
+  IconButton,
+  List,
+  ListItem,
+  ListItemText,
+  ListSubheader,
+  Stack,
+  Typography,
+} from "@mui/material";
+import {
+  ArrowBack as BackIcon,
+  MoreHoriz as MenuIcon,
+} from "@mui/icons-material";
 import { PhaseSelect } from "../../components/phase-select";
 import { formatOrderText } from "../../util";
 import { useGameDetailContext, useSelectedPhaseContext } from "../../context";
@@ -45,6 +59,7 @@ const useOrders = () => {
           orderType: orderType,
           target: target ? variant.getProvinceLongName(target) : undefined,
           aux: aux ? variant.getProvinceLongName(aux) : undefined,
+          nation: order.Nation,
           outcome: outcome
             ? {
                 outcome: outcome.outcome,
@@ -67,31 +82,58 @@ const Orders: React.FC = () => {
   return (
     <Stack sx={styles.container} direction={"row"}>
       <Stack sx={styles.ordersContainer}>
-        <Stack sx={{ p: 1 }}>
-          <PhaseSelect />
-        </Stack>
+        <AppBar position="static" elevation={0}>
+          <Stack sx={{ p: 1 }} direction="row" justifyContent="space-between">
+            <IconButton edge="start" color="inherit">
+              <BackIcon />
+            </IconButton>
+            <PhaseSelect />
+            <IconButton edge="start" color="inherit">
+              <MenuIcon />
+            </IconButton>
+          </Stack>
+        </AppBar>
         <Divider />
         <QueryContainer query={query}>
-          {(data) => (
-            <List disablePadding>
-              {data.map((order) => (
-                <ListItem key={order.source} divider>
-                  <ListItemText
-                    primary={formatOrderText(order)}
-                    secondary={order.outcome && order.outcome.outcome}
-                    sx={(theme) => ({
-                      "& .MuiListItemText-secondary": {
-                        color:
-                          order.outcome?.outcome === "Succeeded"
-                            ? theme.palette.success.main
-                            : theme.palette.error.main,
-                      },
-                    })}
-                  />
-                </ListItem>
-              ))}
-            </List>
-          )}
+          {(data) => {
+            // Reduce orders to be grouped by nation
+            const ordersByNation = data.reduce((acc, order) => {
+              if (!acc[order.nation]) {
+                acc[order.nation] = [];
+              }
+              acc[order.nation].push(order);
+              return acc;
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            }, {} as Record<string, any[]>);
+            return data.length === 0 ? (
+              <Typography>No orders available</Typography>
+            ) : (
+              <List disablePadding>
+                {Object.keys(ordersByNation).map((nation) => (
+                  <React.Fragment key={nation}>
+                    <ListSubheader>{nation}</ListSubheader>
+                    <Divider />
+                    {ordersByNation[nation].map((order) => (
+                      <ListItem key={order.source} divider>
+                        <ListItemText
+                          primary={formatOrderText(order)}
+                          secondary={order.outcome && order.outcome.outcome}
+                          sx={(theme) => ({
+                            "& .MuiListItemText-secondary": {
+                              color:
+                                order.outcome?.outcome === "Succeeded"
+                                  ? theme.palette.success.main
+                                  : theme.palette.error.main,
+                            },
+                          })}
+                        />
+                      </ListItem>
+                    ))}
+                  </React.Fragment>
+                ))}
+              </List>
+            );
+          }}
         </QueryContainer>
       </Stack>
     </Stack>

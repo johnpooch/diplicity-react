@@ -38,6 +38,14 @@ const theme = createTheme({
         },
     },
     components: {
+        MuiAppBar: {
+            styleOverrides: {
+                root: ({ theme }) => ({
+                    backgroundColor: theme.palette.background.default,
+                    color: theme.palette.text.primary,
+                }),
+            },
+        },
         MuiTypography: {
             styleOverrides: {
                 root: {
