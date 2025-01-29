@@ -12,8 +12,9 @@ import {
   MyGames,
   PlayerInfo,
   Profile,
+  Map,
+  Orders,
 } from "./screens";
-import { MapOrders } from "./screens/game-detail";
 
 const Router: React.FC = () => {
   const { loggedIn } = useSelector(selectAuth);
@@ -30,7 +31,8 @@ const Router: React.FC = () => {
       </Route>
       <Route element={<GameDetailLayout />}>
         <Route path="game/:gameId">
-          <Route index element={<MapOrders />} />
+          <Route index element={<Map />} />
+          <Route path="orders" element={<Orders />} />
         </Route>
       </Route>
     </Routes>
