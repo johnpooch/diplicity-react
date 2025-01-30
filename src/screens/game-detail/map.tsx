@@ -1,24 +1,18 @@
 import React from "react";
-import {
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
-  Stack,
-  useMediaQuery,
-  useTheme,
-} from "@mui/material";
+import { Divider, Stack, useMediaQuery, useTheme } from "@mui/material";
 import { PhaseSelect } from "../../components/phase-select";
-import { formatOrderText } from "../../util";
-import { useGameDetailContext, useSelectedPhaseContext } from "../../context";
+import { OrderList, QueryContainer } from "../../components";
+import { GameDetailAppBar } from "./app-bar";
 import {
   mergeQueries,
-  useGetOrdersQuery,
+  useGetMapSvgQuery,
   useGetPhaseQuery,
+  useGetUnitSvgQuery,
   useGetVariantQuery,
+  useOrders,
 } from "../../common";
-import { QueryContainer } from "../../components";
-import { GameDetailAppBar } from "./app-bar";
+import { createMap } from "../../common/map/map";
+import { useGameDetailContext, useSelectedPhaseContext } from "../../context";
 
 const styles: Styles = {
   container: (theme) => ({
@@ -39,48 +33,34 @@ const styles: Styles = {
   },
 };
 
-const useOrders = () => {
+const useMap = () => {
   const { gameId } = useGameDetailContext();
   const { selectedPhase } = useSelectedPhaseContext();
 
   const getVariantQuery = useGetVariantQuery(gameId);
   const getPhaseQuery = useGetPhaseQuery(gameId, selectedPhase);
-  const listOrdersQuery = useGetOrdersQuery(gameId, selectedPhase);
+  const getMapSvgQuery = useGetMapSvgQuery(gameId);
+  const getArmySvgQuery = useGetUnitSvgQuery(gameId, "Army");
+  const getFleetSvgQuery = useGetUnitSvgQuery(gameId, "Fleet");
 
   const query = mergeQueries(
-    [getVariantQuery, getPhaseQuery, listOrdersQuery],
-    (variant, phase, orders) => {
-      return orders.Orders.map((order) => {
-        const [source, orderType, target, aux] = order.Parts;
-        if (!source) throw new Error("No source found");
-        if (!orderType) throw new Error("No orderType found");
-        const outcome = phase.Resolutions?.find(
-          (resolution) => resolution.province === source
-        );
-
-        return {
-          source: variant.getProvinceLongName(source),
-          orderType: orderType,
-          target: target ? variant.getProvinceLongName(target) : undefined,
-          aux: aux ? variant.getProvinceLongName(aux) : undefined,
-          outcome: outcome
-            ? {
-                outcome: outcome.outcome,
-                by: outcome.by
-                  ? variant.getProvinceLongName(outcome.by)
-                  : undefined,
-              }
-            : undefined,
-        };
-      });
+    [
+      getVariantQuery,
+      getPhaseQuery,
+      getMapSvgQuery,
+      getArmySvgQuery,
+      getFleetSvgQuery,
+    ],
+    (variant, phase, mapSvg, armySvg, fleetSvg) => {
+      return createMap(mapSvg, armySvg, fleetSvg, variant, phase);
     }
   );
-
   return { query };
 };
 
 const Map: React.FC = () => {
-  const { query } = useOrders();
+  const { query: ordersQuery } = useOrders();
+  const { query: mapQuery } = useMap();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -88,10 +68,9 @@ const Map: React.FC = () => {
     <Stack sx={styles.container} direction={isMobile ? "column" : "row"}>
       {isMobile && <GameDetailAppBar />}
       <Stack sx={styles.mapContainer}>
-        <img
-          src="https://diplicity-engine.appspot.com/Variant/Classical/Map.svg"
-          alt="Game Map"
-        />
+        <QueryContainer query={mapQuery}>
+          {(map) => <div dangerouslySetInnerHTML={{ __html: map }} />}
+        </QueryContainer>
       </Stack>
       {!isMobile && (
         <Stack sx={styles.ordersContainer}>
@@ -99,27 +78,8 @@ const Map: React.FC = () => {
             <PhaseSelect />
           </Stack>
           <Divider />
-          <QueryContainer query={query}>
-            {(data) => (
-              <List disablePadding>
-                {data.map((order) => (
-                  <ListItem key={order.source} divider>
-                    <ListItemText
-                      primary={formatOrderText(order)}
-                      secondary={order.outcome && order.outcome.outcome}
-                      sx={(theme) => ({
-                        "& .MuiListItemText-secondary": {
-                          color:
-                            order.outcome?.outcome === "Succeeded"
-                              ? theme.palette.success.main
-                              : theme.palette.error.main,
-                        },
-                      })}
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            )}
+          <QueryContainer query={ordersQuery}>
+            {(data) => <OrderList orders={data} />}
           </QueryContainer>
         </Stack>
       )}
