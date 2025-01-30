@@ -3,6 +3,7 @@ export * from "./useCreateOrderMutation";
 export * from "./useGetCurrentPhaseQuery";
 export * from "./useGetOptionsQuery";
 export * from "./useGetVariantQuery";
+export * from "./useOrders"
 export * from "./useGetUserNewestPhaseStateQuery"
 export * from "./useGetUnitSvgQuery";
 export * from "./useGetMapSvgQuery";
