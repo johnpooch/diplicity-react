@@ -6,6 +6,8 @@ import {
   MenuItem,
   styled,
   InputBase,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import {
   ArrowLeft as PreviousIcon,
@@ -26,6 +28,8 @@ const StyledIconButton = styled(IconButton)`
 `;
 
 const PhaseSelect = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const {
     handleNext,
     handlePhaseSelect,
@@ -40,15 +44,17 @@ const PhaseSelect = () => {
 
   return (
     <Stack direction="row" alignItems="center">
-      <StyledIconButton
-        edge="start"
-        color="inherit"
-        aria-label="back"
-        onClick={handlePrevious}
-        disabled={previousDisabled}
-      >
-        <PreviousIcon />
-      </StyledIconButton>
+      {!isMobile && (
+        <StyledIconButton
+          edge="start"
+          color="inherit"
+          aria-label="back"
+          onClick={handlePrevious}
+          disabled={previousDisabled}
+        >
+          <PreviousIcon />
+        </StyledIconButton>
+      )}
       <StyledFormControl>
         <StyledSelect
           value={selectedPhase}
@@ -62,15 +68,17 @@ const PhaseSelect = () => {
           ))}
         </StyledSelect>
       </StyledFormControl>
-      <StyledIconButton
-        edge="end"
-        color="inherit"
-        aria-label="forward"
-        onClick={handleNext}
-        disabled={nextDisabled}
-      >
-        <NextIcon />
-      </StyledIconButton>
+      {!isMobile && (
+        <StyledIconButton
+          edge="end"
+          color="inherit"
+          aria-label="forward"
+          onClick={handleNext}
+          disabled={nextDisabled}
+        >
+          <NextIcon />
+        </StyledIconButton>
+      )}
     </Stack>
   );
 };

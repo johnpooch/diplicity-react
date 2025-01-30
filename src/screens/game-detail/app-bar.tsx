@@ -1,4 +1,11 @@
-import { AppBar, Stack, IconButton, Menu, MenuItem } from "@mui/material";
+import {
+  AppBar,
+  Stack,
+  IconButton,
+  Menu,
+  MenuItem,
+  Divider,
+} from "@mui/material";
 import {
   ArrowBack as BackIcon,
   MoreHoriz as MenuIcon,
@@ -66,6 +73,7 @@ const GameDetailAppBar: React.FC = () => {
             <PlayerInfoIcon sx={{ marginRight: 1 }} />
             Player info
           </MenuItem>
+          <Divider />
           <MenuItem onClick={handleClickShare}>
             <ShareIcon sx={{ marginRight: 1 }} />
             Share
