@@ -90,7 +90,9 @@ const Orders: React.FC = () => {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
             }, {} as Record<string, any[]>);
             return data.length === 0 ? (
-              <Typography>No orders available</Typography>
+              <Stack p={2} alignItems="center" sx={{ height: "100%" }}>
+                <Typography>No order created during this turn</Typography>
+              </Stack>
             ) : (
               <List disablePadding>
                 {Object.keys(ordersByNation).map((nation) => (
