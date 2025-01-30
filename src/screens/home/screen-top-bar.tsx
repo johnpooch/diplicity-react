@@ -27,7 +27,7 @@ const ScreenTopBar: React.FC<ScreenTopBarProps> = ({ title }) => {
       padding={2}
       sx={styles.root}
     >
-      <IconButton onClick={() => navigate("/")} sx={styles.iconButton}>
+      <IconButton onClick={() => navigate(-1)} sx={styles.iconButton}>
         <BackIcon />
       </IconButton>
       <Typography variant="h1">{title}</Typography>

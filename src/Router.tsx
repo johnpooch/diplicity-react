@@ -33,6 +33,8 @@ const Router: React.FC = () => {
         <Route path="game/:gameId">
           <Route index element={<Map />} />
           <Route path="orders" element={<Orders />} />
+          <Route path="game-info" element={<GameInfo />} />
+          <Route path="player-info" element={<PlayerInfo />} />
         </Route>
       </Route>
     </Routes>

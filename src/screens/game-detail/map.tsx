@@ -85,7 +85,7 @@ const Map: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   return (
-    <Stack sx={styles.container} direction={"row"}>
+    <Stack sx={styles.container} direction={isMobile ? "column" : "row"}>
       {isMobile && <GameDetailAppBar />}
       <Stack sx={styles.mapContainer}>
         <img
