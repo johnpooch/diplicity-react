@@ -47,9 +47,21 @@ const styles: Styles = {
 };
 
 const NavigationItems = [
-  { label: "Map", icon: <MapIcon />, value: "/" },
-  { label: "Orders", icon: <OrdersIcon />, value: "/orders" },
-  { label: "Chat", icon: <ChatIcon />, value: "/chat" },
+  {
+    label: "Map",
+    icon: <MapIcon />,
+    value: (gameId: string) => `/game/${gameId}`,
+  },
+  {
+    label: "Orders",
+    icon: <OrdersIcon />,
+    value: (gameId: string) => `/game/${gameId}/orders`,
+  },
+  {
+    label: "Chat",
+    icon: <ChatIcon />,
+    value: (gameId: string) => `/game/${gameId}/chat`,
+  },
 ] as const;
 
 const GameDetailLayout: React.FC = () => {
@@ -68,9 +80,8 @@ const GameDetailLayout: React.FC = () => {
   }, [location.pathname]);
 
   const handleNavigationChange = (newValue: string) => {
-    const path = `/game/${gameId}${newValue}`;
     setNavigation(newValue);
-    navigate(path);
+    navigate(newValue);
   };
 
   return (
@@ -88,10 +99,10 @@ const GameDetailLayout: React.FC = () => {
               >
                 {NavigationItems.map((item) => (
                   <BottomNavigationAction
-                    key={item.value}
+                    key={item.value(gameId)}
                     label={item.label}
                     icon={item.icon}
-                    value={item.value}
+                    value={item.value(gameId)}
                   />
                 ))}
               </BottomNavigation>
