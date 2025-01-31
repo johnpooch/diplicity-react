@@ -1,62 +1,24 @@
 import { useState } from "react";
 import { mergeQueries, useCreateOrderMutation, useGetOptionsQuery, useGetVariantQuery } from "../../common";
 import { createOrderOptionTree, getNextOptionsNode, getOrderStatus } from "./CreateOrder.util";
-import { useModal } from "../Modal";
 import { useGameDetailContext } from "../../context";
 
-type LoadingState = {
-    isLoading: true;
-    isError?: never;
-    activeStep?: never;
-    handleBack?: never;
-    handleClose?: never;
-    handleSelect?: never;
-    handleSubmit?: never;
-    isSubmitting?: never;
-    options?: never;
-    order?: never;
-};
-
-type ErrorState = {
-    isLoading?: never;
-    isError: true;
-    activeStep?: never;
-    handleBack?: never;
-    handleClose?: never;
-    handleSelect?: never;
-    handleSubmit?: never;
-    isSubmitting?: never;
-    options?: never;
-    order?: never;
-};
-
-type SuccessState = {
-    isLoading?: never;
-    isError?: never;
-    activeStep: number;
-    handleBack: () => void;
-    handleClose: () => void;
-    handleSelect: (option: string) => void;
-    handleSubmit: () => void;
-    isSubmitting: boolean;
-    options: ReturnType<typeof getNextOptionsNode>;
-    order: ReturnType<typeof getOrderStatus>;
-};
-
-const useCreateOrder = (): LoadingState | ErrorState | SuccessState => {
+const useCreateOrder = (
+    onOrderCreated: () => void,
+) => {
     const { gameId } = useGameDetailContext();
-    const { onClose } = useModal();
     const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
 
     const getVariantQuery = useGetVariantQuery(gameId);
     const getOptionsQuery = useGetOptionsQuery(gameId);
     const [createOrder, createOrderMutation] = useCreateOrderMutation(gameId);
-    const { isLoading, isError, data } = mergeQueries([getVariantQuery, getOptionsQuery], createOrderOptionTree);
-
-    if (isLoading) return { isLoading: true };
-    if (isError) return { isError: true };
-
-    if (!data) throw new Error("No data found");
+    const query = mergeQueries([getVariantQuery, getOptionsQuery], (variant, optionsData) => {
+        const data = createOrderOptionTree(variant, optionsData);
+        const options = getNextOptionsNode(data, selectedOptions);
+        const order = getOrderStatus(data, selectedOptions);
+        const activeStep = selectedOptions.length;
+        return { options, order, activeStep };
+    });
 
     const handleSelect = (option: string) => {
         setSelectedOptions([...selectedOptions, option]);
@@ -68,23 +30,18 @@ const useCreateOrder = (): LoadingState | ErrorState | SuccessState => {
 
     const handleSubmit = async () => {
         await createOrder(selectedOptions)
-        onClose();
+        onOrderCreated();
+        setSelectedOptions([]);
     };
 
-    const options = getNextOptionsNode(data, selectedOptions);
-    const order = getOrderStatus(data, selectedOptions);
-    const activeStep = selectedOptions.length;
     const isSubmitting = createOrderMutation.isLoading;
 
     return {
-        activeStep,
         handleBack,
-        handleClose: onClose,
         handleSelect,
         handleSubmit,
         isSubmitting,
-        options,
-        order,
+        query,
     }
 };
 
