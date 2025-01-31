@@ -4,6 +4,7 @@ import { useNavigate } from "react-router";
 
 type ScreenTopBarProps = {
   title: string;
+  menu?: React.ReactNode;
 };
 
 const styles: Styles = {
@@ -16,21 +17,23 @@ const styles: Styles = {
   }),
 };
 
-const ScreenTopBar: React.FC<ScreenTopBarProps> = ({ title }) => {
+const ScreenTopBar: React.FC<ScreenTopBarProps> = (props) => {
   const navigate = useNavigate();
 
   return (
     <Stack
-      spacing={2}
-      direction="row"
-      alignItems="center"
       padding={2}
       sx={styles.root}
+      direction="row"
+      justifyContent="space-between"
     >
-      <IconButton onClick={() => navigate(-1)} sx={styles.iconButton}>
-        <BackIcon />
-      </IconButton>
-      <Typography variant="h1">{title}</Typography>
+      <Stack direction="row" spacing={2} alignItems="center">
+        <IconButton onClick={() => navigate(-1)} sx={styles.iconButton}>
+          <BackIcon />
+        </IconButton>
+        <Typography variant="h1">{props.title}</Typography>
+      </Stack>
+      {props.menu}
     </Stack>
   );
 };

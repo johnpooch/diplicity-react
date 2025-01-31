@@ -16,10 +16,18 @@ import {
   MoreHoriz as MenuIcon,
   Info as InfoIcon,
   Person as PlayerInfoIcon,
+  Add as JoinGameIcon,
+  Remove as LeaveGameIcon,
   Share as ShareIcon,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router";
-import { service } from "../common";
+import {
+  actions,
+  service,
+  useJoinGameMutation,
+  useLeaveGameMutation,
+} from "../common";
+import { useDispatch } from "react-redux";
 
 const styles: Styles = {
   listItem: (theme) => ({
@@ -51,10 +59,32 @@ const styles: Styles = {
   },
 };
 
+const useGameCard = (
+  game: (typeof service.endpoints.listGames.Types.ResultType)[number]
+) => {
+  const dispatch = useDispatch();
+  const [joinGame, joinGameMutation] = useJoinGameMutation(game.ID);
+  const [leaveGame, leaveGameMutation] = useLeaveGameMutation(game.ID);
+
+  const isSubmitting =
+    joinGameMutation.isLoading || leaveGameMutation.isLoading;
+
+  const handleShare = () => {
+    navigator.clipboard.writeText(
+      `${window.location.origin}/game-info/${game.ID}`
+    );
+    dispatch(actions.setFeedback({ message: "Link copied to clipboard" }));
+  };
+
+  return { joinGame, leaveGame, isSubmitting, handleShare };
+};
+
 const GameCard: React.FC<{
   game: (typeof service.endpoints.listGames.Types.ResultType)[number];
 }> = ({ game }) => {
   const navigate = useNavigate();
+  const { joinGame, leaveGame, isSubmitting, handleShare } = useGameCard(game);
+
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -65,7 +95,7 @@ const GameCard: React.FC<{
     setAnchorEl(null);
   };
 
-  const handleClickGame = () => {
+  const handleView = () => {
     navigate(`/game/${game.ID}`);
   };
 
@@ -77,10 +107,16 @@ const GameCard: React.FC<{
     navigate(`/player-info/${userId}`);
   };
 
-  const handleClickShare = () => {
-    navigator.clipboard.writeText(
-      `${window.location.origin}/game-info/${game.ID}`
-    );
+  const handleJoinGame = async () => {
+    await joinGame();
+  };
+
+  const handleLeaveGame = async () => {
+    await leaveGame();
+  };
+
+  const canView = () => {
+    return game.Started;
   };
 
   return (
@@ -101,6 +137,7 @@ const GameCard: React.FC<{
                 handleClickGameInfo();
                 handleMenuClose();
               }}
+              disabled={isSubmitting}
             >
               <InfoIcon sx={{ marginRight: 1 }} />
               Game info
@@ -110,15 +147,41 @@ const GameCard: React.FC<{
                 handleClickPlayerInfo(game.ID);
                 handleMenuClose();
               }}
+              disabled={isSubmitting}
             >
               <PlayerInfoIcon sx={{ marginRight: 1 }} />
               Player info
             </MenuItem>
+            {game.canJoin && (
+              <MenuItem
+                onClick={async () => {
+                  await handleJoinGame();
+                  handleMenuClose();
+                }}
+                disabled={isSubmitting}
+              >
+                <JoinGameIcon sx={{ marginRight: 1 }} />
+                Join game
+              </MenuItem>
+            )}
+            {game.canLeave && (
+              <MenuItem
+                onClick={async () => {
+                  await handleLeaveGame();
+                  handleMenuClose();
+                }}
+                disabled={isSubmitting}
+              >
+                <LeaveGameIcon sx={{ marginRight: 1 }} />
+                Leave game
+              </MenuItem>
+            )}
             <MenuItem
               onClick={() => {
-                handleClickShare();
+                handleShare();
                 handleMenuClose();
               }}
+              disabled={isSubmitting}
             >
               <ShareIcon sx={{ marginRight: 1 }} />
               Share
@@ -131,10 +194,10 @@ const GameCard: React.FC<{
         href="#"
         underline="hover"
         onClick={() => {
-          if (!game.Started) {
+          if (!canView) {
             handleClickGameInfo();
           } else {
-            handleClickGame();
+            handleView();
           }
         }}
       >
@@ -151,10 +214,10 @@ const GameCard: React.FC<{
             href="#"
             underline="hover"
             onClick={() => {
-              if (!game.Started) {
+              if (!canView) {
                 handleClickGameInfo();
               } else {
-                handleClickGame();
+                handleView();
               }
             }}
           >
