@@ -19,7 +19,7 @@ import {
 } from "./service.types";
 import { selectAuth } from "./auth";
 import { z } from "zod";
-import { gameSchema, listGamesSchema, listOrdersSchema, listPhasesSchema, listPhaseStatesSchema } from "../schema";
+import { gameSchema, getGameSchema, listGamesSchema, listOrdersSchema, listPhasesSchema, listPhaseStatesSchema } from "../schema";
 
 const apiResponseSchema = <TObjSchema extends z.ZodRawShape>(schema: z.ZodObject<TObjSchema>) => z.object({
     Properties: schema,
@@ -389,7 +389,7 @@ const service = createApi({
         getGame: builder.query({
             query: (id) => `/Game/${id}`,
             transformResponse: (response) => {
-                const parsed = apiResponseSchema(gameSchema).parse(response);
+                const parsed = getGameSchema.parse(response);
                 const extracted = extractProperties(parsed);
                 return {
                     ...extracted,

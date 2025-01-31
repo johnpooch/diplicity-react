@@ -123,7 +123,22 @@ const gameSchema = z.object({
     NewestPhaseMeta: z.nullable(z.array(phaseMetaSchema).min(1).max(1)).transform((val) => val?.[0]),
 });
 
-// Create the listGamesSchema
+const getGameSchema = apiResponseSchema(gameSchema).transform((data) => {
+
+    const transformLinks = (links: ReturnType<ReturnType<typeof apiResponseSchema>["parse"]>["Links"]) => {
+        const canJoin = links.some(link => link.Rel === "join");
+        const canLeave = links.some(link => link.Rel === "leave");
+        return { canJoin, canLeave };
+    };
+
+    const { canJoin, canLeave } = transformLinks(data.Links);
+    const game = data.Properties;
+    const status = game.Finished ? "finished" : game.Started ? "started" : "staging";
+    const transformedGame = { ...game, canJoin, canLeave, status };
+    return { ...data, Properties: transformedGame };
+})
+
+
 const listGamesSchema = listApiResponseSchema(apiResponseSchema(gameSchema)).transform((data) => {
     const transformLinks = (links: ReturnType<ReturnType<typeof apiResponseSchema>["parse"]>["Links"]) => {
         const canJoin = links.some(link => link.Rel === "join");
@@ -142,4 +157,4 @@ const listGamesSchema = listApiResponseSchema(apiResponseSchema(gameSchema)).tra
     return { ...data, Properties: transformedProperties };
 });
 
-export { gameSchema, listGamesSchema };
+export { gameSchema, getGameSchema, listGamesSchema };

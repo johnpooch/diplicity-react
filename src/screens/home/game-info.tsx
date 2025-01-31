@@ -4,11 +4,14 @@ import {
   Avatar,
   Button,
   Divider,
+  IconButton,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
   ListSubheader,
+  Menu,
+  MenuItem,
   Stack,
 } from "@mui/material";
 import {
@@ -20,11 +23,23 @@ import {
   CalendarToday as StartYearIcon,
   Person as AuthorIcon,
   Info as InfoIcon,
+  MoreHoriz as MenuIcon,
+  Add as JoinGameIcon,
+  Remove as LeaveGameIcon,
+  Share as ShareIcon,
 } from "@mui/icons-material";
 import { QueryContainer } from "../../components";
-import { mergeQueries, service, useGetVariantQuery } from "../../common";
+import {
+  actions,
+  mergeQueries,
+  service,
+  useGetVariantQuery,
+  useJoinGameMutation,
+  useLeaveGameMutation,
+} from "../../common";
 import { ScreenTopBar } from "./screen-top-bar";
-import { useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
+import { useDispatch } from "react-redux";
 
 const styles: Styles = {
   listSubheader: (theme) => ({
@@ -65,6 +80,19 @@ const useGameInfo = () => {
 
   const getGameQuery = service.endpoints.getGame.useQuery(gameId);
   const getVariantQuery = useGetVariantQuery(gameId);
+  const dispatch = useDispatch();
+  const [joinGame, joinGameMutation] = useJoinGameMutation(gameId);
+  const [leaveGame, leaveGameMutation] = useLeaveGameMutation(gameId);
+
+  const isSubmitting =
+    joinGameMutation.isLoading || leaveGameMutation.isLoading;
+
+  const handleShare = () => {
+    navigator.clipboard.writeText(
+      `${window.location.origin}/game-info/${gameId}`
+    );
+    dispatch(actions.setFeedback({ message: "Link copied to clipboard" }));
+  };
 
   const query = mergeQueries(
     [getGameQuery, getVariantQuery],
@@ -76,11 +104,35 @@ const useGameInfo = () => {
     }
   );
 
-  return { query };
+  return { query, joinGame, leaveGame, isSubmitting, handleShare };
 };
 
 const GameInfo: React.FC = () => {
-  const { query } = useGameInfo();
+  const navigate = useNavigate();
+  const { query, joinGame, leaveGame, isSubmitting, handleShare } =
+    useGameInfo();
+
+  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleJoinGame = async () => {
+    await joinGame();
+  };
+
+  const handleLeaveGame = async () => {
+    await leaveGame();
+  };
+
+  const handleView = (gameId: string) => {
+    navigate(`/game/${gameId}`);
+  };
 
   const TableListItem: React.FC<{
     label: string;
@@ -98,7 +150,71 @@ const GameInfo: React.FC = () => {
 
   return (
     <>
-      <ScreenTopBar title="Game info" />
+      <ScreenTopBar
+        title="Game info"
+        menu={
+          query.data?.game && (
+            <>
+              <IconButton edge="end" aria-label="menu" onClick={handleMenuOpen}>
+                <MenuIcon />
+              </IconButton>
+              <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleMenuClose}
+              >
+                {query.data?.game.Started && (
+                  <MenuItem
+                    onClick={() => {
+                      handleView(query.data?.game.ID as string);
+                      handleMenuClose();
+                    }}
+                    disabled={isSubmitting}
+                  >
+                    <VariantIcon sx={{ marginRight: 1 }} />
+                    View game
+                  </MenuItem>
+                )}
+                {query.data.game.canJoin && (
+                  <MenuItem
+                    onClick={async () => {
+                      await handleJoinGame();
+                      handleMenuClose();
+                    }}
+                    disabled={isSubmitting}
+                  >
+                    <JoinGameIcon sx={{ marginRight: 1 }} />
+                    Join game
+                  </MenuItem>
+                )}
+                {query.data.game.canLeave && (
+                  <MenuItem
+                    onClick={async () => {
+                      await handleLeaveGame();
+                      handleMenuClose();
+                    }}
+                    disabled={isSubmitting}
+                  >
+                    <LeaveGameIcon sx={{ marginRight: 1 }} />
+                    Leave game
+                  </MenuItem>
+                )}
+                <Divider />
+                <MenuItem
+                  onClick={() => {
+                    handleShare();
+                    handleMenuClose();
+                  }}
+                  disabled={isSubmitting}
+                >
+                  <ShareIcon sx={{ marginRight: 1 }} />
+                  Share
+                </MenuItem>
+              </Menu>
+            </>
+          )
+        }
+      />
       <QueryContainer query={query}>
         {(data) => (
           <>
