@@ -14,7 +14,7 @@ import {
   Profile,
   Map,
   Orders,
-  Chat,
+  ChannelListMobile,
 } from "./screens";
 
 const Router: React.FC = () => {
@@ -34,7 +34,7 @@ const Router: React.FC = () => {
         <Route path="game/:gameId">
           <Route index element={<Map />} />
           <Route path="orders" element={<Orders />} />
-          <Route path="chat" element={<Chat />} />
+          <Route path="chat" element={<ChannelListMobile />} />
           <Route path="game-info" element={<GameInfo />} />
           <Route path="player-info" element={<PlayerInfo />} />
         </Route>

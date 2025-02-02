@@ -1,7 +1,8 @@
 import React from "react";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import { ChannelList } from "../../components";
 
-const Chat: React.FC = () => {
+const ChannelListMobile: React.FC = () => {
   return (
     <Box
       sx={{
@@ -11,9 +12,9 @@ const Chat: React.FC = () => {
         height: "100vh",
       }}
     >
-      <Typography variant="h4">Chat coming soon</Typography>
+      <ChannelList />
     </Box>
   );
 };
 
-export { Chat };
+export { ChannelListMobile };
