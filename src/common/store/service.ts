@@ -4,7 +4,6 @@ import {
     UserConfig,
     Message,
     PhaseState,
-    Channel,
     Member,
     GameMasterInvitation,
     UserStats,
@@ -19,7 +18,7 @@ import {
 } from "./service.types";
 import { selectAuth } from "./auth";
 import { z } from "zod";
-import { gameSchema, getGameSchema, listGamesSchema, listOrdersSchema, listPhasesSchema, listPhaseStatesSchema } from "../schema";
+import { gameSchema, getGameSchema, listGamesSchema, listOrdersSchema, listPhasesSchema, listPhaseStatesSchema, listMessagesSchema, listChannelsSchema, createMessageSchema } from "../schema";
 
 const apiResponseSchema = <TObjSchema extends z.ZodRawShape>(schema: z.ZodObject<TObjSchema>) => z.object({
     Properties: schema,
@@ -218,14 +217,13 @@ const service = createApi({
             query: () => "/Users/Ratings/Histogram",
             transformResponse: extractProperties,
         }),
-        // TODO test
-        listMessages: builder.query<
-            Message[],
-            { gameId: string; channelId: string }
-        >({
+        listMessages: builder.query({
             query: ({ gameId, channelId }) =>
                 `/Game/${gameId}/Channel/${channelId}/Messages`,
-            transformResponse: (response: ListApiResponse<Message>) => extractPropertiesList(response),
+            transformResponse: (response) => {
+                const parsed = listMessagesSchema.parse(response);
+                return extractPropertiesList(parsed);
+            },
             providesTags: [TagType.Messages],
         }),
         listPhaseStates: builder.query({
@@ -250,9 +248,12 @@ const service = createApi({
             transformResponse: extractPropertiesList,
             providesTags: [TagType.ListGames],
         }),
-        listChannels: builder.query<Channel[], string>({
+        listChannels: builder.query({
             query: (gameId) => `/Game/${gameId}/Channels`,
-            transformResponse: (response: ListApiResponse<Channel>) => extractPropertiesList(response)
+            transformResponse: (response) => {
+                const parsed = listChannelsSchema.parse(response);
+                return extractPropertiesList(parsed);
+            }
         }),
         listOrders: builder.query({
             query: ({ gameId, phaseId }) =>
@@ -279,16 +280,16 @@ const service = createApi({
             }),
             invalidatesTags: [TagType.Orders],
         }),
-        createMessage: builder.mutation<
-            Message,
-            Pick<Message, "Body" | "ChannelMembers"> & { gameId: string }
-        >({
-            query: ({ gameId, ...data }) => ({
+        createMessage: builder.mutation({
+            query: ({ gameId, ...data }: Pick<Message, "Body" | "ChannelMembers"> & { gameId: string }) => ({
                 url: `/Game/${gameId}/Messages`,
                 method: "POST",
                 body: JSON.stringify(data),
             }),
-            transformResponse: extractProperties,
+            transformResponse: (response) => {
+                const parsed = createMessageSchema.parse(response);
+                return extractProperties(parsed);
+            },
             invalidatesTags: [TagType.Messages],
         }),
         updateUserConfig: builder.mutation<

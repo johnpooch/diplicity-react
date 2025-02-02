@@ -12,6 +12,7 @@ import {
   StepLabel,
   Stepper,
   Typography,
+  ButtonGroup,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { useOrders } from "../../common";
@@ -110,19 +111,13 @@ const Orders: React.FC = () => {
                     {order.isComplete ? (
                       <Typography>{getOrderSummary(order)}</Typography>
                     ) : (
-                      Object.entries(options).map(([key, option]) => (
-                        <Stack
-                          key={key}
-                          spacing={2}
-                          direction="column"
-                          alignItems="center"
-                        >
-                          {option.icon}
+                      <ButtonGroup size="large">
+                        {Object.entries(options).map(([key, option]) => (
                           <Button key={key} onClick={() => handleSelect(key)}>
                             {option.name}
                           </Button>
-                        </Stack>
-                      ))
+                        ))}
+                      </ButtonGroup>
                     )}
                   </Stack>
                   <Grid2 container>

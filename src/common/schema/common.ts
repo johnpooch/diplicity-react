@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "zod";
 
 const apiResponseSchema = <TObjSchema extends z.ZodRawShape>(schema: z.ZodObject<TObjSchema>) => z.object({
     Properties: schema,
@@ -7,10 +7,10 @@ const apiResponseSchema = <TObjSchema extends z.ZodRawShape>(schema: z.ZodObject
         URL: z.string(),
         Method: z.string(),
     })), z.null()]).transform((links) => links ?? []),
-})
+});
 
 const listApiResponseSchema = <TObjSchema extends z.ZodRawShape>(schema: z.ZodObject<TObjSchema>) => z.object({
     Properties: z.array(schema),
-})
+});
 
-export { apiResponseSchema, listApiResponseSchema }
+export { apiResponseSchema, listApiResponseSchema };
