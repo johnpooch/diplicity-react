@@ -2,13 +2,10 @@ import { z } from "zod";
 import { apiResponseSchema, listApiResponseSchema } from "./common";
 
 const messageSchema = z.object({
-    Id: z.string(),
+    ID: z.string(),
+    Sender: z.string(),
     Body: z.string(),
-    CreatedAt: z.string(),
-    CreatedBy: z.string(),
-    ChannelId: z.string(),
-    GameId: z.string(),
-    ChannelMembers: z.array(z.string()),
+    CreatedAt: z.string().transform((value) => new Date(value)),
 });
 
 const listMessagesSchema = listApiResponseSchema(apiResponseSchema(messageSchema));

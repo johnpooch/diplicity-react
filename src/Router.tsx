@@ -1,5 +1,5 @@
 import React from "react";
-import { Navigate, Route, Routes } from "react-router";
+import { Navigate, Outlet, Route, Routes } from "react-router";
 import Login from "./screens/Login";
 import { useSelector } from "react-redux";
 import { selectAuth } from "./common/store/auth";
@@ -15,7 +15,10 @@ import {
   Map,
   Orders,
   ChannelListMobile,
+  Channel,
 } from "./screens";
+import { CreateChannel } from "./components/create-channel";
+import { ChannelContextProvider } from "./context/channel-context";
 
 const Router: React.FC = () => {
   const { loggedIn } = useSelector(selectAuth);
@@ -34,9 +37,21 @@ const Router: React.FC = () => {
         <Route path="game/:gameId">
           <Route index element={<Map />} />
           <Route path="orders" element={<Orders />} />
-          <Route path="chat" element={<ChannelListMobile />} />
           <Route path="game-info" element={<GameInfo />} />
           <Route path="player-info" element={<PlayerInfo />} />
+          <Route path="chat">
+            <Route index element={<ChannelListMobile />} />
+            <Route path="create-channel" element={<CreateChannel />} />
+            <Route
+              element={
+                <ChannelContextProvider>
+                  <Outlet />
+                </ChannelContextProvider>
+              }
+            >
+              <Route path="channel/:channelName" element={<Channel />} />
+            </Route>
+          </Route>
         </Route>
       </Route>
     </Routes>

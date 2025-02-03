@@ -1,3 +1,5 @@
+import { service } from "./common";
+
 /**
  * Formats an order object into a human-readable string.
  */
@@ -38,4 +40,33 @@ const transformResolution = (resolution: string): { outcome: string, by?: string
     };
 };
 
-export { formatOrderText, transformResolution };
+const getChannelDisplayName = (channel: typeof service.endpoints.listChannels.Types.ResultType[number],
+    variant: typeof service.endpoints.listVariants.Types.ResultType[number],
+    member: typeof service.endpoints.getGame.Types.ResultType["Members"][number]) => {
+
+    const sortedVariantNations = [...variant.Nations].sort().join(",");
+    const sortedChannelMembers = [...channel.Members].sort().join(",");
+
+    const isPublicPress = sortedVariantNations === sortedChannelMembers;
+
+    if (isPublicPress) return "Public Press";
+
+
+    const removeNation = (name: string, nation: string) => {
+        return name
+            .replace(nation, "")
+            .replace(/,,/, ",")
+            .replace(/^,/, "")
+            .replace(/,$/, "");
+    };
+
+    let displayName = channel.Name;
+    if (member) {
+        displayName = removeNation(channel.Name, member.Nation);
+    }
+
+    displayName = displayName.replace(/,/g, ", ");
+    return displayName;
+}
+
+export { formatOrderText, transformResolution, getChannelDisplayName };

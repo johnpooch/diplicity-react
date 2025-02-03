@@ -8,7 +8,6 @@ const useGetVariantQuery = (gameId: string) => {
     const getGameQuery = endpoints.getGame.useQuery(gameId);
 
     const mergedQuery = mergeQueries([listVariantsQuery, getGameQuery], (variants, game) => {
-        console.log(variants, game);
         const variant = variants.find((variant) => variant.Name === game.Variant);
         if (!variant) throw new Error("Variant not found");
         return variant;
