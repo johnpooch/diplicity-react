@@ -14,12 +14,16 @@ import {
   Stack,
   TextField,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { Send as SendIcon } from "@mui/icons-material";
 import { QueryContainer } from "../../components";
 import { useGetUserMemberQuery } from "../../common/hooks/useGetUserMemberQuery";
 import { useGetChannelQuery } from "../../common/hooks/useGetChannelQuery";
 import { getChannelDisplayName } from "../../util";
+import { GameDetailAppBar } from "./app-bar";
+import { ChannelList } from "./channel-list";
 
 const styles: Styles = {
   listSubheader: (theme) => ({
@@ -40,6 +44,17 @@ const styles: Styles = {
     fontSize: theme.typography.caption.fontSize,
     color: theme.palette.text.secondary,
   }),
+  container: {
+    display: "flex",
+    maxWidth: 1000,
+    width: "100%",
+  },
+  channelListContainer: {
+    flex: 1,
+  },
+  channelContainer: {
+    flex: 2,
+  },
 };
 
 const useChannel = () => {
@@ -115,9 +130,12 @@ const displayTime = (date: Date) => {
   });
 };
 
-const Channel: React.FC = () => {
+const ChannelComponent: React.FC = () => {
   const { query, message, setMessage, handleSubmit, isSubmitting, closed } =
     useChannel();
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -129,7 +147,7 @@ const Channel: React.FC = () => {
 
   return (
     <>
-      <ScreenTopBar title={query.data?.displayName || ""} />
+      {isMobile && <ScreenTopBar title={query.data?.displayName || ""} />}
       <QueryContainer query={query}>
         {(data) => (
           <Stack
@@ -197,6 +215,26 @@ const Channel: React.FC = () => {
         )}
       </QueryContainer>
     </>
+  );
+};
+
+const Channel: React.FC = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  return isMobile ? (
+    <ChannelComponent />
+  ) : (
+    <Stack sx={styles.container}>
+      <GameDetailAppBar />
+      <Stack direction="row">
+        <Stack sx={styles.channelListContainer}>
+          <ChannelList />
+        </Stack>
+        <Stack sx={styles.channelContainer}>
+          <ChannelComponent />
+        </Stack>
+      </Stack>
+    </Stack>
   );
 };
 

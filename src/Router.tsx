@@ -14,10 +14,10 @@ import {
   Profile,
   Map,
   Orders,
-  ChannelListMobile,
   Channel,
+  CreateChannel,
+  Chat,
 } from "./screens";
-import { CreateChannel } from "./components/create-channel";
 import { ChannelContextProvider } from "./context/channel-context";
 
 const Router: React.FC = () => {
@@ -40,7 +40,7 @@ const Router: React.FC = () => {
           <Route path="game-info" element={<GameInfo />} />
           <Route path="player-info" element={<PlayerInfo />} />
           <Route path="chat">
-            <Route index element={<ChannelListMobile />} />
+            <Route index element={<Chat />} />
             <Route path="create-channel" element={<CreateChannel />} />
             <Route
               element={
