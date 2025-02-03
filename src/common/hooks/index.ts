@@ -13,3 +13,4 @@ export * from "./useListOrdersQuery";
 export * from "./useJoinGameMutation";
 export * from "./useLeaveGameMutation";
 export * from "./useUpdatePhaseStateMutation";
+export * from "./useGetUserMemberQuery";
