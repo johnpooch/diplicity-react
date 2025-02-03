@@ -1,6 +1,6 @@
 import React from "react";
-import { useGameDetailContext } from "../context";
-import { mergeQueries, service } from "../common";
+import { useGameDetailContext } from "../../context";
+import { mergeQueries, service } from "../../common";
 import {
   List,
   ListItem,
@@ -14,8 +14,8 @@ import {
   IconButton,
 } from "@mui/material";
 import { Send as SendIcon } from "@mui/icons-material";
-import { QueryContainer } from "./query-container";
-import { ScreenTopBar } from "../screens/home/screen-top-bar";
+import { QueryContainer } from "../../components/query-container";
+import { ScreenTopBar } from "../home/screen-top-bar";
 import { useNavigate } from "react-router";
 
 const useCreateChannel = () => {

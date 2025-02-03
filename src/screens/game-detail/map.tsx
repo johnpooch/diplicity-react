@@ -1,5 +1,5 @@
 import React from "react";
-import { Divider, Stack, useMediaQuery, useTheme } from "@mui/material";
+import { Stack, useMediaQuery, useTheme } from "@mui/material";
 import { PhaseSelect } from "../../components/phase-select";
 import { OrderList, QueryContainer } from "../../components";
 import { GameDetailAppBar } from "./app-bar";
@@ -15,13 +15,13 @@ import { createMap } from "../../common/map/map";
 import { useGameDetailContext, useSelectedPhaseContext } from "../../context";
 
 const styles: Styles = {
-  container: (theme) => ({
+  container: {
     display: "flex",
-    border: `1px solid ${theme.palette.divider}`,
-  }),
+    maxWidth: 1000,
+    width: "100%",
+  },
   mapContainer: {
     flex: 2,
-    borderRight: "1px solid #ccc",
   },
   ordersContainer: {
     flex: 1,
@@ -65,24 +65,25 @@ const Map: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   return (
-    <Stack sx={styles.container} direction={isMobile ? "column" : "row"}>
-      {isMobile && <GameDetailAppBar />}
-      <Stack sx={styles.mapContainer}>
-        <QueryContainer query={mapQuery}>
-          {(map) => <div dangerouslySetInnerHTML={{ __html: map }} />}
-        </QueryContainer>
-      </Stack>
-      {!isMobile && (
-        <Stack sx={styles.ordersContainer}>
-          <Stack sx={{ p: 1 }}>
-            <PhaseSelect />
-          </Stack>
-          <Divider />
-          <QueryContainer query={ordersQuery}>
-            {(data) => <OrderList orders={data} />}
+    <Stack sx={styles.container}>
+      <GameDetailAppBar />
+      <Stack direction="row">
+        <Stack sx={styles.mapContainer}>
+          <QueryContainer query={mapQuery}>
+            {(map) => <div dangerouslySetInnerHTML={{ __html: map }} />}
           </QueryContainer>
         </Stack>
-      )}
+        {!isMobile && (
+          <Stack sx={styles.ordersContainer}>
+            <Stack alignItems="center">
+              <PhaseSelect />
+            </Stack>
+            <QueryContainer query={ordersQuery}>
+              {(data) => <OrderList orders={data} />}
+            </QueryContainer>
+          </Stack>
+        )}
+      </Stack>
     </Stack>
   );
 };

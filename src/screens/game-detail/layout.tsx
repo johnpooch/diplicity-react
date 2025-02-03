@@ -31,12 +31,6 @@ const styles: Styles = {
   root: {
     alignItems: "center",
   },
-  contentContainerMobile: {
-    p: 1,
-  },
-  contentContainerLarge: {
-    p: 4,
-  },
   contentContainer: {
     display: "flex",
     justifyContent: "center",
@@ -70,9 +64,6 @@ const GameDetailLayout: React.FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const contentContainerStyle = isMobile
-    ? styles.contentContainerMobile
-    : styles.contentContainerLarge;
   const [navigation, setNavigation] = useState(location.pathname);
 
   useEffect(() => {
@@ -110,14 +101,7 @@ const GameDetailLayout: React.FC = () => {
           </>
         ) : (
           <Stack sx={styles.root}>
-            <Stack
-              sx={() => ({
-                ...styles.contentContainer,
-                ...contentContainerStyle,
-              })}
-            >
-              <Outlet />
-            </Stack>
+            <Outlet />
           </Stack>
         )}
       </SelectedPhaseContextProvider>

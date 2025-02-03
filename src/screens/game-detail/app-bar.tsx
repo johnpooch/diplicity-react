@@ -5,6 +5,10 @@ import {
   Menu,
   MenuItem,
   Divider,
+  useTheme,
+  useMediaQuery,
+  Tabs,
+  Tab,
 } from "@mui/material";
 import {
   ArrowBack as BackIcon,
@@ -15,13 +19,18 @@ import {
 } from "@mui/icons-material";
 import React, { useState } from "react";
 import { PhaseSelect } from "../../components/phase-select";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { useGameDetailContext } from "../../context";
 
 const GameDetailAppBar: React.FC = () => {
   const { gameId } = useGameDetailContext();
   const navigate = useNavigate();
+  const location = useLocation();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+
+  const theme = useTheme();
+
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const handleBack = () => {
     navigate("/");
@@ -50,13 +59,37 @@ const GameDetailAppBar: React.FC = () => {
     handleMenuClose();
   };
 
+  const handleTabChange = (_: unknown, newValue: number) => {
+    switch (newValue) {
+      case 0:
+        navigate(`/game/${gameId}`);
+        break;
+      case 1:
+        navigate(`/game/${gameId}/chat`);
+        break;
+    }
+  };
+
+  const selectedTab = location.pathname.includes("chat") ? 1 : 0;
+
   return (
     <AppBar position="static" elevation={0}>
       <Stack sx={{ p: 1 }} direction="row" justifyContent="space-between">
         <IconButton edge="start" color="inherit" onClick={handleBack}>
           <BackIcon />
         </IconButton>
-        <PhaseSelect />
+        {isMobile ? (
+          <PhaseSelect />
+        ) : (
+          <Tabs
+            value={selectedTab}
+            indicatorColor="primary"
+            onChange={handleTabChange}
+          >
+            <Tab label="Map" />
+            <Tab label="Chat" />
+          </Tabs>
+        )}
         <IconButton edge="start" color="inherit" onClick={handleMenuOpen}>
           <MenuIcon />
         </IconButton>
