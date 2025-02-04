@@ -115,9 +115,8 @@ class Province extends ElementEditor {
         // By default provinces are black.
         this.fill("transparent");
     }
-
     fill(color: string) {
-        this.updateStyle({ fill: color });
+        this.updateStyle({ fill: color, 'fill-opacity': '0.6' });
     }
 }
 
@@ -230,7 +229,7 @@ class UnitLayer extends ElementEditor {
         const path = this.element.ownerDocument.createElement("path");
         path.setAttribute(
             "style",
-            `fill:${fill};fill-opacity:1;stroke:#000000;stroke-width:1;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none`
+            `fill:${fill};fill-opacity:1;stroke:#000000;stroke-width:3;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none`
         );
         path.setAttribute("d", d);
         path.setAttribute("transform", `translate(${x},${y})`);
