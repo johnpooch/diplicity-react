@@ -4,11 +4,6 @@ import {
   Card,
   Divider,
   IconButton,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
   Modal as MuiModal,
   Stack,
   Tab,
@@ -19,10 +14,6 @@ import {
 import {
   ArrowBack as BackIcon,
   Add as CreateChannelIcon,
-  MoreHoriz as MenuIcon,
-  Info as InfoIcon,
-  Person as PlayerInfoIcon,
-  Share as ShareIcon,
 } from "@mui/icons-material";
 import { useLocation, useNavigate } from "react-router";
 import { useState } from "react";
@@ -35,6 +26,7 @@ import { Channel } from "./channel";
 import { CreateChannel } from "./create-channel";
 import { GameInfo, PlayerInfo } from "../home";
 import { CreateOrder } from "./create-order";
+import { GameDetailMenu } from "./game-detail-menu";
 
 const styles: Styles = {
   appBar: {
@@ -131,7 +123,6 @@ const GameDetail: React.FC = () => {
   const navigate = useNavigate();
   const { gameId } = useGameDetailContext();
 
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [createOrderOpen, setCreateOrderOpen] = useState(false);
 
   const { query: mapQuery } = useMap();
@@ -139,29 +130,6 @@ const GameDetail: React.FC = () => {
 
   const handleBack = () => {
     navigate("/");
-  };
-
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleClickGameInfo = () => {
-    navigate(`/game/${gameId}/game-info`);
-    handleMenuClose();
-  };
-
-  const handleClickPlayerInfo = () => {
-    navigate(`/game/${gameId}/player-info`);
-    handleMenuClose();
-  };
-
-  const handleClickShare = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/game/${gameId}`);
-    handleMenuClose();
   };
 
   const handleCreateChannel = () => {
@@ -198,40 +166,7 @@ const GameDetail: React.FC = () => {
             <Tab label="Map" />
             <Tab label="Chat" />
           </Tabs>
-          <IconButton edge="start" color="inherit" onClick={handleMenuOpen}>
-            <MenuIcon />
-          </IconButton>
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
-          >
-            <MenuItem onClick={handleClickGameInfo}>
-              <ListItem disablePadding>
-                <ListItemIcon>
-                  <InfoIcon />
-                </ListItemIcon>
-                <ListItemText primary="Game info" />
-              </ListItem>
-            </MenuItem>
-            <MenuItem onClick={handleClickPlayerInfo}>
-              <ListItem disablePadding>
-                <ListItemIcon>
-                  <PlayerInfoIcon />
-                </ListItemIcon>
-                <ListItemText primary="Player info" />
-              </ListItem>
-            </MenuItem>
-            <Divider />
-            <MenuItem onClick={handleClickShare}>
-              <ListItem disablePadding>
-                <ListItemIcon>
-                  <ShareIcon />
-                </ListItemIcon>
-                <ListItemText primary="Share" />
-              </ListItem>
-            </MenuItem>
-          </Menu>
+          <GameDetailMenu />
         </Stack>
       </AppBar>
       <Stack sx={styles.cardContainer}>

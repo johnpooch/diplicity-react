@@ -3,10 +3,7 @@ import {
   AppBar,
   BottomNavigation,
   BottomNavigationAction,
-  Divider,
   IconButton,
-  Menu,
-  MenuItem,
   Stack,
 } from "@mui/material";
 import {
@@ -14,14 +11,11 @@ import {
   Chat as ChatIcon,
   Gavel as OrdersIcon,
   ArrowBack as BackIcon,
-  MoreHoriz as MenuIcon,
-  Info as InfoIcon,
-  Person as PlayerInfoIcon,
-  Share as ShareIcon,
 } from "@mui/icons-material";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { useGameDetailContext } from "../../context";
 import { PhaseSelect } from "../../components/phase-select";
+import { GameDetailMenu } from "./game-detail-menu";
 
 const styles: Styles = {
   mobileAppBar: {
@@ -42,6 +36,12 @@ const styles: Styles = {
     flexGrow: 1,
     maxWidth: 1000,
     width: "100%",
+  },
+  header: {
+    padding: "8px 16px",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
 };
 
@@ -68,7 +68,6 @@ const MapOrdersLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [navigation, setNavigation] = useState(location.pathname);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   useEffect(() => {
     setNavigation(location.pathname);
@@ -83,29 +82,6 @@ const MapOrdersLayout: React.FC = () => {
     navigate("/");
   };
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleClickGameInfo = () => {
-    navigate(`/game/${gameId}/game-info`);
-    handleMenuClose();
-  };
-
-  const handleClickPlayerInfo = () => {
-    navigate(`/game/${gameId}/player-info`);
-    handleMenuClose();
-  };
-
-  const handleClickShare = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/game/${gameId}`);
-    handleMenuClose();
-  };
-
   useEffect(() => {
     setNavigation(location.pathname);
   }, [location.pathname]);
@@ -113,44 +89,12 @@ const MapOrdersLayout: React.FC = () => {
   return (
     <>
       <AppBar position="static" elevation={0}>
-        <Stack
-          sx={{
-            paddingLeft: 2,
-            paddingRight: 2,
-            paddingTop: 1,
-            paddingBottom: 1,
-          }}
-          direction="row"
-          justifyContent="space-between"
-        >
-          <Stack direction="row" alignItems="center" gap={1}>
-            <IconButton edge="start" color="inherit" onClick={handleBack}>
-              <BackIcon />
-            </IconButton>
-            <PhaseSelect />
-          </Stack>
-          <IconButton edge="start" color="inherit" onClick={handleMenuOpen}>
-            <MenuIcon />
+        <Stack sx={styles.header}>
+          <IconButton edge="start" color="inherit" onClick={handleBack}>
+            <BackIcon />
           </IconButton>
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
-          >
-            <MenuItem onClick={handleClickGameInfo}>
-              <InfoIcon sx={{ marginRight: 1 }} />
-              Game info
-            </MenuItem>
-            <MenuItem onClick={handleClickPlayerInfo}>
-              <PlayerInfoIcon sx={{ marginRight: 1 }} />
-              Player info
-            </MenuItem>
-            <Divider />
-            <MenuItem onClick={handleClickShare}>
-              <ShareIcon sx={{ marginRight: 1 }} />
-              Share
-            </MenuItem>
-          </Menu>
+          <PhaseSelect />
+          <GameDetailMenu />
         </Stack>
       </AppBar>
       <Outlet />
