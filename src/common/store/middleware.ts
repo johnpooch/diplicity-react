@@ -1,7 +1,15 @@
-import { createListenerMiddleware, isRejectedWithValue } from "@reduxjs/toolkit";
+import { createListenerMiddleware, isRejected, isRejectedWithValue } from "@reduxjs/toolkit";
 import { authActions } from "./auth";
+import { telemetryService } from "../../services";
 
 const listenerMiddleware = createListenerMiddleware();
+
+listenerMiddleware.startListening({
+    matcher: isRejected,
+    effect: async (action) => {
+        telemetryService.logError(action.error as Error);
+    },
+});
 
 listenerMiddleware.startListening({
     matcher: isRejectedWithValue,
