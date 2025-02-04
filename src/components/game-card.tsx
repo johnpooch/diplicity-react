@@ -95,10 +95,6 @@ const GameCard: React.FC<{
     setAnchorEl(null);
   };
 
-  const handleView = () => {
-    navigate(`/game/${game.ID}`);
-  };
-
   const handleClickGameInfo = () => {
     navigate(`/game-info/${game.ID}`);
   };
@@ -115,8 +111,12 @@ const GameCard: React.FC<{
     await leaveGame();
   };
 
-  const canView = () => {
-    return game.Started;
+  const handleClickGame = () => {
+    if (game.Started) {
+      navigate(`/game/${game.ID}`);
+    } else {
+      navigate(`/game-info/${game.ID}`);
+    }
   };
 
   return (
@@ -190,17 +190,7 @@ const GameCard: React.FC<{
         </>
       }
     >
-      <Link
-        href="#"
-        underline="hover"
-        onClick={() => {
-          if (!canView) {
-            handleClickGameInfo();
-          } else {
-            handleView();
-          }
-        }}
-      >
+      <Link underline="hover" onClick={handleClickGame}>
         <ListItemAvatar sx={styles.mapContainer}>
           <img
             src={`https://diplicity-engine.appspot.com/Variant/${game.Variant}/Map.svg`}
@@ -210,17 +200,7 @@ const GameCard: React.FC<{
       </Link>
       <ListItemText
         primary={
-          <Link
-            href="#"
-            underline="hover"
-            onClick={() => {
-              if (!canView) {
-                handleClickGameInfo();
-              } else {
-                handleView();
-              }
-            }}
-          >
+          <Link underline="hover" onClick={handleClickGame}>
             <Typography>{game.Desc}</Typography>
           </Link>
         }
