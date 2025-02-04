@@ -77,13 +77,14 @@ const CreateChannel: React.FC = () => {
     handleSubmit,
   } = useCreateChannel();
 
+  const { gameId } = useGameDetailContext();
   const navigate = useNavigate();
 
   const handleSubmitAndRedirect = async () => {
     const response = await handleSubmit();
     if (response.data) {
       const channelName = response.data.ChannelMembers.join(",");
-      navigate(`../channel/${channelName}`);
+      navigate(`/game/${gameId}/chat/channel/${channelName}`);
     }
   };
 
@@ -97,7 +98,6 @@ const CreateChannel: React.FC = () => {
               display: "flex",
               flexDirection: "column",
               height: "100%",
-              minHeight: "calc(100vh - 113px)",
               paddingBottom: 1,
             }}
           >

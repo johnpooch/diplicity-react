@@ -22,8 +22,6 @@ import { QueryContainer } from "../../components";
 import { useGetUserMemberQuery } from "../../common/hooks/useGetUserMemberQuery";
 import { useGetChannelQuery } from "../../common/hooks/useGetChannelQuery";
 import { getChannelDisplayName } from "../../util";
-import { GameDetailAppBar } from "./app-bar";
-import { ChannelList } from "./channel-list";
 
 const styles: Styles = {
   listSubheader: (theme) => ({
@@ -154,7 +152,7 @@ const ChannelComponent: React.FC = () => {
             sx={{
               display: "flex",
               flexDirection: "column",
-              height: "calc(100vh - 113px)",
+              height: "100%",
               paddingBottom: 1,
             }}
           >
@@ -219,23 +217,7 @@ const ChannelComponent: React.FC = () => {
 };
 
 const Channel: React.FC = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  return isMobile ? (
-    <ChannelComponent />
-  ) : (
-    <Stack sx={styles.container}>
-      <GameDetailAppBar />
-      <Stack direction="row">
-        <Stack sx={styles.channelListContainer}>
-          <ChannelList />
-        </Stack>
-        <Stack sx={styles.channelContainer}>
-          <ChannelComponent />
-        </Stack>
-      </Stack>
-    </Stack>
-  );
+  return <ChannelComponent />;
 };
 
 export { Channel };

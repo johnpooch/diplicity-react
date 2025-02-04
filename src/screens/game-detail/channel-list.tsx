@@ -1,25 +1,18 @@
 import React from "react";
 import {
   Avatar,
-  Fab,
   List,
   ListItem,
   ListItemAvatar,
   ListItemButton,
   ListItemText,
-  Stack,
-  Typography,
-  useMediaQuery,
-  useTheme,
 } from "@mui/material";
-import { Add as CreateChannelIcon } from "@mui/icons-material";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { useGameDetailContext } from "../../context";
 import { service, useGetVariantQuery, mergeQueries } from "../../common";
 import { useGetUserMemberQuery } from "../../common/hooks/useGetUserMemberQuery";
 import { QueryContainer } from "../../components";
 import { getChannelDisplayName } from "../../util";
-import { ScreenTopBar } from "../home/screen-top-bar";
 
 const styles: Styles = {
   listItemText: {
@@ -29,6 +22,9 @@ const styles: Styles = {
       // whiteSpace: "nowrap",
     },
   },
+  selectedListItem: (theme) => ({
+    backgroundColor: theme.palette.action.selected,
+  }),
 };
 
 const useChannelList = () => {
@@ -60,62 +56,47 @@ const useChannelList = () => {
 };
 
 const ChannelList: React.FC = () => {
-  const { gameId } = useGameDetailContext();
   const { query } = useChannelList();
-
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-
+  const { gameId } = useGameDetailContext();
   const navigate = useNavigate();
-
-  const handleCreateChannel = () => {
-    navigate(`/game/${gameId}/chat/create-channel`);
-  };
+  const location = useLocation();
 
   const handleChannelClick = (name: string) => {
-    navigate(`channel/${name}`);
+    navigate(`/game/${gameId}/chat/channel/${name}`);
   };
 
+  // Use regex to get the channel name from the URL
+  // e.g. .../channel/Germany,Italy -> Germany,Italy
+  const selectedChannel = location.pathname.match(/\/channel\/(.*)/)?.[1];
+
   return (
-    <Stack>
-      <Stack>
-        {isMobile && <ScreenTopBar title="Conversations" />}
-        <QueryContainer query={query}>
-          {(data) => (
-            <List>
-              {data.map((channel, index) => (
-                <ListItem key={index} divider disablePadding>
-                  <ListItemButton
-                    onClick={() => handleChannelClick(channel.name)}
-                  >
-                    <ListItemAvatar>
-                      <Avatar>{channel.name.charAt(0)}</Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      sx={styles.listItemText}
-                      primary={channel.displayName}
-                      secondary={channel.messagePreview}
-                    />
-                  </ListItemButton>
-                </ListItem>
-              ))}
-            </List>
-          )}
-        </QueryContainer>
-      </Stack>
-      <Stack justifyContent={"flex-end"} direction={"row"} p={1}>
-        <Fab
-          sx={{}}
-          color="primary"
-          aria-label="create conversation"
-          onClick={handleCreateChannel}
-          variant="extended"
-        >
-          <CreateChannelIcon />
-          <Typography>New conversation</Typography>
-        </Fab>
-      </Stack>
-    </Stack>
+    <QueryContainer query={query}>
+      {(data) => (
+        <List>
+          {data.map((channel, index) => (
+            <ListItem
+              key={index}
+              divider
+              disablePadding
+              sx={
+                selectedChannel === channel.name ? styles.selectedListItem : {}
+              }
+            >
+              <ListItemButton onClick={() => handleChannelClick(channel.name)}>
+                <ListItemAvatar>
+                  <Avatar>{channel.name.charAt(0)}</Avatar>
+                </ListItemAvatar>
+                <ListItemText
+                  sx={styles.listItemText}
+                  primary={channel.displayName}
+                  secondary={channel.messagePreview}
+                />
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
+      )}
+    </QueryContainer>
   );
 };
 

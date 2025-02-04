@@ -1,6 +1,5 @@
 import React from "react";
 import { Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
-import { GameDetailAppBar } from "./app-bar";
 import { ChannelList } from "./channel-list";
 
 const styles: Styles = {
@@ -39,7 +38,6 @@ const Chat: React.FC = () => {
     <ChannelList />
   ) : (
     <Stack sx={styles.container}>
-      <GameDetailAppBar />
       <Stack direction="row">
         <Stack sx={styles.channelListContainer}>
           <ChannelList />
