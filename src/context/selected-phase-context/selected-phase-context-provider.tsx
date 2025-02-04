@@ -26,7 +26,6 @@ const SelectedPhaseContextProvider: React.FC<{
     } else {
       params.set("selectedPhase", selectedPhase.toString());
     }
-    console.log("Params", params.toString());
     navigate({ search: params.toString() }, { replace: true });
   }, [selectedPhase, location.search, navigate]);
 

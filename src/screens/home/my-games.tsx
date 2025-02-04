@@ -72,7 +72,7 @@ const MyGames: React.FC = () => {
       : query.data?.stagingGames.length > 0
       ? "staging"
       : "finished"
-    : undefined;
+    : "started";
 
   return (
     <Stack>
@@ -89,7 +89,12 @@ const MyGames: React.FC = () => {
           sx={styles.tabs}
         >
           {statuses.map((status) => (
-            <Tab disableRipple value={status.value} label={status.label} />
+            <Tab
+              key={status.value}
+              disableRipple
+              value={status.value}
+              label={status.label}
+            />
           ))}
         </Tabs>
       </Stack>

@@ -25,13 +25,13 @@ const createOrders = (
         const outcome = phase.Resolutions?.find((resolution) => resolution.province === source);
 
         const orderData = {
-            source: variant.getProvinceLongName(source),
+            source: variant.ProvinceLongNames[source],
             orderType: orderType,
-            target: target ? variant.getProvinceLongName(target) : undefined,
-            aux: aux ? variant.getProvinceLongName(aux) : undefined,
+            target: target ? variant.ProvinceLongNames[target] : undefined,
+            aux: aux ? variant.ProvinceLongNames[aux] : undefined,
             outcome: outcome ? {
                 outcome: outcome.outcome,
-                by: outcome.by ? variant.getProvinceLongName(outcome.by) : undefined,
+                by: outcome.by ? variant.ProvinceLongNames[outcome.by] : undefined,
             } : undefined,
         };
 

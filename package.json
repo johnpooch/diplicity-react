@@ -17,6 +17,8 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@fontsource/roboto": "^5.1.0",
+    "@microsoft/applicationinsights-react-js": "^17.3.4",
+    "@microsoft/applicationinsights-web": "^3.3.5",
     "@mui/icons-material": "^6.2.0",
     "@mui/material": "^6.2.0",
     "@react-oauth/google": "^0.12.1",
