@@ -1,11 +1,13 @@
 import { DOMParser, XMLSerializer } from "xmldom";
-import { Variant } from "../store";
 import { contrastColors } from "./contrast";
 import { Phase } from "../schema";
+import { service } from "../store";
 
 interface Style {
     [key: string]: string;
 }
+
+type Variant = typeof service.endpoints.listVariants.Types.ResultType[number];
 
 export const getNationColor = (
     variant: Variant,

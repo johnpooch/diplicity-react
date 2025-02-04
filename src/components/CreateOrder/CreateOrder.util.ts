@@ -23,7 +23,7 @@ const createOrderOptionTree = (
                 Object.assign(result, transformOptions(value.Next));
             } else {
                 result[key] = {
-                    name: variant.getProvinceLongName(key) || key,
+                    name: variant.ProvinceLongNames[key] || key,
                     children: value.Next ? transformOptions(value.Next) : {},
                 };
             }

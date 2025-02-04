@@ -18,7 +18,7 @@ import {
 } from "./service.types";
 import { selectAuth } from "./auth";
 import { z } from "zod";
-import { gameSchema, getGameSchema, listGamesSchema, listOrdersSchema, listPhasesSchema, listPhaseStatesSchema, listMessagesSchema, listChannelsSchema, createMessageSchema } from "../schema";
+import { gameSchema, getGameSchema, listGamesSchema, listOrdersSchema, listPhasesSchema, listPhaseStatesSchema, listMessagesSchema, listChannelsSchema, createMessageSchema, listVariantsSchema } from "../schema";
 
 const apiResponseSchema = <TObjSchema extends z.ZodRawShape>(schema: z.ZodObject<TObjSchema>) => z.object({
     Properties: schema,
@@ -72,54 +72,6 @@ const userSchema = z.object({
     VerifiedEmail: z.boolean(),
     ValidUntil: z.string(),
 });
-
-const variantSchema = z.object({
-    Name: z.string(),
-    Nations: z.array(z.string()),
-    PhaseTypes: z.array(z.string()),
-    Seasons: z.array(z.string()),
-    UnitTypes: z.array(z.string()),
-    SvgVersion: z.string().optional(),
-    ProvinceLongNames: z.record(z.string()).nullable(),
-    NationColors: z.record(z.string()).nullable(),
-    CreatedBy: z.string(),
-    Version: z.string(),
-    Description: z.string(),
-    Rules: z.string(),
-    OrderTypes: z.array(z.string()),
-    Start: z.object({
-        Year: z.number(),
-        Season: z.string(),
-        Type: z.string(),
-        SCs: z.record(z.string()),
-        Units: z.record(z.object({
-            Type: z.string(),
-            Nation: z.string(),
-        })),
-        Map: z.string(),
-    }),
-    Graph: z.object({
-        Nodes: z.record(z.object({
-            Name: z.string(),
-            Subs: z.record(z.object({
-                Name: z.string(),
-                Edges: z.record(z.object({
-                    Flags: z.record(z.boolean()),
-                })),
-                ReverseEdges: z.record(z.object({
-                    Flags: z.record(z.boolean()),
-                })),
-                Flags: z.record(z.boolean()),
-            })),
-            SC: z.optional(z.string().nullable()),
-        })),
-    }),
-    ExtraDominanceRules: z.record(z.object({
-        Priority: z.number(),
-        Nation: z.string(),
-        Dependencies: z.record(z.string()),
-    })).nullable(),
-})
 
 const rootSchema = z.object({
     User: userSchema,
@@ -413,19 +365,8 @@ const service = createApi({
         listVariants: builder.query({
             query: () => "/Variants",
             transformResponse: (response) => {
-                return listApiResponseSchema(variantSchema).parse(response).Properties.map((variant) => {
-                    const Properties = variant.Properties;
-                    return {
-                        ...Properties,
-                        Links: variant.Links,
-                        getProvinceLongName: (province: string) => Properties.ProvinceLongNames?.[province] || province,
-                        getUnitTypeSrc: (unitType: string) => {
-                            const url = variant.Links.find((link) => link.Rel === `unit-${unitType}`)?.URL
-                            if (!url) throw new Error(`No unit type src for ${unitType} found`);
-                            return url;
-                        }
-                    };
-                });
+                const parsed = listVariantsSchema.parse(response);
+                return extractPropertiesList(parsed);
             }
         }),
         listPhases: builder.query({
@@ -473,10 +414,6 @@ const service = createApi({
     })
 });
 
-type Variant = z.infer<typeof variantSchema>;
-
 export { newGameSchema, gameSchema, apiResponseSchema, extractProperties, extractPropertiesList, listApiResponseSchema, service }
-
-export type { Variant }
 
 export default service;
