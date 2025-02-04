@@ -9,27 +9,25 @@ type Query<TData> = {
 
 type QueryContainerProps<TData> = {
   query: Query<TData>;
+  onRenderLoading?: () => React.ReactNode;
   children: (data: TData) => React.ReactNode;
 };
 
-const QueryContainer = <TData,>({
-  query,
-  children,
-}: QueryContainerProps<TData>) => {
-  if (query.isLoading) {
+const QueryContainer = <TData,>(props: QueryContainerProps<TData>) => {
+  if (props.query.isLoading) {
     return (
       <Box
         display="flex"
         justifyContent="center"
         alignItems="center"
-        height="80vh"
+        height="100%"
       >
-        <CircularProgress />
+        {props.onRenderLoading ? props.onRenderLoading() : <CircularProgress />}
       </Box>
     );
   }
 
-  if (query.isError) {
+  if (props.query.isError) {
     return (
       <Box
         display="flex"
@@ -44,11 +42,11 @@ const QueryContainer = <TData,>({
     );
   }
 
-  if (query.data === undefined) {
+  if (props.query.data === undefined) {
     return null;
   }
 
-  return <>{children(query.data)}</>;
+  return <>{props.children(props.query.data)}</>;
 };
 
 export { QueryContainer };

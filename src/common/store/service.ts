@@ -38,6 +38,7 @@ const listApiResponseSchema = <TObjSchema extends z.ZodRawShape>(schema: z.ZodOb
 enum TagType {
     Game = "Game",
     ListGames = "ListGames",
+    Channels = "Channels",
     Messages = "Messages",
     PhaseState = "PhaseState",
     Token = "Token",
@@ -157,6 +158,7 @@ const service = createApi({
     tagTypes: [
         TagType.Game,
         TagType.ListGames,
+        TagType.Channels,
         TagType.Messages,
         TagType.PhaseState,
         TagType.Token,
@@ -253,7 +255,8 @@ const service = createApi({
             transformResponse: (response) => {
                 const parsed = listChannelsSchema.parse(response);
                 return extractPropertiesList(parsed);
-            }
+            },
+            providesTags: [TagType.Channels],
         }),
         listOrders: builder.query({
             query: ({ gameId, phaseId }) =>
@@ -290,7 +293,7 @@ const service = createApi({
                 const parsed = createMessageSchema.parse(response);
                 return extractProperties(parsed);
             },
-            invalidatesTags: [TagType.Messages],
+            invalidatesTags: [TagType.Messages, TagType.Channels],
         }),
         updateUserConfig: builder.mutation<
             ApiResponse<UserConfig>,

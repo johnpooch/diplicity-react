@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-  Divider,
   Stack,
   Fab,
   Modal,
@@ -17,7 +16,6 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import { useOrders } from "../../common";
 import { OrderList, QueryContainer } from "../../components";
-import { GameDetailAppBar } from "./app-bar";
 import { useCreateOrder } from "../../components/CreateOrder/CreateOrder.hook";
 import { CreateOrderStepIcon } from "../../components/CreateOrder/CreateOrder.step";
 import {
@@ -85,8 +83,6 @@ const Orders: React.FC = () => {
   return (
     <Stack sx={styles.container} direction={"row"}>
       <Stack sx={styles.ordersContainer}>
-        <GameDetailAppBar />
-        <Divider />
         <QueryContainer query={query}>
           {(data) => <OrderList orders={data} />}
         </QueryContainer>

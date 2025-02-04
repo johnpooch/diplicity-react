@@ -10,8 +10,8 @@ const theme = createTheme({
             marginBottom: "8px",
         },
         h2: {
-            fontSize: "22px",
-            lineHeight: "26px",
+            fontSize: "16px",
+            lineHeight: "20px",
             fontWeight: 600,
         },
         h4: {

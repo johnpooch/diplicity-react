@@ -2,7 +2,6 @@ import React from "react";
 import { Stack, useMediaQuery, useTheme } from "@mui/material";
 import { PhaseSelect } from "../../components/phase-select";
 import { OrderList, QueryContainer } from "../../components";
-import { GameDetailAppBar } from "./app-bar";
 import {
   mergeQueries,
   useGetMapSvgQuery,
@@ -66,7 +65,6 @@ const Map: React.FC = () => {
 
   return (
     <Stack sx={styles.container}>
-      <GameDetailAppBar />
       <Stack direction="row">
         <Stack sx={styles.mapContainer}>
           <QueryContainer query={mapQuery}>
