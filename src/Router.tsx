@@ -1,6 +1,5 @@
 import React from "react";
 import { Navigate, Route, Routes } from "react-router";
-import Login from "./screens/Login";
 import { useSelector } from "react-redux";
 import { selectAuth } from "./common/store/auth";
 import {
@@ -19,6 +18,7 @@ import {
   MapOrdersLayout,
   GameDetail,
   ChannelList,
+  Login,
 } from "./screens";
 import { ChannelLayout } from "./screens/game-detail/channel-layout";
 import { useMediaQuery, useTheme } from "@mui/material";

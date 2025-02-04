@@ -4,9 +4,12 @@ import {
   Card,
   Divider,
   IconButton,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
   Menu,
   MenuItem,
-  Modal,
+  Modal as MuiModal,
   Stack,
   Tab,
   Tabs,
@@ -23,60 +26,103 @@ import {
 } from "@mui/icons-material";
 import { useLocation, useNavigate } from "react-router";
 import { useState } from "react";
-import { useGameDetailContext, useSelectedPhaseContext } from "../../context";
+import { useGameDetailContext } from "../../context";
 import { OrderList, QueryContainer } from "../../components";
-import {
-  useGetVariantQuery,
-  useGetPhaseQuery,
-  useGetMapSvgQuery,
-  useGetUnitSvgQuery,
-  mergeQueries,
-  useOrders,
-} from "../../common";
-import { createMap } from "../../common/map/map";
+import { useOrders, useMap } from "../../common";
 import { PhaseSelect } from "../../components/phase-select";
 import { ChannelList } from "./channel-list";
 import { Channel } from "./channel";
 import { CreateChannel } from "./create-channel";
 import { GameInfo, PlayerInfo } from "../home";
+import { CreateOrder } from "./create-order";
 
-const useMap = () => {
-  const { gameId } = useGameDetailContext();
-  const { selectedPhase } = useSelectedPhaseContext();
-
-  const getVariantQuery = useGetVariantQuery(gameId);
-  const getPhaseQuery = useGetPhaseQuery(gameId, selectedPhase);
-  const getMapSvgQuery = useGetMapSvgQuery(gameId);
-  const getArmySvgQuery = useGetUnitSvgQuery(gameId, "Army");
-  const getFleetSvgQuery = useGetUnitSvgQuery(gameId, "Fleet");
-
-  const query = mergeQueries(
-    [
-      getVariantQuery,
-      getPhaseQuery,
-      getMapSvgQuery,
-      getArmySvgQuery,
-      getFleetSvgQuery,
-    ],
-    (variant, phase, mapSvg, armySvg, fleetSvg) => {
-      return createMap(mapSvg, armySvg, fleetSvg, variant, phase);
-    }
-  );
-  return { query };
+const styles: Styles = {
+  appBar: {
+    alignItems: "center",
+    position: "relative",
+  },
+  appBarInner: {
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    maxWidth: 1000,
+  },
+  cardContainer: {
+    alignItems: "center",
+  },
+  card: {
+    maxWidth: 1000,
+    width: "100%",
+    marginTop: 4,
+    minHeight: "580px",
+  },
+  cardInner: {
+    height: "580px",
+    flexDirection: "row",
+  },
+  mapContainer: {
+    flex: 2,
+  },
+  ordersContainer: {
+    flex: 1,
+  },
+  phaseSelectContainer: {
+    alignItems: "center",
+  },
+  ordersAndButtonContainer: {
+    flexGrow: 1,
+    justifyContent: "space-between",
+  },
+  channelListContainer: (theme) => ({
+    flex: 1,
+    borderRight: `1px solid ${theme.palette.divider}`,
+    height: "100%",
+  }),
+  channelContainer: {
+    flex: 2,
+  },
+  header: {
+    padding: "8px 16px",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  modalBox: (theme) => ({
+    position: "fixed",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    maxWidth: 600,
+    width: "90%",
+    height: "90%",
+    backgroundColor: "white",
+    boxShadow: `0 0 10px ${theme.palette.divider}`,
+    overflow: "auto",
+  }),
+  emptyChannel: {
+    height: "100%",
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
 };
 
 const EmptyChannel: React.FC = () => {
   return (
-    <Stack
-      sx={{
-        height: "100%",
-        width: "100%",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
+    <Stack sx={styles.emptyChannel}>
       <Typography>Select a conversation</Typography>
     </Stack>
+  );
+};
+
+const Modal: React.FC<{ open: boolean; children: React.ReactElement }> = (
+  props
+) => {
+  return (
+    <MuiModal open={props.open} style={{ display: "block" }}>
+      <Box sx={styles.modalBox}>{props.children}</Box>
+    </MuiModal>
   );
 };
 
@@ -84,7 +130,9 @@ const GameDetail: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { gameId } = useGameDetailContext();
+
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [createOrderOpen, setCreateOrderOpen] = useState(false);
 
   const { query: mapQuery } = useMap();
   const { query: ordersQuery } = useOrders();
@@ -116,6 +164,10 @@ const GameDetail: React.FC = () => {
     handleMenuClose();
   };
 
+  const handleCreateChannel = () => {
+    navigate(`/game/${gameId}/chat/create-channel`);
+  };
+
   const handleChangeTab = (_: unknown, newValue: number) => {
     switch (newValue) {
       case 0:
@@ -127,98 +179,87 @@ const GameDetail: React.FC = () => {
     }
   };
 
-  const handleCreateChannel = () => {
-    navigate(`/game/${gameId}/chat/create-channel`);
-  };
-
   const selectedTab = location.pathname.includes("chat") ? 1 : 0;
   const selectedChannel =
     location.pathname.includes("channel") && location.pathname.split("/").pop();
-  const isCreateChannel = location.pathname.includes("create-channel");
 
-  const isGameInfo = location.pathname.includes("game-info");
-  const isPlayerInfo = location.pathname.includes("player-info");
+  const createChannelOpen = location.pathname.includes("create-channel");
+  const gameInfoOpen = location.pathname.includes("game-info");
+  const playerInfoOpen = location.pathname.includes("player-info");
 
   return (
     <Stack>
-      <AppBar position="relative">
-        <Stack
-          sx={(theme) => ({
-            borderBottom: `1px solid ${theme.palette.divider}`,
-          })}
-          direction="row"
-          justifyContent="center"
-        >
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            sx={{
-              width: "100%",
-              maxWidth: "1000px",
-            }}
+      <AppBar sx={styles.appBar}>
+        <Stack sx={styles.appBarInner}>
+          <IconButton onClick={handleBack}>
+            <BackIcon />
+          </IconButton>
+          <Tabs value={selectedTab} onChange={handleChangeTab}>
+            <Tab label="Map" />
+            <Tab label="Chat" />
+          </Tabs>
+          <IconButton edge="start" color="inherit" onClick={handleMenuOpen}>
+            <MenuIcon />
+          </IconButton>
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleMenuClose}
           >
-            <IconButton onClick={handleBack}>
-              <BackIcon />
-            </IconButton>
-            <Tabs value={selectedTab} onChange={handleChangeTab}>
-              <Tab label="Map" />
-              <Tab label="Chat" />
-            </Tabs>
-            <IconButton edge="start" color="inherit" onClick={handleMenuOpen}>
-              <MenuIcon />
-            </IconButton>
-            <Menu
-              anchorEl={anchorEl}
-              open={Boolean(anchorEl)}
-              onClose={handleMenuClose}
-            >
-              <MenuItem onClick={handleClickGameInfo}>
-                <InfoIcon sx={{ marginRight: 1 }} />
-                Game info
-              </MenuItem>
-              <MenuItem onClick={handleClickPlayerInfo}>
-                <PlayerInfoIcon sx={{ marginRight: 1 }} />
-                Player info
-              </MenuItem>
-              <Divider />
-              <MenuItem onClick={handleClickShare}>
-                <ShareIcon sx={{ marginRight: 1 }} />
-                Share
-              </MenuItem>
-            </Menu>
-          </Stack>
+            <MenuItem onClick={handleClickGameInfo}>
+              <ListItem disablePadding>
+                <ListItemIcon>
+                  <InfoIcon />
+                </ListItemIcon>
+                <ListItemText primary="Game info" />
+              </ListItem>
+            </MenuItem>
+            <MenuItem onClick={handleClickPlayerInfo}>
+              <ListItem disablePadding>
+                <ListItemIcon>
+                  <PlayerInfoIcon />
+                </ListItemIcon>
+                <ListItemText primary="Player info" />
+              </ListItem>
+            </MenuItem>
+            <Divider />
+            <MenuItem onClick={handleClickShare}>
+              <ListItem disablePadding>
+                <ListItemIcon>
+                  <ShareIcon />
+                </ListItemIcon>
+                <ListItemText primary="Share" />
+              </ListItem>
+            </MenuItem>
+          </Menu>
         </Stack>
       </AppBar>
-      <Stack alignItems="center">
+      <Stack sx={styles.cardContainer}>
         {selectedTab === 0 ? (
-          <Card
-            sx={{
-              maxWidth: 1000,
-              width: "100%",
-              marginTop: 4,
-              // padding: 1,
-              minHeight: "580px",
-            }}
-            elevation={3}
-          >
-            <Stack direction="row">
-              <Stack
-                sx={() => ({
-                  flex: 2,
-                  p: 1,
-                })}
-              >
+          <Card sx={styles.card} elevation={3}>
+            <Stack sx={styles.cardInner}>
+              <Stack sx={styles.mapContainer}>
                 <QueryContainer query={mapQuery} onRenderLoading={() => <></>}>
                   {(map) => <div dangerouslySetInnerHTML={{ __html: map }} />}
                 </QueryContainer>
               </Stack>
-              <Stack sx={{ flex: 1, p: 1 }}>
-                <Stack alignItems="center">
+              <Stack sx={styles.ordersContainer}>
+                <Stack sx={styles.header}>
+                  <Typography variant="h2">Orders</Typography>
+                  <IconButton
+                    edge="end"
+                    color="inherit"
+                    onClick={() => setCreateOrderOpen(true)}
+                  >
+                    <CreateChannelIcon />
+                  </IconButton>
+                </Stack>
+                <Divider />
+                <Stack sx={styles.phaseSelectContainer}>
                   <PhaseSelect />
                 </Stack>
                 <Divider />
-                <Stack sx={{ p: 2 }}>
-                  <Typography variant="h2">Orders</Typography>
+                <Stack sx={styles.ordersAndButtonContainer}>
                   <QueryContainer
                     query={ordersQuery}
                     onRenderLoading={() => <></>}
@@ -230,46 +271,13 @@ const GameDetail: React.FC = () => {
             </Stack>
           </Card>
         ) : (
-          <Card
-            sx={{
-              maxWidth: 1000,
-              width: "100%",
-              marginTop: 4,
-              // padding: 1,
-              minHeight: "580px",
-            }}
-            elevation={3}
-          >
-            <Stack
-              direction="row"
-              sx={() => ({
-                height: "580px",
-              })}
-            >
-              <Stack
-                sx={(theme) => ({
-                  flex: 1,
-                  borderRight: `1px solid ${theme.palette.divider}`,
-                  height: "100%",
-                })}
-              >
-                <Stack
-                  sx={{
-                    paddingLeft: 2,
-                    paddingRight: 2,
-                    paddingTop: 1,
-                    paddingBottom: 1,
-                  }}
-                  direction="row"
-                  justifyContent="space-between"
-                >
-                  <Stack direction="row" alignItems="center" gap={1}>
-                    <Typography variant="h1" sx={{ marginBottom: 0 }}>
-                      Conversations
-                    </Typography>
-                  </Stack>
+          <Card sx={styles.card} elevation={3}>
+            <Stack sx={styles.cardInner}>
+              <Stack sx={styles.channelListContainer}>
+                <Stack sx={styles.header}>
+                  <Typography variant="h2">Conversations</Typography>
                   <IconButton
-                    edge="start"
+                    edge="end"
                     color="inherit"
                     onClick={handleCreateChannel}
                   >
@@ -279,8 +287,8 @@ const GameDetail: React.FC = () => {
                 <Divider />
                 <ChannelList />
               </Stack>
-              <Stack sx={{ flex: 2 }}>
-                {isCreateChannel ? (
+              <Stack sx={styles.channelContainer}>
+                {createChannelOpen ? (
                   <CreateChannel />
                 ) : selectedChannel ? (
                   <Channel />
@@ -292,43 +300,14 @@ const GameDetail: React.FC = () => {
           </Card>
         )}
       </Stack>
-      {/* Render a modal if game info */}
-      <Modal open={isGameInfo}>
-        <Box
-          sx={{
-            position: "fixed",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            maxWidth: 600,
-            width: "90%",
-            height: "90%",
-            backgroundColor: "white",
-            boxShadow: "0 0 10px rgba(0,0,0,0.1)",
-            overflow: "auto",
-          }}
-        >
-          <GameInfo />
-        </Box>
+      <Modal open={gameInfoOpen}>
+        <GameInfo />
       </Modal>
-      {/* Render a modal if player info */}
-      <Modal open={isPlayerInfo}>
-        <Box
-          sx={{
-            position: "fixed",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            maxWidth: 600,
-            width: "90%",
-            height: "90%",
-            backgroundColor: "white",
-            boxShadow: "0 0 10px rgba(0,0,0,0.1)",
-            overflow: "auto",
-          }}
-        >
-          <PlayerInfo />
-        </Box>
+      <Modal open={playerInfoOpen}>
+        <PlayerInfo />
+      </Modal>
+      <Modal open={createOrderOpen}>
+        <CreateOrder onClose={() => setCreateOrderOpen(false)} />
       </Modal>
     </Stack>
   );
