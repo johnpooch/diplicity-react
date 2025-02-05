@@ -12,7 +12,7 @@ import {
 import { formatOrderText } from "../util";
 
 const OrderList: React.FC<{
-  orders: NonNullable<ReturnType<typeof useOrders>["query"]["data"]>;
+  orders: NonNullable<ReturnType<typeof useOrders>["query"]["data"]>["orders"];
 }> = ({ orders }) => {
   // Reduce orders to be grouped by nation
   const ordersByNation = orders.reduce((acc, order) => {

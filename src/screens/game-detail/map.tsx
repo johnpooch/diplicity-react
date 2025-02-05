@@ -77,7 +77,7 @@ const Map: React.FC = () => {
               <PhaseSelect />
             </Stack>
             <QueryContainer query={ordersQuery}>
-              {(data) => <OrderList orders={data} />}
+              {(data) => <OrderList orders={data.orders} />}
             </QueryContainer>
           </Stack>
         )}

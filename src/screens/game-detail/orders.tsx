@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 import { Stack, Fab, Modal, Box } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
+import {
+  Add as CreateOrderIcon,
+  CheckBoxOutlineBlank as OrdersNotConfirmedIcon,
+  CheckBoxOutlined as OrdersConfirmedIcon,
+} from "@mui/icons-material";
 import { useOrders } from "../../common";
 import { OrderList, QueryContainer } from "../../components";
 import { CreateOrder } from "./create-order";
@@ -8,14 +12,17 @@ import { CreateOrder } from "./create-order";
 const styles: Styles = {
   container: {
     display: "flex",
+    flexGrow: 1,
+    justifyContent: "space-between",
   },
-  ordersContainer: {
-    flex: 1,
-  },
-  fab: {
-    position: "fixed",
-    bottom: 72, // 56px for bottom navigation + 16px margin
-    right: 16,
+  ordersContainer: {},
+  actionsContainer: {
+    display: "flex",
+    padding: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    justifyContent: "flex-end",
   },
   bottomSheet: {
     position: "fixed",
@@ -42,7 +49,7 @@ const BottomSheet: React.FC<BottomSheetProps> = (props) => {
 };
 
 const Orders: React.FC = () => {
-  const { query } = useOrders();
+  const { query, isSubmitting, handleToggleConfirmOrders } = useOrders();
   const [isBottomSheetOpen, setBottomSheetOpen] = useState(false);
 
   const handleFabClick = () => {
@@ -54,26 +61,52 @@ const Orders: React.FC = () => {
   };
 
   return (
-    <Stack sx={styles.container} direction={"row"}>
-      <Stack sx={styles.ordersContainer}>
-        <QueryContainer query={query}>
-          {(data) => <OrderList orders={data} />}
-        </QueryContainer>
-      </Stack>
-      <Fab
-        sx={styles.fab}
-        color="primary"
-        aria-label="create order"
-        onClick={handleFabClick}
-      >
-        <AddIcon />
-      </Fab>
+    <>
+      <QueryContainer query={query} onRenderLoading={() => <></>}>
+        {(data) => (
+          <Stack sx={styles.container}>
+            <Stack sx={styles.ordersContainer}>
+              <OrderList orders={data.orders} />
+            </Stack>
+            <Stack sx={styles.actionsContainer}>
+              {data.canConfirmOrders && (
+                <Fab
+                  color="secondary"
+                  aria-label="confirm orders"
+                  onClick={handleToggleConfirmOrders}
+                  disabled={isSubmitting}
+                  variant="extended"
+                >
+                  {data.hasConfirmedOrders ? (
+                    <OrdersConfirmedIcon />
+                  ) : (
+                    <OrdersNotConfirmedIcon />
+                  )}
+                  {data.hasConfirmedOrders
+                    ? "Orders confirmed"
+                    : "Confirm orders"}
+                </Fab>
+              )}
+              {data.canCreateOrder && (
+                <Fab
+                  sx={styles.fab}
+                  color="primary"
+                  aria-label="create order"
+                  onClick={handleFabClick}
+                >
+                  <CreateOrderIcon />
+                </Fab>
+              )}
+            </Stack>
+          </Stack>
+        )}
+      </QueryContainer>
       <BottomSheet open={isBottomSheetOpen} onClose={handleCloseBottomSheet}>
         <Stack spacing={2} padding={2} style={{ width: "100%" }}>
           <CreateOrder onClose={() => setBottomSheetOpen(false)} />
         </Stack>
       </BottomSheet>
-    </Stack>
+    </>
   );
 };
 

@@ -3,6 +3,7 @@ import {
   Box,
   Card,
   Divider,
+  Fab,
   IconButton,
   Modal as MuiModal,
   Stack,
@@ -14,6 +15,9 @@ import {
 import {
   ArrowBack as BackIcon,
   Add as CreateChannelIcon,
+  Add as CreateOrderIcon,
+  CheckBoxOutlineBlank as OrdersNotConfirmedIcon,
+  CheckBoxOutlined as OrdersConfirmedIcon,
 } from "@mui/icons-material";
 import { useLocation, useNavigate } from "react-router";
 import { useState } from "react";
@@ -65,6 +69,14 @@ const styles: Styles = {
   ordersAndButtonContainer: {
     flexGrow: 1,
     justifyContent: "space-between",
+  },
+  actionsContainer: {
+    display: "flex",
+    padding: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    justifyContent: "flex-end",
   },
   channelListContainer: (theme) => ({
     flex: 1,
@@ -126,7 +138,11 @@ const GameDetail: React.FC = () => {
   const [createOrderOpen, setCreateOrderOpen] = useState(false);
 
   const { query: mapQuery } = useMap();
-  const { query: ordersQuery } = useOrders();
+  const {
+    query: ordersQuery,
+    handleToggleConfirmOrders,
+    isSubmitting,
+  } = useOrders();
 
   const handleBack = () => {
     navigate("/");
@@ -199,7 +215,43 @@ const GameDetail: React.FC = () => {
                     query={ordersQuery}
                     onRenderLoading={() => <></>}
                   >
-                    {(data) => <OrderList orders={data} />}
+                    {(data) => (
+                      <Stack sx={styles.container}>
+                        <Stack sx={styles.ordersContainer}>
+                          <OrderList orders={data.orders} />
+                        </Stack>
+                        <Stack sx={styles.actionsContainer}>
+                          {data.canConfirmOrders && (
+                            <Fab
+                              color="secondary"
+                              aria-label="confirm orders"
+                              onClick={handleToggleConfirmOrders}
+                              disabled={isSubmitting}
+                              variant="extended"
+                            >
+                              {data.hasConfirmedOrders ? (
+                                <OrdersConfirmedIcon />
+                              ) : (
+                                <OrdersNotConfirmedIcon />
+                              )}
+                              {data.hasConfirmedOrders
+                                ? "Orders confirmed"
+                                : "Confirm orders"}
+                            </Fab>
+                          )}
+                          {data.canCreateOrder && (
+                            <Fab
+                              sx={styles.fab}
+                              color="primary"
+                              aria-label="create order"
+                              onClick={() => setCreateOrderOpen(true)}
+                            >
+                              <CreateOrderIcon />
+                            </Fab>
+                          )}
+                        </Stack>
+                      </Stack>
+                    )}
                   </QueryContainer>
                 </Stack>
               </Stack>
