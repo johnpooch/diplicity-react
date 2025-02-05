@@ -2,10 +2,7 @@ import { DOMParser, XMLSerializer } from "xmldom";
 import { contrastColors } from "./contrast";
 import { Phase } from "../schema";
 import { service } from "../store";
-
-interface Style {
-    [key: string]: string;
-}
+import { IMapEditor } from "./map.types";
 
 type Variant = typeof service.endpoints.listVariants.Types.ResultType[number];
 
@@ -56,306 +53,30 @@ export interface MapState {
 const convertCssStringToObject = (css: string) => {
     const regex = /([\w-]*)\s*:\s*([^;]*)/g;
     let match;
-    const properties: Style = {};
+    const properties: Record<string, string> = {};
     while ((match = regex.exec(css))) {
         properties[match[1]] = match[2].trim();
     }
     return properties;
 };
 
-const convertStyleObjectToCssString = (style: Style) => {
+const convertStyleObjectToCssString = (style: Record<string, string>) => {
     return Object.keys(style)
         .map((key) => `${key}: ${style[key]}`)
         .join(";");
 };
 
-const provinceFactory = (element: HTMLElement) => {
-    return new Province(element);
-};
-
-const mapArrayToObjectById = <T extends { id: string }>(array: T[]) => {
-    return array.reduce((prev, curr) => {
-        prev[curr.id] = curr;
-        return prev;
-    }, {} as { [key: string]: T });
-};
-
-abstract class ElementEditor {
-    element: Element;
-    id: string;
-    constructor(element: Element) {
-        this.element = element;
-        this.id = this.getAttribute("id");
-    }
-    getStyle() {
-        return convertCssStringToObject(this.getAttribute("style"));
-    }
-    setStyle(style: Style) {
-        this.element.setAttribute("style", convertStyleObjectToCssString(style));
-    }
-    updateStyle(style: Style) {
-        this.setStyle({ ...this.getStyle(), ...style });
-    }
-    getAttribute(name: string) {
-        const value = this.element.getAttribute(name);
-        if (!value) {
-            throw new Error(`Element has no attribute "${name}"`);
-        }
-        return value;
-    }
-    protected getChildren() {
-        return Object.values(this.element.childNodes).filter(
-            (el) => el.nodeType === 1
-        ) as HTMLElement[];
-    }
-}
-
-class Province extends ElementEditor {
-    constructor(element: HTMLElement) {
-        super(element);
-        // Set all provinces to transparent on initialization.
-        // By default provinces are black.
-        this.fill("transparent");
-    }
-    fill(color: string) {
-        this.updateStyle({ fill: color, 'fill-opacity': '0.6' });
-    }
-}
-
-const supplyCenterFactory = (element: Element) => {
-    return new SupplyCenter(element);
-};
-
-class SupplyCenter extends ElementEditor {
-    constructor(element: Element) {
-        super(element);
-        const fullId = this.getAttribute("id");
-        this.id = fullId.substring(0, fullId.lastIndexOf("Center"));
-    }
-    getPosition() {
-        const d = this.getAttribute("d");
-        const match = /^m\s+([\d-.]+),([\d-.]+)\s+/.exec(d);
-        if (!match) {
-            throw new Error(`Invalid d attribute: ${d}`);
-        }
-        return [Number(match[1]), Number(match[2])];
-    }
-}
-
-const supplyCenterLayerFactory = (element: Element) => {
-    return new SupplyCenterLayer(element);
-};
-
-class SupplyCenterLayer extends ElementEditor {
-    supplyCenterMap: Map<string, SupplyCenter>;
-    constructor(element: Element) {
-        super(element);
-        this.supplyCenterMap = new Map(
-            Object.entries(mapArrayToObjectById(this.createSupplyCenters()))
-        );
-    }
-    private createSupplyCenters() {
-        return this.getChildren().map(supplyCenterFactory);
-    }
-    show() {
-        this.setStyle({});
-    }
-}
-
-const provinceCenterFactory = (element: Element) => {
-    return new ProvinceCenter(element);
-};
-
-class ProvinceCenter extends ElementEditor {
-    constructor(element: Element) {
-        super(element);
-        const fullId = this.getAttribute("id");
-        this.id = fullId.substring(0, fullId.lastIndexOf("Center"));
-    }
-    getPosition() {
-        const d = this.getAttribute("d");
-        const match = /^m\s+([\d-.]+),([\d-.]+)\s+/.exec(d);
-        if (!match) {
-            throw new Error(`Invalid d attribute: ${d}`);
-        }
-        return [Number(match[1]), Number(match[2])];
-    }
-}
-
-const provinceCenterLayerFactory = (element: Element) => {
-    return new ProvinceCenterLayer(element);
-};
-
-class ProvinceCenterLayer extends ElementEditor {
-    provinceCenterMap: Map<string, ProvinceCenter>;
-    constructor(element: Element) {
-        super(element);
-        this.provinceCenterMap = new Map(
-            Object.entries(mapArrayToObjectById(this.createProvinceCenters()))
-        );
-    }
-    private createProvinceCenters() {
-        return this.getChildren().map(provinceCenterFactory);
-    }
-    show() {
-        this.setStyle({});
-    }
-}
-
-const provinceLayerFactory = (element: Element) => {
-    return new ProvinceLayer(element);
-};
-
-class ProvinceLayer extends ElementEditor {
-    provinceMap: Map<string, Province>;
-    constructor(element: Element) {
-        super(element);
-        this.provinceMap = new Map(
-            Object.entries(mapArrayToObjectById(this.createProvinces()))
-        );
-    }
-    private createProvinces() {
-        return this.getChildren().map(provinceFactory);
-    }
-    show() {
-        this.setStyle({});
-    }
-}
-
-const unitLayerFactory = (element: Element) => {
-    return new UnitLayer(element);
-};
-
-class UnitLayer extends ElementEditor {
-    addUnit(x: number, y: number, d: string, fill: string) {
-        const path = this.element.ownerDocument.createElement("path");
-        path.setAttribute(
-            "style",
-            `fill:${fill};fill-opacity:1;stroke:#000000;stroke-width:3;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none`
-        );
-        path.setAttribute("d", d);
-        path.setAttribute("transform", `translate(${x},${y})`);
-        this.element.appendChild(path);
-    }
-}
-
-class MapEditor extends ElementEditor {
-    armyPath: string;
-    fleetPath: string;
-    provinceCenterLayer: ProvinceCenterLayer;
-    provinceCenterMap: ProvinceCenterLayer["provinceCenterMap"];
-    provinceLayer: ProvinceLayer;
-    provinceMap: ProvinceLayer["provinceMap"];
-    supplyCenterLayer: SupplyCenterLayer;
-    supplyCenterMap: SupplyCenterLayer["supplyCenterMap"];
-    unitLayer: UnitLayer;
-
-    constructor(element: Element, armyPath: string, fleetPath: string) {
-        super(element);
-        this.provinceLayer = provinceLayerFactory(
-            this.getElementByIdOrError("provinces")
-        );
-        this.unitLayer = unitLayerFactory(this.getElementByIdOrError("units"));
-        this.provinceCenterLayer = provinceCenterLayerFactory(
-            this.getElementByIdOrError("province-centers")
-        );
-        this.supplyCenterLayer = supplyCenterLayerFactory(
-            this.getElementByIdOrError("supply-centers")
-        );
-        this.provinceMap = this.provinceLayer.provinceMap;
-        this.provinceCenterMap = this.provinceCenterLayer.provinceCenterMap;
-        this.supplyCenterMap = this.supplyCenterLayer.supplyCenterMap;
-        this.armyPath = armyPath;
-        this.fleetPath = fleetPath;
-    }
-    setState(state: MapState) {
-        state.provinces.forEach(({ id, fill }) => {
-            this.provinceMap.get(id)?.fill(fill);
-        });
-        state.units.forEach(({ province, fill, type }) => {
-            if (type === "Army") {
-                this.addArmy(province, fill);
-            } else if (type === "Fleet") {
-                this.addFleet(province, fill);
-            } else {
-                throw new Error(`Invalid type: ${type}`);
-            }
-        });
-        this.provinceLayer.show();
-    }
-    serializeToString() {
-        const serializer = new XMLSerializer();
-        return serializer.serializeToString(this.element);
-    }
-    private addArmy(provinceId: string, fill: string) {
-        const [x, y] = this.getCenter(provinceId);
-        this.unitLayer.addUnit(x - 35, y - 25, this.armyPath, fill);
-    }
-    private addFleet(provinceId: string, fill: string) {
-        const [x, y] = this.getCenter(provinceId);
-        this.unitLayer.addUnit(x - 65, y - 25, this.fleetPath, fill);
-    }
-    private getCenter(provinceId: string) {
-        const provinceCenter = this.provinceCenterMap.get(provinceId);
-        if (provinceCenter) {
-            return provinceCenter.getPosition();
-        }
-        const supplyCenter = this.supplyCenterMap.get(provinceId);
-        if (supplyCenter) {
-            return supplyCenter.getPosition();
-        }
-        throw new Error(
-            `No supply center or province center for province ${provinceId}`
-        );
-    }
-    private getElementByIdOrError(id: string) {
-        const element = this.element.ownerDocument.getElementById(id);
-        if (!element) {
-            throw new Error(`Could not find element with id ${id}`);
-        }
-        return element;
-    }
-}
-
-const mapEditorFactory = (
-    mapXml: string,
-    armyXml: string,
-    fleetXml: string
-) => {
-    const parser = new DOMParser();
-    const mapDocument = parser.parseFromString(mapXml);
-    const armyDocument = parser.parseFromString(armyXml);
-    const fleetDocument = parser.parseFromString(fleetXml);
-    const mapSvg = mapDocument.getElementsByTagName("svg")[0];
-    const armyPath = armyDocument.getElementById("body")?.getAttribute("d") || "";
-    const fleetPath =
-        fleetDocument.getElementById("hull")?.getAttribute("d") || "";
-    return new MapEditor(mapSvg, armyPath, fleetPath);
-};
-
-export const updateMap = (
-    mapXml: string,
-    armyXml: string,
-    fleetXml: string,
-    mapState: MapState
-): string => {
-    const mapEditor = mapEditorFactory(mapXml, armyXml, fleetXml);
-    mapEditor.setState(mapState);
-    return mapEditor.serializeToString();
-};
 
 const createMapState = (
-    variant: Variant,
     phase: Phase
-): MapState => ({
+) => ({
     provinces: phase.SCs.map(({ Province, Owner }) => ({
         id: Province,
-        fill: getNationColor(variant, Owner),
-        highlight: false,
+        nation: Owner,
     })),
     units: phase.Units.map(({ Province, Unit }) => ({
         province: Province,
-        fill: getNationColor(variant, Unit.Nation),
+        nation: Unit.Nation,
         type: Unit.Type,
     })),
     orders: [],
@@ -368,7 +89,176 @@ export const createMap = (
     variant: Variant,
     phase: Phase
 ): string => {
-    const mapEditor = mapEditorFactory(mapXml, armyXml, fleetXml);
-    mapEditor.setState(createMapState(variant, phase));
-    return mapEditor.serializeToString();
+    const mapEditor = new MapEditor(mapXml, armyXml, fleetXml, (nation) => getNationColor(variant, nation));
+    const mapState = createMapState(phase);
+
+    mapState.provinces.forEach(({ id, nation }) => {
+        mapEditor.setOwner(id, nation);
+    });
+
+    mapState.units.forEach(({ province, nation, type }) => {
+        if (type === "Army") {
+            mapEditor.addArmy(province, nation);
+        } else if (type === "Fleet") {
+            mapEditor.addFleet(province, nation);
+        } else {
+            throw new Error(`Invalid type: ${type}`);
+        }
+    });
+
+    return mapEditor.toString();
 };
+
+class MapEditor implements IMapEditor {
+
+    private static readonly PROVINCE_OPACITY = "0.6";
+
+    private static readonly UNIT_OPACITY = "1";
+    private static readonly UNIT_STROKE = "#000000";
+    private static readonly UNIT_STROKE_WIDTH = "3";
+
+    private static readonly ARMY_X_OFFSET = 35;
+    private static readonly ARMY_Y_OFFSET = 25;
+    private static readonly FLEET_X_OFFSET = 65;
+    private static readonly FLEET_Y_OFFSET = 25;
+
+    private readonly mapSvg: SVGSVGElement;
+    private readonly armySvg: SVGSVGElement;
+    private readonly fleetSvg: SVGSVGElement;
+
+    private readonly colorProvider: (nation: string) => string;
+
+    private readonly provinceMap: Map<string, HTMLElement>;
+    private readonly provinceCenterMap: Map<string, HTMLElement>;
+    private readonly supplyCenterMap: Map<string, HTMLElement>;
+
+    private readonly unitsLayer: HTMLElement;
+
+    constructor(map: string, army: string, fleet: string, colorProvider: (nation: string) => string) {
+
+        const parser = new DOMParser();
+
+        this.mapSvg = this.parseSvg(parser, map);
+        this.armySvg = this.parseSvg(parser, army);
+        this.fleetSvg = this.parseSvg(parser, fleet);
+
+        this.colorProvider = colorProvider;
+
+
+        this.unitsLayer = this.mapSvg.ownerDocument.getElementById("units") as HTMLElement;
+
+        const provincesLayer = this.mapSvg.ownerDocument.getElementById("provinces") as HTMLElement;
+        const provinceCentersLayer = this.mapSvg.ownerDocument.getElementById("province-centers") as HTMLElement;
+        const supplyCentersLayer = this.mapSvg.ownerDocument.getElementById("supply-centers") as HTMLElement;
+
+        this.provinceMap = new Map();
+        this.provinceCenterMap = new Map();
+        this.supplyCenterMap = new Map();
+
+        Object.values(provincesLayer.childNodes).filter(this.isHtmlElement).forEach((el) => {
+            const id = el.getAttribute("id");
+            if (!id) throw new Error("Province has no id");
+            el.setAttribute("style", "fill:transparent");
+            this.provinceMap.set(id, el);
+        });
+        Object.values(provinceCentersLayer.childNodes).filter(this.isHtmlElement).forEach((el) => {
+            const id = el.getAttribute("id");
+            if (!id) throw new Error("Province center has no id");
+            this.provinceCenterMap.set(this.removeSuffix(id, "Center"), el);
+        });
+        Object.values(supplyCentersLayer.childNodes).filter(this.isHtmlElement).forEach((el) => {
+            const id = el.getAttribute("id");
+            if (!id) throw new Error("Supply center has no id");
+            this.supplyCenterMap.set(this.removeSuffix(id, "Center"), el);
+        });
+
+        provincesLayer.setAttribute("style", "")
+    }
+
+    public setOwner(name: string, nation: string): void {
+        const province = this.getProvince(name);
+        this.updateStyle(province, { fill: this.colorProvider(nation) });
+        this.updateStyle(province, { "fill-opacity": MapEditor.PROVINCE_OPACITY });
+    }
+
+    public addArmy(province: string, nation: string): void {
+        this.addUnit(province, nation, "Army");
+    }
+
+    public addFleet(province: string, nation: string): void {
+        this.addUnit(province, nation, "Fleet");
+    }
+
+    public toString(): string {
+        const serializer = new XMLSerializer();
+        return serializer.serializeToString(this.mapSvg);
+    }
+
+    private updateStyle(element: HTMLElement, style: Record<string, string>) {
+        const currentStyle = convertCssStringToObject(element.getAttribute("style") || "");
+        element.setAttribute("style", convertStyleObjectToCssString({ ...currentStyle, ...style }));
+    }
+
+    private getUnitShape(type: string) {
+        const shape = type === "Army" ? this.armySvg.ownerDocument.getElementById("body")?.getAttribute("d") : this.fleetSvg.ownerDocument.getElementById("hull")?.getAttribute("d");
+        if (!shape) throw new Error(`${type} shape not found`);
+        return shape;
+    }
+
+    private addUnit(province: string, nation: string, type: "Army" | "Fleet") {
+        const [x, y] = this.getProvinceCenter(province);
+        const fill = this.colorProvider(nation);
+
+        const shape = this.getUnitShape(type);
+
+        const path = this.unitsLayer.ownerDocument.createElement("path");
+
+        this.updateStyle(path, { fill });
+        this.updateStyle(path, { "fill-opacity": MapEditor.UNIT_OPACITY });
+        this.updateStyle(path, { stroke: MapEditor.UNIT_STROKE });
+        this.updateStyle(path, { "stroke-width": MapEditor.UNIT_STROKE_WIDTH });
+
+        path.setAttribute("d", shape);
+        path.setAttribute("transform", `translate(${x - (type === "Army" ? MapEditor.ARMY_X_OFFSET : MapEditor.FLEET_X_OFFSET)},${y - (type === "Army" ? MapEditor.ARMY_Y_OFFSET : MapEditor.FLEET_Y_OFFSET)})`);
+
+        this.unitsLayer.appendChild(path);
+    }
+
+    private getProvince(name: string) {
+        const province = this.provinceMap.get(name);
+        if (!province) throw new Error(`Province ${name} not found`);
+        return province;
+    }
+
+    private getProvinceCenter(name: string) {
+        const provinceCenter = this.provinceCenterMap.get(name);
+        if (provinceCenter) {
+            return this.parseDCenter(provinceCenter, name);
+        }
+        const supplyCenter = this.supplyCenterMap.get(name);
+        if (supplyCenter) {
+            return this.parseDCenter(supplyCenter, name);
+        }
+        throw new Error(`No supply center or province center for province ${name}`);
+    }
+
+    private removeSuffix(value: string, suffix: string) {
+        return value.substring(0, value.lastIndexOf(suffix));
+    }
+
+    private isHtmlElement(element: ChildNode): element is HTMLElement {
+        return element.nodeType === 1;
+    }
+
+    private parseSvg(parser: DOMParser, svgString: string): SVGSVGElement {
+        return parser.parseFromString(svgString, "image/svg+xml").getElementsByTagName("svg")[0];
+    }
+
+    private parseDCenter(element: HTMLElement, name: string): [number, number] {
+        const d = element.getAttribute("d");
+        if (!d) throw new Error(`${name} has no d attribute`);
+        const match = /^m\s+([\d-.]+),([\d-.]+)\s+/.exec(d);
+        if (!match) throw new Error(`Invalid d attribute: ${d}`);
+        return [Number(match[1]), Number(match[2])];
+    }
+}
