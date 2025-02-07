@@ -13,7 +13,6 @@ import service, { newGameSchema } from "../../common/store/service";
 import { z } from "zod";
 import { useNavigate } from "react-router";
 import { QueryContainer } from "../../components";
-import { ScreenTopBar } from "./screen-top-bar";
 
 const initialValues = {
   Anonymous: false,
@@ -69,73 +68,68 @@ const CreateGame: React.FC = () => {
   });
 
   return (
-    <>
-      <ScreenTopBar title="Create Game" />
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          formik.handleSubmit(e);
-        }}
-      >
-        <QueryContainer query={query}>
-          {(data) => (
-            <Stack spacing={2} padding={2}>
-              <TextField
-                label="Game Name"
-                variant="outlined"
-                name="name"
-                value={formik.values.Desc}
-                onChange={(e) => formik.setFieldValue("Desc", e.target.value)}
-                onBlur={formik.handleBlur}
-                error={formik.touched.Desc && Boolean(formik.errors.Desc)}
-                helperText={formik.touched.Desc && formik.errors.Desc}
-                disabled={isSubmitting}
-              />
-              <TextField
-                select
-                label="Variant"
-                variant="outlined"
-                name="variant"
-                value={formik.values.Variant}
-                onChange={(e) =>
-                  formik.setFieldValue("Variant", e.target.value)
-                }
-                onBlur={formik.handleBlur}
-                error={formik.touched.Variant && Boolean(formik.errors.Variant)}
-                helperText={formik.touched.Variant && formik.errors.Variant}
-                disabled={isSubmitting}
-              >
-                {data.map((variant) => (
-                  <MenuItem key={variant.Name} value={variant.Name}>
-                    {variant.Name}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    name="isPrivate"
-                    checked={formik.values.Private}
-                    onChange={formik.handleChange}
-                    onBlur={formik.handleBlur}
-                    disabled={isSubmitting}
-                  />
-                }
-                label="Private"
-              />
-              <Button
-                variant="contained"
-                color="primary"
-                type="submit"
-                disabled={isSubmitting}
-              >
-                Create
-              </Button>
-            </Stack>
-          )}
-        </QueryContainer>
-      </form>
-    </>
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        formik.handleSubmit(e);
+      }}
+    >
+      <QueryContainer query={query}>
+        {(data) => (
+          <Stack spacing={2} padding={2}>
+            <TextField
+              label="Game Name"
+              variant="outlined"
+              name="name"
+              value={formik.values.Desc}
+              onChange={(e) => formik.setFieldValue("Desc", e.target.value)}
+              onBlur={formik.handleBlur}
+              error={formik.touched.Desc && Boolean(formik.errors.Desc)}
+              helperText={formik.touched.Desc && formik.errors.Desc}
+              disabled={isSubmitting}
+            />
+            <TextField
+              select
+              label="Variant"
+              variant="outlined"
+              name="variant"
+              value={formik.values.Variant}
+              onChange={(e) => formik.setFieldValue("Variant", e.target.value)}
+              onBlur={formik.handleBlur}
+              error={formik.touched.Variant && Boolean(formik.errors.Variant)}
+              helperText={formik.touched.Variant && formik.errors.Variant}
+              disabled={isSubmitting}
+            >
+              {data.map((variant) => (
+                <MenuItem key={variant.Name} value={variant.Name}>
+                  {variant.Name}
+                </MenuItem>
+              ))}
+            </TextField>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  name="isPrivate"
+                  checked={formik.values.Private}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  disabled={isSubmitting}
+                />
+              }
+              label="Private"
+            />
+            <Button
+              variant="contained"
+              color="primary"
+              type="submit"
+              disabled={isSubmitting}
+            >
+              Create
+            </Button>
+          </Stack>
+        )}
+      </QueryContainer>
+    </form>
   );
 };
 

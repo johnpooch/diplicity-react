@@ -23,7 +23,6 @@ import {
 } from "@mui/icons-material";
 import { QueryContainer } from "../../components";
 import { mergeQueries, service, useGetVariantQuery } from "../../common";
-import { ScreenTopBar } from "./screen-top-bar";
 import { useParams } from "react-router";
 
 const styles: Styles = {
@@ -98,7 +97,6 @@ const GameInfo: React.FC = () => {
 
   return (
     <>
-      <ScreenTopBar title="Game info" />
       <QueryContainer query={query}>
         {(data) => (
           <>

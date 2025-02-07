@@ -10,7 +10,7 @@ const useGetCurrentPhaseQuery = (gameId: string) => {
     const mergedQuery = mergeQueries([listPhasesQuery, getGameQuery], (phases, game) => {
         const phase = phases.find((phase) => phase.PhaseOrdinal === game.NewestPhaseMeta?.PhaseOrdinal);
         if (!phase) throw new Error("Phase not found");
-        return phase;
+        return phase
     });
 
     return mergedQuery;

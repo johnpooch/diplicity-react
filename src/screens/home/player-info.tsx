@@ -8,7 +8,6 @@ import {
 } from "@mui/material";
 import { QueryContainer } from "../../components";
 import { service } from "../../common";
-import { ScreenTopBar } from "./screen-top-bar";
 import { useParams } from "react-router";
 
 const usePlayerInfo = () => {
@@ -24,23 +23,20 @@ const PlayerInfo: React.FC = () => {
   const { query } = usePlayerInfo();
 
   return (
-    <>
-      <ScreenTopBar title="Player info" />
-      <QueryContainer query={query}>
-        {(data) => (
-          <List>
-            {data.Members.map((member) => (
-              <ListItem key={member.User.Id}>
-                <ListItemAvatar>
-                  <Avatar src={member.User.Picture} />
-                </ListItemAvatar>
-                <ListItemText primary={member.User.Name} />
-              </ListItem>
-            ))}
-          </List>
-        )}
-      </QueryContainer>
-    </>
+    <QueryContainer query={query}>
+      {(data) => (
+        <List>
+          {data.Members.map((member) => (
+            <ListItem key={member.User.Id}>
+              <ListItemAvatar>
+                <Avatar src={member.User.Picture} />
+              </ListItemAvatar>
+              <ListItemText primary={member.User.Name} />
+            </ListItem>
+          ))}
+        </List>
+      )}
+    </QueryContainer>
   );
 };
 
