@@ -66,6 +66,15 @@ const theme = createTheme({
                     textAlign: "left",
                 },
             },
+        },
+        MuiMenuItem: {
+            styleOverrides: {
+                root: ({ theme }) => ({
+                    "& .MuiListItemIcon-root": {
+                        color: theme.palette.text.primary,
+                    },
+                }),
+            },
         }
     }
 });
