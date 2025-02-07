@@ -1,5 +1,5 @@
 import { AppBar, IconButton, Stack, Typography } from "@mui/material";
-import { KeyboardBackspace as BackIcon } from "@mui/icons-material";
+import { ArrowBack as BackIcon } from "@mui/icons-material";
 import { GameDetailMenu } from "../game-detail-menu";
 import {
   GameDetailContextProvider,

@@ -1,6 +1,6 @@
 import { Stack, Typography, IconButton, Divider } from "@mui/material";
 import { NavigateFunction, Outlet, useNavigate } from "react-router";
-import { KeyboardBackspace as BackIcon } from "@mui/icons-material";
+import { ArrowBack as BackIcon } from "@mui/icons-material";
 
 const styles: Styles = {
   root: {
@@ -24,7 +24,7 @@ type HomeSecondaryScreenLayoutProps = {
 };
 
 const HomeSecondaryScreenLayout: React.FC<HomeSecondaryScreenLayoutProps> = (
-  props
+  props,
 ) => {
   const navigate = useNavigate();
   return (
