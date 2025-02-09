@@ -5,7 +5,7 @@ const messageSchema = z.object({
     ID: z.string(),
     Sender: z.string(),
     Body: z.string(),
-    CreatedAt: z.string().transform((value) => new Date(value)),
+    CreatedAt: z.string()
 });
 
 const listMessagesSchema = listApiResponseSchema(apiResponseSchema(messageSchema));

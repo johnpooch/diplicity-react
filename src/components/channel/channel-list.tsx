@@ -1,12 +1,5 @@
 import React from "react";
-import {
-  Avatar,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemButton,
-  ListItemText,
-} from "@mui/material";
+import { List, ListItem, ListItemButton, ListItemText } from "@mui/material";
 import { useLocation, useNavigate } from "react-router";
 import { useGameDetailContext } from "../../context";
 import { service, useGetVariantQuery, mergeQueries } from "../../common";
@@ -65,8 +58,6 @@ const ChannelList: React.FC = () => {
     navigate(`/game/${gameId}/chat/channel/${name}`);
   };
 
-  // Use regex to get the channel name from the URL
-  // e.g. .../channel/Germany,Italy -> Germany,Italy
   const selectedChannel = location.pathname.match(/\/channel\/(.*)/)?.[1];
 
   return (
@@ -83,9 +74,6 @@ const ChannelList: React.FC = () => {
               }
             >
               <ListItemButton onClick={() => handleChannelClick(channel.name)}>
-                <ListItemAvatar>
-                  <Avatar>{channel.name.charAt(0)}</Avatar>
-                </ListItemAvatar>
                 <ListItemText
                   sx={styles.listItemText}
                   primary={channel.displayName}
