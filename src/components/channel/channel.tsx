@@ -100,12 +100,16 @@ const useChannel = () => {
         }
         acc[date].push({
           body: message.Body,
-          sender: message.Sender,
+          // Update this section so that sender includes color and name
+          sender: {
+            name: message.Sender,
+            color: variant.Colors[message.Sender], // Only problem is that Colors isn't always defined for a variant!
+          },
           date: new Date(message.CreatedAt),
           flag:
             message.Sender === "Diplicity"
               ? "/otto.png"
-              : variant.Flags[message.Sender],
+              : variant.Flags[message.Sender], // Note, Flags isn't always defined for a variant either!
         });
         return acc;
       }, {} as Record<string, { body: string; sender: string; date: Date; flag: string }[]>);
