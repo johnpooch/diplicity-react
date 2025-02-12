@@ -1,8 +1,9 @@
 import { Meta, StoryObj } from "@storybook/react";
 import { CurvedArrow } from "./curved-arrow";
+import { Cross } from "./cross";
 
 export default {
-  title: "Components/CurvedArrow",
+  title: "Components/Shapes/CurvedArrow",
   component: CurvedArrow,
   args: {
     x1: 50,
@@ -73,5 +74,22 @@ export const Upwards: Story = {
     y2: 200,
     x3: 350,
     y3: 350,
+  },
+};
+
+export const Failed: Story = {
+  args: {
+    onRenderCenter: (x, y, angle) => (
+      <Cross
+        x={x}
+        y={y}
+        width={5}
+        length={20}
+        angle={angle}
+        fill="blue"
+        stroke="red"
+        strokeWidth={2}
+      />
+    ),
   },
 };

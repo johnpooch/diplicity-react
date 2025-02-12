@@ -1,5 +1,3 @@
-import React from "react";
-
 type CrossProps = {
   x: number;
   y: number;
@@ -11,62 +9,65 @@ type CrossProps = {
   strokeWidth: number;
 };
 
-const Cross = ({
-  x,
-  y,
-  width,
-  length,
-  angle,
-  fill,
-  stroke,
-  strokeWidth,
-}: CrossProps) => {
-  // Convert angle from degrees to radians
-  const angleRad = (angle * Math.PI) / 180;
+const Cross = (props: CrossProps) => {
+  const halfLength = props.length / 2;
+  const strokeWidth = props.strokeWidth;
 
-  // Define the points for the cross shape (moving clockwise from top)
-  const points = [
-    // Top vertical arm
-    [-width / 2, -length], // Top left
-    [width / 2, -length], // Top right
-    [width / 2, -width / 2], // Inner top right
-    [length, -width / 2], // Right arm outer top
-    [length, width / 2], // Right arm outer bottom
-    [width / 2, width / 2], // Inner right bottom
-    [width / 2, length], // Bottom right
-    [-width / 2, length], // Bottom left
-    [-width / 2, width / 2], // Inner bottom left
-    [-length, width / 2], // Left arm outer bottom
-    [-length, -width / 2], // Left arm outer top
-    [-width / 2, -width / 2], // Inner top left
-  ];
+  const x1 = props.x - halfLength;
+  const y1 = props.y;
+  const x2 = props.x + halfLength;
+  const y2 = props.y;
 
-  // Function to rotate a point around origin and translate to final position
-  const transformPoint = (point: number[]): string => {
-    const [px, py] = point;
-    const rotatedX = px * Math.cos(angleRad) - py * Math.sin(angleRad) + x;
-    const rotatedY = px * Math.sin(angleRad) + py * Math.cos(angleRad) + y;
-    return `${rotatedX} ${rotatedY}`;
-  };
+  const x3 = props.x;
+  const y3 = props.y - halfLength;
+  const x4 = props.x;
+  const y4 = props.y + halfLength;
 
-  // Create path data by rotating and translating all points
-  const pathData = `
-    M ${transformPoint(points[0])}
-    ${points
-      .slice(1)
-      .map((point) => `L ${transformPoint(point)}`)
-      .join(" ")}
-    Z
-  `;
+  const fillX1 = x1 + strokeWidth;
+  const fillX2 = x2 - strokeWidth;
+  const fillY3 = y3 + strokeWidth;
+  const fillY4 = y4 - strokeWidth;
 
   return (
-    <g>
-      <path
-        d={pathData}
-        fill={fill}
-        stroke={stroke}
-        strokeWidth={strokeWidth}
-      />
+    <g transform={`rotate(${props.angle}, ${props.x}, ${props.y})`}>
+      <g>
+        {/* Stroke */}
+        <line
+          x1={x1}
+          y1={y1}
+          x2={x2}
+          y2={y2}
+          stroke={props.stroke}
+          strokeWidth={props.width + props.strokeWidth * 2}
+        />
+        <line
+          x1={x3}
+          y1={y3}
+          x2={x4}
+          y2={y4}
+          stroke={props.stroke}
+          strokeWidth={props.width + props.strokeWidth * 2}
+        />
+      </g>
+      <g>
+        {/* Fill */}
+        <line
+          x1={fillX1}
+          y1={y1}
+          x2={fillX2}
+          y2={y2}
+          stroke={props.fill}
+          strokeWidth={props.width}
+        />
+        <line
+          x1={x3}
+          y1={fillY3}
+          x2={x4}
+          y2={fillY4}
+          stroke={props.fill}
+          strokeWidth={props.width}
+        />
+      </g>
     </g>
   );
 };
