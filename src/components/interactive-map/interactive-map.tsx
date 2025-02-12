@@ -26,14 +26,15 @@ type InteractiveMapProps = {
 };
 
 const HOVER_STROKE_WIDTH = 3;
-const HOVER_STROKE_COLOR = "white";
+const HOVER_STROKE_COLOR = "black";
 const HOVER_FILL = "rgba(255, 255, 255, 0.6)";
 
 const SELECTED_STROKE_WIDTH = 3;
-const SELECTED_STROKE_COLOR = "white";
+const SELECTED_STROKE_COLOR = "black";
 const SELECTED_FILL = "rgba(255, 255, 255, 0.8)";
 
 const DEFAULT_FILL = "transparent";
+const FAILED_COLOR = "rgba(255,0,0,0.6)";
 
 const UNIT_RADIUS = 10;
 const UNIT_OFFSET_X = 10;
@@ -46,8 +47,8 @@ const ORDER_ARROW_LENGTH = 10;
 const ORDER_DASH_LENGTH = 5;
 const ORDER_DASH_SPACING = 2.5;
 
-const ORDER_FAILED_CROSS_WIDTH = 4;
-const ORDER_FAILED_CROSS_LENGTH = 16;
+const ORDER_FAILED_CROSS_WIDTH = 3;
+const ORDER_FAILED_CROSS_LENGTH = 20;
 const ORDER_FAILED_CROSS_FILL = "red";
 const ORDER_FAILED_CROSS_STROKE = "black";
 const ORDER_FAILED_CROSS_STROKE_WIDTH = 2;
@@ -236,7 +237,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
               y={source.center.y - UNIT_OFFSET_Y}
               strokeWidth={ORDER_LINE_WIDTH}
               size={24}
-              stroke={"#000000"}
+              stroke={order.outcome === "failed" ? FAILED_COLOR : "rgba(0,0,0,0.7)"}
               fill={"transparent"}
               onRenderBottomCenter={
                 order.outcome === "failed"
@@ -292,7 +293,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
                         y={y}
                         width={ORDER_FAILED_CROSS_WIDTH}
                         length={ORDER_FAILED_CROSS_LENGTH}
-                        angle={angle}
+                        angle={45}
                         fill={ORDER_FAILED_CROSS_FILL}
                         stroke={ORDER_FAILED_CROSS_STROKE}
                         strokeWidth={ORDER_FAILED_CROSS_STROKE_WIDTH}
@@ -331,7 +332,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
                         y={y}
                         width={ORDER_FAILED_CROSS_WIDTH}
                         length={ORDER_FAILED_CROSS_LENGTH}
-                        angle={angle}
+                        angle={45}
                         fill={ORDER_FAILED_CROSS_FILL}
                         stroke={ORDER_FAILED_CROSS_STROKE}
                         strokeWidth={ORDER_FAILED_CROSS_STROKE_WIDTH}
