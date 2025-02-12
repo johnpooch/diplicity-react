@@ -193,48 +193,47 @@ const GameCard: React.FC<{
       <Link underline="hover" onClick={handleClickGame}>
         <ListItemAvatar sx={styles.mapContainer}>
           <img
+            style={{ maxWidth: "100%", maxHeight: "100%" }}
             src={`https://diplicity-engine.appspot.com/Variant/${game.Variant}/Map.svg`}
             alt={game.Variant}
           />
         </ListItemAvatar>
       </Link>
-      <ListItemText
-        primary={
-          <Link underline="hover" onClick={handleClickGame}>
-            <Typography>{game.Desc}</Typography>
-          </Link>
-        }
-        secondary={
-          <Stack sx={styles.secondaryContainer}>
-            <Stack sx={styles.rulesContainer}>
-              <Typography variant="caption">{game.Variant}</Typography>
-              <Typography variant="caption">
-                {game.PhaseLengthMinutes}
-              </Typography>
-            </Stack>
-            <Button
-              sx={styles.avatarStackButton}
-              onClick={() => {
-                handleClickPlayerInfo(game.ID);
-              }}
-            >
-              <Stack
-                sx={styles.avatarStackContainer}
-                direction="row"
-                spacing={-1}
-              >
-                {game.Members.map((member) => (
-                  <Avatar
-                    sx={styles.avatar}
-                    key={member.User.Id}
-                    src={member.User.Picture}
-                  />
-                ))}
-              </Stack>
-            </Button>
+      <Stack>
+        <ListItemText
+          primary={
+            <Link underline="hover" onClick={handleClickGame}>
+              {game.Desc}
+            </Link>
+          }
+        />
+        <Stack sx={styles.secondaryContainer}>
+          <Stack sx={styles.rulesContainer}>
+            <Typography variant="caption">{game.Variant}</Typography>
+            <Typography variant="caption">{game.PhaseLengthMinutes}</Typography>
           </Stack>
-        }
-      />
+          <Button
+            sx={styles.avatarStackButton}
+            onClick={() => {
+              handleClickPlayerInfo(game.ID);
+            }}
+          >
+            <Stack
+              sx={styles.avatarStackContainer}
+              direction="row"
+              spacing={-1}
+            >
+              {game.Members.map((member, index) => (
+                <Avatar
+                  sx={styles.avatar}
+                  key={index}
+                  src={member.User.Picture}
+                />
+              ))}
+            </Stack>
+          </Button>
+        </Stack>
+      </Stack>
     </ListItem>
   );
 };

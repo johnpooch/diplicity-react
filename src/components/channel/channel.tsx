@@ -101,10 +101,14 @@ const useChannel = () => {
         acc[date].push({
           body: message.Body,
           sender: message.Sender,
-          date: message.CreatedAt,
+          date: new Date(message.CreatedAt),
+          flag:
+            message.Sender === "Diplicity"
+              ? "/otto.png"
+              : variant.Flags[message.Sender],
         });
         return acc;
-      }, {} as Record<string, { body: string; sender: string; date: Date }[]>);
+      }, {} as Record<string, { body: string; sender: string; date: Date; flag: string }[]>);
 
       return {
         messages: groupedMessages,
@@ -156,7 +160,7 @@ const Channel: React.FC = () => {
                   {data.messages[date].map((message, index) => (
                     <ListItem key={index} divider>
                       <ListItemAvatar>
-                        <Avatar>{message.sender[0]}</Avatar>
+                        <Avatar src={message.flag}>{message.sender[0]}</Avatar>
                       </ListItemAvatar>
                       <ListItemText
                         sx={styles.listItemText}
