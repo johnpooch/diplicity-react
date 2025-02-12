@@ -34,18 +34,20 @@ const SELECTED_STROKE_COLOR = "black";
 const SELECTED_FILL = "rgba(255, 255, 255, 0.8)";
 
 const DEFAULT_FILL = "transparent";
+const SUCCESS_COLOR = "rgba(0,0,0,1)";
 const FAILED_COLOR = "rgba(255,0,0,0.6)";
 
 const UNIT_RADIUS = 10;
+const UNIT_OFFSET_RADIUS = 3;
 const UNIT_OFFSET_X = 10;
 const UNIT_OFFSET_Y = 10;
 
-const ORDER_STROKE_WIDTH = 1;
-const ORDER_LINE_WIDTH = 5;
-const ORDER_ARROW_WIDTH = 7.5;
-const ORDER_ARROW_LENGTH = 10;
-const ORDER_DASH_LENGTH = 5;
-const ORDER_DASH_SPACING = 2.5;
+const ORDER_STROKE_WIDTH = 2.5;
+const ORDER_LINE_WIDTH = 3;
+const ORDER_ARROW_WIDTH = 6;
+const ORDER_ARROW_LENGTH = 8;
+const ORDER_DASH_LENGTH = 4;
+const ORDER_DASH_SPACING = 2;
 
 const ORDER_FAILED_CROSS_WIDTH = 3;
 const ORDER_FAILED_CROSS_LENGTH = 20;
@@ -65,7 +67,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
       return color.replace(
         /rgb(a?)\((\d+), (\d+), (\d+)(, [\d.]+)?\)/,
         // "rgba($2, $3, $4, 0.4)"
-        `rgba($2, $3, $4, ${isSelected ? 0.3 : isHovered ? 0.4 : 0.5})`
+        `rgba($2, $3, $4, ${isSelected ? 0.3 : isHovered ? 0.4 : 0.5})`,
       );
     }
     if (selectedProvince === provinceId) return SELECTED_FILL;
@@ -176,7 +178,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
             >
               {province.text.value}
             </text>
-          )
+          ),
       )}
       {props.map.borders.map((element, index) => (
         <path
@@ -237,7 +239,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
               y={source.center.y - UNIT_OFFSET_Y}
               strokeWidth={ORDER_LINE_WIDTH}
               size={24}
-              stroke={order.outcome === "failed" ? FAILED_COLOR : "rgba(0,0,0,0.7)"}
+              stroke={order.outcome === "failed" ? FAILED_COLOR : SUCCESS_COLOR}
               fill={"transparent"}
               onRenderBottomCenter={
                 order.outcome === "failed"
@@ -278,8 +280,8 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
               arrowWidth={ORDER_ARROW_WIDTH}
               arrowLength={ORDER_ARROW_LENGTH}
               strokeWidth={ORDER_STROKE_WIDTH}
-              offset={UNIT_RADIUS}
-              stroke={"#000000"}
+              offset={UNIT_RADIUS + UNIT_OFFSET_RADIUS}
+              stroke={order.outcome === "failed" ? FAILED_COLOR : SUCCESS_COLOR}
               fill={"green"}
               dash={{
                 length: ORDER_DASH_LENGTH,
@@ -321,8 +323,8 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
               arrowWidth={ORDER_ARROW_WIDTH}
               arrowLength={ORDER_ARROW_LENGTH}
               strokeWidth={ORDER_STROKE_WIDTH}
-              offset={UNIT_RADIUS}
-              stroke={"#000000"}
+              offset={UNIT_RADIUS + UNIT_OFFSET_RADIUS}
+              stroke={order.outcome === "failed" ? FAILED_COLOR : SUCCESS_COLOR}
               fill={"green"}
               onRenderCenter={
                 order.outcome === "failed"
