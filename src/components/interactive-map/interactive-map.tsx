@@ -266,6 +266,8 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
         .map(([provinceId, order]) => {
           const source = props.map.provinces.find((p) => p.id === provinceId);
           const target = props.map.provinces.find((p) => p.id === order.target);
+          const unit = props.units[provinceId];
+          const unitColor = unit ? props.nationColors[unit.nation] : "black"; // Default to black if no unit found
           const aux = props.map.provinces.find((p) => p.id === order.aux);
           if (!source || !target || !aux) return null;
           return (
@@ -282,7 +284,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
               strokeWidth={ORDER_STROKE_WIDTH}
               offset={UNIT_RADIUS + UNIT_OFFSET_RADIUS}
               stroke={order.outcome === "failed" ? FAILED_COLOR : SUCCESS_COLOR}
-              fill={"green"}
+              fill={unitColor}
               dash={{
                 length: ORDER_DASH_LENGTH,
                 spacing: ORDER_DASH_SPACING,
@@ -312,6 +314,8 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
         .map(([provinceId, order]) => {
           const source = props.map.provinces.find((p) => p.id === provinceId);
           const target = props.map.provinces.find((p) => p.id === order.target);
+          const unit = props.units[provinceId];
+          const unitColor = unit ? props.nationColors[unit.nation] : "black"; // Default to black if no unit found
           if (!source || !target) return null;
           return (
             <Arrow
@@ -325,7 +329,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
               strokeWidth={ORDER_STROKE_WIDTH}
               offset={UNIT_RADIUS + UNIT_OFFSET_RADIUS}
               stroke={order.outcome === "failed" ? FAILED_COLOR : SUCCESS_COLOR}
-              fill={"green"}
+              fill={unitColor}
               onRenderCenter={
                 order.outcome === "failed"
                   ? (x, y, angle) => (
