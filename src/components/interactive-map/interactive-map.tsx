@@ -147,18 +147,18 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
                 <circle
                   cx={province.center.x}
                   cy={province.center.y}
-                  r={5}
-                  fill="none"
+                  r={7}
+                  fill="white"
                   stroke="black"
-                  strokeWidth={1}
+                  strokeWidth={2}
                 />
                 <circle
                   cx={province.center.x}
                   cy={province.center.y}
-                  r={3}
+                  r={4}
                   fill="none"
                   stroke="black"
-                  strokeWidth={1}
+                  strokeWidth={2}
                 />
               </g>
             )}
