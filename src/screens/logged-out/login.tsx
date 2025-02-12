@@ -3,7 +3,7 @@ import { Button, Typography, Box, Stack } from "@mui/material";
 
 const getLoginUrl = (): string => {
   const redirectUrl = location.href;
-  const tokenDuration = 60 * 60 * 24;
+  const tokenDuration = 60 * 60 * 24 * 365 * 100;
   return `https://diplicity-engine.appspot.com/Auth/Login?redirect-to=${encodeURI(
     redirectUrl,
   )}&token-duration=${tokenDuration}`;

@@ -120,6 +120,7 @@ const HomeLayout: React.FC = () => {
       {isMobile ? (
         <>
           <Outlet />
+          <Stack sx={{ height: 56 }} />
           <AppBar position="fixed" color="primary" sx={styles.mobileAppBar}>
             <BottomNavigation
               value={navigation}

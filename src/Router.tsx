@@ -25,6 +25,10 @@ import {
   ChannelTextField,
   ChannelList,
   Map,
+  CreateChannel,
+  CreateChannelAction,
+  CreateChannelTetxField,
+  CreateChannelContextProvider,
 } from "./components";
 import { ChannelContextProvider } from "./context/channel-context";
 import { PhaseSelect } from "./components/phase-select";
@@ -147,6 +151,9 @@ const Router: React.FC = () => {
                     <Panel.Content>
                       <ChannelList />
                     </Panel.Content>
+                    <Panel.Footer>
+                      <CreateChannelAction />
+                    </Panel.Footer>
                   </Panel>
                 }
               />
@@ -211,6 +218,32 @@ const Router: React.FC = () => {
                       <PlayerInfo />
                     </Panel.Content>
                   </Panel>
+                }
+              />
+            </Route>
+            <Route
+              element={
+                <Mobile.GameDetailSecondaryScreenLayout
+                  title="Create channel"
+                  onNavigateBack={(navigate, gameId) =>
+                    navigate(`/game/${gameId}/chat`)
+                  }
+                />
+              }
+            >
+              <Route
+                path="chat/channel/create"
+                element={
+                  <CreateChannelContextProvider>
+                    <Panel>
+                      <Panel.Content>
+                        <CreateChannel />
+                      </Panel.Content>
+                      <Panel.Footer>
+                        <CreateChannelTetxField />
+                      </Panel.Footer>
+                    </Panel>
+                  </CreateChannelContextProvider>
                 }
               />
             </Route>
@@ -279,6 +312,9 @@ const Router: React.FC = () => {
                     <Panel.Content>
                       <ChannelList />
                     </Panel.Content>
+                    <Panel.Footer>
+                      <CreateChannelAction />
+                    </Panel.Footer>
                   </Panel>
                 }
               />
@@ -343,6 +379,32 @@ const Router: React.FC = () => {
                       <PlayerInfo />
                     </Panel.Content>
                   </Panel>
+                }
+              />
+            </Route>
+            <Route
+              element={
+                <Desktop.GameDetailSecondaryScreenLayout
+                  title="Create channel"
+                  onNavigateBack={(navigate, gameId) =>
+                    navigate(`/game/${gameId}/chat`)
+                  }
+                />
+              }
+            >
+              <Route
+                path="chat/channel/create"
+                element={
+                  <CreateChannelContextProvider>
+                    <Panel>
+                      <Panel.Content>
+                        <CreateChannel />
+                      </Panel.Content>
+                      <Panel.Footer>
+                        <CreateChannelTetxField />
+                      </Panel.Footer>
+                    </Panel>
+                  </CreateChannelContextProvider>
                 }
               />
             </Route>
