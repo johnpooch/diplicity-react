@@ -219,6 +219,12 @@ export default {
         target: "tus",
         outcome: "success",
       },
+      adr: {
+        type: "convoy",
+        target: "tri",
+        aux: "apu",
+        outcome: "success",
+      },
       ven: {
         type: "support",
         target: "tus",

@@ -5,6 +5,7 @@ import { Cross } from "./shapes/cross";
 import { CurvedArrow } from "./shapes/curved-arrow";
 import { Octagon } from "./shapes/octagon";
 import { HoldArrow } from "./shapes/hold-arrow";
+import { ConvoyArrow } from "./shapes/convoy-arrow";
 
 type InteractiveMapProps = {
   map: Map;
@@ -156,7 +157,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
                   cx={province.center.x}
                   cy={province.center.y}
                   r={4}
-                  fill="none"
+                  fill="white"
                   stroke="black"
                   strokeWidth={2}
                 />
@@ -334,6 +335,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
             />
           );
         })}
+
       {Object.entries(props.orders)
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         .filter(([_, order]) => order.type === "move")
@@ -356,6 +358,55 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
               offset={UNIT_RADIUS + UNIT_OFFSET_RADIUS}
               stroke={order.outcome === "failed" ? FAILED_COLOR : SUCCESS_COLOR}
               fill={unitColor}
+              onRenderCenter={
+                order.outcome === "failed"
+                  ? (x, y, angle) => (
+                      <Cross
+                        x={x}
+                        y={y}
+                        width={ORDER_FAILED_CROSS_WIDTH}
+                        length={ORDER_FAILED_CROSS_LENGTH}
+                        angle={45}
+                        fill={ORDER_FAILED_CROSS_FILL}
+                        stroke={ORDER_FAILED_CROSS_STROKE}
+                        strokeWidth={ORDER_FAILED_CROSS_STROKE_WIDTH}
+                      />
+                    )
+                  : undefined
+              }
+            />
+          );
+        })}
+      {Object.entries(props.orders)
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        .filter(([_, order]) => order.type === "convoy")
+        .map(([provinceId, order]) => {
+          const source = props.map.provinces.find((p) => p.id === provinceId);
+          const target = props.map.provinces.find((p) => p.id === order.target);
+          const unit = props.units[provinceId];
+          const unitColor = unit ? props.nationColors[unit.nation] : "black"; // Default to black if no unit found
+          const aux = props.map.provinces.find((p) => p.id === order.aux);
+          if (!source || !target || !aux) return null;
+
+          return (
+            <ConvoyArrow
+              x1={source.center.x - UNIT_OFFSET_X}
+              y1={source.center.y - UNIT_OFFSET_Y}
+              x2={target.center.x - UNIT_OFFSET_X}
+              y2={target.center.y - UNIT_OFFSET_Y}
+              x3={aux.center.x - UNIT_OFFSET_X}
+              y3={aux.center.y - UNIT_OFFSET_Y}
+              lineWidth={ORDER_LINE_WIDTH}
+              arrowWidth={ORDER_ARROW_WIDTH}
+              arrowLength={ORDER_ARROW_LENGTH}
+              strokeWidth={ORDER_STROKE_WIDTH}
+              offset={UNIT_RADIUS + UNIT_OFFSET_RADIUS}
+              stroke={order.outcome === "failed" ? FAILED_COLOR : SUCCESS_COLOR}
+              fill={unitColor}
+              dash={{
+                length: ORDER_DASH_LENGTH * 2,
+                spacing: ORDER_DASH_LENGTH,
+              }}
               onRenderCenter={
                 order.outcome === "failed"
                   ? (x, y, angle) => (
