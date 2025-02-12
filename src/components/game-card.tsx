@@ -60,7 +60,7 @@ const styles: Styles = {
 };
 
 const useGameCard = (
-  game: (typeof service.endpoints.listGames.Types.ResultType)[number]
+  game: (typeof service.endpoints.listGames.Types.ResultType)[number],
 ) => {
   const dispatch = useDispatch();
   const [joinGame, joinGameMutation] = useJoinGameMutation(game.ID);
@@ -71,7 +71,7 @@ const useGameCard = (
 
   const handleShare = () => {
     navigator.clipboard.writeText(
-      `${window.location.origin}/game-info/${game.ID}`
+      `${window.location.origin}/game-info/${game.ID}`,
     );
     dispatch(actions.setFeedback({ message: "Link copied to clipboard" }));
   };
@@ -223,7 +223,7 @@ const GameCard: React.FC<{
               direction="row"
               spacing={-1}
             >
-              {game.Members.map((member, index) => (
+              {game.Members.slice(0, 18).map((member, index) => (
                 <Avatar
                   sx={styles.avatar}
                   key={index}
