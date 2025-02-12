@@ -223,14 +223,19 @@ const GameCard: React.FC<{
               direction="row"
               spacing={-1}
             >
-              {game.Members.slice(0, 18).map((member, index) => (
+              {game.Members.slice(0, 10).map((member, index) => (
                 <Avatar
                   sx={styles.avatar}
                   key={index}
                   src={member.User.Picture}
                 />
-              ))}
-            </Stack>
+              ))}{" "}
+            </Stack>{" "}
+            {game.Members.length > 10 && (
+              <Typography variant="body" sx={{ marginLeft: "4px" }}>
+                +{game.Members.length - 10}
+              </Typography>
+            )}
           </Button>
         </Stack>
       </Stack>
