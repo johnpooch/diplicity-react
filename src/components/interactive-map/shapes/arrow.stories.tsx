@@ -1,8 +1,9 @@
 import { Meta, StoryObj } from "@storybook/react";
 import { Arrow } from "./arrow";
+import { Cross } from "./cross";
 
 export default {
-  title: "Components/Arrow",
+  title: "Components/Shapes/Arrow",
   component: Arrow,
   args: {
     x1: 50,
@@ -56,5 +57,24 @@ export const Default: Story = {};
 export const Dashed: Story = {
   args: {
     dash: { length: 10, spacing: 2.5 },
+  },
+};
+
+export const Failed: Story = {
+  args: {
+    onRenderCenter: (x, y, angle) => {
+      return (
+        <Cross
+          x={x}
+          y={y}
+          width={5}
+          length={20}
+          angle={angle}
+          fill="blue"
+          stroke="red"
+          strokeWidth={2}
+        />
+      );
+    },
   },
 };

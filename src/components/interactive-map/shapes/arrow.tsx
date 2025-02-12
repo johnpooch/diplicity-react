@@ -29,6 +29,9 @@ const Arrow = (props: ArrowProps) => {
   const endX = props.x2 - offsetX - props.arrowLength * Math.cos(angle);
   const endY = props.y2 - offsetY - props.arrowLength * Math.sin(angle);
 
+  const centerX = (startX + endX) / 2;
+  const centerY = (startY + endY) / 2;
+
   const arrowStart = {
     x: endX - (props.lineWidth / 2) * Math.cos(angle + Math.PI / 2),
     y: endY - (props.lineWidth / 2) * Math.sin(angle + Math.PI / 2),
@@ -39,7 +42,6 @@ const Arrow = (props: ArrowProps) => {
     y: endY + (props.lineWidth / 2) * Math.sin(angle + Math.PI / 2),
   };
 
-  // Perpendicular to the line, 5 away from center base
   const arrowBottomLeft = {
     x: endX - props.arrowWidth * Math.cos(angle + Math.PI / 2),
     y: endY - props.arrowWidth * Math.sin(angle + Math.PI / 2),
@@ -79,7 +81,7 @@ const Arrow = (props: ArrowProps) => {
         strokeWidth={props.strokeWidth}
         fill={props.fill}
       />
-      {/* {props.onRenderCenter && props.onRenderCenter(centerX, centerY, angle)} */}
+      {props.onRenderCenter && props.onRenderCenter(centerX, centerY, angle)}
     </g>
   );
 };

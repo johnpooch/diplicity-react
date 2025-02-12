@@ -15,6 +15,7 @@ type CurvedArrowProps = {
   arrowWidth: number;
   arrowLength: number;
   dash?: { length: number; spacing: number };
+  onRenderCenter?: (x: number, y: number, angle: number) => React.ReactElement;
 };
 
 const getOffsetPoint = (
@@ -31,6 +32,26 @@ const getOffsetPoint = (
     x: x1 + (dx / len) * offset,
     y: y1 + (dy / len) * offset,
   };
+};
+
+const getBezierPoint = (
+  t: number,
+  p0: { x: number; y: number },
+  p1: { x: number; y: number },
+  p2: { x: number; y: number },
+  p3: { x: number; y: number }
+) => {
+  const x =
+    Math.pow(1 - t, 3) * p0.x +
+    3 * Math.pow(1 - t, 2) * t * p1.x +
+    3 * (1 - t) * Math.pow(t, 2) * p2.x +
+    Math.pow(t, 3) * p3.x;
+  const y =
+    Math.pow(1 - t, 3) * p0.y +
+    3 * Math.pow(1 - t, 2) * t * p1.y +
+    3 * (1 - t) * Math.pow(t, 2) * p2.y +
+    Math.pow(t, 3) * p3.y;
+  return { x, y };
 };
 
 const CurvedArrow: React.FC<CurvedArrowProps> = (props) => {
@@ -88,6 +109,9 @@ const CurvedArrow: React.FC<CurvedArrowProps> = (props) => {
     y: end.y - props.arrowLength * Math.sin(endAngle),
   };
 
+  const centerPoint = getBezierPoint(0.5, start, cp1, cp2, end);
+  const centerAngleBezier = Math.atan2(cp2.y - cp1.y, cp2.x - cp1.x);
+
   return (
     <>
       <path
@@ -114,6 +138,8 @@ const CurvedArrow: React.FC<CurvedArrowProps> = (props) => {
         strokeWidth={props.strokeWidth}
         fill={props.fill}
       />
+      {props.onRenderCenter &&
+        props.onRenderCenter(centerPoint.x, centerPoint.y, centerAngleBezier)}
     </>
   );
 };
