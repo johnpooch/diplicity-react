@@ -50,8 +50,10 @@ const Login: React.FC = () => {
           Welcome to Diplicity!
         </Typography>
         <Typography variant="body1">
-          A digital adaptation of the game of Diplomacy. Currently in Beta - not
-          open for players yet.
+          A digital adaptation of the game of Diplomacy.
+        </Typography>
+        <Typography variant="caption">
+          We're rebuilding the app. Currently not ready for players.
         </Typography>
         <Box display="flex" justifyContent="center" mt={2}>
           <Button variant="contained" color="primary" onClick={onClickLogin}>
