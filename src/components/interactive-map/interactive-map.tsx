@@ -4,6 +4,7 @@ import { Arrow } from "./shapes/arrow";
 import { Cross } from "./shapes/cross";
 import { CurvedArrow } from "./shapes/curved-arrow";
 import { Octagon } from "./shapes/octagon";
+import { HoldArrow } from "./shapes/hold-arrow";
 
 type InteractiveMapProps = {
   map: Map;
@@ -38,7 +39,7 @@ const SUCCESS_COLOR = "rgba(0,0,0,1)";
 const FAILED_COLOR = "rgba(255,0,0,0.6)";
 
 const UNIT_RADIUS = 10;
-const UNIT_OFFSET_RADIUS = 3;
+const UNIT_OFFSET_RADIUS = 5;
 const UNIT_OFFSET_X = 10;
 const UNIT_OFFSET_Y = 10;
 
@@ -270,6 +271,31 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
           const unitColor = unit ? props.nationColors[unit.nation] : "black"; // Default to black if no unit found
           const aux = props.map.provinces.find((p) => p.id === order.aux);
           if (!source || !target || !aux) return null;
+
+          if (order.aux === order.target) {
+            // Render HoldArrow if auxiliary is the same as the target
+            return (
+              <HoldArrow
+                x1={source.center.x - UNIT_OFFSET_X}
+                y1={source.center.y - UNIT_OFFSET_Y}
+                x2={target.center.x - UNIT_OFFSET_X}
+                y2={target.center.y - UNIT_OFFSET_Y}
+                stroke={
+                  order.outcome === "failed" ? FAILED_COLOR : SUCCESS_COLOR
+                }
+                fill={unitColor}
+                lineWidth={ORDER_LINE_WIDTH}
+                arrowWidth={ORDER_ARROW_WIDTH}
+                arrowLength={ORDER_ARROW_LENGTH}
+                strokeWidth={ORDER_STROKE_WIDTH}
+                dash={{
+                  length: ORDER_DASH_LENGTH,
+                  spacing: ORDER_DASH_SPACING,
+                }}
+                offset={UNIT_RADIUS + UNIT_OFFSET_RADIUS}
+              />
+            );
+          }
           return (
             <CurvedArrow
               x1={source.center.x - UNIT_OFFSET_X}

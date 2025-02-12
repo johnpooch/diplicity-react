@@ -193,6 +193,12 @@ export default {
         target: "gol",
         outcome: "success",
       },
+      wes: {
+        type: "support",
+        target: "tun",
+        aux: "tun",
+        outcome: "failed",
+      },
       gol: {
         type: "support",
         target: "pie",
