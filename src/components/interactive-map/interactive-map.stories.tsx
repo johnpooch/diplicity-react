@@ -128,6 +128,10 @@ export default {
         unitType: "army",
         nation: "Russia",
       },
+      pru: {
+        unitType: "army",
+        nation: "England",
+      },
     },
     nationColors: {
       England: "rgb(33, 150, 243)",
@@ -197,7 +201,7 @@ export default {
         type: "support",
         target: "tun",
         aux: "tun",
-        outcome: "failed",
+        outcome: "success",
       },
       gol: {
         type: "support",

@@ -79,7 +79,14 @@ const HoldArrow = (props: ArrowProps) => {
         }
       />
       {props.onRenderCenter && props.onRenderCenter(centerX, centerY, angle)}
-      <Octagon x={endX} y={endY} size={8} fill={props.stroke} />
+      <Octagon
+        x={endX}
+        y={endY}
+        size={8}
+        stroke={props.stroke}
+        fill={props.fill}
+        strokeWidth={3}
+      />
     </g>
   );
 };
