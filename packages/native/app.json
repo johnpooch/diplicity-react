@@ -17,7 +17,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.diplicity.app",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./android/app/google-services.json"
     },
     "web": {
       "bundler": "metro",
