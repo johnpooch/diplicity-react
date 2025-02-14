@@ -14,12 +14,21 @@ import {
   Share as ShareIcon,
 } from "@mui/icons-material";
 import { useState } from "react";
-import { useNavigate } from "react-router";
-import { useGameDetailContext } from "../context";
+import { NavigateFunction, useLocation, useNavigate } from "react-router";
+import { JoinLeaveButton } from "./game-join-leave-button";
+import { useDispatch } from "react-redux";
+import { actions } from "../common";
 
-const GameDetailMenu: React.FC = () => {
-  const { gameId } = useGameDetailContext();
+type GameMenuProps = {
+  gameId: string;
+  onClickGameInfo: (navigate: NavigateFunction, gameId: string) => void;
+  onClickPlayerInfo: (navigate: NavigateFunction, gameId: string) => void;
+};
+
+const GameMenu: React.FC<GameMenuProps> = (props) => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const location = useLocation();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -31,17 +40,25 @@ const GameDetailMenu: React.FC = () => {
   };
 
   const handleClickGameInfo = () => {
-    navigate(`/game/${gameId}/game-info`);
+    props.onClickGameInfo(navigate, props.gameId);
     handleMenuClose();
   };
 
   const handleClickPlayerInfo = () => {
-    navigate(`/game/${gameId}/player-info`);
+    props.onClickPlayerInfo(navigate, props.gameId);
     handleMenuClose();
   };
 
   const handleClickShare = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/game/${gameId}`);
+    navigator.clipboard.writeText(
+      `${window.location.origin}${location.pathname}`
+    );
+    dispatch(
+      actions.setFeedback({
+        message: "Link copied to clipboard",
+        severity: "success",
+      })
+    );
     handleMenuClose();
   };
 
@@ -71,6 +88,7 @@ const GameDetailMenu: React.FC = () => {
             <ListItemText primary="Player info" />
           </ListItem>
         </MenuItem>
+        <JoinLeaveButton gameId={props.gameId} onJoinLeave={handleMenuClose} />
         <Divider />
         <MenuItem onClick={handleClickShare}>
           <ListItem disablePadding>
@@ -85,4 +103,4 @@ const GameDetailMenu: React.FC = () => {
   );
 };
 
-export { GameDetailMenu };
+export { GameMenu };
