@@ -29,6 +29,7 @@ import {
   CreateChannelAction,
   CreateChannelTetxField,
   CreateChannelContextProvider,
+  GameMenu,
 } from "./components";
 import { ChannelContextProvider } from "./context/channel-context";
 import { PhaseSelect } from "./components/phase-select";
@@ -82,10 +83,23 @@ const Router: React.FC = () => {
           path="game-info/:gameId"
           element={
             <GameDetailContextProvider>
-              <Desktop.HomeSecondaryScreenLayout
-                title="Game info"
-                onNavigateBack={(navigate) => navigate("/")}
-              />
+              {(gameId) => (
+                <Desktop.HomeSecondaryScreenLayout
+                  title="Game info"
+                  onNavigateBack={(navigate) => navigate("/")}
+                  secondaryAction={
+                    <GameMenu
+                      gameId={gameId}
+                      onClickGameInfo={(navigate) =>
+                        navigate(`/game-info/${gameId}`)
+                      }
+                      onClickPlayerInfo={(navigate) =>
+                        navigate(`/player-info/${gameId}`)
+                      }
+                    />
+                  }
+                />
+              )}
             </GameDetailContextProvider>
           }
         >
@@ -95,10 +109,23 @@ const Router: React.FC = () => {
           path="player-info/:gameId"
           element={
             <GameDetailContextProvider>
-              <Desktop.HomeSecondaryScreenLayout
-                title="Player info"
-                onNavigateBack={(navigate) => navigate("/")}
-              />
+              {(gameId) => (
+                <Desktop.HomeSecondaryScreenLayout
+                  title="Player info"
+                  secondaryAction={
+                    <GameMenu
+                      gameId={gameId}
+                      onClickGameInfo={(navigate) =>
+                        navigate(`/game-info/${gameId}`)
+                      }
+                      onClickPlayerInfo={(navigate) =>
+                        navigate(`/player-info/${gameId}`)
+                      }
+                    />
+                  }
+                  onNavigateBack={(navigate) => navigate("/")}
+                />
+              )}
             </GameDetailContextProvider>
           }
         >
