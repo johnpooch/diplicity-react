@@ -30,6 +30,9 @@ type InteractiveMapProps = {
 const HOVER_STROKE_WIDTH = 3;
 const HOVER_STROKE_COLOR = "black";
 const HOVER_FILL = "rgba(255, 255, 255, 0.6)";
+const HOVER_SELECTED_TRANSPARENCY = 0.3;
+const HOVER_DEFAULT_TRANSPARENCY = 0.4;
+const HOVER_HOVERING_TRANSPARENCY = 0.5;
 
 const SELECTED_STROKE_WIDTH = 3;
 const SELECTED_STROKE_COLOR = "black";
@@ -44,12 +47,21 @@ const UNIT_OFFSET_RADIUS = 5;
 const UNIT_OFFSET_X = 10;
 const UNIT_OFFSET_Y = 10;
 
+const SUPPLY_CENTER_SIZE_INNER = 4;
+const SUPPLY_CENTER_SIZE_OUTER = 7;
+const SUPPLY_CENTER_FILL = "white";
+const SUPPLY_CENTER_STROKE = "black";
+const SUPPLY_CENTER_STROKE_WIDTH = 2;
+
+
 const ORDER_STROKE_WIDTH = 2.5;
 const ORDER_LINE_WIDTH = 3;
 const ORDER_ARROW_WIDTH = 6;
 const ORDER_ARROW_LENGTH = 8;
 const ORDER_DASH_LENGTH = 4;
 const ORDER_DASH_SPACING = 2;
+const ORDER_CONVOY_DASH_LENGTH = 8;
+const ORDER_CONVOY_DASH_SPACING = 2;
 
 const ORDER_FAILED_CROSS_WIDTH = 3;
 const ORDER_FAILED_CROSS_LENGTH = 20;
@@ -69,7 +81,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
       return color.replace(
         /rgb(a?)\((\d+), (\d+), (\d+)(, [\d.]+)?\)/,
         // "rgba($2, $3, $4, 0.4)"
-        `rgba($2, $3, $4, ${isSelected ? 0.3 : isHovered ? 0.4 : 0.5})`,
+        `rgba($2, $3, $4, ${isSelected ? HOVER_SELECTED_TRANSPARENCY : isHovered ? HOVER_HOVERING_TRANSPARENCY : HOVER_DEFAULT_TRANSPARENCY})`,
       );
     }
     if (selectedProvince === provinceId) return SELECTED_FILL;
@@ -148,18 +160,18 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
                 <circle
                   cx={province.center.x}
                   cy={province.center.y}
-                  r={7}
-                  fill="white"
-                  stroke="black"
-                  strokeWidth={2}
+                  r={SUPPLY_CENTER_SIZE_OUTER}
+                  fill={SUPPLY_CENTER_FILL}
+                  stroke={SUPPLY_CENTER_STROKE}
+                  strokeWidth={SUPPLY_CENTER_STROKE_WIDTH}
                 />
                 <circle
                   cx={province.center.x}
                   cy={province.center.y}
-                  r={4}
-                  fill="white"
-                  stroke="black"
-                  strokeWidth={2}
+                  r={SUPPLY_CENTER_SIZE_INNER}
+                  fill={SUPPLY_CENTER_FILL}
+                  stroke={SUPPLY_CENTER_STROKE}
+                  strokeWidth={SUPPLY_CENTER_STROKE_WIDTH}
                 />
               </g>
             )}
@@ -404,8 +416,8 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
               stroke={order.outcome === "failed" ? FAILED_COLOR : SUCCESS_COLOR}
               fill={unitColor}
               dash={{
-                length: ORDER_DASH_LENGTH * 2,
-                spacing: ORDER_DASH_LENGTH,
+                length: ORDER_CONVOY_DASH_LENGTH,
+                spacing: ORDER_DASH_SPACING,
               }}
               onRenderCenter={
                 order.outcome === "failed"
