@@ -282,14 +282,14 @@ const service = createApi({
                 method: "POST",
                 body: JSON.stringify(data),
             }),
-            invalidatesTags: [TagType.ListGames],
+            invalidatesTags: [TagType.ListGames, TagType.Game],
         }),
         leaveGame: builder.mutation({
             query: ({ gameId, userId }) => ({
                 url: `/Game/${gameId}/Member/${userId}`,
                 method: "DELETE",
             }),
-            invalidatesTags: [TagType.ListGames],
+            invalidatesTags: [TagType.ListGames, TagType.Game],
         }),
         rescheduleGame: builder.mutation<
             undefined,
