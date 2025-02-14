@@ -109,7 +109,7 @@ const CurvedArrow: React.FC<CurvedArrowProps> = (props) => {
     y: end.y - props.arrowLength * Math.sin(endAngle),
   };
 
-  const centerPoint = getBezierPoint(0.5, start, cp1, cp2, end);
+  const centerPoint = getBezierPoint(0.3, start, cp1, cp2, end);
   const centerAngleBezier = Math.atan2(cp2.y - cp1.y, cp2.x - cp1.x);
 
   return (
