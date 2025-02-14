@@ -12,7 +12,7 @@ import { GameCard } from "../../components";
 const styles: Styles = {
   header: (theme) => ({
     borderBottom: `1px solid ${theme.palette.divider}`,
-    alignItems: "center",
+    alignItems: "left",
   }),
   noGamesText: {
     textAlign: "center",
@@ -76,12 +76,15 @@ const MyGames: React.FC = () => {
 
   return (
     <Stack>
-      <Stack sx={styles.header}>
+      <Stack sx={styles.header} >
+      <Stack direction="row" alignItems="center">
         <img
           src="/otto.png"
           alt="Diplicity"
-          style={{ height: 48, width: 48 }}
+          style={{ height: 48, width: 48, margin: "0px 16px" }}
         />
+        <Typography variant="h1" sx={{ margin: 0 }}>Diplicity</Typography>
+        </Stack>
         <Tabs
           value={status}
           onChange={(_, value) => setSelectedStatus(value)}

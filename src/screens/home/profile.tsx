@@ -57,17 +57,6 @@ const Profile: React.FC = () => {
           <Grid2 size="auto">
             <Avatar src={data.Picture} alt={data.Name} />
           </Grid2>
-          <Grid2 size="grow">
-            <Typography variant="body1">{data.Name}</Typography>
-          </Grid2>
-          <Grid2 size="auto">
-            <IconButton aria-label="menu" onClick={handleMenuClick}>
-              <MoreHoriz />
-            </IconButton>
-            <Menu anchorEl={anchorEl} open={open} onClose={handleMenuClose}>
-              <MenuItem onClick={withMenuClose(handleLogout)}>Logout</MenuItem>
-            </Menu>
-          </Grid2>
         </Grid2>
       )}
     </QueryContainer>
