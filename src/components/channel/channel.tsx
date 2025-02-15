@@ -2,16 +2,11 @@ import React, { useEffect, useRef } from "react";
 import { mergeQueries, service, useGetVariantQuery } from "../../common";
 import { useChannelContext } from "../../context/channel-context";
 import {
-  Avatar,
   IconButton,
   List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
   ListSubheader,
   Stack,
   TextField,
-  Typography,
 } from "@mui/material";
 import { Send as SendIcon } from "@mui/icons-material";
 import { QueryContainer } from "../../components";
@@ -19,22 +14,13 @@ import { useGetUserMemberQuery } from "../../common/hooks/useGetUserMemberQuery"
 import { useGetChannelQuery } from "../../common/hooks/useGetChannelQuery";
 import { getChannelDisplayName } from "../../util";
 import { useGameDetailContext } from "../../context";
+import { ChannelMessage } from "./channel-message";
 
 const styles: Styles = {
   listSubheader: (theme) => ({
     borderBottom: `1px solid ${theme.palette.divider}`,
     textAlign: "center",
   }),
-  listItemText: {
-    "& .MuiListItemText-primary": (theme) => ({
-      color: theme.palette.text.secondary,
-      fontSize: theme.typography.body2.fontSize,
-    }),
-    "& .MuiListItemText-secondary": (theme) => ({
-      color: theme.palette.text.primary,
-      fontSize: theme.typography.body1.fontSize,
-    }),
-  },
   listItemTextDate: (theme) => ({
     fontSize: theme.typography.caption.fontSize,
     color: theme.palette.text.secondary,
@@ -100,10 +86,10 @@ const useChannel = () => {
         }
         acc[date].push({
           body: message.Body,
-          // Update this section so that sender includes color and name
           sender: {
             name: message.Sender,
-            color: variant.Colors[message.Sender], // Only problem is that Colors isn't always defined for a variant!
+            color: variant.Colors[message.Sender],
+            isUser: message.Sender === member.Nation,
           },
           date: new Date(message.CreatedAt),
           flag:
@@ -112,7 +98,7 @@ const useChannel = () => {
               : variant.Flags[message.Sender], // Note, Flags isn't always defined for a variant either!
         });
         return acc;
-      }, {} as Record<string, { body: string; sender: string; date: Date; flag: string }[]>);
+      }, {} as Record<string, { body: string; sender: { name: string; color: string; isUser: boolean }; date: Date; flag: string }[]>);
 
       return {
         messages: groupedMessages,
@@ -161,30 +147,34 @@ const Channel: React.FC = () => {
                   <ListSubheader sx={styles.listSubheader}>
                     {date}
                   </ListSubheader>
-                  {data.messages[date].map((message, index) => (
-                    <ListItem key={index} divider>
-                      <ListItemAvatar>
-                        <Avatar src={message.flag}>{message.sender[0]}</Avatar>
-                      </ListItemAvatar>
-                      <ListItemText
-                        sx={styles.listItemText}
-                        primary={message.sender}
-                        secondary={
-                          <Stack
-                            direction="row"
-                            justifyContent="space-between"
-                            alignItems="flex-end"
-                            gap={1}
-                          >
-                            <Typography>{message.body}</Typography>
-                            <Typography sx={styles.listItemTextDate}>
-                              {displayTime(new Date(message.date))}
-                            </Typography>
-                          </Stack>
-                        }
-                      />
-                    </ListItem>
-                  ))}
+                  <Stack p={1} spacing={1}>
+                    {data.messages[date].map((message, index, messages) => {
+                      const isSameSenderAsPrevious =
+                        index > 0 &&
+                        messages[index - 1].sender.name === message.sender.name;
+                      const isNewDay =
+                        index === 0 ||
+                        new Date(
+                          messages[index - 1].date
+                        ).toLocaleDateString() !==
+                          new Date(message.date).toLocaleDateString();
+
+                      const showAvatar = !isSameSenderAsPrevious || isNewDay;
+
+                      return (
+                        <ChannelMessage
+                          key={index}
+                          name={message.sender.name}
+                          message={message.body}
+                          date={displayTime(message.date)}
+                          showAvatar={showAvatar}
+                          avatar={message.flag}
+                          color={message.sender.color}
+                          isUser={message.sender.isUser}
+                        />
+                      );
+                    })}
+                  </Stack>
                 </React.Fragment>
               ))}
             </List>

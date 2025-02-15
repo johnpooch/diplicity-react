@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { apiResponseSchema, listApiResponseSchema } from "./common";
+import { contrastColors } from "../map/contrast";
 
 const DEFAULT_FLAGS: Record<string, string> = {
     Austria: "https://diplicity-engine.appspot.com/Variant/Classical/Flags/Austria.svg",
@@ -58,7 +59,18 @@ const listVariantsSchema = listApiResponseSchema(apiResponseSchema(variantSchema
             }
         });
 
+
         // Joren! Do something simlar for nation colors. Create a default list of colors (similar to the getNationColor function) and assign them here.
+        // If nation colors does not have any entries
+        if (Object.keys(response.Properties.NationColors).length === 0) {
+            // Assign default colors
+            response.Properties.Nations.forEach((nation, index) => {
+                const color = contrastColors[index];
+                response.Properties.NationColors[nation] = color;
+            })
+        }
+
+        response.Properties.NationColors["Diplicity"] = "#000000";
 
         const variant = response.Properties;
         const transformedVariant = { ...variant, Flags: flags, Units: units, Map: map, Provinces: variant.ProvinceLongNames, Colors: variant.NationColors };
