@@ -1,7 +1,8 @@
 import { ApplicationInsights } from '@microsoft/applicationinsights-web';
 import { ReactPlugin } from '@microsoft/applicationinsights-react-js';
+import { ITelemetryService } from './telemetry.types';
 
-class TelemetryService {
+class TelemetryService implements ITelemetryService {
     private static instance: TelemetryService;
     private appInsights: ApplicationInsights;
 
@@ -29,6 +30,4 @@ class TelemetryService {
     }
 }
 
-const telemetryService = TelemetryService.getInstance();
-
-export { telemetryService };
+export { TelemetryService };
