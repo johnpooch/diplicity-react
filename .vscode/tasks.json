@@ -22,6 +22,26 @@
       }
     },
     {
+      "label": "storybook",
+      "type": "shell",
+      "command": "npm run storybook",
+      "presentation": {
+        "echo": false,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true,
+        "close": false
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "runOptions": {
+        "runOn": "folderOpen"
+      }
+    },
+    {
       "label": "build:watch",
       "type": "shell",
       "command": "npm run build-watch",
