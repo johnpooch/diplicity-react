@@ -29,10 +29,12 @@ import {
   CreateChannelAction,
   CreateChannelTetxField,
   CreateChannelContextProvider,
+  GameMenu,
 } from "./components";
 import { ChannelContextProvider } from "./context/channel-context";
 import { PhaseSelect } from "./components/phase-select";
 import { GameName } from "./components/game-detail/game-name";
+import { GameDetailContextProvider } from "./context";
 
 const Router: React.FC = () => {
   const { loggedIn } = useSelector(selectAuth);
@@ -80,10 +82,25 @@ const Router: React.FC = () => {
         <Route
           path="game-info/:gameId"
           element={
-            <Desktop.HomeSecondaryScreenLayout
-              title="Game info"
-              onNavigateBack={(navigate) => navigate("/")}
-            />
+            <GameDetailContextProvider>
+              {(gameId) => (
+                <Desktop.HomeSecondaryScreenLayout
+                  title="Game info"
+                  onNavigateBack={(navigate) => navigate("/")}
+                  secondaryAction={
+                    <GameMenu
+                      gameId={gameId}
+                      onClickGameInfo={(navigate) =>
+                        navigate(`/game-info/${gameId}`)
+                      }
+                      onClickPlayerInfo={(navigate) =>
+                        navigate(`/player-info/${gameId}`)
+                      }
+                    />
+                  }
+                />
+              )}
+            </GameDetailContextProvider>
           }
         >
           <Route index element={<GameInfo />} />
@@ -91,10 +108,25 @@ const Router: React.FC = () => {
         <Route
           path="player-info/:gameId"
           element={
-            <Desktop.HomeSecondaryScreenLayout
-              title="Player info"
-              onNavigateBack={(navigate) => navigate("/")}
-            />
+            <GameDetailContextProvider>
+              {(gameId) => (
+                <Desktop.HomeSecondaryScreenLayout
+                  title="Player info"
+                  secondaryAction={
+                    <GameMenu
+                      gameId={gameId}
+                      onClickGameInfo={(navigate) =>
+                        navigate(`/game-info/${gameId}`)
+                      }
+                      onClickPlayerInfo={(navigate) =>
+                        navigate(`/player-info/${gameId}`)
+                      }
+                    />
+                  }
+                  onNavigateBack={(navigate) => navigate("/")}
+                />
+              )}
+            </GameDetailContextProvider>
           }
         >
           <Route index element={<PlayerInfo />} />

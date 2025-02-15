@@ -3,7 +3,7 @@ import { useParams } from "react-router";
 import { GameDetailContext } from "./game-detail-context";
 
 const GameDetailContextProvider: React.FC<{
-  children: React.ReactNode;
+  children: React.ReactNode | ((gameId: string) => React.ReactNode);
 }> = ({ children }) => {
   const { gameId } = useParams<{ gameId: string }>();
 
@@ -11,7 +11,7 @@ const GameDetailContextProvider: React.FC<{
 
   return (
     <GameDetailContext.Provider value={{ gameId }}>
-      {children}
+      {typeof children === "function" ? children(gameId) : children}
     </GameDetailContext.Provider>
   );
 };

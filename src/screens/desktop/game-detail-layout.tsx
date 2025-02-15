@@ -1,12 +1,11 @@
 import { AppBar, IconButton, Stack, Typography } from "@mui/material";
 import { ArrowBack as BackIcon } from "@mui/icons-material";
-import { GameDetailMenu } from "../game-detail-menu";
 import {
   GameDetailContextProvider,
   SelectedPhaseContextProvider,
 } from "../../context";
 import { Outlet, useNavigate } from "react-router";
-import { Map } from "../../components";
+import { GameMenu, Map } from "../../components";
 import { PhaseSelect } from "../../components/phase-select";
 import React from "react";
 
@@ -70,34 +69,44 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = (props) => {
 
   return (
     <GameDetailContextProvider>
-      <SelectedPhaseContextProvider>
-        <Stack>
-          <AppBar sx={styles.appBar}>
-            <Stack sx={styles.backButtonTitleContainer}>
-              <IconButton onClick={handleNavigateBack}>
-                <BackIcon />
-              </IconButton>
-              {typeof props.title === "string" ? (
-                <Typography variant="h1">{props.title}</Typography>
-              ) : (
-                props.title
-              )}
-            </Stack>
-            <PhaseSelect />
-            <GameDetailMenu />
-          </AppBar>
-          <Stack sx={styles.screen}>
-            <Stack sx={styles.panelContainer}>
-              <Stack sx={styles.mapPanel}>
-                <Map />
+      {(gameId) => (
+        <SelectedPhaseContextProvider>
+          <Stack>
+            <AppBar sx={styles.appBar}>
+              <Stack sx={styles.backButtonTitleContainer}>
+                <IconButton onClick={handleNavigateBack}>
+                  <BackIcon />
+                </IconButton>
+                {typeof props.title === "string" ? (
+                  <Typography variant="h1">{props.title}</Typography>
+                ) : (
+                  props.title
+                )}
               </Stack>
-              <Stack sx={styles.actionPanel}>
-                <Outlet />
+              <PhaseSelect />
+              <GameMenu
+                gameId={gameId}
+                onClickGameInfo={(navigate, gameId) => {
+                  navigate(`/game/${gameId}/game-info`);
+                }}
+                onClickPlayerInfo={(navigate, gameId) => {
+                  navigate(`/game/${gameId}/player-info`);
+                }}
+              />
+            </AppBar>
+            <Stack sx={styles.screen}>
+              <Stack sx={styles.panelContainer}>
+                <Stack sx={styles.mapPanel}>
+                  <Map />
+                </Stack>
+                <Stack sx={styles.actionPanel}>
+                  <Outlet />
+                </Stack>
               </Stack>
             </Stack>
           </Stack>
-        </Stack>
-      </SelectedPhaseContextProvider>
+        </SelectedPhaseContextProvider>
+      )}
     </GameDetailContextProvider>
   );
 };
