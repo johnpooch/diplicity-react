@@ -61,3 +61,36 @@ Before you begin, ensure you have the following installed on your machine:
    ```
 
    Storybook will be available at `http://localhost:6006`.
+
+## Developing on Android
+
+### Developing in web browser
+
+1. Navigate to the `native` package
+
+   ```sh
+   cd packages/native
+   ```
+
+2. Run Metro
+
+   ```sh
+   npx expo start
+   ```
+
+### Developing on Android device
+
+Follow the instructions here:
+https://docs.expo.dev/get-started/set-up-your-environment/?mode=development-build
+
+1. Navigate to the `native` packge
+
+   ```sh
+   cd packages/native
+   ```
+
+2. Run build command
+
+   ```sh
+   eas build --platform android --profile development
+   ```

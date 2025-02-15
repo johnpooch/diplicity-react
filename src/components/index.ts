@@ -2,6 +2,8 @@ export * from "./channel"
 export * from "./drawer-navigation"
 export * from "./orders";
 export * from "./game-card"
+export * from "./game-menu"
 export * from "./map"
 export * from "./panel"
 export * from "./query-container"
+export * from "./table-list-item"
