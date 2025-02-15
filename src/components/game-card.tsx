@@ -13,6 +13,8 @@ import { useNavigate } from "react-router";
 import { service } from "../common";
 import { GameMenu } from "./game-menu";
 
+const MAX_AVATARS = 10;
+
 const styles: Styles = {
   listItem: (theme) => ({
     gap: 1,
@@ -41,6 +43,9 @@ const styles: Styles = {
     width: 24,
     height: 24,
   },
+  extraMembersText: {
+    marginLeft: "4px",
+  },
 };
 
 const GameCard: React.FC<{
@@ -63,6 +68,8 @@ const GameCard: React.FC<{
       navigate(`/game-info/${game.ID}`);
     }
   };
+
+  const hasExtraMembers = game.Members.length > MAX_AVATARS;
 
   return (
     <ListItem
@@ -103,7 +110,7 @@ const GameCard: React.FC<{
               direction="row"
               spacing={-1}
             >
-              {game.Members.map((member, index) => (
+              {game.Members.slice(0, MAX_AVATARS).map((member, index) => (
                 <Avatar
                   sx={styles.avatar}
                   key={index}
@@ -111,6 +118,11 @@ const GameCard: React.FC<{
                 />
               ))}
             </Stack>
+            {hasExtraMembers && (
+              <Typography variant="body1" sx={styles.extraMembersText}>
+                +{game.Members.length - MAX_AVATARS}
+              </Typography>
+            )}
           </Button>
         </Stack>
       </Stack>

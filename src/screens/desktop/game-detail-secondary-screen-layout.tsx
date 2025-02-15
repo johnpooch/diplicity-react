@@ -1,6 +1,6 @@
 import { Stack, Typography, IconButton, Divider } from "@mui/material";
 import { NavigateFunction, Outlet, useNavigate } from "react-router";
-import { KeyboardBackspace as BackIcon } from "@mui/icons-material";
+import { ArrowBack as BackIcon } from "@mui/icons-material";
 import { useGameDetailContext } from "../../context";
 
 const styles: Styles = {
