@@ -1,5 +1,5 @@
 import React from "react";
-import { List, ListItem, ListItemButton, ListItemText } from "@mui/material";
+import { List, ListItem, ListItemButton, ListItemText, ListItemAvatar, Avatar } from "@mui/material";
 import { useLocation, useNavigate } from "react-router";
 import { useGameDetailContext } from "../../context";
 import { service, useGetVariantQuery, mergeQueries } from "../../common";
@@ -9,15 +9,23 @@ import { getChannelDisplayName } from "../../util";
 
 const styles: Styles = {
   listItemText: {
+    margin: "0px",
     "& .MuiListItemText-secondary": {
       overflowY: "hidden",
       textOverflow: "ellipsis",
       // whiteSpace: "nowrap",
+
     },
   },
   selectedListItem: (theme) => ({
     backgroundColor: theme.palette.action.selected,
   }),
+  listItemButton: {
+    alignItems: "flex-start",
+  },
+  Avatar: {
+    marginTop: "4px",
+  },
 };
 
 const useChannelList = () => {
@@ -48,6 +56,10 @@ const useChannelList = () => {
   return { query };
 };
 
+const truncateText = (text: string, maxLength: number) => {
+  return text.length > maxLength ? `${text.slice(0, maxLength)}...` : text;
+};
+
 const ChannelList: React.FC = () => {
   const { query } = useChannelList();
   const { gameId } = useGameDetailContext();
@@ -73,11 +85,14 @@ const ChannelList: React.FC = () => {
                 selectedChannel === channel.name ? styles.selectedListItem : {}
               }
             >
-              <ListItemButton onClick={() => handleChannelClick(channel.name)}>
+              <ListItemButton sx={styles.listItemButton} onClick={() => handleChannelClick(channel.name)}>
+              <ListItemAvatar sx={styles.Avatar}>
+                  <Avatar>{channel.displayName[0]}</Avatar>
+                </ListItemAvatar>
                 <ListItemText
                   sx={styles.listItemText}
                   primary={channel.displayName}
-                  secondary={channel.messagePreview}
+                  secondary={truncateText(channel.messagePreview, 90)}
                 />
               </ListItemButton>
             </ListItem>

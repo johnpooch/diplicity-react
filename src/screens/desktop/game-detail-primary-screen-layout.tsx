@@ -5,6 +5,19 @@ import { useGameDetailContext } from "../../context";
 const styles: Styles = {
   root: {
     flexGrow: 1,
+  }, 
+  tabs: {
+    "& .Mui-selected": {
+      outline: "none",
+    },
+    "& .MuiTab-root": {
+      "&:focus": {
+        outline: "none",
+      },
+      "&.Mui-focusVisible": {
+        outline: "none",
+      },
+    },
   },
 };
 
@@ -21,7 +34,7 @@ const GameDetailPrimaryScreenLayout: React.FC = () => {
 
   return (
     <Stack sx={styles.root}>
-      <Tabs variant="fullWidth" value={currentTab} onChange={handleTabChange}>
+      <Tabs variant="fullWidth" value={currentTab} sx={styles.tabs} onChange={handleTabChange}>
         <Tab label="Orders" value="orders" />
         <Tab label="Chat" value="chat" />
       </Tabs>
