@@ -53,6 +53,14 @@ const theme = createTheme({
                 },
             },
         },
+        MuiListItem: {
+            styleOverrides: {
+                root: {
+                    border: "none",
+                    
+                },
+            },
+        },
         MuiAlert: {
             styleOverrides: {
                 root: {

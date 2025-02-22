@@ -1,5 +1,5 @@
 import React from "react";
-import { List, ListItem, ListItemButton, ListItemText } from "@mui/material";
+import { List, ListItem, ListItemButton, ListItemText, ListItemAvatar, Avatar } from "@mui/material";
 import { useLocation, useNavigate } from "react-router";
 import { useGameDetailContext } from "../../context";
 import { service, useGetVariantQuery, mergeQueries } from "../../common";
@@ -48,6 +48,10 @@ const useChannelList = () => {
   return { query };
 };
 
+const truncateText = (text: string, maxLength: number) => {
+  return text.length > maxLength ? `${text.slice(0, maxLength)}...` : text;
+};
+
 const ChannelList: React.FC = () => {
   const { query } = useChannelList();
   const { gameId } = useGameDetailContext();
@@ -74,10 +78,13 @@ const ChannelList: React.FC = () => {
               }
             >
               <ListItemButton onClick={() => handleChannelClick(channel.name)}>
+              <ListItemAvatar>
+                  <Avatar>{channel.displayName[0]}</Avatar>
+                </ListItemAvatar>
                 <ListItemText
                   sx={styles.listItemText}
                   primary={channel.displayName}
-                  secondary={channel.messagePreview}
+                  secondary={truncateText(channel.messagePreview, 90)}
                 />
               </ListItemButton>
             </ListItem>
