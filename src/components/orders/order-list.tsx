@@ -21,6 +21,9 @@ const styles: Styles = {
       textAlign: "center",
     },
   },
+  subheader: {
+    lineHeight: "32px",
+  },
   orderListItemTextSucceeded: (theme) => ({
     "& .MuiListItemText-secondary": {
       color: theme.palette.success.main,
@@ -60,10 +63,11 @@ const OrderList: React.FC = () => {
           <List disablePadding>
             {Object.keys(groupedOrders).map((nation) => (
               <React.Fragment key={nation}>
-                <ListSubheader>{nation}</ListSubheader>
+                <Divider />
+                <ListSubheader sx={styles.subheader}>{nation}</ListSubheader>
                 <Divider />
                 {groupedOrders[nation].map((order) => (
-                  <ListItem key={order.source} divider>
+                  <ListItem sx={{padding: "0px 16px", }} key={order.source} divider>
                     <ListItemText
                       primary={formatOrderText(order)}
                       secondary={order.outcome && order.outcome.outcome}
