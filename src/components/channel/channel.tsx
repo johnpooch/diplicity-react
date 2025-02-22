@@ -18,8 +18,9 @@ import { ChannelMessage } from "./channel-message";
 
 const styles: Styles = {
   listSubheader: (theme) => ({
-    borderBottom: `1px solid ${theme.palette.divider}`,
+    borderBottom: `0px solid ${theme.palette.divider}`,
     textAlign: "center",
+    lineHeight: "32px",
   }),
   listItemTextDate: (theme) => ({
     fontSize: theme.typography.caption.fontSize,
@@ -81,6 +82,7 @@ const useChannel = () => {
       // Group messages by the day they were created
       const groupedMessages = sortedMessages.reduce((acc, message) => {
         const date = new Date(message.CreatedAt).toLocaleDateString();
+        console.log
         if (!acc[date]) {
           acc[date] = [];
         }

@@ -9,15 +9,23 @@ import { getChannelDisplayName } from "../../util";
 
 const styles: Styles = {
   listItemText: {
+    margin: "0px",
     "& .MuiListItemText-secondary": {
       overflowY: "hidden",
       textOverflow: "ellipsis",
       // whiteSpace: "nowrap",
+
     },
   },
   selectedListItem: (theme) => ({
     backgroundColor: theme.palette.action.selected,
   }),
+  listItemButton: {
+    alignItems: "flex-start",
+  },
+  Avatar: {
+    marginTop: "4px",
+  },
 };
 
 const useChannelList = () => {
@@ -77,8 +85,8 @@ const ChannelList: React.FC = () => {
                 selectedChannel === channel.name ? styles.selectedListItem : {}
               }
             >
-              <ListItemButton onClick={() => handleChannelClick(channel.name)}>
-              <ListItemAvatar>
+              <ListItemButton sx={styles.listItemButton} onClick={() => handleChannelClick(channel.name)}>
+              <ListItemAvatar sx={styles.Avatar}>
                   <Avatar>{channel.displayName[0]}</Avatar>
                 </ListItemAvatar>
                 <ListItemText
