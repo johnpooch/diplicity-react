@@ -10,6 +10,7 @@ type ChannelMessageProps = {
   isUser: boolean;
 };
 
+const NATION_TITLE_OPACITY = 0.6;
 const EMPTY_AVATAR_WIDTH = 40;
 const TWENTY_PERCENT_OPACITY_HEX_SUFFIX = "33";
 const BORDER_RADIUS = "16px";
@@ -28,7 +29,7 @@ const colorIsVeryLight = (color: string): boolean => {
 const createStyles = (props: ChannelMessageProps): Styles => ({
   container: {
     flexDirection: props.isUser ? "row" : "row-reverse",
-    gap: 2,
+    gap: 1,
   },
   messageAndDate: {
     minWidth: `50%`,
@@ -37,8 +38,11 @@ const createStyles = (props: ChannelMessageProps): Styles => ({
   message: {
     width: "100%",
     background: `${props.color}${TWENTY_PERCENT_OPACITY_HEX_SUFFIX}`,
-    padding: 1,
-    gap: 1,
+    paddingLeft: 1.2,
+    paddingRight: 1.2,
+    paddingTop:  0.7,
+    paddingBottom: 0.7,
+    gap: 0,
     border: !colorIsVeryLight(props.color)
       ? `1px solid ${props.color}`
       : `1px solid ${FALLBACK_BORDER_COLOR}`,
@@ -54,16 +58,15 @@ const ChannelMessage: React.FC<ChannelMessageProps> = (props) => {
   return (
     <Stack sx={styles.container}>
       {props.showAvatar ? (
-        <Avatar src={props.avatar} />
-      ) : (
+        <Avatar src={props.avatar} sx={{ border: `1px solid ${props.color}` }} />      ) : (
         <Stack sx={styles.emptyAvatar} />
       )}
       <Stack sx={styles.messageAndDate}>
         <Stack sx={styles.message}>
-          <Typography variant="body2">{props.name}</Typography>
-          <Typography>{props.message}</Typography>
+        <Typography>{props.message}</Typography>
         </Stack>
-        <Typography variant="caption">{props.date}</Typography>
+        <Typography variant="caption">{props.name} - {props.date}
+        </Typography>
       </Stack>
       <Stack sx={styles.emptyAvatar} />
       {/* Message text */}
