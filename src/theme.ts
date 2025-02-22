@@ -57,7 +57,6 @@ const theme = createTheme({
             styleOverrides: {
                 root: {
                     border: "none",
-                    
                 },
             },
         },
