@@ -10,7 +10,7 @@ const Map: React.FC = () => {
           dangerouslySetInnerHTML={{ __html: data }}
           style={{
             maxWidth: "100%",
-            maxHeight: "100%",
+            //maxHeight: "100%",
           }}
         />
       )}
