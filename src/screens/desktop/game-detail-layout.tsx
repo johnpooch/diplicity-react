@@ -100,7 +100,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = (props) => {
             <Stack sx={styles.screen}>
               <Stack sx={styles.panelContainer}>
                 <Stack sx={styles.mapPanel}>
-                  <Map sx={styles.map} />
+                  <Map />
                 </Stack>
                 <Stack sx={styles.actionPanel}>
                   <Outlet />
