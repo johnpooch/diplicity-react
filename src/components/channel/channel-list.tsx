@@ -50,14 +50,13 @@ const useChannelList = () => {
           .filter(nation => nation.length > 0)
           .filter(nation => nation !== "Diplicity");
 
+        const allNationsCount = Object.keys(variant.Nations).length;
+        const isPublicPress = memberNations.length === allNationsCount && 
+          (game?.Finished || memberNations.includes(member?.Nation));
+
         const displayMembers = game?.Finished 
           ? memberNations 
           : memberNations.filter(nation => nation !== member?.Nation);
-
-        // Check if this is a public press channel
-        const isPublicPress = game?.Finished 
-          ? memberNations.length === Object.keys(variant.Nations).length
-          : memberNations.includes(member?.Nation) && memberNations.length === Object.keys(variant.Nations).length;
         
         return {
           name: channel.Name,
@@ -67,6 +66,7 @@ const useChannelList = () => {
           avatar: "",
           members: displayMembers,
           messagePreview: channel.LatestMessage.Body,
+          variant, // Add variant to the return object
         };
       });
     }
@@ -105,8 +105,11 @@ const ChannelList: React.FC = () => {
             >
               <ListItemButton sx={styles.listItemButton} onClick={() => handleChannelClick(channel.name)}>
               <ListItemAvatar sx={styles.Avatar}>
-                  <ChannelAvatarGroup displayNames={channel.members} />
-                </ListItemAvatar>
+                <ChannelAvatarGroup 
+                  displayNames={channel.members} 
+                  variant={channel.variant}
+                />
+              </ListItemAvatar>
                 <ListItemText
                   sx={styles.listItemText}
                   primary={channel.displayName}

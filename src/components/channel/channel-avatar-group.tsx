@@ -3,9 +3,12 @@ import { Avatar, Box } from "@mui/material";
 
 interface ChannelAvatarGroupProps {
   displayNames: string[];
+  variant?: {
+    Flags: Record<string, string>;
+  };
 }
 
-const ChannelAvatarGroup: React.FC<ChannelAvatarGroupProps> = ({ displayNames }) => {
+const ChannelAvatarGroup: React.FC<ChannelAvatarGroupProps> = ({ displayNames, variant }) => {
   const MAX_AVATARS = 9;
   const names = displayNames.slice(0, MAX_AVATARS);
   const count = names.length;
@@ -46,7 +49,7 @@ const ChannelAvatarGroup: React.FC<ChannelAvatarGroupProps> = ({ displayNames })
         gridTemplateColumns: `repeat(${columns}, 1fr)`,
         gridTemplateRows: `repeat(${rows}, 1fr)`,
         backgroundColor: "#f0f0f0",
-        border: "1px solid rgba(0, 0, 0, 0.12)",
+        border: "1px solid rgba(0, 0, 0, 0.87)",
         alignItems: "center",
         justifyItems: "center",
         alignContent: "center",
@@ -56,6 +59,7 @@ const ChannelAvatarGroup: React.FC<ChannelAvatarGroupProps> = ({ displayNames })
       {names.map((name, index) => (
         <Avatar
           key={index}
+          src={name === "Diplicity" ? "/otto.png" : variant?.Flags[name]}
           sx={{
             width: `${avatarSize}px`,
             height: `${avatarSize}px`,

@@ -59,10 +59,8 @@ const useChannel = () => {
     [getUserMemberQuery, getVariantQuery, getChannelQuery, listMessagesQuery, gameDetailQuery],
     (member, variant, channel, messages, game) => {
       const messagesCopy = [...messages];
-
       const sortedMessages = messagesCopy.sort(
-        (a, b) =>
-          new Date(a.CreatedAt).getTime() - new Date(b.CreatedAt).getTime()
+        (a, b) => new Date(a.CreatedAt).getTime() - new Date(b.CreatedAt).getTime()
       );
 
       // Group messages by the day they were created
@@ -89,7 +87,7 @@ const useChannel = () => {
 
       const memberNations = channel.Name.split(',')
         .map(nation => nation.trim())
-        .filter(nation => nation.length > 0);
+        .filter(Boolean);
 
       const displayMembers = game?.Finished 
         ? memberNations 
@@ -97,10 +95,8 @@ const useChannel = () => {
 
       return {
         messages: groupedMessages,
-        displayName: memberNations  // Use full list for display name
-          .map((nation) => variant.Nations[nation] || nation)
-          .join(', '),
-        members: displayMembers,  // Use filtered list for avatars
+        displayName: memberNations.map(nation => variant.Nations[nation] || nation).join(', '),
+        members: displayMembers,
       };
     }
   );
