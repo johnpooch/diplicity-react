@@ -155,9 +155,9 @@ const Channel: React.FC = () => {
             height: "100%",
           }}
         >
-          <ListSubheader sx={styles.listSubheader}>
-            {data.displayName}
-          </ListSubheader>
+          {/* <ListSubheader sx={styles.listSubheader}>
+                  {data.displayName}
+                </ListSubheader> */}
           <Stack ref={listRef} sx={{ flexGrow: 1, overflowY: "auto" }}>
             <List disablePadding>
               {Object.keys(data.messages).map((date) => (
