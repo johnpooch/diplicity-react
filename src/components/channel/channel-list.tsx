@@ -34,26 +34,31 @@ const useChannelList = () => {
   const listChannelsQuery = service.endpoints.listChannels.useQuery(gameId);
   const getVariantQuery = useGetVariantQuery(gameId);
   const getUserMemberQuery = useGetUserMemberQuery(gameId);
-
+  const gameDetailQuery = service.endpoints.getGame.useQuery(gameId);
   const query = mergeQueries(
-    [getUserMemberQuery, getVariantQuery, listChannelsQuery],
-    (member, variant, channels) => {
+    [getUserMemberQuery, getVariantQuery, listChannelsQuery, gameDetailQuery],
+    (member, variant, channels, game) => {
       const sortedChannels = [...channels].sort((a, b) => {
         const aDate = new Date(a.LatestMessage.CreatedAt);
         const bDate = new Date(b.LatestMessage.CreatedAt);
         return bDate.getTime() - aDate.getTime();
       });
       return sortedChannels.map((channel) => {
-        // Split by comma and trim whitespace, then filter out empty strings
         const memberNations = channel.Name.split(',')
           .map(nation => nation.trim())
           .filter(nation => nation.length > 0);
+
+        const displayMembers = game?.Finished 
+          ? memberNations 
+          : memberNations.filter(nation => nation !== member?.Nation);
         
         return {
           name: channel.Name,
-          displayName: getChannelDisplayName(channel, variant, member),
+          displayName: displayMembers  // Use the same filtered list for display name
+            .map((nation) => variant.Nations[nation] || nation)
+            .join(', '),
           avatar: "",
-          members: memberNations,
+          members: displayMembers,  // Use the same filtered list for avatars
           messagePreview: channel.LatestMessage.Body,
         };
       });
