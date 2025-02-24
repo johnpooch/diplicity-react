@@ -6,6 +6,7 @@ import { service, useGetVariantQuery, mergeQueries } from "../../common";
 import { useGetUserMemberQuery } from "../../common/hooks/useGetUserMemberQuery";
 import { QueryContainer } from "../../components";
 import { getChannelDisplayName } from "../../util";
+import { ChannelAvatarGroup } from "./channel-avatar-group";
 
 const styles: Styles = {
   listItemText: {
@@ -43,11 +44,16 @@ const useChannelList = () => {
         return bDate.getTime() - aDate.getTime();
       });
       return sortedChannels.map((channel) => {
+        // Split by comma and trim whitespace, then filter out empty strings
+        const memberNations = channel.Name.split(',')
+          .map(nation => nation.trim())
+          .filter(nation => nation.length > 0);
+        
         return {
           name: channel.Name,
           displayName: getChannelDisplayName(channel, variant, member),
           avatar: "",
-          members: channel.Members,
+          members: memberNations,
           messagePreview: channel.LatestMessage.Body,
         };
       });
@@ -87,7 +93,7 @@ const ChannelList: React.FC = () => {
             >
               <ListItemButton sx={styles.listItemButton} onClick={() => handleChannelClick(channel.name)}>
               <ListItemAvatar sx={styles.Avatar}>
-                  <Avatar>{channel.displayName[0]}</Avatar>
+                  <ChannelAvatarGroup displayNames={channel.members} />
                 </ListItemAvatar>
                 <ListItemText
                   sx={styles.listItemText}
