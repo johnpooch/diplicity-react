@@ -116,7 +116,15 @@ const useChannel = () => {
 
   const closed = channelName.includes("Diplicity");
 
-  return { query, message, setMessage, handleSubmit, isSubmitting, closed };
+  return { 
+    query, 
+    message, 
+    setMessage, 
+    handleSubmit, 
+    isSubmitting, 
+    closed,
+    displayName: query.data?.displayName 
+  };
 };
 
 const displayTime = (date: Date) => {
@@ -219,4 +227,4 @@ const ChannelTextField: React.FC = () => {
   );
 };
 
-export { Channel, ChannelTextField };
+export { Channel, ChannelTextField, useChannel };
