@@ -5,6 +5,7 @@ interface ChannelAvatarGroupProps {
   displayNames: string[];
   variant?: {
     Flags: Record<string, string>;
+    Colors: Record<string, string>;
   };
 }
 
@@ -48,7 +49,7 @@ const ChannelAvatarGroup: React.FC<ChannelAvatarGroupProps> = ({ displayNames, v
         gap: 0,
         gridTemplateColumns: `repeat(${columns}, 1fr)`,
         gridTemplateRows: `repeat(${rows}, 1fr)`,
-        backgroundColor: "#f0f0f0",
+        backgroundColor: "#000",
         border: "1px solid rgba(0, 0, 0, 0.87)",
         alignItems: "center",
         justifyItems: "center",
@@ -64,7 +65,7 @@ const ChannelAvatarGroup: React.FC<ChannelAvatarGroupProps> = ({ displayNames, v
             width: `${avatarSize}px`,
             height: `${avatarSize}px`,
             fontSize: `${avatarSize / 2}px`,
-            bgcolor: `hsl(${(index * 137.5) % 360}, 70%, 45%)`,
+            bgcolor: variant?.Colors[name] || `hsl(${(index * 137.5) % 360}, 70%, 45%)`,
             gridColumn: getGridColumn(index),
           }}
         >
