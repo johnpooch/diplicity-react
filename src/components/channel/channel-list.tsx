@@ -43,22 +43,29 @@ const useChannelList = () => {
         const bDate = new Date(b.LatestMessage.CreatedAt);
         return bDate.getTime() - aDate.getTime();
       });
+
       return sortedChannels.map((channel) => {
         const memberNations = channel.Name.split(',')
           .map(nation => nation.trim())
-          .filter(nation => nation.length > 0);
+          .filter(nation => nation.length > 0)
+          .filter(nation => nation !== "Diplicity");
 
         const displayMembers = game?.Finished 
           ? memberNations 
           : memberNations.filter(nation => nation !== member?.Nation);
+
+        // Check if this is a public press channel
+        const isPublicPress = game?.Finished 
+          ? memberNations.length === Object.keys(variant.Nations).length
+          : memberNations.includes(member?.Nation) && memberNations.length === Object.keys(variant.Nations).length;
         
         return {
           name: channel.Name,
-          displayName: displayMembers  // Use the same filtered list for display name
+          displayName: isPublicPress ? "Public Press" : displayMembers
             .map((nation) => variant.Nations[nation] || nation)
             .join(', '),
           avatar: "",
-          members: displayMembers,  // Use the same filtered list for avatars
+          members: displayMembers,
           messagePreview: channel.LatestMessage.Body,
         };
       });
