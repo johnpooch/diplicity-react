@@ -15,3 +15,4 @@ export * from "./useLeaveGameMutation";
 export * from "./useUpdatePhaseStateMutation";
 export * from "./useMap";
 export * from "./useGetUserMemberQuery";
+export * from "./useListHydratedOptionsQuery"
