@@ -11,14 +11,13 @@ import {
     Ban,
     UserRatingHistogram,
     Corroboration,
-    Options,
     ApiResponse,
     ForumMail,
     ListApiResponse,
 } from "./service.types";
 import { selectAuth } from "./auth";
 import { z } from "zod";
-import { gameSchema, getGameSchema, listGamesSchema, listOrdersSchema, listPhasesSchema, listPhaseStatesSchema, listMessagesSchema, listChannelsSchema, createMessageSchema, listVariantsSchema } from "../schema";
+import { gameSchema, getGameSchema, listGamesSchema, listOrdersSchema, listPhasesSchema, listPhaseStatesSchema, listMessagesSchema, listChannelsSchema, createMessageSchema, listVariantsSchema, listOptionsSchema } from "../schema";
 
 const apiResponseSchema = <TObjSchema extends z.ZodRawShape>(schema: z.ZodObject<TObjSchema>) => z.object({
     Properties: schema,
@@ -219,10 +218,13 @@ const service = createApi({
             },
             providesTags: [TagType.Orders]
         }),
-        listOptions: builder.query<Options, { gameId: string; phaseId: string }>({
+        listOptions: builder.query({
             query: ({ gameId, phaseId }) =>
                 `/Game/${gameId}/Phase/${phaseId}/Options`,
-            transformResponse: extractProperties,
+            transformResponse: (response) => {
+                const parsed = listOptionsSchema.parse(response);
+                return extractProperties(parsed);
+            }
         }),
         createOrder: builder.mutation<
             ApiResponse<Corroboration>,

@@ -1,4 +1,4 @@
-import { Box, Stack } from "@mui/material";
+import { Box, Divider, Stack } from "@mui/material";
 
 const styles: Styles = {
   root: {
@@ -28,6 +28,7 @@ type ContentProps = {
 
 type FooterProps = {
   children: React.ReactNode;
+  divider?: boolean;
 };
 
 const Panel: React.FC<PanelProps> & {
@@ -42,7 +43,12 @@ const Content: React.FC<ContentProps> = (props) => {
 };
 
 const Footer: React.FC<FooterProps> = (props) => {
-  return <Stack sx={styles.footer}>{props.children}</Stack>;
+  return (
+    <>
+      {props.divider && <Divider />}
+      <Stack sx={styles.footer}>{props.children}</Stack>
+    </>
+  );
 };
 
 Panel.Content = Content;
