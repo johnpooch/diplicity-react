@@ -140,7 +140,7 @@ const styles: Styles = {
   },
   labelOptionsContainer: {
     width: "100%",
-    gap: 1,
+    gap: 0,
   },
   optionsContainer: {
     flexDirection: "row",
