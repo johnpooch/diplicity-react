@@ -48,7 +48,7 @@ const useCreateOrder = () => {
       if (orderType === "Support" || orderType === "Convoy") {
         return selectedOptions.length === 2
           ? `Select province to ${orderType.toLowerCase()}`
-          : "Select a destination";
+          : `Select order for ${orderType.toLowerCase()}ed province`;
       }
     }
     return "Select an option";
