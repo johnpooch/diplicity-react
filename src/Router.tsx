@@ -24,8 +24,7 @@ import {
   Map,
   CreateChannel,
   CreateChannelAction,
-  CreateChannelTetxField,
-  CreateChannelContextProvider,
+  CreateChannelTextField,
   GameMenu,
   OrderList,
 } from "./components";
@@ -35,6 +34,7 @@ import { GameName } from "./components/game-detail/game-name";
 import { GameDetailContextProvider } from "./context";
 import { CreateOrder } from "./components/orders/create-order";
 import { CreateOrderContextProvider } from "./context/create-order-context";
+import { CreateChannelContextProvider } from "./context/create-channel-context-provider";
 
 const Router: React.FC = () => {
   const { loggedIn } = useSelector(selectAuth);
@@ -254,7 +254,7 @@ const Router: React.FC = () => {
                         <CreateChannel />
                       </Panel.Content>
                       <Panel.Footer>
-                        <CreateChannelTetxField />
+                        <CreateChannelTextField />
                       </Panel.Footer>
                     </Panel>
                   </CreateChannelContextProvider>
@@ -406,7 +406,7 @@ const Router: React.FC = () => {
                         <CreateChannel />
                       </Panel.Content>
                       <Panel.Footer>
-                        <CreateChannelTetxField />
+                        <CreateChannelTextField />
                       </Panel.Footer>
                     </Panel>
                   </CreateChannelContextProvider>
