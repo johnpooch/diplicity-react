@@ -175,7 +175,22 @@ const service = createApi({
                 `/Game/${gameId}/Channel/${channelId}/Messages`,
             transformResponse: (response) => {
                 const parsed = listMessagesSchema.parse(response);
-                return extractPropertiesList(parsed);
+                const messages = extractPropertiesList(parsed);
+                const sortedMessages = messages.sort((a, b) => {
+                    return new Date(a.CreatedAt).getTime() - new Date(b.CreatedAt).getTime();
+                });
+
+                // Group messages by the day they were created
+                const groupedMessages = sortedMessages.reduce((acc, message) => {
+                    const date = new Date(message.CreatedAt).toLocaleDateString();
+                    if (!acc[date]) {
+                        acc[date] = [];
+                    }
+                    acc[date].push(message);
+                    return acc;
+                }, {} as Record<string, typeof messages>);
+
+                return groupedMessages;
             },
             providesTags: [TagType.Messages],
         }),
@@ -205,7 +220,12 @@ const service = createApi({
             query: (gameId) => `/Game/${gameId}/Channels`,
             transformResponse: (response) => {
                 const parsed = listChannelsSchema.parse(response);
-                return extractPropertiesList(parsed);
+                const channels = extractPropertiesList(parsed);
+                return channels.sort((a, b) => {
+                    const aDate = new Date(a.LatestMessage.CreatedAt);
+                    const bDate = new Date(b.LatestMessage.CreatedAt);
+                    return bDate.getTime() - aDate.getTime();
+                });
             },
             providesTags: [TagType.Channels],
         }),

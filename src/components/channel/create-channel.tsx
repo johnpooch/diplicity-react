@@ -7,78 +7,18 @@ import {
   ListItemAvatar,
   Avatar,
   ListItemText,
-  TextField,
-  IconButton,
 } from "@mui/material";
-import { Send as SendIcon } from "@mui/icons-material";
 import React from "react";
-import { useNavigate } from "react-router";
-import { service, mergeQueries, useGetVariantQuery } from "../../common";
-import { useGameDetailContext } from "../../context";
 import { QueryContainer } from "../query-container";
+import { useListOtherMembersQuery } from "../../common/hooks/use-list-other-members";
+import { useCreateChannelMutation } from "../../common/hooks/use-create-channel-mutation";
+import { useCreateChannelContext } from "../../common/context/create-channel-context";
 
-type CreateChannelContextType = {
-  selectedMembers: string[];
-  setSelectedMembers: React.Dispatch<React.SetStateAction<string[]>>;
-};
-
-const CreateChannelContext = React.createContext<
-  CreateChannelContextType | undefined
->(undefined);
-
-const CreateChannelContextProvider: React.FC<{
-  children: React.ReactNode;
-}> = ({ children }) => {
-  const [selectedMembers, setSelectedMembers] = React.useState<string[]>([]);
-
-  return (
-    <CreateChannelContext.Provider
-      value={{ selectedMembers, setSelectedMembers }}
-    >
-      {children}
-    </CreateChannelContext.Provider>
-  );
-};
-
-const useCreateChannel = () => {
-  const { gameId } = useGameDetailContext();
-  const { selectedMembers, setSelectedMembers } = React.useContext(
-    CreateChannelContext
-  ) as CreateChannelContextType;
-  const [message, setMessage] = React.useState("");
-  const getRootQuery = service.endpoints.getRoot.useQuery(undefined);
-  const getGameQuery = service.endpoints.getGame.useQuery(gameId);
-  const getVariantQuery = useGetVariantQuery(gameId);
-  const [createMessage, createMessageMutation] =
-    service.endpoints.createMessage.useMutation();
-
-  const query = mergeQueries(
-    [getVariantQuery, getRootQuery, getGameQuery],
-    (variant, user, game) => {
-      return {
-        userNation: game.Members.find((member) => member.User.Id === user.Id)
-          ?.Nation,
-        members: game.Members.filter(
-          (member) => member.User.Id !== user.Id
-        ).map((member) => {
-          return {
-            ...member,
-            flag: variant.Flags[member.Nation],
-          };
-        }),
-      };
-    }
-  );
-
-  const handleSubmit = async () => {
-    if (!query.data) throw new Error("Data is not available yet");
-    if (!query.data.userNation) throw new Error("User nation is not available");
-    return createMessage({
-      gameId: gameId,
-      ChannelMembers: [...selectedMembers, query.data.userNation],
-      Body: message,
-    });
-  };
+const CreateChannel: React.FC = () => {
+  const { query } = useListOtherMembersQuery();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_, createChannelMutation] = useCreateChannelMutation();
+  const { selectedMembers, setSelectedMembers } = useCreateChannelContext();
 
   const handleToggle = (memberId: string) => {
     setSelectedMembers((prevSelected) =>
@@ -88,34 +28,13 @@ const useCreateChannel = () => {
     );
   };
 
-  const isSubmitting = createMessageMutation.isLoading;
-
-  return {
-    query,
-    handleSubmit,
-    message,
-    setMessage,
-    selectedMembers,
-    handleToggle,
-    isSubmitting,
-  };
-};
-
-const CreateChannel: React.FC = () => {
-  const { query, selectedMembers, handleToggle, isSubmitting } =
-    useCreateChannel();
+  const isSubmitting = createChannelMutation.isLoading;
 
   return (
     <QueryContainer query={query}>
       {(data) => (
-        <Stack
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            height: "100%",
-          }}
-        >
-          <Stack sx={{ flexGrow: 1 }}>
+        <Stack sx={styles.container}>
+          <Stack sx={styles.listContainer}>
             <List>
               {data.members.map((member) => (
                 <ListItem
@@ -152,41 +71,13 @@ const CreateChannel: React.FC = () => {
   );
 };
 
-const CreateChannelTetxField: React.FC = () => {
-  const { gameId } = useGameDetailContext();
-  const navigate = useNavigate();
-
-  const { message, setMessage, handleSubmit, isSubmitting, selectedMembers } =
-    useCreateChannel();
-
-  const handleSubmitAndRedirect = async () => {
-    const response = await handleSubmit();
-    if (response.data) {
-      const channelName = response.data.ChannelMembers.join(",");
-      navigate(`/game/${gameId}/chat/channel/${channelName}`);
-    }
-  };
-
-  return (
-    <Stack sx={{ gap: 1, width: "100%" }} direction="row">
-      <TextField
-        label="Type a message"
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        fullWidth
-        disabled={isSubmitting}
-      />
-      <IconButton
-        sx={{ width: 56 }}
-        disabled={
-          selectedMembers.length === 0 || message === "" || isSubmitting
-        }
-        onClick={handleSubmitAndRedirect}
-      >
-        <SendIcon />
-      </IconButton>
-    </Stack>
-  );
+const styles = {
+  container: {
+    height: "100%",
+  },
+  listContainer: {
+    flexGrow: 1,
+  },
 };
 
-export { CreateChannel, CreateChannelTetxField, CreateChannelContextProvider };
+export { CreateChannel };

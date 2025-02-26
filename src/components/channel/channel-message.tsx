@@ -1,21 +1,35 @@
 import { Avatar, Stack, Typography } from "@mui/material";
 
-type ChannelMessageProps = {
-  name: string;
-  message: string;
-  date: string;
-  showAvatar: boolean;
-  avatar: string;
-  color: string;
-  isUser: boolean;
-};
-
 const EMPTY_AVATAR_WIDTH = 40;
 const TWENTY_PERCENT_OPACITY_HEX_SUFFIX = "33";
 const BORDER_RADIUS = "16px";
 const USER_BORDER_RADIUS = `${BORDER_RADIUS} ${BORDER_RADIUS} ${BORDER_RADIUS} 0`;
 const NON_USER_BORDER_RADIUS = `${BORDER_RADIUS} ${BORDER_RADIUS} 0 ${BORDER_RADIUS}`;
 const FALLBACK_BORDER_COLOR = "#a9a9a9";
+
+/**
+ * A chat message.
+ */
+const ChannelMessage: React.FC<ChannelMessageProps> = (props) => {
+  const styles = createStyles(props);
+  return (
+    <Stack sx={styles.container}>
+      {props.showAvatar ? (
+        <Avatar src={props.avatar} />
+      ) : (
+        <Stack sx={styles.emptyAvatar} />
+      )}
+      <Stack sx={styles.messageAndDate}>
+        <Stack sx={styles.message}>
+          <Typography variant="body2">{props.name}</Typography>
+          <Typography>{props.message}</Typography>
+        </Stack>
+        <Typography variant="caption">{props.date}</Typography>
+      </Stack>
+      <Stack sx={styles.emptyAvatar} />
+    </Stack>
+  );
+};
 
 const colorIsVeryLight = (color: string): boolean => {
   const hex = color.replace("#", "");
@@ -49,26 +63,14 @@ const createStyles = (props: ChannelMessageProps): Styles => ({
   },
 });
 
-const ChannelMessage: React.FC<ChannelMessageProps> = (props) => {
-  const styles = createStyles(props);
-  return (
-    <Stack sx={styles.container}>
-      {props.showAvatar ? (
-        <Avatar src={props.avatar} />
-      ) : (
-        <Stack sx={styles.emptyAvatar} />
-      )}
-      <Stack sx={styles.messageAndDate}>
-        <Stack sx={styles.message}>
-          <Typography variant="body2">{props.name}</Typography>
-          <Typography>{props.message}</Typography>
-        </Stack>
-        <Typography variant="caption">{props.date}</Typography>
-      </Stack>
-      <Stack sx={styles.emptyAvatar} />
-      {/* Message text */}
-    </Stack>
-  );
+type ChannelMessageProps = {
+  name: string;
+  message: string;
+  date: string;
+  showAvatar: boolean;
+  avatar: string;
+  color: string;
+  isUser: boolean;
 };
 
 export { ChannelMessage };

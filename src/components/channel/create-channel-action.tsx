@@ -3,13 +3,9 @@ import { Add as CreateChannelIcon } from "@mui/icons-material";
 import { useNavigate } from "react-router";
 import { useGameDetailContext } from "../../context";
 
-const styles: Styles = {
-  root: {
-    flexDirection: "row",
-    gap: 1,
-  },
-};
-
+/**
+ * Button to open the create channel dialog.
+ */
 const CreateChannelAction: React.FC = () => {
   const { gameId } = useGameDetailContext();
   const navigate = useNavigate();
@@ -25,6 +21,13 @@ const CreateChannelAction: React.FC = () => {
       </Fab>
     </Stack>
   );
+};
+
+const styles: Styles = {
+  root: {
+    flexDirection: "row",
+    gap: 1,
+  },
 };
 
 export { CreateChannelAction };
