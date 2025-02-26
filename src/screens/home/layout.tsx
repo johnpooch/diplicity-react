@@ -118,9 +118,10 @@ const HomeLayout: React.FC = () => {
   return (
     <>
       {isMobile ? (
-        <>
-          <Outlet />
-          <Stack sx={{ height: 56 }} />
+        <Stack sx={{ width: "100%", height: "100vh", position: "relative" }}>
+          <Stack sx={{ width: "100%", overflow: "auto", pb: 7 }}>
+            <Outlet />
+          </Stack>
           <AppBar position="fixed" color="primary" sx={styles.mobileAppBar}>
             <BottomNavigation
               value={navigation}
@@ -136,7 +137,7 @@ const HomeLayout: React.FC = () => {
               ))}
             </BottomNavigation>
           </AppBar>
-        </>
+        </Stack>
       ) : (
         <Stack sx={styles.largeRoot}>
           <Grid2 container sx={styles.largeContentContainer}>
