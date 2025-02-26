@@ -33,12 +33,20 @@ const GameDetailSecondaryScreenLayout: React.FC<
 > = (props) => {
   const { gameId } = useGameDetailContext();
   const navigate = useNavigate();
-  const { channelName } = useChannelContext();
-  const { query } = useChannel();
   
-  const title = channelName 
-    ? query.data?.displayName
-    : props.title;
+  // Wrap channel-related hooks in try-catch to make them optional
+  let channelTitle;
+  try {
+    const { channelName } = useChannelContext();
+    const { query } = useChannel();
+    if (channelName) {
+      channelTitle = query.data?.displayName;
+    }
+  } catch {
+    // Context not available, that's fine
+  }
+  
+  const title = channelTitle ?? props.title;
 
   return (
     <Stack sx={styles.root}>

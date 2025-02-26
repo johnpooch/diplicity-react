@@ -17,6 +17,18 @@ import { service, mergeQueries, useGetVariantQuery } from "../../common";
 import { useGameDetailContext } from "../../context";
 import { QueryContainer } from "../query-container";
 
+const styles = {
+  list: {
+    padding: 0
+  },
+  listItem: {
+    padding: 0
+  },
+  listItemButton: {
+    padding: "0 16px",
+  }
+} as const;
+
 type CreateChannelContextType = {
   selectedMembers: string[];
   setSelectedMembers: React.Dispatch<React.SetStateAction<string[]>>;
@@ -51,7 +63,7 @@ const useCreateChannel = () => {
   const getVariantQuery = useGetVariantQuery(gameId);
   const [createMessage, createMessageMutation] =
     service.endpoints.createMessage.useMutation();
-
+// Update the query mergeQueries to include colors
   const query = mergeQueries(
     [getVariantQuery, getRootQuery, getGameQuery],
     (variant, user, game) => {
@@ -64,6 +76,7 @@ const useCreateChannel = () => {
           return {
             ...member,
             flag: variant.Flags[member.Nation],
+            color: variant.Colors[member.Nation],
           };
         }),
       };
@@ -116,9 +129,10 @@ const CreateChannel: React.FC = () => {
           }}
         >
           <Stack sx={{ flexGrow: 1 }}>
-            <List>
+            <List sx={styles.list}>
               {data.members.map((member) => (
                 <ListItem
+                  sx={styles.listItem}
                   key={member.Nation}
                   secondaryAction={
                     <Checkbox
@@ -131,11 +145,19 @@ const CreateChannel: React.FC = () => {
                   }
                 >
                   <ListItemButton
+                    sx={styles.listItemButton}
                     disableRipple
                     onClick={() => handleToggle(member.Nation)}
                   >
                     <ListItemAvatar>
-                      <Avatar src={member.flag}>{member.Nation[0]}</Avatar>
+                      <Avatar 
+                        src={member.flag} 
+                        sx={{ 
+                          border: `1px solid ${member.color}`,
+                        }}
+                      >
+                        {member.Nation[0]}
+                      </Avatar>
                     </ListItemAvatar>
                     <ListItemText
                       primary={member.Nation}
