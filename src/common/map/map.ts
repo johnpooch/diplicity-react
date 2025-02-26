@@ -115,7 +115,7 @@ class MapEditor implements IMapEditor {
 
     private static readonly UNIT_OPACITY = "1";
     private static readonly UNIT_STROKE = "#000000";
-    private static readonly UNIT_STROKE_WIDTH = "3";
+    private static readonly UNIT_STROKE_WIDTH = "2";
 
     private static readonly ARMY_X_OFFSET = 35;
     private static readonly ARMY_Y_OFFSET = 25;
