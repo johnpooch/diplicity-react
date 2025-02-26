@@ -161,20 +161,42 @@ const CreateOrder: React.FC = () => {
               </IconButton>
             </Stack>
             <Stack sx={styles.optionGroupsContainer}>
+              {console.log(data)}
               {data.map((optionGroup, index) => (
                 <Stack key={index} sx={styles.labelOptionsContainer}>
                   <Typography variant="caption">{optionGroup.label}</Typography>
                   <Stack sx={styles.optionsContainer}>
-                    {optionGroup.options.map((option) => (
-                      <Button
-                        key={option.key}
-                        variant={option.selected ? "contained" : "outlined"}
-                        onClick={() => handleChange(option.key, index)}
-                        disabled={isSubmitting}
-                      >
-                        {option.label}
-                      </Button>
-                    ))}
+                    {optionGroup.options
+                      .sort((a, b) => {
+                        const previousSelectedOption = index > 0 
+                          ? data[index - 1].options.find(opt => opt.selected) 
+                          : null;
+                        
+                        // If option a matches previous selection, it should come first
+                        if (a.label === previousSelectedOption?.label) return -1;
+                        // If option b matches previous selection, it should come first
+                        if (b.label === previousSelectedOption?.label) return 1;
+                        // Otherwise maintain original order
+                        return 0;
+                      })
+                      .map((option) => {
+                        const previousGroup = index > 0 ? data[index - 1] : null;
+                        const previousSelectedOption = previousGroup?.options.find(opt => opt.selected);
+                        
+                        const displayLabel = previousSelectedOption?.label === option.label 
+                          ? 'Hold' 
+                          : option.label;
+                        return (
+                          <Button
+                            key={option.key}
+                            variant={option.selected ? "contained" : "outlined"}
+                            onClick={() => handleChange(option.key, index)}
+                            disabled={isSubmitting}
+                          >
+                            {displayLabel}
+                          </Button>
+                        );
+                    })}
                   </Stack>
                 </Stack>
               ))}
