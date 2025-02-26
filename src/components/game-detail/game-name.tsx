@@ -9,7 +9,7 @@ const GameName: React.FC = () => {
 
   return (
     <QueryContainer query={getGameQuery} onRenderLoading={() => <></>}>
-      {(data) => <Typography variant="h1">{data.Desc}</Typography>}
+      {(data) => <Typography variant="h1"> {data.Desc.charAt(0).toUpperCase() + data.Desc.slice(1)}</Typography>}
     </QueryContainer>
   );
 };
