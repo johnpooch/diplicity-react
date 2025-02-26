@@ -26,12 +26,12 @@ const OrderSummaryChip: React.FC<{ label: string }> = ({ label }) => (
 
 const OrderSummaryText: React.FC<{ children: React.ReactNode }> = ({
   children,
-}) => <Typography>{children}</Typography>;
+}) => <Typography sx={{ flexShrink: 0 }}>{children}</Typography>;
 
 const OrderSummaryContainer: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => (
-  <Stack direction="row" alignItems="center" gap={1}>
+  <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
     {children}
   </Stack>
 );
@@ -105,7 +105,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = (props) => {
               {unitType} {source}
             </OrderSummaryText>
             <OrderSummaryChip label="support" />
-            <OrderSummaryText>{aux} to</OrderSummaryText>
+            <OrderSummaryText>{aux}</OrderSummaryText>
             <OrderSummaryChip label="hold" />
           </OrderSummaryContainer>
         ) : (
@@ -115,7 +115,10 @@ const OrderSummary: React.FC<OrderSummaryProps> = (props) => {
             </OrderSummaryText>
             <OrderSummaryChip label="support" />
             <OrderSummaryText>
-              {aux} to {destination}
+              {aux}
+              </OrderSummaryText>
+              <OrderSummaryChip label="to" />
+              <OrderSummaryText>{destination}
             </OrderSummaryText>
           </OrderSummaryContainer>
         );
