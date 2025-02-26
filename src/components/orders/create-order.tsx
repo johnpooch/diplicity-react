@@ -161,7 +161,6 @@ const CreateOrder: React.FC = () => {
               </IconButton>
             </Stack>
             <Stack sx={styles.optionGroupsContainer}>
-              {console.log(data)}
               {data.map((optionGroup, index) => (
                 <Stack key={index} sx={styles.labelOptionsContainer}>
                   <Typography variant="caption">{optionGroup.label}</Typography>
