@@ -37,16 +37,19 @@ const styles: Styles = {
     gap: 2,
   },
   mapPanel: {
-    flex: 2,
-    height: "100%",
+    flex: "0 0 60%",
+    maxWidth: "1400px",
+    height: "fit-content",
     justifyContent: "center",
     borderRadius: 2,
-    gap: 2,
+    gap: 0,
   },
   actionPanel: {
     flex: 1,
     boxShadow: 4,
     borderRadius: 2,
+    height: "fit-content",
+    minHeight: "100%",
   },
   phaseSelectContainer: {
     alignItems: "center",

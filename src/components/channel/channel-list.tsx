@@ -1,23 +1,32 @@
 import React from "react";
-import { List, ListItem, ListItemButton, ListItemText } from "@mui/material";
+import { List, ListItem, ListItemButton, ListItemText, ListItemAvatar, Avatar } from "@mui/material";
 import { useLocation, useNavigate } from "react-router";
 import { useGameDetailContext } from "../../context";
 import { service, useGetVariantQuery, mergeQueries } from "../../common";
 import { useGetUserMemberQuery } from "../../common/hooks/useGetUserMemberQuery";
 import { QueryContainer } from "../../components";
 import { getChannelDisplayName } from "../../util";
+import { ChannelAvatarGroup } from "./channel-avatar-group";
 
 const styles: Styles = {
   listItemText: {
+    margin: "0px",
     "& .MuiListItemText-secondary": {
       overflowY: "hidden",
       textOverflow: "ellipsis",
       // whiteSpace: "nowrap",
+
     },
   },
   selectedListItem: (theme) => ({
     backgroundColor: theme.palette.action.selected,
   }),
+  listItemButton: {
+    alignItems: "flex-start",
+  },
+  Avatar: {
+    marginTop: "4px",
+  },
 };
 
 const useChannelList = () => {
@@ -25,27 +34,48 @@ const useChannelList = () => {
   const listChannelsQuery = service.endpoints.listChannels.useQuery(gameId);
   const getVariantQuery = useGetVariantQuery(gameId);
   const getUserMemberQuery = useGetUserMemberQuery(gameId);
-
+  const gameDetailQuery = service.endpoints.getGame.useQuery(gameId);
   const query = mergeQueries(
-    [getUserMemberQuery, getVariantQuery, listChannelsQuery],
-    (member, variant, channels) => {
+    [getUserMemberQuery, getVariantQuery, listChannelsQuery, gameDetailQuery],
+    (member, variant, channels, game) => {
       const sortedChannels = [...channels].sort((a, b) => {
         const aDate = new Date(a.LatestMessage.CreatedAt);
         const bDate = new Date(b.LatestMessage.CreatedAt);
         return bDate.getTime() - aDate.getTime();
       });
+
       return sortedChannels.map((channel) => {
+        const memberNations = channel.Name.split(',')
+          .map(nation => nation.trim())
+          .filter(nation => nation.length > 0)
+          .filter(nation => nation !== "Diplicity");
+
+        const allNationsCount = Object.keys(variant.Nations).length;
+        const isPublicPress = memberNations.length === allNationsCount && 
+          (game?.Finished || memberNations.includes(member?.Nation));
+
+        const displayMembers = game?.Finished 
+          ? memberNations 
+          : memberNations.filter(nation => nation !== member?.Nation);
+        
         return {
           name: channel.Name,
-          displayName: getChannelDisplayName(channel, variant, member),
+          displayName: isPublicPress ? "Public Press" : displayMembers
+            .map((nation) => variant.Nations[nation] || nation)
+            .join(', '),
           avatar: "",
-          members: channel.Members,
+          members: displayMembers,
           messagePreview: channel.LatestMessage.Body,
+          variant, // Add variant to the return object
         };
       });
     }
   );
   return { query };
+};
+
+const truncateText = (text: string, maxLength: number) => {
+  return text.length > maxLength ? `${text.slice(0, maxLength)}...` : text;
 };
 
 const ChannelList: React.FC = () => {
@@ -73,11 +103,17 @@ const ChannelList: React.FC = () => {
                 selectedChannel === channel.name ? styles.selectedListItem : {}
               }
             >
-              <ListItemButton onClick={() => handleChannelClick(channel.name)}>
+              <ListItemButton sx={styles.listItemButton} onClick={() => handleChannelClick(channel.name)}>
+              <ListItemAvatar sx={styles.Avatar}>
+                <ChannelAvatarGroup 
+                  displayNames={channel.members} 
+                  variant={channel.variant}
+                />
+              </ListItemAvatar>
                 <ListItemText
                   sx={styles.listItemText}
                   primary={channel.displayName}
-                  secondary={channel.messagePreview}
+                  secondary={truncateText(channel.messagePreview, 90)}
                 />
               </ListItemButton>
             </ListItem>

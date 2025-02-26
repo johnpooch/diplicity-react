@@ -8,9 +8,11 @@ const styles: Styles = {
   content: {
     flexGrow: 1,
     overflowY: "auto",
+
   },
   footer: {
     height: "auto",
+    flexShrink: 0,
     padding: 1,
     alignItems: "flex-end",
   },

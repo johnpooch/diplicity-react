@@ -18,8 +18,9 @@ import { ChannelMessage } from "./channel-message";
 
 const styles: Styles = {
   listSubheader: (theme) => ({
-    borderBottom: `1px solid ${theme.palette.divider}`,
+    borderBottom: `0px solid ${theme.palette.divider}`,
     textAlign: "center",
+    lineHeight: "32px",
   }),
   listItemTextDate: (theme) => ({
     fontSize: theme.typography.caption.fontSize,
@@ -43,39 +44,23 @@ const useChannel = () => {
   const { channelName } = useChannelContext();
 
   const [message, setMessage] = React.useState("");
-
-  const [createMessage, createMessageMutation] =
-    service.endpoints.createMessage.useMutation();
+  const [createMessage, createMessageMutation] = service.endpoints.createMessage.useMutation();
 
   const getChannelQuery = useGetChannelQuery(gameId, channelName);
   const getVariantQuery = useGetVariantQuery(gameId);
   const getUserMemberQuery = useGetUserMemberQuery(gameId);
+  const gameDetailQuery = service.endpoints.getGame.useQuery(gameId);
   const listMessagesQuery = service.endpoints.listMessages.useQuery({
     gameId: gameId,
     channelId: channelName,
   });
 
-  const isSubmitting = createMessageMutation.isLoading;
-
-  const handleSubmit = async () => {
-    const result = await createMessage({
-      gameId: gameId,
-      ChannelMembers: channelName.split(","),
-      Body: message,
-    });
-    if (result.data) {
-      setMessage("");
-    }
-  };
-
   const query = mergeQueries(
-    [getUserMemberQuery, getVariantQuery, getChannelQuery, listMessagesQuery],
-    (member, variant, channel, messages) => {
+    [getUserMemberQuery, getVariantQuery, getChannelQuery, listMessagesQuery, gameDetailQuery],
+    (member, variant, channel, messages, game) => {
       const messagesCopy = [...messages];
-
       const sortedMessages = messagesCopy.sort(
-        (a, b) =>
-          new Date(a.CreatedAt).getTime() - new Date(b.CreatedAt).getTime()
+        (a, b) => new Date(a.CreatedAt).getTime() - new Date(b.CreatedAt).getTime()
       );
 
       // Group messages by the day they were created
@@ -95,21 +80,51 @@ const useChannel = () => {
           flag:
             message.Sender === "Diplicity"
               ? "/otto.png"
-              : variant.Flags[message.Sender], // Note, Flags isn't always defined for a variant either!
+              : variant.Flags[message.Sender],
         });
         return acc;
       }, {} as Record<string, { body: string; sender: { name: string; color: string; isUser: boolean }; date: Date; flag: string }[]>);
 
+      const memberNations = channel.Name.split(',')
+        .map(nation => nation.trim())
+        .filter(Boolean);
+
+      const displayMembers = game?.Finished 
+        ? memberNations 
+        : memberNations.filter(nation => nation !== member?.Nation);
+
       return {
         messages: groupedMessages,
-        displayName: getChannelDisplayName(channel, variant, member),
+        displayName: memberNations.map(nation => variant.Nations[nation] || nation).join(', '),
+        members: displayMembers,
       };
     }
   );
 
+  const isSubmitting = createMessageMutation.isLoading;
+
+  const handleSubmit = async () => {
+    const result = await createMessage({
+      gameId: gameId,
+      ChannelMembers: channelName.split(","),
+      Body: message,
+    });
+    if (result.data) {
+      setMessage("");
+    }
+  };
+
   const closed = channelName.includes("Diplicity");
 
-  return { query, message, setMessage, handleSubmit, isSubmitting, closed };
+  return { 
+    query, 
+    message, 
+    setMessage, 
+    handleSubmit, 
+    isSubmitting, 
+    closed,
+    displayName: query.data?.displayName 
+  };
 };
 
 const displayTime = (date: Date) => {
@@ -140,6 +155,9 @@ const Channel: React.FC = () => {
             height: "100%",
           }}
         >
+          {/* <ListSubheader sx={styles.listSubheader}>
+                  {data.displayName}
+                </ListSubheader> */}
           <Stack ref={listRef} sx={{ flexGrow: 1, overflowY: "auto" }}>
             <List disablePadding>
               {Object.keys(data.messages).map((date) => (
@@ -209,4 +227,4 @@ const ChannelTextField: React.FC = () => {
   );
 };
 
-export { Channel, ChannelTextField };
+export { Channel, ChannelTextField, useChannel };
