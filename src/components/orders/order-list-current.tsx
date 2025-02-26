@@ -84,11 +84,16 @@ const OrderListCurrent: React.FC = () => {
                 <ListItem
                   key={order.key}
                   divider
+                  onClick={() => handleCreateOrder(order.key)}
                   secondaryAction={
-                    <IconButton onClick={() => handleCreateOrder(order.key)}>
+                    <IconButton >
                       <EditOrderIcon />
                     </IconButton>
                   }
+                  sx={{ 
+                    flexWrap: 'wrap',
+                    paddingRight: '48px' // Make space for the IconButton
+                  }}
                 >
                   <OrderSummary {...order} />
                 </ListItem>

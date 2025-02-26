@@ -34,8 +34,8 @@ const useCreateOrder = () => {
   const listOptionsQuery = useListHydratedOptionsQuery(gameId);
   const [selectedOptions, setSelectedOptions] = useState([source]);
 
+  const sourceFullName = listOptionsQuery.data?.[source]?.Name || source;
   const orderType = selectedOptions[1];
-
   const getLabel = (node: Node) => {
     const nodeType = Object.values(node)[0]?.Type;
     if (nodeType === "OrderType") {
@@ -53,12 +53,9 @@ const useCreateOrder = () => {
     }
     return "Select an option";
   };
-
   const query = mergeQueries([listOptionsQuery], (options) => {
     let currentNode = options[source].Next;
-
     const groupedOptions: GroupedOptions = [];
-
     selectedOptions.slice(1).forEach((step) => {
       // Convert the current node to an array of options and set selected option
       const options = Object.entries(currentNode)
@@ -75,7 +72,6 @@ const useCreateOrder = () => {
       // Advance to the next node
       currentNode = currentNode[step].Next;
     });
-
     // If there is a next node, add it to the transformed array
     if (Object.keys(currentNode).length > 0) {
       const nextOptions = Object.entries(currentNode).map(createOptionFromNode);
@@ -84,27 +80,21 @@ const useCreateOrder = () => {
         options: nextOptions,
       });
     }
-
     return groupedOptions;
   });
-
   const handleClose = () => {
     setSource(undefined);
   };
-
   const handleCreateOrder = async (order: string[]) => {
     await createOrder(order);
     setSource(undefined);
   };
-
   const handleChange = (selectedOption: string, level: number) => {
     const options = listOptionsQuery.data;
     if (!options) throw new Error("Option is not defined");
-
     const newSelectedOptions = selectedOptions.slice(0, level + 1);
     newSelectedOptions.push(selectedOption);
     setSelectedOptions(newSelectedOptions);
-
     // Check if there is a next node
     let currentNode = options[source].Next;
     newSelectedOptions.slice(1).forEach((step) => {
@@ -114,18 +104,26 @@ const useCreateOrder = () => {
       handleCreateOrder(newSelectedOptions);
     }
   };
-
   const isSubmitting = createOrderMutation.isLoading;
-
   return {
     query,
     handleCreateOrder,
     handleClose,
     handleChange,
     isSubmitting,
+    sourceFullName,
   };
 };
+// Add this type definition near the top of the file with other types
+type Styles = {
+  container: React.CSSProperties;
+  titleCloseContainer: React.CSSProperties;
+  optionGroupsContainer: React.CSSProperties;
+  labelOptionsContainer: React.CSSProperties;
+  optionsContainer: React.CSSProperties;
+};
 
+// Make sure this is defined before the CreateOrder component
 const styles: Styles = {
   container: {
     width: "100%",
@@ -149,17 +147,15 @@ const styles: Styles = {
     gap: 1,
   },
 };
-
 const CreateOrder: React.FC = () => {
-  const { query, handleClose, handleChange, isSubmitting } = useCreateOrder();
-
+  const { query, handleClose, handleChange, isSubmitting, sourceFullName } = useCreateOrder();
   return (
     <QueryContainer query={query} onRenderLoading={() => <></>}>
       {(data) => {
         return (
           <Stack sx={styles.container}>
             <Stack sx={styles.titleCloseContainer}>
-              <Typography>Create Order</Typography>
+              <Typography>Create order for {sourceFullName}</Typography>
               <IconButton onClick={handleClose}>
                 <CloseIcon />
               </IconButton>
