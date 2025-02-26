@@ -11,12 +11,12 @@ import {
   Map as MapIcon,
   Chat as ChatIcon,
   Gavel as OrdersIcon,
-  KeyboardBackspace as BackIcon,
+  ArrowBack as BackIcon,
 } from "@mui/icons-material";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { useGameDetailContext } from "../../context";
 import React, { useEffect, useState } from "react";
-import { GameDetailMenu } from "../game-detail-menu";
+import { GameMenu } from "../../components";
 
 const styles: Styles = {
   root: {
@@ -104,7 +104,13 @@ const GameDetailPrimaryScreenLayout: React.FC<
             props.title
           )}
         </Stack>
-        <GameDetailMenu />
+        <GameMenu
+          gameId={gameId}
+          onClickGameInfo={(navigate) => navigate(`/game/${gameId}/game-info`)}
+          onClickPlayerInfo={(navigate) =>
+            navigate(`/game/${gameId}/player-info`)
+          }
+        />
       </AppBar>
       <Divider />
       <Stack sx={styles.screen}>

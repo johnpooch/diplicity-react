@@ -2,32 +2,18 @@ import React from "react";
 import {
   Avatar,
   Button,
-  IconButton,
   Link,
   ListItem,
   ListItemAvatar,
   ListItemText,
-  Menu,
-  MenuItem,
   Stack,
   Typography,
 } from "@mui/material";
-import {
-  MoreHoriz as MenuIcon,
-  Info as InfoIcon,
-  Person as PlayerInfoIcon,
-  Add as JoinGameIcon,
-  Remove as LeaveGameIcon,
-  Share as ShareIcon,
-} from "@mui/icons-material";
 import { useNavigate } from "react-router";
-import {
-  actions,
-  service,
-  useJoinGameMutation,
-  useLeaveGameMutation,
-} from "../common";
-import { useDispatch } from "react-redux";
+import { service } from "../common";
+import { GameMenu } from "./game-menu";
+
+const MAX_AVATARS = 10;
 
 
 const MAP_BORDER = "1px solid black";
@@ -60,58 +46,22 @@ const styles: Styles = {
     width: 24,
     height: 24,
   },
-};
-
-const useGameCard = (
-  game: (typeof service.endpoints.listGames.Types.ResultType)[number]
-) => {
-  const dispatch = useDispatch();
-  const [joinGame, joinGameMutation] = useJoinGameMutation(game.ID);
-  const [leaveGame, leaveGameMutation] = useLeaveGameMutation(game.ID);
-
-  const isSubmitting =
-    joinGameMutation.isLoading || leaveGameMutation.isLoading;
-
-  const handleShare = () => {
-    navigator.clipboard.writeText(
-      `${window.location.origin}/game-info/${game.ID}`
-    );
-    dispatch(actions.setFeedback({ message: "Link copied to clipboard" }));
-  };
-
-  return { joinGame, leaveGame, isSubmitting, handleShare };
+  extraMembersText: {
+    marginLeft: "4px",
+  },
 };
 
 const GameCard: React.FC<{
   game: (typeof service.endpoints.listGames.Types.ResultType)[number];
 }> = ({ game }) => {
   const navigate = useNavigate();
-  const { joinGame, leaveGame, isSubmitting, handleShare } = useGameCard(game);
-
-  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
-
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
 
   const handleClickGameInfo = () => {
     navigate(`/game-info/${game.ID}`);
   };
 
-  const handleClickPlayerInfo = (userId: string) => {
-    navigate(`/player-info/${userId}`);
-  };
-
-  const handleJoinGame = async () => {
-    await joinGame();
-  };
-
-  const handleLeaveGame = async () => {
-    await leaveGame();
+  const handleClickPlayerInfo = () => {
+    navigate(`/player-info/${game.ID}`);
   };
 
   const handleClickGame = () => {
@@ -122,75 +72,17 @@ const GameCard: React.FC<{
     }
   };
 
+  const hasExtraMembers = game.Members.length > MAX_AVATARS;
+
   return (
     <ListItem
       sx={styles.listItem}
       secondaryAction={
-        <>
-          <IconButton edge="end" aria-label="menu" onClick={handleMenuOpen}>
-            <MenuIcon />
-          </IconButton>
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
-          >
-            <MenuItem
-              onClick={() => {
-                handleClickGameInfo();
-                handleMenuClose();
-              }}
-              disabled={isSubmitting}
-            >
-              <InfoIcon sx={{ marginRight: 1 }} />
-              Game info
-            </MenuItem>
-            <MenuItem
-              onClick={() => {
-                handleClickPlayerInfo(game.ID);
-                handleMenuClose();
-              }}
-              disabled={isSubmitting}
-            >
-              <PlayerInfoIcon sx={{ marginRight: 1 }} />
-              Player info
-            </MenuItem>
-            {game.canJoin && (
-              <MenuItem
-                onClick={async () => {
-                  await handleJoinGame();
-                  handleMenuClose();
-                }}
-                disabled={isSubmitting}
-              >
-                <JoinGameIcon sx={{ marginRight: 1 }} />
-                Join game
-              </MenuItem>
-            )}
-            {game.canLeave && (
-              <MenuItem
-                onClick={async () => {
-                  await handleLeaveGame();
-                  handleMenuClose();
-                }}
-                disabled={isSubmitting}
-              >
-                <LeaveGameIcon sx={{ marginRight: 1 }} />
-                Leave game
-              </MenuItem>
-            )}
-            <MenuItem
-              onClick={() => {
-                handleShare();
-                handleMenuClose();
-              }}
-              disabled={isSubmitting}
-            >
-              <ShareIcon sx={{ marginRight: 1 }} />
-              Share
-            </MenuItem>
-          </Menu>
-        </>
+        <GameMenu
+          gameId={game.ID}
+          onClickGameInfo={handleClickGameInfo}
+          onClickPlayerInfo={handleClickPlayerInfo}
+        />
       }
     >
       <Link underline="hover" onClick={handleClickGame}>
@@ -215,18 +107,13 @@ const GameCard: React.FC<{
             <Typography variant="caption">{game.Variant}</Typography>
             <Typography variant="caption">{game.PhaseLengthMinutes}</Typography>
           </Stack>
-          <Button
-            sx={styles.avatarStackButton}
-            onClick={() => {
-              handleClickPlayerInfo(game.ID);
-            }}
-          >
+          <Button sx={styles.avatarStackButton} onClick={handleClickPlayerInfo}>
             <Stack
               sx={styles.avatarStackContainer}
               direction="row"
               spacing={-1}
             >
-              {game.Members.map((member, index) => (
+              {game.Members.slice(0, MAX_AVATARS).map((member, index) => (
                 <Avatar
                   sx={styles.avatar}
                   key={index}
@@ -234,6 +121,11 @@ const GameCard: React.FC<{
                 />
               ))}
             </Stack>
+            {hasExtraMembers && (
+              <Typography variant="body1" sx={styles.extraMembersText}>
+                +{game.Members.length - MAX_AVATARS}
+              </Typography>
+            )}
           </Button>
         </Stack>
       </Stack>

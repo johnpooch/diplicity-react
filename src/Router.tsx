@@ -17,9 +17,6 @@ import { ParseMap } from "./screens/parse-map";
 import * as Desktop from "./screens/desktop";
 import * as Mobile from "./screens/mobile";
 import {
-  CreateOrder,
-  OrderActions,
-  OrderList,
   Panel,
   Channel,
   ChannelTextField,
@@ -29,10 +26,15 @@ import {
   CreateChannelAction,
   CreateChannelTetxField,
   CreateChannelContextProvider,
+  GameMenu,
+  OrderList,
 } from "./components";
 import { ChannelContextProvider } from "./context/channel-context";
 import { PhaseSelect } from "./components/phase-select";
 import { GameName } from "./components/game-detail/game-name";
+import { GameDetailContextProvider } from "./context";
+import { CreateOrder } from "./components/orders/create-order";
+import { CreateOrderContextProvider } from "./context/create-order-context";
 
 const Router: React.FC = () => {
   const { loggedIn } = useSelector(selectAuth);
@@ -80,10 +82,25 @@ const Router: React.FC = () => {
         <Route
           path="game-info/:gameId"
           element={
-            <Desktop.HomeSecondaryScreenLayout
-              title="Game info"
-              onNavigateBack={(navigate) => navigate("/")}
-            />
+            <GameDetailContextProvider>
+              {(gameId) => (
+                <Desktop.HomeSecondaryScreenLayout
+                  title="Game info"
+                  onNavigateBack={(navigate) => navigate("/")}
+                  secondaryAction={
+                    <GameMenu
+                      gameId={gameId}
+                      onClickGameInfo={(navigate) =>
+                        navigate(`/game-info/${gameId}`)
+                      }
+                      onClickPlayerInfo={(navigate) =>
+                        navigate(`/player-info/${gameId}`)
+                      }
+                    />
+                  }
+                />
+              )}
+            </GameDetailContextProvider>
           }
         >
           <Route index element={<GameInfo />} />
@@ -91,10 +108,25 @@ const Router: React.FC = () => {
         <Route
           path="player-info/:gameId"
           element={
-            <Desktop.HomeSecondaryScreenLayout
-              title="Player info"
-              onNavigateBack={(navigate) => navigate("/")}
-            />
+            <GameDetailContextProvider>
+              {(gameId) => (
+                <Desktop.HomeSecondaryScreenLayout
+                  title="Player info"
+                  secondaryAction={
+                    <GameMenu
+                      gameId={gameId}
+                      onClickGameInfo={(navigate) =>
+                        navigate(`/game-info/${gameId}`)
+                      }
+                      onClickPlayerInfo={(navigate) =>
+                        navigate(`/player-info/${gameId}`)
+                      }
+                    />
+                  }
+                  onNavigateBack={(navigate) => navigate("/")}
+                />
+              )}
+            </GameDetailContextProvider>
           }
         >
           <Route index element={<PlayerInfo />} />
@@ -121,23 +153,26 @@ const Router: React.FC = () => {
                     <Panel.Content>
                       <Map />
                     </Panel.Content>
-                    <Panel.Footer>
-                      <OrderActions />
-                    </Panel.Footer>
                   </Panel>
                 }
               />
               <Route
                 path="orders"
                 element={
-                  <Panel>
-                    <Panel.Content>
-                      <OrderList />
-                    </Panel.Content>
-                    <Panel.Footer>
-                      <OrderActions />
-                    </Panel.Footer>
-                  </Panel>
+                  <CreateOrderContextProvider>
+                    {(source) => (
+                      <Panel>
+                        <Panel.Content>
+                          <OrderList />
+                        </Panel.Content>
+                        {source && (
+                          <Panel.Footer divider>
+                            <CreateOrder />
+                          </Panel.Footer>
+                        )}
+                      </Panel>
+                    )}
+                  </CreateOrderContextProvider>
                 }
               />
             </Route>
@@ -154,27 +189,6 @@ const Router: React.FC = () => {
                     <Panel.Footer>
                       <CreateChannelAction />
                     </Panel.Footer>
-                  </Panel>
-                }
-              />
-            </Route>
-            <Route
-              element={
-                <Mobile.GameDetailSecondaryScreenLayout
-                  title="Create order"
-                  onNavigateBack={(navigate, gameId) =>
-                    navigate(`/game/${gameId}`)
-                  }
-                />
-              }
-            >
-              <Route
-                path="orders/create"
-                element={
-                  <Panel>
-                    <Panel.Content>
-                      <CreateOrder />
-                    </Panel.Content>
                   </Panel>
                 }
               />
@@ -282,27 +296,39 @@ const Router: React.FC = () => {
               <Route
                 index
                 element={
-                  <Panel>
-                    <Panel.Content>
-                      <OrderList />
-                    </Panel.Content>
-                    <Panel.Footer>
-                      <OrderActions />
-                    </Panel.Footer>
-                  </Panel>
+                  <CreateOrderContextProvider>
+                    {(source) => (
+                      <Panel>
+                        <Panel.Content>
+                          <OrderList />
+                        </Panel.Content>
+                        {source && (
+                          <Panel.Footer divider>
+                            <CreateOrder />
+                          </Panel.Footer>
+                        )}
+                      </Panel>
+                    )}
+                  </CreateOrderContextProvider>
                 }
               />
               <Route
                 path="orders"
                 element={
-                  <Panel>
-                    <Panel.Content>
-                      <OrderList />
-                    </Panel.Content>
-                    <Panel.Footer>
-                      <OrderActions />
-                    </Panel.Footer>
-                  </Panel>
+                  <CreateOrderContextProvider>
+                    {(source) => (
+                      <Panel>
+                        <Panel.Content>
+                          <OrderList />
+                        </Panel.Content>
+                        {source && (
+                          <Panel.Footer divider>
+                            <CreateOrder />
+                          </Panel.Footer>
+                        )}
+                      </Panel>
+                    )}
+                  </CreateOrderContextProvider>
                 }
               />
               <Route
@@ -315,27 +341,6 @@ const Router: React.FC = () => {
                     <Panel.Footer>
                       <CreateChannelAction />
                     </Panel.Footer>
-                  </Panel>
-                }
-              />
-            </Route>
-            <Route
-              element={
-                <Desktop.GameDetailSecondaryScreenLayout
-                  title="Create order"
-                  onNavigateBack={(navigate, gameId) =>
-                    navigate(`/game/${gameId}`)
-                  }
-                />
-              }
-            >
-              <Route
-                path="orders/create"
-                element={
-                  <Panel>
-                    <Panel.Content>
-                      <CreateOrder />
-                    </Panel.Content>
                   </Panel>
                 }
               />
