@@ -63,21 +63,25 @@ const OrderListCurrent: React.FC = () => {
         {(data) => {
           return (
             <List disablePadding>
-              <ListSubheader>Awaiting orders</ListSubheader>
-              <Divider />
-              {data.missingOrders.map((order) => (
-                <ListItem
-                  key={order.key}
-                  divider
-                  secondaryAction={
-                    <IconButton onClick={() => handleCreateOrder(order.key)}>
-                      <CreateOrderIcon />
-                    </IconButton>
-                  }
-                >
-                  <ListItemText primary={`${order.unitType} ${order.source}`} />
-                </ListItem>
-              ))}
+              {data.missingOrders.length > 0 && (
+                <>
+                  <ListSubheader>Awaiting orders</ListSubheader>
+                  <Divider />
+                  {data.missingOrders.map((order) => (
+                    <ListItem
+                      key={order.key}
+                      divider
+                      secondaryAction={
+                        <IconButton onClick={() => handleCreateOrder(order.key)}>
+                          <CreateOrderIcon />
+                        </IconButton>
+                      }
+                    >
+                      <ListItemText primary={`${order.unitType} ${order.source}`} />
+                    </ListItem>
+                  ))}
+                </>
+              )}
               <ListSubheader>Orders</ListSubheader>
               <Divider />
               {data.orders.map((order) => (
