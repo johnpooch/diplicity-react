@@ -15,6 +15,9 @@ import { GameMenu } from "./game-menu";
 
 const MAX_AVATARS = 10;
 
+
+const MAP_BORDER = "1px solid black";
+
 const styles: Styles = {
   listItem: (theme) => ({
     gap: 1,
@@ -85,7 +88,7 @@ const GameCard: React.FC<{
       <Link underline="hover" onClick={handleClickGame}>
         <ListItemAvatar sx={styles.mapContainer}>
           <img
-            style={{ maxWidth: "100%", maxHeight: "100%" }}
+            style={{ maxWidth: "100%", maxHeight: "100%", border: MAP_BORDER, borderRadius: "50%", aspectRatio: "1 / 1", objectFit: "cover"}}
             src={`https://diplicity-engine.appspot.com/Variant/${game.Variant}/Map.svg`}
             alt={game.Variant}
           />
