@@ -13,12 +13,16 @@ const channelSchema = z.object({
 });
 
 const listChannelsSchema = listApiResponseSchema(apiResponseSchema(channelSchema)).transform((data) => {
+    const hasMessagePostLink = data.Links.some(link => link.Rel === "message" && link.Method === "POST");
+
     const transformedProperties = data.Properties.map((response) => {
-        const name = response.Name
-        return { ...response, Properties: { ...response.Properties, Name: name } };
-    })
+        const name = response.Name;
+        const messagePreview = response.Properties.LatestMessage.Body;
+        const closed = !hasMessagePostLink || response.Properties.Members.includes("Diplicity");
+        return { ...response, Properties: { ...response.Properties, Name: name, messagePreview, closed } };
+    });
+
     return { ...data, Properties: transformedProperties };
 });
-
 
 export { listChannelsSchema };
