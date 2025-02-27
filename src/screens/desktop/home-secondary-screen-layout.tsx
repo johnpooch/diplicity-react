@@ -29,6 +29,7 @@ type HomeSecondaryScreenLayoutProps = {
   title: string | React.ReactNode;
   onNavigateBack: (navigate: NavigateFunction) => void;
   secondaryAction?: React.ReactNode;
+  hideNavigation?: boolean;
 };
 
 const HomeSecondaryScreenLayout: React.FC<HomeSecondaryScreenLayoutProps> = (
@@ -37,20 +38,24 @@ const HomeSecondaryScreenLayout: React.FC<HomeSecondaryScreenLayoutProps> = (
   const navigate = useNavigate();
   return (
     <Stack sx={styles.root}>
-      <Stack sx={styles.topBar}>
-        <Stack sx={styles.backButtonTitleContainer}>
-          <IconButton onClick={() => props.onNavigateBack(navigate)}>
-            <BackIcon />
-          </IconButton>
-          {typeof props.title === "string" ? (
-            <Typography variant="h1">{props.title}</Typography>
-          ) : (
-            props.title
-          )}
-        </Stack>
-        {props.secondaryAction}
-      </Stack>
-      <Divider />
+      {!props.hideNavigation && (
+        <>
+          <Stack sx={styles.topBar}>
+            <Stack sx={styles.backButtonTitleContainer}>
+              <IconButton onClick={() => props.onNavigateBack(navigate)}>
+                <BackIcon />
+              </IconButton>
+              {typeof props.title === "string" ? (
+                <Typography variant="h1">{props.title}</Typography>
+              ) : (
+                props.title
+              )}
+            </Stack>
+            {props.secondaryAction}
+          </Stack>
+          <Divider />
+        </>
+      )}
       <Outlet />
     </Stack>
   );

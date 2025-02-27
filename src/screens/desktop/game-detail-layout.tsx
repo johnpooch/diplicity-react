@@ -1,5 +1,5 @@
 import { AppBar, IconButton, Stack, Typography } from "@mui/material";
-import { ArrowTop as BackIcon } from "@mui/icons-material";
+import { Close as BackIcon } from "@mui/icons-material";
 import {
   GameDetailContextProvider,
   SelectedPhaseContextProvider,

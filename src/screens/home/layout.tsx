@@ -209,7 +209,7 @@ const HomeLayout: React.FC = () => {
               value={navigation}
               onChange={(_event, newValue) => handleNavigationChange(newValue)}
             >
-              {NavigationItems.map((item) => (
+              {NavigationItems.filter(item => item.value !== '/create-game').map((item) => (
                 <BottomNavigationAction
                   key={item.value}
                   label={item.label}
