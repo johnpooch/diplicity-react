@@ -11,8 +11,8 @@ import {
   Link,
   Toolbar,
   Avatar,
-  Menu,      // Add this
-  MenuItem,  // Add this
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import {
@@ -32,9 +32,19 @@ const styles: Styles = {
   },
   drawerNavigationContainer: {
     position: "sticky",
-    top: 0,
+    top: "64px",
     alignSelf: "flex-start",
     overflow: "auto",
+    display: "flex",                 
+    flexShrink: 0,                  
+  },
+  largeContentContainer: {
+    display: "flex",
+    justifyContent: "center",
+    flexGrow: 1,
+    maxWidth: 1000,
+    width: "100%",
+    minHeight: "100vh", 
   },
   largeRoot: {
     alignItems: "center",
@@ -54,7 +64,7 @@ const styles: Styles = {
   contentContainer: (theme) => ({
     width: "100%",
     maxWidth: 600,
-    minHeight: "calc(100vh - 56px)", // Adjust for top AppBar height
+    minHeight: "calc(100vh - 56px)", 
     height: "100%",
     border: `1px solid ${theme.palette.divider}`,
   }),
@@ -79,7 +89,7 @@ const styles: Styles = {
     width: 240,
     position: "sticky",
     padding: 2,
-    top: 0,
+    top: "64px",
     alignSelf: "flex-start",
     height: "100vh",
     overflow: "auto",
