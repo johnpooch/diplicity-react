@@ -1,5 +1,5 @@
 import React from "react";
-import { List, Stack, Tab, Tabs, Typography } from "@mui/material";
+import { List, Stack, Tab, Tabs, Typography, Avatar } from "@mui/material";
 import {
   AddCircleOutline as StagingIcon,
   PlayCircleOutline as StartedIcon,
@@ -12,10 +12,11 @@ import { GameCard } from "../../components";
 const styles: Styles = {
   header: (theme) => ({
     borderBottom: `1px solid ${theme.palette.divider}`,
-    alignItems: "center",
+    paddingTop: 1,
   }),
-  noGamesText: {
-    textAlign: "center",
+  iconContainer: {
+    width: "100%",
+    px: 2,
   },
   tabs: {
     width: "100%",
@@ -25,6 +26,7 @@ const styles: Styles = {
 const useMyGames = () => {
   const options = { my: true, mastered: false };
   const { endpoints } = service;
+  const rootQuery = endpoints.getRoot.useQuery(undefined);
   const listStagingGamesQuery = endpoints.listGames.useQuery({
     ...options,
     status: "Staging",
@@ -38,9 +40,10 @@ const useMyGames = () => {
     status: "Finished",
   });
   const query = mergeQueries(
-    [listStagingGamesQuery, listStartedGamesQuery, listFinishedGamesQuery],
-    (stagingGames, startedGames, finishedGames) => {
+    [rootQuery, listStagingGamesQuery, listStartedGamesQuery, listFinishedGamesQuery],
+    (rootData, stagingGames, startedGames, finishedGames) => {
       return {
+        rootData,
         stagingGames,
         startedGames,
         finishedGames,
@@ -77,11 +80,6 @@ const MyGames: React.FC = () => {
   return (
     <Stack>
       <Stack sx={styles.header}>
-        <img
-          src="/otto.png"
-          alt="Diplicity"
-          style={{ height: 48, width: 48 }}
-        />
         <Tabs
           value={status}
           onChange={(_, value) => setSelectedStatus(value)}

@@ -9,6 +9,10 @@ import {
   Stack,
   Typography,
   Link,
+  Toolbar,
+  Avatar,
+  Menu,      // Add this
+  MenuItem,  // Add this
 } from "@mui/material";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import {
@@ -18,6 +22,8 @@ import {
   Person as ProfileIcon,
 } from "@mui/icons-material";
 import { DrawerNavigation, DrawerNavigationAction } from "../../components";
+import { service, actions } from "../../common";
+import { useDispatch } from "react-redux";
 
 const styles: Styles = {
   mobileAppBar: {
@@ -40,13 +46,35 @@ const styles: Styles = {
     maxWidth: 1000,
     width: "100%",
   },
+  topAppBar: {
+    backgroundColor: 'background.paper',
+    borderBottom: 1,
+    borderColor: 'divider',
+  },
   contentContainer: (theme) => ({
     width: "100%",
     maxWidth: 600,
-    minHeight: "100vh",
+    minHeight: "calc(100vh - 56px)", // Adjust for top AppBar height
     height: "100%",
     border: `1px solid ${theme.palette.divider}`,
   }),
+  toolbar: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  logoContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 2,
+  },
+  avatar: {
+    border: '1px solid black',
+    height: 40,
+    width: 40,
+  },
   infoContainer: {
     width: 240,
     position: "sticky",
@@ -58,15 +86,14 @@ const styles: Styles = {
     gap: 1,
   },
   infoTitle: {
-    fontWeight: 600,
+    fontWeight: 'bold',
+    mb: 1,
   },
 };
-
 const NavigationItems = [
   { label: "My Games", icon: <MyGamesIcon />, value: "/" },
   { label: "Find Games", icon: <FindGamesIcon />, value: "/find-games" },
   { label: "Create Game", icon: <CreateGameIcon />, value: "/create-game" },
-  { label: "Profile", icon: <ProfileIcon />, value: "/profile" },
 ] as const;
 
 const InfoPanel: React.FC = () => {
@@ -99,12 +126,14 @@ const InfoPanel: React.FC = () => {
 };
 
 const HomeLayout: React.FC = () => {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
   const [navigation, setNavigation] = useState(location.pathname);
+  const rootQuery = service.endpoints.getRoot.useQuery(undefined);
 
   useEffect(() => {
     setNavigation(location.pathname);
@@ -114,9 +143,58 @@ const HomeLayout: React.FC = () => {
     setNavigation(newValue);
     navigate(newValue);
   };
-
+  // Add these state handlers near the other state declarations in HomeLayout
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const open = Boolean(anchorEl);
+  const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+  const handleLogout = () => {
+    dispatch(actions.logout());
+    handleMenuClose();
+  };
   return (
     <>
+      <AppBar position="fixed" elevation={3} sx={styles.topAppBar}>
+        <Toolbar sx={styles.toolbar}>
+          <Stack sx={styles.logoContainer}>
+            <img
+              src="/otto.png"
+              alt="Diplicity"
+              style={{ height: 32, width: 32 }}
+            />
+            <Typography variant="h6">Diplicity</Typography>
+          </Stack>
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ cursor: 'pointer' }} onClick={handleMenuClick}>
+            <Typography variant="body1">{rootQuery.data?.Name}</Typography>
+            <Avatar 
+              src={rootQuery.data?.Picture} 
+              alt={rootQuery.data?.Name}
+              sx={styles.avatar}
+            />
+          </Stack>
+          <Menu
+            anchorEl={anchorEl}
+            open={open}
+            onClose={handleMenuClose}
+            anchorOrigin={{
+              vertical: 'bottom',
+              horizontal: 'right',
+            }}
+            transformOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
+          >
+            <MenuItem onClick={handleLogout}>Logout</MenuItem>
+          </Menu>
+        </Toolbar>
+      </AppBar>
+      <Toolbar /> {/* This creates space for the fixed AppBar */}
+      
       {isMobile ? (
         <>
           <Outlet />
