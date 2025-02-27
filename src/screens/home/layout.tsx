@@ -169,7 +169,7 @@ const HomeLayout: React.FC = () => {
             <Typography variant="h6">Diplicity</Typography>
           </Stack>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ cursor: 'pointer' }} onClick={handleMenuClick}>
-            <Typography variant="body1">{rootQuery.data?.Name}</Typography>
+            {!isMobile && <Typography variant="body1">{rootQuery.data?.Name}</Typography>}
             <Avatar 
               src={rootQuery.data?.Picture} 
               alt={rootQuery.data?.Name}
@@ -189,6 +189,11 @@ const HomeLayout: React.FC = () => {
               horizontal: 'right',
             }}
           >
+            {isMobile && (
+              <MenuItem sx={{ pointerEvents: 'none', opacity: 0.7 }}>
+                {rootQuery.data?.Name}
+              </MenuItem>
+            )}
             <MenuItem onClick={handleLogout}>Logout</MenuItem>
           </Menu>
         </Toolbar>
