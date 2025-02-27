@@ -11,7 +11,7 @@ import {
   Map as MapIcon,
   Chat as ChatIcon,
   Gavel as OrdersIcon,
-  ArrowBack as BackIcon,
+  Close as BackIcon,
 } from "@mui/icons-material";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { useGameDetailContext } from "../../context";

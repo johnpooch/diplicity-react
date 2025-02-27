@@ -50,6 +50,7 @@ const Router: React.FC = () => {
           path="find-games"
           element={
             <Desktop.HomeSecondaryScreenLayout
+              hideNavigation
               title="Find games"
               onNavigateBack={(navigate) => navigate("/")}
             />
@@ -61,23 +62,13 @@ const Router: React.FC = () => {
           path="create-game"
           element={
             <Desktop.HomeSecondaryScreenLayout
+              hideNavigation={!isMobile}
               title="Create game"
-              onNavigateBack={(navigate) => navigate("/")}
+              onNavigateBack={(navigate) => window.history.back()}
             />
           }
         >
           <Route index element={<CreateGame />} />
-        </Route>
-        <Route
-          path="profile"
-          element={
-            <Desktop.HomeSecondaryScreenLayout
-              title="Profile"
-              onNavigateBack={(navigate) => navigate("/")}
-            />
-          }
-        >
-          <Route index element={<Profile />} />
         </Route>
         <Route
           path="game-info/:gameId"
@@ -86,7 +77,7 @@ const Router: React.FC = () => {
               {(gameId) => (
                 <Desktop.HomeSecondaryScreenLayout
                   title="Game info"
-                  onNavigateBack={(navigate) => navigate("/")}
+                  onNavigateBack={(navigate) => window.history.back()}
                   secondaryAction={
                     <GameMenu
                       gameId={gameId}
