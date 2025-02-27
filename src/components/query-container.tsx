@@ -21,6 +21,7 @@ const QueryContainer = <TData,>(props: QueryContainerProps<TData>) => {
         justifyContent="center"
         alignItems="center"
         height="100%"
+        padding="24px"
       >
         {props.onRenderLoading ? props.onRenderLoading() : <CircularProgress />}
       </Box>
