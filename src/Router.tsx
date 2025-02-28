@@ -28,13 +28,15 @@ import {
   GameMenu,
   OrderList,
 } from "./components";
-import { ChannelContextProvider } from "./context/channel-context";
 import { PhaseSelect } from "./components/phase-select";
 import { GameName } from "./components/game-detail/game-name";
-import { GameDetailContextProvider } from "./context";
+import {
+  CreateChannelContextProvider,
+  CreateOrderContextProvider,
+  SelectedChannelContextProvider,
+  SelectedGameContextProvider,
+} from "./context";
 import { CreateOrder } from "./components/orders/create-order";
-import { CreateOrderContextProvider } from "./context/create-order-context";
-import { CreateChannelContextProvider } from "./context/create-channel-context-provider";
 
 const Router: React.FC = () => {
   const { loggedIn } = useSelector(selectAuth);
@@ -82,7 +84,7 @@ const Router: React.FC = () => {
         <Route
           path="game-info/:gameId"
           element={
-            <GameDetailContextProvider>
+            <SelectedGameContextProvider>
               {(gameId) => (
                 <Desktop.HomeSecondaryScreenLayout
                   title="Game info"
@@ -100,7 +102,7 @@ const Router: React.FC = () => {
                   }
                 />
               )}
-            </GameDetailContextProvider>
+            </SelectedGameContextProvider>
           }
         >
           <Route index element={<GameInfo />} />
@@ -108,7 +110,7 @@ const Router: React.FC = () => {
         <Route
           path="player-info/:gameId"
           element={
-            <GameDetailContextProvider>
+            <SelectedGameContextProvider>
               {(gameId) => (
                 <Desktop.HomeSecondaryScreenLayout
                   title="Player info"
@@ -126,7 +128,7 @@ const Router: React.FC = () => {
                   onNavigateBack={(navigate) => navigate("/")}
                 />
               )}
-            </GameDetailContextProvider>
+            </SelectedGameContextProvider>
           }
         >
           <Route index element={<PlayerInfo />} />
@@ -263,14 +265,14 @@ const Router: React.FC = () => {
             </Route>
             <Route
               element={
-                <ChannelContextProvider>
+                <SelectedChannelContextProvider>
                   <Mobile.GameDetailSecondaryScreenLayout
                     title="Channel"
                     onNavigateBack={(navigate, gameId) =>
                       navigate(`/game/${gameId}/chat`)
                     }
                   />
-                </ChannelContextProvider>
+                </SelectedChannelContextProvider>
               }
             >
               <Route
@@ -415,14 +417,14 @@ const Router: React.FC = () => {
             </Route>
             <Route
               element={
-                <ChannelContextProvider>
+                <SelectedChannelContextProvider>
                   <Desktop.GameDetailSecondaryScreenLayout
                     title="Channel"
                     onNavigateBack={(navigate, gameId) =>
                       navigate(`/game/${gameId}/chat`)
                     }
                   />
-                </ChannelContextProvider>
+                </SelectedChannelContextProvider>
               }
             >
               <Route

@@ -1,10 +1,9 @@
 import { Typography } from "@mui/material";
-import { service } from "../../common";
-import { useGameDetailContext } from "../../context";
+import { service, useSelectedGameContext } from "../../common";
 import { QueryContainer } from "../query-container";
 
 const GameName: React.FC = () => {
-  const { gameId } = useGameDetailContext();
+  const { gameId } = useSelectedGameContext();
   const getGameQuery = service.endpoints.getGame.useQuery(gameId);
 
   return (

@@ -2,16 +2,18 @@ import { Stack, TextField, IconButton } from "@mui/material";
 import { Send as SendIcon } from "@mui/icons-material";
 import React from "react";
 import { useNavigate } from "react-router";
-import { useGameDetailContext } from "../../context";
-import { useCreateChannelMutation } from "../../common/hooks/use-create-channel-mutation";
-import { useCreateChannelContext } from "../../common/context/create-channel-context";
+import {
+  useCreateChannelContext,
+  useCreateChannelMutation,
+  useSelectedGameContext,
+} from "../../common";
 
 /**
  * Text field to create a channel. New channels are created by sending a message
  * to the channel.
  */
 const CreateChannelTextField: React.FC = () => {
-  const { gameId } = useGameDetailContext();
+  const { gameId } = useSelectedGameContext();
   const navigate = useNavigate();
   const [message, setMessage] = React.useState("");
 

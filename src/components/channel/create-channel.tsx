@@ -10,12 +10,12 @@ import {
 } from "@mui/material";
 import React from "react";
 import { QueryContainer } from "../query-container";
-import { useListOtherMembersQuery } from "../../common/hooks/use-list-other-members";
+import { useListOtherMembersQuery } from "../../common/hooks/use-list-other-members-query";
 import { useCreateChannelMutation } from "../../common/hooks/use-create-channel-mutation";
 import { useCreateChannelContext } from "../../common/context/create-channel-context";
 
 const CreateChannel: React.FC = () => {
-  const { query } = useListOtherMembersQuery();
+  const query = useListOtherMembersQuery();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_, createChannelMutation] = useCreateChannelMutation();
   const { selectedMembers, setSelectedMembers } = useCreateChannelContext();

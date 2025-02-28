@@ -1,6 +1,5 @@
-import { useGameDetailContext } from "../../context";
-import { service, useGetVariantQuery, mergeQueries } from "../../common";
-import { useGetUserMemberQuery } from "../../common/hooks/useGetUserMemberQuery";
+import { service, useGetVariantQuery, mergeQueries, useSelectedGameContext } from "../../common";
+import { useGetUserMemberQuery } from "./use-get-user-member-query";
 
 /**
  * Lists channels of the currently selected game.
@@ -8,12 +7,12 @@ import { useGetUserMemberQuery } from "../../common/hooks/useGetUserMemberQuery"
  * Performs multiple queries and merges the results.
  */
 const useListChannelsQuery = () => {
-    const { gameId } = useGameDetailContext();
+    const { gameId } = useSelectedGameContext();
     const listChannelsQuery = service.endpoints.listChannels.useQuery(gameId);
     const getVariantQuery = useGetVariantQuery(gameId);
     const getUserMemberQuery = useGetUserMemberQuery(gameId);
 
-    const query = mergeQueries(
+    return mergeQueries(
         [getUserMemberQuery, getVariantQuery, listChannelsQuery],
         (member, variant, channels) => {
 
@@ -44,17 +43,16 @@ const useListChannelsQuery = () => {
 
             return channels.map((channel) => {
                 return {
+                    ...channel,
                     name: channel.Name,
                     displayName: getChannelDisplayName(channel),
                     avatar: "",
                     members: channel.Members,
                     messagePreview: channel.LatestMessage.Body,
-                    closed: channel.closed,
                 };
             });
         }
     );
-    return { query };
 };
 
 export { useListChannelsQuery };

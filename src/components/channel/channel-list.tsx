@@ -1,16 +1,15 @@
 import React from "react";
 import { List, ListItem, ListItemButton, ListItemText } from "@mui/material";
 import { useLocation, useNavigate } from "react-router";
-import { useGameDetailContext } from "../../context";
 import { QueryContainer } from "../../components";
-import { useListChannelsQuery } from "../../common/hooks/use-list-channels-query";
+import { useListChannelsQuery, useSelectedGameContext } from "../../common";
 
 /**
  * Lists the chat channels of a game.
  */
 const ChannelList: React.FC = () => {
-  const { gameId } = useGameDetailContext();
-  const { query } = useListChannelsQuery();
+  const { gameId } = useSelectedGameContext();
+  const query = useListChannelsQuery();
   const navigate = useNavigate();
   const location = useLocation();
 

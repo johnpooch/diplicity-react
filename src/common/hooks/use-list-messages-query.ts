@@ -1,26 +1,16 @@
-import { useGameDetailContext } from "../../context";
-import { service, useGetVariantQuery, mergeQueries } from "../../common";
-import { useGetUserMemberQuery } from "../../common/hooks/useGetUserMemberQuery";
-import { useChannelContext } from "../../context/channel-context";
-
-type Message = {
-    body: string;
-    sender: {
-        name: string;
-        color: string;
-        isUser: boolean;
-    };
-    date: Date;
-    flag: string;
-};
+import { useSelectedChannelContext, useSelectedGameContext } from "../context";
+import { service } from "../store";
+import { mergeQueries } from "./common";
+import { useGetUserMemberQuery } from "./use-get-user-member-query";
+import { useGetVariantQuery } from "./use-get-variant-query";
 
 /**
- * Custom hook to fetch and format messages for a specific channel. Hydrates
+ * Custom hook to fetch and format messages the selected channel. Hydrates
  * messages with data from variant and user memeber queries.
  */
 const useListMessagesQuery = () => {
-    const { gameId } = useGameDetailContext();
-    const { channelName } = useChannelContext();
+    const { gameId } = useSelectedGameContext();
+    const { channelName } = useSelectedChannelContext();
 
     const listMessagesQuery = service.endpoints.listMessages.useQuery({
         gameId: gameId,
@@ -29,7 +19,7 @@ const useListMessagesQuery = () => {
     const getVariantQuery = useGetVariantQuery(gameId);
     const getUserMemberQuery = useGetUserMemberQuery(gameId);
 
-    const query = mergeQueries(
+    return mergeQueries(
         [getUserMemberQuery, getVariantQuery, listMessagesQuery],
         (member, variant, groupedMessages) => {
             const messages = Object.keys(groupedMessages).reduce((acc, date) => {
@@ -54,8 +44,17 @@ const useListMessagesQuery = () => {
             };
         }
     );
+};
 
-    return { query };
+type Message = {
+    body: string;
+    sender: {
+        name: string;
+        color: string;
+        isUser: boolean;
+    };
+    date: Date;
+    flag: string;
 };
 
 export { useListMessagesQuery };

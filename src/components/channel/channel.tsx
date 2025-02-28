@@ -1,14 +1,14 @@
 import React, { useEffect, useRef } from "react";
 import { List, ListSubheader, Stack } from "@mui/material";
 import { QueryContainer } from "../../components";
-import { useListMessagesQuery } from "../../common/hooks/use-list-messages-query";
 import { ChannelMessage } from "./channel-message";
+import { useListMessagesQuery } from "../../common";
 
 /**
  * Channel component that displays a list of messages in a channel.
  */
 const Channel: React.FC = () => {
-  const { query } = useListMessagesQuery();
+  const query = useListMessagesQuery();
 
   // Scroll to the bottom of the list when data is fetched
   const listRef = useRef<HTMLDivElement>(null);

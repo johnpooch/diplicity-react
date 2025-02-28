@@ -1,13 +1,68 @@
 import { AppBar, IconButton, Stack, Typography } from "@mui/material";
 import { ArrowBack as BackIcon } from "@mui/icons-material";
-import {
-  GameDetailContextProvider,
-  SelectedPhaseContextProvider,
-} from "../../context";
 import { Outlet, useNavigate } from "react-router";
 import { GameMenu, Map } from "../../components";
 import { PhaseSelect } from "../../components/phase-select";
 import React from "react";
+import {
+  SelectedGameContextProvider,
+  SelectedPhaseContextProvider,
+} from "../../context";
+
+type GameDetailLayoutProps = {
+  title: string | React.ReactNode;
+};
+
+const GameDetailLayout: React.FC<GameDetailLayoutProps> = (props) => {
+  const navigate = useNavigate();
+
+  const handleNavigateBack = () => {
+    navigate("/");
+  };
+
+  return (
+    <SelectedGameContextProvider>
+      {(gameId) => (
+        <SelectedPhaseContextProvider>
+          <Stack>
+            <AppBar sx={styles.appBar}>
+              <Stack sx={styles.backButtonTitleContainer}>
+                <IconButton onClick={handleNavigateBack}>
+                  <BackIcon />
+                </IconButton>
+                {typeof props.title === "string" ? (
+                  <Typography variant="h1">{props.title}</Typography>
+                ) : (
+                  props.title
+                )}
+              </Stack>
+              <PhaseSelect />
+              <GameMenu
+                gameId={gameId}
+                onClickGameInfo={(navigate, gameId) => {
+                  navigate(`/game/${gameId}/game-info`);
+                }}
+                onClickPlayerInfo={(navigate, gameId) => {
+                  navigate(`/game/${gameId}/player-info`);
+                }}
+              />
+            </AppBar>
+            <Stack sx={styles.screen}>
+              <Stack sx={styles.panelContainer}>
+                <Stack sx={styles.mapPanel}>
+                  <Map />
+                </Stack>
+                <Stack sx={styles.actionPanel}>
+                  <Outlet />
+                </Stack>
+              </Stack>
+            </Stack>
+          </Stack>
+        </SelectedPhaseContextProvider>
+      )}
+    </SelectedGameContextProvider>
+  );
+};
 
 const styles: Styles = {
   appBar: {
@@ -54,61 +109,6 @@ const styles: Styles = {
   mapContainer: {
     flexGrow: 1,
   },
-};
-
-type GameDetailLayoutProps = {
-  title: string | React.ReactNode;
-};
-
-const GameDetailLayout: React.FC<GameDetailLayoutProps> = (props) => {
-  const navigate = useNavigate();
-
-  const handleNavigateBack = () => {
-    navigate("/");
-  };
-
-  return (
-    <GameDetailContextProvider>
-      {(gameId) => (
-        <SelectedPhaseContextProvider>
-          <Stack>
-            <AppBar sx={styles.appBar}>
-              <Stack sx={styles.backButtonTitleContainer}>
-                <IconButton onClick={handleNavigateBack}>
-                  <BackIcon />
-                </IconButton>
-                {typeof props.title === "string" ? (
-                  <Typography variant="h1">{props.title}</Typography>
-                ) : (
-                  props.title
-                )}
-              </Stack>
-              <PhaseSelect />
-              <GameMenu
-                gameId={gameId}
-                onClickGameInfo={(navigate, gameId) => {
-                  navigate(`/game/${gameId}/game-info`);
-                }}
-                onClickPlayerInfo={(navigate, gameId) => {
-                  navigate(`/game/${gameId}/player-info`);
-                }}
-              />
-            </AppBar>
-            <Stack sx={styles.screen}>
-              <Stack sx={styles.panelContainer}>
-                <Stack sx={styles.mapPanel}>
-                  <Map />
-                </Stack>
-                <Stack sx={styles.actionPanel}>
-                  <Outlet />
-                </Stack>
-              </Stack>
-            </Stack>
-          </Stack>
-        </SelectedPhaseContextProvider>
-      )}
-    </GameDetailContextProvider>
-  );
 };
 
 export { GameDetailLayout };

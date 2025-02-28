@@ -2,29 +2,6 @@ import { Stack, Typography, IconButton, Divider } from "@mui/material";
 import { NavigateFunction, Outlet, useNavigate } from "react-router";
 import { ArrowBack as BackIcon } from "@mui/icons-material";
 
-const styles: Styles = {
-  root: {
-    flexGrow: 1,
-  },
-  topBar: {
-    minHeight: 56,
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 1,
-    gap: 1,
-    "& h1": {
-      margin: 0,
-    },
-  },
-  backButtonTitleContainer: {
-    display: "flex",
-    flexDirection: "row",
-    alignItems: "center",
-    width: "100%",
-    gap: 1,
-  },
-};
-
 type HomeSecondaryScreenLayoutProps = {
   title: string | React.ReactNode;
   onNavigateBack: (navigate: NavigateFunction) => void;
@@ -32,7 +9,7 @@ type HomeSecondaryScreenLayoutProps = {
 };
 
 const HomeSecondaryScreenLayout: React.FC<HomeSecondaryScreenLayoutProps> = (
-  props,
+  props
 ) => {
   const navigate = useNavigate();
   return (
@@ -54,6 +31,29 @@ const HomeSecondaryScreenLayout: React.FC<HomeSecondaryScreenLayoutProps> = (
       <Outlet />
     </Stack>
   );
+};
+
+const styles: Styles = {
+  root: {
+    flexGrow: 1,
+  },
+  topBar: {
+    minHeight: 56,
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 1,
+    gap: 1,
+    "& h1": {
+      margin: 0,
+    },
+  },
+  backButtonTitleContainer: {
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    gap: 1,
+  },
 };
 
 export { HomeSecondaryScreenLayout };
