@@ -1,15 +1,9 @@
 import { Stack, Tabs, Tab, Divider } from "@mui/material";
 import { Outlet, useLocation, useNavigate } from "react-router";
-import { useGameDetailContext } from "../../context";
-
-const styles: Styles = {
-  root: {
-    flexGrow: 1,
-  },
-};
+import { useSelectedGameContext } from "../../common";
 
 const GameDetailPrimaryScreenLayout: React.FC = () => {
-  const { gameId } = useGameDetailContext();
+  const { gameId } = useSelectedGameContext();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -29,6 +23,12 @@ const GameDetailPrimaryScreenLayout: React.FC = () => {
       <Outlet />
     </Stack>
   );
+};
+
+const styles: Styles = {
+  root: {
+    flexGrow: 1,
+  },
 };
 
 export { GameDetailPrimaryScreenLayout };

@@ -1,41 +1,8 @@
 import { Chip, Stack, Typography } from "@mui/material";
 
-type OrderSummaryProps = {
-  source: string;
-  unitType?: string;
-  destination?: string;
-  aux?: string;
-  type?: string;
-};
-
-const styles: Styles = {
-  chip: (theme) => ({
-    backgroundColor: theme.palette.secondary.main,
-    color: theme.palette.secondary.contrastText,
-    fontWeight: 800,
-    borderRadius: theme.shape.borderRadius,
-    "& .MuiChip-label": {
-      padding: theme.spacing(0.5, 1),
-    },
-  }),
-};
-
-const OrderSummaryChip: React.FC<{ label: string }> = ({ label }) => (
-  <Chip sx={styles.chip} size="small" label={label} />
-);
-
-const OrderSummaryText: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => <Typography>{children}</Typography>;
-
-const OrderSummaryContainer: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => (
-  <Stack direction="row" alignItems="center" gap={1}>
-    {children}
-  </Stack>
-);
-
+/**
+ * Renders an order as text, with a chip indicating the type of order.
+ */
 const OrderSummary: React.FC<OrderSummaryProps> = (props) => {
   const { source, unitType, destination, aux, type } = props;
 
@@ -137,6 +104,42 @@ const OrderSummary: React.FC<OrderSummaryProps> = (props) => {
   };
 
   return <>{getOrderSummary()}</>;
+};
+
+const OrderSummaryChip: React.FC<{ label: string }> = ({ label }) => (
+  <Chip sx={styles.chip} size="small" label={label} />
+);
+
+const OrderSummaryText: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => <Typography>{children}</Typography>;
+
+const OrderSummaryContainer: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => (
+  <Stack direction="row" alignItems="center" gap={1}>
+    {children}
+  </Stack>
+);
+
+type OrderSummaryProps = {
+  source: string;
+  unitType?: string;
+  destination?: string;
+  aux?: string;
+  type?: string;
+};
+
+const styles: Styles = {
+  chip: (theme) => ({
+    backgroundColor: theme.palette.secondary.main,
+    color: theme.palette.secondary.contrastText,
+    fontWeight: 800,
+    borderRadius: theme.shape.borderRadius,
+    "& .MuiChip-label": {
+      padding: theme.spacing(0.5, 1),
+    },
+  }),
 };
 
 export { OrderSummary };

@@ -5,19 +5,11 @@ import {
   CheckBoxOutlined as OrdersConfirmedIcon,
 } from "@mui/icons-material";
 import { QueryContainer } from "../query-container";
-import { useOrders } from "../../common";
+import { useOrders, useSelectedGameContext } from "../../common";
 import { useNavigate } from "react-router";
-import { useGameDetailContext } from "../../context";
-
-const styles: Styles = {
-  root: {
-    flexDirection: "row",
-    gap: 1,
-  },
-};
 
 const OrderActions: React.FC = () => {
-  const { gameId } = useGameDetailContext();
+  const { gameId } = useSelectedGameContext();
   const { query, isSubmitting, handleToggleConfirmOrders } = useOrders();
   const navigate = useNavigate();
 
@@ -59,6 +51,13 @@ const OrderActions: React.FC = () => {
       )}
     </QueryContainer>
   );
+};
+
+const styles: Styles = {
+  root: {
+    flexDirection: "row",
+    gap: 1,
+  },
 };
 
 export { OrderActions };

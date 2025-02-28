@@ -14,9 +14,9 @@ import {
   ArrowBack as BackIcon,
 } from "@mui/icons-material";
 import { Outlet, useLocation, useNavigate } from "react-router";
-import { useGameDetailContext } from "../../context";
 import React, { useEffect, useState } from "react";
 import { GameMenu } from "../../components";
+import { useSelectedGameContext } from "../../common";
 
 const styles: Styles = {
   root: {
@@ -73,7 +73,7 @@ type GameDetailPrimaryScreenLayoutProps = {
 const GameDetailPrimaryScreenLayout: React.FC<
   GameDetailPrimaryScreenLayoutProps
 > = (props) => {
-  const { gameId } = useGameDetailContext();
+  const { gameId } = useSelectedGameContext();
   const navigate = useNavigate();
   const location = useLocation();
   const [navigation, setNavigation] = useState(location.pathname);

@@ -1,25 +1,7 @@
 import { Stack, Typography, IconButton, Divider } from "@mui/material";
 import { NavigateFunction, Outlet, useNavigate } from "react-router";
 import { ArrowBack as BackIcon } from "@mui/icons-material";
-import { useGameDetailContext } from "../../context";
-
-const styles: Styles = {
-  root: {
-    flexGrow: 1,
-    height: "100vh",
-    overflow: "hidden",
-  },
-  topBar: {
-    minHeight: 56,
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 1,
-    gap: 1,
-    "& h1": {
-      margin: 0,
-    },
-  },
-};
+import { useSelectedGameContext } from "../../common";
 
 type GameDetailSecondaryScreenLayoutProps = {
   title: string | React.ReactNode;
@@ -29,7 +11,7 @@ type GameDetailSecondaryScreenLayoutProps = {
 const GameDetailSecondaryScreenLayout: React.FC<
   GameDetailSecondaryScreenLayoutProps
 > = (props) => {
-  const { gameId } = useGameDetailContext();
+  const { gameId } = useSelectedGameContext();
   const navigate = useNavigate();
   return (
     <Stack sx={styles.root}>
@@ -47,6 +29,24 @@ const GameDetailSecondaryScreenLayout: React.FC<
       <Outlet />
     </Stack>
   );
+};
+
+const styles: Styles = {
+  root: {
+    flexGrow: 1,
+    height: "100vh",
+    overflow: "hidden",
+  },
+  topBar: {
+    minHeight: 56,
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 1,
+    gap: 1,
+    "& h1": {
+      margin: 0,
+    },
+  },
 };
 
 export { GameDetailSecondaryScreenLayout };

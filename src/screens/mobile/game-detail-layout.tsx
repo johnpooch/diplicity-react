@@ -1,19 +1,19 @@
 import {
-  GameDetailContextProvider,
+  SelectedGameContextProvider,
   SelectedPhaseContextProvider,
 } from "../../context";
 import { Outlet } from "react-router";
-import { CreateOrderContextProvider } from "../../context/create-order-context";
+import { CreateOrderContextProvider } from "../../context/create-order-context-provider";
 
 const GameDetailLayout: React.FC = () => {
   return (
-    <GameDetailContextProvider>
+    <SelectedGameContextProvider>
       <SelectedPhaseContextProvider>
         <CreateOrderContextProvider>
           <Outlet />
         </CreateOrderContextProvider>
       </SelectedPhaseContextProvider>
-    </GameDetailContextProvider>
+    </SelectedGameContextProvider>
   );
 };
 

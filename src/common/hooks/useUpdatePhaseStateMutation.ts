@@ -1,5 +1,5 @@
 import service from "../store/service";
-import { useGetCurrentPhaseQuery } from "./useGetCurrentPhaseQuery";
+import { useGetCurrentPhaseQuery } from "./use-get-current-phase-query";
 
 type PhaseState = {
     isConfirmed: boolean;
