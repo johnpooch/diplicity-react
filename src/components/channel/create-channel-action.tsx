@@ -1,13 +1,13 @@
 import { Stack, Fab } from "@mui/material";
 import { Add as CreateChannelIcon } from "@mui/icons-material";
 import { useNavigate } from "react-router";
-import { useGameDetailContext } from "../../context";
+import { useSelectedGameContext } from "../../common";
 
 /**
  * Button to open the create channel dialog.
  */
 const CreateChannelAction: React.FC = () => {
-  const { gameId } = useGameDetailContext();
+  const { gameId } = useSelectedGameContext();
   const navigate = useNavigate();
 
   const handleCreateChannel = () => {

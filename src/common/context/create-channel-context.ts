@@ -1,10 +1,10 @@
 import React from "react";
 
-type CreateChannelContextType = {
-  selectedMembers: string[];
-  setSelectedMembers: React.Dispatch<React.SetStateAction<string[]>>;
-};
-
+/**
+ * Context for managing the state of the create channel screen. The state has
+ * to be lifted into context so the controls and members list can be rendered
+ * separately.
+ */
 const CreateChannelContext = React.createContext<
   CreateChannelContextType | undefined
 >(undefined);
@@ -16,5 +16,10 @@ const useCreateChannelContext = () => {
   }
   return context;
 }
+
+type CreateChannelContextType = {
+  selectedMembers: string[];
+  setSelectedMembers: React.Dispatch<React.SetStateAction<string[]>>;
+};
 
 export { CreateChannelContext, useCreateChannelContext };

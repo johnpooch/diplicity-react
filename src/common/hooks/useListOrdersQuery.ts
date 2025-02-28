@@ -1,5 +1,5 @@
 import service from "../store/service";
-import { useGetPhaseQuery } from "./useGetPhaseQuery";
+import { useGetPhaseQuery } from "./use-get-phase-query";
 
 const useGetOrdersQuery = (gameId: string, phaseId: number) => {
     const { endpoints } = service;

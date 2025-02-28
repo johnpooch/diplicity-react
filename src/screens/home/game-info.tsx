@@ -22,38 +22,16 @@ import {
   Info as InfoIcon,
 } from "@mui/icons-material";
 import { QueryContainer, TableListItem } from "../../components";
-import { mergeQueries, service, useGetVariantQuery } from "../../common";
+import {
+  mergeQueries,
+  service,
+  useGetVariantQuery,
+  useSelectedGameContext,
+} from "../../common";
 import { useNavigate } from "react-router";
-import { useGameDetailContext } from "../../context";
-
-const styles: Styles = {
-  listSubheader: (theme) => ({
-    textAlign: "left",
-    color: theme.palette.text.primary,
-  }),
-  listItemIcon: (theme) => ({
-    color: theme.palette.text.primary,
-    minWidth: "fit-content",
-    padding: 1,
-  }),
-  listItemPrimaryText: (theme) => ({
-    color: theme.palette.text.primary,
-  }),
-  avatarStackButton: {
-    justifyContent: "flex-start",
-    width: "fit-content",
-  },
-  avatarStackContainer: {
-    alignItems: "center",
-  },
-  avatar: {
-    width: 24,
-    height: 24,
-  },
-};
 
 const useGameInfo = () => {
-  const { gameId } = useGameDetailContext();
+  const { gameId } = useSelectedGameContext();
 
   const getGameQuery = service.endpoints.getGame.useQuery(gameId);
   const getVariantQuery = useGetVariantQuery(gameId);
@@ -72,7 +50,7 @@ const useGameInfo = () => {
 };
 
 const GameInfo: React.FC = () => {
-  const { gameId } = useGameDetailContext();
+  const { gameId } = useSelectedGameContext();
   const { query } = useGameInfo();
   const navigate = useNavigate();
 
@@ -194,6 +172,32 @@ const GameInfo: React.FC = () => {
       )}
     </QueryContainer>
   );
+};
+
+const styles: Styles = {
+  listSubheader: (theme) => ({
+    textAlign: "left",
+    color: theme.palette.text.primary,
+  }),
+  listItemIcon: (theme) => ({
+    color: theme.palette.text.primary,
+    minWidth: "fit-content",
+    padding: 1,
+  }),
+  listItemPrimaryText: (theme) => ({
+    color: theme.palette.text.primary,
+  }),
+  avatarStackButton: {
+    justifyContent: "flex-start",
+    width: "fit-content",
+  },
+  avatarStackContainer: {
+    alignItems: "center",
+  },
+  avatar: {
+    width: 24,
+    height: 24,
+  },
 };
 
 export { GameInfo };

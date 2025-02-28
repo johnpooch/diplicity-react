@@ -11,46 +11,12 @@ import {
   Add as CreateOrderIcon,
   Edit as EditOrderIcon,
 } from "@mui/icons-material";
-import { mergeQueries, useGetUserMemberQuery } from "../../common";
-import { useGameDetailContext, useSelectedPhaseContext } from "../../context";
 import { QueryContainer } from "../query-container";
-import { useListHydratedOrdersQuery } from "../../common/hooks/useListHydratedOrdersQuery";
-import { useListHydratedMissingOrdersQuery } from "../../common/hooks/useListHydratedMissingOrdersQuery";
-import { useCreateOrderContext } from "../../context/create-order-context";
 import { OrderSummary } from "./order-summary";
-
-const useOrderListCurrent = () => {
-  const { gameId } = useGameDetailContext();
-  const { selectedPhase } = useSelectedPhaseContext();
-  const getUserMemberQuery = useGetUserMemberQuery(gameId);
-  const listHydratedOrdersQuery = useListHydratedOrdersQuery(
-    gameId,
-    selectedPhase
-  );
-  const listHydratedMissingOrdersQuery = useListHydratedMissingOrdersQuery(
-    gameId,
-    selectedPhase
-  );
-
-  const query = mergeQueries(
-    [
-      listHydratedOrdersQuery,
-      listHydratedMissingOrdersQuery,
-      getUserMemberQuery,
-    ],
-    (orders, missingOrders, userMember) => {
-      return {
-        orders: orders[userMember.Nation] ? orders[userMember.Nation] : [],
-        missingOrders,
-      };
-    }
-  );
-
-  return { query };
-};
+import { useCreateOrderContext, useListCurrentOrdersQuery } from "../../common";
 
 const OrderListCurrent: React.FC = () => {
-  const { query } = useOrderListCurrent();
+  const query = useListCurrentOrdersQuery();
   const { setSource } = useCreateOrderContext();
 
   const handleCreateOrder = (province: string) => {
@@ -58,7 +24,7 @@ const OrderListCurrent: React.FC = () => {
   };
 
   return (
-    <Stack sx={{ height: "100%", justifyContent: "space-between" }}>
+    <Stack sx={styles.container}>
       <QueryContainer query={query} onRenderLoading={() => <></>}>
         {(data) => {
           return (
@@ -99,6 +65,12 @@ const OrderListCurrent: React.FC = () => {
       </QueryContainer>
     </Stack>
   );
+};
+
+const styles: Styles = {
+  container: {
+    height: "100%",
+  },
 };
 
 export { OrderListCurrent };

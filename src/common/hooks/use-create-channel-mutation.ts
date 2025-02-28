@@ -1,10 +1,14 @@
-import { useGameDetailContext } from "../../context";
+import { useSelectedGameContext } from "../context";
 import { useCreateChannelContext } from "../context/create-channel-context";
 import { service } from "../store";
-import { useGetUserMemberQuery } from "./useGetUserMemberQuery";
+import { useGetUserMemberQuery } from "./use-get-user-member-query";
 
+/**
+ * Encapsulates the logic to create a channel for the currently
+ * selected game, providing a simplified interface to components.
+ */
 const useCreateChannelMutation = () => {
-    const { gameId } = useGameDetailContext();
+    const { gameId } = useSelectedGameContext();
     const { selectedMembers } = useCreateChannelContext();
     const getUserMemberQuery = useGetUserMemberQuery(gameId);
 

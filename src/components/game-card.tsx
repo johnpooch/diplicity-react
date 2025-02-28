@@ -15,39 +15,6 @@ import { GameMenu } from "./game-menu";
 
 const MAX_AVATARS = 10;
 
-const styles: Styles = {
-  listItem: (theme) => ({
-    gap: 1,
-    borderBottom: `1px solid ${theme.palette.divider}`,
-    alignItems: "center",
-  }),
-  mapContainer: {
-    display: "flex",
-    width: 80,
-  },
-  secondaryContainer: {
-    gap: 1,
-  },
-  rulesContainer: {
-    gap: 1,
-    flexDirection: "row",
-  },
-  avatarStackButton: {
-    justifyContent: "flex-start",
-    width: "fit-content",
-  },
-  avatarStackContainer: {
-    alignItems: "center",
-  },
-  avatar: {
-    width: 24,
-    height: 24,
-  },
-  extraMembersText: {
-    marginLeft: "4px",
-  },
-};
-
 const GameCard: React.FC<{
   game: (typeof service.endpoints.listGames.Types.ResultType)[number];
 }> = ({ game }) => {
@@ -128,6 +95,39 @@ const GameCard: React.FC<{
       </Stack>
     </ListItem>
   );
+};
+
+const styles: Styles = {
+  listItem: (theme) => ({
+    gap: 1,
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    alignItems: "center",
+  }),
+  mapContainer: {
+    display: "flex",
+    width: 80,
+  },
+  secondaryContainer: {
+    gap: 1,
+  },
+  rulesContainer: {
+    gap: 1,
+    flexDirection: "row",
+  },
+  avatarStackButton: {
+    justifyContent: "flex-start",
+    width: "fit-content",
+  },
+  avatarStackContainer: {
+    alignItems: "center",
+  },
+  avatar: {
+    width: 24,
+    height: 24,
+  },
+  extraMembersText: {
+    marginLeft: "4px",
+  },
 };
 
 export { GameCard };

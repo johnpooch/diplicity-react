@@ -1,16 +1,18 @@
 import React from "react";
 import { Stack, TextField, IconButton } from "@mui/material";
 import { Send as SendIcon } from "@mui/icons-material";
-import { useCreateMessageMutation } from "../../common/hooks/use-create-message-mutation";
-import { useGetChannelQuery } from "../../common/hooks/use-get-channel-query";
 import { QueryContainer } from "../query-container";
+import {
+  useCreateMessageMutation,
+  useGetSelectedChannelQuery,
+} from "../../common";
 
 /**
  * The text field for sending messages in a channel.
  */
 const ChannelTextField: React.FC = () => {
   const [message, setMessage] = React.useState("");
-  const { query } = useGetChannelQuery();
+  const query = useGetSelectedChannelQuery();
   const [createMessage, createMessageMutation] = useCreateMessageMutation();
 
   const handleSubmit = async () => {

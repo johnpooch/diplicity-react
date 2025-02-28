@@ -1,32 +1,29 @@
 import React from "react";
 import { Snackbar, Alert } from "@mui/material";
-import { connect } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { actions, selectFeedback } from "../common";
 
-const FeedbackComponent: React.FC<
-  ReturnType<typeof selectFeedback> & {
-    onClose: () => void;
-  }
-> = (props) => {
+const Feedback: React.FC = () => {
+  const dispatch = useDispatch();
+  const feedback = useSelector(selectFeedback);
+  const handleClose = () => {
+    dispatch(actions.clearFeedback());
+  };
   return (
     <Snackbar
-      open={Boolean(props.message)}
+      open={Boolean(feedback.message)}
       autoHideDuration={3000}
-      onClose={props.onClose}
+      onClose={handleClose}
     >
       <Alert
-        onClose={props.onClose}
-        severity={props.severity}
-        title={props.message}
+        onClose={handleClose}
+        severity={feedback.severity}
+        title={feedback.message}
       >
-        {props.message}
+        {feedback.message}
       </Alert>
     </Snackbar>
   );
 };
 
-const ConnectedFeedbackComponent = connect(selectFeedback, {
-  onClose: () => actions.clearFeedback(),
-})(FeedbackComponent);
-
-export default ConnectedFeedbackComponent;
+export { Feedback };

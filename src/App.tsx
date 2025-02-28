@@ -6,7 +6,7 @@ import theme from "./theme";
 import { AuthService } from "./services";
 import { createStore } from "./common";
 import { authActions } from "./common/store/auth";
-import ConnectedFeedbackComponent from "./components/Feedback";
+import { Feedback } from "./components/feedback";
 
 function App() {
   const url = new URL(window.location.href);
@@ -23,7 +23,7 @@ function App() {
       <CssBaseline />
       <ThemeProvider theme={theme}>
         <Router />
-        <ConnectedFeedbackComponent />
+        <Feedback />
       </ThemeProvider>
     </Provider>
   );

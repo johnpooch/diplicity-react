@@ -1,13 +1,13 @@
-import { useGameDetailContext, useSelectedPhaseContext } from "../../context";
+import { useSelectedGameContext, useSelectedPhaseContext } from "../context";
 import { mergeQueries } from "./common";
-import { useGetPhaseQuery } from "./useGetPhaseQuery";
-import { useGetUserPhaseStateQuery } from "./useGetUserPhaseStateQuery";
-import { useGetVariantQuery } from "./useGetVariantQuery";
+import { useGetPhaseQuery } from "./use-get-phase-query";
+import { useGetUserPhaseStateQuery } from "./use-get-user-phase-state-query";
+import { useGetVariantQuery } from "./use-get-variant-query";
 import { useGetOrdersQuery } from "./useListOrdersQuery";
 import { useUpdatePhaseStateMutation } from "./useUpdatePhaseStateMutation";
 
 const useOrders = () => {
-    const { gameId } = useGameDetailContext();
+    const { gameId } = useSelectedGameContext();
     const { selectedPhase } = useSelectedPhaseContext();
 
     const [updatePhaseStateTrigger, updatePhaseStateMutation] =
