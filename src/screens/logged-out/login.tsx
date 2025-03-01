@@ -99,6 +99,11 @@ const Login: React.FC = () => {
     }
   };
 
+  const scrollToHowToPlay = (event: React.MouseEvent) => {
+    event.preventDefault();
+    document.getElementById('how-to-play')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <Box sx={styles.root}>
       <Box sx={styles.heroSection}>
@@ -111,7 +116,7 @@ const Login: React.FC = () => {
               Diplicity is a digital adaptation of the board game of Diplomacy
             </Typography>
             <Box sx={styles.buttonContainer}>
-              <Button variant="outlined" color="primary">
+              <Button variant="outlined" color="primary" onClick={scrollToHowToPlay}>
                 Learn how to play
               </Button>
               <Button variant="contained" color="primary" onClick={onClickLogin}>
@@ -123,7 +128,8 @@ const Login: React.FC = () => {
         <Box sx={styles.imageContainer}>
           <Box
             component="img"
-            src="/src/static/img/login_background.jpg"
+           // src="/src/static/img/login_background.jpg"
+           src="/src/static/img/login_intro.png"
             sx={styles.backgroundImage}
             alt="Background"
           />
@@ -131,8 +137,7 @@ const Login: React.FC = () => {
       </Box>
 
       <Box sx={styles.contentSection}>
-        {/* Introduction */}
-        <Box sx={styles.contentRow}>
+        <Box sx={styles.contentRow} id="how-to-play">
           <Box>
             <Typography variant="h5" gutterBottom>
               How to Play
