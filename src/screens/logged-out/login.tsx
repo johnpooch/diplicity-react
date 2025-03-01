@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Typography, Box, Stack, Avatar } from "@mui/material";
+import { Button, Typography, Box, Stack, Avatar, Link, Alert } from "@mui/material";
 
 const getLoginUrl = (): string => {
   const redirectUrl = location.href;
@@ -10,15 +10,67 @@ const getLoginUrl = (): string => {
 };
 
 const styles: Styles = {
-  background: {
+  root: {
     display: "flex",
-    justifyContent: "center",
+    flexDirection: "column",
+  },
+  heroSection: {
+    display: "flex",
+    minHeight: "100vh",
+  },
+  contentContainer: {
+    width: "50%",
+    display: "flex",
     alignItems: "center",
+    justifyContent: "center",
+    padding: 4,
+  },
+  imageContainer: {
+    width: "50%",
     height: "100vh",
-    backgroundImage: "url('/src/static/img/login_background.jpg')",
-    backgroundSize: "cover",
-    backgroundPosition: "54%",
-    backgroundRepeat: "no-repeat",
+    overflow: "hidden",
+    position: "relative",
+  },
+  backgroundImage: {
+    position: "absolute",
+    height: "100%",
+    width: "auto",
+    left: 0,
+    objectFit: "cover",
+  },
+  buttonContainer: {
+    display: "flex",
+    gap: 2,
+    mt: 4,
+  },
+  loginSection: {
+    display: "flex",
+    justifyContent: "left",
+    alignItems: "center",
+    minHeight: "100vh",
+    width: "100%",
+  },
+  contentSection: {
+    width: "100%",
+    maxWidth: "1000px",
+    padding: 4,
+    bgcolor: "background.paper",
+    margin: "0 auto",  // Centers the content horizontally
+  },
+  contentRow: {
+    display: "grid",
+    gridTemplateColumns: {
+      xs: "1fr",
+      md: "1fr 1fr",
+    },
+    gap: 4,
+    mb: 6,
+  },
+  exampleImage: {
+    width: 200,
+    height: 200,
+    bgcolor: "grey.300",
+    mb: 2,
   },
   stack: (theme) => ({
     padding: 4,
@@ -37,11 +89,6 @@ const styles: Styles = {
   subtitle: {
     variant: "body1",
   },
-  buttonContainer: {
-    display: "flex",
-    justifyContent: "center",
-    mt: 2,
-  },
 };
 
 const Login: React.FC = () => {
@@ -53,25 +100,110 @@ const Login: React.FC = () => {
   };
 
   return (
-    <Box sx={styles.background}>
-      <Stack sx={styles.stack} spacing={2} alignItems="center">
-        <Avatar sx={styles.logo} src="/otto.png" alt="Diplicity Logo" />
-        <Typography component="h1" variant="body1">
-          Welcome to Diplicity!
-        </Typography>
-        <Typography variant="body2">
-          A digital adaptation of the game of Diplomacy.
-        </Typography>
-        <Typography variant="caption">
-          We're rebuilding the app. Currently not ready for players.
-        </Typography>
-        <Box sx={styles.buttonContainer}>
-          <Button variant="contained" color="primary" onClick={onClickLogin}>
-            Log in with Google
-          </Button>
+    <Box sx={styles.root}>
+      <Box sx={styles.heroSection}>
+        <Box sx={styles.contentContainer}>
+          <Stack spacing={3} maxWidth="600px">
+            <Typography variant="h3" component="h1">
+              First destroy your enemies.<br/>Then destroy your friends.
+            </Typography>
+            <Typography variant="body1">
+              Diplicity is a digital adaptation of the board game of Diplomacy
+            </Typography>
+            <Box sx={styles.buttonContainer}>
+              <Button variant="outlined" color="primary">
+                Learn how to play
+              </Button>
+              <Button variant="contained" color="primary" onClick={onClickLogin}>
+                Log in with Google
+              </Button>
+            </Box>
+          </Stack>
         </Box>
-      </Stack>
-    </Box>
+        <Box sx={styles.imageContainer}>
+          <Box
+            component="img"
+            src="/src/static/img/login_background.jpg"
+            sx={styles.backgroundImage}
+            alt="Background"
+          />
+        </Box>
+      </Box>
+
+      <Box sx={styles.contentSection}>
+        {/* Introduction */}
+        <Box sx={styles.contentRow}>
+          <Box>
+            <Typography variant="h5" gutterBottom>
+              How to Play
+            </Typography>
+            <Typography variant="body1">
+              You command your units, battling for supply centers — control more than half to win.<br /><br />
+              But victory requires allies, so balance military tactics with careful diplomacy. 
+              Each turn, players negotiate, forge alliances, and submit secret orders.
+            </Typography>
+          </Box>
+          <Alert severity="warning" sx={{ height: 'fit-content' }}>
+            Diplomacy is a slow game of real-life negotiation. 
+            It's about real chats with players that have busy lives, so one turn usually lasts a day or more. 
+            Be prepared for a time commitment before any military action unfolds.
+          </Alert>
+        </Box>
+        {/* Supply Centers */}
+        <Box sx={styles.contentRow}>
+          <Box>
+            <Typography variant="h6" gutterBottom>
+              Supply Centers
+            </Typography>
+            <Typography variant="body1">
+              Supply centers are the key to victory. Each one lets you build another unit, 
+              and controlling more than half of them wins you the game.
+            </Typography>
+          </Box>
+          <Box>
+            <Box sx={styles.exampleImage} component="img" src="/placeholder-sc.png" alt="Supply Center Example" />
+            <Typography variant="caption" gutterBottom>Supply Center Example</Typography>
+          </Box>
+        </Box>
+        {/* Rest of the sections remain the same... */}
+      {/* Units Section */}
+      <Box sx={styles.contentRow}>
+        <Box>
+          <Typography variant="h6" gutterBottom>
+            Units
+          </Typography>
+          <Typography variant="body1">
+            Only one unit can occupy a province and all units are equally strong. So, to attack and force retreats, 
+            you need support from other units. Players control Armies (only move on land) and Fleets 
+            (move on sea and coastal provinces).
+          </Typography>
+        </Box>
+        <Box>
+          <Box sx={styles.exampleImage} component="img" src="/placeholder-units.png" alt="Units Example" />
+          <Typography variant="caption" gutterBottom>Units Example</Typography>
+        </Box>
+      </Box>
+      
+      {/* Continue this pattern for each section */}
+      <Box sx={styles.contentRow}>
+        <Box>
+          <Typography variant="h6" gutterBottom>
+            Basic Orders
+          </Typography>
+          <Typography variant="body1">
+            On its own, a unit can either defend (hold) or attack (move). 
+            Fleets can also transport armies over water (convoy).
+          </Typography>
+        </Box>
+        <Box>
+          <Box sx={styles.exampleImage} component="img" src="/placeholder-orders.png" alt="Basic Orders Example" />
+          <Typography variant="caption" gutterBottom>Basic Orders Example</Typography>
+        </Box>
+      </Box>
+      
+      {/* Continue with the same pattern for remaining sections... */}
+    </Box>      </Box>
+
   );
 };
 
