@@ -10,6 +10,10 @@ class DevelopmentTelemetryService {
         return DevelopmentTelemetryService.instance;
     }
 
+    public logInfo(message: string): void {
+        console.info('Telemetry Info:', message);
+    }
+
     public logError(error: Error): void {
         console.error('Telemetry Error:', error);
     }

@@ -18,6 +18,7 @@ import {
 import { selectAuth } from "./auth";
 import { z } from "zod";
 import { gameSchema, getGameSchema, listGamesSchema, listOrdersSchema, listPhasesSchema, listPhaseStatesSchema, listMessagesSchema, listChannelsSchema, createMessageSchema, listVariantsSchema, listOptionsSchema } from "../schema";
+import { getUserConfigSchema } from "../schema/get-user-config";
 
 const apiResponseSchema = <TObjSchema extends z.ZodRawShape>(schema: z.ZodObject<TObjSchema>) => z.object({
     Properties: schema,
@@ -161,9 +162,12 @@ const service = createApi({
             query: (id) => `/User/${id}/Bans`,
             transformResponse: extractPropertiesList,
         }),
-        getUserConfig: builder.query<UserConfig, string>({
+        getUserConfig: builder.query({
             query: (id) => `/User/${id}/UserConfig`,
-            transformResponse: extractProperties,
+            transformResponse: (response) => {
+                const parsed = getUserConfigSchema.parse(response);
+                return extractProperties(parsed);
+            },
             providesTags: [TagType.UserConfig],
         }),
         getUserRatingHistogram: builder.query<UserRatingHistogram, undefined>({

@@ -252,7 +252,7 @@ export type ColorOverrides = {
 
 export type UserConfig = {
     UserId?: string;
-    FCMTokens?: FCMToken[];
+    FCMTokens?: FCMToken[] | null;
     MailConfig?: {
         Enabled?: boolean;
         UnsubscribeConfig?: {

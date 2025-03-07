@@ -1,6 +1,6 @@
 import React from "react";
 import { List } from "@mui/material";
-import { QueryContainer } from "../../components";
+import { NotificationBanner, QueryContainer } from "../../components";
 import { service } from "../../common";
 import { GameCard } from "../../components";
 
@@ -20,6 +20,7 @@ const FindGames: React.FC = () => {
 
   return (
     <List sx={{ width: "100%" }} disablePadding>
+      <NotificationBanner />
       <QueryContainer query={query}>
         {(games) => games.map((game) => <GameCard key={game.ID} game={game} />)}
       </QueryContainer>
