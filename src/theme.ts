@@ -57,6 +57,7 @@ const theme = createTheme({
             styleOverrides: {
                 root: {
                     textAlign: "left",
+                    alignItems: "center",
                 },
             },
         },
@@ -75,7 +76,7 @@ const theme = createTheme({
                     },
                 }),
             },
-        }
+        },
     }
 });
 
