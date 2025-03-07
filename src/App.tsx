@@ -7,6 +7,7 @@ import { AuthService } from "./services";
 import { createStore } from "./common";
 import { authActions } from "./common/store/auth";
 import { Feedback } from "./components/feedback";
+import { MessagingContextProvider } from "./context";
 
 function App() {
   const url = new URL(window.location.href);
@@ -22,8 +23,10 @@ function App() {
     <Provider store={store}>
       <CssBaseline />
       <ThemeProvider theme={theme}>
-        <Router />
-        <Feedback />
+        <MessagingContextProvider>
+          <Router />
+          <Feedback />
+        </MessagingContextProvider>
       </ThemeProvider>
     </Provider>
   );
