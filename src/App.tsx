@@ -1,34 +1,26 @@
 import "./App.css";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { Provider } from "react-redux";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import Router from "./Router";
 import theme from "./theme";
-import { AuthService } from "./services";
-import { createStore } from "./common";
-import { authActions } from "./common/store/auth";
 import { Feedback } from "./components/feedback";
 import { MessagingContextProvider } from "./context";
+import { store } from "./store";
 
 function App() {
-  const url = new URL(window.location.href);
-  const token = url.searchParams.get("token");
-
-  const store = createStore({ authService: AuthService });
-
-  if (token) {
-    store.dispatch(authActions.login(token));
-  }
-
   return (
-    <Provider store={store}>
-      <CssBaseline />
-      <ThemeProvider theme={theme}>
-        <MessagingContextProvider>
-          <Router />
-          <Feedback />
-        </MessagingContextProvider>
-      </ThemeProvider>
-    </Provider>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+      <Provider store={store}>
+        <CssBaseline />
+        <ThemeProvider theme={theme}>
+          <MessagingContextProvider>
+            <Router />
+            <Feedback />
+          </MessagingContextProvider>
+        </ThemeProvider>
+      </Provider>
+    </GoogleOAuthProvider>
   );
 }
 

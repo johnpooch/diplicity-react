@@ -1,13 +1,7 @@
 import React from "react";
-import { Button, Typography, Box, Stack, Avatar } from "@mui/material";
-
-const getLoginUrl = (): string => {
-  const redirectUrl = location.href;
-  const tokenDuration = 60 * 60 * 24 * 365 * 100;
-  return `https://diplicity-engine.appspot.com/Auth/Login?redirect-to=${encodeURI(
-    redirectUrl
-  )}&token-duration=${tokenDuration}`;
-};
+import { Typography, Box, Stack, Avatar } from "@mui/material";
+import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
+import { service } from "../../store";
 
 const styles: Styles = {
   background: {
@@ -45,11 +39,22 @@ const styles: Styles = {
 };
 
 const Login: React.FC = () => {
-  const onClickLogin = () => {
-    const loginUrl = getLoginUrl();
-    if (window) {
-      window.open(loginUrl, "_self");
+  const [trigger] = service.useAuthLoginCreateMutation();
+
+  const handleLoginSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) {
+      console.error("No credential response received");
+      return;
     }
+    trigger({
+      loginRequest: {
+        id_token: credentialResponse.credential,
+      },
+    });
+  };
+
+  const handleLoginError = () => {
+    console.error("Login failed");
   };
 
   return (
@@ -57,7 +62,7 @@ const Login: React.FC = () => {
       <Stack sx={styles.stack} spacing={2} alignItems="center">
         <Avatar sx={styles.logo} src="/otto.png" alt="Diplicity Logo" />
         <Typography component="h1" variant="body1">
-          Welcome to Diplicity!
+          Welcome to Diplicity! Hello world
         </Typography>
         <Typography variant="body2">
           A digital adaptation of the game of Diplomacy.
@@ -66,9 +71,10 @@ const Login: React.FC = () => {
           We're rebuilding the app. Currently not ready for players.
         </Typography>
         <Box sx={styles.buttonContainer}>
-          <Button variant="contained" color="primary" onClick={onClickLogin}>
-            Log in with Google
-          </Button>
+          <GoogleLogin
+            onSuccess={handleLoginSuccess}
+            onError={handleLoginError}
+          />
         </Box>
       </Stack>
     </Box>

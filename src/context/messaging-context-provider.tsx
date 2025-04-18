@@ -2,12 +2,22 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { initializeApp } from "firebase/app";
 import {
   getToken,
-  deleteToken,
   onMessage,
   getMessaging,
+  deleteToken,
 } from "firebase/messaging";
 import { useFcmTokenReceivedMutation } from "../common";
 
+// const firebaseConfig = {
+//   apiKey: "AIzaSyDjCW9a1Y7wPTIQVyL_DMHmo61TzVFjx1c",
+//   authDomain: "diplicity-react.firebaseapp.com",
+//   projectId: "diplicity-react",
+//   storageBucket: "diplicity-react.firebasestorage.app",
+//   messagingSenderId: "919095022177",
+//   appId: "1:919095022177:web:6303772970effd99759020",
+// };
+
+// Diplicity engine
 const firebaseConfig = {
   apiKey: "AIzaSyCsbBMuoeynbqGJ0WqKKd5hkXK4QyQtY-0",
   authDomain: "diplicity-engine.firebaseapp.com",
@@ -20,10 +30,50 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+
 const messaging = getMessaging(app);
 
+// diplicity-engine
 const VAPID_KEY =
-  "BNP8q-LcJTZa_zweDRrLnhfInysDihizGh9RiE9_lzAxPXYrG6UFrwG9lcMnPlKopUFRUwx6JwF9R30had-5lnI";
+  "BFb1kkti2UR4oxC9K5HAAIwH-KOcwGBnZIEvUM9yzD7ppPWK6M4_AlpjfC5m5iQyFd4VqsBgSA5nfSEGbjlUtaY";
+
+// diplicity-react
+// const VAPID_KEY =
+//   "BDzNEIDfAnaXQ3O6tZqAq2rtQw5lFDxhMHJYalOPHVpNXBLeWuuFCK42OdLHzVIBEIsjEEfxzGGQS2jcT3Wfa-8";
+
+// Register the service worker
+navigator.serviceWorker
+  .register("/firebase-messaging-sw.js")
+  .then((registration) => {
+    console.log(registration);
+    console.log("Service worker registered with scope:", registration.scope);
+
+    //Get the token after registration is successful
+    getToken(messaging, {
+      vapidKey: VAPID_KEY,
+    })
+      .then((currentToken) => {
+        if (currentToken) {
+          // Send the token to your server
+        } else {
+          // Show permission request UI
+          console.log(
+            "No registration token available. Request permission to generate one."
+          );
+          // ... your logic to request notification permission ...
+        }
+      })
+      .catch((err) => {
+        console.log("An error occurred while retrieving token. ", err);
+      });
+  })
+  .catch((error) => {
+    console.error("Service worker registration failed:", error);
+  });
+
+onMessage(messaging, async (payload) => {
+  console.log("Message received. ", payload);
+});
 
 type MessagingContextType = {
   enabled: boolean;
@@ -55,8 +105,11 @@ const MessagingContextProvider: React.FC<MessagingContextProviderProps> = (
       const currentToken = await getToken(messaging, { vapidKey: VAPID_KEY });
       if (currentToken) {
         setToken(currentToken);
-        console.log("Token available");
+        if (currentToken) {
+          await handleFcmTokenReceived(currentToken, ENABLED);
+        }
         // Here you would send token to server
+        console.log("Token retrieved:", currentToken);
         return currentToken;
       } else {
         console.warn(
@@ -73,24 +126,20 @@ const MessagingContextProvider: React.FC<MessagingContextProviderProps> = (
   useEffect(() => {
     retrieveToken();
 
-    const unsubscribe = onMessage(messaging, (payload) => {
-      console.log("Message received. ", payload);
-    });
+    // const unsubscribe = onMessage(messaging, (payload) => {
+    //   console.log("Message received. ", payload);
+    // });
 
-    return () => {
-      unsubscribe();
-    };
+    // return () => {
+    //   unsubscribe();
+    // };
   }, []);
 
   const enableMessaging = async (): Promise<void> => {
     try {
       const permission = await Notification.requestPermission();
       if (permission === "granted") {
-        const token = await retrieveToken();
-        if (token) {
-          console.log("Token available and permission granted");
-          await handleFcmTokenReceived(token, ENABLED);
-        }
+        await retrieveToken();
       } else {
         console.warn("Notification permission not granted");
       }
@@ -100,9 +149,13 @@ const MessagingContextProvider: React.FC<MessagingContextProviderProps> = (
   };
 
   const disableMessaging = async (): Promise<void> => {
+    console.log("Disabling messaging");
     try {
+      console.log("Getting token");
       await handleFcmTokenReceived(token as string, DISABLED);
+      console.log("Deleting token");
       await deleteToken(messaging);
+      console.log("Token deleted");
       setToken(undefined);
       // Here you would remove token from server
     } catch (error) {

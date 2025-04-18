@@ -10,40 +10,40 @@ import {
   Typography,
 } from "@mui/material";
 import { useNavigate } from "react-router";
-import { service } from "../common";
+import { service } from "../store";
 import { GameMenu } from "./game-menu";
 
 const MAX_AVATARS = 10;
 
-const GameCard: React.FC<{
-  game: (typeof service.endpoints.listGames.Types.ResultType)[number];
-}> = ({ game }) => {
+const GameCard: React.FC<
+  (typeof service.endpoints.gamesList.Types.ResultType)[number]
+> = (game) => {
   const navigate = useNavigate();
 
   const handleClickGameInfo = () => {
-    navigate(`/game-info/${game.ID}`);
+    navigate(`/game-info/${game.id}`);
   };
 
   const handleClickPlayerInfo = () => {
-    navigate(`/player-info/${game.ID}`);
+    navigate(`/player-info/${game.id}`);
   };
 
   const handleClickGame = () => {
-    if (game.Started) {
-      navigate(`/game/${game.ID}`);
+    if (game.status === "active") {
+      navigate(`/game/${game.id}`);
     } else {
-      navigate(`/game-info/${game.ID}`);
+      navigate(`/game-info/${game.id}`);
     }
   };
 
-  const hasExtraMembers = game.Members.length > MAX_AVATARS;
+  const hasExtraMembers = game.members.length > MAX_AVATARS;
 
   return (
     <ListItem
       sx={styles.listItem}
       secondaryAction={
         <GameMenu
-          gameId={game.ID}
+          gameId={game.id}
           onClickGameInfo={handleClickGameInfo}
           onClickPlayerInfo={handleClickPlayerInfo}
         />
@@ -53,8 +53,8 @@ const GameCard: React.FC<{
         <ListItemAvatar sx={styles.mapContainer}>
           <img
             style={{ maxWidth: "100%", maxHeight: "100%" }}
-            src={`https://diplicity-engine.appspot.com/Variant/${game.Variant}/Map.svg`}
-            alt={game.Variant}
+            src={`https://diplicity-engine.appspot.com/Variant/${game.variant.name}/Map.svg`}
+            alt={game.variant.name}
           />
         </ListItemAvatar>
       </Link>
@@ -62,14 +62,16 @@ const GameCard: React.FC<{
         <ListItemText
           primary={
             <Link underline="hover" onClick={handleClickGame}>
-              {game.Desc}
+              {game.name}
             </Link>
           }
         />
         <Stack sx={styles.secondaryContainer}>
           <Stack sx={styles.rulesContainer}>
-            <Typography variant="caption">{game.Variant}</Typography>
-            <Typography variant="caption">{game.PhaseLengthMinutes}</Typography>
+            <Typography variant="caption">{game.variant.name}</Typography>
+            <Typography variant="caption">
+              {game.movementPhaseDuration}
+            </Typography>
           </Stack>
           <Button sx={styles.avatarStackButton} onClick={handleClickPlayerInfo}>
             <Stack
@@ -77,17 +79,15 @@ const GameCard: React.FC<{
               direction="row"
               spacing={-1}
             >
-              {game.Members.slice(0, MAX_AVATARS).map((member, index) => (
-                <Avatar
-                  sx={styles.avatar}
-                  key={index}
-                  src={member.User.Picture}
-                />
+              {game.members.slice(0, MAX_AVATARS).map((member, index) => (
+                <Avatar sx={styles.avatar} key={index}>
+                  {member.user.username[0]}
+                </Avatar>
               ))}
             </Stack>
             {hasExtraMembers && (
               <Typography variant="body1" sx={styles.extraMembersText}>
-                +{game.Members.length - MAX_AVATARS}
+                +{game.members.length - MAX_AVATARS}
               </Typography>
             )}
           </Button>
