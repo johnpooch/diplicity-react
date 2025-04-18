@@ -20,9 +20,9 @@ import { useDispatch } from "react-redux";
 import { actions } from "../common";
 
 type GameMenuProps = {
-  gameId: string;
-  onClickGameInfo: (navigate: NavigateFunction, gameId: string) => void;
-  onClickPlayerInfo: (navigate: NavigateFunction, gameId: string) => void;
+  gameId: number;
+  onClickGameInfo: (navigate: NavigateFunction, gameId: number) => void;
+  onClickPlayerInfo: (navigate: NavigateFunction, gameId: number) => void;
 };
 
 const GameMenu: React.FC<GameMenuProps> = (props) => {

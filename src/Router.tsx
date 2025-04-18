@@ -1,7 +1,6 @@
 import React from "react";
 import { Navigate, Route, Routes } from "react-router";
 import { useSelector } from "react-redux";
-import { selectAuth } from "./common/store/auth";
 import {
   CreateGame,
   FindGames,
@@ -37,6 +36,7 @@ import {
   SelectedGameContextProvider,
 } from "./context";
 import { CreateOrder } from "./components/orders/create-order";
+import { selectAuth } from "./store";
 
 const Router: React.FC = () => {
   const { loggedIn } = useSelector(selectAuth);

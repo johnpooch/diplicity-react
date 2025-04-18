@@ -1,0 +1,37 @@
+version: "3.9"
+services:
+  development:
+    container_name: diplicity-react-development
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/packages
+    env_file:
+      - .env
+    networks:
+      - diplicity-network
+    tty: true
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: diplicity-react-web
+    entrypoint: ["npm", "run", "dev"]
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/packages
+    env_file:
+      - .env
+    networks:
+      - diplicity-network
+networks:
+  diplicity-network:
+    name: diplicity-network
+    driver: bridge
+    external: true

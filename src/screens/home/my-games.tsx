@@ -1,78 +1,47 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { List, Stack, Tab, Tabs, Typography } from "@mui/material";
 import {
   AddCircleOutline as StagingIcon,
   PlayCircleOutline as StartedIcon,
   StopCircleOutlined as FinishedIcon,
 } from "@mui/icons-material";
-import { QueryContainer } from "../../components";
-import { mergeQueries, service } from "../../common";
-import { GameCard } from "../../components";
-
-const styles: Styles = {
-  header: (theme) => ({
-    borderBottom: `1px solid ${theme.palette.divider}`,
-    alignItems: "center",
-  }),
-  noGamesText: {
-    textAlign: "center",
-  },
-  tabs: {
-    width: "100%",
-  },
-};
-
-const useMyGames = () => {
-  const options = { my: true, mastered: false };
-  const { endpoints } = service;
-  const listStagingGamesQuery = endpoints.listGames.useQuery({
-    ...options,
-    status: "Staging",
-  });
-  const listStartedGamesQuery = endpoints.listGames.useQuery({
-    ...options,
-    status: "Started",
-  });
-  const listFinishedGamesQuery = endpoints.listGames.useQuery({
-    ...options,
-    status: "Finished",
-  });
-  const query = mergeQueries(
-    [listStagingGamesQuery, listStartedGamesQuery, listFinishedGamesQuery],
-    (stagingGames, startedGames, finishedGames) => {
-      return {
-        stagingGames,
-        startedGames,
-        finishedGames,
-      };
-    }
-  );
-  return { query };
-};
+import { GameCard, QueryContainer } from "../../components";
+import { service } from "../../store";
 
 const statuses = [
-  { value: "staging", label: "Staging", icon: <StagingIcon /> },
-  { value: "started", label: "Started", icon: <StartedIcon /> },
-  { value: "finished", label: "Finished", icon: <FinishedIcon /> },
+  { value: "pending", label: "Staging", icon: <StagingIcon /> },
+  { value: "active", label: "Started", icon: <StartedIcon /> },
+  { value: "completed", label: "Finished", icon: <FinishedIcon /> },
 ] as const;
 
 type Status = (typeof statuses)[number]["value"];
 
 const MyGames: React.FC = () => {
-  const { query } = useMyGames();
-  const [selectedStatus, setSelectedStatus] = React.useState<
-    Status | undefined
-  >(undefined);
+  const query = service.endpoints.gamesList.useQuery({ mine: true });
 
-  const status = query.data
-    ? selectedStatus
-      ? selectedStatus
-      : query.data?.startedGames.length > 0
-      ? "started"
-      : query.data?.stagingGames.length > 0
-      ? "staging"
-      : "finished"
-    : "started";
+  const [selectedStatus, setSelectedStatus] = React.useState<Status>("active");
+
+  useEffect(() => {
+    if (query.data) {
+      const stagingGames = query.data.filter(
+        (game) => game.status === "pending"
+      );
+      const startedGames = query.data.filter(
+        (game) => game.status === "active"
+      );
+      const finishedGames = query.data.filter(
+        (game) => game.status === "completed"
+      );
+
+      if (stagingGames.length > 0) {
+        setSelectedStatus("pending");
+      } else if (startedGames.length > 0) {
+        setSelectedStatus("active");
+      } else if (finishedGames.length > 0) {
+        setSelectedStatus("completed");
+      }
+    }
+  }, [query.data]);
 
   return (
     <Stack>
@@ -83,7 +52,7 @@ const MyGames: React.FC = () => {
           style={{ height: 48, width: 48 }}
         />
         <Tabs
-          value={status}
+          value={selectedStatus}
           onChange={(_, value) => setSelectedStatus(value)}
           variant="fullWidth"
           sx={styles.tabs}
@@ -101,14 +70,7 @@ const MyGames: React.FC = () => {
       <List>
         <QueryContainer query={query}>
           {(data) => {
-            const games =
-              status === "staging"
-                ? data.stagingGames
-                : status === "started"
-                ? data.startedGames
-                : data.finishedGames;
-
-            if (games.length === 0) {
+            if (data.length === 0) {
               return (
                 <Stack spacing={1} padding={2}>
                   <Typography variant="body2" sx={styles.noGamesText}>
@@ -124,13 +86,27 @@ const MyGames: React.FC = () => {
                 </Stack>
               );
             }
-
-            return games.map((game) => <GameCard key={game.ID} game={game} />);
+            return data
+              .filter((game) => game.status === selectedStatus)
+              .map((game) => <GameCard key={game.id} {...game} />);
           }}
         </QueryContainer>
       </List>
     </Stack>
   );
+};
+
+const styles: Styles = {
+  header: (theme) => ({
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    alignItems: "center",
+  }),
+  noGamesText: {
+    textAlign: "center",
+  },
+  tabs: {
+    width: "100%",
+  },
 };
 
 export { MyGames };

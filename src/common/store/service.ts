@@ -15,6 +15,7 @@ import {
     ForumMail,
     ListApiResponse,
 } from "./service.types";
+import { paths } from "../service.types";
 import { selectAuth } from "./auth";
 import { z } from "zod";
 import { gameSchema, getGameSchema, listGamesSchema, listOrdersSchema, listPhasesSchema, listPhaseStatesSchema, listMessagesSchema, listChannelsSchema, createMessageSchema, listVariantsSchema, listOptionsSchema } from "../schema";
@@ -104,7 +105,15 @@ const newGameSchema = z.object({
     Variant: z.string(),
 });
 
-const baseUrl = "https://diplicity-engine.appspot.com/";
+const DIPLICITY_API_BASE_URL = "https://diplicity-engine.appspot.com/";
+
+// Get the base URL from the environment variables if it exists, otherwise
+// use production URL
+const envDiplictityApiBaseUrl = import.meta.env.VITE_DIPLICITY_API_BASE_URL;
+const baseUrl =
+    !envDiplictityApiBaseUrl || envDiplictityApiBaseUrl === ''
+        ? DIPLICITY_API_BASE_URL
+        : envDiplictityApiBaseUrl;
 
 const service = createApi({
     tagTypes: [
@@ -125,8 +134,6 @@ const service = createApi({
             if (token) {
                 headers.set(Headers.Authorization, `Bearer ${token}`);
             }
-            headers.set(Headers.XDiplicityAPILevel, "8");
-            headers.set(Headers.XDiplicityClientName, "dipact@"); // TODO
             headers.set(Headers.Accept, "application/json");
             headers.set(Headers.ContentType, "application/json");
             return headers;
@@ -134,6 +141,16 @@ const service = createApi({
         mode: "cors",
     }),
     endpoints: (builder) => ({
+        login: builder.mutation<
+            paths["/auth/login/"]["post"]["responses"]["200"],
+            paths["/auth/login/"]["post"]["requestBody"]["content"]["application/json"]
+        >({
+            query: ({ id_token }) => ({
+                url: "/auth/login/",
+                method: "POST",
+                body: JSON.stringify({ id_token }),
+            })
+        }),
         getVariantSvg: builder.query<string, string>({
             query: (variantName) => ({
                 url: `/Variant/${variantName}/Map.svg`,
