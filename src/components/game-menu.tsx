@@ -90,7 +90,7 @@ const GameMenu: React.FC<GameMenuProps> = (props) => {
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
       >
-        {props.game.actions.canJoin && (
+        {props.game.canJoin && (
           <MenuItem
             onClick={handleClickJoinGame}
             disabled={joinGameMutation.isLoading}
@@ -103,7 +103,7 @@ const GameMenu: React.FC<GameMenuProps> = (props) => {
             </ListItem>
           </MenuItem>
         )}
-        {props.game.actions.canLeave && (
+        {props.game.canLeave && (
           <MenuItem
             onClick={handleClickLeaveGame}
             disabled={leaveGameMutation.isLoading}

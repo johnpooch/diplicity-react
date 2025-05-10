@@ -8,3 +8,11 @@ class SupplyCenter(BaseModel):
     phase = models.ForeignKey(
         "Phase", on_delete=models.CASCADE, related_name="supply_centers"
     )
+
+    def province_data(self):
+        variant = self.phase.game.variant
+        return next((p for p in variant.provinces if p["id"] == self.province), None)
+
+    def nation_data(self):
+        variant = self.phase.game.variant
+        return next((n for n in variant.nations if n["name"] == self.nation), None)

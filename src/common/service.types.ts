@@ -175,7 +175,7 @@ export interface components {
         CurrentPhase: {
             season: string;
             year: string;
-            phase_type: string;
+            type: string;
             remaining_time: string;
             units: components["schemas"]["CurrentPhaseUnits"][];
             supply_centers: components["schemas"]["CurrentPhaseSupplyCenters"][];
@@ -279,7 +279,7 @@ export interface components {
         VariantStart: {
             season: string;
             year: string;
-            phase_type: string;
+            type: string;
             units: components["schemas"]["VariantStartUnits"][];
             supply_centers: components["schemas"]["VariantStartSupplyCenters"][];
         };

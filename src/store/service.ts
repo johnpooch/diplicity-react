@@ -60,7 +60,7 @@ const injectedRtkApi = api.injectEndpoints({
       query: (queryArg) => ({
         url: `/game/`,
         method: "POST",
-        body: queryArg.gameCreateRequest,
+        body: queryArg.request,
       }),
     }),
     gameRetrieve: build.query<GameRetrieveApiResponse, GameRetrieveApiArg>({
@@ -272,12 +272,11 @@ export type DevicesUpdateApiResponse = /** status 200  */ FcmDeviceRead;
 export type DevicesUpdateApiArg = {
   fcmDevice: FcmDevice;
 };
-export type GameCreateApiResponse = /** status 201  */ GameCreateRequest;
+export type GameCreateApiResponse = /** status 201  */ Game;
 export type GameCreateApiArg = {
-  gameCreateRequest: GameCreateRequest;
+  request: Request;
 };
-export type GameRetrieveApiResponse =
-  /** status 200  */ GameRetrieveResponseRead;
+export type GameRetrieveApiResponse = /** status 200  */ Game;
 export type GameRetrieveApiArg = {
   gameId: number;
 };
@@ -315,7 +314,7 @@ export type GameOrderCreateApiArg = {
   gameId: number;
   orderCreateRequest: OrderCreateRequest;
 };
-export type GamesListApiResponse = /** status 200  */ ResponseRead[];
+export type GamesListApiResponse = /** status 200  */ Game[];
 export type GamesListApiArg = {
   canJoin?: boolean;
   mine?: boolean;
@@ -362,163 +361,65 @@ export type FcmDeviceRead = {
   dateCreated: string | null;
   type: TypeEnum;
 };
-export type GameCreateRequest = {
-  name: string;
-  variant: string;
-};
-export type CurrentPhaseUnits = {
-  type: string;
-  nation: string;
-  province: string;
-};
-export type CurrentPhaseSupplyCenters = {
-  province: string;
-  nation: string;
-};
-export type CurrentPhase = {
-  season: string;
-  year: string;
-  phaseType: string;
-  remainingTime: string;
-  units: CurrentPhaseUnits[];
-  supplyCenters: CurrentPhaseSupplyCenters[];
-};
-export type GameVariantNations = {
+export type Nation = {
   name: string;
   color: string;
 };
-export type GameVariantProvinces = {
+export type Province = {
   id: string;
   name: string;
   type: string;
   supplyCenter: boolean;
 };
+export type Unit = {
+  type: string;
+  nation: Nation;
+  province: Province;
+};
+export type SupplyCenter = {
+  province: Province;
+  nation: Nation;
+};
+export type Phase = {
+  id: number;
+  ordinal: number;
+  season: string;
+  year: string;
+  name: string;
+  type: string;
+  remainingTime: string;
+  units: Unit[];
+  supplyCenters: SupplyCenter[];
+};
+export type Member = {
+  id: number;
+  username: string;
+  name: string;
+  picture: string;
+  nation: string;
+  isCurrentUser: boolean;
+};
 export type Variant = {
   id: string;
   name: string;
   description: string;
-  author: string;
-  nations: GameVariantNations[];
-  provinces: GameVariantProvinces[];
+  author?: string;
+  nations: Nation[];
 };
-export type GameMemberUserProfile = {
-  name: string;
-  picture: string;
-};
-export type User = {
-  username: string;
-  profile: GameMemberUserProfile;
-};
-export type UserRead = {
-  username: string;
-  currentUser: boolean;
-  profile: GameMemberUserProfile;
-};
-export type Members = {
-  id: number;
-  user: User;
-  nation: string;
-};
-export type MembersRead = {
-  id: number;
-  user: UserRead;
-  nation: string;
-};
-export type PhaseStateUserProfile = {
-  name: string;
-  picture: string;
-};
-export type PhaseStateUser = {
-  username: string;
-  profile: PhaseStateUserProfile;
-};
-export type PhaseStateUserRead = {
-  username: string;
-  currentUser: boolean;
-  profile: PhaseStateUserProfile;
-};
-export type PhaseStateMember = {
-  id: number;
-  nation: string;
-  user: PhaseStateUser;
-};
-export type PhaseStateMemberRead = {
-  id: number;
-  nation: string;
-  user: PhaseStateUserRead;
-};
-export type PhaseStateOrders = {
-  orderType: string;
-  source: string;
-  target: string | null;
-  aux: string | null;
-};
-export type PhaseStates = {
-  id: number;
-  member: PhaseStateMember;
-  orders: PhaseStateOrders[];
-};
-export type PhaseStatesRead = {
-  id: number;
-  member: PhaseStateMemberRead;
-  orders: PhaseStateOrders[];
-};
-export type PhasesUnits = {
-  type: string;
-  nation: string;
-  province: string;
-};
-export type PhasesSupplyCenters = {
-  province: string;
-  nation: string;
-};
-export type Phases = {
-  id: number;
-  ordinal: number;
-  season: string;
-  year: string;
-  name: string;
-  phaseType: string;
-  remainingTime: string;
-  phaseStates: PhaseStates[];
-  units: PhasesUnits[];
-  supplyCenters: PhasesSupplyCenters[];
-};
-export type PhasesRead = {
-  id: number;
-  ordinal: number;
-  season: string;
-  year: string;
-  name: string;
-  phaseType: string;
-  remainingTime: string;
-  phaseStates: PhaseStatesRead[];
-  units: PhasesUnits[];
-  supplyCenters: PhasesSupplyCenters[];
-};
-export type GameRetrieveResponse = {
+export type Game = {
   id: number;
   name: string;
   status: string;
   movementPhaseDuration: string;
-  currentPhase: CurrentPhase;
+  canJoin: boolean;
+  canLeave: boolean;
+  currentPhase: Phase;
+  members: Member[];
   variant: Variant;
-  members: Members[];
-  phases: Phases[];
 };
-export type GameRetrieveResponseRead = {
-  id: number;
+export type Request = {
   name: string;
-  status: string;
-  movementPhaseDuration: string;
-  actions: {
-    [key: string]: any;
-  };
-  currentPhase: CurrentPhase;
-  variant: Variant;
-  members: MembersRead[];
-  ordersConfirmed: boolean;
-  phases: PhasesRead[];
+  variant: string;
 };
 export type ChannelCreateResponse = {
   id: number;
@@ -583,28 +484,6 @@ export type OrderCreateRequest = {
   target?: string | null;
   aux?: string | null;
 };
-export type Response = {
-  id: number;
-  name: string;
-  status: string;
-  movementPhaseDuration: string;
-  canJoin: boolean;
-  canLeave: boolean;
-  currentPhase: CurrentPhase;
-  variant: Variant;
-  members: Members[];
-};
-export type ResponseRead = {
-  id: number;
-  name: string;
-  status: string;
-  movementPhaseDuration: string;
-  canJoin: boolean;
-  canLeave: boolean;
-  currentPhase: CurrentPhase;
-  variant: Variant;
-  members: MembersRead[];
-};
 export type UserProfile = {
   id: number;
   name: string;
@@ -628,7 +507,7 @@ export type VariantStartSupplyCenters = {
 export type VariantStart = {
   season: string;
   year: string;
-  phaseType: string;
+  type: string;
   units: VariantStartUnits[];
   supplyCenters: VariantStartSupplyCenters[];
 };

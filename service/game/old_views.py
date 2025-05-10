@@ -10,55 +10,12 @@ from rest_framework import status
 from drf_spectacular.utils import extend_schema
 from rest_framework.views import APIView
 
-from . import old_services, serializers
-
-
-class GameListView(ListAPIView):
-    permission_classes = [IsAuthenticated]
-    serializer_class = serializers.GameListResponseSerializer
-
-    @extend_schema(
-        parameters=[serializers.GameListFilterSerializer],
-        responses={200: serializers.GameListResponseSerializer(many=True)},
-    )
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
-
-    def get_queryset(self):
-        filters_serializer = serializers.GameListFilterSerializer(
-            data=self.request.query_params
-        )
-        filters_serializer.is_valid(raise_exception=True)
-        filters = filters_serializer.validated_data
-        return old_services.game_list(self.request.user, filters)
-
-
-class GameRetrieveView(RetrieveAPIView):
-    permission_classes = [IsAuthenticated]
-    serializer_class = serializers.GameRetrieveResponseSerializer
-
-    @extend_schema(
-        responses={200: serializers.GameRetrieveResponseSerializer},
-    )
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
-
-    def get_object(self):
-        return old_services.game_retrieve(self.request.user, self.kwargs["game_id"])
-
-
-class GameCreateView(CreateAPIView):
-    permission_classes = [IsAuthenticated]
-    serializer_class = serializers.GameCreateRequestSerializer
-
-    def perform_create(self, serializer):
-        validated_data = serializer.validated_data
-        old_services.game_create(self.request.user, validated_data)
+from . import old_serializers, old_services
 
 
 class GameJoinView(CreateAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = serializers.GameJoinRequestSerializer
+    serializer_class = old_serializers.GameJoinRequestSerializer
 
     def perform_create(self, *args, **kwargs):
         old_services.game_join(self.request.user, self.kwargs["game_id"])
@@ -66,7 +23,7 @@ class GameJoinView(CreateAPIView):
 
 class GameLeaveView(DestroyAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = serializers.GameLeaveRequestSerializer
+    serializer_class = old_serializers.GameLeaveRequestSerializer
 
     def get_object(self):
         return None
@@ -77,11 +34,11 @@ class GameLeaveView(DestroyAPIView):
 
 class LoginView(CreateAPIView):
     permission_classes = [AllowAny]
-    serializer_class = serializers.LoginRequestSerializer
+    serializer_class = old_serializers.LoginRequestSerializer
 
     @extend_schema(
-        request=serializers.LoginRequestSerializer,
-        responses={200: serializers.LoginResponseSerializer},
+        request=old_serializers.LoginRequestSerializer,
+        responses={200: old_serializers.LoginResponseSerializer},
     )
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
@@ -102,7 +59,7 @@ class LoginView(CreateAPIView):
             "refresh_token": tokens["refresh_token"],
         }
 
-        output_serializer = serializers.LoginResponseSerializer(data=response_data)
+        output_serializer = old_serializers.LoginResponseSerializer(data=response_data)
         output_serializer.is_valid(raise_exception=True)
 
         return Response(output_serializer.data, status=status.HTTP_200_OK)
@@ -110,7 +67,7 @@ class LoginView(CreateAPIView):
 
 class OrderCreateView(CreateAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = serializers.OrderCreateRequestSerializer
+    serializer_class = old_serializers.OrderCreateRequestSerializer
 
     def perform_create(self, serializer):
         validated_data = serializer.validated_data
@@ -121,7 +78,7 @@ class OrderCreateView(CreateAPIView):
 
 class PhaseStateConfirmView(CreateAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = serializers.PhaseStateConfirmSerializer
+    serializer_class = old_serializers.PhaseStateConfirmSerializer
 
     def perform_create(self, *args):
         old_services.phase_state_confirm(self.request.user, self.kwargs["game_id"])
@@ -129,7 +86,7 @@ class PhaseStateConfirmView(CreateAPIView):
 
 class VariantListView(ListAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = serializers.VariantListResponseSerializer
+    serializer_class = old_serializers.VariantListResponseSerializer
 
     def get_queryset(self):
         return old_services.variant_list()
@@ -137,12 +94,12 @@ class VariantListView(ListAPIView):
 
 class ChannelCreateView(CreateAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = serializers.ChannelCreateRequestSerializer
+    serializer_class = old_serializers.ChannelCreateRequestSerializer
 
     @extend_schema(
         operation_id="gameChannelCreate",
-        request=serializers.ChannelCreateRequestSerializer,
-        responses={201: serializers.ChannelCreateResponseSerializer},
+        request=old_serializers.ChannelCreateRequestSerializer,
+        responses={201: old_serializers.ChannelCreateResponseSerializer},
     )
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
@@ -157,7 +114,7 @@ class ChannelCreateView(CreateAPIView):
 
         channel = old_services.channel_create(self.request.user, game_id, members)
 
-        output_serializer = serializers.ChannelCreateResponseSerializer(
+        output_serializer = old_serializers.ChannelCreateResponseSerializer(
             data={"id": channel.id}
         )
         output_serializer.is_valid(raise_exception=True)
@@ -167,12 +124,12 @@ class ChannelCreateView(CreateAPIView):
 
 class ChannelMessageCreateView(CreateAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = serializers.ChannelMessageCreateRequestSerializer
+    serializer_class = old_serializers.ChannelMessageCreateRequestSerializer
 
     @extend_schema(
         operation_id="gameChannelMessageCreate",
-        request=serializers.ChannelMessageCreateRequestSerializer,
-        responses={201: serializers.ChannelMessageCreateResponseSerializer},
+        request=old_serializers.ChannelMessageCreateRequestSerializer,
+        responses={201: old_serializers.ChannelMessageCreateResponseSerializer},
     )
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
@@ -190,7 +147,7 @@ class ChannelMessageCreateView(CreateAPIView):
 
 class ChannelListView(ListAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = serializers.ChannelListResponseSerializer
+    serializer_class = old_serializers.ChannelListResponseSerializer
 
     def get_queryset(self):
         return old_services.channel_list(self.request.user)
@@ -198,7 +155,7 @@ class ChannelListView(ListAPIView):
 
 class UserProfileRetrieveView(RetrieveAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = serializers.UserProfileSerializer
+    serializer_class = old_serializers.UserProfileSerializer
 
     def get_object(self):
         return self.request.user.profile

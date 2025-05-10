@@ -85,7 +85,7 @@ class PhaseFactory(factory.django.DjangoModelFactory):
     status = models.Phase.PENDING
     season = "Spring"
     year = 1901
-    phase_type = "Movement"
+    type = "Movement"
 
     @factory.post_generation
     def supply_centers(self, create, extracted, **kwargs):
@@ -112,7 +112,7 @@ class PhaseFactory(factory.django.DjangoModelFactory):
             for member in self.game.members.all():
                 models.PhaseState.objects.create(member=member, phase=self)
                 print(
-                    f"PhaseState created for member {member.user.username} in phase {self.season} {self.year} {self.phase_type}"
+                    f"PhaseState created for member {member.user.username} in phase {self.season} {self.year} {self.type}"
                 )
 
 

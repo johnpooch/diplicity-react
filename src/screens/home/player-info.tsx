@@ -28,14 +28,14 @@ const PlayerInfo: React.FC = () => {
           )}
           <List>
             {game.members.map((member) => (
-              <ListItem key={member.user.username}>
+              <ListItem key={member.username}>
                 <ListItemAvatar>
                   <Avatar
-                    src={member.user.profile.picture}
-                    alt={member.user.username}
+                    src={member.picture}
+                    alt={member.username}
                   />
                 </ListItemAvatar>
-                <ListItemText primary={member.user.username} />
+                <ListItemText primary={member.username} />
               </ListItem>
             ))}
           </List>

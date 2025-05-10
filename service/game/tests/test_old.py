@@ -47,7 +47,7 @@ class VariantModelTestCase(TestCase):
         )
         self.assertEqual(variant.start["season"], "Spring")
         self.assertEqual(variant.start["year"], 1901)
-        self.assertEqual(variant.start["phase_type"], "Movement")
+        self.assertEqual(variant.start["type"], "Movement")
         self.assertIsInstance(variant.start["units"], list)
         self.assertIsInstance(variant.start["supply_centers"], list)
 
@@ -262,217 +262,7 @@ class GameCreateViewTestCase(APITestCase):
         self.assertEqual(game.name, "Test Game")
 
 
-# class GameJoinApiTestCase(TestCase):
-#     def setUp(self):
-#         self.client = APIClient()
-#         variant = Variant.objects.create(
-#             id="italy-vs-germany",
-#             name="Italy vs Germany",
-#         )
-#         self.user = User.objects.create_user(username="testuser", password="password")
-#         self.game = game_create(
-#             self.user,
-#             {
-#                 "name": "Test Game",
-#                 "variant": variant.id,
-#             },
-#         )
-#         self.client.force_authenticate(user=self.user)
-
-#     def create_request(self, game_id):
-#         url = reverse("game-join", args=[game_id])
-#         return self.client.post(url)
-
-#     def test_join_game_success(self):
-#         self.game.members.all().delete()
-#         response = self.create_request(self.game.id)
-#         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-#         self.assertEqual(Member.objects.count(), 1)
-#         self.assertEqual(Member.objects.first().user, self.user)
-
-#     def test_join_game_forbidden_if_game_is_active(self):
-#         self.game.status = Game.ACTIVE
-#         self.game.save()
-
-#         response = self.create_request(self.game.id)
-#         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-#     def test_join_game_forbidden_if_game_is_finished(self):
-#         self.game.status = Game.COMPLETED
-#         self.game.save()
-
-#         response = self.create_request(self.game.id)
-#         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-#     def test_join_game_already_a_member(self):
-#         Member.objects.create(game=self.game, user=self.user)
-
-#         response = self.create_request(self.game.id)
-#         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-#     def test_join_game_game_not_found(self):
-#         response = self.client.post("/game/999/join/")
-#         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
-#     def test_join_game_unauthorized(self):
-#         self.client.logout()
-#         response = self.create_request(self.game.id)
-#         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-
-#     @patch("game.old_services.game_start.apply_async")
-#     @patch("game.old_services.notification_create")
-#     def test_join_game_filled(self, mock_notification_create, mock_apply_async):
-#         def mock_run(*args, **kwargs):
-#             game_start.run(kwargs["args"][0])  # Ensure the correct arguments are passed
-
-#         mock_apply_async.side_effect = mock_run
-
-#         self.create_request(self.game.id)
-
-#         # Create a second user and join the game
-#         second_user = User.objects.create_user(
-#             username="seconduser", password="password"
-#         )
-#         self.client.force_authenticate(user=second_user)
-#         self.create_request(self.game.id)
-
-#         self.game.refresh_from_db()
-
-#         phase = self.game.phases.first()
-#         phase_states = phase.phase_states.all()
-
-#         self.assertEqual(self.game.status, Game.ACTIVE)
-#         self.assertEqual(phase.name, "Spring 1901, Movement")
-#         self.assertEqual(phase_states.count(), 2)
-
-#         italy_phase_state = phase_states.get(member__nation="Italy")
-#         self.assertTrue(italy_phase_state.options)
-#         self.assertEqual(italy_phase_state.orders_confirmed, False)
-
-#         germany_phase_state = phase_states.get(member__nation="Germany")
-#         self.assertTrue(germany_phase_state.options)
-#         self.assertEqual(germany_phase_state.orders_confirmed, False)
-
-#         # Assert notifications are sent
-#         mock_notification_create.assert_called_once()
-#         notification_args = mock_notification_create.call_args[0]
-#         self.assertIn(self.user.id, notification_args[0])
-#         self.assertIn(second_user.id, notification_args[0])
-#         self.assertEqual(notification_args[1]["title"], "Game started")
-#         self.assertEqual(
-#             notification_args[1]["body"], f"The game '{self.game.name}' has started!"
-#         )
-
-#     @patch("game.old_services.game_start.apply_async")
-#     @patch("game.old_services.notification_create")
-#     def test_join_game_creates_public_channel(
-#         self, mock_notification_create, mock_apply_async
-#     ):
-#         def mock_run(*args, **kwargs):
-#             game_start.run(kwargs["args"][0])
-
-#         mock_apply_async.side_effect = mock_run
-
-#         # Join the game with the second user
-#         second_user = User.objects.create_user(
-#             username="seconduser", password="password"
-#         )
-#         self.client.force_authenticate(user=second_user)
-#         self.create_request(self.game.id)
-
-#         self.game.refresh_from_db()
-
-#         # Check if public press channel was created
-#         public_channel = Channel.objects.filter(
-#             game=self.game, name="Public Press", private=False
-#         ).first()
-
-#         # self.assertIsNotNone(public_channel)
-#         # self.assertEqual(public_channel.members.count(), 2)
-#         # self.assertTrue(public_channel.members.filter(user=self.user).exists())
-#         # self.assertTrue(public_channel.members.filter(user=second_user).exists())
-
-#     @patch("game.old_services.game_start.apply_async")
-#     @patch("game.old_services.notification_create")
-#     def test_join_game_public_channel_accessible(
-#         self, mock_notification_create, mock_apply_async
-#     ):
-#         def mock_run(*args, **kwargs):
-#             game_start.run(kwargs["args"][0])
-
-#         mock_apply_async.side_effect = mock_run
-
-#         # Join with second user to start the game
-#         second_user = User.objects.create_user(
-#             username="seconduser", password="password"
-#         )
-#         self.client.force_authenticate(user=second_user)
-#         self.create_request(self.game.id)
-
-#         # Switch back to first user
-#         self.client.force_authenticate(user=self.user)
-#         url = reverse("channel-list", args=[self.game.id])
-#         response = self.client.get(url)
-
-#         self.assertEqual(response.status_code, status.HTTP_200_OK)
-#         public_channels = [c for c in response.data if c["name"] == "Public Press"]
-#         self.assertEqual(len(public_channels), 1)
-#         self.assertEqual(public_channels[0]["private"], False)
-
-
-class GameLeaveApiTestCase(TestCase):
-
-    def setUp(self):
-        self.client = APIClient()
-        variant = Variant.objects.create(
-            id="italy-vs-germany",
-            name="Italy vs Germany",
-        )
-        self.user = User.objects.create_user(username="testuser", password="password")
-        self.game = Game.objects.create(
-            name="Test Game",
-            variant=variant,
-            status=Game.PENDING,
-        )
-        self.member = Member.objects.create(game=self.game, user=self.user)
-        self.client.force_authenticate(user=self.user)
-
-    def create_request(self, game_id):
-        url = reverse("game-leave", args=[game_id])
-        return self.client.delete(url)
-
-    def test_delete_member_success(self):
-        response = self.create_request(self.game.id)
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(Member.objects.count(), 0)
-
-    def test_delete_member_forbidden_if_game_is_active(self):
-        self.game.status = Game.ACTIVE
-        self.game.save()
-
-        response = self.create_request(self.game.id)
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-    def test_delete_member_forbidden_if_game_is_completed(self):
-        self.game.status = Game.COMPLETED
-        self.game.save()
-
-        response = self.create_request(self.game.id)
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-    def test_delete_member_game_not_found(self):
-        response = self.client.delete("/game/999/leave/")
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
-    def test_delete_member_not_a_member(self):
-        self.member.delete()  # Remove the user as a member
-        response = self.create_request(self.game.id)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_delete_member_unauthorized(self):
-        self.client.logout()
-        response = self.create_request(self.game.id)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+# Removed GameLeaveApiTestCase as it has been moved to test_game.py
 
 
 # class OrderCreateApiTestCase(TestCase):
@@ -493,7 +283,7 @@ class GameLeaveApiTestCase(TestCase):
 #             game=self.game,
 #             season="Spring",
 #             year=1901,
-#             phase_type="Movement",
+#             type="Movement",
 #         )
 
 #         phase_state = self.phase.phase_states.create(member=self.member)
@@ -634,7 +424,7 @@ class GameLeaveApiTestCase(TestCase):
 #         self.assertIn("options", response)
 #         self.assertEqual(response["phase"]["season"], "Spring")
 #         self.assertEqual(response["phase"]["year"], 1901)
-#         self.assertEqual(response["phase"]["phase_type"], "Movement")
+#         self.assertEqual(response["phase"]["type"], "Movement")
 #         self.assertIn("units", response["phase"])
 #         self.assertIn("orders", response["phase"])
 #         self.assertIn("supply_centers", response["phase"])
@@ -644,11 +434,11 @@ class GameLeaveApiTestCase(TestCase):
 #             game=self.game,
 #             season="Spring",
 #             year=1901,
-#             phase_type="Movement",
+#             type="Movement",
 #         )
 
 #         self.phase.units.create(
-#             unit_type="Fleet",
+#             type="Fleet",
 #             nation="England",
 #             province="lon",
 #         )
@@ -668,7 +458,7 @@ class GameLeaveApiTestCase(TestCase):
 #         self.assertIn("options", response)
 #         self.assertEqual(response["phase"]["season"], "Spring")
 #         self.assertEqual(response["phase"]["year"], 1901)
-#         self.assertEqual(response["phase"]["phase_type"], "Retreat")
+#         self.assertEqual(response["phase"]["type"], "Retreat")
 #         self.assertIn("units", response["phase"])
 #         self.assertIn("orders", response["phase"])
 #         self.assertIn("supply_centers", response["phase"])
@@ -693,7 +483,7 @@ class PhaseStateConfirmApiTestCase(TestCase):
             game=self.game,
             season="Spring",
             year=1901,
-            phase_type="Movement",
+            type="Movement",
         )
         self.phase_state = self.phase.phase_states.create(member=self.member)
         self.client.force_authenticate(user=self.user)
@@ -770,7 +560,7 @@ class VariantListApiTestCase(APITestCase):
 
         self.assertEqual(classical["start"]["season"], "Spring")
         self.assertEqual(classical["start"]["year"], "1901")
-        self.assertEqual(classical["start"]["phase_type"], "Movement")
+        self.assertEqual(classical["start"]["type"], "Movement")
 
         self.assertIsInstance(classical["start"]["units"], list)
         self.assertIsInstance(classical["start"]["supply_centers"], list)
@@ -778,7 +568,7 @@ class VariantListApiTestCase(APITestCase):
         self.assertEqual(
             classical["start"]["units"][0],
             {
-                "unit_type": "Fleet",
+                "type": "Fleet",
                 "nation": "England",
                 "province": "edi",
             },
@@ -1181,7 +971,7 @@ class UserProfileRetrieveViewTestCase(APITestCase):
 #             "phase": {
 #                 "season": "Spring",
 #                 "year": 1901,
-#                 "phase_type": "Movement",
+#                 "type": "Movement",
 #                 "units": [],
 #                 "orders": {},
 #                 "supply_centers": [],

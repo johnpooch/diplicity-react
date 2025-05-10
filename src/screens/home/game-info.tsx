@@ -73,8 +73,8 @@ const GameInfo: React.FC = () => {
                     {game.members.map((member) => (
                       <Avatar
                         sx={styles.avatar}
-                        key={member.user.username}
-                        src={member.user.profile.picture}
+                        key={member.username}
+                        src={member.picture}
                       />
                     ))}
                   </AvatarGroup>
