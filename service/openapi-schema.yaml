@@ -252,7 +252,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/GameCreateRequest'
+              $ref: '#/components/schemas/Request'
         required: true
       security:
       - jwtAuth: []
@@ -261,7 +261,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GameCreateRequest'
+                $ref: '#/components/schemas/Game'
           description: ''
   /game/{gameId}/:
     get:
@@ -281,7 +281,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GameRetrieveResponse'
+                $ref: '#/components/schemas/Game'
           description: ''
   /game/{gameId}/channel/:
     post:
@@ -455,7 +455,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Response'
+                  $ref: '#/components/schemas/Game'
           description: ''
   /user/:
     get:
@@ -550,55 +550,6 @@ components:
       - createdAt
       - id
       - sender
-    CurrentPhase:
-      type: object
-      properties:
-        season:
-          type: string
-        year:
-          type: string
-        phaseType:
-          type: string
-        remainingTime:
-          type: string
-        units:
-          type: array
-          items:
-            $ref: '#/components/schemas/CurrentPhaseUnits'
-        supplyCenters:
-          type: array
-          items:
-            $ref: '#/components/schemas/CurrentPhaseSupplyCenters'
-      required:
-      - phaseType
-      - remainingTime
-      - season
-      - supplyCenters
-      - units
-      - year
-    CurrentPhaseSupplyCenters:
-      type: object
-      properties:
-        province:
-          type: string
-        nation:
-          type: string
-      required:
-      - nation
-      - province
-    CurrentPhaseUnits:
-      type: object
-      properties:
-        type:
-          type: string
-        nation:
-          type: string
-        province:
-          type: string
-      required:
-      - nation
-      - province
-      - type
     FCMDevice:
       type: object
       properties:
@@ -635,27 +586,7 @@ components:
       - id
       - registrationId
       - type
-    GameCreateRequest:
-      type: object
-      properties:
-        name:
-          type: string
-        variant:
-          type: string
-      required:
-      - name
-      - variant
-    GameMemberUserProfile:
-      type: object
-      properties:
-        name:
-          type: string
-        picture:
-          type: string
-      required:
-      - name
-      - picture
-    GameRetrieveResponse:
+    Game:
       type: object
       properties:
         id:
@@ -666,62 +597,28 @@ components:
           type: string
         movementPhaseDuration:
           type: string
-        actions:
-          type: object
-          additionalProperties: {}
-          readOnly: true
+        canJoin:
+          type: boolean
+        canLeave:
+          type: boolean
         currentPhase:
-          $ref: '#/components/schemas/CurrentPhase'
-        variant:
-          $ref: '#/components/schemas/Variant'
+          $ref: '#/components/schemas/Phase'
         members:
           type: array
           items:
-            $ref: '#/components/schemas/Members'
-        ordersConfirmed:
-          type: boolean
-          readOnly: true
-        phases:
-          type: array
-          items:
-            $ref: '#/components/schemas/Phases'
+            $ref: '#/components/schemas/Member'
+        variant:
+          $ref: '#/components/schemas/Variant'
       required:
-      - actions
+      - canJoin
+      - canLeave
       - currentPhase
       - id
       - members
       - movementPhaseDuration
       - name
-      - ordersConfirmed
-      - phases
       - status
       - variant
-    GameVariantNations:
-      type: object
-      properties:
-        name:
-          type: string
-        color:
-          type: string
-      required:
-      - color
-      - name
-    GameVariantProvinces:
-      type: object
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        type:
-          type: string
-        supplyCenter:
-          type: boolean
-      required:
-      - id
-      - name
-      - supplyCenter
-      - type
     LoginRequest:
       type: object
       properties:
@@ -748,19 +645,28 @@ components:
       - id
       - refreshToken
       - username
-    Members:
+    Member:
       type: object
       properties:
         id:
           type: integer
-        user:
-          $ref: '#/components/schemas/User'
+        username:
+          type: string
+        name:
+          type: string
+        picture:
+          type: string
         nation:
           type: string
+        isCurrentUser:
+          type: boolean
       required:
       - id
+      - isCurrentUser
+      - name
       - nation
-      - user
+      - picture
+      - username
     MessageSender:
       type: object
       properties:
@@ -798,6 +704,16 @@ components:
       required:
       - name
       - picture
+    Nation:
+      type: object
+      properties:
+        name:
+          type: string
+        color:
+          type: string
+      required:
+      - color
+      - name
     OrderCreateRequest:
       type: object
       properties:
@@ -814,77 +730,7 @@ components:
       required:
       - orderType
       - source
-    PhaseStateMember:
-      type: object
-      properties:
-        id:
-          type: integer
-        nation:
-          type: string
-        user:
-          $ref: '#/components/schemas/PhaseStateUser'
-      required:
-      - id
-      - nation
-      - user
-    PhaseStateOrders:
-      type: object
-      properties:
-        orderType:
-          type: string
-        source:
-          type: string
-        target:
-          type: string
-          nullable: true
-        aux:
-          type: string
-          nullable: true
-      required:
-      - aux
-      - orderType
-      - source
-      - target
-    PhaseStateUser:
-      type: object
-      properties:
-        username:
-          type: string
-        currentUser:
-          type: boolean
-          readOnly: true
-        profile:
-          $ref: '#/components/schemas/PhaseStateUserProfile'
-      required:
-      - currentUser
-      - profile
-      - username
-    PhaseStateUserProfile:
-      type: object
-      properties:
-        name:
-          type: string
-        picture:
-          type: string
-      required:
-      - name
-      - picture
-    PhaseStates:
-      type: object
-      properties:
-        id:
-          type: integer
-        member:
-          $ref: '#/components/schemas/PhaseStateMember'
-        orders:
-          type: array
-          items:
-            $ref: '#/components/schemas/PhaseStateOrders'
-      required:
-      - id
-      - member
-      - orders
-    Phases:
+    Phase:
       type: object
       properties:
         id:
@@ -897,89 +743,64 @@ components:
           type: string
         name:
           type: string
-        phaseType:
+        type:
           type: string
         remainingTime:
           type: string
-        phaseStates:
-          type: array
-          items:
-            $ref: '#/components/schemas/PhaseStates'
         units:
           type: array
           items:
-            $ref: '#/components/schemas/PhasesUnits'
+            $ref: '#/components/schemas/Unit'
         supplyCenters:
           type: array
           items:
-            $ref: '#/components/schemas/PhasesSupplyCenters'
+            $ref: '#/components/schemas/SupplyCenter'
       required:
       - id
       - name
       - ordinal
-      - phaseStates
-      - phaseType
       - remainingTime
       - season
       - supplyCenters
+      - type
       - units
       - year
-    PhasesSupplyCenters:
-      type: object
-      properties:
-        province:
-          type: string
-        nation:
-          type: string
-      required:
-      - nation
-      - province
-    PhasesUnits:
-      type: object
-      properties:
-        type:
-          type: string
-        nation:
-          type: string
-        province:
-          type: string
-      required:
-      - nation
-      - province
-      - type
-    Response:
+    Province:
       type: object
       properties:
         id:
-          type: integer
+          type: string
         name:
           type: string
-        status:
+        type:
           type: string
-        movementPhaseDuration:
-          type: string
-        canJoin:
+        supplyCenter:
           type: boolean
-        canLeave:
-          type: boolean
-        currentPhase:
-          $ref: '#/components/schemas/CurrentPhase'
-        variant:
-          $ref: '#/components/schemas/Variant'
-        members:
-          type: array
-          items:
-            $ref: '#/components/schemas/Members'
       required:
-      - canJoin
-      - canLeave
-      - currentPhase
       - id
-      - members
-      - movementPhaseDuration
       - name
-      - status
+      - supplyCenter
+      - type
+    Request:
+      type: object
+      properties:
+        name:
+          type: string
+        variant:
+          type: string
+      required:
+      - name
       - variant
+    SupplyCenter:
+      type: object
+      properties:
+        province:
+          $ref: '#/components/schemas/Province'
+        nation:
+          $ref: '#/components/schemas/Nation'
+      required:
+      - nation
+      - province
     TokenRefresh:
       type: object
       properties:
@@ -1002,20 +823,19 @@ components:
         * `ios` - ios
         * `android` - android
         * `web` - web
-    User:
+    Unit:
       type: object
       properties:
-        username:
+        type:
           type: string
-        currentUser:
-          type: boolean
-          readOnly: true
-        profile:
-          $ref: '#/components/schemas/GameMemberUserProfile'
+        nation:
+          $ref: '#/components/schemas/Nation'
+        province:
+          $ref: '#/components/schemas/Province'
       required:
-      - currentUser
-      - profile
-      - username
+      - nation
+      - province
+      - type
     UserProfile:
       type: object
       properties:
@@ -1049,18 +869,12 @@ components:
         nations:
           type: array
           items:
-            $ref: '#/components/schemas/GameVariantNations'
-        provinces:
-          type: array
-          items:
-            $ref: '#/components/schemas/GameVariantProvinces'
+            $ref: '#/components/schemas/Nation'
       required:
-      - author
       - description
       - id
       - name
       - nations
-      - provinces
     VariantListResponse:
       type: object
       properties:
@@ -1101,7 +915,7 @@ components:
           type: string
         year:
           type: string
-        phaseType:
+        type:
           type: string
         units:
           type: array
@@ -1112,9 +926,9 @@ components:
           items:
             $ref: '#/components/schemas/VariantStartSupplyCenters'
       required:
-      - phaseType
       - season
       - supplyCenters
+      - type
       - units
       - year
     VariantStartSupplyCenters:

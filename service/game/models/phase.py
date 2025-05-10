@@ -22,7 +22,7 @@ class Phase(BaseModel):
     completed_at = models.DateTimeField(null=True, blank=True)
     season = models.CharField(max_length=10)
     year = models.IntegerField()
-    phase_type = models.CharField(max_length=10)
+    type = models.CharField(max_length=10)
     remaining_time = models.DurationField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
@@ -38,7 +38,7 @@ class Phase(BaseModel):
 
     @property
     def name(self):
-        return f"{self.season} {self.year}, {self.phase_type}"
+        return f"{self.season} {self.year}, {self.type}"
 
     def get_orders_for_user(self, user):
         is_current_phase = self.id == self.game.current_phase.id

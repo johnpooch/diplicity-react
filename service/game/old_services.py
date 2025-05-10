@@ -29,7 +29,7 @@ from .models import (
     Unit,
     SupplyCenter,
 )
-from . import serializers
+from . import old_serializers
 from .tasks import BaseTask
 
 
@@ -47,7 +47,7 @@ def adjudication_start(game_id: int):
     data = response.json()
     if isinstance(data, str):
         data = json.loads(data)
-    serializer = serializers.AdjudicationResponseSerializer(data=data)
+    serializer = old_serializers.AdjudicationResponseSerializer(data=data)
     serializer.is_valid(raise_exception=True)
     return serializer.validated_data
 
@@ -139,14 +139,14 @@ def game_create(user, data: dict):
             game=game,
             season=variant.start["season"],
             year=variant.start["year"],
-            phase_type=variant.start["phase_type"],
+            type=variant.start["type"],
         )
 
         # Create Unit instances for the phase
         for unit_data in variant.start["units"]:
             Unit.objects.create(
                 phase=phase,
-                unit_type=unit_data["unit_type"].lower(),
+                type=unit_data["type"].lower(),
                 nation=unit_data["nation"],
                 province=unit_data["province"],
             )
@@ -486,11 +486,11 @@ def adjudication_resolve(game_id: int):
             if order.aux:
                 formatted_orders[nation][order.source].append(order.aux)
 
-    serialized_game = serializers.PhaseSerializer(
+    serialized_game = old_serializers.PhaseSerializer(
         data={
             "Season": game.current_phase.season,
             "Year": game.current_phase.year,
-            "Type": game.current_phase.phase_type,
+            "Type": game.current_phase.type,
             "Units": list(game.current_phase.units.all()),
             "Orders": formatted_orders,
             "SupplyCenters": list(game.current_phase.supply_centers.all()),
@@ -514,7 +514,7 @@ def adjudication_resolve(game_id: int):
     data = response.json()
     if isinstance(data, str):
         data = json.loads(data)
-    serializer = serializers.AdjudicationResponseSerializer(data=data)
+    serializer = old_serializers.AdjudicationResponseSerializer(data=data)
     serializer.is_valid(raise_exception=True)
     return serializer.validated_data
 
@@ -567,7 +567,7 @@ def game_resolve(game_id: int):
         new_phase = game.phases.create(
             season=phase_data["season"],
             year=phase_data["year"],
-            phase_type=phase_data["phase_type"],
+            type=phase_data["type"],
             units=phase_data["units"],
             orders=phase_data["orders"],
             supply_centers=phase_data["supply_centers"],

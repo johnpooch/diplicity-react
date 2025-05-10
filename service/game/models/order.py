@@ -32,7 +32,7 @@ class Order(BaseModel):
                     f"Order type {self.order_type} is not valid for source province {self.source}."
                 )
 
-            if self.order_type in ["Move", "Retreat"]:
+            if self.order_type in ["Move"]:
                 target_options = order_type_options[self.order_type]["Next"][
                     self.source
                 ]["Next"]

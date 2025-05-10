@@ -44,7 +44,7 @@
             "status": "pending",
             "season": "Spring",
             "year": 1901,
-            "phase_type": "Movement",
+            "type": "Movement",
             "units": [],
             "orders": "{}",
             "supply_centers": [],

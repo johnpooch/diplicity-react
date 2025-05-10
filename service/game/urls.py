@@ -6,13 +6,11 @@ from . import views
 urlpatterns = [
     path("auth/login/", old_views.LoginView.as_view(), name="auth-login"),
     path("variants/", old_views.VariantListView.as_view(), name="variant-list"),
-    path("game/", old_views.GameCreateView.as_view(), name="game-create"),
-    path(
-        "game/<int:game_id>/join/", old_views.GameJoinView.as_view(), name="game-join"
-    ),
+    path("game/", views.GameCreateView.as_view(), name="game-create"),
+    path("game/<int:game_id>/join/", views.GameJoinView.as_view(), name="game-join"),
     path(
         "game/<int:game_id>/leave/",
-        old_views.GameLeaveView.as_view(),
+        views.GameLeaveView.as_view(),
         name="game-leave",
     ),
     path(

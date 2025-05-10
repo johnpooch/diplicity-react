@@ -75,7 +75,7 @@ const GameCard: React.FC<
                 <Avatar
                   sx={styles.avatar}
                   key={index}
-                  src={member.user.profile.picture}
+                  src={member.picture}
                 />
               ))}
             </AvatarGroup>

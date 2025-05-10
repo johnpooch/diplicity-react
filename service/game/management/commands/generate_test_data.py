@@ -47,57 +47,27 @@ class Command(BaseCommand):
             variant=classical_variant, status=models.Game.PENDING
         )
         models.Member.objects.create(game=pending_game_1, user=user1)
-        models.Phase.objects.create(
+        phase_1 = models.Phase.objects.create(
             game=pending_game_1,
             status=models.Phase.PENDING,
             season="Spring",
             year=1901,
-            phase_type="Movement",
-            supply_centers=pending_game_1.variant.start["supply_centers"],
-            units=pending_game_1.variant.start["units"],
+            type="Movement",
         )
+        self._create_units_and_supply_centers(phase_1, classical_variant)
 
         pending_game_2 = models.Game.objects.create(
             variant=italy_vs_germany_variant, status=models.Game.PENDING
         )
         models.Member.objects.create(game=pending_game_2, user=user1)
-        models.Phase.objects.create(
+        phase_2 = models.Phase.objects.create(
             game=pending_game_2,
             status=models.Phase.PENDING,
             season="Spring",
             year=1901,
-            phase_type="Movement",
-            supply_centers=pending_game_2.variant.start["supply_centers"],
-            units=pending_game_2.variant.start["units"],
+            type="Movement",
         )
-
-        pending_game_3 = models.Game.objects.create(
-            variant=classical_variant, status=models.Game.PENDING
-        )
-        models.Member.objects.create(game=pending_game_3, user=user2)
-        models.Phase.objects.create(
-            game=pending_game_3,
-            status=models.Phase.PENDING,
-            season="Spring",
-            year=1901,
-            phase_type="Movement",
-            supply_centers=pending_game_3.variant.start["supply_centers"],
-            units=pending_game_3.variant.start["units"],
-        )
-
-        pending_game_4 = models.Game.objects.create(
-            variant=italy_vs_germany_variant, status=models.Game.PENDING
-        )
-        models.Member.objects.create(game=pending_game_4, user=user2)
-        models.Phase.objects.create(
-            game=pending_game_4,
-            status=models.Phase.PENDING,
-            season="Spring",
-            year=1901,
-            phase_type="Movement",
-            supply_centers=pending_game_4.variant.start["supply_centers"],
-            units=pending_game_4.variant.start["units"],
-        )
+        self._create_units_and_supply_centers(phase_2, italy_vs_germany_variant)
 
         # Create Active Game
         active_game_1 = models.Game.objects.create(
@@ -119,26 +89,20 @@ class Command(BaseCommand):
             status=models.Phase.ACTIVE,
             season="Spring",
             year=1901,
-            phase_type="Movement",
-            supply_centers=active_game_1.variant.start["supply_centers"],
-            units=active_game_1.variant.start["units"],
+            type="Movement",
         )
+        self._create_units_and_supply_centers(current_phase, italy_vs_germany_variant)
 
-        # Create Phase States
-        # for member in active_game_1.members.all():
-        #     models.PhaseState.objects.create(member=member, phase=current_phase)
-
+        # Create Orders
         germany_phase_state = models.PhaseState.objects.create(
             member=models.Member.objects.get(nation="Germany", game=active_game_1),
             phase=current_phase,
         )
-
         italy_phase_state = models.PhaseState.objects.create(
             member=models.Member.objects.get(nation="Italy", game=active_game_1),
             phase=current_phase,
         )
 
-        # Create Orders
         models.Order.objects.create(
             phase_state=italy_phase_state,
             order_type="Move",
@@ -154,3 +118,20 @@ class Command(BaseCommand):
         )
 
         self.stdout.write("Test data generation complete.")
+
+    def _create_units_and_supply_centers(self, phase, variant):
+        """Helper method to create units and supply centers for a phase."""
+        for unit_data in variant.start["units"]:
+            models.Unit.objects.create(
+                phase=phase,
+                type=unit_data["type"].lower(),
+                nation=unit_data["nation"],
+                province=unit_data["province"],
+            )
+
+        for sc_data in variant.start["supply_centers"]:
+            models.SupplyCenter.objects.create(
+                phase=phase,
+                nation=sc_data["nation"],
+                province=sc_data["province"],
+            )

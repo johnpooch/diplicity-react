@@ -4,7 +4,7 @@
     "start": {
         "year": 1901,
         "season": "Spring",
-        "phase_type": "Movement",
+        "type": "Movement",
         "units": [
             {
                 "type": "Fleet",
