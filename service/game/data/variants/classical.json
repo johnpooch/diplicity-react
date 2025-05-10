@@ -37,112 +37,112 @@
         "phase_type": "Movement",
         "units": [
             {
-                "type": "Fleet",
+                "unit_type": "Fleet",
                 "nation": "England",
                 "province": "edi"
             },
             {
-                "type": "Army",
+                "unit_type": "Army",
                 "nation": "England",
                 "province": "lvp"
             },
             {
-                "type": "Fleet",
+                "unit_type": "Fleet",
                 "nation": "England",
                 "province": "lon"
             },
             {
-                "type": "Fleet",
+                "unit_type": "Fleet",
                 "nation": "France",
                 "province": "bre"
             },
             {
-                "type": "Army",
+                "unit_type": "Army",
                 "nation": "France",
                 "province": "par"
             },
             {
-                "type": "Army",
+                "unit_type": "Army",
                 "nation": "France",
                 "province": "mar"
             },
             {
-                "type": "Fleet",
+                "unit_type": "Fleet",
                 "nation": "Germany",
                 "province": "kie"
             },
             {
-                "type": "Army",
+                "unit_type": "Army",
                 "nation": "Germany",
                 "province": "ber"
             },
             {
-                "type": "Army",
+                "unit_type": "Army",
                 "nation": "Germany",
                 "province": "mun"
             },
             {
-                "type": "Army",
+                "unit_type": "Army",
                 "nation": "Italy",
                 "province": "ven"
             },
             {
-                "type": "Army",
+                "unit_type": "Army",
                 "nation": "Italy",
                 "province": "rom"
             },
             {
-                "type": "Fleet",
+                "unit_type": "Fleet",
                 "nation": "Italy",
                 "province": "nap"
             },
             {
-                "type": "Fleet",
+                "unit_type": "Fleet",
                 "nation": "Austria",
                 "province": "tri"
             },
             {
-                "type": "Army",
+                "unit_type": "Army",
                 "nation": "Austria",
                 "province": "vie"
             },
             {
-                "type": "Army",
+                "unit_type": "Army",
                 "nation": "Austria",
                 "province": "bud"
             },
             {
-                "type": "Fleet",
+                "unit_type": "Fleet",
                 "nation": "Russia",
                 "province": "stp/sc"
             },
             {
-                "type": "Army",
+                "unit_type": "Army",
                 "nation": "Russia",
                 "province": "mos"
             },
             {
-                "type": "Army",
+                "unit_type": "Army",
                 "nation": "Russia",
                 "province": "war"
             },
             {
-                "type": "Fleet",
+                "unit_type": "Fleet",
                 "nation": "Russia",
                 "province": "sev"
             },
             {
-                "type": "Army",
+                "unit_type": "Army",
                 "nation": "Turkey",
                 "province": "con"
             },
             {
-                "type": "Army",
+                "unit_type": "Army",
                 "nation": "Turkey",
                 "province": "smy"
             },
             {
-                "type": "Fleet",
+                "unit_type": "Fleet",
                 "nation": "Turkey",
                 "province": "ank"
             }

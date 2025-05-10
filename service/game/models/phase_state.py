@@ -10,6 +10,6 @@ class PhaseState(BaseModel):
     phase = models.ForeignKey(
         Phase, on_delete=models.CASCADE, related_name="phase_states"
     )
-    options = models.JSONField(default=dict, blank=True)
+    options = models.TextField(null=True, blank=True)
     orders_confirmed = models.BooleanField(default=False)
     eliminated = models.BooleanField(default=False)

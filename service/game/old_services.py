@@ -26,6 +26,8 @@ from .models import (
     ChannelMessage,
     UserProfile,
     Task,
+    Unit,
+    SupplyCenter,
 )
 from . import serializers
 from .tasks import BaseTask
@@ -131,14 +133,31 @@ def game_create(user, data: dict):
     with transaction.atomic():
         game = Game.objects.create(name=data["name"], variant=variant)
         game.members.create(user=user)
-        game.phases.create(
+
+        # Create the initial phase
+        phase = game.phases.create(
             game=game,
             season=variant.start["season"],
             year=variant.start["year"],
             phase_type=variant.start["phase_type"],
-            units=variant.start["units"],
-            supply_centers=variant.start["supply_centers"],
         )
+
+        # Create Unit instances for the phase
+        for unit_data in variant.start["units"]:
+            Unit.objects.create(
+                phase=phase,
+                unit_type=unit_data["unit_type"].lower(),
+                nation=unit_data["nation"],
+                province=unit_data["province"],
+            )
+
+        # Create SupplyCenter instances for the phase
+        for sc_data in variant.start["supply_centers"]:
+            SupplyCenter.objects.create(
+                phase=phase,
+                nation=sc_data["nation"],
+                province=sc_data["province"],
+            )
 
     return game
 
@@ -177,9 +196,9 @@ def game_leave(user, game_id: int):
 
 def game_list(user, filters=None):
     filters = filters or {}
-    if filters.get("mine") == True:
+    if filters.get("mine") is True:
         return Game.objects.filter(members__user=user).distinct()
-    if filters.get("can_join") == True:
+    if filters.get("can_join") is True:
         return (
             Game.objects.filter(status=Game.PENDING)
             .exclude(members__user=user)
@@ -472,13 +491,13 @@ def adjudication_resolve(game_id: int):
             "Season": game.current_phase.season,
             "Year": game.current_phase.year,
             "Type": game.current_phase.phase_type,
-            "Units": game.current_phase.units,
+            "Units": list(game.current_phase.units.all()),
             "Orders": formatted_orders,
-            "SupplyCenters": game.current_phase.supply_centers,
-            "Dislodgeds": game.current_phase.dislodgeds,
-            "Dislodgers": game.current_phase.dislodgers,
-            "Bounces": game.current_phase.bounces,
-            "Resolutions": game.current_phase.resolutions,
+            "SupplyCenters": list(game.current_phase.supply_centers.all()),
+            "Dislodgeds": {},
+            "Dislodgers": {},
+            "Bounces": {},
+            "Resolutions": {},
         }
     )
 

@@ -30,7 +30,7 @@ class GameListView(views.APIView):
                 "units": inline_serializer(
                     name="CurrentPhaseUnits",
                     fields={
-                        "type": serializers.CharField(),
+                        "unit_type": serializers.CharField(),
                         "nation": serializers.CharField(),
                         "province": serializers.CharField(),
                     },
@@ -129,7 +129,7 @@ class GameRetrieveView(views.APIView):
                 "units": inline_serializer(
                     name="CurrentPhaseUnits",
                     fields={
-                        "type": serializers.CharField(),
+                        "unit_type": serializers.CharField(),
                         "nation": serializers.CharField(),
                         "province": serializers.CharField(),
                     },
