@@ -15,8 +15,9 @@ import {
 } from "@mui/icons-material";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import React, { useEffect, useState } from "react";
-import { GameMenu } from "../../components";
+import { GameMenu, QueryContainer } from "../../components";
 import { useSelectedGameContext } from "../../common";
+import { service } from "../../store";
 
 const styles: Styles = {
   root: {
@@ -74,6 +75,7 @@ const GameDetailPrimaryScreenLayout: React.FC<
   GameDetailPrimaryScreenLayoutProps
 > = (props) => {
   const { gameId } = useSelectedGameContext();
+  const gameDetailQuery = service.endpoints.gameRetrieve.useQuery({ gameId });
   const navigate = useNavigate();
   const location = useLocation();
   const [navigation, setNavigation] = useState(location.pathname);
@@ -104,13 +106,19 @@ const GameDetailPrimaryScreenLayout: React.FC<
             props.title
           )}
         </Stack>
-        <GameMenu
-          gameId={gameId}
-          onClickGameInfo={(navigate) => navigate(`/game/${gameId}/game-info`)}
-          onClickPlayerInfo={(navigate) =>
-            navigate(`/game/${gameId}/player-info`)
-          }
-        />
+        <QueryContainer query={gameDetailQuery} onRenderLoading={() => <></>}>
+          {(game) => (
+            <GameMenu
+              game={game}
+              onClickGameInfo={(navigate) =>
+                navigate(`/game/${gameId}/game-info`)
+              }
+              onClickPlayerInfo={(navigate) =>
+                navigate(`/game/${gameId}/player-info`)
+              }
+            />
+          )}
+        </QueryContainer>
       </AppBar>
       <Divider />
       <Stack sx={styles.screen}>

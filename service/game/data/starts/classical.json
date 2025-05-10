@@ -1,0 +1,2129 @@
+{
+    "phase": {
+        "Season": "Spring",
+        "Year": 1901,
+        "Type": "Movement",
+        "Units": {
+            "ank": {
+                "Type": "Fleet",
+                "Nation": "Turkey"
+            },
+            "ber": {
+                "Type": "Army",
+                "Nation": "Germany"
+            },
+            "bre": {
+                "Type": "Fleet",
+                "Nation": "France"
+            },
+            "bud": {
+                "Type": "Army",
+                "Nation": "Austria"
+            },
+            "con": {
+                "Type": "Army",
+                "Nation": "Turkey"
+            },
+            "edi": {
+                "Type": "Fleet",
+                "Nation": "England"
+            },
+            "kie": {
+                "Type": "Fleet",
+                "Nation": "Germany"
+            },
+            "lon": {
+                "Type": "Fleet",
+                "Nation": "England"
+            },
+            "lvp": {
+                "Type": "Army",
+                "Nation": "England"
+            },
+            "mar": {
+                "Type": "Army",
+                "Nation": "France"
+            },
+            "mos": {
+                "Type": "Army",
+                "Nation": "Russia"
+            },
+            "mun": {
+                "Type": "Army",
+                "Nation": "Germany"
+            },
+            "nap": {
+                "Type": "Fleet",
+                "Nation": "Italy"
+            },
+            "par": {
+                "Type": "Army",
+                "Nation": "France"
+            },
+            "rom": {
+                "Type": "Army",
+                "Nation": "Italy"
+            },
+            "sev": {
+                "Type": "Fleet",
+                "Nation": "Russia"
+            },
+            "smy": {
+                "Type": "Army",
+                "Nation": "Turkey"
+            },
+            "stp/sc": {
+                "Type": "Fleet",
+                "Nation": "Russia"
+            },
+            "tri": {
+                "Type": "Fleet",
+                "Nation": "Austria"
+            },
+            "ven": {
+                "Type": "Army",
+                "Nation": "Italy"
+            },
+            "vie": {
+                "Type": "Army",
+                "Nation": "Austria"
+            },
+            "war": {
+                "Type": "Army",
+                "Nation": "Russia"
+            }
+        },
+        "Orders": {},
+        "SupplyCenters": {
+            "ank": "Turkey",
+            "ber": "Germany",
+            "bre": "France",
+            "bud": "Austria",
+            "con": "Turkey",
+            "edi": "England",
+            "kie": "Germany",
+            "lon": "England",
+            "lvp": "England",
+            "mar": "France",
+            "mos": "Russia",
+            "mun": "Germany",
+            "nap": "Italy",
+            "par": "France",
+            "rom": "Italy",
+            "sev": "Russia",
+            "smy": "Turkey",
+            "stp": "Russia",
+            "tri": "Austria",
+            "ven": "Italy",
+            "vie": "Austria",
+            "war": "Russia"
+        },
+        "Dislodgeds": {},
+        "Dislodgers": {},
+        "Bounces": {},
+        "Resolutions": {}
+    },
+    "options": {
+        "Austria": {
+            "bud": {
+                "Next": {
+                    "Hold": {
+                        "Next": {
+                            "bud": {
+                                "Next": {},
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Move": {
+                        "Next": {
+                            "bud": {
+                                "Next": {
+                                    "gal": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "rum": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "ser": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "tri": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "vie": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Support": {
+                        "Next": {
+                            "bud": {
+                                "Next": {
+                                    "sev": {
+                                        "Next": {
+                                            "rum": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "tri": {
+                                        "Next": {
+                                            "tri": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "ven": {
+                                        "Next": {
+                                            "tri": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "vie": {
+                                        "Next": {
+                                            "gal": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "tri": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "vie": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "war": {
+                                        "Next": {
+                                            "gal": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    }
+                },
+                "Type": "Province"
+            },
+            "tri": {
+                "Next": {
+                    "Hold": {
+                        "Next": {
+                            "tri": {
+                                "Next": {},
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Move": {
+                        "Next": {
+                            "tri": {
+                                "Next": {
+                                    "adr": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "alb": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "ven": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Support": {
+                        "Next": {
+                            "tri": {
+                                "Next": {
+                                    "rom": {
+                                        "Next": {
+                                            "ven": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "ven": {
+                                        "Next": {
+                                            "ven": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    }
+                },
+                "Type": "Province"
+            },
+            "vie": {
+                "Next": {
+                    "Hold": {
+                        "Next": {
+                            "vie": {
+                                "Next": {},
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Move": {
+                        "Next": {
+                            "vie": {
+                                "Next": {
+                                    "boh": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "bud": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "gal": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "tri": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "tyr": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Support": {
+                        "Next": {
+                            "vie": {
+                                "Next": {
+                                    "bud": {
+                                        "Next": {
+                                            "bud": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "gal": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "tri": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "mun": {
+                                        "Next": {
+                                            "boh": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "tyr": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "tri": {
+                                        "Next": {
+                                            "tri": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "ven": {
+                                        "Next": {
+                                            "tri": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "tyr": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "war": {
+                                        "Next": {
+                                            "gal": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    }
+                },
+                "Type": "Province"
+            }
+        },
+        "England": {
+            "edi": {
+                "Next": {
+                    "Hold": {
+                        "Next": {
+                            "edi": {
+                                "Next": {},
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Move": {
+                        "Next": {
+                            "edi": {
+                                "Next": {
+                                    "cly": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "nrg": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "nth": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "yor": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Support": {
+                        "Next": {
+                            "edi": {
+                                "Next": {
+                                    "lon": {
+                                        "Next": {
+                                            "nth": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "yor": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "lvp": {
+                                        "Next": {
+                                            "cly": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "yor": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    }
+                },
+                "Type": "Province"
+            },
+            "lon": {
+                "Next": {
+                    "Hold": {
+                        "Next": {
+                            "lon": {
+                                "Next": {},
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Move": {
+                        "Next": {
+                            "lon": {
+                                "Next": {
+                                    "eng": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "nth": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "wal": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "yor": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Support": {
+                        "Next": {
+                            "lon": {
+                                "Next": {
+                                    "bre": {
+                                        "Next": {
+                                            "eng": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "edi": {
+                                        "Next": {
+                                            "nth": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "yor": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "lvp": {
+                                        "Next": {
+                                            "wal": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "yor": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    }
+                },
+                "Type": "Province"
+            },
+            "lvp": {
+                "Next": {
+                    "Hold": {
+                        "Next": {
+                            "lvp": {
+                                "Next": {},
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Move": {
+                        "Next": {
+                            "lvp": {
+                                "Next": {
+                                    "cly": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "edi": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "wal": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "yor": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Support": {
+                        "Next": {
+                            "lvp": {
+                                "Next": {
+                                    "edi": {
+                                        "Next": {
+                                            "cly": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "edi": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "yor": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "lon": {
+                                        "Next": {
+                                            "wal": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "yor": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    }
+                },
+                "Type": "Province"
+            }
+        },
+        "France": {
+            "bre": {
+                "Next": {
+                    "Hold": {
+                        "Next": {
+                            "bre": {
+                                "Next": {},
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Move": {
+                        "Next": {
+                            "bre": {
+                                "Next": {
+                                    "eng": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "gas": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "mid": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "pic": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Support": {
+                        "Next": {
+                            "bre": {
+                                "Next": {
+                                    "lon": {
+                                        "Next": {
+                                            "eng": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "mar": {
+                                        "Next": {
+                                            "gas": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "par": {
+                                        "Next": {
+                                            "gas": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "pic": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    }
+                },
+                "Type": "Province"
+            },
+            "mar": {
+                "Next": {
+                    "Hold": {
+                        "Next": {
+                            "mar": {
+                                "Next": {},
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Move": {
+                        "Next": {
+                            "mar": {
+                                "Next": {
+                                    "bur": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "gas": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "pie": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "spa": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Support": {
+                        "Next": {
+                            "mar": {
+                                "Next": {
+                                    "bre": {
+                                        "Next": {
+                                            "gas": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "mun": {
+                                        "Next": {
+                                            "bur": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "par": {
+                                        "Next": {
+                                            "bur": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "gas": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "ven": {
+                                        "Next": {
+                                            "pie": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    }
+                },
+                "Type": "Province"
+            },
+            "par": {
+                "Next": {
+                    "Hold": {
+                        "Next": {
+                            "par": {
+                                "Next": {},
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Move": {
+                        "Next": {
+                            "par": {
+                                "Next": {
+                                    "bre": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "bur": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "gas": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "pic": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Support": {
+                        "Next": {
+                            "par": {
+                                "Next": {
+                                    "bre": {
+                                        "Next": {
+                                            "bre": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "gas": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "pic": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "mar": {
+                                        "Next": {
+                                            "bur": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "gas": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "mun": {
+                                        "Next": {
+                                            "bur": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    }
+                },
+                "Type": "Province"
+            }
+        },
+        "Germany": {
+            "ber": {
+                "Next": {
+                    "Hold": {
+                        "Next": {
+                            "ber": {
+                                "Next": {},
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Move": {
+                        "Next": {
+                            "ber": {
+                                "Next": {
+                                    "kie": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "mun": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "pru": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "sil": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Support": {
+                        "Next": {
+                            "ber": {
+                                "Next": {
+                                    "kie": {
+                                        "Next": {
+                                            "kie": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "mun": {
+                                        "Next": {
+                                            "kie": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "mun": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "sil": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "war": {
+                                        "Next": {
+                                            "pru": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "sil": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    }
+                },
+                "Type": "Province"
+            },
+            "kie": {
+                "Next": {
+                    "Hold": {
+                        "Next": {
+                            "kie": {
+                                "Next": {},
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Move": {
+                        "Next": {
+                            "kie": {
+                                "Next": {
+                                    "bal": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "ber": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "den": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "hel": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "hol": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Support": {
+                        "Next": {
+                            "kie": {
+                                "Next": {
+                                    "ber": {
+                                        "Next": {
+                                            "ber": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "mun": {
+                                        "Next": {
+                                            "ber": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    }
+                },
+                "Type": "Province"
+            },
+            "mun": {
+                "Next": {
+                    "Hold": {
+                        "Next": {
+                            "mun": {
+                                "Next": {},
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Move": {
+                        "Next": {
+                            "mun": {
+                                "Next": {
+                                    "ber": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "boh": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "bur": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "kie": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "ruh": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "sil": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "tyr": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Support": {
+                        "Next": {
+                            "mun": {
+                                "Next": {
+                                    "ber": {
+                                        "Next": {
+                                            "ber": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "kie": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "sil": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "kie": {
+                                        "Next": {
+                                            "ber": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "kie": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "mar": {
+                                        "Next": {
+                                            "bur": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "par": {
+                                        "Next": {
+                                            "bur": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "ven": {
+                                        "Next": {
+                                            "tyr": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "vie": {
+                                        "Next": {
+                                            "boh": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "tyr": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "war": {
+                                        "Next": {
+                                            "sil": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    }
+                },
+                "Type": "Province"
+            }
+        },
+        "Italy": {
+            "nap": {
+                "Next": {
+                    "Hold": {
+                        "Next": {
+                            "nap": {
+                                "Next": {},
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Move": {
+                        "Next": {
+                            "nap": {
+                                "Next": {
+                                    "apu": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "ion": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "rom": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "tys": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Support": {
+                        "Next": {
+                            "nap": {
+                                "Next": {
+                                    "rom": {
+                                        "Next": {
+                                            "apu": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "rom": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "ven": {
+                                        "Next": {
+                                            "apu": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "rom": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    }
+                },
+                "Type": "Province"
+            },
+            "rom": {
+                "Next": {
+                    "Hold": {
+                        "Next": {
+                            "rom": {
+                                "Next": {},
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Move": {
+                        "Next": {
+                            "rom": {
+                                "Next": {
+                                    "apu": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "nap": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "tus": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "ven": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Support": {
+                        "Next": {
+                            "rom": {
+                                "Next": {
+                                    "nap": {
+                                        "Next": {
+                                            "apu": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "nap": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "tri": {
+                                        "Next": {
+                                            "ven": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "ven": {
+                                        "Next": {
+                                            "apu": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "tus": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "ven": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    }
+                },
+                "Type": "Province"
+            },
+            "ven": {
+                "Next": {
+                    "Hold": {
+                        "Next": {
+                            "ven": {
+                                "Next": {},
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Move": {
+                        "Next": {
+                            "ven": {
+                                "Next": {
+                                    "apu": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "pie": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "rom": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "tri": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "tus": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "tyr": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Support": {
+                        "Next": {
+                            "ven": {
+                                "Next": {
+                                    "bud": {
+                                        "Next": {
+                                            "tri": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "mar": {
+                                        "Next": {
+                                            "pie": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "mun": {
+                                        "Next": {
+                                            "tyr": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "nap": {
+                                        "Next": {
+                                            "apu": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "rom": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "rom": {
+                                        "Next": {
+                                            "apu": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "rom": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "tus": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "tri": {
+                                        "Next": {
+                                            "tri": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "vie": {
+                                        "Next": {
+                                            "tri": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "tyr": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    }
+                },
+                "Type": "Province"
+            }
+        },
+        "Russia": {
+            "mos": {
+                "Next": {
+                    "Hold": {
+                        "Next": {
+                            "mos": {
+                                "Next": {},
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Move": {
+                        "Next": {
+                            "mos": {
+                                "Next": {
+                                    "lvn": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "sev": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "stp": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "ukr": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "war": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Support": {
+                        "Next": {
+                            "mos": {
+                                "Next": {
+                                    "sev": {
+                                        "Next": {
+                                            "sev": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "stp": {
+                                        "Next": {
+                                            "lvn": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "stp": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "war": {
+                                        "Next": {
+                                            "lvn": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "ukr": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "war": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    }
+                },
+                "Type": "Province"
+            },
+            "sev": {
+                "Next": {
+                    "Hold": {
+                        "Next": {
+                            "sev": {
+                                "Next": {},
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Move": {
+                        "Next": {
+                            "sev": {
+                                "Next": {
+                                    "arm": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "bla": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "rum": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Support": {
+                        "Next": {
+                            "sev": {
+                                "Next": {
+                                    "ank": {
+                                        "Next": {
+                                            "arm": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "bla": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "bud": {
+                                        "Next": {
+                                            "rum": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "smy": {
+                                        "Next": {
+                                            "arm": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    }
+                },
+                "Type": "Province"
+            },
+            "stp": {
+                "Next": {
+                    "Hold": {
+                        "Next": {
+                            "stp/sc": {
+                                "Next": {},
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Move": {
+                        "Next": {
+                            "stp/sc": {
+                                "Next": {
+                                    "bot": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "fin": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "lvn": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Support": {
+                        "Next": {
+                            "stp/sc": {
+                                "Next": {
+                                    "mos": {
+                                        "Next": {
+                                            "lvn": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "war": {
+                                        "Next": {
+                                            "lvn": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    }
+                },
+                "Type": "Province"
+            },
+            "war": {
+                "Next": {
+                    "Hold": {
+                        "Next": {
+                            "war": {
+                                "Next": {},
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Move": {
+                        "Next": {
+                            "war": {
+                                "Next": {
+                                    "gal": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "lvn": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "mos": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "pru": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "sil": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "ukr": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Support": {
+                        "Next": {
+                            "war": {
+                                "Next": {
+                                    "ber": {
+                                        "Next": {
+                                            "pru": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "sil": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "bud": {
+                                        "Next": {
+                                            "gal": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "mos": {
+                                        "Next": {
+                                            "lvn": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "mos": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "ukr": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "mun": {
+                                        "Next": {
+                                            "sil": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "stp": {
+                                        "Next": {
+                                            "lvn": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "vie": {
+                                        "Next": {
+                                            "gal": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    }
+                },
+                "Type": "Province"
+            }
+        },
+        "Turkey": {
+            "ank": {
+                "Next": {
+                    "Hold": {
+                        "Next": {
+                            "ank": {
+                                "Next": {},
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Move": {
+                        "Next": {
+                            "ank": {
+                                "Next": {
+                                    "arm": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "bla": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "con": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Support": {
+                        "Next": {
+                            "ank": {
+                                "Next": {
+                                    "con": {
+                                        "Next": {
+                                            "con": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "sev": {
+                                        "Next": {
+                                            "arm": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "bla": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "smy": {
+                                        "Next": {
+                                            "arm": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "con": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    }
+                },
+                "Type": "Province"
+            },
+            "con": {
+                "Next": {
+                    "Hold": {
+                        "Next": {
+                            "con": {
+                                "Next": {},
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Move": {
+                        "Next": {
+                            "con": {
+                                "Next": {
+                                    "ank": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "bul": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "smy": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Support": {
+                        "Next": {
+                            "con": {
+                                "Next": {
+                                    "ank": {
+                                        "Next": {
+                                            "ank": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "smy": {
+                                        "Next": {
+                                            "ank": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "smy": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    }
+                },
+                "Type": "Province"
+            },
+            "smy": {
+                "Next": {
+                    "Hold": {
+                        "Next": {
+                            "smy": {
+                                "Next": {},
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Move": {
+                        "Next": {
+                            "smy": {
+                                "Next": {
+                                    "ank": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "arm": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "con": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    },
+                                    "syr": {
+                                        "Next": {},
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    },
+                    "Support": {
+                        "Next": {
+                            "smy": {
+                                "Next": {
+                                    "ank": {
+                                        "Next": {
+                                            "ank": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "arm": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "con": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "con": {
+                                        "Next": {
+                                            "ank": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            },
+                                            "con": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    },
+                                    "sev": {
+                                        "Next": {
+                                            "arm": {
+                                                "Next": {},
+                                                "Type": "Province"
+                                            }
+                                        },
+                                        "Type": "Province"
+                                    }
+                                },
+                                "Type": "SrcProvince"
+                            }
+                        },
+                        "Type": "OrderType"
+                    }
+                },
+                "Type": "Province"
+            }
+        }
+    }
+}

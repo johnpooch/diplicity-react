@@ -30,6 +30,33 @@ const feedbackSlice = createSlice({
                 };
             }
         )
+        builder.addMatcher(
+            service.endpoints.gameJoinCreate.matchFulfilled,
+            () => {
+                return {
+                    severity: "success",
+                    message: `Game joined successfully`,
+                };
+            }
+        );
+        builder.addMatcher(
+            service.endpoints.gameLeaveDestroy.matchFulfilled,
+            () => {
+                return {
+                    severity: "success",
+                    message: `Game left successfully`,
+                };
+            }
+        );
+        builder.addMatcher(
+            service.endpoints.gameChannelCreate.matchFulfilled,
+            () => {
+                return {
+                    severity: "success",
+                    message: `Channel created successfully`,
+                };
+            }
+        )
     },
 });
 

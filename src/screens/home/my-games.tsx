@@ -5,7 +5,7 @@ import {
   PlayCircleOutline as StartedIcon,
   StopCircleOutlined as FinishedIcon,
 } from "@mui/icons-material";
-import { GameCard, QueryContainer } from "../../components";
+import { GameCard, NotificationBanner, QueryContainer } from "../../components";
 import { service } from "../../store";
 
 const statuses = [
@@ -68,13 +68,17 @@ const MyGames: React.FC = () => {
         </Tabs>
       </Stack>
       <List>
+        <NotificationBanner />
         <QueryContainer query={query}>
-          {(data) => {
-            if (data.length === 0) {
+          {(games) => {
+            if (
+              games.filter((game) => game.status === selectedStatus).length ===
+              0
+            ) {
               return (
                 <Stack spacing={1} padding={2}>
                   <Typography variant="body2" sx={styles.noGamesText}>
-                    You are not a member of any {status} games.
+                    You are not a member of any {selectedStatus} games.
                   </Typography>
                   <Typography variant="body2" sx={styles.noGamesText}>
                     Go to "Find games" to join a game or click "Create game" to
@@ -86,7 +90,7 @@ const MyGames: React.FC = () => {
                 </Stack>
               );
             }
-            return data
+            return games
               .filter((game) => game.status === selectedStatus)
               .map((game) => <GameCard key={game.id} {...game} />);
           }}

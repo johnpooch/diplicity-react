@@ -1,4 +1,4 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { service } from "./service";
 
 type Auth = {
@@ -33,6 +33,10 @@ const authSlice = createSlice({
                 email: null,
                 username: null,
             };
+        },
+        updateAccessToken: (state, action: PayloadAction<string>) => {
+            localStorage.setItem("accessToken", action.payload);
+            return { ...state, accessToken: action.payload };
         }
     },
     extraReducers: (builder) => {

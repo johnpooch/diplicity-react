@@ -1,10 +1,27 @@
 version: "3.9"
 services:
   development:
-    container_name: diplicity-react-development
+    container_name: diplicity-development
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: .docker/Dockerfile-development
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/packages
+    env_file:
+      - .env
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    networks:
+      - diplicity-network
+    tty: true
+
+  codegen:
+    container_name: diplicity-codegen
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile-development
     volumes:
       - .:/app
       - /app/node_modules
@@ -13,13 +30,24 @@ services:
       - .env
     networks:
       - diplicity-network
-    tty: true
-  web:
+    depends_on:
+      - service
+    command: >
+      sh -c " python3 service/manage.py spectacular --file service/openapi-schema.yaml && npx --yes @rtk-query/codegen-openapi openapi-config.cjs"
+
+  client:
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: diplicity-react-web
-    entrypoint: ["npm", "run", "dev"]
+      dockerfile: .docker/Dockerfile-client
+    develop:
+      watch:
+        - action: sync
+          path: ./src
+          target: /app/src
+          ignore:
+            - node_modules
+    container_name: diplicity-client
+    entrypoint: [ "npm", "run", "dev" ]
     ports:
       - "5173:5173"
     volumes:
@@ -28,10 +56,66 @@ services:
       - /app/packages
     env_file:
       - .env
+    environment:
+      - CHOKIDAR_USEPOLLING=true
     networks:
       - diplicity-network
+
+  service:
+    container_name: diplicity-service
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile-service
+      target: development
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    working_dir: /app/service
+    command: >
+      sh -c " python manage.py flush --no-input && python manage.py migrate && python manage.py generate_test_data && python manage.py createsuperuser --noinput --username $DJANGO_SUPERUSER_USERNAME --email  $DJANGO_SUPERUSER_EMAIL && python manage.py runserver 0.0.0.0:8000"
+    networks:
+      - diplicity-network
+
+  db:
+    container_name: diplicity-db
+    image: postgres:13
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: diplicity
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - diplicity-network
+
+  worker:
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile-service
+      target: worker
+    container_name: diplicity-worker
+    depends_on:
+      - db
+    working_dir: /app/service
+    volumes:
+      - .:/app
+    command: celery -A project worker --loglevel=info
+    networks:
+      - diplicity-network
+    env_file:
+      - .env
+
 networks:
   diplicity-network:
     name: diplicity-network
     driver: bridge
-    external: true
+
+volumes:
+  postgres_data:

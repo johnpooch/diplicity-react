@@ -2,13 +2,22 @@ import React, { useEffect, useRef } from "react";
 import { List, ListSubheader, Stack } from "@mui/material";
 import { QueryContainer } from "../../components";
 import { ChannelMessage } from "./channel-message";
-import { useListMessagesQuery } from "../../common";
+import {
+  useListMessagesQuery,
+  useSelectedChannelContext,
+  useSelectedGameContext,
+} from "../../common";
+import { service } from "../../store";
 
 /**
  * Channel component that displays a list of messages in a channel.
  */
 const Channel: React.FC = () => {
-  const query = useListMessagesQuery();
+  const { gameId } = useSelectedGameContext();
+  const { channelName } = useSelectedChannelContext();
+  const query = service.endpoints.gameChannelsList.useQuery({
+    gameId,
+  });
 
   // Scroll to the bottom of the list when data is fetched
   const listRef = useRef<HTMLDivElement>(null);
@@ -20,49 +29,21 @@ const Channel: React.FC = () => {
 
   return (
     <QueryContainer query={query}>
-      {(data) => (
-        <Stack sx={styles.root}>
-          <Stack ref={listRef} sx={styles.messagesContainer}>
-            <List disablePadding>
-              {Object.keys(data.messages).map((date) => (
-                <React.Fragment key={date}>
-                  <ListSubheader sx={styles.listSubheader}>
-                    {date}
-                  </ListSubheader>
-                  <Stack p={1} spacing={1}>
-                    {data.messages[date].map((message, index, messages) => {
-                      const isSameSenderAsPrevious =
-                        index > 0 &&
-                        messages[index - 1].sender.name === message.sender.name;
-                      const isNewDay =
-                        index === 0 ||
-                        new Date(
-                          messages[index - 1].date
-                        ).toLocaleDateString() !==
-                          new Date(message.date).toLocaleDateString();
-
-                      const showAvatar = !isSameSenderAsPrevious || isNewDay;
-
-                      return (
-                        <ChannelMessage
-                          key={index}
-                          name={message.sender.name}
-                          message={message.body}
-                          date={displayTime(message.date)}
-                          showAvatar={showAvatar}
-                          avatar={message.flag}
-                          color={message.sender.color}
-                          isUser={message.sender.isUser}
-                        />
-                      );
-                    })}
-                  </Stack>
-                </React.Fragment>
-              ))}
-            </List>
+      {(channels) => {
+        const channel = channels.find((c) => c.id === parseInt(channelName));
+        if (!channel) throw new Error("Channel not found");
+        return (
+          <Stack sx={styles.root}>
+            <Stack ref={listRef} sx={styles.messagesContainer}>
+              <List disablePadding>
+                {Object.keys(channel.messages).map((message) =>
+                  JSON.stringify(message)
+                )}
+              </List>
+            </Stack>
           </Stack>
-        </Stack>
-      )}
+        );
+      }}
     </QueryContainer>
   );
 };

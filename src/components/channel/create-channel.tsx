@@ -7,20 +7,26 @@ import {
   ListItemAvatar,
   Avatar,
   ListItemText,
+  Button,
 } from "@mui/material";
 import React from "react";
 import { QueryContainer } from "../query-container";
-import { useListOtherMembersQuery } from "../../common/hooks/use-list-other-members-query";
-import { useCreateChannelMutation } from "../../common/hooks/use-create-channel-mutation";
-import { useCreateChannelContext } from "../../common/context/create-channel-context";
+import { useSelectedGameContext } from "../../common";
+import { service } from "../../store";
+import { useNavigate } from "react-router";
 
 const CreateChannel: React.FC = () => {
-  const query = useListOtherMembersQuery();
+  // const query = useListOtherMembersQuery();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_, createChannelMutation] = useCreateChannelMutation();
-  const { selectedMembers, setSelectedMembers } = useCreateChannelContext();
+  // const [_, createChannelMutation] = useCreateChannelMutation();
+  const { gameRetrieveQuery, gameId } = useSelectedGameContext();
+  const [createChannel, createChannelMutation] =
+    service.endpoints.gameChannelCreate.useMutation();
+  // const { selectedMembers, setSelectedMembers } = useCreateChannelContext();
+  const [selectedMembers, setSelectedMembers] = React.useState<number[]>([]);
+  const navigate = useNavigate();
 
-  const handleToggle = (memberId: string) => {
+  const handleToggle = (memberId: number) => {
     setSelectedMembers((prevSelected) =>
       prevSelected.includes(memberId)
         ? prevSelected.filter((id) => id !== memberId)
@@ -30,40 +36,64 @@ const CreateChannel: React.FC = () => {
 
   const isSubmitting = createChannelMutation.isLoading;
 
+  const handleCreateChannel = async () => {
+    const response = await createChannel({
+      gameId: gameId,
+      channelCreateRequest: {
+        members: selectedMembers,
+      },
+    });
+    if (response.data) {
+      navigate(`/game/${gameId}/chat/channel/${response.data.id}`);
+    }
+  };
+
   return (
-    <QueryContainer query={query}>
-      {(data) => (
+    <QueryContainer query={gameRetrieveQuery}>
+      {(game) => (
         <Stack sx={styles.container}>
           <Stack sx={styles.listContainer}>
             <List>
-              {data.members.map((member) => (
-                <ListItem
-                  key={member.Nation}
-                  secondaryAction={
-                    <Checkbox
-                      edge="end"
-                      onChange={() => handleToggle(member.Nation)}
-                      checked={selectedMembers.includes(member.Nation)}
-                      disableRipple
-                      disabled={isSubmitting}
-                    />
-                  }
-                >
-                  <ListItemButton
-                    disableRipple
-                    onClick={() => handleToggle(member.Nation)}
+              {game.members
+                .filter((m) => !m.user.currentUser)
+                .map((member) => (
+                  <ListItem
+                    key={member.nation}
+                    secondaryAction={
+                      <Checkbox
+                        edge="end"
+                        onChange={() => handleToggle(member.id)}
+                        checked={selectedMembers.includes(member.id)}
+                        disableRipple
+                        disabled={isSubmitting}
+                      />
+                    }
                   >
-                    <ListItemAvatar>
-                      <Avatar src={member.flag}>{member.Nation[0]}</Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={member.Nation}
-                      secondary={member.User.Name}
-                    />
-                  </ListItemButton>
-                </ListItem>
-              ))}
+                    <ListItemButton
+                      disableRipple
+                      onClick={() => handleToggle(member.id)}
+                    >
+                      <ListItemAvatar>
+                        {/* <Avatar src={member.flag}>{member.nation[0]}</Avatar> */}
+                        <Avatar src={member.user.profile.picture}>
+                          {member.nation[0]}
+                        </Avatar>
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={member.nation}
+                        secondary={member.user.username}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
             </List>
+            <Button
+              variant="contained"
+              disabled={selectedMembers.length === 0 || isSubmitting}
+              onClick={handleCreateChannel}
+            >
+              Create Channel
+            </Button>
           </Stack>
         </Stack>
       )}

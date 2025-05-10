@@ -9,49 +9,33 @@ import {
 } from "@mui/material";
 import { Info as InfoIcon } from "@mui/icons-material";
 import { QueryContainer } from "../../components";
-import { mergeQueries, service, useGetVariantQuery } from "../../common";
-import { useParams } from "react-router";
-
-const usePlayerInfo = () => {
-  const { gameId } = useParams();
-  if (!gameId) throw new Error("Game ID not found");
-
-  const getGameQuery = service.endpoints.getGame.useQuery(gameId);
-  const getVariantQuery = useGetVariantQuery(gameId);
-
-  const query = mergeQueries(
-    [getGameQuery, getVariantQuery],
-    (game, variant) => {
-      return {
-        game,
-        variant,
-      };
-    }
-  );
-
-  return { query };
-};
+import { service } from "../../store";
+import { useSelectedGameContext } from "../../common";
 
 const PlayerInfo: React.FC = () => {
-  const { query } = usePlayerInfo();
+  const { gameId } = useSelectedGameContext();
+  const query = service.endpoints.gameRetrieve.useQuery({ gameId });
 
   return (
     <QueryContainer query={query}>
-      {(data) => (
+      {(game) => (
         <>
-          {!data.game.Started && (
+          {game.status === "pending" && (
             <Alert severity="info" icon={<InfoIcon />}>
               This game has not started yet. The game will start once{" "}
-              {data.variant.Nations.length} players have joined.
+              {game.variant.nations.length} players have joined.
             </Alert>
           )}
           <List>
-            {data.game.Members.map((member) => (
-              <ListItem key={member.User.Id}>
+            {game.members.map((member) => (
+              <ListItem key={member.user.username}>
                 <ListItemAvatar>
-                  <Avatar src={member.User.Picture} />
+                  <Avatar
+                    src={member.user.profile.picture}
+                    alt={member.user.username}
+                  />
                 </ListItemAvatar>
-                <ListItemText primary={member.User.Name} />
+                <ListItemText primary={member.user.username} />
               </ListItem>
             ))}
           </List>

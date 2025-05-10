@@ -1,4 +1,11 @@
 import { createContext, useContext } from "react";
+import { service } from "../../store";
+
+type Query<TData> = {
+    isLoading: boolean;
+    isError: boolean;
+    data?: TData;
+};
 
 /**
  * Context to provide the currently selected game.
@@ -14,7 +21,10 @@ const useSelectedGameContext = () => {
 };
 
 type SelectedGameContextType = {
-    gameId: string;
+    gameId: number;
+    gameRetrieveQuery: Query<
+        typeof service.endpoints.gameRetrieve.Types.ResultType
+    >;
 }
 
 export { SelectedGameContext, useSelectedGameContext };

@@ -1,0 +1,1147 @@
+openapi: 3.0.3
+info:
+  title: ''
+  version: 0.0.0
+paths:
+  /api/schema/:
+    get:
+      operationId: apiSchemaRetrieve
+      description: |-
+        OpenApi3 schema for this API. Format can be selected via content negotiation.
+
+        - YAML: application/vnd.oai.openapi
+        - JSON: application/vnd.oai.openapi+json
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - af
+          - ar
+          - ar-dz
+          - ast
+          - az
+          - be
+          - bg
+          - bn
+          - br
+          - bs
+          - ca
+          - ckb
+          - cs
+          - cy
+          - da
+          - de
+          - dsb
+          - el
+          - en
+          - en-au
+          - en-gb
+          - eo
+          - es
+          - es-ar
+          - es-co
+          - es-mx
+          - es-ni
+          - es-ve
+          - et
+          - eu
+          - fa
+          - fi
+          - fr
+          - fy
+          - ga
+          - gd
+          - gl
+          - he
+          - hi
+          - hr
+          - hsb
+          - hu
+          - hy
+          - ia
+          - id
+          - ig
+          - io
+          - is
+          - it
+          - ja
+          - ka
+          - kab
+          - kk
+          - km
+          - kn
+          - ko
+          - ky
+          - lb
+          - lt
+          - lv
+          - mk
+          - ml
+          - mn
+          - mr
+          - ms
+          - my
+          - nb
+          - ne
+          - nl
+          - nn
+          - os
+          - pa
+          - pl
+          - pt
+          - pt-br
+          - ro
+          - ru
+          - sk
+          - sl
+          - sq
+          - sr
+          - sr-latn
+          - sv
+          - sw
+          - ta
+          - te
+          - tg
+          - th
+          - tk
+          - tr
+          - tt
+          - udm
+          - uk
+          - ur
+          - uz
+          - vi
+          - zh-hans
+          - zh-hant
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/vnd.oai.openapi:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/yaml:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/vnd.oai.openapi+json:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/token/refresh/:
+    post:
+      operationId: apiTokenRefreshCreate
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /auth/login/:
+    post:
+      operationId: authLoginCreate
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+          description: ''
+  /devices/:
+    get:
+      operationId: devicesList
+      tags:
+      - devices
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FCMDevice'
+          description: ''
+    post:
+      operationId: devicesCreate
+      tags:
+      - devices
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FCMDevice'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FCMDevice'
+          description: ''
+    put:
+      operationId: devicesUpdate
+      tags:
+      - devices
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FCMDevice'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FCMDevice'
+          description: ''
+  /game/:
+    post:
+      operationId: gameCreate
+      tags:
+      - game
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameCreateRequest'
+          description: ''
+  /game/{gameId}/:
+    get:
+      operationId: gameRetrieve
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: integer
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameRetrieveResponse'
+          description: ''
+  /game/{gameId}/channel/:
+    post:
+      operationId: gameChannelCreate
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: integer
+        required: true
+      tags:
+      - game
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChannelCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChannelCreateResponse'
+          description: ''
+  /game/{gameId}/channel/{channelId}/:
+    post:
+      operationId: gameChannelMessageCreate
+      parameters:
+      - in: path
+        name: channelId
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: gameId
+        schema:
+          type: integer
+        required: true
+      tags:
+      - game
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChannelMessageCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          description: No response body
+  /game/{gameId}/channels/:
+    get:
+      operationId: gameChannelsList
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: integer
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChannelListResponse'
+          description: ''
+  /game/{gameId}/confirm/:
+    post:
+      operationId: gameConfirmCreate
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: integer
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          description: No response body
+  /game/{gameId}/join/:
+    post:
+      operationId: gameJoinCreate
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: integer
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          description: No response body
+  /game/{gameId}/leave/:
+    delete:
+      operationId: gameLeaveDestroy
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: integer
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /game/{gameId}/order/:
+    post:
+      operationId: gameOrderCreate
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: integer
+        required: true
+      tags:
+      - game
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderCreateRequest'
+          description: ''
+  /games/:
+    get:
+      operationId: gamesList
+      parameters:
+      - in: query
+        name: can_join
+        schema:
+          type: boolean
+      - in: query
+        name: mine
+        schema:
+          type: boolean
+      tags:
+      - games
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Response'
+          description: ''
+  /user/:
+    get:
+      operationId: userRetrieve
+      tags:
+      - user
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+  /variants/:
+    get:
+      operationId: variantsList
+      tags:
+      - variants
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VariantListResponse'
+          description: ''
+components:
+  schemas:
+    ChannelCreateRequest:
+      type: object
+      properties:
+        members:
+          type: array
+          items:
+            type: integer
+        id:
+          type: integer
+      required:
+      - members
+    ChannelCreateResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+      required:
+      - id
+    ChannelListResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        private:
+          type: boolean
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChannelMessages'
+      required:
+      - id
+      - messages
+      - name
+      - private
+    ChannelMessageCreateRequest:
+      type: object
+      properties:
+        body:
+          type: string
+          maxLength: 1000
+      required:
+      - body
+    ChannelMessages:
+      type: object
+      properties:
+        id:
+          type: integer
+        body:
+          type: string
+        sender:
+          $ref: '#/components/schemas/MessageSender'
+        createdAt:
+          type: string
+          format: date-time
+      required:
+      - body
+      - createdAt
+      - id
+      - sender
+    CurrentPhase:
+      type: object
+      properties:
+        season:
+          type: string
+        year:
+          type: string
+        phaseType:
+          type: string
+        remainingTime:
+          type: string
+        units:
+          type: array
+          items:
+            $ref: '#/components/schemas/CurrentPhaseUnits'
+        supplyCenters:
+          type: array
+          items:
+            $ref: '#/components/schemas/CurrentPhaseSupplyCenters'
+      required:
+      - phaseType
+      - remainingTime
+      - season
+      - supplyCenters
+      - units
+      - year
+    CurrentPhaseSupplyCenters:
+      type: object
+      properties:
+        province:
+          type: string
+        nation:
+          type: string
+      required:
+      - nation
+      - province
+    CurrentPhaseUnits:
+      type: object
+      properties:
+        type:
+          type: string
+        nation:
+          type: string
+        province:
+          type: string
+      required:
+      - nation
+      - province
+      - type
+    FCMDevice:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          nullable: true
+          maxLength: 255
+        registrationId:
+          type: string
+          title: Registration token
+        deviceId:
+          type: string
+          nullable: true
+          description: Unique device identifier
+          maxLength: 255
+        active:
+          type: boolean
+          default: true
+          title: Is active
+          description: Inactive devices will not be sent notifications
+        dateCreated:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Creation date
+        type:
+          $ref: '#/components/schemas/TypeEnum'
+      required:
+      - dateCreated
+      - id
+      - registrationId
+      - type
+    GameCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        variant:
+          type: string
+      required:
+      - name
+      - variant
+    GameMemberUserProfile:
+      type: object
+      properties:
+        name:
+          type: string
+        picture:
+          type: string
+      required:
+      - name
+      - picture
+    GameRetrieveResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        status:
+          type: string
+        movementPhaseDuration:
+          type: string
+        actions:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        currentPhase:
+          $ref: '#/components/schemas/CurrentPhase'
+        variant:
+          $ref: '#/components/schemas/Variant'
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/Members'
+        ordersConfirmed:
+          type: boolean
+          readOnly: true
+        phases:
+          type: array
+          items:
+            $ref: '#/components/schemas/Phases'
+      required:
+      - actions
+      - currentPhase
+      - id
+      - members
+      - movementPhaseDuration
+      - name
+      - ordersConfirmed
+      - phases
+      - status
+      - variant
+    GameVariantNations:
+      type: object
+      properties:
+        name:
+          type: string
+        color:
+          type: string
+      required:
+      - color
+      - name
+    GameVariantProvinces:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        supplyCenter:
+          type: boolean
+      required:
+      - id
+      - name
+      - supplyCenter
+      - type
+    LoginRequest:
+      type: object
+      properties:
+        idToken:
+          type: string
+      required:
+      - idToken
+    LoginResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        username:
+          type: string
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+      required:
+      - accessToken
+      - email
+      - id
+      - refreshToken
+      - username
+    Members:
+      type: object
+      properties:
+        id:
+          type: integer
+        user:
+          $ref: '#/components/schemas/User'
+        nation:
+          type: string
+      required:
+      - id
+      - nation
+      - user
+    MessageSender:
+      type: object
+      properties:
+        id:
+          type: integer
+        nation:
+          type: string
+        user:
+          $ref: '#/components/schemas/MessageSenderUser'
+      required:
+      - id
+      - nation
+      - user
+    MessageSenderUser:
+      type: object
+      properties:
+        username:
+          type: string
+        currentUser:
+          type: boolean
+          readOnly: true
+        profile:
+          $ref: '#/components/schemas/MessageSenderUserProfile'
+      required:
+      - currentUser
+      - profile
+      - username
+    MessageSenderUserProfile:
+      type: object
+      properties:
+        name:
+          type: string
+        picture:
+          type: string
+      required:
+      - name
+      - picture
+    OrderCreateRequest:
+      type: object
+      properties:
+        orderType:
+          type: string
+        source:
+          type: string
+        target:
+          type: string
+          nullable: true
+        aux:
+          type: string
+          nullable: true
+      required:
+      - orderType
+      - source
+    PhaseStateMember:
+      type: object
+      properties:
+        id:
+          type: integer
+        nation:
+          type: string
+        user:
+          $ref: '#/components/schemas/PhaseStateUser'
+      required:
+      - id
+      - nation
+      - user
+    PhaseStateOrders:
+      type: object
+      properties:
+        orderType:
+          type: string
+        source:
+          type: string
+        target:
+          type: string
+          nullable: true
+        aux:
+          type: string
+          nullable: true
+      required:
+      - aux
+      - orderType
+      - source
+      - target
+    PhaseStateUser:
+      type: object
+      properties:
+        username:
+          type: string
+        currentUser:
+          type: boolean
+          readOnly: true
+        profile:
+          $ref: '#/components/schemas/PhaseStateUserProfile'
+      required:
+      - currentUser
+      - profile
+      - username
+    PhaseStateUserProfile:
+      type: object
+      properties:
+        name:
+          type: string
+        picture:
+          type: string
+      required:
+      - name
+      - picture
+    PhaseStates:
+      type: object
+      properties:
+        id:
+          type: integer
+        member:
+          $ref: '#/components/schemas/PhaseStateMember'
+        orders:
+          type: array
+          items:
+            $ref: '#/components/schemas/PhaseStateOrders'
+      required:
+      - id
+      - member
+      - orders
+    Phases:
+      type: object
+      properties:
+        id:
+          type: integer
+        ordinal:
+          type: integer
+        season:
+          type: string
+        year:
+          type: string
+        name:
+          type: string
+        phaseType:
+          type: string
+        remainingTime:
+          type: string
+        phaseStates:
+          type: array
+          items:
+            $ref: '#/components/schemas/PhaseStates'
+        units:
+          type: array
+          items:
+            $ref: '#/components/schemas/PhasesUnits'
+        supplyCenters:
+          type: array
+          items:
+            $ref: '#/components/schemas/PhasesSupplyCenters'
+      required:
+      - id
+      - name
+      - ordinal
+      - phaseStates
+      - phaseType
+      - remainingTime
+      - season
+      - supplyCenters
+      - units
+      - year
+    PhasesSupplyCenters:
+      type: object
+      properties:
+        province:
+          type: string
+        nation:
+          type: string
+      required:
+      - nation
+      - province
+    PhasesUnits:
+      type: object
+      properties:
+        type:
+          type: string
+        nation:
+          type: string
+        province:
+          type: string
+      required:
+      - nation
+      - province
+      - type
+    Response:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        status:
+          type: string
+        movementPhaseDuration:
+          type: string
+        canJoin:
+          type: boolean
+        canLeave:
+          type: boolean
+        currentPhase:
+          $ref: '#/components/schemas/CurrentPhase'
+        variant:
+          $ref: '#/components/schemas/Variant'
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/Members'
+      required:
+      - canJoin
+      - canLeave
+      - currentPhase
+      - id
+      - members
+      - movementPhaseDuration
+      - name
+      - status
+      - variant
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          writeOnly: true
+      required:
+      - access
+      - refresh
+    TypeEnum:
+      enum:
+      - ios
+      - android
+      - web
+      type: string
+      description: |-
+        * `ios` - ios
+        * `android` - android
+        * `web` - web
+    User:
+      type: object
+      properties:
+        username:
+          type: string
+        currentUser:
+          type: boolean
+          readOnly: true
+        profile:
+          $ref: '#/components/schemas/GameMemberUserProfile'
+      required:
+      - currentUser
+      - profile
+      - username
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        picture:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+      required:
+      - email
+      - id
+      - name
+      - picture
+      - username
+    Variant:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        author:
+          type: string
+        nations:
+          type: array
+          items:
+            $ref: '#/components/schemas/GameVariantNations'
+        provinces:
+          type: array
+          items:
+            $ref: '#/components/schemas/GameVariantProvinces'
+      required:
+      - author
+      - description
+      - id
+      - name
+      - nations
+      - provinces
+    VariantListResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        author:
+          type: string
+        nations:
+          type: array
+          items:
+            $ref: '#/components/schemas/VariantNations'
+        start:
+          $ref: '#/components/schemas/VariantStart'
+      required:
+      - description
+      - id
+      - name
+      - nations
+      - start
+    VariantNations:
+      type: object
+      properties:
+        name:
+          type: string
+        color:
+          type: string
+      required:
+      - color
+      - name
+    VariantStart:
+      type: object
+      properties:
+        season:
+          type: string
+        year:
+          type: string
+        phaseType:
+          type: string
+        units:
+          type: array
+          items:
+            $ref: '#/components/schemas/VariantStartUnits'
+        supplyCenters:
+          type: array
+          items:
+            $ref: '#/components/schemas/VariantStartSupplyCenters'
+      required:
+      - phaseType
+      - season
+      - supplyCenters
+      - units
+      - year
+    VariantStartSupplyCenters:
+      type: object
+      properties:
+        province:
+          type: string
+        nation:
+          type: string
+      required:
+      - nation
+      - province
+    VariantStartUnits:
+      type: object
+      properties:
+        type:
+          type: string
+        nation:
+          type: string
+        province:
+          type: string
+      required:
+      - nation
+      - province
+      - type
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

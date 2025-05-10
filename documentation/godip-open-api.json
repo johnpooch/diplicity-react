@@ -1,0 +1,241 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "Godip Adjudication API",
+        "version": "1.0"
+    },
+    "host": "godip-adjudication.appspot.com",
+    "basePath": "/",
+    "schemes": [
+        "http"
+    ],
+    "paths": {
+        "/{variant-name}": {
+            "post": {
+                "summary": "Adjudicate orders for a given variant.",
+                "operationId": "adjudicate",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "variant-name",
+                        "in": "path",
+                        "required": true,
+                        "type": "string",
+                        "description": "Name of the variant."
+                    },
+                    {
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AdjudicationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "schema": {
+                            "$ref": "#/definitions/AdjudicationResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "AdjudicationRequest": {
+            "type": "object",
+            "properties": {
+                "Season": {
+                    "type": "string",
+                    "description": "The current season (e.g., Spring, Fall)."
+                },
+                "Year": {
+                    "type": "integer",
+                    "description": "The current year."
+                },
+                "Type": {
+                    "type": "string",
+                    "description": "The type of phase (e.g., Movement, Retreat)."
+                },
+                "Units": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                            "Type": {
+                                "type": "string",
+                                "description": "The type of unit (e.g., Fleet, Army)."
+                            },
+                            "Nation": {
+                                "type": "string",
+                                "description": "The nation that owns the unit."
+                            }
+                        },
+                        "required": [
+                            "Type",
+                            "Nation"
+                        ]
+                    },
+                    "description": "The units on the board, keyed by location."
+                },
+                "Orders": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "description": "The orders issued by each nation."
+                },
+                "SupplyCenters": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "description": "The supply centers and their controlling nations."
+                },
+                "Dislodgeds": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "description": "Dislodged units, keyed by location."
+                },
+                "Dislodgers": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "description": "Units causing dislodgement, keyed by location."
+                },
+                "Bounces": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "description": "Bounced movements, keyed by location."
+                },
+                "Resolutions": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "description": "Resolution results, keyed by location."
+                }
+            },
+            "required": [
+                "Season",
+                "Year",
+                "Type",
+                "Units",
+                "Orders",
+                "SupplyCenters"
+            ]
+        },
+        "AdjudicationResponse": {
+            "type": "object",
+            "properties": {
+                "Season": {
+                    "type": "string",
+                    "description": "The current season (e.g., Spring, Fall)."
+                },
+                "Year": {
+                    "type": "integer",
+                    "description": "The current year."
+                },
+                "Type": {
+                    "type": "string",
+                    "description": "The type of phase (e.g., Movement, Retreat)."
+                },
+                "Units": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                            "Type": {
+                                "type": "string",
+                                "description": "The type of unit (e.g., Fleet, Army)."
+                            },
+                            "Nation": {
+                                "type": "string",
+                                "description": "The nation that owns the unit."
+                            }
+                        },
+                        "required": [
+                            "Type",
+                            "Nation"
+                        ]
+                    },
+                    "description": "The units on the board, keyed by location."
+                },
+                "Orders": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "description": "The orders issued by each nation."
+                },
+                "SupplyCenters": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "description": "The supply centers and their controlling nations."
+                },
+                "Dislodgeds": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "description": "Dislodged units, keyed by location."
+                },
+                "Dislodgers": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "description": "Units causing dislodgement, keyed by location."
+                },
+                "Bounces": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "description": "Bounced movements, keyed by location."
+                },
+                "Resolutions": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "description": "Resolution results, keyed by location."
+                }
+            },
+            "required": [
+                "Season",
+                "Year",
+                "Type",
+                "Units",
+                "SupplyCenters",
+                "Resolutions"
+            ]
+        }
+    }
+}

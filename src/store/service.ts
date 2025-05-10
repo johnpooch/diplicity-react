@@ -33,6 +33,9 @@ const injectedRtkApi = api.injectEndpoints({
         body: queryArg.loginRequest,
       }),
     }),
+    devicesList: build.query<DevicesListApiResponse, DevicesListApiArg>({
+      query: () => ({ url: `/devices/` }),
+    }),
     devicesCreate: build.mutation<
       DevicesCreateApiResponse,
       DevicesCreateApiArg
@@ -43,12 +46,51 @@ const injectedRtkApi = api.injectEndpoints({
         body: queryArg.fcmDevice,
       }),
     }),
+    devicesUpdate: build.mutation<
+      DevicesUpdateApiResponse,
+      DevicesUpdateApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/devices/`,
+        method: "PUT",
+        body: queryArg.fcmDevice,
+      }),
+    }),
     gameCreate: build.mutation<GameCreateApiResponse, GameCreateApiArg>({
       query: (queryArg) => ({
         url: `/game/`,
         method: "POST",
         body: queryArg.gameCreateRequest,
       }),
+    }),
+    gameRetrieve: build.query<GameRetrieveApiResponse, GameRetrieveApiArg>({
+      query: (queryArg) => ({ url: `/game/${queryArg.gameId}/` }),
+    }),
+    gameChannelCreate: build.mutation<
+      GameChannelCreateApiResponse,
+      GameChannelCreateApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/game/${queryArg.gameId}/channel/`,
+        method: "POST",
+        body: queryArg.channelCreateRequest,
+      }),
+    }),
+    gameChannelMessageCreate: build.mutation<
+      GameChannelMessageCreateApiResponse,
+      GameChannelMessageCreateApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/game/${queryArg.gameId}/channel/${queryArg.channelId}/`,
+        method: "POST",
+        body: queryArg.channelMessageCreateRequest,
+      }),
+    }),
+    gameChannelsList: build.query<
+      GameChannelsListApiResponse,
+      GameChannelsListApiArg
+    >({
+      query: (queryArg) => ({ url: `/game/${queryArg.gameId}/channels/` }),
     }),
     gameConfirmCreate: build.mutation<
       GameConfirmCreateApiResponse,
@@ -95,6 +137,9 @@ const injectedRtkApi = api.injectEndpoints({
           mine: queryArg.mine,
         },
       }),
+    }),
+    userRetrieve: build.query<UserRetrieveApiResponse, UserRetrieveApiArg>({
+      query: () => ({ url: `/user/` }),
     }),
     variantsList: build.query<VariantsListApiResponse, VariantsListApiArg>({
       query: () => ({ url: `/variants/` }),
@@ -217,13 +262,41 @@ export type AuthLoginCreateApiResponse = /** status 200  */ LoginResponse;
 export type AuthLoginCreateApiArg = {
   loginRequest: LoginRequest;
 };
+export type DevicesListApiResponse = /** status 200  */ FcmDeviceRead[];
+export type DevicesListApiArg = void;
 export type DevicesCreateApiResponse = /** status 201  */ FcmDeviceRead;
 export type DevicesCreateApiArg = {
+  fcmDevice: FcmDevice;
+};
+export type DevicesUpdateApiResponse = /** status 200  */ FcmDeviceRead;
+export type DevicesUpdateApiArg = {
   fcmDevice: FcmDevice;
 };
 export type GameCreateApiResponse = /** status 201  */ GameCreateRequest;
 export type GameCreateApiArg = {
   gameCreateRequest: GameCreateRequest;
+};
+export type GameRetrieveApiResponse =
+  /** status 200  */ GameRetrieveResponseRead;
+export type GameRetrieveApiArg = {
+  gameId: number;
+};
+export type GameChannelCreateApiResponse =
+  /** status 201  */ ChannelCreateResponse;
+export type GameChannelCreateApiArg = {
+  gameId: number;
+  channelCreateRequest: ChannelCreateRequest;
+};
+export type GameChannelMessageCreateApiResponse = unknown;
+export type GameChannelMessageCreateApiArg = {
+  channelId: number;
+  gameId: number;
+  channelMessageCreateRequest: ChannelMessageCreateRequest;
+};
+export type GameChannelsListApiResponse =
+  /** status 200  */ ChannelListResponseRead[];
+export type GameChannelsListApiArg = {
+  gameId: number;
 };
 export type GameConfirmCreateApiResponse = unknown;
 export type GameConfirmCreateApiArg = {
@@ -242,11 +315,13 @@ export type GameOrderCreateApiArg = {
   gameId: number;
   orderCreateRequest: OrderCreateRequest;
 };
-export type GamesListApiResponse = /** status 200  */ GameListResponseRead[];
+export type GamesListApiResponse = /** status 200  */ ResponseRead[];
 export type GamesListApiArg = {
   canJoin?: boolean;
   mine?: boolean;
 };
+export type UserRetrieveApiResponse = /** status 200  */ UserProfile;
+export type UserRetrieveApiArg = void;
 export type VariantsListApiResponse = /** status 200  */ VariantListResponse[];
 export type VariantsListApiArg = void;
 export type TokenRefresh = {};
@@ -291,12 +366,6 @@ export type GameCreateRequest = {
   name: string;
   variant: string;
 };
-export type OrderCreateRequest = {
-  orderType: string;
-  source: string;
-  target?: string | null;
-  aux?: string | null;
-};
 export type CurrentPhaseUnits = {
   type: string;
   nation: string;
@@ -318,29 +387,116 @@ export type GameVariantNations = {
   name: string;
   color: string;
 };
+export type GameVariantProvinces = {
+  id: string;
+  name: string;
+  type: string;
+  supplyCenter: boolean;
+};
 export type Variant = {
   id: string;
   name: string;
   description: string;
   author: string;
   nations: GameVariantNations[];
+  provinces: GameVariantProvinces[];
+};
+export type GameMemberUserProfile = {
+  name: string;
+  picture: string;
 };
 export type User = {
   username: string;
+  profile: GameMemberUserProfile;
 };
 export type UserRead = {
   username: string;
   currentUser: boolean;
+  profile: GameMemberUserProfile;
 };
 export type Members = {
+  id: number;
   user: User;
   nation: string;
 };
 export type MembersRead = {
+  id: number;
   user: UserRead;
   nation: string;
 };
-export type GameListResponse = {
+export type PhaseStateUserProfile = {
+  name: string;
+  picture: string;
+};
+export type PhaseStateUser = {
+  username: string;
+  profile: PhaseStateUserProfile;
+};
+export type PhaseStateUserRead = {
+  username: string;
+  currentUser: boolean;
+  profile: PhaseStateUserProfile;
+};
+export type PhaseStateMember = {
+  id: number;
+  nation: string;
+  user: PhaseStateUser;
+};
+export type PhaseStateMemberRead = {
+  id: number;
+  nation: string;
+  user: PhaseStateUserRead;
+};
+export type PhaseStateOrders = {
+  orderType: string;
+  source: string;
+  target: string | null;
+  aux: string | null;
+};
+export type PhaseStates = {
+  id: number;
+  member: PhaseStateMember;
+  orders: PhaseStateOrders[];
+};
+export type PhaseStatesRead = {
+  id: number;
+  member: PhaseStateMemberRead;
+  orders: PhaseStateOrders[];
+};
+export type PhasesUnits = {
+  type: string;
+  nation: string;
+  province: string;
+};
+export type PhasesSupplyCenters = {
+  province: string;
+  nation: string;
+};
+export type Phases = {
+  id: number;
+  ordinal: number;
+  season: string;
+  year: string;
+  name: string;
+  phaseType: string;
+  remainingTime: string;
+  phaseStates: PhaseStates[];
+  units: PhasesUnits[];
+  supplyCenters: PhasesSupplyCenters[];
+};
+export type PhasesRead = {
+  id: number;
+  ordinal: number;
+  season: string;
+  year: string;
+  name: string;
+  phaseType: string;
+  remainingTime: string;
+  phaseStates: PhaseStatesRead[];
+  units: PhasesUnits[];
+  supplyCenters: PhasesSupplyCenters[];
+};
+export type GameRetrieveResponse = {
   id: number;
   name: string;
   status: string;
@@ -348,15 +504,113 @@ export type GameListResponse = {
   currentPhase: CurrentPhase;
   variant: Variant;
   members: Members[];
+  phases: Phases[];
 };
-export type GameListResponseRead = {
+export type GameRetrieveResponseRead = {
   id: number;
   name: string;
   status: string;
   movementPhaseDuration: string;
+  actions: {
+    [key: string]: any;
+  };
   currentPhase: CurrentPhase;
   variant: Variant;
   members: MembersRead[];
+  ordersConfirmed: boolean;
+  phases: PhasesRead[];
+};
+export type ChannelCreateResponse = {
+  id: number;
+};
+export type ChannelCreateRequest = {
+  members: number[];
+  id?: number;
+};
+export type ChannelMessageCreateRequest = {
+  body: string;
+};
+export type MessageSenderUserProfile = {
+  name: string;
+  picture: string;
+};
+export type MessageSenderUser = {
+  username: string;
+  profile: MessageSenderUserProfile;
+};
+export type MessageSenderUserRead = {
+  username: string;
+  currentUser: boolean;
+  profile: MessageSenderUserProfile;
+};
+export type MessageSender = {
+  id: number;
+  nation: string;
+  user: MessageSenderUser;
+};
+export type MessageSenderRead = {
+  id: number;
+  nation: string;
+  user: MessageSenderUserRead;
+};
+export type ChannelMessages = {
+  id: number;
+  body: string;
+  sender: MessageSender;
+  createdAt: string;
+};
+export type ChannelMessagesRead = {
+  id: number;
+  body: string;
+  sender: MessageSenderRead;
+  createdAt: string;
+};
+export type ChannelListResponse = {
+  id: number;
+  name: string;
+  private: boolean;
+  messages: ChannelMessages[];
+};
+export type ChannelListResponseRead = {
+  id: number;
+  name: string;
+  private: boolean;
+  messages: ChannelMessagesRead[];
+};
+export type OrderCreateRequest = {
+  orderType: string;
+  source: string;
+  target?: string | null;
+  aux?: string | null;
+};
+export type Response = {
+  id: number;
+  name: string;
+  status: string;
+  movementPhaseDuration: string;
+  canJoin: boolean;
+  canLeave: boolean;
+  currentPhase: CurrentPhase;
+  variant: Variant;
+  members: Members[];
+};
+export type ResponseRead = {
+  id: number;
+  name: string;
+  status: string;
+  movementPhaseDuration: string;
+  canJoin: boolean;
+  canLeave: boolean;
+  currentPhase: CurrentPhase;
+  variant: Variant;
+  members: MembersRead[];
+};
+export type UserProfile = {
+  id: number;
+  name: string;
+  picture: string;
+  username: string;
+  email: string;
 };
 export type VariantNations = {
   name: string;
@@ -390,12 +644,19 @@ export const {
   useApiSchemaRetrieveQuery,
   useApiTokenRefreshCreateMutation,
   useAuthLoginCreateMutation,
+  useDevicesListQuery,
   useDevicesCreateMutation,
+  useDevicesUpdateMutation,
   useGameCreateMutation,
+  useGameRetrieveQuery,
+  useGameChannelCreateMutation,
+  useGameChannelMessageCreateMutation,
+  useGameChannelsListQuery,
   useGameConfirmCreateMutation,
   useGameJoinCreateMutation,
   useGameLeaveDestroyMutation,
   useGameOrderCreateMutation,
   useGamesListQuery,
+  useUserRetrieveQuery,
   useVariantsListQuery,
 } = injectedRtkApi;

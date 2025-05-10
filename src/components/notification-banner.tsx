@@ -1,12 +1,12 @@
 import React from "react";
 import { QueryContainer } from "./query-container";
-import { useGetUserConfigQuery } from "../common";
 import { Alert, Divider, Link } from "@mui/material";
 import { Warning as WarningIcon } from "@mui/icons-material";
 import { useNavigate } from "react-router";
+import { service } from "../store";
 
 const NotificationBanner: React.FC = () => {
-  const query = useGetUserConfigQuery();
+  const query = service.endpoints.devicesList.useQuery(undefined);
   const navigate = useNavigate();
 
   const handleLinkClick = (
@@ -18,23 +18,24 @@ const NotificationBanner: React.FC = () => {
 
   return (
     <QueryContainer query={query} onRenderLoading={() => null}>
-      {(data) =>
-        data.MailConfig?.Enabled ||
-        (data.FCMToken && !data.FCMToken.Disabled) ? null : (
-          <>
-            <Alert severity="warning" icon={<WarningIcon />}>
-              You have not enabled any notifications. You will not receive
-              messages or phase updates unless you enable at least one
-              notification type.{" "}
-              <Link href="/profile" onClick={handleLinkClick}>
-                Update notification settings
-              </Link>
-              .
-            </Alert>
-            <Divider />
-          </>
-        )
-      }
+      {(devices) => {
+        console.log("devices", devices);
+        if (!devices.find((device) => device.type === "web")) {
+          return (
+            <>
+              <Alert severity="warning" icon={<WarningIcon />}>
+                You have not enabled notifications. You will not receive
+                messages or phase updates unless you enable notifications.{" "}
+                <Link href="/profile" onClick={handleLinkClick}>
+                  Update notification settings
+                </Link>
+                .
+              </Alert>
+              <Divider />
+            </>
+          );
+        }
+      }}
     </QueryContainer>
   );
 };

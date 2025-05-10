@@ -12,15 +12,17 @@ import {
   Info as InfoIcon,
   Person as PlayerInfoIcon,
   Share as ShareIcon,
+  Add as JoinGameIcon,
+  Remove as LeaveGameIcon,
 } from "@mui/icons-material";
 import { useState } from "react";
 import { NavigateFunction, useLocation, useNavigate } from "react-router";
-import { JoinLeaveButton } from "./game-join-leave-button";
 import { useDispatch } from "react-redux";
 import { actions } from "../common";
+import { service } from "../store";
 
 type GameMenuProps = {
-  gameId: number;
+  game: (typeof service.endpoints.gamesList.Types.ResultType)[number];
   onClickGameInfo: (navigate: NavigateFunction, gameId: number) => void;
   onClickPlayerInfo: (navigate: NavigateFunction, gameId: number) => void;
 };
@@ -31,6 +33,12 @@ const GameMenu: React.FC<GameMenuProps> = (props) => {
   const location = useLocation();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
+  const [joinGame, joinGameMutation] =
+    service.endpoints.gameJoinCreate.useMutation();
+
+  const [leaveGame, leaveGameMutation] =
+    service.endpoints.gameLeaveDestroy.useMutation();
+
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
@@ -40,12 +48,12 @@ const GameMenu: React.FC<GameMenuProps> = (props) => {
   };
 
   const handleClickGameInfo = () => {
-    props.onClickGameInfo(navigate, props.gameId);
+    props.onClickGameInfo(navigate, props.game.id);
     handleMenuClose();
   };
 
   const handleClickPlayerInfo = () => {
-    props.onClickPlayerInfo(navigate, props.gameId);
+    props.onClickPlayerInfo(navigate, props.game.id);
     handleMenuClose();
   };
 
@@ -62,6 +70,16 @@ const GameMenu: React.FC<GameMenuProps> = (props) => {
     handleMenuClose();
   };
 
+  const handleClickJoinGame = async () => {
+    await joinGame({ gameId: props.game.id });
+    handleMenuClose();
+  };
+
+  const handleClickLeaveGame = async () => {
+    await leaveGame({ gameId: props.game.id });
+    handleMenuClose();
+  };
+
   return (
     <>
       <IconButton edge="start" color="inherit" onClick={handleMenuOpen}>
@@ -72,6 +90,32 @@ const GameMenu: React.FC<GameMenuProps> = (props) => {
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
       >
+        {props.game.actions.canJoin && (
+          <MenuItem
+            onClick={handleClickJoinGame}
+            disabled={joinGameMutation.isLoading}
+          >
+            <ListItem disablePadding>
+              <ListItemIcon>
+                <JoinGameIcon />
+              </ListItemIcon>
+              <ListItemText primary="Join game" />
+            </ListItem>
+          </MenuItem>
+        )}
+        {props.game.actions.canLeave && (
+          <MenuItem
+            onClick={handleClickLeaveGame}
+            disabled={leaveGameMutation.isLoading}
+          >
+            <ListItem disablePadding>
+              <ListItemIcon>
+                <LeaveGameIcon />
+              </ListItemIcon>
+              <ListItemText primary="Leave game" />
+            </ListItem>
+          </MenuItem>
+        )}
         <MenuItem onClick={handleClickGameInfo}>
           <ListItem disablePadding>
             <ListItemIcon>
@@ -88,7 +132,6 @@ const GameMenu: React.FC<GameMenuProps> = (props) => {
             <ListItemText primary="Player info" />
           </ListItem>
         </MenuItem>
-        <JoinLeaveButton gameId={props.gameId} onJoinLeave={handleMenuClose} />
         <Divider />
         <MenuItem onClick={handleClickShare}>
           <ListItem disablePadding>

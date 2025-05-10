@@ -13,49 +13,20 @@ import {
   Typography,
 } from "@mui/material";
 import { MoreHoriz } from "@mui/icons-material";
-import { QueryContainer } from "../../components";
-import {
-  actions,
-  AppDispatch,
-  mergeQueries,
-  service,
-  useToggleMailEnabledMutation,
-} from "../../common";
 import { useDispatch } from "react-redux";
+import { authSlice, service } from "../../store";
 import { useMessaging } from "../../context";
-
-const styles: Styles = {
-  root: {
-    gap: 2,
-    alignItems: "center",
-  },
-};
-
-const useProfile = () => {
-  const dispatch = useDispatch<AppDispatch>();
-  const getRootQuery = service.endpoints.getRoot.useQuery(undefined);
-  const getUserConfigQuery = service.endpoints.getUserConfig.useQuery(
-    getRootQuery.data?.Id || "",
-    { skip: !getRootQuery.data }
-  );
-  const handleLogout = () => {
-    dispatch(actions.logout());
-  };
-
-  const query = mergeQueries(
-    [getRootQuery, getUserConfigQuery],
-    (user, userConfig) => {
-      return { ...user, ...userConfig };
-    }
-  );
-  return { query, handleLogout };
-};
+import { QueryContainer } from "../../components";
 
 const Profile: React.FC = () => {
-  const { query, handleLogout } = useProfile();
-  const { enabled, enableMessaging, disableMessaging } = useMessaging();
-  const [toggleMailEnabled, toggleMailEnabledMutation] =
-    useToggleMailEnabledMutation();
+  const dispatch = useDispatch();
+  const userProfileQuery = service.endpoints.userRetrieve.useQuery();
+  const { enableMessaging, enabled, disableMessaging } = useMessaging();
+
+  const handleLogout = () => {
+    dispatch(authSlice.actions.logout());
+  };
+
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const open = Boolean(anchorEl);
@@ -76,15 +47,15 @@ const Profile: React.FC = () => {
   };
 
   return (
-    <QueryContainer query={query}>
-      {(data) => (
+    <QueryContainer query={userProfileQuery}>
+      {(user) => (
         <Stack>
           <Grid2 container sx={styles.root} p={2}>
             <Grid2 size="auto">
-              <Avatar src={data.Picture} alt={data.Name} />
+              <Avatar src={user.picture} alt={user.username} />
             </Grid2>
             <Grid2 size="grow">
-              <Typography variant="body1">{data.Name}</Typography>
+              <Typography variant="body1">{user.username}</Typography>
             </Grid2>
             <Grid2 size="auto">
               <IconButton aria-label="menu" onClick={handleMenuClick}>
@@ -108,8 +79,8 @@ const Profile: React.FC = () => {
                   control={
                     <Switch
                       checked={enabled}
-                      onChange={() => {
-                        if (!enabled) {
+                      onChange={(_, checked) => {
+                        if (checked) {
                           enableMessaging();
                         } else {
                           disableMessaging();
@@ -121,27 +92,19 @@ const Profile: React.FC = () => {
                   label="Push Notifications"
                 />
               </FormControl>
-              <FormControl>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={data.MailConfig?.Enabled ?? false}
-                      disabled={toggleMailEnabledMutation.isLoading}
-                      onChange={() => {
-                        toggleMailEnabled(!data.MailConfig?.Enabled);
-                      }}
-                      name="mail"
-                    />
-                  }
-                  label="Email Notifications"
-                />
-              </FormControl>
             </Stack>
           </Stack>
         </Stack>
       )}
     </QueryContainer>
   );
+};
+
+const styles: Styles = {
+  root: {
+    gap: 2,
+    alignItems: "center",
+  },
 };
 
 export { Profile };

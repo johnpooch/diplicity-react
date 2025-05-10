@@ -1,28 +1,24 @@
 import React from "react";
-import { List } from "@mui/material";
-import { NotificationBanner, QueryContainer } from "../../components";
-import { service } from "../../common";
+import { List, Typography } from "@mui/material";
+import { QueryContainer } from "../../components";
+import { service } from "../../store";
 import { GameCard } from "../../components";
 
-const options = { my: false, mastered: false };
-
-const useFindGames = () => {
-  const { endpoints } = service;
-  const query = endpoints.listGames.useQuery({
-    ...options,
-    status: "Open",
-  });
-  return { query };
-};
-
 const FindGames: React.FC = () => {
-  const { query } = useFindGames();
+  const query = service.endpoints.gamesList.useQuery({ canJoin: true });
 
   return (
     <List sx={{ width: "100%" }} disablePadding>
-      <NotificationBanner />
       <QueryContainer query={query}>
-        {(games) => games.map((game) => <GameCard key={game.ID} game={game} />)}
+        {(games) =>
+          games.length > 0 ? (
+            games.map((game) => <GameCard key={game.id} {...game} />)
+          ) : (
+            <Typography sx={{ textAlign: "center", marginTop: 2 }}>
+              No games available to join.
+            </Typography>
+          )
+        }
       </QueryContainer>
     </List>
   );
