@@ -13,11 +13,24 @@ class PhaseSerializer(serializers.Serializer):
     Season = serializers.CharField(source="season")
     Year = serializers.IntegerField(source="year")
     Type = serializers.CharField(source="phase_type")
-    Units = serializers.DictField(child=UnitSerializer(), source="units")
-    Orders = serializers.DictField(source="orders")
-    SupplyCenters = serializers.DictField(
-        child=serializers.CharField(), source="supply_centers"
+    Units = inline_serializer(
+        name="PhaseUnits",
+        fields={
+            "Type": serializers.CharField(source="unit_type"),
+            "Nation": serializers.CharField(source="nation"),
+            "Province": serializers.CharField(source="province"),
+        },
+        many=True,
     )
+    SupplyCenters = inline_serializer(
+        name="PhaseSupplyCenters",
+        fields={
+            "Province": serializers.CharField(source="province"),
+            "Nation": serializers.CharField(source="nation"),
+        },
+        many=True,
+    )
+    Orders = serializers.DictField(source="orders")
     Dislodgeds = serializers.DictField(source="dislodgeds")
     Dislodgers = serializers.DictField(source="dislodgers")
     Bounces = serializers.DictField(source="bounces")
@@ -60,7 +73,7 @@ class GameListResponseSerializer(serializers.Serializer):
             "units": inline_serializer(
                 name="CurrentPhaseUnits",
                 fields={
-                    "type": serializers.CharField(),
+                    "unit_type": serializers.CharField(),
                     "nation": serializers.CharField(),
                     "province": serializers.CharField(),
                 },
@@ -225,7 +238,7 @@ class GameRetrieveResponseSerializer(GameListResponseSerializer):
             "units": inline_serializer(
                 name="PhasesUnits",
                 fields={
-                    "type": serializers.CharField(),
+                    "unit_type": serializers.CharField(),
                     "nation": serializers.CharField(),
                     "province": serializers.CharField(),
                 },
@@ -325,7 +338,7 @@ class VariantListResponseSerializer(serializers.Serializer):
             "units": inline_serializer(
                 name="VariantStartUnits",
                 fields={
-                    "type": serializers.CharField(),
+                    "unit_type": serializers.CharField(),
                     "nation": serializers.CharField(),
                     "province": serializers.CharField(),
                 },

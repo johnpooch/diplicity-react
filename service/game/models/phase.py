@@ -1,5 +1,4 @@
 from django.db import models
-from django.utils import timezone
 from .base import BaseModel
 from .game import Game
 
@@ -25,13 +24,6 @@ class Phase(BaseModel):
     year = models.IntegerField()
     phase_type = models.CharField(max_length=10)
     remaining_time = models.DurationField(null=True, blank=True)
-    units = models.JSONField(default=dict, blank=True)
-    orders = models.JSONField(default=dict, blank=True)
-    supply_centers = models.JSONField(default=dict, blank=True)
-    dislodgeds = models.JSONField(default=dict, blank=True)
-    dislodgers = models.JSONField(default=dict, blank=True)
-    bounces = models.JSONField(default=dict, blank=True)
-    resolutions = models.JSONField(default=dict, blank=True)
 
     def save(self, *args, **kwargs):
         if not self.pk:  # Check if the instance is being created

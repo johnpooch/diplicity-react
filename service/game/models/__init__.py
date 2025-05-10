@@ -8,8 +8,10 @@ from .order_resolution import OrderResolution
 from .phase import Phase
 from .phase_state import PhaseState
 from .task import Task
+from .unit import Unit
 from .user_profile import UserProfile
 from .variant import Variant
+from .supply_center import SupplyCenter
 
 __all__ = [
     "Channel",
@@ -24,4 +26,5 @@ __all__ = [
     "Task",
     "UserProfile",
     "Variant",
+    "SupplyCenter",
 ]
