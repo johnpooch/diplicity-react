@@ -1,6 +1,7 @@
 import React from "react";
 import {
   Avatar,
+  AvatarGroup,
   Button,
   Link,
   ListItem,
@@ -12,6 +13,7 @@ import {
 import { useNavigate } from "react-router";
 import { service } from "../store";
 import { GameMenu } from "./game-menu";
+import { InteractiveMap } from "./interactive-map/interactive-map";
 
 const MAX_AVATARS = 10;
 
@@ -36,14 +38,12 @@ const GameCard: React.FC<
     }
   };
 
-  const hasExtraMembers = game.members.length > MAX_AVATARS;
-
   return (
     <ListItem
       sx={styles.listItem}
       secondaryAction={
         <GameMenu
-          gameId={game.id}
+          game={game}
           onClickGameInfo={handleClickGameInfo}
           onClickPlayerInfo={handleClickPlayerInfo}
         />
@@ -51,11 +51,7 @@ const GameCard: React.FC<
     >
       <Link underline="hover" onClick={handleClickGame}>
         <ListItemAvatar sx={styles.mapContainer}>
-          <img
-            style={{ maxWidth: "100%", maxHeight: "100%" }}
-            src={`https://diplicity-engine.appspot.com/Variant/${game.variant.name}/Map.svg`}
-            alt={game.variant.name}
-          />
+          <InteractiveMap variant={game.variant} phase={game.currentPhase} />
         </ListItemAvatar>
       </Link>
       <Stack>
@@ -74,22 +70,15 @@ const GameCard: React.FC<
             </Typography>
           </Stack>
           <Button sx={styles.avatarStackButton} onClick={handleClickPlayerInfo}>
-            <Stack
-              sx={styles.avatarStackContainer}
-              direction="row"
-              spacing={-1}
-            >
+            <AvatarGroup total={game.members.length}>
               {game.members.slice(0, MAX_AVATARS).map((member, index) => (
-                <Avatar sx={styles.avatar} key={index}>
-                  {member.user.username[0]}
-                </Avatar>
+                <Avatar
+                  sx={styles.avatar}
+                  key={index}
+                  src={member.user.profile.picture}
+                />
               ))}
-            </Stack>
-            {hasExtraMembers && (
-              <Typography variant="body1" sx={styles.extraMembersText}>
-                +{game.members.length - MAX_AVATARS}
-              </Typography>
-            )}
+            </AvatarGroup>
           </Button>
         </Stack>
       </Stack>

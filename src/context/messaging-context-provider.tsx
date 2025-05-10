@@ -1,85 +1,12 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { initializeApp } from "firebase/app";
-import {
-  getToken,
-  onMessage,
-  getMessaging,
-  deleteToken,
-} from "firebase/messaging";
-import { useFcmTokenReceivedMutation } from "../common";
-
-// const firebaseConfig = {
-//   apiKey: "AIzaSyDjCW9a1Y7wPTIQVyL_DMHmo61TzVFjx1c",
-//   authDomain: "diplicity-react.firebaseapp.com",
-//   projectId: "diplicity-react",
-//   storageBucket: "diplicity-react.firebasestorage.app",
-//   messagingSenderId: "919095022177",
-//   appId: "1:919095022177:web:6303772970effd99759020",
-// };
-
-// Diplicity engine
-const firebaseConfig = {
-  apiKey: "AIzaSyCsbBMuoeynbqGJ0WqKKd5hkXK4QyQtY-0",
-  authDomain: "diplicity-engine.firebaseapp.com",
-  databaseURL: "https://diplicity-engine.firebaseio.com",
-  projectId: "diplicity-engine",
-  storageBucket: "diplicity-engine.firebasestorage.app",
-  messagingSenderId: "635122585664",
-  appId: "1:635122585664:web:2a5a7f0a72c9647fa74fa5",
-  measurementId: "G-SFEBT2PQ6W",
-};
-
-const app = initializeApp(firebaseConfig);
-
-const messaging = getMessaging(app);
-
-// diplicity-engine
-const VAPID_KEY =
-  "BFb1kkti2UR4oxC9K5HAAIwH-KOcwGBnZIEvUM9yzD7ppPWK6M4_AlpjfC5m5iQyFd4VqsBgSA5nfSEGbjlUtaY";
-
-// diplicity-react
-// const VAPID_KEY =
-//   "BDzNEIDfAnaXQ3O6tZqAq2rtQw5lFDxhMHJYalOPHVpNXBLeWuuFCK42OdLHzVIBEIsjEEfxzGGQS2jcT3Wfa-8";
-
-// Register the service worker
-navigator.serviceWorker
-  .register("/firebase-messaging-sw.js")
-  .then((registration) => {
-    console.log(registration);
-    console.log("Service worker registered with scope:", registration.scope);
-
-    //Get the token after registration is successful
-    getToken(messaging, {
-      vapidKey: VAPID_KEY,
-    })
-      .then((currentToken) => {
-        if (currentToken) {
-          // Send the token to your server
-        } else {
-          // Show permission request UI
-          console.log(
-            "No registration token available. Request permission to generate one."
-          );
-          // ... your logic to request notification permission ...
-        }
-      })
-      .catch((err) => {
-        console.log("An error occurred while retrieving token. ", err);
-      });
-  })
-  .catch((error) => {
-    console.error("Service worker registration failed:", error);
-  });
-
-onMessage(messaging, async (payload) => {
-  console.log("Message received. ", payload);
-});
+import { onMessageReceived, getToken } from "../messaging";
+import { selectAuth, service } from "../store";
+import { useSelector } from "react-redux";
 
 type MessagingContextType = {
   enabled: boolean;
   disableMessaging: () => Promise<void>;
   enableMessaging: () => Promise<void>;
-  token?: string;
 };
 
 const MessagingContext = createContext<MessagingContextType | undefined>(
@@ -90,56 +17,60 @@ type MessagingContextProviderProps = React.PropsWithChildren<
   Record<string, unknown>
 >;
 
-const ENABLED = true;
-const DISABLED = false;
-
 const MessagingContextProvider: React.FC<MessagingContextProviderProps> = (
   props
 ) => {
-  const [handleFcmTokenReceived, mutation] = useFcmTokenReceivedMutation();
+  const { loggedIn } = useSelector(selectAuth);
   const [token, setToken] = useState<string | undefined>(undefined);
-  const enabled = token !== undefined;
+  const devicesListQuery = service.endpoints.devicesList.useQuery(undefined, {
+    skip: !loggedIn,
+  });
+  const [createDevice] = service.endpoints.devicesCreate.useMutation();
 
-  const retrieveToken = async (): Promise<string | null> => {
+  const tryGetToken = async () => {
     try {
-      const currentToken = await getToken(messaging, { vapidKey: VAPID_KEY });
-      if (currentToken) {
-        setToken(currentToken);
-        if (currentToken) {
-          await handleFcmTokenReceived(currentToken, ENABLED);
-        }
-        // Here you would send token to server
-        console.log("Token retrieved:", currentToken);
-        return currentToken;
-      } else {
-        console.warn(
-          "No registration token available. Request permission to generate one."
-        );
-        return null;
+      const token = await getToken();
+      if (token) {
+        setToken(token);
       }
     } catch (error) {
       console.error("An error occurred while retrieving token. ", error);
-      return null;
     }
   };
 
   useEffect(() => {
-    retrieveToken();
+    onMessageReceived((payload) => {
+      console.log("Message received. ", payload);
+    });
+  }, []);
 
-    // const unsubscribe = onMessage(messaging, (payload) => {
-    //   console.log("Message received. ", payload);
-    // });
+  useEffect(() => {
+    const createDeviceFromToken = async (token: string) => {
+      console.log("Creating device with token:", token);
+      await createDevice({
+        fcmDevice: {
+          type: "web",
+          registrationId: token,
+          active: true,
+        },
+      }).unwrap();
+      console.log("Device created with token:", token);
+      setToken(token);
+    };
+    if (token && loggedIn) {
+      createDeviceFromToken(token);
+    }
+  }, [token, loggedIn]);
 
-    // return () => {
-    //   unsubscribe();
-    // };
+  useEffect(() => {
+    tryGetToken();
   }, []);
 
   const enableMessaging = async (): Promise<void> => {
     try {
       const permission = await Notification.requestPermission();
       if (permission === "granted") {
-        await retrieveToken();
+        await tryGetToken();
       } else {
         console.warn("Notification permission not granted");
       }
@@ -151,21 +82,37 @@ const MessagingContextProvider: React.FC<MessagingContextProviderProps> = (
   const disableMessaging = async (): Promise<void> => {
     console.log("Disabling messaging");
     try {
-      console.log("Getting token");
-      await handleFcmTokenReceived(token as string, DISABLED);
-      console.log("Deleting token");
-      await deleteToken(messaging);
-      console.log("Token deleted");
-      setToken(undefined);
-      // Here you would remove token from server
+      if (token) {
+        console.log("Deleting token");
+        await createDevice({
+          fcmDevice: {
+            registrationId: token,
+            type: "web",
+            active: false,
+          },
+        }).unwrap();
+        console.log("Token deleted");
+        setToken(undefined);
+      }
     } catch (error) {
       console.error("An error occurred while deleting token. ", error);
     }
   };
 
+  console.log("Devices list query data:", devicesListQuery.data);
+
+  // Notifications are considered "enabled" if the token is set and the devices
+  // is in the list and active
+  const enabled = Boolean(
+    token !== undefined &&
+      devicesListQuery.data?.some(
+        (device) => device.registrationId === token && device.active
+      )
+  );
+
   return (
     <MessagingContext.Provider
-      value={{ enableMessaging, disableMessaging, enabled, token }}
+      value={{ enabled, disableMessaging, enableMessaging }}
     >
       {props.children}
     </MessagingContext.Provider>

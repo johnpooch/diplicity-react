@@ -1,7 +1,7 @@
 import { AppBar, IconButton, Stack, Typography } from "@mui/material";
 import { ArrowBack as BackIcon } from "@mui/icons-material";
 import { Outlet, useNavigate } from "react-router";
-import { GameMenu, Map } from "../../components";
+import { GameMenu, Map, QueryContainer } from "../../components";
 import { PhaseSelect } from "../../components/phase-select";
 import React from "react";
 import {
@@ -14,6 +14,7 @@ type GameDetailLayoutProps = {
 };
 
 const GameDetailLayout: React.FC<GameDetailLayoutProps> = (props) => {
+  console.log("GameDetailPrimaryScreenLayout");
   const navigate = useNavigate();
 
   const handleNavigateBack = () => {
@@ -22,7 +23,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = (props) => {
 
   return (
     <SelectedGameContextProvider>
-      {(gameId) => (
+      {({ gameRetrieveQuery }) => (
         <SelectedPhaseContextProvider>
           <Stack>
             <AppBar sx={styles.appBar}>
@@ -37,15 +38,19 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = (props) => {
                 )}
               </Stack>
               <PhaseSelect />
-              <GameMenu
-                gameId={gameId}
-                onClickGameInfo={(navigate, gameId) => {
-                  navigate(`/game/${gameId}/game-info`);
-                }}
-                onClickPlayerInfo={(navigate, gameId) => {
-                  navigate(`/game/${gameId}/player-info`);
-                }}
-              />
+              <QueryContainer query={gameRetrieveQuery}>
+                {(game) => (
+                  <GameMenu
+                    game={game}
+                    onClickGameInfo={(navigate, gameId) => {
+                      navigate(`/game/${gameId}/game-info`);
+                    }}
+                    onClickPlayerInfo={(navigate, gameId) => {
+                      navigate(`/game/${gameId}/player-info`);
+                    }}
+                  />
+                )}
+              </QueryContainer>
             </AppBar>
             <Stack sx={styles.screen}>
               <Stack sx={styles.panelContainer}>

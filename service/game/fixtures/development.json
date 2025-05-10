@@ -1,0 +1,59 @@
+[
+    {
+        "model": "auth.user",
+        "pk": 1,
+        "fields": {
+            "username": "johnmcdowell",
+            "email": "johnmcdowell0801@gmail.com",
+            "password": "pbkdf2_sha256$260000$examplehashedpassword"
+        }
+    },
+    {
+        "model": "game.game",
+        "pk": 1,
+        "fields": {
+            "name": "Pending game that user is a member of",
+            "status": "pending",
+            "private": false,
+            "movement_phase_duration": "24 hours",
+            "variant": "classical",
+            "created_at": "2023-10-01T12:00:00Z",
+            "updated_at": "2023-10-01T12:00:00Z"
+        }
+    },
+    {
+        "model": "game.member",
+        "pk": 1,
+        "fields": {
+            "user": 1,
+            "game": 1,
+            "nation": null,
+            "won": false,
+            "drew": false,
+            "eliminated": false,
+            "kicked": false,
+            "created_at": "2023-10-01T12:00:00Z",
+            "updated_at": "2023-10-01T12:00:00Z"
+        }
+    },
+    {
+        "model": "game.phase",
+        "pk": 1,
+        "fields": {
+            "game": 1,
+            "status": "pending",
+            "season": "Spring",
+            "year": 1901,
+            "phase_type": "Movement",
+            "units": [],
+            "orders": "{}",
+            "supply_centers": [],
+            "dislodgeds": "{}",
+            "dislodgers": "{}",
+            "bounces": "{}",
+            "resolutions": "{}",
+            "created_at": "2023-10-01T12:00:00Z",
+            "updated_at": "2023-10-01T12:00:00Z"
+        }
+    }
+]

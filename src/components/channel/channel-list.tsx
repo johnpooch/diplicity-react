@@ -2,19 +2,20 @@ import React from "react";
 import { List, ListItem, ListItemButton, ListItemText } from "@mui/material";
 import { useLocation, useNavigate } from "react-router";
 import { QueryContainer } from "../../components";
-import { useListChannelsQuery, useSelectedGameContext } from "../../common";
+import { useSelectedGameContext } from "../../common";
+import { service } from "../../store";
 
 /**
  * Lists the chat channels of a game.
  */
 const ChannelList: React.FC = () => {
   const { gameId } = useSelectedGameContext();
-  const query = useListChannelsQuery();
+  const query = service.endpoints.gameChannelsList.useQuery({ gameId });
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleChannelClick = (name: string) => {
-    navigate(`/game/${gameId}/chat/channel/${name}`);
+  const handleChannelClick = (id: string) => {
+    navigate(`/game/${gameId}/chat/channel/${id}`);
   };
 
   const selectedChannel = location.pathname.match(/\/channel\/(.*)/)?.[1];
@@ -29,14 +30,18 @@ const ChannelList: React.FC = () => {
               divider
               disablePadding
               sx={
-                selectedChannel === channel.name ? styles.selectedListItem : {}
+                selectedChannel === channel.id.toString()
+                  ? styles.selectedListItem
+                  : {}
               }
             >
-              <ListItemButton onClick={() => handleChannelClick(channel.name)}>
+              <ListItemButton
+                onClick={() => handleChannelClick(channel.id.toString())}
+              >
                 <ListItemText
                   sx={styles.listItemText}
-                  primary={channel.displayName}
-                  secondary={channel.messagePreview}
+                  primary={channel.name}
+                  // secondary={channel.messages}
                 />
               </ListItemButton>
             </ListItem>

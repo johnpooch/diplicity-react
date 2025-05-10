@@ -2,6 +2,7 @@ import React from "react";
 import {
   Alert,
   Avatar,
+  AvatarGroup,
   Button,
   Divider,
   List,
@@ -9,12 +10,10 @@ import {
   ListItemIcon,
   ListItemText,
   ListSubheader,
-  Stack,
 } from "@mui/material";
 import {
   Map as VariantIcon,
   TimerOutlined as DeadlinesIcon,
-  Language as LanguageIcon,
   People as PlayersIcon,
   Flag as WinConditionIcon,
   CalendarToday as StartYearIcon,
@@ -22,36 +21,14 @@ import {
   Info as InfoIcon,
 } from "@mui/icons-material";
 import { QueryContainer, TableListItem } from "../../components";
-import {
-  mergeQueries,
-  service,
-  useGetVariantQuery,
-  useSelectedGameContext,
-} from "../../common";
+import { useSelectedGameContext } from "../../common";
+import { service } from "../../store";
 import { useNavigate } from "react-router";
-
-const useGameInfo = () => {
-  const { gameId } = useSelectedGameContext();
-
-  const getGameQuery = service.endpoints.getGame.useQuery(gameId);
-  const getVariantQuery = useGetVariantQuery(gameId);
-
-  const query = mergeQueries(
-    [getGameQuery, getVariantQuery],
-    (game, variant) => {
-      return {
-        game,
-        variant,
-      };
-    }
-  );
-
-  return { query };
-};
+import { InteractiveMap } from "../../components/interactive-map/interactive-map";
 
 const GameInfo: React.FC = () => {
   const { gameId } = useSelectedGameContext();
-  const { query } = useGameInfo();
+  const query = service.endpoints.gameRetrieve.useQuery({ gameId });
   const navigate = useNavigate();
 
   const handlePlayerInfo = () => {
@@ -60,12 +37,12 @@ const GameInfo: React.FC = () => {
 
   return (
     <QueryContainer query={query}>
-      {(data) => (
+      {(game) => (
         <>
-          {!data.game.Started && (
+          {game.status === "pending" && (
             <Alert severity="info" icon={<InfoIcon />}>
               This game has not started yet. The game will start once{" "}
-              {data.variant.Nations.length} players have joined.
+              {game.variant.nations.length} players have joined.
             </Alert>
           )}
           <List>
@@ -74,51 +51,33 @@ const GameInfo: React.FC = () => {
             </ListSubheader>
             <TableListItem
               label="Variant"
-              value={data.variant.Name}
+              value={game.variant.name}
               icon={<VariantIcon />}
             />
             <TableListItem
               label="Phase deadlines"
-              value={data.game.PhaseLengthMinutes}
+              value={game.movementPhaseDuration}
               icon={<DeadlinesIcon />}
             />
-            {data.game.NonMovementPhaseLengthMinutes && (
-              <TableListItem
-                label="Non-movement phase deadlines"
-                value={data.game.PhaseLengthMinutes}
-                icon={<></>}
-              />
-            )}
             <Divider />
             <ListSubheader sx={styles.listSubheader}>
               Player settings
             </ListSubheader>
-            {data.game.ChatLanguageISO639_1 && (
-              <TableListItem
-                label="Language"
-                value={data.game.ChatLanguageISO639_1}
-                icon={<LanguageIcon />}
-              />
-            )}
             <ListItem
               secondaryAction={
                 <Button
                   sx={styles.avatarStackButton}
                   onClick={handlePlayerInfo}
                 >
-                  <Stack
-                    sx={styles.avatarStackContainer}
-                    direction="row"
-                    spacing={-1}
-                  >
-                    {data.game.Members.map((member) => (
+                  <AvatarGroup total={game.members.length} max={7}>
+                    {game.members.map((member) => (
                       <Avatar
                         sx={styles.avatar}
-                        key={member.User.Id}
-                        src={member.User.Picture}
+                        key={member.user.username}
+                        src={member.user.profile.picture}
                       />
                     ))}
-                  </Stack>
+                  </AvatarGroup>
                 </Button>
               }
             >
@@ -135,25 +94,24 @@ const GameInfo: React.FC = () => {
               Variant details
             </ListSubheader>
             <ListItem>
-              <img
-                src={`https://diplicity-engine.appspot.com/Variant/${data.variant.Name}/Map.svg`}
-                alt={data.variant.Name}
-                style={{ width: "100%" }}
+              <InteractiveMap
+                variant={game.variant}
+                phase={game.currentPhase}
               />
             </ListItem>
             <TableListItem
               label="Number of nations"
-              value={data.variant.Nations.length.toString()}
+              value={game.variant.nations.length.toString()}
               icon={<PlayersIcon />}
             />
             <TableListItem
               label="Start year"
-              value={data.variant.Start.Year.toString()}
+              value={"TODO"}
               icon={<StartYearIcon />}
             />
             <TableListItem
               label="Original author"
-              value={data.variant.CreatedBy}
+              value={game.variant.author}
               icon={<AuthorIcon />}
             />
             <ListItem>
@@ -162,7 +120,7 @@ const GameInfo: React.FC = () => {
               </ListItemIcon>
               <ListItemText
                 primary={"Win condition"}
-                secondary={data.variant.Rules}
+                secondary={game.variant.description}
                 sx={styles.listItemPrimaryText}
               />
             </ListItem>

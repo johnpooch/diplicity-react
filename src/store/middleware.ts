@@ -1,6 +1,8 @@
 import { createListenerMiddleware, isRejectedWithValue } from "@reduxjs/toolkit";
 import { isUnauthorized } from "./matchers";
 import { authSlice } from "./auth";
+import { RootState } from "./store";
+import { service } from "./service";
 
 const listenerMiddleware = createListenerMiddleware();
 
@@ -12,14 +14,5 @@ const listenerMiddleware = createListenerMiddleware();
 //         }
 //     },
 // });
-
-listenerMiddleware.startListening({
-    matcher: isRejectedWithValue,
-    effect: async (action, listenerApi) => {
-        if (isUnauthorized(action)) {
-            listenerApi.dispatch(authSlice.actions.logout());
-        }
-    },
-});
 
 export { listenerMiddleware };

@@ -48,7 +48,7 @@ const Login: React.FC = () => {
     }
     trigger({
       loginRequest: {
-        id_token: credentialResponse.credential,
+        idToken: credentialResponse.credential,
       },
     });
   };
@@ -62,7 +62,7 @@ const Login: React.FC = () => {
       <Stack sx={styles.stack} spacing={2} alignItems="center">
         <Avatar sx={styles.logo} src="/otto.png" alt="Diplicity Logo" />
         <Typography component="h1" variant="body1">
-          Welcome to Diplicity! Hello world
+          Welcome to Diplicity!
         </Typography>
         <Typography variant="body2">
           A digital adaptation of the game of Diplomacy.

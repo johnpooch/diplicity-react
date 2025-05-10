@@ -1,19 +1,32 @@
-import { useMap } from "../../common";
+import { useSelectedGameContext, useSelectedPhaseContext } from "../../common";
+import { InteractiveMap } from "../interactive-map/interactive-map";
 import { QueryContainer } from "../query-container";
 
 const Map: React.FC = () => {
-  const { query } = useMap();
+  const { selectedPhase } = useSelectedPhaseContext();
+  const { gameRetrieveQuery } = useSelectedGameContext();
+
   return (
-    <QueryContainer query={query}>
-      {(data) => (
-        <div
-          dangerouslySetInnerHTML={{ __html: data }}
-          style={{
-            maxWidth: "100%",
-            maxHeight: "100%",
-          }}
-        />
-      )}
+    <QueryContainer query={gameRetrieveQuery}>
+      {(game) => {
+        const phase = game.phases.find((p) => p.id === selectedPhase);
+        if (!phase) throw new Error("Phase not found");
+        return (
+          <div
+            style={{
+              height: "100%",
+              width: "100%",
+            }}
+          >
+            <InteractiveMap
+              interactive
+              variant={game.variant}
+              phase={phase}
+              orders={{}}
+            />
+          </div>
+        );
+      }}
     </QueryContainer>
   );
 };

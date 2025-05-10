@@ -26,6 +26,7 @@ import {
   CreateChannelTextField,
   GameMenu,
   OrderList,
+  QueryContainer,
 } from "./components";
 import { PhaseSelect } from "./components/phase-select";
 import { GameName } from "./components/game-detail/game-name";
@@ -85,20 +86,27 @@ const Router: React.FC = () => {
           path="game-info/:gameId"
           element={
             <SelectedGameContextProvider>
-              {(gameId) => (
+              {({ gameRetrieveQuery }) => (
                 <Desktop.HomeSecondaryScreenLayout
                   title="Game info"
                   onNavigateBack={(navigate) => navigate("/")}
                   secondaryAction={
-                    <GameMenu
-                      gameId={gameId}
-                      onClickGameInfo={(navigate) =>
-                        navigate(`/game-info/${gameId}`)
-                      }
-                      onClickPlayerInfo={(navigate) =>
-                        navigate(`/player-info/${gameId}`)
-                      }
-                    />
+                    <QueryContainer
+                      query={gameRetrieveQuery}
+                      onRenderLoading={() => <> </>}
+                    >
+                      {(game) => (
+                        <GameMenu
+                          game={game}
+                          onClickGameInfo={(navigate) =>
+                            navigate(`/game-info/${game.id}`)
+                          }
+                          onClickPlayerInfo={(navigate) =>
+                            navigate(`/player-info/${game.id}`)
+                          }
+                        />
+                      )}
+                    </QueryContainer>
                   }
                 />
               )}
@@ -111,19 +119,26 @@ const Router: React.FC = () => {
           path="player-info/:gameId"
           element={
             <SelectedGameContextProvider>
-              {(gameId) => (
+              {({ gameRetrieveQuery }) => (
                 <Desktop.HomeSecondaryScreenLayout
                   title="Player info"
                   secondaryAction={
-                    <GameMenu
-                      gameId={gameId}
-                      onClickGameInfo={(navigate) =>
-                        navigate(`/game-info/${gameId}`)
-                      }
-                      onClickPlayerInfo={(navigate) =>
-                        navigate(`/player-info/${gameId}`)
-                      }
-                    />
+                    <QueryContainer
+                      query={gameRetrieveQuery}
+                      onRenderLoading={() => <> </>}
+                    >
+                      {(game) => (
+                        <GameMenu
+                          game={game}
+                          onClickGameInfo={(navigate) =>
+                            navigate(`/game-info/${game.id}`)
+                          }
+                          onClickPlayerInfo={(navigate) =>
+                            navigate(`/player-info/${game.id}`)
+                          }
+                        />
+                      )}
+                    </QueryContainer>
                   }
                   onNavigateBack={(navigate) => navigate("/")}
                 />
@@ -407,9 +422,9 @@ const Router: React.FC = () => {
                       <Panel.Content>
                         <CreateChannel />
                       </Panel.Content>
-                      <Panel.Footer>
+                      {/* <Panel.Footer>
                         <CreateChannelTextField />
-                      </Panel.Footer>
+                      </Panel.Footer> */}
                     </Panel>
                   </CreateChannelContextProvider>
                 }
