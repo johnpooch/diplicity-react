@@ -18,8 +18,7 @@ import {
 import { useState } from "react";
 import { NavigateFunction, useLocation, useNavigate } from "react-router";
 import { useDispatch } from "react-redux";
-import { actions } from "../common";
-import { service } from "../store";
+import { feedbackActions, service } from "../store";
 
 type GameMenuProps = {
   game: (typeof service.endpoints.gamesList.Types.ResultType)[number];
@@ -62,7 +61,7 @@ const GameMenu: React.FC<GameMenuProps> = (props) => {
       `${window.location.origin}${location.pathname}`
     );
     dispatch(
-      actions.setFeedback({
+      feedbackActions.setFeedback({
         message: "Link copied to clipboard",
         severity: "success",
       })

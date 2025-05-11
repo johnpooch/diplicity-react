@@ -5,7 +5,6 @@ import {
   CreateGame,
   FindGames,
   GameInfo,
-  HomeLayout,
   MyGames,
   PlayerInfo,
   Profile,
@@ -23,21 +22,22 @@ import {
   Map,
   CreateChannel,
   CreateChannelAction,
+  CreateOrder,
   CreateChannelTextField,
   GameMenu,
   OrderList,
   QueryContainer,
 } from "./components";
 import { PhaseSelect } from "./components/phase-select";
-import { GameName } from "./components/game-detail/game-name";
+import { GameName } from "./components/game-name";
 import {
   CreateChannelContextProvider,
   CreateOrderContextProvider,
   SelectedChannelContextProvider,
   SelectedGameContextProvider,
 } from "./context";
-import { CreateOrder } from "./components/orders/create-order";
 import { selectAuth } from "./store";
+import { HomeLayout } from "./layout";
 
 const Router: React.FC = () => {
   const { loggedIn } = useSelector(selectAuth);

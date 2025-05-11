@@ -1,7 +1,7 @@
 import { Stack, Typography, IconButton, Divider } from "@mui/material";
 import { NavigateFunction, Outlet, useNavigate } from "react-router";
 import { ArrowBack as BackIcon } from "@mui/icons-material";
-import { useSelectedGameContext } from "../../common";
+import { useSelectedGameContext } from "../../context";
 
 type GameDetailSecondaryScreenLayoutProps = {
   title: string | React.ReactNode;

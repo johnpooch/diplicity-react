@@ -13,8 +13,8 @@ import {
   ArrowLeft as PreviousIcon,
   ArrowRight as NextIcon,
 } from "@mui/icons-material";
-import { useSelectedGameContext, useSelectedPhaseContext } from "../common";
 import { QueryContainer } from "./query-container";
+import { useSelectedGameContext, useSelectedPhaseContext } from "../context";
 
 const StyledInput = styled(InputBase)``;
 

@@ -4,7 +4,6 @@ import {
   Add as JoinGameIcon,
   Remove as LeaveGameIcon,
 } from "@mui/icons-material";
-import { service, useJoinGameMutation, useLeaveGameMutation } from "../common";
 import { QueryContainer } from "./query-container";
 
 const useJoinLeaveButton = (gameId: string) => {
