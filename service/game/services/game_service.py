@@ -1,6 +1,6 @@
 import random
+import json
 
-from celery import shared_task
 from django.db.models import (
     BooleanField,
     Case,
@@ -8,7 +8,6 @@ from django.db.models import (
     When,
     Prefetch,
     OuterRef,
-    Subquery,
     Exists,
     Q,
 )
@@ -18,16 +17,14 @@ from django.utils import timezone
 from datetime import timedelta
 from rest_framework import exceptions
 
-from .. import models
-from ..tasks import BaseTask
+from .. import models, tasks
 from .base_service import BaseService
 
 
 class GameService(BaseService):
-    def __init__(self, user, adjudication_service=None, notification_service=None):
+    def __init__(self, user, adjudication_service=None):
         self.user = user
         self.adjudication_service = adjudication_service
-        self.notification_service = notification_service
 
     def list(self, filters=None):
         filters = filters or {}
@@ -97,6 +94,32 @@ class GameService(BaseService):
             )
             game.members.create(user=self.user)
 
+            # Create a pending phase for the game
+            phase = game.phases.create(
+                game=game,
+                season=variant.start["season"],
+                year=variant.start["year"],
+                type=variant.start["type"],
+                status=models.Phase.PENDING,
+            )
+
+            # Create Unit instances for the phase
+            for unit_data in variant.start["units"]:
+                models.Unit.objects.create(
+                    phase=phase,
+                    type=unit_data["type"].lower(),
+                    nation=unit_data["nation"],
+                    province=unit_data["province"],
+                )
+
+            # Create SupplyCenter instances for the phase
+            for sc_data in variant.start["supply_centers"]:
+                models.SupplyCenter.objects.create(
+                    phase=phase,
+                    nation=sc_data["nation"],
+                    province=sc_data["province"],
+                )
+
         return game
 
     def join(self, game_id):
@@ -142,7 +165,7 @@ class GameService(BaseService):
 
         with transaction.atomic():
             self._set_nations(game)
-            self._set_options(game, adjudication_response["options"])
+            self._create_phase_states(game, adjudication_response["options"])
 
             current_phase = game.phases.last()
             current_phase.status = models.Phase.ACTIVE
@@ -156,20 +179,13 @@ class GameService(BaseService):
             self._create_resolution_task(game)
 
         user_ids = [member.user.id for member in game.members.all()]
-        self.notification_service.notify(
-            user_ids,
-            {
-                "title": "Game Started",
-                "message": f"Game '{game.name}' has started!",
-                "game_id": game.id,
-                "type": "game_start",
-            },
-        )
-
-    @shared_task(base=BaseTask)
-    def start_task(game_id):
-        service = GameService(user=None)  # Pass `None` or a system user if needed
-        service.start(game_id)
+        data = {
+            "title": "Game Started",
+            "message": f"Game '{game.name}' has started!",
+            "game_id": game.id,
+            "type": "game_start",
+        }
+        tasks.notify_task.apply_async(args=[user_ids, data], kwargs={})
 
     def resolve(self, game_id):
         game = get_object_or_404(models.Game, id=game_id)
@@ -192,26 +208,19 @@ class GameService(BaseService):
 
             new_phase = self._create_phase(game, phase_data)
 
-            self._set_options(game, options_data)
+            self._create_phase_states(game, options_data)
 
             # Create a resolution task
             self._create_resolution_task(game)
 
         user_ids = [member.user.id for member in game.members.all()]
-        self.notification_service.notify(
-            user_ids,
-            {
-                "title": "Phase Resolved",
-                "message": f"Phase '{new_phase.name}' has been resolved!",
-                "game_id": game.id,
-                "type": "game_resolve",
-            },
-        )
-
-    @shared_task(base=BaseTask)
-    def resolve_task(game_id):
-        service = GameService(user=None)  # Pass `None` or a system user if needed
-        service.resolve(game_id)
+        data = {
+            "title": "Phase Resolved",
+            "message": f"Phase '{new_phase.name}' has been resolved!",
+            "game_id": game.id,
+            "type": "game_resolve",
+        }
+        tasks.notify_task.apply_async(args=[user_ids, data], kwargs={})
 
     def _create_phase(self, game, phase_data):
         variant = game.variant
@@ -245,19 +254,18 @@ class GameService(BaseService):
             member.nation = nation["name"]
             member.save()
 
-    def _set_options(self, game, options_data):
+    def _create_phase_states(self, game, options_data):
         for member in game.members.all():
-            phase_state = models.PhaseState.objects.filter(
-                phase=game.current_phase, member=member
-            ).first()
-            if phase_state:
-                phase_state.options = options_data[member.nation]
-                phase_state.save()
+            models.PhaseState.objects.create(
+                phase=game.current_phase,
+                member=member,
+                options=json.dumps(options_data[member.nation]),
+            )
 
     def _create_resolution_task(self, game):
         phase_duration_seconds = game.get_phase_duration_seconds()
         scheduled_for = timezone.now() + timedelta(seconds=phase_duration_seconds)
-        task_result = self.resolve_task.apply_async(
+        task_result = tasks.resolve_task.apply_async(
             args=[game.id],
             kwargs={},
             countdown=phase_duration_seconds,
@@ -268,3 +276,35 @@ class GameService(BaseService):
 
         game.resolution_task = task
         game.save()
+
+    def confirm_phase(self, game_id):
+        game = get_object_or_404(models.Game, id=game_id)
+
+        if game.status != models.Game.ACTIVE:
+            raise exceptions.ValidationError(detail="Game is not active.")
+
+        member = game.members.filter(user=self.user).first()
+        if not member:
+            raise exceptions.ValidationError(detail="User is not a member of the game.")
+
+        if member.eliminated:
+            raise exceptions.ValidationError(detail="User is eliminated from the game.")
+
+        if member.kicked:
+            raise exceptions.ValidationError(detail="User is kicked from the game.")
+
+        current_phase = game.phases.last()
+        if not current_phase:
+            raise exceptions.ValidationError(
+                detail="No current phase found for the game."
+            )
+
+        phase_state = current_phase.phase_states.filter(member=member).first()
+        if not phase_state:
+            raise exceptions.ValidationError(
+                detail="No phase state found for the user."
+            )
+
+        phase_state.orders_confirmed = not phase_state.orders_confirmed
+        phase_state.save()
+        return phase_state

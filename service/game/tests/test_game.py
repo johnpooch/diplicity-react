@@ -1,3 +1,5 @@
+import json
+
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from rest_framework import status, exceptions
@@ -5,7 +7,6 @@ from game import models
 from .base import BaseTestCase
 from unittest.mock import MagicMock, patch
 from game.services import GameService
-import time
 
 User = get_user_model()
 
@@ -15,6 +16,12 @@ class TestGameList(BaseTestCase):
         super().setUp()
         self.game1 = self.create_game(self.user, "Game 1")
         self.game2 = self.create_game(self.other_user, "Game 2")
+        member = self.game1.members.first()
+        member.nation = "England"
+        member.save()
+        member = self.game2.members.first()
+        member.nation = "France"
+        member.save()
 
     def create_request(self, params=None):
         url = reverse("game-list")
@@ -103,7 +110,7 @@ class TestGameList(BaseTestCase):
         self.assertEqual(member["username"], self.user.username)
         self.assertEqual(member["name"], self.user.profile.name)
         self.assertEqual(member["picture"], self.user.profile.picture)
-        self.assertEqual(member["nation"], None)
+        self.assertEqual(member["nation"], "England")  # Updated assertion
         self.assertEqual(member["is_current_user"], True)
 
 
@@ -154,6 +161,40 @@ class TestGameCreate(BaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn("id", response.data)
         self.assertEqual(response.data["name"], payload["name"])
+
+        # Verify that a phase is created in a pending state
+        game = models.Game.objects.get(id=response.data["id"])
+        self.assertEqual(game.phases.count(), 1)
+        phase = game.phases.first()
+        self.assertEqual(phase.status, models.Phase.PENDING)
+        self.assertEqual(phase.season, self.variant.start["season"])
+        self.assertEqual(phase.year, self.variant.start["year"])
+        self.assertEqual(phase.type, self.variant.start["type"])
+
+        # Verify that units are created for the phase
+        units = models.Unit.objects.filter(phase=phase)
+        self.assertEqual(units.count(), len(self.variant.start["units"]))
+        for unit_data in self.variant.start["units"]:
+            self.assertTrue(
+                units.filter(
+                    type=unit_data["type"].lower(),
+                    nation=unit_data["nation"],
+                    province=unit_data["province"],
+                ).exists()
+            )
+
+        # Verify that supply centers are created for the phase
+        supply_centers = models.SupplyCenter.objects.filter(phase=phase)
+        self.assertEqual(
+            supply_centers.count(), len(self.variant.start["supply_centers"])
+        )
+        for sc_data in self.variant.start["supply_centers"]:
+            self.assertTrue(
+                supply_centers.filter(
+                    nation=sc_data["nation"],
+                    province=sc_data["province"],
+                ).exists()
+            )
 
     def test_create_game_missing_name(self):
         payload = {"variant": self.variant.id}
@@ -255,11 +296,12 @@ class TestGameStart(BaseTestCase):
         super().setUp()
         self.game = self.create_game(self.user, "Game 1", status=models.Game.PENDING)
         self.adjudication_service_mock = MagicMock()
-        self.notification_service_mock = MagicMock()
+        self.apply_async_patch = patch("game.tasks.notify_task.apply_async")
+        self.mock_apply_async = self.apply_async_patch.start()
+        self.addCleanup(self.apply_async_patch.stop)
         self.service = GameService(
             user=self.user,
             adjudication_service=self.adjudication_service_mock,
-            notification_service=self.notification_service_mock,
         )
 
     def test_start_game_success(self):
@@ -273,22 +315,17 @@ class TestGameStart(BaseTestCase):
             "options": {
                 "England": {"option1": "value1"},
                 "France": {"option2": "value2"},
+                "Germany": {"option3": "value3"},
+                "Italy": {"option4": "value4"},
+                "Austria": {"option5": "value5"},
+                "Turkey": {"option6": "value6"},
+                "Russia": {"option7": "value7"},
             },
         }
 
-        # Measure time for the test
-        start_time = time.time()
-
-        # Call the start method directly
         self.service.start(self.game.id)
 
-        # Log the time taken
-        elapsed_time = time.time() - start_time
-        print(f"Test 'test_start_game_success' took {elapsed_time:.2f} seconds.")
-
-        # Assertions
         self.adjudication_service_mock.start.assert_called_once_with(self.game)
-        self.notification_service_mock.notify.assert_called_once()
 
         self.game.refresh_from_db()
         self.assertEqual(self.game.status, models.Game.ACTIVE)
@@ -296,18 +333,36 @@ class TestGameStart(BaseTestCase):
 
         # Verify nations are assigned
         nations = [member.nation for member in self.game.members.all()]
-        self.assertTrue(all(nations))
+        self.assertTrue(all(nations))  # Ensure all members have nations
 
-        # Verify notifications
+        # Verify options are assigned to each phase_state
+        for member in self.game.members.all():
+            phase_state = models.PhaseState.objects.filter(
+                phase=self.game.current_phase, member=member
+            ).first()
+            self.assertIsNotNone(phase_state)
+            self.assertEqual(
+                phase_state.options,
+                json.dumps(
+                    self.adjudication_service_mock.start.return_value["options"].get(
+                        member.nation
+                    )
+                ),
+            )
+
+        # Verify apply_async is called with correct arguments
         user_ids = [member.user.id for member in self.game.members.all()]
-        self.notification_service_mock.notify.assert_called_once_with(
-            user_ids,
-            {
-                "title": "Game Started",
-                "message": f"Game '{self.game.name}' has started!",
-                "game_id": self.game.id,
-                "type": "game_start",
-            },
+        self.mock_apply_async.assert_called_once_with(
+            args=[
+                user_ids,
+                {
+                    "title": "Game Started",
+                    "message": f"Game '{self.game.name}' has started!",
+                    "game_id": self.game.id,
+                    "type": "game_start",
+                },
+            ],
+            kwargs={},
         )
 
     def test_start_game_adjudication_failure(self):
@@ -340,4 +395,63 @@ class TestGameStart(BaseTestCase):
 
         # Verify no interaction with mocks
         self.adjudication_service_mock.start.assert_not_called()
-        self.notification_service_mock.notify.assert_not_called()
+        self.mock_apply_async.assert_not_called()
+
+
+class TestGameConfirmPhase(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.game = self.create_game(self.user, "Game 1", status=models.Game.ACTIVE)
+        self.phase = self.game.phases.create(
+            season="Spring",
+            year=1901,
+            type="Movement",
+        )
+        self.member = self.game.members.first()
+        self.phase_state = self.phase.phase_states.create(member=self.member)
+
+    def create_request(self, game_id):
+        url = reverse("game-confirm-phase", args=[game_id])
+        return self.client.post(url)
+
+    def test_confirm_phase_success(self):
+        response = self.create_request(self.game.id)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.phase_state.refresh_from_db()
+        self.assertTrue(self.phase_state.orders_confirmed)
+
+    def test_confirm_phase_already_confirmed(self):
+        self.phase_state.orders_confirmed = True
+        self.phase_state.save()
+        response = self.create_request(self.game.id)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.phase_state.refresh_from_db()
+        self.assertFalse(self.phase_state.orders_confirmed)
+
+    def test_confirm_phase_game_not_active(self):
+        self.game.status = models.Game.PENDING
+        self.game.save()
+        response = self.create_request(self.game.id)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_confirm_phase_user_not_member(self):
+        self.member.delete()
+        response = self.create_request(self.game.id)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_confirm_phase_user_eliminated(self):
+        self.member.eliminated = True
+        self.member.save()
+        response = self.create_request(self.game.id)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_confirm_phase_user_kicked(self):
+        self.member.kicked = True
+        self.member.save()
+        response = self.create_request(self.game.id)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_confirm_phase_unauthenticated(self):
+        self.client.logout()
+        response = self.create_request(self.game.id)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

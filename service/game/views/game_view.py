@@ -2,7 +2,7 @@ from rest_framework import status, views, permissions, serializers
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
 
-from .. import services
+from .. import services, tasks
 from ..serializers import GameSerializer
 
 
@@ -41,16 +41,16 @@ class GameRetrieveView(views.APIView):
 class GameCreateView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
-    class RequestSerializer(serializers.Serializer):
+    class GameCreateRequestSerializer(serializers.Serializer):
         name = serializers.CharField(required=True)
         variant = serializers.CharField(required=True)
 
     @extend_schema(
-        request=RequestSerializer,
+        request=GameCreateRequestSerializer,
         responses={201: GameSerializer},
     )
     def post(self, request, *args, **kwargs):
-        serializer = self.RequestSerializer(data=request.data)
+        serializer = self.GameCreateRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         validated_data = serializer.validated_data
 
@@ -65,20 +65,21 @@ class GameCreateView(views.APIView):
 class GameJoinView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    class GameJoinRequestSerializer(serializers.Serializer):
+        pass
+
     @extend_schema(
+        request=GameJoinRequestSerializer,
         responses={200: GameSerializer},
     )
     def post(self, request, game_id, *args, **kwargs):
         adjudication_service = services.AdjudicationService(request.user)
-        notification_service = services.NotificationService(request.user)
-        game_service = services.GameService(
-            request.user, adjudication_service, notification_service
-        )
+        game_service = services.GameService(request.user, adjudication_service)
 
         game = game_service.join(game_id)
 
         if len(game.variant.nations) == game.members.count():
-            game_service.start(game.id)
+            tasks.start_task.delay(game.id)
 
         game = game_service.retrieve(game.id)
         serializer = GameSerializer(game)
@@ -95,3 +96,22 @@ class GameLeaveView(views.APIView):
         game_service = services.GameService(request.user)
         game_service.leave(game_id)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class GameConfirmPhaseView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    class GameConfirmPhaseRequestSerializer(serializers.Serializer):
+        pass
+
+    @extend_schema(
+        request=GameConfirmPhaseRequestSerializer,
+        responses={200: GameSerializer},
+    )
+    def post(self, request, game_id, *args, **kwargs):
+        game_service = services.GameService(request.user)
+        game_service.confirm_phase(game_id)
+        game = game_service.retrieve(game_id)
+
+        serializer = GameSerializer(game)
+        return Response(serializer.data, status=status.HTTP_200_OK)
