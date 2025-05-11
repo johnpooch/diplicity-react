@@ -8,7 +8,7 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-      - /app/packages
+      - /app/packages/native
     env_file:
       - .env
     environment:
@@ -25,7 +25,8 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-      - /app/packages
+      - /app/packages/web/node_modules
+      - /app/packages/native
     env_file:
       - .env
     networks:
@@ -35,10 +36,10 @@ services:
     command: >
       sh -c " python3 service/manage.py spectacular --file service/openapi-schema.yaml && npx --yes @rtk-query/codegen-openapi openapi-config.cjs"
 
-  client:
+  web:
     build:
-      context: .
-      dockerfile: .docker/Dockerfile-client
+      context: ./packages/web
+      dockerfile: Dockerfile
     develop:
       watch:
         - action: sync
@@ -46,14 +47,13 @@ services:
           target: /app/src
           ignore:
             - node_modules
-    container_name: diplicity-client
+    container_name: diplicity-web
     entrypoint: [ "npm", "run", "dev" ]
     ports:
       - "5173:5173"
     volumes:
-      - .:/app
+      - ./packages/web:/app
       - /app/node_modules
-      - /app/packages
     env_file:
       - .env
     environment:

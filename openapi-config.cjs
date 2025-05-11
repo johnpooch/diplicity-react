@@ -1,8 +1,8 @@
 const config = {
   schemaFile: "./service/openapi-schema.yaml",
-  apiFile: "./src/store/api.ts",
+  apiFile: "./packages/web/src/store/api.ts",
   apiImport: "api",
-  outputFile: "./src/store/service.ts",
+  outputFile: "./packages/web/src/store/service.ts",
   exportName: "service",
   hooks: true,
 };
