@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from .variant_serializers import VariantSerializer, NationSerializer
+
 
 class MemberSerializer(serializers.Serializer):
     id = serializers.IntegerField()
@@ -15,19 +17,6 @@ class ProvinceSerializer(serializers.Serializer):
     name = serializers.CharField()
     type = serializers.CharField()
     supply_center = serializers.BooleanField()
-
-
-class NationSerializer(serializers.Serializer):
-    name = serializers.CharField()
-    color = serializers.CharField()
-
-
-class VariantSerializer(serializers.Serializer):
-    id = serializers.CharField()
-    name = serializers.CharField()
-    description = serializers.CharField()
-    author = serializers.CharField(required=False)
-    nations = NationSerializer(many=True)
 
 
 class UnitSerializer(serializers.Serializer):

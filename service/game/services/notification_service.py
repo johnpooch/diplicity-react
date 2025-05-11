@@ -1,8 +1,6 @@
-from celery import shared_task
 from fcm_django.models import FCMDevice
 
 from .base_service import BaseService
-from ..tasks import BaseTask
 
 
 class NotificationService(BaseService):
@@ -10,7 +8,6 @@ class NotificationService(BaseService):
     def __init__(self, user):
         self.user = user
 
-    @shared_task(base=BaseTask)
     def notify(self, user_ids, data):
         message = {
             "notification": {

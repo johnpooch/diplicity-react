@@ -1,3 +1,5 @@
+import json
+
 from django.db import models
 from django.core import exceptions
 from .base import BaseModel
@@ -18,7 +20,7 @@ class Order(BaseModel):
         return self.phase_state.member.nation
 
     def clean(self):
-        options_json = self.phase_state.options
+        options_json = json.loads(self.phase_state.options)
 
         try:
             if self.source not in options_json:
@@ -58,8 +60,8 @@ class Order(BaseModel):
                         f"Target province {self.target} is not valid for {self.order_type} order from {self.source} with auxiliary {self.aux}."
                     )
 
-        except (KeyError, TypeError):
+        except (KeyError, TypeError) as e:
             # If any key is missing in the tree or there's another issue
             raise exceptions.ValidationError(
-                detail="Invalid order data. Please check the order type and source."
+                f"Invalid order data. Please check the order type and source. {e}"
             )
