@@ -16,8 +16,8 @@ import {
 import { Outlet, useLocation, useNavigate } from "react-router";
 import React, { useEffect, useState } from "react";
 import { GameMenu, QueryContainer } from "../../components";
-import { useSelectedGameContext } from "../../common";
 import { service } from "../../store";
+import { useSelectedGameContext } from "../../context";
 
 const styles: Styles = {
   root: {

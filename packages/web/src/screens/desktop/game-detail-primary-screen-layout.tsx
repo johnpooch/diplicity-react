@@ -1,6 +1,6 @@
 import { Stack, Tabs, Tab, Divider } from "@mui/material";
 import { Outlet, useLocation, useNavigate } from "react-router";
-import { useSelectedGameContext } from "../../common";
+import { useSelectedGameContext } from "../../context";
 
 const GameDetailPrimaryScreenLayout: React.FC = () => {
   const { gameId } = useSelectedGameContext();

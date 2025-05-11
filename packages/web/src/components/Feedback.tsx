@@ -1,13 +1,13 @@
 import React from "react";
 import { Snackbar, Alert } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
-import { actions, selectFeedback } from "../common";
+import { feedbackActions, selectFeedback } from "../store";
 
 const Feedback: React.FC = () => {
   const dispatch = useDispatch();
   const feedback = useSelector(selectFeedback);
   const handleClose = () => {
-    dispatch(actions.clearFeedback());
+    dispatch(feedbackActions.clearFeedback());
   };
   return (
     <Snackbar
