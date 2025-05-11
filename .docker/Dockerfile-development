@@ -27,8 +27,11 @@ COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Install Node.js dependencies
-COPY package.json package-lock.json /app/
+COPY ./packages/web/package.json ./packages/web/package-lock.json /app/packages/web/
+WORKDIR /app/packages/web
 RUN npm install
+
+WORKDIR /app
 
 # Expose ports for React (5173) and Django (8000)
 EXPOSE 5173 8000
