@@ -64,7 +64,7 @@ class GameService(BaseService):
             user=self.user,
             eliminated=False,
             kicked=False,
-        ).values("id")  # Add values() to ensure we get exactly what we check for
+        )
 
         queryset = queryset.annotate(
             can_join=Case(
