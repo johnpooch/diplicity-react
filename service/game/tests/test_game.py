@@ -469,8 +469,6 @@ class TestGamePhaseProperties(BaseTestCase):
         )
         self.member = self.game.members.first()
         self.phase_state = self.phase.phase_states.create(member=self.member)
-        # Ensure user is logged in for each test
-        self.client.force_login(self.user)
 
     def test_phase_confirmed_true(self):
         self.phase_state.orders_confirmed = True
@@ -497,8 +495,8 @@ class TestGamePhaseProperties(BaseTestCase):
     def test_phase_confirmed_other_user(self):
         # Create a new member for other_user
         self.game.members.create(user=self.other_user)
-        # Login as other user
-        self.client.force_login(self.other_user)
+        # Switch authentication to other user
+        self.client.force_authenticate(user=self.other_user)
         response = self.client.get(reverse("game-retrieve", args=[self.game.id]))
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.data["phase_confirmed"])
@@ -531,7 +529,7 @@ class TestGamePhaseProperties(BaseTestCase):
 
     def test_can_confirm_phase_false_non_member(self):
         # Login as a user who is not a member of the game
-        self.client.force_login(self.other_user)
+        self.client.force_authenticate(user=self.other_user)
         response = self.client.get(reverse("game-retrieve", args=[self.game.id]))
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.data["can_confirm_phase"])
