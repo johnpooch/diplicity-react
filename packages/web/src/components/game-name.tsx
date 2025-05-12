@@ -1,5 +1,6 @@
 import { Typography } from "@mui/material";
 import { QueryContainer } from "./query-container";
+import { useSelectedGameContext } from "../context";
 
 const GameName: React.FC = () => {
   const { gameRetrieveQuery } = useSelectedGameContext();

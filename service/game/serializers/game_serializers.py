@@ -50,5 +50,8 @@ class GameSerializer(serializers.Serializer):
     can_join = serializers.BooleanField()
     can_leave = serializers.BooleanField()
     current_phase = PhaseSerializer()
+    phases = PhaseSerializer(many=True)
     members = MemberSerializer(many=True)
     variant = VariantSerializer()
+    phase_confirmed = serializers.BooleanField()
+    can_confirm_phase = serializers.BooleanField()

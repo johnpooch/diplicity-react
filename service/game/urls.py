@@ -44,4 +44,9 @@ urlpatterns = [
         views.OrderCreateView.as_view(),
         name="order-create",
     ),
+    path(
+        "game/<int:game_id>/phase/<int:phase_id>/orders/",
+        views.OrderListView.as_view(),
+        name="order-list",
+    ),
 ]

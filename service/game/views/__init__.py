@@ -12,7 +12,7 @@ from .channel_view import (
     ChannelListView,
 )
 from .variant_view import VariantListView
-from .order_view import OrderCreateView
+from .order_view import OrderCreateView, OrderListView
 from .auth_view import AuthLoginView
 from .user_profile_view import UserProfileRetrieveView
 
@@ -28,6 +28,7 @@ __all__ = [
     "GameConfirmPhaseView",
     "VariantListView",
     "OrderCreateView",
+    "OrderListView",
     "AuthLoginView",
     "UserProfileRetrieveView",
 ]

@@ -455,3 +455,109 @@ class TestGameConfirmPhase(BaseTestCase):
         self.client.logout()
         response = self.create_request(self.game.id)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class TestGamePhaseProperties(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.game = self.create_game(self.user, "Game 1", status=models.Game.ACTIVE)
+        self.phase = self.game.phases.create(
+            season="Spring",
+            year=1901,
+            type="Movement",
+            status=models.Phase.ACTIVE,
+        )
+        self.member = self.game.members.first()
+        self.phase_state = self.phase.phase_states.create(
+            member=self.member, orders_confirmed=False
+        )
+
+    def test_phase_confirmed_true(self):
+        self.phase_state.orders_confirmed = True
+        self.phase_state.save()
+        response = self.client.get(reverse("game-retrieve", args=[self.game.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["phase_confirmed"])
+
+    def test_phase_confirmed_false(self):
+        response = self.client.get(reverse("game-retrieve", args=[self.game.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["phase_confirmed"])
+
+    def test_phase_confirmed_inactive_phase(self):
+        # Change phase to inactive and confirm it doesn't show as confirmed
+        self.phase.status = models.Phase.COMPLETED
+        self.phase.save()
+        self.phase_state.orders_confirmed = True
+        self.phase_state.save()
+        response = self.client.get(reverse("game-retrieve", args=[self.game.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["phase_confirmed"])
+
+    def test_phase_confirmed_other_user(self):
+        # Login as other user and check phase_confirmed
+        self.client.logout()
+        self.client.force_login(self.other_user)
+        response = self.client.get(reverse("game-retrieve", args=[self.game.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["phase_confirmed"])
+
+    def test_can_confirm_phase_true(self):
+        response = self.client.get(reverse("game-retrieve", args=[self.game.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["can_confirm_phase"])
+
+    def test_can_confirm_phase_false_eliminated(self):
+        self.member.eliminated = True
+        self.member.save()
+        response = self.client.get(reverse("game-retrieve", args=[self.game.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["can_confirm_phase"])
+
+    def test_can_confirm_phase_false_kicked(self):
+        self.member.kicked = True
+        self.member.save()
+        response = self.client.get(reverse("game-retrieve", args=[self.game.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["can_confirm_phase"])
+
+    def test_can_confirm_phase_false_inactive_phase(self):
+        self.phase.status = models.Phase.COMPLETED
+        self.phase.save()
+        response = self.client.get(reverse("game-retrieve", args=[self.game.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["can_confirm_phase"])
+
+    def test_can_confirm_phase_false_non_member(self):
+        # Login as a user who is not a member of the game
+        self.client.logout()
+        self.client.force_login(self.other_user)
+        response = self.client.get(reverse("game-retrieve", args=[self.game.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["can_confirm_phase"])
+
+    def test_can_confirm_phase_multiple_phases(self):
+        # Create another completed phase and verify can_confirm_phase is still true
+        self.game.phases.create(
+            season="Fall",
+            year=1901,
+            type="Movement",
+            status=models.Phase.COMPLETED,
+        )
+        response = self.client.get(reverse("game-retrieve", args=[self.game.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["can_confirm_phase"])
+
+    def test_game_without_phases(self):
+        # Test edge case where a game doesn't have any phases
+        game_without_phases = self.create_game(
+            self.user, "No Phases Game", status=models.Game.PENDING
+        )
+        response = self.client.get(
+            reverse("game-retrieve", args=[game_without_phases.id])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["phase_confirmed"])
+        self.assertFalse(
+            response.data["can_confirm_phase"]
+        )  # Can't confirm when no active phase

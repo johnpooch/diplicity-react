@@ -4,7 +4,6 @@ import { service } from "../store";
 import {
   Button,
   Divider,
-  Fab,
   IconButton,
   List,
   ListItem,
@@ -19,10 +18,16 @@ import {
   CheckBox as OrdersConfirmedIcon,
 } from "@mui/icons-material";
 import { OrderSummary } from "./order-summary";
+import { useSelectedGameContext, useSelectedPhaseContext } from "../context";
 
 const OrderList: React.FC = () => {
   const { gameRetrieveQuery, gameId } = useSelectedGameContext();
   const { selectedPhase } = useSelectedPhaseContext();
+
+  const query = service.endpoints.gamePhaseOrdersList.useQuery({
+    gameId,
+    phaseId: selectedPhase,
+  });
 
   const [confirmOrders, confirmOrdersMutation] =
     service.endpoints.gameConfirmCreate.useMutation();
@@ -32,42 +37,42 @@ const OrderList: React.FC = () => {
   };
 
   return (
-    <QueryContainer query={gameRetrieveQuery} onRenderLoading={() => <></>}>
+    <QueryContainer query={query} onRenderLoading={() => <></>}>
       {
-        (game) => {
-          const phase = game.phases.find((p) => p.id === selectedPhase);
-          if (!phase) throw new Error("Phase not found");
-          const phaseStates = phase.phaseStates;
+        (orders) => {
+          // const phase = game.phases.find((p) => p.id === selectedPhase);
+          // if (!phase) throw new Error("Phase not found");
+          // const phaseStates = phase.phaseStates;
 
-          const ordersByNation: Record<string, PhaseStateOrders[]> = {};
+          // const ordersByNation: Record<string, PhaseStateOrders[]> = {};
 
-          phaseStates.forEach((phaseState) => {
-            const nation = phaseState.member.nation;
-            const orders = phaseState.orders;
-            ordersByNation[nation] = orders;
-          });
+          // phaseStates.forEach((phaseState) => {
+          //   const nation = phaseState.member.nation;
+          //   const orders = phaseState.orders;
+          //   ordersByNation[nation] = orders;
+          // });
 
-          const variant = game.variant;
-          const getProvinceName = (provinceId: string | null) => {
-            if (!provinceId) return undefined;
-            const province = variant.provinces.find((p) => p.id === provinceId);
-            if (!province) throw new Error("Province not found");
-            return province.name;
-          };
+          // const variant = game.variant;
+          // const getProvinceName = (provinceId: string | null) => {
+          //   if (!provinceId) return undefined;
+          //   const province = variant.provinces.find((p) => p.id === provinceId);
+          //   if (!province) throw new Error("Province not found");
+          //   return province.name;
+          // };
 
-          const getUnitType = (provinceId: string) => {
-            const unit = phase.units.find((u) => u.province === provinceId);
-            return unit ? unit.type : undefined;
-          };
+          // const getUnitType = (provinceId: string) => {
+          //   const unit = phase.units.find((u) => u.province === provinceId);
+          //   return unit ? unit.type : undefined;
+          // };
 
-          return phaseStates.length === 0 ? (
+          return orders.length === 0 ? (
             <Stack sx={styles.emptyContainer}>
               <Typography>No order created during this turn</Typography>
             </Stack>
           ) : (
             <Stack justifyContent="space-between" sx={{ height: "100%" }}>
               <List disablePadding>
-                {Object.entries(ordersByNation).map(([nation, orders]) => (
+                {orders.map(({ nation, orders }) => (
                   <React.Fragment key={nation}>
                     <ListSubheader>{nation}</ListSubheader>
                     <Divider />
@@ -76,11 +81,11 @@ const OrderList: React.FC = () => {
                         <ListItemText
                           primary={
                             <OrderSummary
-                              source={getProvinceName(order.source) as string}
-                              destination={getProvinceName(order.target)}
-                              aux={getProvinceName(order.aux)}
+                              source={order.source}
+                              destination={order.target}
+                              aux={order.aux}
                               type={order.orderType}
-                              unitType={getUnitType(order.source)}
+                              unitType={"Army"}
                             />
                           }
                         // secondary={order.outcome && order.outcome.outcome}
@@ -111,17 +116,17 @@ const OrderList: React.FC = () => {
                     onClick={() => {
                       handleConfirmOrders();
                     }}
-                    startIcon={
-                      game.ordersConfirmed ? (
-                        <OrdersConfirmedIcon />
-                      ) : (
-                        <OrdersNotConfirmedIcon />
-                      )
-                    }
+                  // startIcon={
+                  //   game.ordersConfirmed ? (
+                  //     <OrdersConfirmedIcon />
+                  //   ) : (
+                  //     <OrdersNotConfirmedIcon />
+                  //   )
+                  // }
                   >
-                    {game.ordersConfirmed
+                    {/* {game.ordersConfirmed
                       ? "Orders confirmed"
-                      : "Confirm orders"}
+                      : "Confirm orders"} */}
                   </Button>
                   <IconButton
                     color="primary"

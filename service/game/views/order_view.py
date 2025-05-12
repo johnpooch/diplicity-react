@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
 
 from .. import services
-from ..serializers import OrderSerializer
+from ..serializers import OrderSerializer, NationOrderSerializer
 
 
 class OrderCreateView(views.APIView):
@@ -31,3 +31,21 @@ class OrderCreateView(views.APIView):
 
         response_serializer = OrderSerializer(order)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
+
+class OrderListView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        responses={200: NationOrderSerializer(many=True)},
+    )
+    def get(self, request, game_id, phase_id, *args, **kwargs):
+        order_service = services.OrderService(request.user)
+        grouped_orders = order_service.list(game_id, phase_id)
+
+        serialized_data = [
+            {"nation": nation, "orders": OrderSerializer(orders, many=True).data}
+            for nation, orders in grouped_orders.items()
+        ]
+
+        return Response(serialized_data, status=status.HTTP_200_OK)

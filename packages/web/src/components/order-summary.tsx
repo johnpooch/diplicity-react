@@ -125,8 +125,8 @@ const OrderSummaryContainer: React.FC<{ children: React.ReactNode }> = ({
 type OrderSummaryProps = {
   source: string;
   unitType?: string;
-  destination?: string;
-  aux?: string;
+  destination?: string | null;
+  aux?: string | null;
   type?: string;
 };
 
