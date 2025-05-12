@@ -52,6 +52,20 @@ class GameService(BaseService):
             member__user=self.user,
         )
 
+        # Active phase subquery
+        active_phase_subquery = models.Phase.objects.filter(
+            game=OuterRef("pk"), 
+            status=models.Phase.ACTIVE
+        )
+
+        # Member status subquery - ensure we check both membership and status
+        member_status_subquery = models.Member.objects.filter(
+            game=OuterRef("pk"),
+            user=self.user,
+            eliminated=False,
+            kicked=False,
+        ).values("id")  # Add values() to ensure we get exactly what we check for
+
         queryset = queryset.annotate(
             can_join=Case(
                 When(
@@ -81,15 +95,9 @@ class GameService(BaseService):
             # Fix can_confirm_phase to check if the user is a non-eliminated, non-kicked member and there's an active phase
             can_confirm_phase=Case(
                 When(
-                    Exists(
-                        is_member_subquery.filter(
-                            eliminated=False,
-                            kicked=False,
-                        )
-                        & models.Phase.objects.filter(
-                            game=OuterRef("pk"), status=models.Phase.ACTIVE
-                        )
-                    ),
+                    Q(status=models.Game.ACTIVE) &  # Game must be active
+                    Exists(member_status_subquery) &  # User must be valid member
+                    Exists(active_phase_subquery),    # Must have active phase
                     then=Value(True),
                 ),
                 default=Value(False),
@@ -110,7 +118,7 @@ class GameService(BaseService):
             ),
         )
 
-        return queryset.distinct()
+        return queryset
 
     def retrieve(self, game_id):
         queryset = self.list()

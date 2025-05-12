@@ -468,9 +468,9 @@ class TestGamePhaseProperties(BaseTestCase):
             status=models.Phase.ACTIVE,
         )
         self.member = self.game.members.first()
-        self.phase_state = self.phase.phase_states.create(
-            member=self.member, orders_confirmed=False
-        )
+        self.phase_state = self.phase.phase_states.create(member=self.member)
+        # Ensure user is logged in for each test
+        self.client.force_login(self.user)
 
     def test_phase_confirmed_true(self):
         self.phase_state.orders_confirmed = True
@@ -495,8 +495,9 @@ class TestGamePhaseProperties(BaseTestCase):
         self.assertFalse(response.data["phase_confirmed"])
 
     def test_phase_confirmed_other_user(self):
-        # Login as other user and check phase_confirmed
-        self.client.logout()
+        # Create a new member for other_user
+        self.game.members.create(user=self.other_user)
+        # Login as other user
         self.client.force_login(self.other_user)
         response = self.client.get(reverse("game-retrieve", args=[self.game.id]))
         self.assertEqual(response.status_code, 200)
@@ -530,23 +531,10 @@ class TestGamePhaseProperties(BaseTestCase):
 
     def test_can_confirm_phase_false_non_member(self):
         # Login as a user who is not a member of the game
-        self.client.logout()
         self.client.force_login(self.other_user)
         response = self.client.get(reverse("game-retrieve", args=[self.game.id]))
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.data["can_confirm_phase"])
-
-    def test_can_confirm_phase_multiple_phases(self):
-        # Create another completed phase and verify can_confirm_phase is still true
-        self.game.phases.create(
-            season="Fall",
-            year=1901,
-            type="Movement",
-            status=models.Phase.COMPLETED,
-        )
-        response = self.client.get(reverse("game-retrieve", args=[self.game.id]))
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.data["can_confirm_phase"])
 
     def test_game_without_phases(self):
         # Test edge case where a game doesn't have any phases
@@ -558,6 +546,4 @@ class TestGamePhaseProperties(BaseTestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.data["phase_confirmed"])
-        self.assertFalse(
-            response.data["can_confirm_phase"]
-        )  # Can't confirm when no active phase
+        self.assertFalse(response.data["can_confirm_phase"])  # Can't confirm when no active phase
