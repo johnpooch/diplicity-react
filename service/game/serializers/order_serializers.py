@@ -7,3 +7,8 @@ class OrderSerializer(serializers.Serializer):
     source = serializers.CharField()
     target = serializers.CharField(allow_null=True)
     aux = serializers.CharField(allow_null=True)
+
+
+class NationOrderSerializer(serializers.Serializer):
+    nation = serializers.CharField()
+    orders = OrderSerializer(many=True)

@@ -41,6 +41,17 @@ class GameService(BaseService):
             game=OuterRef("pk"), user=self.user
         )
 
+        current_phase_subquery = models.Phase.objects.filter(
+            game=OuterRef("pk")
+        ).order_by("-ordinal")
+
+        # Updated subquery to correctly find the current user's phase state in the current active phase
+        user_phase_state_subquery = models.PhaseState.objects.filter(
+            phase__game=OuterRef("pk"),
+            phase__status=models.Phase.ACTIVE,
+            member__user=self.user,
+        )
+
         queryset = queryset.annotate(
             can_join=Case(
                 When(
@@ -53,6 +64,32 @@ class GameService(BaseService):
             can_leave=Case(
                 When(
                     Exists(is_member_subquery) & Q(status=models.Game.PENDING),
+                    then=Value(True),
+                ),
+                default=Value(False),
+                output_field=BooleanField(),
+            ),
+            # Fix phase_confirmed to specifically check for the current user's phase state
+            phase_confirmed=Case(
+                When(
+                    Exists(user_phase_state_subquery.filter(orders_confirmed=True)),
+                    then=Value(True),
+                ),
+                default=Value(False),
+                output_field=BooleanField(),
+            ),
+            # Fix can_confirm_phase to check if the user is a non-eliminated, non-kicked member and there's an active phase
+            can_confirm_phase=Case(
+                When(
+                    Exists(
+                        is_member_subquery.filter(
+                            eliminated=False,
+                            kicked=False,
+                        )
+                        & models.Phase.objects.filter(
+                            game=OuterRef("pk"), status=models.Phase.ACTIVE
+                        )
+                    ),
                     then=Value(True),
                 ),
                 default=Value(False),

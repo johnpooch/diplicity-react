@@ -6,7 +6,7 @@ from .adjudication_serializers import (
 from .channel_serializers import ChannelSerializer
 
 from .auth_serializers import AuthSerializer
-from .order_serializers import OrderSerializer
+from .order_serializers import OrderSerializer, NationOrderSerializer
 from .variant_serializers import VariantSerializer
 from .user_profile_serializers import UserProfileSerializer
 
@@ -17,6 +17,7 @@ __all__ = [
     "ChannelSerializer",
     "GameSerializer",
     "OrderSerializer",
+    "NationOrderSerializer",
     "VariantSerializer",
     "UserProfileSerializer",
 ]

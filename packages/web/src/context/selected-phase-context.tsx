@@ -24,8 +24,6 @@ const SelectedPhaseContextProvider: React.FC<{
   const location = useLocation();
   const navigate = useNavigate();
 
-  // const listPhasesQuery = service.endpoints.listPhases.useQuery(gameId);
-
   const [selectedPhase, setSelectedPhase] = useState<number | undefined>(() => {
     const params = new URLSearchParams(location.search);
     const phase = params.get("selectedPhase");

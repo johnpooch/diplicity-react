@@ -444,6 +444,33 @@ paths:
               schema:
                 $ref: '#/components/schemas/Order'
           description: ''
+  /game/{gameId}/phase/{phaseId}/orders/:
+    get:
+      operationId: gamePhaseOrdersList
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: phaseId
+        schema:
+          type: integer
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NationOrder'
+          description: ''
   /games/:
     get:
       operationId: gamesList
@@ -615,6 +642,10 @@ components:
           type: boolean
         currentPhase:
           $ref: '#/components/schemas/Phase'
+        phases:
+          type: array
+          items:
+            $ref: '#/components/schemas/Phase'
         members:
           type: array
           items:
@@ -629,6 +660,7 @@ components:
       - members
       - movementPhaseDuration
       - name
+      - phases
       - status
       - variant
     GameCreateRequest:
@@ -690,6 +722,18 @@ components:
       required:
       - color
       - name
+    NationOrder:
+      type: object
+      properties:
+        nation:
+          type: string
+        orders:
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
+      required:
+      - nation
+      - orders
     Order:
       type: object
       properties:

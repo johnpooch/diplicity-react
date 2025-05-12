@@ -129,6 +129,14 @@ const injectedRtkApi = api.injectEndpoints({
         body: queryArg.orderCreateRequest,
       }),
     }),
+    gamePhaseOrdersList: build.query<
+      GamePhaseOrdersListApiResponse,
+      GamePhaseOrdersListApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/game/${queryArg.gameId}/phase/${queryArg.phaseId}/orders/`,
+      }),
+    }),
     gamesList: build.query<GamesListApiResponse, GamesListApiArg>({
       query: (queryArg) => ({
         url: `/games/`,
@@ -312,6 +320,11 @@ export type GameOrderCreateApiArg = {
   gameId: number;
   orderCreateRequest: OrderCreateRequest;
 };
+export type GamePhaseOrdersListApiResponse = /** status 200  */ NationOrder[];
+export type GamePhaseOrdersListApiArg = {
+  gameId: number;
+  phaseId: number;
+};
 export type GamesListApiResponse = /** status 200  */ Game[];
 export type GamesListApiArg = {
   canJoin?: boolean;
@@ -424,6 +437,7 @@ export type Game = {
   canJoin: boolean;
   canLeave: boolean;
   currentPhase: Phase;
+  phases: Phase[];
   members: Member[];
   variant: Variant;
 };
@@ -467,6 +481,10 @@ export type OrderCreateRequest = {
   target?: string | null;
   aux?: string | null;
 };
+export type NationOrder = {
+  nation: string;
+  orders: Order[];
+};
 export type UserProfile = {
   id: number;
   name: string;
@@ -490,6 +508,7 @@ export const {
   useGameJoinCreateMutation,
   useGameLeaveDestroyMutation,
   useGameOrderCreateMutation,
+  useGamePhaseOrdersListQuery,
   useGamesListQuery,
   useUserRetrieveQuery,
   useVariantsListQuery,

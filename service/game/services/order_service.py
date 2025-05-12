@@ -62,3 +62,28 @@ class OrderService(BaseService):
 
         order.save()
         return order
+
+    def list(self, game_id, phase_id):
+        game = get_object_or_404(models.Game, id=game_id)
+        phase = game.phases.filter(id=phase_id).first()
+
+        if not phase:
+            raise exceptions.NotFound("Phase not found.")
+
+        if phase.status == phase.COMPLETED:
+            phase_states = phase.phase_states.all()
+        else:
+            phase_states = phase.phase_states.filter(member__user=self.user)
+
+        orders = []
+        for phase_state in phase_states:
+            orders.extend(phase_state.orders.all())
+
+        grouped_orders = {}
+        for order in orders:
+            nation = order.phase_state.member.nation
+            if nation not in grouped_orders:
+                grouped_orders[nation] = []
+            grouped_orders[nation].append(order)
+
+        return grouped_orders
