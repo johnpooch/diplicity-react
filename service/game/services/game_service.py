@@ -251,6 +251,28 @@ class GameService(BaseService):
             current_phase.status = models.Phase.COMPLETED
             current_phase.save()
 
+            # Create resolutions for each order
+            for resolution in phase_data["resolutions"]:
+                province = resolution["province"]
+                result = resolution["result"]
+                by = resolution.get("by")
+
+                # Find the order for this province
+                order = models.Order.objects.filter(
+                    phase_state__phase=current_phase,
+                    source=province
+                ).first()
+
+                if order:
+                    # Create or update resolution
+                    models.OrderResolution.objects.update_or_create(
+                        order=order,
+                        defaults={
+                            "status": result,
+                            "by": by
+                        }
+                    )
+
             new_phase = self._create_phase(game, phase_data)
 
             self._create_phase_states(game, options_data)
