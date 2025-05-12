@@ -434,6 +434,7 @@ export type Game = {
   name: string;
   status: string;
   movementPhaseDuration: string;
+  nationAssignment: string;
   canJoin: boolean;
   canLeave: boolean;
   currentPhase: Phase;
@@ -443,9 +444,11 @@ export type Game = {
   phaseConfirmed: boolean;
   canConfirmPhase: boolean;
 };
+export type NationAssignmentEnum = "random" | "ordered";
 export type GameCreateRequest = {
   name: string;
   variant: string;
+  nationAssignment?: NationAssignmentEnum;
 };
 export type Sender = {
   id: number;
@@ -470,12 +473,17 @@ export type ChannelCreateRequest = {
 export type ChannelMessageCreateRequest = {
   body: string;
 };
+export type OrderResolution = {
+  status: string;
+  by: string | null;
+};
 export type Order = {
   id: number;
   orderType: string;
   source: string;
   target: string | null;
   aux: string | null;
+  resolution: OrderResolution | null;
 };
 export type OrderCreateRequest = {
   orderType: string;

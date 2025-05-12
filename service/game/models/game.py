@@ -19,6 +19,14 @@ class Game(BaseModel):
 
     MOVEMENT_PHASE_DURATION_CHOICES = ((TWENTY_FOUR_HOURS, "24 hours"),)
 
+    RANDOM = "random"
+    ORDERED = "ordered"
+
+    NATION_ASSIGNMENT_CHOICES = (
+        (RANDOM, "Random"),
+        (ORDERED, "Ordered"),
+    )
+
     variant = models.ForeignKey(
         "Variant", on_delete=models.CASCADE, related_name="games"
     )
@@ -29,6 +37,11 @@ class Game(BaseModel):
         max_length=20,
         choices=MOVEMENT_PHASE_DURATION_CHOICES,
         default=TWENTY_FOUR_HOURS,
+    )
+    nation_assignment = models.CharField(
+        max_length=20,
+        choices=NATION_ASSIGNMENT_CHOICES,
+        default=RANDOM,
     )
     resolution_task = models.OneToOneField(
         "Task", on_delete=models.SET_NULL, null=True, blank=True, related_name="game"

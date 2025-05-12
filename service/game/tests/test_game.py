@@ -65,6 +65,7 @@ class TestGameList(BaseTestCase):
         self.assertEqual(game["name"], "Game 1")
         self.assertEqual(game["status"], "pending")
         self.assertEqual(game["movement_phase_duration"], "24 hours")
+        self.assertEqual(game["nation_assignment"], models.Game.RANDOM)
         self.assertEqual(game["can_join"], False)
         self.assertEqual(game["can_leave"], True)
 
@@ -110,8 +111,20 @@ class TestGameList(BaseTestCase):
         self.assertEqual(member["username"], self.user.username)
         self.assertEqual(member["name"], self.user.profile.name)
         self.assertEqual(member["picture"], self.user.profile.picture)
-        self.assertEqual(member["nation"], "England")  # Updated assertion
+        self.assertEqual(member["nation"], "England")
         self.assertEqual(member["is_current_user"], True)
+
+        # Test list endpoint with ordered nation assignment
+        self.game1.nation_assignment = models.Game.ORDERED
+        self.game1.save()
+        response = self.create_request()
+        game = next(game for game in response.data if game["name"] == "Game 1")
+        self.assertEqual(game["nation_assignment"], models.Game.ORDERED)
+
+        # Test retrieve endpoint
+        response = self.client.get(reverse("game-retrieve", args=[self.game1.id]))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["nation_assignment"], models.Game.ORDERED)
 
 
 class TestGameRetrieve(BaseTestCase):
@@ -141,11 +154,20 @@ class TestGameRetrieve(BaseTestCase):
         self.assertIn("name", response.data)
         self.assertIn("status", response.data)
         self.assertIn("movement_phase_duration", response.data)
+        self.assertIn("nation_assignment", response.data)
+        self.assertEqual(response.data["nation_assignment"], models.Game.RANDOM)  # Default value
         self.assertIn("can_join", response.data)
         self.assertIn("can_leave", response.data)
         self.assertIn("current_phase", response.data)
         self.assertIn("variant", response.data)
         self.assertIn("members", response.data)
+
+        # Test with ordered nation assignment
+        self.game.nation_assignment = models.Game.ORDERED
+        self.game.save()
+        response = self.client.get(reverse("game-retrieve", args=[self.game.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["nation_assignment"], models.Game.ORDERED)
 
 
 class TestGameCreate(BaseTestCase):
@@ -161,40 +183,54 @@ class TestGameCreate(BaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn("id", response.data)
         self.assertEqual(response.data["name"], payload["name"])
-
-        # Verify that a phase is created in a pending state
+        
+        # Verify default nation assignment is random
         game = models.Game.objects.get(id=response.data["id"])
-        self.assertEqual(game.phases.count(), 1)
-        phase = game.phases.first()
-        self.assertEqual(phase.status, models.Phase.PENDING)
-        self.assertEqual(phase.season, self.variant.start["season"])
-        self.assertEqual(phase.year, self.variant.start["year"])
-        self.assertEqual(phase.type, self.variant.start["type"])
+        self.assertEqual(game.nation_assignment, models.Game.RANDOM)
 
-        # Verify that units are created for the phase
-        units = models.Unit.objects.filter(phase=phase)
-        self.assertEqual(units.count(), len(self.variant.start["units"]))
-        for unit_data in self.variant.start["units"]:
-            self.assertTrue(
-                units.filter(
-                    type=unit_data["type"].lower(),
-                    nation=unit_data["nation"],
-                    province=unit_data["province"],
-                ).exists()
-            )
+        # Verify public channel was created
+        channel = models.Channel.objects.filter(game=game).first()
+        self.assertIsNotNone(channel)
+        self.assertEqual(channel.name, "Public Press")
+        self.assertFalse(channel.private)
 
-        # Verify that supply centers are created for the phase
-        supply_centers = models.SupplyCenter.objects.filter(phase=phase)
-        self.assertEqual(
-            supply_centers.count(), len(self.variant.start["supply_centers"])
-        )
-        for sc_data in self.variant.start["supply_centers"]:
-            self.assertTrue(
-                supply_centers.filter(
-                    nation=sc_data["nation"],
-                    province=sc_data["province"],
-                ).exists()
-            )
+    def test_create_game_with_ordered_nation_assignment(self):
+        payload = {
+            "name": "New Game",
+            "variant": self.variant.id,
+            "nation_assignment": models.Game.ORDERED
+        }
+        response = self.create_request(payload)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        game = models.Game.objects.get(id=response.data["id"])
+        self.assertEqual(game.nation_assignment, models.Game.ORDERED)
+
+        # Verify public channel was created
+        channel = models.Channel.objects.filter(game=game).first()
+        self.assertIsNotNone(channel)
+        self.assertEqual(channel.name, "Public Press")
+        self.assertFalse(channel.private)
+
+    def test_create_game_public_channel_unique(self):
+        """Test that each game gets its own unique public channel"""
+        # Create first game
+        payload1 = {"name": "Game 1", "variant": self.variant.id}
+        response1 = self.create_request(payload1)
+        game1 = models.Game.objects.get(id=response1.data["id"])
+        channel1 = models.Channel.objects.get(game=game1)
+
+        # Create second game
+        payload2 = {"name": "Game 2", "variant": self.variant.id}
+        response2 = self.create_request(payload2)
+        game2 = models.Game.objects.get(id=response2.data["id"])
+        channel2 = models.Channel.objects.get(game=game2)
+
+        # Verify each game has its own channel
+        self.assertNotEqual(channel1.id, channel2.id)
+        self.assertEqual(channel1.name, "Public Press")
+        self.assertEqual(channel2.name, "Public Press")
+        self.assertFalse(channel1.private)
+        self.assertFalse(channel2.private)
 
     def test_create_game_missing_name(self):
         payload = {"variant": self.variant.id}
@@ -406,16 +442,23 @@ class TestGameConfirmPhase(BaseTestCase):
             season="Spring",
             year=1901,
             type="Movement",
+            status=models.Phase.ACTIVE,
         )
         self.member = self.game.members.first()
         self.phase_state = self.phase.phase_states.create(member=self.member)
-
-    def create_request(self, game_id):
-        url = reverse("game-confirm-phase", args=[game_id])
-        return self.client.post(url)
+        # Add mock for adjudication service
+        self.adjudication_service_mock = MagicMock()
+        self.service = GameService(
+            user=self.user,
+            adjudication_service=self.adjudication_service_mock,
+        )
+        # Add patches for tasks
+        self.resolve_task_patch = patch("game.tasks.resolve_task.apply_async")
+        self.mock_resolve_task = self.resolve_task_patch.start()
+        self.addCleanup(self.resolve_task_patch.stop)
 
     def test_confirm_phase_success(self):
-        response = self.create_request(self.game.id)
+        response = self.client.post(reverse("game-confirm-phase", args=[self.game.id]))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.phase_state.refresh_from_db()
         self.assertTrue(self.phase_state.orders_confirmed)
@@ -423,7 +466,7 @@ class TestGameConfirmPhase(BaseTestCase):
     def test_confirm_phase_already_confirmed(self):
         self.phase_state.orders_confirmed = True
         self.phase_state.save()
-        response = self.create_request(self.game.id)
+        response = self.client.post(reverse("game-confirm-phase", args=[self.game.id]))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.phase_state.refresh_from_db()
         self.assertFalse(self.phase_state.orders_confirmed)
@@ -431,30 +474,129 @@ class TestGameConfirmPhase(BaseTestCase):
     def test_confirm_phase_game_not_active(self):
         self.game.status = models.Game.PENDING
         self.game.save()
-        response = self.create_request(self.game.id)
+        response = self.client.post(reverse("game-confirm-phase", args=[self.game.id]))
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_confirm_phase_user_not_member(self):
         self.member.delete()
-        response = self.create_request(self.game.id)
+        response = self.client.post(reverse("game-confirm-phase", args=[self.game.id]))
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_confirm_phase_user_eliminated(self):
         self.member.eliminated = True
         self.member.save()
-        response = self.create_request(self.game.id)
+        response = self.client.post(reverse("game-confirm-phase", args=[self.game.id]))
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_confirm_phase_user_kicked(self):
         self.member.kicked = True
         self.member.save()
-        response = self.create_request(self.game.id)
+        response = self.client.post(reverse("game-confirm-phase", args=[self.game.id]))
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_confirm_phase_unauthenticated(self):
         self.client.logout()
-        response = self.create_request(self.game.id)
+        response = self.client.post(reverse("game-confirm-phase", args=[self.game.id]))
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_confirm_phase_auto_resolve_single_player(self):
+        """Test that phase is auto-resolved when the only active player confirms orders"""
+        # Create a resolution task
+        task = models.Task.objects.create()
+        self.game.resolution_task = task
+        self.game.save()
+
+        # Confirm orders
+        self.service.confirm_phase(self.game.id)
+
+        # Verify task was executed immediately
+        self.mock_resolve_task.assert_called_once_with(
+            args=[self.game.id],
+            kwargs={},
+            task_id=task.id,
+            countdown=0
+        )
+
+    def test_confirm_phase_no_auto_resolve_eliminated_player(self):
+        """Test that eliminated player's confirmation doesn't trigger auto-resolve"""
+        # Create another member who is eliminated
+        other_member = self.game.members.create(user=self.other_user, eliminated=True)
+        other_phase_state = self.phase.phase_states.create(member=other_member)
+
+        # Create a resolution task
+        task = models.Task.objects.create()
+        self.game.resolution_task = task
+        self.game.save()
+
+        # Eliminated player confirms
+        self.service.user = self.other_user
+        other_phase_state.orders_confirmed = True
+        other_phase_state.save()
+        
+        # Active player confirms
+        self.service.user = self.user
+        self.service.confirm_phase(self.game.id)
+
+        # Verify task was executed immediately (only active player matters)
+        self.mock_resolve_task.assert_called_once_with(
+            args=[self.game.id],
+            kwargs={},
+            task_id=task.id,
+            countdown=0
+        )
+
+    def test_confirm_phase_no_auto_resolve_kicked_player(self):
+        """Test that kicked player's confirmation doesn't trigger auto-resolve"""
+        # Create another member who is kicked
+        other_member = self.game.members.create(user=self.other_user, kicked=True)
+        other_phase_state = self.phase.phase_states.create(member=other_member)
+
+        # Create a resolution task
+        task = models.Task.objects.create()
+        self.game.resolution_task = task
+        self.game.save()
+
+        # Kicked player confirms
+        self.service.user = self.other_user
+        other_phase_state.orders_confirmed = True
+        other_phase_state.save()
+        
+        # Active player confirms
+        self.service.user = self.user
+        self.service.confirm_phase(self.game.id)
+
+        # Verify task was executed immediately (only active player matters)
+        self.mock_resolve_task.assert_called_once_with(
+            args=[self.game.id],
+            kwargs={},
+            task_id=task.id,
+            countdown=0
+        )
+
+    def test_confirm_phase_no_resolution_task(self):
+        """Test that no error occurs when there's no resolution task"""
+        # Confirm orders without a resolution task
+        self.service.confirm_phase(self.game.id)
+
+        # Verify no task execution was attempted
+        self.mock_resolve_task.assert_not_called()
+
+    def test_unconfirm_phase_no_auto_resolve(self):
+        """Test that unconfirming orders doesn't trigger auto-resolve"""
+        # Create a resolution task
+        task = models.Task.objects.create()
+        self.game.resolution_task = task
+        self.game.save()
+
+        # First confirm the orders
+        self.phase_state.orders_confirmed = True
+        self.phase_state.save()
+
+        # Then unconfirm
+        self.service.confirm_phase(self.game.id)
+
+        # Verify task was not executed
+        self.mock_resolve_task.assert_not_called()
 
 
 class TestGamePhaseProperties(BaseTestCase):

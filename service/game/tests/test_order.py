@@ -151,16 +151,16 @@ class TestOrderList(BaseTestCase):
         )
 
         # Add orders to the user's phase state
-        self.phase_state_user.orders.create(order_type="Hold", source="bud")
-        self.phase_state_user.orders.create(
+        self.order1 = self.phase_state_user.orders.create(order_type="Hold", source="bud")
+        self.order2 = self.phase_state_user.orders.create(
             order_type="Move", source="bud", target="tri"
         )
 
         # Add orders to the other member's phase state
-        self.phase_state_other.orders.create(
+        self.order3 = self.phase_state_other.orders.create(
             order_type="Support", source="par", target="mar", aux="bur"
         )
-        self.phase_state_other.orders.create(
+        self.order4 = self.phase_state_other.orders.create(
             order_type="Convoy", source="bre", target="lon", aux="eng"
         )
 
@@ -177,17 +177,88 @@ class TestOrderList(BaseTestCase):
         self.assertEqual(response.data[0]["nation"], self.member.nation)
         self.assertEqual(len(response.data[0]["orders"]), 2)
 
-    def test_list_orders_completed_phase(self):
+        # Assert resolution is null for active phase orders
+        for order in response.data[0]["orders"]:
+            self.assertIsNone(order["resolution"])
+
+    def test_list_orders_completed_phase_with_resolutions(self):
+        # Mark phase as completed
         self.phase.status = models.Phase.COMPLETED
         self.phase.save()
+
+        # Create resolutions for orders
+        models.OrderResolution.objects.create(
+            order=self.order1,
+            status="OK",
+            by=None
+        )
+        models.OrderResolution.objects.create(
+            order=self.order2,
+            status="ErrBounce",
+            by="tri"
+        )
+        models.OrderResolution.objects.create(
+            order=self.order3,
+            status="OK",
+            by=None
+        )
+        models.OrderResolution.objects.create(
+            order=self.order4,
+            status="ErrInvalidSupporteeOrder",
+            by=None
+        )
+
         response = self.create_request(self.game.id, self.phase.id)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # Assert the response contains orders for both nations
         self.assertEqual(len(response.data), 2)
-        nations = {entry["nation"] for entry in response.data}
-        self.assertIn(self.member.nation, nations)
-        self.assertIn(self.other_member.nation, nations)
+        
+        # Find each nation's data
+        austria_data = next(n for n in response.data if n["nation"] == "Austria")
+        france_data = next(n for n in response.data if n["nation"] == "France")
+
+        # Check Austria's orders
+        self.assertEqual(len(austria_data["orders"]), 2)
+        hold_order = next(o for o in austria_data["orders"] if o["order_type"] == "Hold")
+        move_order = next(o for o in austria_data["orders"] if o["order_type"] == "Move")
+        
+        # Check Hold order resolution
+        self.assertEqual(hold_order["resolution"]["status"], "Succeeded")
+        self.assertIsNone(hold_order["resolution"]["by"])
+
+        # Check Move order resolution
+        self.assertEqual(move_order["resolution"]["status"], "Bounced")
+        self.assertEqual(move_order["resolution"]["by"], "tri")
+
+        # Check France's orders
+        self.assertEqual(len(france_data["orders"]), 2)
+        support_order = next(o for o in france_data["orders"] if o["order_type"] == "Support")
+        convoy_order = next(o for o in france_data["orders"] if o["order_type"] == "Convoy")
+
+        # Check Support order resolution
+        self.assertEqual(support_order["resolution"]["status"], "Succeeded")
+        self.assertIsNone(support_order["resolution"]["by"])
+
+        # Check Convoy order resolution
+        self.assertEqual(convoy_order["resolution"]["status"], "Invalid support order")
+        self.assertIsNone(convoy_order["resolution"]["by"])
+
+    def test_list_orders_completed_phase_without_resolutions(self):
+        # Mark phase as completed but don't create any resolutions
+        self.phase.status = models.Phase.COMPLETED
+        self.phase.save()
+
+        response = self.create_request(self.game.id, self.phase.id)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Assert the response contains orders for both nations
+        self.assertEqual(len(response.data), 2)
+        
+        # Check that all orders have null resolutions
+        for nation_data in response.data:
+            for order in nation_data["orders"]:
+                self.assertIsNone(order["resolution"])
 
     def test_list_orders_invalid_phase(self):
         response = self.create_request(self.game.id, 999)

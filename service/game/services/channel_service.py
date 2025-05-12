@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404
 from django.db import transaction
+from django.db.models import Q
 from rest_framework import exceptions
 
 from .. import models, tasks
@@ -54,8 +55,9 @@ class ChannelService(BaseService):
         if not member:
             raise exceptions.PermissionDenied("User is not a member of the game.")
 
-        if not channel.members.filter(id=member.id).exists():
-            raise exceptions.PermissionDenied("User is not a member of the channel.")
+        # Check if user can post in this channel
+        if channel.private and not channel.members.filter(id=member.id).exists():
+            raise exceptions.PermissionDenied("User is not a member of this private channel.")
 
         body = data["body"].strip()
         if not body:
@@ -83,10 +85,24 @@ class ChannelService(BaseService):
 
     def list(self, game_id):
         game = get_object_or_404(models.Game, id=game_id)
-        return game.channels.prefetch_related("messages").all()
+        member = game.members.filter(user=self.user).first()
+        if not member:
+            raise exceptions.PermissionDenied("User is not a member of the game.")
+
+        # Get channels that are either public or user is a member of
+        return game.channels.prefetch_related("messages").filter(
+            Q(private=False) | Q(members=member)
+        ).distinct()
 
     def retrieve(self, game_id, channel_id):
         game = get_object_or_404(models.Game, id=game_id)
-        queryset = game.channels.prefetch_related("messages").all()
+        member = game.members.filter(user=self.user).first()
+        if not member:
+            raise exceptions.PermissionDenied("User is not a member of the game.")
+
+        # Get channel only if it's public or user is a member
+        queryset = game.channels.prefetch_related("messages").filter(
+            Q(private=False) | Q(members=member)
+        )
         channel = get_object_or_404(queryset, id=channel_id)
         return channel

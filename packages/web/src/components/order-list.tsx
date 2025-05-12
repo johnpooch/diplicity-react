@@ -11,11 +11,15 @@ import {
   ListSubheader,
   Stack,
   Typography,
+  Box,
 } from "@mui/material";
 import {
   Add as CreateOrderIcon,
   CheckBoxOutlineBlank as OrdersNotConfirmedIcon,
   CheckBox as OrdersConfirmedIcon,
+  CheckCircleOutline as SuccessIcon,
+  ErrorOutline as FailureIcon,
+  Assignment as NoOrdersIcon,
 } from "@mui/icons-material";
 import { OrderSummary } from "./order-summary";
 import { useSelectedGameContext, useSelectedPhaseContext } from "../context";
@@ -40,35 +44,61 @@ const OrderList: React.FC = () => {
     <Stack justifyContent="space-between" sx={{ height: "100%" }}>
       <QueryContainer query={ordersListQuery} onRenderLoading={() => <></>}>
         {(orders) => (
-          <List disablePadding>
-            {orders.map(({ nation, orders }) => (
-              <React.Fragment key={nation}>
-                <ListSubheader>{nation}</ListSubheader>
-                <Divider />
-                {orders.map((order) => (
-                  <ListItem key={order.source} divider>
-                    <ListItemText
-                      primary={
-                        <OrderSummary
-                          source={order.source}
-                          destination={order.target}
-                          aux={order.aux}
-                          type={order.orderType}
-                          unitType={"Army"}
+          <>
+            {orders.length === 0 ? (
+              <Box sx={styles.emptyContainer}>
+                <Stack spacing={2} alignItems="center">
+                  <NoOrdersIcon sx={{ fontSize: 48, color: 'text.secondary' }} />
+                  <Typography variant="h6" color="text.secondary">
+                    No orders created
+                  </Typography>
+                </Stack>
+              </Box>
+            ) : (
+              <List disablePadding>
+                {orders.map(({ nation, orders }) => (
+                  <React.Fragment key={nation}>
+                    <ListSubheader>{nation}</ListSubheader>
+                    <Divider />
+                    {orders.map((order) => (
+                      <ListItem key={order.source} divider>
+                        <ListItemText
+                          primary={
+                            <OrderSummary
+                              source={order.source}
+                              destination={order.target}
+                              aux={order.aux}
+                              type={order.orderType}
+                              unitType={"Army"}
+                            />
+                          }
+                          secondary={
+                            order.resolution && (
+                              <Stack direction="row" alignItems="center" spacing={0.5}>
+                                {order.resolution.status === "Succeeded" ? (
+                                  <SuccessIcon fontSize="small" color="success" />
+                                ) : (
+                                  <FailureIcon fontSize="small" color="error" />
+                                )}
+                                <Typography variant="body2" component="span">
+                                  {order.resolution.status}
+                                </Typography>
+                              </Stack>
+                            )
+                          }
+                          sx={
+                            order.resolution?.status === "Succeeded"
+                              ? styles.orderListItemTextSucceeded
+                              : styles.orderListItemTextFailed
+                          }
                         />
-                      }
-                    // secondary={order.outcome && order.outcome.outcome}
-                    // sx={
-                    //   order.outcome?.outcome === "Succeeded"
-                    //     ? styles.orderListItemTextSucceeded
-                    //     : styles.orderListItemTextFailed
-                    // }
-                    />
-                  </ListItem>
+                      </ListItem>
+                    ))}
+                  </React.Fragment>
                 ))}
-              </React.Fragment>
-            ))}
-          </List>
+              </List>
+            )}
+          </>
         )}
       </QueryContainer>
       <Stack>
@@ -126,9 +156,11 @@ const OrderList: React.FC = () => {
 
 const styles: Styles = {
   emptyContainer: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100%',
     padding: 2,
-    alightItems: "center",
-    height: "100%",
     "& .MuiTypography-root": {
       textAlign: "center",
     },

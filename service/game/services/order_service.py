@@ -77,7 +77,7 @@ class OrderService(BaseService):
 
         orders = []
         for phase_state in phase_states:
-            orders.extend(phase_state.orders.all())
+            orders.extend(phase_state.orders.select_related('resolution').all())
 
         grouped_orders = {}
         for order in orders:

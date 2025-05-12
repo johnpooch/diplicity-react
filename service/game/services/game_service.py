@@ -136,6 +136,7 @@ class GameService(BaseService):
             game = models.Game.objects.create(
                 name=data["name"],
                 variant=variant,
+                nation_assignment=data.get("nation_assignment", models.Game.RANDOM),
             )
             game.members.create(user=self.user)
 
@@ -164,6 +165,13 @@ class GameService(BaseService):
                     nation=sc_data["nation"],
                     province=sc_data["province"],
                 )
+
+            # Create a public channel for the game
+            models.Channel.objects.create(
+                game=game,
+                name=f"Public Press",
+                private=False,
+            )
 
         return game
 
@@ -293,12 +301,12 @@ class GameService(BaseService):
         variant = game.variant
         phase = game.phases.create(
             game=game,
-            season=variant.start["season"],
-            year=variant.start["year"],
-            type=variant.start["type"],
+            season=phase_data["season"],
+            year=phase_data["year"],
+            type=phase_data["type"],
         )
 
-        for unit_data in variant.start["units"]:
+        for unit_data in phase_data["units"]:
             models.Unit.objects.create(
                 phase=phase,
                 type=unit_data["type"].lower(),
@@ -306,7 +314,7 @@ class GameService(BaseService):
                 province=unit_data["province"],
             )
 
-        for sc_data in variant.start["supply_centers"]:
+        for sc_data in phase_data["supply_centers"]:
             models.SupplyCenter.objects.create(
                 phase=phase,
                 nation=sc_data["nation"],
@@ -317,11 +325,18 @@ class GameService(BaseService):
 
     def _set_nations(self, game):
         nations = game.variant.nations
-        random.shuffle(nations)
-        for member in game.members.all():
-            nation = nations.pop()
+        members = game.members.all().order_by('created_at')
+        
+        if game.nation_assignment == models.Game.RANDOM:
+            # Shuffle nations for random assignment
+            nations = list(nations)
+            random.shuffle(nations)
+        
+        # Assign nations to members in either random or ordered fashion
+        for member, nation in zip(members, nations):
             member.nation = nation["name"]
             member.save()
+
 
     def _create_phase_states(self, game, options_data):
         for member in game.members.all():
@@ -345,6 +360,27 @@ class GameService(BaseService):
 
         game.resolution_task = task
         game.save()
+
+    def _should_resolve_phase(self, game):
+        """
+        Check if all active members (not eliminated or kicked) have confirmed their orders.
+        """
+        current_phase = game.current_phase
+        if not current_phase or current_phase.status != models.Phase.ACTIVE:
+            return False
+
+        # Get all active members (not eliminated or kicked)
+        active_members = game.members.filter(eliminated=False, kicked=False)
+        if not active_members.exists():
+            return False
+
+        # Check if all active members have confirmed their orders
+        confirmed_count = current_phase.phase_states.filter(
+            member__in=active_members,
+            orders_confirmed=True
+        ).count()
+
+        return confirmed_count == active_members.count()
 
     def confirm_phase(self, game_id):
         game = get_object_or_404(models.Game, id=game_id)
@@ -376,4 +412,16 @@ class GameService(BaseService):
 
         phase_state.orders_confirmed = not phase_state.orders_confirmed
         phase_state.save()
+
+        # Check if all active members have confirmed their orders
+        if phase_state.orders_confirmed and self._should_resolve_phase(game):
+            # Execute the resolution task immediately if it exists
+            if game.resolution_task:
+                tasks.resolve_task.apply_async(
+                    args=[game.id],
+                    kwargs={},
+                    task_id=game.resolution_task.id,
+                    countdown=0  # Execute immediately
+                )
+
         return phase_state
