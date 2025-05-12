@@ -313,6 +313,8 @@ class GameService(BaseService):
                 province=sc_data["province"],
             )
 
+        return phase
+
     def _set_nations(self, game):
         nations = game.variant.nations
         random.shuffle(nations)
