@@ -8,13 +8,14 @@ from . import models, services
 class BaseTask(CeleryTask):
 
     def apply_async(self, args, kwargs, **options):
-        task_id = uuid.uuid4()
-        models.Task.objects.create(
+        task_id = options.get('task_id', uuid.uuid4())
+        task, created = models.Task.objects.get_or_create(
             id=task_id,
             name=self.name,
             status=models.Task.PENDING,
         )
-        return super().apply_async(args, kwargs, task_id=task_id, **options)
+        options['task_id'] = task_id
+        return super().apply_async(args, kwargs, **options)
 
     def before_start(self, task_id, args, kwargs):
         task = models.Task.objects.get(id=task_id)
@@ -36,13 +37,15 @@ class BaseTask(CeleryTask):
 
 @shared_task(base=BaseTask)
 def start_task(game_id):
-    service = services.GameService(user=None)
+    adjudication_service = services.AdjudicationService(None)
+    service = services.GameService(user=None, adjudication_service=adjudication_service)
     service.start(game_id)
 
 
 @shared_task(base=BaseTask)
 def resolve_task(game_id):
-    service = services.GameService(user=None)
+    adjudication_service = services.AdjudicationService(None)
+    service = services.GameService(user=None, adjudication_service=adjudication_service)
     service.resolve(game_id)
 
 

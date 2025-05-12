@@ -12,7 +12,7 @@ class NotificationService(BaseService):
         message = {
             "notification": {
                 "title": data["title"],
-                "body": data["body"],
+                "body": data["message"],
             },
             "data": {
                 "type": data.get("type", ""),

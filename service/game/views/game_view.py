@@ -4,6 +4,7 @@ from drf_spectacular.utils import extend_schema
 
 from .. import services, tasks
 from ..serializers import GameSerializer
+from ..models import Game
 
 
 class GameListView(views.APIView):
@@ -44,6 +45,11 @@ class GameCreateView(views.APIView):
     class GameCreateRequestSerializer(serializers.Serializer):
         name = serializers.CharField(required=True)
         variant = serializers.CharField(required=True)
+        nation_assignment = serializers.ChoiceField(
+            choices=Game.NATION_ASSIGNMENT_CHOICES,
+            required=False,
+            default=Game.RANDOM
+        )
 
     @extend_schema(
         request=GameCreateRequestSerializer,
@@ -73,8 +79,7 @@ class GameJoinView(views.APIView):
         responses={200: GameSerializer},
     )
     def post(self, request, game_id, *args, **kwargs):
-        adjudication_service = services.AdjudicationService(request.user)
-        game_service = services.GameService(request.user, adjudication_service)
+        game_service = services.GameService(request.user)
 
         game = game_service.join(game_id)
 

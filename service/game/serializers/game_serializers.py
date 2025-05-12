@@ -47,6 +47,7 @@ class GameSerializer(serializers.Serializer):
     name = serializers.CharField()
     status = serializers.CharField()
     movement_phase_duration = serializers.CharField()
+    nation_assignment = serializers.CharField()
     can_join = serializers.BooleanField()
     can_leave = serializers.BooleanField()
     current_phase = PhaseSerializer()
