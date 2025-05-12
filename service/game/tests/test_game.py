@@ -545,3 +545,202 @@ class TestGamePhaseProperties(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.data["phase_confirmed"])
         self.assertFalse(response.data["can_confirm_phase"])  # Can't confirm when no active phase
+
+
+class TestGameResolve(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.game = self.create_game(self.user, "Test Game", status=models.Game.ACTIVE)
+        self.phase = self.game.phases.create(
+            season="Spring",
+            year=1901,
+            type="Movement",
+            status=models.Phase.ACTIVE,
+        )
+        self.member = self.game.members.first()
+        self.member.nation = "England"
+        self.member.save()
+        self.phase_state = self.phase.phase_states.create(member=self.member)
+        self.adjudication_service_mock = MagicMock()
+        self.apply_async_patch = patch("game.tasks.notify_task.apply_async")
+        self.mock_apply_async = self.apply_async_patch.start()
+        self.addCleanup(self.apply_async_patch.stop)
+        self.service = GameService(
+            user=self.user,
+            adjudication_service=self.adjudication_service_mock,
+        )
+
+    def test_resolve_successful_move(self):
+        # Create an order
+        order = self.phase_state.orders.create(
+            order_type="Move",
+            source="lon",
+            target="eng"
+        )
+
+        # Mock adjudication service response
+        self.adjudication_service_mock.resolve.return_value = {
+            "phase": {
+                "season": "Spring",
+                "year": 1901,
+                "type": "Retreat",
+                "resolutions": [
+                    {
+                        "province": "lon",
+                        "result": "OK",
+                        "by": None
+                    }
+                ]
+            },
+            "options": {
+                "England": {"option1": "value1"}
+            }
+        }
+
+        self.service.resolve(self.game.id)
+
+        # Verify resolution was created
+        resolution = models.OrderResolution.objects.get(order=order)
+        self.assertEqual(resolution.status, "OK")
+        self.assertIsNone(resolution.by)
+
+    def test_resolve_bounce(self):
+        # Create an order
+        order = self.phase_state.orders.create(
+            order_type="Move",
+            source="lon",
+            target="wal"
+        )
+
+        # Mock adjudication service response
+        self.adjudication_service_mock.resolve.return_value = {
+            "phase": {
+                "season": "Spring",
+                "year": 1901,
+                "type": "Retreat",
+                "resolutions": [
+                    {
+                        "province": "lon",
+                        "result": "ErrBounce",
+                        "by": "lvp"
+                    }
+                ]
+            },
+            "options": {
+                "England": {"option1": "value1"}
+            }
+        }
+
+        self.service.resolve(self.game.id)
+
+        # Verify resolution was created
+        resolution = models.OrderResolution.objects.get(order=order)
+        self.assertEqual(resolution.status, "ErrBounce")
+        self.assertEqual(resolution.by, "lvp")
+
+    def test_resolve_invalid_support_order(self):
+        # Create an order
+        order = self.phase_state.orders.create(
+            order_type="Support",
+            source="lon",
+            target="wal",
+            aux="eng"
+        )
+
+        # Mock adjudication service response
+        self.adjudication_service_mock.resolve.return_value = {
+            "phase": {
+                "season": "Spring",
+                "year": 1901,
+                "type": "Retreat",
+                "resolutions": [
+                    {
+                        "province": "lon",
+                        "result": "ErrInvalidSupporteeOrder",
+                        "by": None
+                    }
+                ]
+            },
+            "options": {
+                "England": {"option1": "value1"}
+            }
+        }
+
+        self.service.resolve(self.game.id)
+
+        # Verify resolution was created
+        resolution = models.OrderResolution.objects.get(order=order)
+        self.assertEqual(resolution.status, "ErrInvalidSupporteeOrder")
+        self.assertIsNone(resolution.by)
+
+    def test_resolve_multiple_orders(self):
+        # Create orders
+        order1 = self.phase_state.orders.create(
+            order_type="Move",
+            source="lon",
+            target="eng"
+        )
+        order2 = self.phase_state.orders.create(
+            order_type="Support",
+            source="lvp",
+            target="lon",
+            aux="eng"
+        )
+
+        # Mock adjudication service response
+        self.adjudication_service_mock.resolve.return_value = {
+            "phase": {
+                "season": "Spring",
+                "year": 1901,
+                "type": "Retreat",
+                "resolutions": [
+                    {
+                        "province": "lon",
+                        "result": "OK",
+                        "by": None
+                    },
+                    {
+                        "province": "lvp",
+                        "result": "OK",
+                        "by": None
+                    }
+                ]
+            },
+            "options": {
+                "England": {"option1": "value1"}
+            }
+        }
+
+        self.service.resolve(self.game.id)
+
+        # Verify resolutions were created
+        resolution1 = models.OrderResolution.objects.get(order=order1)
+        self.assertEqual(resolution1.status, "OK")
+        self.assertIsNone(resolution1.by)
+
+        resolution2 = models.OrderResolution.objects.get(order=order2)
+        self.assertEqual(resolution2.status, "OK")
+        self.assertIsNone(resolution2.by)
+
+    def test_resolve_adjudication_failure(self):
+        # Mock adjudication service to raise an exception
+        self.adjudication_service_mock.resolve.side_effect = Exception(
+            "Adjudication failed"
+        )
+
+        # Create an order
+        self.phase_state.orders.create(
+            order_type="Move",
+            source="lon",
+            target="eng"
+        )
+
+        # Call the resolve method and assert exception
+        with self.assertRaisesMessage(
+            exceptions.ValidationError,
+            "Adjudication service failed: Adjudication failed",
+        ):
+            self.service.resolve(self.game.id)
+
+        # Verify no resolutions were created
+        self.assertEqual(models.OrderResolution.objects.count(), 0)

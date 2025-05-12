@@ -440,6 +440,8 @@ export type Game = {
   phases: Phase[];
   members: Member[];
   variant: Variant;
+  phaseConfirmed: boolean;
+  canConfirmPhase: boolean;
 };
 export type GameCreateRequest = {
   name: string;

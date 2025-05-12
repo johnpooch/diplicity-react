@@ -652,7 +652,12 @@ components:
             $ref: '#/components/schemas/Member'
         variant:
           $ref: '#/components/schemas/Variant'
+        phaseConfirmed:
+          type: boolean
+        canConfirmPhase:
+          type: boolean
       required:
+      - canConfirmPhase
       - canJoin
       - canLeave
       - currentPhase
@@ -660,6 +665,7 @@ components:
       - members
       - movementPhaseDuration
       - name
+      - phaseConfirmed
       - phases
       - status
       - variant
