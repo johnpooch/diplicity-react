@@ -1,6 +1,7 @@
 from django.db import models
 from .base import BaseModel
 from .game import Game
+import json
 
 
 class Phase(BaseModel):
@@ -40,65 +41,13 @@ class Phase(BaseModel):
     def name(self):
         return f"{self.season} {self.year}, {self.type}"
 
-    def get_orders_for_user(self, user):
-        is_current_phase = self.id == self.game.current_phase.id
-
-        phase_states = self.phase_states.all()
-
-        if is_current_phase:
-            phase_states = phase_states.filter(member__user=user)
-
-        variant = self.game.variant
-
-        for phase_state in phase_states:
-            nation = phase_state.member.nation
-            orders = phase_state.orders.all()
-            orders = [
-                {
-                    "nation": nation,
-                    "order_type": order.order_type,
-                    "source": {
-                        "name": next(
-                            (
-                                p["name"]
-                                for p in variant.provinces
-                                if p["id"] == order.source
-                            ),
-                            None,
-                        ),
-                        "id": order.source,
-                    },
-                    "target": (
-                        None
-                        if order.target is None
-                        else {
-                            "name": next(
-                                (
-                                    p["name"]
-                                    for p in variant.provinces
-                                    if p["id"] == order.target
-                                ),
-                                None,
-                            ),
-                            "id": order.target,
-                        }
-                    ),
-                    "aux": (
-                        None
-                        if order.aux is None
-                        else {
-                            "name": next(
-                                (
-                                    p["name"]
-                                    for p in variant.provinces
-                                    if p["id"] == order.aux
-                                ),
-                                None,
-                            ),
-                            "id": order.aux,
-                        }
-                    ),
-                }
-                for order in phase_state.orders.all()
-            ]
-        return orders
+    @property
+    def options(self):
+        options_dict = {}
+        for phase_state in self.phase_states.all():
+            if phase_state.options:
+                try:
+                    options_dict[phase_state.member.nation] = json.loads(phase_state.options)
+                except json.JSONDecodeError:
+                    pass
+        return options_dict

@@ -14,3 +14,7 @@ class Member(BaseModel):
     drew = models.BooleanField(default=False)
     eliminated = models.BooleanField(default=False)
     kicked = models.BooleanField(default=False)
+
+    def nation_data(self):
+        variant = self.game.variant
+        return next((n for n in variant.nations if n["name"] == self.nation), None)

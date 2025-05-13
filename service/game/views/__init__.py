@@ -15,6 +15,7 @@ from .variant_view import VariantListView
 from .order_view import OrderCreateView, OrderListView
 from .auth_view import AuthLoginView
 from .user_profile_view import UserProfileRetrieveView
+from .options_view import OptionsRetrieveView
 
 __all__ = [
     "ChannelCreateView",
@@ -31,4 +32,5 @@ __all__ = [
     "OrderListView",
     "AuthLoginView",
     "UserProfileRetrieveView",
+    "OptionsRetrieveView",
 ]

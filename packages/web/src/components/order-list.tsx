@@ -131,9 +131,10 @@ const OrderList: React.FC = () => {
                   ? "Orders confirmed"
                   : "Confirm orders"}
               </Button>
-              <IconButton
+              <Button
+                variant="contained"
                 color="primary"
-                aria-label="add"
+                startIcon={<CreateOrderIcon />}
                 onClick={() => {
                 }}
                 sx={{
@@ -144,8 +145,8 @@ const OrderList: React.FC = () => {
                   },
                 }}
               >
-                <CreateOrderIcon />
-              </IconButton>
+                Create Order
+              </Button>
             </Stack>
           )}
         </QueryContainer>

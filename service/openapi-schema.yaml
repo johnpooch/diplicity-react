@@ -867,9 +867,12 @@ components:
         username:
           type: string
         nation:
-          type: string
+          $ref: '#/components/schemas/Nation'
+        isCurrentUser:
+          type: boolean
       required:
       - id
+      - isCurrentUser
       - nation
       - username
     Start:
