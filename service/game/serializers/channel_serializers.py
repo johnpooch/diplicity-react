@@ -1,10 +1,12 @@
 from rest_framework import serializers
+from .variant_serializers import NationSerializer
 
 
 class SenderSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     username = serializers.CharField(source="user.username")
-    nation = serializers.CharField()
+    nation = NationSerializer(source="nation_data")
+    is_current_user = serializers.BooleanField()
 
 
 class MessageSerializer(serializers.Serializer):

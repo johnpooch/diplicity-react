@@ -39,7 +39,7 @@ const enhancedApi = api.enhanceEndpoints({
         gameChannelCreate: {
             invalidatesTags: ['Channel'],
         },
-        gameChannelMessageCreate: {
+        gameChannelCreate2: {
             invalidatesTags: ['Channel'],
         },
     },

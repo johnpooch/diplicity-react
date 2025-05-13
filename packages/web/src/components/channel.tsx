@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { List, ListSubheader, Stack } from "@mui/material";
+import { List, Stack } from "@mui/material";
 import { QueryContainer } from "./query-container";
 import { ChannelMessage } from "./channel-message";
 import { service } from "../store";
@@ -11,6 +11,7 @@ import { useSelectedChannelContext, useSelectedGameContext } from "../context";
 const Channel: React.FC = () => {
   const { gameId } = useSelectedGameContext();
   const { channelName } = useSelectedChannelContext();
+  const channelId = parseInt(channelName);
   const query = service.endpoints.gameChannelsList.useQuery({
     gameId,
   });
@@ -23,18 +24,40 @@ const Channel: React.FC = () => {
     }
   }, [query.data]);
 
+  const displayTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   return (
     <QueryContainer query={query}>
       {(channels) => {
-        const channel = channels.find((c) => c.id === parseInt(channelName));
+        const channel = channels.find((c) => c.id === channelId);
         if (!channel) throw new Error("Channel not found");
         return (
           <Stack sx={styles.root}>
             <Stack ref={listRef} sx={styles.messagesContainer}>
               <List disablePadding>
-                {Object.keys(channel.messages).map((message) =>
-                  JSON.stringify(message)
-                )}
+                {channel.messages.map((message, index) => {
+                  const showAvatar = index === 0 ||
+                    channel.messages[index - 1].sender.nation !== message.sender.nation;
+
+                  return (
+                    <ChannelMessage
+                      key={message.id}
+                      name={message.sender.nation.name}
+                      message={message.body}
+                      date={displayTime(message.createdAt)}
+                      showAvatar={showAvatar}
+                      avatar={""}
+                      color={message.sender.nation.color || "#a9a9a9"}
+                      isUser={message.sender.isCurrentUser}
+                    />
+                  );
+                })}
               </List>
             </Stack>
           </Stack>
@@ -44,13 +67,6 @@ const Channel: React.FC = () => {
   );
 };
 
-const displayTime = (date: Date) => {
-  return date.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
 const styles: Styles = {
   root: {
     height: "100%",
@@ -58,25 +74,7 @@ const styles: Styles = {
   messagesContainer: {
     overflowY: "auto",
     flexGrow: 1,
-  },
-  listSubheader: (theme) => ({
-    borderBottom: `1px solid ${theme.palette.divider}`,
-    textAlign: "center",
-  }),
-  listItemTextDate: (theme) => ({
-    fontSize: theme.typography.caption.fontSize,
-    color: theme.palette.text.secondary,
-  }),
-  container: {
-    display: "flex",
-    maxWidth: 1000,
-    width: "100%",
-  },
-  channelListContainer: {
-    flex: 1,
-  },
-  channelContainer: {
-    flex: 2,
+    padding: 1
   },
 };
 

@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Case, When, Value, BooleanField
 from rest_framework import exceptions
 
 from .. import models, tasks
@@ -90,9 +90,20 @@ class ChannelService(BaseService):
             raise exceptions.PermissionDenied("User is not a member of the game.")
 
         # Get channels that are either public or user is a member of
-        return game.channels.prefetch_related("messages").filter(
+        channels = game.channels.prefetch_related(
+            "messages",
+            "messages__sender",
+            "messages__sender__user"
+        ).filter(
             Q(private=False) | Q(members=member)
         ).distinct()
+
+        # Annotate is_current_user for message senders
+        for channel in channels:
+            for message in channel.messages.all():
+                message.sender.is_current_user = message.sender.user == self.user
+
+        return channels
 
     def retrieve(self, game_id, channel_id):
         game = get_object_or_404(models.Game, id=game_id)
@@ -101,8 +112,17 @@ class ChannelService(BaseService):
             raise exceptions.PermissionDenied("User is not a member of the game.")
 
         # Get channel only if it's public or user is a member
-        queryset = game.channels.prefetch_related("messages").filter(
+        queryset = game.channels.prefetch_related(
+            "messages",
+            "messages__sender",
+            "messages__sender__user"
+        ).filter(
             Q(private=False) | Q(members=member)
         )
         channel = get_object_or_404(queryset, id=channel_id)
+
+        # Annotate is_current_user for message senders
+        for message in channel.messages.all():
+            message.sender.is_current_user = message.sender.user == self.user
+
         return channel

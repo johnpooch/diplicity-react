@@ -453,7 +453,8 @@ export type GameCreateRequest = {
 export type Sender = {
   id: number;
   username: string;
-  nation: string;
+  nation: Nation;
+  isCurrentUser: boolean;
 };
 export type Message = {
   id: number;

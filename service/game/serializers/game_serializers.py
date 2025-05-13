@@ -1,4 +1,5 @@
 from rest_framework import serializers
+import json
 
 from .variant_serializers import VariantSerializer, NationSerializer
 
@@ -40,6 +41,7 @@ class PhaseSerializer(serializers.Serializer):
     remaining_time = serializers.CharField()
     units = UnitSerializer(many=True)
     supply_centers = SupplyCenterSerializer(many=True)
+    options = serializers.DictField()
 
 
 class GameSerializer(serializers.Serializer):

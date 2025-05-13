@@ -8,21 +8,20 @@ import {
   Avatar,
   ListItemText,
   Button,
+  Divider,
 } from "@mui/material";
+import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import React from "react";
 import { QueryContainer } from "./query-container";
 import { service } from "../store";
 import { useNavigate } from "react-router";
 import { useSelectedGameContext } from "../context";
+import { Panel } from "./panel";
 
 const CreateChannel: React.FC = () => {
-  // const query = useListOtherMembersQuery();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  // const [_, createChannelMutation] = useCreateChannelMutation();
   const { gameRetrieveQuery, gameId } = useSelectedGameContext();
   const [createChannel, createChannelMutation] =
     service.endpoints.gameChannelCreate.useMutation();
-  // const { selectedMembers, setSelectedMembers } = useCreateChannelContext();
   const [selectedMembers, setSelectedMembers] = React.useState<number[]>([]);
   const navigate = useNavigate();
 
@@ -51,53 +50,61 @@ const CreateChannel: React.FC = () => {
   return (
     <QueryContainer query={gameRetrieveQuery}>
       {(game) => (
-        <Stack sx={styles.container}>
-          <Stack sx={styles.listContainer}>
-            <List>
-              {game.members
-                .filter((m) => !m.user.currentUser)
-                .map((member) => (
-                  <ListItem
-                    key={member.nation}
-                    secondaryAction={
-                      <Checkbox
-                        edge="end"
-                        onChange={() => handleToggle(member.id)}
-                        checked={selectedMembers.includes(member.id)}
-                        disableRipple
-                        disabled={isSubmitting}
-                      />
-                    }
-                  >
-                    <ListItemButton
-                      disableRipple
-                      onClick={() => handleToggle(member.id)}
-                    >
-                      <ListItemAvatar>
-                        {/* <Avatar src={member.flag}>{member.nation[0]}</Avatar> */}
-                        <Avatar src={member.user.profile.picture}>
-                          {member.nation[0]}
-                        </Avatar>
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={member.nation}
-                        secondary={member.user.username}
-                      />
-                    </ListItemButton>
-                  </ListItem>
-                ))}
-            </List>
+        <Panel>
+          <Panel.Content>
+            <Stack sx={styles.container}>
+              <Stack sx={styles.listContainer}>
+                <List>
+                  {game.members
+                    .filter((m) => !m.isCurrentUser)
+                    .map((member) => (
+                      <ListItem
+                        key={member.nation}
+                        secondaryAction={
+                          <Checkbox
+                            edge="end"
+                            onChange={() => handleToggle(member.id)}
+                            checked={selectedMembers.includes(member.id)}
+                            disableRipple
+                            disabled={isSubmitting}
+                          />
+                        }
+                      >
+                        <ListItemButton
+                          disableRipple
+                          onClick={() => handleToggle(member.id)}
+                        >
+                          <ListItemAvatar>
+                            <Avatar src={member.picture}>
+                              {member.nation[0]}
+                            </Avatar>
+                          </ListItemAvatar>
+                          <ListItemText
+                            primary={member.nation}
+                            secondary={member.username}
+                          />
+                        </ListItemButton>
+                      </ListItem>
+                    ))}
+                </List>
+              </Stack>
+            </Stack>
+          </Panel.Content>
+          <Divider />
+          <Panel.Footer>
             <Button
               variant="contained"
               disabled={selectedMembers.length === 0 || isSubmitting}
               onClick={handleCreateChannel}
+              startIcon={<GroupAddIcon />}
             >
-              Create Channel
+              Select Members
             </Button>
-          </Stack>
-        </Stack>
-      )}
-    </QueryContainer>
+          </Panel.Footer>
+        </Panel>
+      )
+      }
+    </QueryContainer >
   );
 };
 

@@ -351,14 +351,7 @@ const Router: React.FC = () => {
               <Route
                 path="chat"
                 element={
-                  <Panel>
-                    <Panel.Content>
-                      <ChannelList />
-                    </Panel.Content>
-                    <Panel.Footer>
-                      <CreateChannelAction />
-                    </Panel.Footer>
-                  </Panel>
+                  <ChannelList />
                 }
               />
             </Route>
@@ -418,14 +411,7 @@ const Router: React.FC = () => {
                 path="chat/channel/create"
                 element={
                   <CreateChannelContextProvider>
-                    <Panel>
-                      <Panel.Content>
-                        <CreateChannel />
-                      </Panel.Content>
-                      {/* <Panel.Footer>
-                        <CreateChannelTextField />
-                      </Panel.Footer> */}
-                    </Panel>
+                    <CreateChannel />
                   </CreateChannelContextProvider>
                 }
               />
