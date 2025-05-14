@@ -47,6 +47,20 @@ class OrderService(BaseService):
                 detail="Cannot create orders for eliminated players."
             )
 
+        # Check for existing order with same source
+        existing_order = current_phase_state.orders.filter(source=data["source"]).first()
+        if existing_order:
+            # Update existing order
+            existing_order.order_type = data["order_type"]
+            existing_order.target = data.get("target")
+            existing_order.aux = data.get("aux")
+            try:
+                existing_order.full_clean()
+            except Exception as e:
+                raise exceptions.ValidationError(e)
+            existing_order.save()
+            return existing_order
+
         order = models.Order.objects.create(
             phase_state=current_phase_state,
             order_type=data["order_type"],
@@ -66,7 +80,6 @@ class OrderService(BaseService):
     def list(self, game_id, phase_id):
         game = get_object_or_404(models.Game, id=game_id)
         phase = game.phases.filter(id=phase_id).first()
-
         if not phase:
             raise exceptions.NotFound("Phase not found.")
 

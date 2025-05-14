@@ -8,7 +8,7 @@ import { api } from "./api";
 import { orderSlice } from "./order";
 
 const enhancedApi = api.enhanceEndpoints({
-    addTagTypes: ['Device', 'Game', 'Channel'],
+    addTagTypes: ['Device', 'Game', 'Channel', 'Order'],
     endpoints: {
         devicesList: {
             providesTags: ['Device'],
@@ -42,6 +42,12 @@ const enhancedApi = api.enhanceEndpoints({
         },
         gameChannelCreate2: {
             invalidatesTags: ['Channel'],
+        },
+        gamePhaseOrdersList: {
+            providesTags: ['Order'],
+        },
+        gameOrderCreate: {
+            invalidatesTags: ['Order'],
         },
     },
 })

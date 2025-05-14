@@ -700,6 +700,30 @@
             "name": "Yorkshire",
             "supply_center": false,
             "type": "coastal"
+        },
+        {
+            "id": "bot",
+            "name": "Gulf of Bothnia",
+            "supply_center": false,
+            "type": "sea"
+        },
+        {
+            "id": "tyr",
+            "name": "Tyrolia",
+            "supply_center": false,
+            "type": "land"
+        },
+        {
+            "id": "eas",
+            "name": "East Med",
+            "supply_center": false,
+            "type": "sea"
+        },
+        {
+            "id": "nap",
+            "name": "Naples",
+            "supply_center": true,
+            "type": "coastal"
         }
     ]
 }

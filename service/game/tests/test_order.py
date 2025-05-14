@@ -124,6 +124,78 @@ class TestOrderCreate(BaseTestCase):
         response = self.create_request(self.game.id, data)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_create_order_updates_existing_order(self):
+        # First create a hold order
+        data = {
+            "source": "bud",
+            "order_type": "Hold",
+        }
+        response = self.create_request(self.game.id, data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        first_order_id = response.data["id"]
+
+        # Then update it to a move order
+        data = {
+            "source": "bud",
+            "target": "tri",
+            "order_type": "Move",
+        }
+        response = self.create_request(self.game.id, data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        second_order_id = response.data["id"]
+
+        # Verify it's the same order
+        self.assertEqual(first_order_id, second_order_id)
+        self.assertEqual(response.data["order_type"], "Move")
+        self.assertEqual(response.data["source"], "bud")
+        self.assertEqual(response.data["target"], "tri")
+
+    def test_create_order_different_source_creates_new_order(self):
+        # Create first order
+        data = {
+            "source": "bud",
+            "order_type": "Hold",
+        }
+        response = self.create_request(self.game.id, data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        first_order_id = response.data["id"]
+
+        # Create second order with different source
+        data = {
+            "source": "vie",
+            "order_type": "Hold",
+        }
+        response = self.create_request(self.game.id, data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        second_order_id = response.data["id"]
+
+        # Verify they are different orders
+        self.assertNotEqual(first_order_id, second_order_id)
+
+    def test_create_order_updates_maintain_validation(self):
+        # First create a valid order
+        data = {
+            "source": "bud",
+            "order_type": "Hold",
+        }
+        response = self.create_request(self.game.id, data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Try to update with invalid data
+        data = {
+            "source": "bud",
+            "target": "invalid_target",
+            "order_type": "Move",
+        }
+        response = self.create_request(self.game.id, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # Verify the original order still exists and wasn't corrupted
+        phase_state = self.phase.phase_states.get(member=self.member)
+        order = phase_state.orders.get(source="bud")
+        self.assertEqual(order.order_type, "Hold")
+        self.assertIsNone(order.target)
+
 
 class TestOrderList(BaseTestCase):
     def setUp(self):

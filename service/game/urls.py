@@ -49,9 +49,4 @@ urlpatterns = [
         views.OrderListView.as_view(),
         name="order-list",
     ),
-    path(
-        "game/<int:game_id>/options/",
-        views.OptionsRetrieveView.as_view(),
-        name="options-retrieve",
-    ),
 ]

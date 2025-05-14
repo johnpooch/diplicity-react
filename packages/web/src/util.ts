@@ -1,3 +1,4 @@
+import { orderSlice, Phase, Variant } from "./store";
 import { adjectives, conflictSynonyms, nouns } from "./terms";
 
 function capitalize(s: string) {
@@ -127,4 +128,165 @@ const transformResolution = (resolution: string): { outcome: string, by?: string
     };
 };
 
-export { formatOrderText, transformResolution };
+type Order = ReturnType<typeof orderSlice.selectors.selectOrder>;
+
+const getStepLabel = (step: string, order: Order) => {
+    if (step === "source") {
+        return "Select unit to order";
+    }
+    if (step === "type") {
+        return "Select order type";
+    }
+    if (step === "aux") {
+        return `Select unit to ${order.type}`;
+    }
+    if (step === "target") {
+        return "Select destination";
+    }
+    throw new Error(`Unknown step: ${step}`);
+}
+
+const getOptions = (order: Order, options: Record<string, any>, variant: Variant) => {
+    // If no source selected yet, return all top level provinces
+    if (!order.source) {
+        return Object.keys(options)
+            .map(id => ({
+                key: id,
+                label: variant.provinces.find(p => p.id === id)?.name || id
+            }))
+            .sort((a, b) => a.label.localeCompare(b.label));
+    }
+
+    // Start at the source province node
+    let node = options[order.source];
+    if (!node) return [];
+
+    // Move to Next
+    node = node.Next;
+    if (!node) return [];
+
+    // If no type selected yet, return order types
+    if (!order.type) {
+        return Object.keys(node)
+            .map(type => ({
+                key: type,
+                label: type
+            }))
+            .sort((a, b) => a.key.localeCompare(b.key));
+    }
+
+    // Move to type node
+    node = node[order.type];
+    if (!node) return [];
+
+    // Move to Next
+    node = node.Next;
+    if (!node) return [];
+
+    // Skip the SrcProvince level by moving to its Next
+    if (node[order.source]?.Type === "SrcProvince") {
+        node = node[order.source].Next;
+        if (!node) return [];
+    }
+
+    // For Move orders, if target is already selected, return empty array
+    if (order.type === "Move" && order.target) {
+        return [];
+    }
+
+    // For Support orders, if both aux and target are selected, return empty array
+    if (order.type === "Support" && order.aux && order.target) {
+        return [];
+    }
+
+    // If no aux selected yet and we have aux options, return those
+    if (!order.aux && Object.keys(node).length > 0 && node[Object.keys(node)[0]].Type === "Province") {
+        return Object.keys(node)
+            .map(id => ({
+                key: id,
+                label: variant.provinces.find(p => p.id === id)?.name || id
+            }))
+            .sort((a, b) => a.label.localeCompare(b.label));
+    }
+
+    // If aux is selected, move to aux node
+    if (order.aux) {
+        node = node[order.aux];
+        if (!node) return [];
+        node = node.Next;
+        if (!node) return [];
+    }
+
+    // Return target provinces if available
+    return Object.keys(node)
+        .map(id => ({
+            key: id,
+            label: variant.provinces.find(p => p.id === id)?.name || id
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+const getProvince = (id: string, variant: Variant, phase: Phase): {
+    id: string;
+    name: string;
+    unitType?: string;
+} => {
+    const province = variant.provinces.find((p) => p.id === id)
+    if (!province) throw new Error(`Province not found: ${id}`);
+
+    const unitType = phase.units.find((u) => u.province.id === id)?.type;
+    return {
+        id: province.id,
+        name: province.name,
+        unitType: unitType ? capitalize(unitType) : undefined,
+    };
+}
+
+const getOrderSummary = (order: Order, variant: Variant, phase: Phase) => {
+    const source = order.source ? getProvince(order.source, variant, phase) : undefined;
+    const target = order.target ? getProvince(order.target, variant, phase) : undefined;
+    const aux = order.aux ? getProvince(order.aux, variant, phase) : undefined;
+
+    if (!source) return "";
+
+    if (!order.type) {
+        return `${source.unitType} ${source.name}...`;
+    }
+
+    if (order.type === "Hold") {
+        return `${source.unitType} ${source.name} Hold`;
+    }
+
+    if (order.type === "Move") {
+        if (!target) {
+            return `${source.unitType} ${source.name} Move to...`;
+        } else {
+            return `${source.unitType} ${source.name} Move to ${target.name}`;
+        }
+    }
+
+    if (order.type === "Support") {
+        if (!aux) {
+            return `${source.unitType} ${source.name} Support...`;
+        } else if (!target) {
+            return `${source.unitType} ${source.name} Support ${aux.name} to...`;
+        } else {
+            return `${source.unitType} ${source.name} Support ${aux.name} to ${target.name}`;
+        }
+    }
+
+    if (order.type === "Convoy") {
+        if (!aux) {
+            return `${source.unitType} ${source.name} Convoy...`;
+        } else if (!target) {
+            return `${source.unitType} ${source.name} Convoy ${aux.name} to...`;
+        } else {
+            return `${source.unitType} ${source.name} Convoy ${aux.name} to ${target.name}`;
+        }
+    }
+
+    throw new Error(`Unknown order type: ${order.type}`);
+
+}
+
+export { formatOrderText, transformResolution, getStepLabel, getOrderSummary, getOptions, getProvince };
