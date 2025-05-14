@@ -391,24 +391,11 @@ export type SupplyCenter = {
   province: Province;
   nation: Nation;
 };
-export type SupportOptions = {
-  fromProvince: Province;
-  toProvince: Province;
-};
-export type ConvoyOptions = {
-  fromProvince: Province;
-  toProvince: Province;
-};
-export type Options = {
-  province: string;
-  hold: boolean;
-  move: Province[];
-  support: SupportOptions;
-  convoy: ConvoyOptions;
-};
 export type NationOptions = {
   nation: string;
-  options: Options[];
+  options: {
+    [key: string]: any;
+  };
 };
 export type Phase = {
   id: number;
@@ -448,6 +435,7 @@ export type Variant = {
   author?: string;
   nations: Nation[];
   start: Start;
+  provinces: Province[];
 };
 export type Game = {
   id: number;

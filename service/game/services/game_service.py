@@ -10,14 +10,19 @@ from django.db.models import (
     OuterRef,
     Exists,
     Q,
+    Subquery,
+    JSONField,
+    F,
 )
+from django.db.models.functions import JSONObject
+from django.contrib.postgres.aggregates import JSONBAgg
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework import exceptions
 
-from .. import models, tasks
+from .. import models, tasks, util
 from .base_service import BaseService
 
 
@@ -45,6 +50,21 @@ class GameService(BaseService):
             game=OuterRef("pk")
         ).order_by("-ordinal")
 
+        # Create a subquery to get phase state options grouped by nation
+        phase_state_options = models.PhaseState.objects.filter(
+            phase=OuterRef("pk")
+        ).annotate(
+            nation_options=JSONObject(
+                nation=F("member__nation"),
+                options=F("options")
+            )
+        ).values("nation_options")
+
+        # Aggregate the options into a JSON array
+        options_subquery = phase_state_options.annotate(
+            options_list=JSONBAgg("nation_options")
+        ).values("options_list")[:1]
+
         # Updated subquery to correctly find the current user's phase state in the current active phase
         user_phase_state_subquery = models.PhaseState.objects.filter(
             phase__game=OuterRef("pk"),
@@ -66,6 +86,14 @@ class GameService(BaseService):
             kicked=False,
         )
 
+        # Prefetch phases with options annotation
+        phases_prefetch = Prefetch(
+            "phases",
+            queryset=models.Phase.objects.annotate(
+                options_list=Subquery(options_subquery, output_field=JSONField())
+            )
+        )
+
         queryset = queryset.annotate(
             can_join=Case(
                 When(
@@ -83,7 +111,6 @@ class GameService(BaseService):
                 default=Value(False),
                 output_field=BooleanField(),
             ),
-            # Fix phase_confirmed to specifically check for the current user's phase state
             phase_confirmed=Case(
                 When(
                     Exists(user_phase_state_subquery.filter(orders_confirmed=True)),
@@ -92,20 +119,18 @@ class GameService(BaseService):
                 default=Value(False),
                 output_field=BooleanField(),
             ),
-            # Fix can_confirm_phase to check if the user is a non-eliminated, non-kicked member and there's an active phase
             can_confirm_phase=Case(
                 When(
-                    Q(status=models.Game.ACTIVE) &  # Game must be active
-                    Exists(member_status_subquery) &  # User must be valid member
-                    Exists(active_phase_subquery),    # Must have active phase
+                    Q(status=models.Game.ACTIVE) &
+                    Exists(member_status_subquery) &
+                    Exists(active_phase_subquery),
                     then=Value(True),
                 ),
                 default=Value(False),
                 output_field=BooleanField(),
             ),
-        )
-
-        queryset = queryset.prefetch_related(
+        ).prefetch_related(
+            phases_prefetch,
             Prefetch(
                 "members",
                 queryset=models.Member.objects.annotate(

@@ -1,94 +1,27 @@
 import { Stack, Typography, Button, IconButton } from "@mui/material";
 import { QueryContainer } from "./query-container";
 import { Close as CloseIcon } from "@mui/icons-material";
-import { useCreateOrderContext, useSelectedGameContext } from "../context";
-import { OrderSummary } from "./order-summary";
+import { useSelectedGameContext } from "../context";
 import { useDispatch, useSelector } from "react-redux";
-import { orderSlice, Phase, service } from "../store";
+import { orderSlice, service } from "../store";
 import React from "react";
-
-type Order = ReturnType<typeof orderSlice.selectors.selectOrder>;
-
-const getStepLabel = (step: string, order: Order) => {
-  if (step === "source") {
-    return "Select unit to order";
-  }
-  if (step === "type") {
-    return "Select order type";
-  }
-  if (step === "aux") {
-    return `Select unit to ${order.type}`;
-  }
-  if (step === "target") {
-    return "Select destination";
-  }
-}
-
-const getOptions = (step: string, order: Order) => {
-  if (step === "source") {
-    return [{
-      key: "ber",
-      label: "Berlin",
-    }, {
-      key: "lon",
-      label: "London",
-    }, {
-      key: "par",
-      label: "Paris",
-    }];
-  }
-  if (step === "type") {
-    return [{
-      key: "Hold",
-      label: "Hold",
-    }, {
-      key: "Move",
-      label: "Move",
-    }, {
-      key: "Support",
-      label: "Support",
-    }, {
-      key: "Convoy",
-      label: "Convoy",
-    }];
-  }
-  if (step === "aux") {
-    return [{
-      key: "ber",
-      label: "Berlin",
-    }];
-  }
-  if (step === "target") {
-    return [{
-      key: "ber",
-      label: "Berlin",
-    }];
-  }
-  throw new Error(`Unknown step: ${step}`);
-}
-
-const getOrderSummary = (order: Order, phase: Phase) => {
-  return "Berlin move to London";
-}
+import { getOptions, getOrderSummary, getStepLabel } from "../util";
 
 const CreateOrderSelect: React.FC<{
-  phase: Phase;
-  step: string;
-  order: Order;
+  orderSummary: string;
+  options: { key: string, label: string }[];
+  label: string;
   onSelect: (key: string) => void;
 }> = (props) => {
-  const label = getStepLabel(props.step, props.order);
-  const options = getOptions(props.step, props.order);
-  const orderSummary = getOrderSummary(props.order, props.phase);
 
   return (
     <Stack>
       <Typography variant="caption">
-        {label}
+        {props.label}
       </Typography>
-      <Typography variant="body1">{orderSummary}</Typography>
+      <Typography variant="body1">{props.orderSummary}</Typography>
       <Stack sx={styles.optionsContainer}>
-        {options.map((option) => (
+        {props.options.map((option) => (
           <Button key={option.key} variant="outlined" onClick={() => props.onSelect(option.key)}>{option.label}</Button>
         ))}
       </Stack>
@@ -97,16 +30,14 @@ const CreateOrderSelect: React.FC<{
 }
 
 const CreateOrderConfirm: React.FC<{
-  phase: Phase;
-  order: Order;
+  orderSummary: string;
   isLoading: boolean;
   onConfirm: () => void;
 }> = (props) => {
-  const orderSummary = getOrderSummary(props.order, props.phase);
   return (
     <Stack>
       <Typography variant="caption">Confirm order</Typography>
-      <Typography variant="body1">{orderSummary}</Typography>
+      <Typography variant="body1">{props.orderSummary}</Typography>
       <Button onClick={props.onConfirm} disabled={props.isLoading}>Confirm</Button>
     </Stack>
   )
@@ -145,27 +76,37 @@ const CreateOrder: React.FC<{
     props.onClose();
   }
 
-  console.log("IS COMPLETE", isComplete);
-
   return (
     <QueryContainer query={gameRetrieveQuery}>
-      {(game) => (
-        <Stack sx={styles.container}>
-          <Stack sx={styles.titleCloseContainer}>
-            <Typography sx={{ fontWeight: "bold" }}>Create Order</Typography>
-            <IconButton onClick={handleClose} disabled={isLoading}>
-              <CloseIcon />
-            </IconButton>
+      {(game) => {
+        const userNation = game.members.find((m) => m.isCurrentUser)?.nation;
+        if (!userNation) return null;
+        const currentPhase = game.currentPhase;
+        const options = currentPhase.options.find((o) => o.nation === userNation)?.options;
+        if (!options) return null;
+        const label = getStepLabel(step, order);
+        const formattedOptions = getOptions(order, options, game.variant);
+        const orderSummary = getOrderSummary(order, game.variant, currentPhase);
+
+        return (
+          <Stack sx={styles.container}>
+            <Stack sx={styles.titleCloseContainer}>
+              <Typography sx={{ fontWeight: "bold" }}>Create Order</Typography>
+              <IconButton onClick={handleClose} disabled={isLoading}>
+                <CloseIcon />
+              </IconButton>
+            </Stack>
+            <Stack sx={styles.contentContainer}>
+              {isComplete ? (
+                <CreateOrderConfirm orderSummary={orderSummary} isLoading={isLoading} onConfirm={handleConfirm} />
+              ) : (
+                <CreateOrderSelect orderSummary={orderSummary} label={label} options={formattedOptions} onSelect={handleSelect} />
+              )}
+            </Stack>
           </Stack>
-          <Stack sx={styles.contentContainer}>
-            {isComplete ? (
-              <CreateOrderConfirm phase={game.currentPhase} order={order} isLoading={isLoading} onConfirm={handleConfirm} />
-            ) : (
-              <CreateOrderSelect phase={game.currentPhase} step={step} order={order} onSelect={handleSelect} />
-            )}
-          </Stack>
-        </Stack>
-      )}
+        )
+      }
+      }
     </QueryContainer>
   );
 };

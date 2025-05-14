@@ -31,6 +31,17 @@ class SupplyCenterSerializer(serializers.Serializer):
     nation = NationSerializer(source="nation_data")
 
 
+class NationOptionsSerializer(serializers.Serializer):
+    nation = serializers.CharField()
+    options = serializers.DictField()
+
+    def to_representation(self, instance):
+        return {
+            'nation': instance['nation'],
+            'options': json.loads(instance['options'])
+        }
+
+
 class PhaseSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     ordinal = serializers.IntegerField()
@@ -41,7 +52,7 @@ class PhaseSerializer(serializers.Serializer):
     remaining_time = serializers.CharField()
     units = UnitSerializer(many=True)
     supply_centers = SupplyCenterSerializer(many=True)
-    options = serializers.DictField()
+    options = NationOptionsSerializer(many=True, source="options_list")
 
 
 class GameSerializer(serializers.Serializer):
@@ -58,3 +69,4 @@ class GameSerializer(serializers.Serializer):
     variant = VariantSerializer()
     phase_confirmed = serializers.BooleanField()
     can_confirm_phase = serializers.BooleanField()
+

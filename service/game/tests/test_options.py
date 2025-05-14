@@ -3,73 +3,7 @@ from django.urls import reverse
 from rest_framework import status
 from .base import BaseTestCase
 from game import models
-from game.serializers.options_serializer import convert_decision_tree_to_options, UnknownProvinceError
-
-
-class TestOptionsRetrieve(BaseTestCase):
-    def setUp(self):
-        super().setUp()
-        # Create an active game with a phase
-        self.game = self.create_game(self.user, "Game 1", status=models.Game.ACTIVE)
-        self.phase = self.game.phases.create(
-            season="Spring",
-            year=1901,
-            type="Movement",
-        )
-        self.member = self.game.members.first()
-        
-        # Create a phase state with some options
-        self.options_data = {
-            "bud": {"Next": {"Hold": {"Next": {}, "Type": "OrderType"}}}
-        }
-        self.phase_state = models.PhaseState.objects.create(
-            member=self.member,
-            phase=self.phase,
-            options=json.dumps(self.options_data)
-        )
-
-    def create_request(self, game_id):
-        url = reverse("options-retrieve", args=[game_id])
-        return self.client.get(url)
-
-    def test_retrieve_options_authenticated_member(self):
-        """Test that an authenticated game member can retrieve their options"""
-        response = self.create_request(self.game.id)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['options'], self.options_data)
-
-    def test_retrieve_options_non_member(self):
-        """Test that a non-member gets null options"""
-        other_user = self.create_user("other_user", "password")
-        self.client.force_authenticate(user=other_user)
-        response = self.create_request(self.game.id)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIsNone(response.data['options'])
-
-    def test_retrieve_options_inactive_game(self):
-        """Test that an inactive game returns an error"""
-        self.game.status = models.Game.PENDING
-        self.game.save()
-        response = self.create_request(self.game.id)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_retrieve_options_unauthenticated(self):
-        """Test that an unauthenticated user cannot retrieve options"""
-        self.client.logout()
-        response = self.create_request(self.game.id)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-
-    def test_retrieve_options_nonexistent_game(self):
-        """Test that a nonexistent game returns a 404"""
-        response = self.create_request(999)
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
-    def test_retrieve_options_no_phase_state(self):
-        """Test retrieving options when there's no phase state"""
-        self.phase_state.delete()
-        response = self.create_request(self.game.id)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIsNone(response.data['options'])
+from game.util import convert_decision_tree_to_options, UnknownProvinceError
 
 
 class TestConvertDecisionTree(BaseTestCase):
