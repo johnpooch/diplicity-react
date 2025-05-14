@@ -391,6 +391,25 @@ export type SupplyCenter = {
   province: Province;
   nation: Nation;
 };
+export type SupportOptions = {
+  fromProvince: Province;
+  toProvince: Province;
+};
+export type ConvoyOptions = {
+  fromProvince: Province;
+  toProvince: Province;
+};
+export type Options = {
+  province: string;
+  hold: boolean;
+  move: Province[];
+  support: SupportOptions;
+  convoy: ConvoyOptions;
+};
+export type NationOptions = {
+  nation: string;
+  options: Options[];
+};
 export type Phase = {
   id: number;
   ordinal: number;
@@ -401,6 +420,7 @@ export type Phase = {
   remainingTime: string;
   units: Unit[];
   supplyCenters: SupplyCenter[];
+  options: NationOptions[];
 };
 export type Member = {
   id: number;

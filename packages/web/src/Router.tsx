@@ -22,7 +22,6 @@ import {
   Map,
   CreateChannel,
   CreateChannelAction,
-  CreateOrder,
   CreateChannelTextField,
   GameMenu,
   OrderList,
@@ -182,11 +181,6 @@ const Router: React.FC = () => {
                         <Panel.Content>
                           <OrderList />
                         </Panel.Content>
-                        {source && (
-                          <Panel.Footer divider>
-                            <CreateOrder />
-                          </Panel.Footer>
-                        )}
                       </Panel>
                     )}
                   </CreateOrderContextProvider>
@@ -319,11 +313,7 @@ const Router: React.FC = () => {
                         <Panel.Content>
                           <OrderList />
                         </Panel.Content>
-                        {source && (
-                          <Panel.Footer divider>
-                            <CreateOrder />
-                          </Panel.Footer>
-                        )}
+
                       </Panel>
                     )}
                   </CreateOrderContextProvider>
@@ -338,11 +328,6 @@ const Router: React.FC = () => {
                         <Panel.Content>
                           <OrderList />
                         </Panel.Content>
-                        {source && (
-                          <Panel.Footer divider>
-                            <CreateOrder />
-                          </Panel.Footer>
-                        )}
                       </Panel>
                     )}
                   </CreateOrderContextProvider>

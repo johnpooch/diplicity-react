@@ -5,6 +5,7 @@ import { feedbackSlice } from "./feedback";
 import { authSlice } from "./auth";
 import { service } from "./service";
 import { api } from "./api";
+import { orderSlice } from "./order";
 
 const enhancedApi = api.enhanceEndpoints({
     addTagTypes: ['Device', 'Game', 'Channel'],
@@ -49,6 +50,7 @@ const store = configureStore({
     reducer: combineReducers({
         auth: authSlice.reducer,
         feedback: feedbackSlice.reducer,
+        order: orderSlice.reducer,
         [enhancedApi.reducerPath]: enhancedApi.reducer
     }),
     middleware: getDefaultMiddleware =>
