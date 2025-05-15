@@ -3,31 +3,43 @@ import { Arrow } from "./shapes/arrow";
 import { Cross } from "./shapes/cross";
 import { CurvedArrow } from "./shapes/curved-arrow";
 import { Octagon } from "./shapes/octagon";
-import { CurrentPhase, Phases, Variant } from "../../store";
-import map from "../../data/map/classical.json";
+import { NationOrder, Phase, Variant } from "../../store";
+
+import classical from "../../data/map/classical.json";
+
+const VARIANT_MAPS: Record<string, typeof classical> = {
+  classical,
+}
+
+const getMap = (variant: Variant) => {
+  return VARIANT_MAPS[variant.id] || VARIANT_MAPS.classical;
+}
 
 type InteractiveMapProps = {
   interactive?: boolean;
   variant: Variant;
-  phase: Phases | CurrentPhase;
-  orders?: {
-    [provinceId: string]: {
-      source: string;
-      type: "move" | "support" | "convoy" | "hold";
-      target?: string;
-      aux?: string;
-      outcome?: "succeeded" | "failed";
-    };
-  };
+  phase: Phase;
+  orderInProgress?: {
+    source?: string;
+    type?: string;
+    target?: string;
+    aux?: string;
+  },
+  orders: NationOrder[] | undefined;
+  onClickProvince?: (province: string) => void;
 };
 
 const HOVER_STROKE_WIDTH = 3;
 const HOVER_STROKE_COLOR = "white";
 const HOVER_FILL = "rgba(255, 255, 255, 0.6)";
 
-const SELECTED_STROKE_WIDTH = 3;
-const SELECTED_STROKE_COLOR = "white";
-const SELECTED_FILL = "rgba(255, 255, 255, 0.8)";
+const SOURCE_STROKE_WIDTH = 3;
+const SOURCE_STROKE_COLOR = "white";
+const SOURCE_FILL = "rgba(255, 255, 255, 0.8)";
+
+const TARGET_STROKE_WIDTH = 3;
+const TARGET_STROKE_COLOR = "white";
+const TARGET_FILL = "rgba(255, 255, 255, 0.8)";
 
 const DEFAULT_FILL = "transparent";
 
@@ -50,38 +62,47 @@ const ORDER_FAILED_CROSS_STROKE_WIDTH = 2;
 
 const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
   const [hoveredProvince, setHoveredProvince] = useState<string | null>(null);
-  const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
+
+  const map = getMap(props.variant);
 
   const getFill = (provinceId: string) => {
-    const isSelected = selectedProvince === provinceId;
+    const isSource = props.orderInProgress?.source === provinceId;
+    const isTarget = props.orderInProgress?.target === provinceId;
     const isHovered = hoveredProvince === provinceId;
     const supplyCenter = props.phase.supplyCenters.find(
-      (sc) => sc.province === provinceId
+      (sc) => sc.province.id === provinceId
     );
     if (supplyCenter) {
       const color = props.variant.nations.find(
-        (n) => n.name === supplyCenter.nation
+        (n) => n.name === supplyCenter.nation.name
       )?.color;
       if (!color) throw new Error("Color not found");
       return color.replace(
         /rgb(a?)\((\d+), (\d+), (\d+)(, [\d.]+)?\)/,
         // "rgba($2, $3, $4, 0.4)"
-        `rgba($2, $3, $4, ${isSelected ? 0.3 : isHovered ? 0.4 : 0.5})`
+        `rgba($2, $3, $4, ${isSource ? 0.3 : isHovered ? 0.4 : 0.5})`
       );
     }
-    if (selectedProvince === provinceId) return SELECTED_FILL;
+    if (isSource) return SOURCE_FILL;
+    if (isTarget) return TARGET_FILL;
     if (hoveredProvince === provinceId) return HOVER_FILL;
     return DEFAULT_FILL;
   };
 
   const getStroke = (provinceId: string) => {
-    if (selectedProvince === provinceId) return SELECTED_STROKE_COLOR;
+    const isSource = props.orderInProgress?.source === provinceId;
+    const isTarget = props.orderInProgress?.target === provinceId;
+    if (isSource) return SOURCE_STROKE_COLOR;
+    if (isTarget) return TARGET_STROKE_COLOR;
     if (hoveredProvince === provinceId) return HOVER_STROKE_COLOR;
     return "none";
   };
 
   const getStrokeWidth = (provinceId: string) => {
-    if (selectedProvince === provinceId) return SELECTED_STROKE_WIDTH;
+    const isSource = props.orderInProgress?.source === provinceId;
+    const isTarget = props.orderInProgress?.target === provinceId;
+    if (isSource) return SOURCE_STROKE_WIDTH;
+    if (isTarget) return TARGET_STROKE_WIDTH;
     if (hoveredProvince === provinceId) return HOVER_STROKE_WIDTH;
     return 1;
   };
@@ -146,7 +167,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
               }
               onMouseLeave={() => props.interactive && setHoveredProvince(null)}
               onClick={() =>
-                props.interactive && setSelectedProvince(province.id)
+                props.interactive && props.onClickProvince?.(province.id)
               }
             />
             {province.supplyCenter && (
@@ -207,11 +228,11 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
         />
       ))}
       {props.phase.units.map((unit) => {
-        const province = map.provinces.find((p) => p.id === unit.province);
+        const province = map.provinces.find((p) => p.id === unit.province.id);
         if (!province) return null;
         const { x, y } = province.center;
         const color = props.variant.nations.find(
-          (n) => n.name === unit.nation
+          (n) => n.name === unit.nation.name
         )?.color;
         if (!color) throw new Error("Color not found");
 
@@ -238,127 +259,91 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
           </g>
         );
       })}
-      {props.orders &&
-        Object.entries(props.orders)
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          .filter(([_, order]) => order.type === "hold")
-          .map(([provinceId, order]) => {
-            const source = map.provinces.find((p) => p.id === provinceId);
-            if (!source) return null;
-            return (
-              <Octagon
-                x={source.center.x - UNIT_OFFSET_X}
-                y={source.center.y - UNIT_OFFSET_Y}
-                strokeWidth={ORDER_LINE_WIDTH}
-                size={24}
-                stroke={"#000000"}
-                fill={"transparent"}
-                onRenderBottomCenter={
-                  order.outcome === "failed"
-                    ? (x, y) => (
-                        <Cross
-                          x={x}
-                          y={y}
-                          width={ORDER_FAILED_CROSS_WIDTH}
-                          length={ORDER_FAILED_CROSS_LENGTH}
-                          angle={45}
-                          fill={ORDER_FAILED_CROSS_FILL}
-                          stroke={ORDER_FAILED_CROSS_STROKE}
-                          strokeWidth={ORDER_FAILED_CROSS_STROKE_WIDTH}
-                        />
-                      )
-                    : undefined
-                }
-              />
-            );
-          })}
-      {props.orders &&
-        Object.entries(props.orders)
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          .filter(([_, order]) => order.type === "support")
-          .map(([provinceId, order]) => {
-            const source = map.provinces.find((p) => p.id === provinceId);
-            const target = map.provinces.find((p) => p.id === order.target);
-            const aux = map.provinces.find((p) => p.id === order.aux);
-            if (!source || !target || !aux) return null;
-            return (
-              <CurvedArrow
-                x1={source.center.x - UNIT_OFFSET_X}
-                y1={source.center.y - UNIT_OFFSET_Y}
-                x2={target.center.x - UNIT_OFFSET_X}
-                y2={target.center.y - UNIT_OFFSET_Y}
-                x3={aux.center.x - UNIT_OFFSET_X}
-                y3={aux.center.y - UNIT_OFFSET_Y}
-                lineWidth={ORDER_LINE_WIDTH}
-                arrowWidth={ORDER_ARROW_WIDTH}
-                arrowLength={ORDER_ARROW_LENGTH}
-                strokeWidth={ORDER_STROKE_WIDTH}
-                offset={UNIT_RADIUS}
-                stroke={"#000000"}
-                fill={"green"}
-                dash={{
-                  length: ORDER_DASH_LENGTH,
-                  spacing: ORDER_DASH_SPACING,
-                }}
-                onRenderCenter={
-                  order.outcome === "failed"
-                    ? (x, y, angle) => (
-                        <Cross
-                          x={x}
-                          y={y}
-                          width={ORDER_FAILED_CROSS_WIDTH}
-                          length={ORDER_FAILED_CROSS_LENGTH}
-                          angle={angle}
-                          fill={ORDER_FAILED_CROSS_FILL}
-                          stroke={ORDER_FAILED_CROSS_STROKE}
-                          strokeWidth={ORDER_FAILED_CROSS_STROKE_WIDTH}
-                        />
-                      )
-                    : undefined
-                }
-              />
-            );
-          })}
-      {props.orders &&
-        Object.entries(props.orders)
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          .filter(([_, order]) => order.type === "move")
-          .map(([provinceId, order]) => {
-            const source = map.provinces.find((p) => p.id === provinceId);
-            const target = map.provinces.find((p) => p.id === order.target);
-            if (!source || !target) return null;
-            return (
-              <Arrow
-                x1={source.center.x - UNIT_OFFSET_X}
-                y1={source.center.y - UNIT_OFFSET_Y}
-                x2={target.center.x - UNIT_OFFSET_X}
-                y2={target.center.y - UNIT_OFFSET_Y}
-                lineWidth={ORDER_LINE_WIDTH}
-                arrowWidth={ORDER_ARROW_WIDTH}
-                arrowLength={ORDER_ARROW_LENGTH}
-                strokeWidth={ORDER_STROKE_WIDTH}
-                offset={UNIT_RADIUS}
-                stroke={"#000000"}
-                fill={"green"}
-                onRenderCenter={
-                  order.outcome === "failed"
-                    ? (x, y, angle) => (
-                        <Cross
-                          x={x}
-                          y={y}
-                          width={ORDER_FAILED_CROSS_WIDTH}
-                          length={ORDER_FAILED_CROSS_LENGTH}
-                          angle={angle}
-                          fill={ORDER_FAILED_CROSS_FILL}
-                          stroke={ORDER_FAILED_CROSS_STROKE}
-                          strokeWidth={ORDER_FAILED_CROSS_STROKE_WIDTH}
-                        />
-                      )
-                    : undefined
-                }
-              />
-            );
-          })}
+      {props.orders?.map(({ nation, orders }) => {
+        return orders.filter((o) => o.orderType === "Hold").map((o) => {
+          const source = map.provinces.find((p) => p.id === o.source);
+          if (!source) return null;
+          return (
+            <Octagon
+              x={source.center.x - UNIT_OFFSET_X}
+              y={source.center.y - UNIT_OFFSET_Y}
+              strokeWidth={ORDER_LINE_WIDTH}
+              size={24}
+              stroke={"#000000"}
+              fill={"transparent"}
+              onRenderBottomCenter={
+                o.resolution && o.resolution.status !== "Succeeded"
+                  ? (x, y) => (
+                    <Cross
+                      x={x}
+                      y={y}
+                      width={ORDER_FAILED_CROSS_WIDTH}
+                      length={ORDER_FAILED_CROSS_LENGTH}
+                      angle={45}
+                      fill={ORDER_FAILED_CROSS_FILL}
+                      stroke={ORDER_FAILED_CROSS_STROKE}
+                      strokeWidth={ORDER_FAILED_CROSS_STROKE_WIDTH}
+                    />
+                  )
+                  : undefined
+              }
+            />
+          )
+        })
+      })}
+      {props.orders?.map(({ nation, orders }) => {
+        const color = props.variant.nations.find((n) => n.name === nation)?.color as string
+        return orders.filter((o) => o.orderType === "Support").map((o) => {
+          const source = map.provinces.find((p) => p.id === o.source);
+          const target = map.provinces.find((p) => p.id === o.target);
+          const aux = map.provinces.find((p) => p.id === o.aux);
+          if (!source) return null;
+          if (!target) return null;
+          if (!aux) return null;
+          return (
+            <CurvedArrow
+              x1={source.center.x - UNIT_OFFSET_X}
+              y1={source.center.y - UNIT_OFFSET_Y}
+              x2={target.center.x - UNIT_OFFSET_X}
+              y2={target.center.y - UNIT_OFFSET_Y}
+              x3={aux.center.x - UNIT_OFFSET_X}
+              y3={aux.center.y - UNIT_OFFSET_Y}
+              lineWidth={ORDER_LINE_WIDTH}
+              arrowWidth={ORDER_ARROW_WIDTH}
+              arrowLength={ORDER_ARROW_LENGTH}
+              strokeWidth={ORDER_STROKE_WIDTH}
+              offset={UNIT_RADIUS}
+              stroke={"#000000"}
+              fill={color}
+              dash={{ length: ORDER_DASH_LENGTH, spacing: ORDER_DASH_SPACING }}
+            />
+          )
+        })
+      })}
+      {props.orders?.map(({ nation, orders }) => {
+        return orders.filter((o) => o.orderType === "Move").map((o) => {
+          const source = map.provinces.find((p) => p.id === o.source);
+          const target = map.provinces.find((p) => p.id === o.target);
+          if (!source) return null;
+          if (!target) return null;
+          return (
+            <Arrow
+              x1={source.center.x - UNIT_OFFSET_X}
+              y1={source.center.y - UNIT_OFFSET_Y}
+              x2={target.center.x - UNIT_OFFSET_X}
+              y2={target.center.y - UNIT_OFFSET_Y}
+              lineWidth={ORDER_LINE_WIDTH}
+              arrowWidth={ORDER_ARROW_WIDTH}
+              arrowLength={ORDER_ARROW_LENGTH}
+              strokeWidth={ORDER_STROKE_WIDTH}
+              offset={UNIT_RADIUS}
+              stroke={"#000000"}
+              fill={"green"}
+            />
+          )
+        })
+      }
+      )}
     </svg>
   );
 };

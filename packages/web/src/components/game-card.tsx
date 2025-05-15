@@ -51,7 +51,7 @@ const GameCard: React.FC<
     >
       <Link underline="hover" onClick={handleClickGame}>
         <ListItemAvatar sx={styles.mapContainer}>
-          <InteractiveMap variant={game.variant} phase={game.currentPhase} />
+          <InteractiveMap variant={game.variant} phase={game.currentPhase} orders={[]} />
         </ListItemAvatar>
       </Link>
       <Stack>

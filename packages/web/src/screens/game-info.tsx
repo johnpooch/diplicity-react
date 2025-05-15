@@ -97,6 +97,7 @@ const GameInfo: React.FC = () => {
               <InteractiveMap
                 variant={game.variant}
                 phase={game.currentPhase}
+                orders={[]}
               />
             </ListItem>
             <TableListItem

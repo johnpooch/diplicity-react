@@ -20,7 +20,15 @@ const baseQueryWithReauth = async (args: Parameters<typeof baseQuery>[0], api: P
     let result = await baseQuery(args, api, extraOptions);
 
     if (result.error && result.error.status === 401) {
-        const refreshResult = await baseQuery("/api/token/refresh/", api, extraOptions);
+        // select refresh token from state
+        const refreshToken = selectAuth(api.getState() as Parameters<typeof selectAuth>[0]).refreshToken;
+        const refreshResult = await baseQuery({
+            url: "/api/token/refresh/",
+            method: "POST",
+            body: {
+                refresh: refreshToken
+            }
+        }, api, extraOptions);
 
         if (refreshResult.data) {
             const { access } = refreshResult.data as { access: string };

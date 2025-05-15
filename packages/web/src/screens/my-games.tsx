@@ -33,10 +33,10 @@ const MyGames: React.FC = () => {
         (game) => game.status === "completed"
       );
 
-      if (stagingGames.length > 0) {
-        setSelectedStatus("pending");
-      } else if (startedGames.length > 0) {
+      if (startedGames.length > 0) {
         setSelectedStatus("active");
+      } else if (stagingGames.length > 0) {
+        setSelectedStatus("pending");
       } else if (finishedGames.length > 0) {
         setSelectedStatus("completed");
       }
