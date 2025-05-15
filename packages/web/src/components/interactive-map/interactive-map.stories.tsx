@@ -2,56 +2,59 @@ import { Meta, StoryObj } from "@storybook/react";
 import { InteractiveMap } from "./interactive-map";
 import classical from "../../data/map/classical.json";
 
+const LONDON = {
+  id: "lon",
+  name: "London",
+  type: "land",
+  supplyCenter: true,
+}
+
+const ENGLAND = {
+  name: "England",
+  color: "rgb(255, 0, 0)",
+}
+
+
 export default {
   title: "Components/InteractiveMap",
   component: InteractiveMap,
   args: {
-    map: classical,
-    units: {
-      lon: {
-        unitType: "army",
+    interactive: true,
+    phase: {
+      units: [
+        {
+          type: "army",
+          nation: ENGLAND,
+          province: LONDON,
+        }
+      ],
+      supplyCenters: [
+        {
+          province: LONDON,
+          nation: ENGLAND,
+        }
+      ]
+    },
+    variant: {
+      id: "classical",
+      nations: [
+        ENGLAND,
+      ]
+    },
+    orders: [
+      {
         nation: "England",
-      },
-      lvp: {
-        unitType: "fleet",
-        nation: "England",
-      },
-      edi: {
-        unitType: "army",
-        nation: "England",
-      },
-    },
-    nationColors: {
-      England: "rgb(255, 0, 0)",
-      France: "rgb(0, 0, 255)",
-      Germany: "rgb(0, 255, 0)",
-      Italy: "rgb(255, 255, 0)",
-      Austria: "rgb(255, 0, 255)",
-      Russia: "rgb(0, 255, 255)",
-    },
-    supplyCenters: {
-      lon: "England",
-      lvp: "England",
-      edi: "England",
-    },
-    orders: {
-      lvp: {
-        type: "move",
-        target: "wal",
-        aux: "edi",
-        outcome: "failed",
-      },
-      lon: {
-        type: "support",
-        target: "wal",
-        aux: "lvp",
-        outcome: "failed",
-      },
-      edi: {
-        type: "hold",
-        outcome: "failed",
-      },
-    },
+        orders: [
+          {
+            id: 1,
+            orderType: "Hold",
+            source: "lon"
+          }
+        ]
+      }
+    ],
+    orderInProgress: undefined,
+    onClickProvince: () => { },
   },
 } as Meta;
 
