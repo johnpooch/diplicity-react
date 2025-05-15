@@ -4,7 +4,7 @@ services:
     container_name: diplicity-development
     build:
       context: .
-      dockerfile: .docker/Dockerfile-development
+      dockerfile: Dockerfile
     volumes:
       - .:/app
       - /app/node_modules
@@ -21,7 +21,7 @@ services:
     container_name: diplicity-codegen
     build:
       context: .
-      dockerfile: .docker/Dockerfile-development
+      dockerfile: Dockerfile
     volumes:
       - .:/app
       - /app/node_modules
@@ -89,8 +89,8 @@ services:
   service:
     container_name: diplicity-service
     build:
-      context: .
-      dockerfile: .docker/Dockerfile-service
+      context: ./service
+      dockerfile: Dockerfile
       target: development
     ports:
       - "8000:8000"
@@ -122,8 +122,8 @@ services:
 
   worker:
     build:
-      context: .
-      dockerfile: .docker/Dockerfile-service
+      context: ./service
+      dockerfile: Dockerfile
       target: worker
     container_name: diplicity-worker
     depends_on:

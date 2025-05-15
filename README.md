@@ -1,6 +1,6 @@
 # Diplicity React
 
-Welcome to the Diplicity React project! This project is a web client for [Diplicity](https://github.com/zond/diplicity). This project is maintained voluntarily by members of the online Diplomacy board game community.
+Welcome to the Diplicity React project! This is a web version of the classic Diplomacy board game. This project is maintained voluntarily by members of the online Diplomacy board game community.
 
 ## Get involved
 
@@ -8,11 +8,9 @@ We are looking for developers to get involved with the project. If you want to c
 
 ## Project Overview
 
-Diplicity React is a React-based web application that allows users to play the Diplomacy board game online. The application communicates with the diplicity API to manage game state, player actions, and other game-related functionalities.
+Diplicity React is a React-based web application which talks to a Django REST API to manage game state, player actions, and other game-related functionalities.
 
-- **API Link**: [diplicity API](https://github.com/zond/diplicity)
 - **Application Deployment**: [Diplicity React App](https://blue-cliff-00777a403.4.azurestaticapps.net/)
-- **Storybook Deployment**: [Diplicity React Storybook](https://nice-sand-001bca703.4.azurestaticapps.net/)
 
 ## Technologies Used
 
@@ -21,15 +19,18 @@ Diplicity React is a React-based web application that allows users to play the D
 - **Vite**: A fast build tool and development server for modern web projects.
 - **Material UI**: A popular React UI framework for building responsive and accessible user interfaces.
 - **Storybook**: A tool for developing UI components in isolation.
+- **Django**: A Python-based web framework for building robust and scalable web applications.
+- **Celery**: A task queue system for running background tasks.
 
 ## Getting Started
 
 ### Prerequisites
 
-Before you begin, ensure you have the following installed on your machine:
+Developing using Docker is the recommended way to run the application.
 
-- Node.js (v14 or higher)
-- NPM (v6 or higher)
+Download and install Docker Desktop from [here](https://www.docker.com/products/docker-desktop/).
+
+You will also need to get a bunch of secrets. See the [.env.example](.env.example) file for more information.
 
 ### Getting started
 
@@ -40,21 +41,13 @@ Before you begin, ensure you have the following installed on your machine:
    cd diplicity-react
    ```
 
-2. Install the dependencies:
+2. Start the containers
 
    ```sh
-   npm install
+   docker compose up
    ```
 
-3. Start the development server:
-
-   ```sh
-    npm run dev
-   ```
-
-   The application will be available at `http://localhost:5173`.
-
-4. To run Storybook, use the following command:
+3. To run Storybook, navigate to `/packages/web` and use the following command:
 
    ```sh
    npm run storybook

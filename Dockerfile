@@ -1,3 +1,7 @@
+# This Dockerfile is specifically for development purposes.
+# It includes both frontend (Node.js) and backend (Python) dependencies
+# to support development of the full stack application in a single container.
+
 # Base image with Node.js and Python
 FROM node:current-bullseye-slim
 
@@ -37,4 +41,4 @@ WORKDIR /app
 EXPOSE 5173 8000
 
 # Default command
-CMD ["bash"]
+CMD ["bash"] 
