@@ -259,7 +259,7 @@ class GameService(BaseService):
         user_ids = [member.user.id for member in game.members.all()]
         data = {
             "title": "Game Started",
-            "message": f"Game '{game.name}' has started!",
+            "body": f"Game '{game.name}' has started!",
             "game_id": game.id,
             "type": "game_start",
         }
@@ -316,7 +316,7 @@ class GameService(BaseService):
         user_ids = [member.user.id for member in game.members.all()]
         data = {
             "title": "Phase Resolved",
-            "message": f"Phase '{new_phase.name}' has been resolved!",
+            "body": f"Phase '{new_phase.name}' has been resolved!",
             "game_id": game.id,
             "type": "game_resolve",
         }
