@@ -1,0 +1,146 @@
+version: "3.9"
+services:
+  development:
+    container_name: diplicity-development
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/packages/native
+    env_file:
+      - .env
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    networks:
+      - diplicity-network
+    tty: true
+
+  codegen:
+    container_name: diplicity-codegen
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/packages/web/node_modules
+      - /app/packages/native
+    env_file:
+      - .env
+    networks:
+      - diplicity-network
+    depends_on:
+      - service
+    command: >
+      sh -c " python3 service/manage.py spectacular --file service/openapi-schema.yaml && npx --yes @rtk-query/codegen-openapi openapi-config.cjs"
+
+  web:
+    build:
+      context: ./packages/web
+      dockerfile: Dockerfile
+    develop:
+      watch:
+        - action: sync
+          path: ./src
+          target: /app/src
+          ignore:
+            - node_modules
+    container_name: diplicity-web
+    entrypoint: [ "npm", "run", "dev" ]
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./packages/web:/app
+      - /app/node_modules
+    env_file:
+      - .env
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    networks:
+      - diplicity-network
+
+  storybook:
+    build:
+      context: ./packages/web
+      dockerfile: Dockerfile
+    develop:
+      watch:
+        - action: sync
+          path: ./src
+          target: /app/src
+          ignore:
+            - node_modules
+    container_name: diplicity-storybook
+    entrypoint: [ "npm", "run", "storybook", "--", "--config-dir", "./.storybook" ]
+    ports:
+      - "6006:6006"
+    volumes:
+      - ./packages/web:/app
+      - /app/node_modules
+    env_file:
+      - .env
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    networks:
+      - diplicity-network
+
+  service:
+    container_name: diplicity-service
+    build:
+      context: ./service
+      dockerfile: Dockerfile
+      target: development
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    working_dir: /app/service
+    command: >
+      sh -c " python manage.py flush --no-input && python manage.py migrate && python manage.py generate_test_data && python manage.py createsuperuser --noinput --username $DJANGO_SUPERUSER_USERNAME --email  $DJANGO_SUPERUSER_EMAIL && python manage.py runserver 0.0.0.0:8000"
+    networks:
+      - diplicity-network
+
+  db:
+    container_name: diplicity-db
+    image: postgres:13
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: diplicity
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - diplicity-network
+
+  worker:
+    build:
+      context: ./service
+      dockerfile: Dockerfile
+      target: worker
+    container_name: diplicity-worker
+    depends_on:
+      - db
+    working_dir: /app/service
+    volumes:
+      - .:/app
+    command: celery -A project worker --loglevel=info
+    networks:
+      - diplicity-network
+    env_file:
+      - .env
+
+networks:
+  diplicity-network:
+    name: diplicity-network
+    driver: bridge
+
+volumes:
+  postgres_data:
