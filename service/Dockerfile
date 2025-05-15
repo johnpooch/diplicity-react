@@ -37,4 +37,4 @@ FROM base AS worker
 RUN useradd -ms /bin/bash celeryuser
 
 # Switch to the non-root user
-USER celeryuser
+USER celeryuser 
