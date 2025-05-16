@@ -27,7 +27,7 @@ RUN npm install -g npm@latest
 WORKDIR /app
 
 # Install Python dependencies
-COPY requirements.txt /app/
+COPY ./service/requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Install Node.js dependencies

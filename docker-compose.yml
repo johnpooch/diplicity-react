@@ -61,31 +61,6 @@ services:
     networks:
       - diplicity-network
 
-  storybook:
-    build:
-      context: ./packages/web
-      dockerfile: Dockerfile
-    develop:
-      watch:
-        - action: sync
-          path: ./src
-          target: /app/src
-          ignore:
-            - node_modules
-    container_name: diplicity-storybook
-    entrypoint: [ "npm", "run", "storybook", "--", "--config-dir", "./.storybook" ]
-    ports:
-      - "6006:6006"
-    volumes:
-      - ./packages/web:/app
-      - /app/node_modules
-    env_file:
-      - .env
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    networks:
-      - diplicity-network
-
   service:
     container_name: diplicity-service
     build:
