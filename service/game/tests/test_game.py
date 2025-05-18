@@ -59,7 +59,7 @@ class TestGameList(BaseTestCase):
         game = next(game for game in response.data if game["name"] == "Game 1")
         unit = game["current_phase"]["units"][0]
         supply_center = game["current_phase"]["supply_centers"][0]
-        member = game["members"][0]
+        member = next(member for member in game["members"] if member["username"] == self.user.username)
 
         self.assertEqual(game["id"], self.game1.id)
         self.assertEqual(game["name"], "Game 1")
@@ -107,7 +107,6 @@ class TestGameList(BaseTestCase):
         self.assertIn("members", game)
         self.assertEqual(len(game["members"]), 1)
 
-        self.assertEqual(member["id"], self.user.id)
         self.assertEqual(member["username"], self.user.username)
         self.assertEqual(member["name"], self.user.profile.name)
         self.assertEqual(member["picture"], self.user.profile.picture)
@@ -393,7 +392,7 @@ class TestGameStart(BaseTestCase):
                 user_ids,
                 {
                     "title": "Game Started",
-                    "message": f"Game '{self.game.name}' has started!",
+                    "body": f"Game '{self.game.name}' has started!",
                     "game_id": self.game.id,
                     "type": "game_start",
                 },
@@ -732,6 +731,21 @@ class TestGameResolve(BaseTestCase):
                         "result": "OK",
                         "by": None
                     }
+                ],
+                "units": [
+                    {
+                        "type": "Fleet",
+                        "nation": "England",
+                        "province": "London",
+                        "dislodged": False,
+                        "dislodged_by": None
+                    }
+                ],
+                "supply_centers": [
+                    {
+                        "province": "London",
+                        "nation": "England"
+                    }
                 ]
             },
             "options": {
@@ -765,6 +779,21 @@ class TestGameResolve(BaseTestCase):
                         "province": "lon",
                         "result": "ErrBounce",
                         "by": "lvp"
+                    }
+                ],
+                "units": [
+                    {
+                        "type": "Fleet",
+                        "nation": "England",
+                        "province": "London",
+                        "dislodged": False,
+                        "dislodged_by": None
+                    }
+                ],
+                "supply_centers": [
+                    {
+                        "province": "London",
+                        "nation": "England"
                     }
                 ]
             },
@@ -800,6 +829,21 @@ class TestGameResolve(BaseTestCase):
                         "province": "lon",
                         "result": "ErrInvalidSupporteeOrder",
                         "by": None
+                    }
+                ],
+                "units": [
+                    {
+                        "type": "Fleet",
+                        "nation": "England",
+                        "province": "London",
+                        "dislodged": False,
+                        "dislodged_by": None
+                    }
+                ],
+                "supply_centers": [
+                    {
+                        "province": "London",
+                        "nation": "England"
                     }
                 ]
             },
@@ -845,6 +889,21 @@ class TestGameResolve(BaseTestCase):
                         "province": "lvp",
                         "result": "OK",
                         "by": None
+                    }
+                ],
+                "units": [
+                    {
+                        "type": "Fleet",
+                        "nation": "England",
+                        "province": "London",
+                        "dislodged": False,
+                        "dislodged_by": None
+                    },
+                ],
+                "supply_centers": [
+                    {
+                        "province": "London",
+                        "nation": "England"
                     }
                 ]
             },

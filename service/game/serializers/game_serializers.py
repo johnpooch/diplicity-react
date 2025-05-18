@@ -38,7 +38,7 @@ class NationOptionsSerializer(serializers.Serializer):
     def to_representation(self, instance):
         return {
             'nation': instance['nation'],
-            'options': json.loads(instance['options'])
+            'options': json.loads(instance['options']) if instance.get('options') else {}
         }
 
 
