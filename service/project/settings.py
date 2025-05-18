@@ -200,10 +200,3 @@ SPECTACULAR_SETTINGS = {
     ],
 }
 
-if "test" in sys.argv:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": ":memory:",  # Use in-memory database for tests
-        }
-    }

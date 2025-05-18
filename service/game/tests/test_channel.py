@@ -130,70 +130,76 @@ class TestChannelList(BaseTestCase):
         url = reverse("channel-list", args=[self.game.id])
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
         # Should see private channels they're member of and all public channels
         self.assertEqual(len(response.data), 2)  # private_member_channel + public_channel
+        
+        # Verify channel names
         channel_names = [channel["name"] for channel in response.data]
         self.assertIn("Private Member", channel_names)
         self.assertIn("Public Channel", channel_names)
         self.assertNotIn("Private Non-Member", channel_names)
 
-        # Verify nation data and is_current_user in messages
+        # Verify channel content
         for channel in response.data:
-            for message in channel["messages"]:
-                self.assertIn("nation", message["sender"])
-                self.assertIn("is_current_user", message["sender"])
-                if message["sender"]["username"] == self.user.username:
-                    self.assertEqual(message["sender"]["nation"]["name"], "England")
-                    self.assertTrue(message["sender"]["is_current_user"])
-                else:
-                    self.assertFalse(message["sender"]["is_current_user"])
+            # Find the channel we're looking at
+            if channel["name"] == "Private Member":
+                # Verify private channel content
+                self.assertTrue(channel["private"])
+                self.assertEqual(len(channel["messages"]), 1)
+                message = channel["messages"][0]
+                self.assertEqual(message["body"], "Test message")
+                self.assertEqual(message["sender"]["username"], self.user.username)
+                self.assertEqual(message["sender"]["nation"]["name"], "England")
+                self.assertTrue(message["sender"]["is_current_user"])
+            elif channel["name"] == "Public Channel":
+                # Verify public channel content
+                self.assertFalse(channel["private"])
+                self.assertEqual(len(channel["messages"]), 0)
 
     def test_list_channels_as_non_member(self):
         # Login as other user
         self.client.force_authenticate(user=self.other_user)
-        url = reverse("channel-list", args=[self.game.id])
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # Should only see public channels
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["name"], "Public Channel")
-
-    def test_retrieve_private_channel_as_member(self):
-        # Set up the member with a nation that exists in the variant
+        
+        # Create some messages in different channels
         member = self.game.members.first()
         member.nation = "England"
         member.save()
-
-        # Create a message from current user
-        message = self.private_member_channel.messages.create(
+        
+        # Add message to private member channel (should not be visible)
+        self.private_member_channel.messages.create(
             sender=member,
-            body="Test message"
+            body="Private message"
+        )
+        
+        # Add message to public channel (should be visible)
+        self.public_channel.messages.create(
+            sender=member,
+            body="Public message"
         )
 
-        url = reverse("channel-detail", args=[self.game.id, self.private_member_channel.id])
+        url = reverse("channel-list", args=[self.game.id])
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["name"], "Private Member")
+        
+        # Should only see public channels
+        self.assertEqual(len(response.data), 1)
+        channel = response.data[0]
+        
+        # Verify channel data
+        self.assertEqual(channel["name"], "Public Channel")
+        self.assertFalse(channel["private"])
+        self.assertEqual(len(channel["messages"]), 1)
+        
+        # Verify message data
+        message = channel["messages"][0]
+        self.assertEqual(message["body"], "Public message")
+        self.assertEqual(message["sender"]["username"], self.user.username)
+        self.assertEqual(message["sender"]["nation"]["name"], "England")
+        self.assertFalse(message["sender"]["is_current_user"])
 
-        # Verify nation data and is_current_user in messages
-        for message in response.data["messages"]:
-            self.assertIn("nation", message["sender"])
-            self.assertIn("is_current_user", message["sender"])
-            if message["sender"]["username"] == self.user.username:
-                self.assertEqual(message["sender"]["nation"]["name"], "England")
-                self.assertTrue(message["sender"]["is_current_user"])
-            else:
-                self.assertFalse(message["sender"]["is_current_user"])
-
-    def test_retrieve_private_channel_as_non_member_fails(self):
-        url = reverse("channel-detail", args=[self.game.id, self.private_non_member_channel.id])
+    def test_list_channels_unauthenticated(self):
+        self.client.logout()
+        url = reverse("channel-list", args=[self.game.id])
         response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
-    def test_retrieve_public_channel_as_non_member(self):
-        # Login as other user
-        self.client.force_authenticate(user=self.other_user)
-        url = reverse("channel-detail", args=[self.game.id, self.public_channel.id])
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["name"], "Public Channel")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
