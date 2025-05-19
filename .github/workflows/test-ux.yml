@@ -19,4 +19,4 @@ jobs:
     - name: Build and run tests
       run: |
         docker build -t diplicity-web -f packages/web/Dockerfile packages/web
-        docker run --rm diplicity-web npm run test
+        docker run --rm diplicity-web npm run test -- --run
