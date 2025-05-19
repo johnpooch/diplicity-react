@@ -79,6 +79,18 @@ services:
     networks:
       - diplicity-network
 
+  test-service:
+    container_name: diplicity-test-service
+    build:
+      context: ./service
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    command: >
+      sh -c "python manage.py test"
+    networks:
+      - diplicity-network
+
   db:
     container_name: diplicity-db
     image: postgres:13
