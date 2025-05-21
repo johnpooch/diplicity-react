@@ -18,7 +18,7 @@ jobs:
       
     - name: Set up Docker Compose
       run: |
-        docker compose up -d db worker
+        docker compose up -d db
         # Wait for services to be ready
         sleep 10
         
@@ -26,8 +26,8 @@ jobs:
       run: |
         docker compose run test-service
       env:
-        POSTGRES_DB: diplicity
-        POSTGRES_USER: postgres
-        POSTGRES_PASSWORD: postgres
-        DJANGO_SUPERUSER_USERNAME: admin
-        DJANGO_SUPERUSER_EMAIL: admin@example.com
+        DATABASE_NAME: diplicity
+        DATABASE_USER: postgres
+        DATABASE_PASSWORD: postgres
+        DATABASE_HOST: db
+        DATABASE_PORT: 5432
