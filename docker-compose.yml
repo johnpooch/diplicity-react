@@ -89,11 +89,11 @@ services:
     networks:
       - diplicity-network
     environment:
-      - DATABASE_NAME: diplicity
-      - DATABASE_USER: postgres
-      - DATABASE_PASSWORD: postgres
-      - DATABASE_HOST: db
-      - DATABASE_PORT: 5432
+      DATABASE_NAME: diplicity
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: postgres
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
 
   db:
     container_name: diplicity-db
