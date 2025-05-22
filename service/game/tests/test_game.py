@@ -59,7 +59,11 @@ class TestGameList(BaseTestCase):
         game = next(game for game in response.data if game["name"] == "Game 1")
         unit = game["current_phase"]["units"][0]
         supply_center = game["current_phase"]["supply_centers"][0]
-        member = next(member for member in game["members"] if member["username"] == self.user.username)
+        member = next(
+            member
+            for member in game["members"]
+            if member["username"] == self.user.username
+        )
 
         self.assertEqual(game["id"], self.game1.id)
         self.assertEqual(game["name"], "Game 1")
@@ -154,7 +158,9 @@ class TestGameRetrieve(BaseTestCase):
         self.assertIn("status", response.data)
         self.assertIn("movement_phase_duration", response.data)
         self.assertIn("nation_assignment", response.data)
-        self.assertEqual(response.data["nation_assignment"], models.Game.RANDOM)  # Default value
+        self.assertEqual(
+            response.data["nation_assignment"], models.Game.RANDOM
+        )  # Default value
         self.assertIn("can_join", response.data)
         self.assertIn("can_leave", response.data)
         self.assertIn("current_phase", response.data)
@@ -182,7 +188,7 @@ class TestGameCreate(BaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn("id", response.data)
         self.assertEqual(response.data["name"], payload["name"])
-        
+
         # Verify default nation assignment is random
         game = models.Game.objects.get(id=response.data["id"])
         self.assertEqual(game.nation_assignment, models.Game.RANDOM)
@@ -197,7 +203,7 @@ class TestGameCreate(BaseTestCase):
         payload = {
             "name": "New Game",
             "variant": self.variant.id,
-            "nation_assignment": models.Game.ORDERED
+            "nation_assignment": models.Game.ORDERED,
         }
         response = self.create_request(payload)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -331,9 +337,22 @@ class TestGameStart(BaseTestCase):
         super().setUp()
         self.game = self.create_game(self.user, "Game 1", status=models.Game.PENDING)
         self.adjudication_service_mock = MagicMock()
-        self.apply_async_patch = patch("game.tasks.notify_task.apply_async")
-        self.mock_apply_async = self.apply_async_patch.start()
-        self.addCleanup(self.apply_async_patch.stop)
+
+        self.notify_apply_async_patch = patch("game.tasks.notify_task.apply_async")
+        self.mock_notify_apply_async = self.notify_apply_async_patch.start()
+
+        self.resolve_apply_async_patch = patch("game.tasks.resolve_task.apply_async")
+        self.mock_resolve_apply_async = self.resolve_apply_async_patch.start()
+
+        mock_task_result = MagicMock(task_id=12345)
+
+        self.mock_resolve_apply_async.return_value = mock_task_result
+
+        models.Task.objects.create(id=mock_task_result.task_id)
+
+        self.addCleanup(self.notify_apply_async_patch.stop)
+        self.addCleanup(self.resolve_apply_async_patch.stop)
+
         self.service = GameService(
             user=self.user,
             adjudication_service=self.adjudication_service_mock,
@@ -387,7 +406,7 @@ class TestGameStart(BaseTestCase):
 
         # Verify apply_async is called with correct arguments
         user_ids = [member.user.id for member in self.game.members.all()]
-        self.mock_apply_async.assert_called_once_with(
+        self.mock_notify_apply_async.assert_called_once_with(
             args=[
                 user_ids,
                 {
@@ -430,7 +449,8 @@ class TestGameStart(BaseTestCase):
 
         # Verify no interaction with mocks
         self.adjudication_service_mock.start.assert_not_called()
-        self.mock_apply_async.assert_not_called()
+        self.mock_notify_apply_async.assert_not_called()
+        self.mock_resolve_apply_async.assert_not_called()
 
 
 class TestGameConfirmPhase(BaseTestCase):
@@ -510,10 +530,7 @@ class TestGameConfirmPhase(BaseTestCase):
 
         # Verify task was executed immediately
         self.mock_resolve_task.assert_called_once_with(
-            args=[self.game.id],
-            kwargs={},
-            task_id=task.id,
-            countdown=0
+            args=[self.game.id], kwargs={}, task_id=task.id, countdown=0
         )
 
     def test_confirm_phase_no_auto_resolve_eliminated_player(self):
@@ -531,17 +548,14 @@ class TestGameConfirmPhase(BaseTestCase):
         self.service.user = self.other_user
         other_phase_state.orders_confirmed = True
         other_phase_state.save()
-        
+
         # Active player confirms
         self.service.user = self.user
         self.service.confirm_phase(self.game.id)
 
         # Verify task was executed immediately (only active player matters)
         self.mock_resolve_task.assert_called_once_with(
-            args=[self.game.id],
-            kwargs={},
-            task_id=task.id,
-            countdown=0
+            args=[self.game.id], kwargs={}, task_id=task.id, countdown=0
         )
 
     def test_confirm_phase_no_auto_resolve_kicked_player(self):
@@ -559,17 +573,14 @@ class TestGameConfirmPhase(BaseTestCase):
         self.service.user = self.other_user
         other_phase_state.orders_confirmed = True
         other_phase_state.save()
-        
+
         # Active player confirms
         self.service.user = self.user
         self.service.confirm_phase(self.game.id)
 
         # Verify task was executed immediately (only active player matters)
         self.mock_resolve_task.assert_called_once_with(
-            args=[self.game.id],
-            kwargs={},
-            task_id=task.id,
-            countdown=0
+            args=[self.game.id], kwargs={}, task_id=task.id, countdown=0
         )
 
     def test_confirm_phase_no_resolution_task(self):
@@ -685,7 +696,9 @@ class TestGamePhaseProperties(BaseTestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.data["phase_confirmed"])
-        self.assertFalse(response.data["can_confirm_phase"])  # Can't confirm when no active phase
+        self.assertFalse(
+            response.data["can_confirm_phase"]
+        )  # Can't confirm when no active phase
 
 
 class TestGameResolve(BaseTestCase):
@@ -703,9 +716,22 @@ class TestGameResolve(BaseTestCase):
         self.member.save()
         self.phase_state = self.phase.phase_states.create(member=self.member)
         self.adjudication_service_mock = MagicMock()
-        self.apply_async_patch = patch("game.tasks.notify_task.apply_async")
-        self.mock_apply_async = self.apply_async_patch.start()
-        self.addCleanup(self.apply_async_patch.stop)
+
+        self.notify_apply_async_patch = patch("game.tasks.notify_task.apply_async")
+        self.mock_notify_apply_async = self.notify_apply_async_patch.start()
+
+        self.resolve_apply_async_patch = patch("game.tasks.resolve_task.apply_async")
+        self.mock_resolve_apply_async = self.resolve_apply_async_patch.start()
+
+        mock_task_result = MagicMock(task_id=12345)
+
+        self.mock_resolve_apply_async.return_value = mock_task_result
+
+        models.Task.objects.create(id=mock_task_result.task_id)
+
+        self.addCleanup(self.notify_apply_async_patch.stop)
+        self.addCleanup(self.resolve_apply_async_patch.stop)
+
         self.service = GameService(
             user=self.user,
             adjudication_service=self.adjudication_service_mock,
@@ -714,9 +740,7 @@ class TestGameResolve(BaseTestCase):
     def test_resolve_successful_move(self):
         # Create an order
         order = self.phase_state.orders.create(
-            order_type="Move",
-            source="lon",
-            target="eng"
+            order_type="Move", source="lon", target="eng"
         )
 
         # Mock adjudication service response
@@ -725,32 +749,19 @@ class TestGameResolve(BaseTestCase):
                 "season": "Spring",
                 "year": 1901,
                 "type": "Retreat",
-                "resolutions": [
-                    {
-                        "province": "lon",
-                        "result": "OK",
-                        "by": None
-                    }
-                ],
+                "resolutions": [{"province": "lon", "result": "OK", "by": None}],
                 "units": [
                     {
                         "type": "Fleet",
                         "nation": "England",
                         "province": "London",
                         "dislodged": False,
-                        "dislodged_by": None
+                        "dislodged_by": None,
                     }
                 ],
-                "supply_centers": [
-                    {
-                        "province": "London",
-                        "nation": "England"
-                    }
-                ]
+                "supply_centers": [{"province": "London", "nation": "England"}],
             },
-            "options": {
-                "England": {"option1": "value1"}
-            }
+            "options": {"England": {"option1": "value1"}},
         }
 
         self.service.resolve(self.game.id)
@@ -763,9 +774,7 @@ class TestGameResolve(BaseTestCase):
     def test_resolve_bounce(self):
         # Create an order
         order = self.phase_state.orders.create(
-            order_type="Move",
-            source="lon",
-            target="wal"
+            order_type="Move", source="lon", target="wal"
         )
 
         # Mock adjudication service response
@@ -775,11 +784,7 @@ class TestGameResolve(BaseTestCase):
                 "year": 1901,
                 "type": "Retreat",
                 "resolutions": [
-                    {
-                        "province": "lon",
-                        "result": "ErrBounce",
-                        "by": "lvp"
-                    }
+                    {"province": "lon", "result": "ErrBounce", "by": "lvp"}
                 ],
                 "units": [
                     {
@@ -787,19 +792,12 @@ class TestGameResolve(BaseTestCase):
                         "nation": "England",
                         "province": "London",
                         "dislodged": False,
-                        "dislodged_by": None
+                        "dislodged_by": None,
                     }
                 ],
-                "supply_centers": [
-                    {
-                        "province": "London",
-                        "nation": "England"
-                    }
-                ]
+                "supply_centers": [{"province": "London", "nation": "England"}],
             },
-            "options": {
-                "England": {"option1": "value1"}
-            }
+            "options": {"England": {"option1": "value1"}},
         }
 
         self.service.resolve(self.game.id)
@@ -812,10 +810,7 @@ class TestGameResolve(BaseTestCase):
     def test_resolve_invalid_support_order(self):
         # Create an order
         order = self.phase_state.orders.create(
-            order_type="Support",
-            source="lon",
-            target="wal",
-            aux="eng"
+            order_type="Support", source="lon", target="wal", aux="eng"
         )
 
         # Mock adjudication service response
@@ -828,7 +823,7 @@ class TestGameResolve(BaseTestCase):
                     {
                         "province": "lon",
                         "result": "ErrInvalidSupporteeOrder",
-                        "by": None
+                        "by": None,
                     }
                 ],
                 "units": [
@@ -837,19 +832,12 @@ class TestGameResolve(BaseTestCase):
                         "nation": "England",
                         "province": "London",
                         "dislodged": False,
-                        "dislodged_by": None
+                        "dislodged_by": None,
                     }
                 ],
-                "supply_centers": [
-                    {
-                        "province": "London",
-                        "nation": "England"
-                    }
-                ]
+                "supply_centers": [{"province": "London", "nation": "England"}],
             },
-            "options": {
-                "England": {"option1": "value1"}
-            }
+            "options": {"England": {"option1": "value1"}},
         }
 
         self.service.resolve(self.game.id)
@@ -862,15 +850,10 @@ class TestGameResolve(BaseTestCase):
     def test_resolve_multiple_orders(self):
         # Create orders
         order1 = self.phase_state.orders.create(
-            order_type="Move",
-            source="lon",
-            target="eng"
+            order_type="Move", source="lon", target="eng"
         )
         order2 = self.phase_state.orders.create(
-            order_type="Support",
-            source="lvp",
-            target="lon",
-            aux="eng"
+            order_type="Support", source="lvp", target="lon", aux="eng"
         )
 
         # Mock adjudication service response
@@ -880,16 +863,8 @@ class TestGameResolve(BaseTestCase):
                 "year": 1901,
                 "type": "Retreat",
                 "resolutions": [
-                    {
-                        "province": "lon",
-                        "result": "OK",
-                        "by": None
-                    },
-                    {
-                        "province": "lvp",
-                        "result": "OK",
-                        "by": None
-                    }
+                    {"province": "lon", "result": "OK", "by": None},
+                    {"province": "lvp", "result": "OK", "by": None},
                 ],
                 "units": [
                     {
@@ -897,19 +872,12 @@ class TestGameResolve(BaseTestCase):
                         "nation": "England",
                         "province": "London",
                         "dislodged": False,
-                        "dislodged_by": None
+                        "dislodged_by": None,
                     },
                 ],
-                "supply_centers": [
-                    {
-                        "province": "London",
-                        "nation": "England"
-                    }
-                ]
+                "supply_centers": [{"province": "London", "nation": "England"}],
             },
-            "options": {
-                "England": {"option1": "value1"}
-            }
+            "options": {"England": {"option1": "value1"}},
         }
 
         self.service.resolve(self.game.id)
@@ -930,11 +898,7 @@ class TestGameResolve(BaseTestCase):
         )
 
         # Create an order
-        self.phase_state.orders.create(
-            order_type="Move",
-            source="lon",
-            target="eng"
-        )
+        self.phase_state.orders.create(order_type="Move", source="lon", target="eng")
 
         # Call the resolve method and assert exception
         with self.assertRaisesMessage(
