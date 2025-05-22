@@ -266,6 +266,7 @@ class GameService(BaseService):
             "type": "game_start",
         }
         tasks.notify_task.apply_async(args=[user_ids, data], kwargs={})
+        return game
 
     def resolve(self, game_id):
         game = get_object_or_404(models.Game, id=game_id)
@@ -323,6 +324,8 @@ class GameService(BaseService):
             "type": "game_resolve",
         }
         tasks.notify_task.apply_async(args=[user_ids, data], kwargs={})
+
+        return game
 
     def _create_phase(self, game, phase_data):
         variant = game.variant
