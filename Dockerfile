@@ -26,9 +26,11 @@ RUN npm install -g npm@latest
 # Set working directory
 WORKDIR /app
 
+# Copy Python configuration files
+COPY ./service/requirements.txt ./service/dev_requirements.txt ./pyproject.toml /app/
+
 # Install Python dependencies
-COPY ./service/requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt -r dev_requirements.txt
 
 # Install Node.js dependencies
 COPY ./packages/web/package.json ./packages/web/package-lock.json /app/packages/web/
