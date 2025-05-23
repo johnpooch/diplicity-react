@@ -38,7 +38,7 @@ class NationOptionsSerializer(serializers.Serializer):
     def to_representation(self, instance):
         return {
             'nation': instance['nation'],
-            'options': json.loads(instance['options'])
+            'options': json.loads(instance['options']) if instance.get('options') else {}
         }
 
 
@@ -56,7 +56,7 @@ class PhaseSerializer(serializers.Serializer):
 
 
 class GameSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
+    id = serializers.CharField()
     name = serializers.CharField()
     status = serializers.CharField()
     movement_phase_duration = serializers.CharField()

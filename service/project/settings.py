@@ -100,7 +100,7 @@ DATABASES = {
         "NAME": os.getenv("DATABASE_NAME", "diplicity"),
         "USER": os.getenv("DATABASE_USER", "postgres"),
         "PASSWORD": os.getenv("DATABASE_PASSWORD", "postgres"),
-        "HOST": os.getenv("DATABASE_HOST", "localhost"),
+        "HOST": os.getenv("DATABASE_HOST", "db"),
         "PORT": os.getenv("DATABASE_PORT", "5432"),
     }
 }
@@ -156,8 +156,6 @@ GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 
 SOCIAL_AUTH_PASSWORD = os.getenv("SOCIAL_AUTH_PASSWORD")
 
-ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
-
 
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
@@ -183,7 +181,7 @@ firebase_credentials = {
     "type": os.getenv("FIREBASE_TYPE"),
     "project_id": os.getenv("FIREBASE_PROJECT_ID"),
     "private_key_id": os.getenv("FIREBASE_PRIVATE_KEY_ID"),
-    "private_key": os.getenv("FIREBASE_PRIVATE_KEY").replace("\\n", "\n"),
+    "private_key": os.getenv("FIREBASE_PRIVATE_KEY", "").replace("\\n", "\n"),
     "client_email": os.getenv("FIREBASE_CLIENT_EMAIL"),
     "client_id": os.getenv("FIREBASE_CLIENT_ID"),
     "auth_uri": os.getenv("FIREBASE_AUTH_URI"),
@@ -192,7 +190,8 @@ firebase_credentials = {
     "client_x509_cert_url": os.getenv("FIREBASE_CLIENT_X509_CERT_URL"),
 }
 
-FIREBASE_APP = initialize_app(credentials.Certificate(firebase_credentials))
+if "pytest" not in sys.argv[0]:
+    FIREBASE_APP = initialize_app(credentials.Certificate(firebase_credentials))
 
 SPECTACULAR_SETTINGS = {
     "CAMELIZE_NAMES": True,
@@ -201,11 +200,3 @@ SPECTACULAR_SETTINGS = {
         "drf_spectacular.hooks.postprocess_schema_enums",
     ],
 }
-
-if "test" in sys.argv:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": ":memory:",  # Use in-memory database for tests
-        }
-    }

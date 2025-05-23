@@ -22,7 +22,6 @@ import {
   Map,
   CreateChannel,
   CreateChannelAction,
-  CreateChannelTextField,
   GameMenu,
   OrderList,
   QueryContainer,
@@ -176,13 +175,11 @@ const Router: React.FC = () => {
                 path="orders"
                 element={
                   <CreateOrderContextProvider>
-                    {(source) => (
-                      <Panel>
-                        <Panel.Content>
-                          <OrderList />
-                        </Panel.Content>
-                      </Panel>
-                    )}
+                    <Panel>
+                      <Panel.Content>
+                        <OrderList />
+                      </Panel.Content>
+                    </Panel>
                   </CreateOrderContextProvider>
                 }
               />
@@ -264,9 +261,6 @@ const Router: React.FC = () => {
                       <Panel.Content>
                         <CreateChannel />
                       </Panel.Content>
-                      <Panel.Footer>
-                        <CreateChannelTextField />
-                      </Panel.Footer>
                     </Panel>
                   </CreateChannelContextProvider>
                 }
@@ -308,14 +302,12 @@ const Router: React.FC = () => {
                 index
                 element={
                   <CreateOrderContextProvider>
-                    {(source) => (
-                      <Panel>
-                        <Panel.Content>
-                          <OrderList />
-                        </Panel.Content>
+                    <Panel>
+                      <Panel.Content>
+                        <OrderList />
+                      </Panel.Content>
 
-                      </Panel>
-                    )}
+                    </Panel>
                   </CreateOrderContextProvider>
                 }
               />
@@ -323,13 +315,11 @@ const Router: React.FC = () => {
                 path="orders"
                 element={
                   <CreateOrderContextProvider>
-                    {(source) => (
-                      <Panel>
-                        <Panel.Content>
-                          <OrderList />
-                        </Panel.Content>
-                      </Panel>
-                    )}
+                    <Panel>
+                      <Panel.Content>
+                        <OrderList />
+                      </Panel.Content>
+                    </Panel>
                   </CreateOrderContextProvider>
                 }
               />

@@ -1,6 +1,5 @@
 import { Meta, StoryObj } from "@storybook/react";
 import { InteractiveMap } from "./interactive-map";
-import classical from "../../data/map/classical.json";
 
 const LONDON = {
   id: "lon",

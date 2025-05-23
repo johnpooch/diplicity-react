@@ -1,8 +1,11 @@
 import json
+from django.conf import settings
 from django.urls import reverse
 from rest_framework import status
 from .base import BaseTestCase
 from game import models
+
+BASE_DIR = settings.BASE_DIR
 
 
 class TestOrderCreate(BaseTestCase):
@@ -16,7 +19,7 @@ class TestOrderCreate(BaseTestCase):
         )
         self.member = self.game.members.first()
         self.phase_state = self.phase.phase_states.create(member=self.member)
-        with open("/app/service/game/data/options/options.json") as f:
+        with open(f"{BASE_DIR}/game/data/options/options.json") as f:
             json_string = f.read()
         self.phase_state.options = json.dumps(json.loads(json_string))
         self.phase_state.save()

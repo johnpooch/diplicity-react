@@ -270,7 +270,7 @@ paths:
       - in: path
         name: gameId
         schema:
-          type: integer
+          type: string
         required: true
       tags:
       - game
@@ -290,7 +290,7 @@ paths:
       - in: path
         name: gameId
         schema:
-          type: integer
+          type: string
         required: true
       tags:
       - game
@@ -321,7 +321,7 @@ paths:
       - in: path
         name: gameId
         schema:
-          type: integer
+          type: string
         required: true
       tags:
       - game
@@ -347,7 +347,7 @@ paths:
       - in: path
         name: gameId
         schema:
-          type: integer
+          type: string
         required: true
       tags:
       - game
@@ -369,7 +369,7 @@ paths:
       - in: path
         name: gameId
         schema:
-          type: integer
+          type: string
         required: true
       tags:
       - game
@@ -389,7 +389,7 @@ paths:
       - in: path
         name: gameId
         schema:
-          type: integer
+          type: string
         required: true
       tags:
       - game
@@ -409,7 +409,7 @@ paths:
       - in: path
         name: gameId
         schema:
-          type: integer
+          type: string
         required: true
       tags:
       - game
@@ -425,7 +425,7 @@ paths:
       - in: path
         name: gameId
         schema:
-          type: integer
+          type: string
         required: true
       tags:
       - game
@@ -451,7 +451,7 @@ paths:
       - in: path
         name: gameId
         schema:
-          type: integer
+          type: string
         required: true
       - in: path
         name: phaseId
@@ -629,7 +629,7 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
         name:
           type: string
         status:
