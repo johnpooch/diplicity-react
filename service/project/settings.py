@@ -190,7 +190,7 @@ firebase_credentials = {
     "client_x509_cert_url": os.getenv("FIREBASE_CLIENT_X509_CERT_URL"),
 }
 
-if "test" not in sys.argv:
+if "pytest" not in sys.argv[0]:
     FIREBASE_APP = initialize_app(credentials.Certificate(firebase_credentials))
 
 SPECTACULAR_SETTINGS = {

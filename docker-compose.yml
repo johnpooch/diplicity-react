@@ -85,8 +85,6 @@ services:
       context: ./service
       dockerfile: Dockerfile
       target: development
-    env_file:
-      - .env
     command: >
       sh -c "python3 -m pytest"
     networks:
