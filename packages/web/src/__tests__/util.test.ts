@@ -183,14 +183,6 @@ describe("getOptions", () => {
         ]
     } as unknown as Variant;
 
-    const mockPhase = {
-        units: [
-            { province: { id: "bud" }, type: "Army" },
-            { province: { id: "tri" }, type: "Fleet" },
-            { province: { id: "vie" }, type: "Army" },
-        ]
-    } as unknown as Phase;
-
     const options = {
         "bud": {
             "Next": {

@@ -56,7 +56,7 @@ class PhaseSerializer(serializers.Serializer):
 
 
 class GameSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
+    id = serializers.CharField()
     name = serializers.CharField()
     status = serializers.CharField()
     movement_phase_duration = serializers.CharField()
