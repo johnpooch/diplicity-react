@@ -84,8 +84,11 @@ services:
     build:
       context: ./service
       dockerfile: Dockerfile
+      target: development
+    env_file:
+      - .env
     command: >
-      sh -c "python manage.py test"
+      sh -c "python3 -m pytest"
     networks:
       - diplicity-network
     environment:

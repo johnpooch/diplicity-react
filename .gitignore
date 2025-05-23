@@ -24,3 +24,5 @@ dist-ssr
 *storybook.log
 .env
 storybook-static
+
+service/game/tests/prof/
