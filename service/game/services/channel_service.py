@@ -87,16 +87,19 @@ class ChannelService(BaseService):
         game = get_object_or_404(models.Game, id=game_id)
         member = game.members.filter(user=self.user).first()
         if not member:
-            raise exceptions.PermissionDenied("User is not a member of the game.")
-
-        # Get channels that are either public or user is a member of
-        channels = game.channels.prefetch_related(
-            "messages",
-            "messages__sender",
-            "messages__sender__user"
-        ).filter(
-            Q(private=False) | Q(members=member)
-        ).distinct()
+            channels = game.channels.prefetch_related(
+                "messages",
+                "messages__sender",
+                "messages__sender__user"
+            ).filter(private=False)
+        else:
+            channels = game.channels.prefetch_related(
+                "messages",
+                "messages__sender",
+                "messages__sender__user"
+            ).filter(
+                Q(private=False) | Q(members=member)
+            ).distinct()
 
         # Annotate is_current_user for message senders
         for channel in channels:

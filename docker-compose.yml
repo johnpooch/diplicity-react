@@ -61,31 +61,6 @@ services:
     networks:
       - diplicity-network
 
-  storybook:
-    build:
-      context: ./packages/web
-      dockerfile: Dockerfile
-    develop:
-      watch:
-        - action: sync
-          path: ./src
-          target: /app/src
-          ignore:
-            - node_modules
-    container_name: diplicity-storybook
-    entrypoint: [ "npm", "run", "storybook", "--", "--config-dir", "./.storybook" ]
-    ports:
-      - "6006:6006"
-    volumes:
-      - ./packages/web:/app
-      - /app/node_modules
-    env_file:
-      - .env
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    networks:
-      - diplicity-network
-
   service:
     container_name: diplicity-service
     build:
@@ -104,11 +79,26 @@ services:
     networks:
       - diplicity-network
 
+  test-service:
+    container_name: diplicity-test-service
+    build:
+      context: ./service
+      dockerfile: Dockerfile
+      target: development
+    command: >
+      sh -c "python3 -m pytest"
+    networks:
+      - diplicity-network
+    environment:
+      DATABASE_NAME: diplicity
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: postgres
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+
   db:
     container_name: diplicity-db
     image: postgres:13
-    env_file:
-      - .env
     environment:
       POSTGRES_DB: diplicity
       POSTGRES_USER: postgres

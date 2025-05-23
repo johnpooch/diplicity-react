@@ -12,13 +12,11 @@ import {
   ListSubheader,
   Stack,
   Typography,
-  Box,
 } from "@mui/material";
 import {
   Add as CreateOrderIcon,
   CheckBoxOutlineBlank as OrdersNotConfirmedIcon,
   CheckBox as OrdersConfirmedIcon,
-  Assignment as NoOrdersIcon,
 } from "@mui/icons-material";
 import { OrderSummary } from "./order-summary";
 import { useSelectedGameContext, useSelectedPhaseContext } from "../context";
@@ -133,7 +131,7 @@ const OrderList: React.FC = () => {
                                 />
                               ) : (
                                 <Typography variant="body1">
-                                  {orderable.unitType?.charAt(0).toUpperCase() + orderable.unitType?.slice(1)} {orderable.province}
+                                  {orderable.unitType ? `${orderable.unitType.charAt(0).toUpperCase()}${orderable.unitType.slice(1)} ${orderable.province}` : orderable.province}
                                 </Typography>
                               )
                             }
