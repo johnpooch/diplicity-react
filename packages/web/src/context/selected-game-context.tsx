@@ -12,47 +12,46 @@ type Query<TData> = {
 const SelectedGameContext = createContext<SelectedGameContextType | undefined>(undefined);
 
 const useSelectedGameContext = () => {
-    const context = useContext(SelectedGameContext);
-    if (!context) {
-        throw new Error("useSelectedGameContext must be used within a GameDetailProvider");
-    }
-    return context;
+  const context = useContext(SelectedGameContext);
+  if (!context) {
+    throw new Error("useSelectedGameContext must be used within a GameDetailProvider");
+  }
+  return context;
 };
 
 type SelectedGameContextType = {
-    gameId: number;
-    gameRetrieveQuery: Query<
-        typeof service.endpoints.gameRetrieve.Types.ResultType
-    >;
+  gameId: string;
+  gameRetrieveQuery: Query<
+    typeof service.endpoints.gameRetrieve.Types.ResultType
+  >;
 }
 
 const SelectedGameContextProvider: React.FC<{
   children:
-    | React.ReactNode
-    | ((props: {
-        gameId: number;
-        gameRetrieveQuery: Query<
-          typeof service.endpoints.gameRetrieve.Types.ResultType
-        >;
-      }) => React.ReactNode);
+  | React.ReactNode
+  | ((props: {
+    gameId: string;
+    gameRetrieveQuery: Query<
+      typeof service.endpoints.gameRetrieve.Types.ResultType
+    >;
+  }) => React.ReactNode);
 }> = ({ children }) => {
   const { gameId } = useParams<{ gameId: string }>();
   if (!gameId) throw new Error("gameId is required");
-  const gameIdAsNumber = parseInt(gameId, 10);
 
   const gameRetrieveQuery = service.endpoints.gameRetrieve.useQuery({
-    gameId: gameIdAsNumber,
+    gameId,
   });
 
   return (
     <SelectedGameContext.Provider
-      value={{ gameId: gameIdAsNumber, gameRetrieveQuery }}
+      value={{ gameId, gameRetrieveQuery }}
     >
       {typeof children === "function"
         ? children({
-            gameId: gameIdAsNumber,
-            gameRetrieveQuery,
-          })
+          gameId,
+          gameRetrieveQuery,
+        })
         : children}
     </SelectedGameContext.Provider>
   );

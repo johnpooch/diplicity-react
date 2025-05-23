@@ -286,43 +286,43 @@ export type GameCreateApiArg = {
 };
 export type GameRetrieveApiResponse = /** status 200  */ Game;
 export type GameRetrieveApiArg = {
-  gameId: number;
+  gameId: string;
 };
 export type GameChannelCreateApiResponse = /** status 201  */ Channel;
 export type GameChannelCreateApiArg = {
-  gameId: number;
+  gameId: string;
   channelCreateRequest: ChannelCreateRequest;
 };
 export type GameChannelCreate2ApiResponse = /** status 201  */ Channel;
 export type GameChannelCreate2ApiArg = {
   channelId: number;
-  gameId: number;
+  gameId: string;
   channelMessageCreateRequest: ChannelMessageCreateRequest;
 };
 export type GameChannelsListApiResponse = /** status 200  */ Channel[];
 export type GameChannelsListApiArg = {
-  gameId: number;
+  gameId: string;
 };
 export type GameConfirmCreateApiResponse = /** status 200  */ Game;
 export type GameConfirmCreateApiArg = {
-  gameId: number;
+  gameId: string;
 };
 export type GameJoinCreateApiResponse = /** status 200  */ Game;
 export type GameJoinCreateApiArg = {
-  gameId: number;
+  gameId: string;
 };
 export type GameLeaveDestroyApiResponse = unknown;
 export type GameLeaveDestroyApiArg = {
-  gameId: number;
+  gameId: string;
 };
 export type GameOrderCreateApiResponse = /** status 201  */ Order;
 export type GameOrderCreateApiArg = {
-  gameId: number;
+  gameId: string;
   orderCreateRequest: OrderCreateRequest;
 };
 export type GamePhaseOrdersListApiResponse = /** status 200  */ NationOrder[];
 export type GamePhaseOrdersListApiArg = {
-  gameId: number;
+  gameId: string;
   phaseId: number;
 };
 export type GamesListApiResponse = /** status 200  */ Game[];
@@ -438,7 +438,7 @@ export type Variant = {
   provinces: Province[];
 };
 export type Game = {
-  id: number;
+  id: string;
   name: string;
   status: string;
   movementPhaseDuration: string;

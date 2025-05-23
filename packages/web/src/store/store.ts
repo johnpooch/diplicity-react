@@ -1,6 +1,5 @@
 import { combineReducers } from "redux";
 import { configureStore } from "@reduxjs/toolkit";
-import { listenerMiddleware } from "./middleware";
 import { feedbackSlice } from "./feedback";
 import { authSlice } from "./auth";
 import { service } from "./service";
@@ -63,7 +62,6 @@ const store = configureStore({
         getDefaultMiddleware()
             .concat(
                 service.middleware,
-                listenerMiddleware.middleware
             )
 });
 

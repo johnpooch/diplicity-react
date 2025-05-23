@@ -1,6 +1,8 @@
 from django.db import models
 from .base import BaseModel
 from datetime import timedelta
+import re
+import uuid
 
 
 class Game(BaseModel):
@@ -27,6 +29,7 @@ class Game(BaseModel):
         (ORDERED, "Ordered"),
     )
 
+    id = models.CharField(max_length=150, primary_key=True)
     variant = models.ForeignKey(
         "Variant", on_delete=models.CASCADE, related_name="games"
     )
@@ -46,6 +49,23 @@ class Game(BaseModel):
     resolution_task = models.OneToOneField(
         "Task", on_delete=models.SET_NULL, null=True, blank=True, related_name="game"
     )
+
+    def save(self, *args, **kwargs):
+        if not self.id:
+            self.id = self._generate_id()
+        super().save(*args, **kwargs)
+
+    def _generate_id(self):
+        # Convert name to lowercase and replace spaces with hyphens
+        base_id = re.sub(r'[^a-z0-9]+', '-', self.name.lower())
+        base_id = re.sub(r'^-+|-+$', '', base_id)  # Remove leading/trailing hyphens
+        
+        # Check if this base_id already exists
+        if not Game.objects.filter(id=base_id).exists():
+            return base_id
+            
+        # If it exists, append a short UUID
+        return f"{base_id}-{str(uuid.uuid4())[:8]}"
 
     @property
     def current_phase(self):

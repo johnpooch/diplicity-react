@@ -22,8 +22,8 @@ import { feedbackActions, service } from "../store";
 
 type GameMenuProps = {
   game: (typeof service.endpoints.gamesList.Types.ResultType)[number];
-  onClickGameInfo: (navigate: NavigateFunction, gameId: number) => void;
-  onClickPlayerInfo: (navigate: NavigateFunction, gameId: number) => void;
+  onClickGameInfo: (navigate: NavigateFunction, gameId: string) => void;
+  onClickPlayerInfo: (navigate: NavigateFunction, gameId: string) => void;
 };
 
 const GameMenu: React.FC<GameMenuProps> = (props) => {

@@ -259,7 +259,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
           </g>
         );
       })}
-      {props.orders?.map(({ nation, orders }) => {
+      {props.orders?.map(({ orders }) => {
         return orders.filter((o) => o.orderType === "Hold").map((o) => {
           const source = map.provinces.find((p) => p.id === o.source);
           if (!source) return null;
@@ -320,7 +320,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
           )
         })
       })}
-      {props.orders?.map(({ nation, orders }) => {
+      {props.orders?.map(({ orders }) => {
         return orders.filter((o) => o.orderType === "Move").map((o) => {
           const source = map.provinces.find((p) => p.id === o.source);
           const target = map.provinces.find((p) => p.id === o.target);
