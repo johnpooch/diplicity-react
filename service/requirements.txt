@@ -14,3 +14,4 @@ google-auth>=2.0.0,<3.0
 google-auth-oauthlib>=0.4.0,<1.0
 cryptography>=3.4.0,<4.0
 fcm-django>=2.2.1,<3.0
+dj-database-url>=2.1.0,<3.0
