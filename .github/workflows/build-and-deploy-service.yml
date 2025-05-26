@@ -1,0 +1,49 @@
+name: Build and Deploy Service
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  REGISTRY_NAME: diplicityreactregistry
+  BACKEND_IMAGE: diplicityreactregistry.azurecr.io/backend:latest
+  WORKER_IMAGE: diplicityreactregistry.azurecr.io/worker:latest
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Log in to ACR
+        run: |
+          echo ${{ secrets.REGISTRY_PASSWORD }} | docker login ${{ env.REGISTRY_NAME }}.azurecr.io -u ${{ secrets.REGISTRY_USERNAME }} --password-stdin
+
+      - name: Build and push backend image
+        run: |
+          docker build --target backend -t ${{ env.BACKEND_IMAGE }} .
+          docker push ${{ env.BACKEND_IMAGE }}
+
+      - name: Build and push worker image
+        run: |
+          docker build --target worker -t ${{ env.WORKER_IMAGE }} .
+          docker push ${{ env.WORKER_IMAGE }}
+
+      - name: Deploy backend to Azure App Service
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ secrets.WEBAPP_NAME_SERVICE }}
+          images: ${{ env.BACKEND_IMAGE }}
+
+      - name: Deploy worker to Azure App Service
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ secrets.WEBAPP_NAME_WORKER }}
+          images: ${{ env.WORKER_IMAGE }}
