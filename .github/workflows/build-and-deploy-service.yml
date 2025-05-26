@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY_NAME: diplicityreactregistry
-  BACKEND_IMAGE: diplicityreactregistry.azurecr.io/backend:latest
+  SERVICE_IMAGE: diplicityreactregistry.azurecr.io/service:latest
   WORKER_IMAGE: diplicityreactregistry.azurecr.io/worker:latest
 
 jobs:
@@ -26,21 +26,21 @@ jobs:
         run: |
           echo ${{ secrets.REGISTRY_PASSWORD }} | docker login ${{ env.REGISTRY_NAME }}.azurecr.io -u ${{ secrets.REGISTRY_USERNAME }} --password-stdin
 
-      - name: Build and push backend image
+      - name: Build and push service image
         run: |
-          docker build --target backend -t ${{ env.BACKEND_IMAGE }} .
-          docker push ${{ env.BACKEND_IMAGE }}
+          docker build --target development -t ${{ env.SERVICE_IMAGE }} .
+          docker push ${{ env.SERVICE_IMAGE }}
 
       - name: Build and push worker image
         run: |
           docker build --target worker -t ${{ env.WORKER_IMAGE }} .
           docker push ${{ env.WORKER_IMAGE }}
 
-      - name: Deploy backend to Azure App Service
+      - name: Deploy service to Azure App Service
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ secrets.WEBAPP_NAME_SERVICE }}
-          images: ${{ env.BACKEND_IMAGE }}
+          images: ${{ env.SERVICE_IMAGE }}
 
       - name: Deploy worker to Azure App Service
         uses: azure/webapps-deploy@v2
