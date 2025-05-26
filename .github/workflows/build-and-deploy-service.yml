@@ -28,12 +28,12 @@ jobs:
 
       - name: Build and push service image
         run: |
-          docker build --target development -t ${{ env.SERVICE_IMAGE }} -f service/Dockerfile .
+          docker build --target development -t ${{ env.SERVICE_IMAGE }} -f service/Dockerfile ./service
           docker push ${{ env.SERVICE_IMAGE }}
 
       - name: Build and push worker image
         run: |
-          docker build --target worker -t ${{ env.WORKER_IMAGE }} -f service/Dockerfile .
+          docker build --target worker -t ${{ env.WORKER_IMAGE }} -f service/Dockerfile ./service
           docker push ${{ env.WORKER_IMAGE }}
 
       - name: Deploy service to Azure App Service
