@@ -32,7 +32,7 @@ jobs:
           # 1. Prefixed with VITE_ to be exposed to the frontend
           # 2. Added as GitHub secrets
           # 3. Listed here to be injected during build
-          app_settings: |
+          app_build_settings: |
             {
               # Authentication
               "VITE_GOOGLE_CLIENT_ID": "${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}",
