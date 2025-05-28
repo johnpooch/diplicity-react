@@ -27,7 +27,7 @@ RUN npm install -g npm@latest
 WORKDIR /app
 
 # Copy Python configuration files
-COPY ./service/requirements.txt ./service/dev_requirements.txt ./pyproject.toml /app/
+COPY ./service/requirements.txt ./service/dev_requirements.txt ./service/pyproject.toml /app/
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt -r dev_requirements.txt
