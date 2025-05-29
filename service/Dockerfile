@@ -30,6 +30,9 @@ FROM base AS development
 # Use the default root user for development
 USER root
 
+# Set the startup command
+CMD ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+
 # Worker stage: Non-root user
 FROM base AS worker
 
