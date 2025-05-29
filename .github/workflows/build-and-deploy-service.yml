@@ -41,7 +41,7 @@ jobs:
         with:
           app-name: ${{ secrets.WEBAPP_NAME_SERVICE }}
           images: ${{ env.SERVICE_IMAGE }}
-          startup-command: "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+          startup-command: 'sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"'
 
       - name: Deploy worker to Azure App Service
         uses: azure/webapps-deploy@v2
