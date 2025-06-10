@@ -30,9 +30,6 @@ FROM base AS development
 # Use the default root user for development
 USER root
 
-# Set the startup command
-CMD ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
-
 # Worker stage: Non-root user
 FROM base AS worker
 
@@ -41,3 +38,16 @@ RUN useradd -ms /bin/bash celeryuser
 
 # Switch to the non-root user
 USER celeryuser 
+
+# Production stage: Use gunicorn
+FROM base AS production
+
+# Install gunicorn
+RUN pip install gunicorn
+
+# Create a non-root user
+RUN useradd -ms /bin/bash appuser
+USER appuser
+
+# Set the startup command
+CMD ["sh", "-c", "python manage.py migrate && gunicorn project.wsgi:application --bind 0.0.0.0:8000"] 
