@@ -111,7 +111,7 @@ if "DATABASE_URL" in os.environ:
                 conn_health_checks=True,
             )
         }
-        print(f"Successfully parsed database config: {DATABASES['default']}")
+        print(f"Successfully parse database config: {DATABASES['default']}")
     except Exception as e:
         print(f"Error parsing DATABASE_URL: {str(e)}")
         raise
