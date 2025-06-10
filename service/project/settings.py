@@ -101,13 +101,20 @@ print(f"All environment variables: {dict(os.environ)}")
 print("=================================")
 
 if "DATABASE_URL" in os.environ:
-    DATABASES = {
-        "default": dj_database_url.config(
-            default=os.getenv("DATABASE_URL"),
-            conn_max_age=60,
-            conn_health_checks=True,
-        )
-    }
+    db_url = os.getenv("DATABASE_URL")
+    print(f"Raw DATABASE_URL: {db_url}")
+    try:
+        DATABASES = {
+            "default": dj_database_url.config(
+                default=db_url,
+                conn_max_age=60,
+                conn_health_checks=True,
+            )
+        }
+        print(f"Successfully parsed database config: {DATABASES['default']}")
+    except Exception as e:
+        print(f"Error parsing DATABASE_URL: {str(e)}")
+        raise
 else:
     DATABASES = {
         "default": {
