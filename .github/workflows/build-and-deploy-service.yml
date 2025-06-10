@@ -28,7 +28,7 @@ jobs:
 
       - name: Build and push service image
         run: |
-          docker build --target development -t ${{ env.SERVICE_IMAGE }} -f service/Dockerfile ./service
+          docker build --target production -t ${{ env.SERVICE_IMAGE }} -f service/Dockerfile ./service
           docker push ${{ env.SERVICE_IMAGE }}
 
       - name: Build and push worker image
@@ -41,7 +41,7 @@ jobs:
         with:
           app-name: ${{ secrets.WEBAPP_NAME_SERVICE }}
           images: ${{ env.SERVICE_IMAGE }}
-          startup-command: "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+          startup-command: 'sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"'
 
       - name: Deploy worker to Azure App Service
         uses: azure/webapps-deploy@v2
