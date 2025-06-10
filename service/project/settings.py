@@ -94,6 +94,12 @@ WSGI_APPLICATION = "project.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
+# Debug logging for environment variables
+print("=== Environment Variables Debug ===")
+print(f"DATABASE_URL exists: {'DATABASE_URL' in os.environ}")
+print(f"All environment variables: {dict(os.environ)}")
+print("=================================")
+
 if "DATABASE_URL" in os.environ:
     DATABASES = {
         "default": dj_database_url.config(
