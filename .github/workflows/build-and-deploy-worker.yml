@@ -6,8 +6,8 @@ on:
       - main
 
 env:
-  REGISTRY_NAME: diplicityreactregistry
-  WORKER_IMAGE: diplicityreactregistry.azurecr.io/worker:latest
+  REGISTRY_NAME: diplicityregistry
+  WORKER_IMAGE: diplicityregistry.azurecr.io/worker:latest
   WEBAPP_NAME_WORKER: diplicity-worker
 
 jobs:
