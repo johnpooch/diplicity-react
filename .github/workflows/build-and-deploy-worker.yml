@@ -37,4 +37,4 @@ jobs:
         with:
           app-name: ${{ env.WEBAPP_NAME_WORKER }}
           images: ${{ env.WORKER_IMAGE }}
-          resource-group: ${{ env.RESOURCE_GROUP }}
+          resource-group-name: ${{ env.RESOURCE_GROUP }}
