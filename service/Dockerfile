@@ -47,9 +47,12 @@ RUN pip install gunicorn
 
 # Create a non-root user
 RUN useradd -ms /bin/bash appuser
-USER appuser
 
+# Copy and set up entrypoint script
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+
+# Switch to non-root user
+USER appuser
 
 ENTRYPOINT ["/entrypoint.sh"]
