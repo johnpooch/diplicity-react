@@ -49,5 +49,7 @@ RUN pip install gunicorn
 RUN useradd -ms /bin/bash appuser
 USER appuser
 
-# Set the startup command
-CMD ["sh", "-c", "python manage.py migrate && gunicorn project.wsgi:application --bind 0.0.0.0:8000"] 
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
