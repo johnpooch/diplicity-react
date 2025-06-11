@@ -28,6 +28,7 @@ jobs:
           echo ${{ secrets.REGISTRY_PASSWORD }} | docker login ${{ env.REGISTRY_NAME }}.azurecr.io -u ${{ secrets.REGISTRY_USERNAME }} --password-stdin
 
       - name: Build and push service image
+        id: build
         run: |
           # Generate a unique tag based on timestamp and commit SHA
           TAG=$(date +%Y%m%d-%H%M%S)-$(git rev-parse --short HEAD)
@@ -35,10 +36,12 @@ jobs:
           docker build --no-cache --target production -t ${{ env.SERVICE_IMAGE }}:$TAG -t ${{ env.SERVICE_IMAGE }}:latest -f service/Dockerfile ./service
           docker push ${{ env.SERVICE_IMAGE }}:$TAG
           docker push ${{ env.SERVICE_IMAGE }}:latest
+          # Set output variable for next step
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
 
       - name: Deploy service to Azure App Service
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ env.WEBAPP_NAME_SERVICE }}
-          images: ${{ env.SERVICE_IMAGE }}:$TAG
+          images: ${{ env.SERVICE_IMAGE }}:${{ steps.build.outputs.tag }}
           resource-group-name: ${{ env.RESOURCE_GROUP }}
