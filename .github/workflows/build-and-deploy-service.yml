@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY_NAME: diplicityregistry
-  SERVICE_IMAGE: diplicityregistry.azurecr.io/service:latest
+  SERVICE_IMAGE: diplicityregistry.azurecr.io/service
   WEBAPP_NAME_SERVICE: diplicity-service
   RESOURCE_GROUP: diplicity-rg
 
@@ -29,12 +29,16 @@ jobs:
 
       - name: Build and push service image
         run: |
-          docker build --target production -t ${{ env.SERVICE_IMAGE }} -f service/Dockerfile ./service
-          docker push ${{ env.SERVICE_IMAGE }}
+          # Generate a unique tag based on timestamp and commit SHA
+          TAG=$(date +%Y%m%d-%H%M%S)-$(git rev-parse --short HEAD)
+          # Build without cache and push with both latest and unique tags
+          docker build --no-cache --target production -t ${{ env.SERVICE_IMAGE }}:$TAG -t ${{ env.SERVICE_IMAGE }}:latest -f service/Dockerfile ./service
+          docker push ${{ env.SERVICE_IMAGE }}:$TAG
+          docker push ${{ env.SERVICE_IMAGE }}:latest
 
       - name: Deploy service to Azure App Service
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ env.WEBAPP_NAME_SERVICE }}
-          images: ${{ env.SERVICE_IMAGE }}
+          images: ${{ env.SERVICE_IMAGE }}:$TAG
           resource-group-name: ${{ env.RESOURCE_GROUP }}
