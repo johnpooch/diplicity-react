@@ -6,8 +6,8 @@ on:
       - main
 
 env:
-  REGISTRY_NAME: diplicityreactregistry
-  SERVICE_IMAGE: diplicityreactregistry.azurecr.io/service:latest
+  REGISTRY_NAME: diplicityregistry
+  SERVICE_IMAGE: diplicityregistry.azurecr.io/service:latest
   WEBAPP_NAME_SERVICE: diplicity-service
 
 jobs:
