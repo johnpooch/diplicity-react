@@ -1,4 +1,4 @@
-name: Build and Deploy Service
+name: Build and Deploy Worker
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
 
 env:
   REGISTRY_NAME: diplicityreactregistry
-  SERVICE_IMAGE: diplicityreactregistry.azurecr.io/service:latest
-  WEBAPP_NAME_SERVICE: diplicity-service
+  WORKER_IMAGE: diplicityreactregistry.azurecr.io/worker:latest
+  WEBAPP_NAME_WORKER: diplicity-worker
 
 jobs:
   build-and-deploy:
@@ -26,13 +26,13 @@ jobs:
         run: |
           echo ${{ secrets.REGISTRY_PASSWORD }} | docker login ${{ env.REGISTRY_NAME }}.azurecr.io -u ${{ secrets.REGISTRY_USERNAME }} --password-stdin
 
-      - name: Build and push service image
+      - name: Build and push worker image
         run: |
-          docker build --target production -t ${{ env.SERVICE_IMAGE }} -f service/Dockerfile ./service
-          docker push ${{ env.SERVICE_IMAGE }}
+          docker build --target worker -t ${{ env.WORKER_IMAGE }} -f service/Dockerfile ./service
+          docker push ${{ env.WORKER_IMAGE }}
 
-      - name: Deploy service to Azure App Service
+      - name: Deploy worker to Azure App Service
         uses: azure/webapps-deploy@v2
         with:
-          app-name: ${{ env.WEBAPP_NAME_SERVICE }}
-          images: ${{ env.SERVICE_IMAGE }}
+          app-name: ${{ env.WEBAPP_NAME_WORKER }}
+          images: ${{ env.WORKER_IMAGE }}
