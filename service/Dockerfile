@@ -39,6 +39,8 @@ RUN useradd -ms /bin/bash celeryuser
 # Switch to the non-root user
 USER celeryuser 
 
+CMD ["celery", "-A", "project", "worker", "--loglevel=info"]
+
 # Production stage: Use gunicorn
 FROM base AS production
 
