@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY_NAME: diplicityregistry
-  WORKER_IMAGE: diplicityregistry.azurecr.io/worker:latest
+  WORKER_IMAGE: diplicityregistry.azurecr.io/worker
   WEBAPP_NAME_WORKER: diplicity-worker
   RESOURCE_GROUP: diplicity-rg
 
