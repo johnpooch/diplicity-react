@@ -46,5 +46,5 @@ jobs:
             --name ${{ env.WEBAPP_NAME_SERVICE }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --settings \
-              GIT_SHA=${{ github.sha }}
+              GIT_SHA=${{ github.sha }} \
               DJANGO_ALLOWED_HOSTS="diplicity-service.azurewebsites.net,169.254.129.6"
