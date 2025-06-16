@@ -23,25 +23,27 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Log in to ACR
+      - name: Login to Azure Container Registry
         run: |
           echo ${{ secrets.REGISTRY_PASSWORD }} | docker login ${{ env.REGISTRY_NAME }}.azurecr.io -u ${{ secrets.REGISTRY_USERNAME }} --password-stdin
 
       - name: Build and push service image
-        id: build
         run: |
-          # Generate a unique tag based on timestamp and commit SHA
-          TAG=$(date +%Y%m%d-%H%M%S)-$(git rev-parse --short HEAD)
-          # Build without cache and push with both latest and unique tags
-          docker build --no-cache --target production -t ${{ env.SERVICE_IMAGE }}:$TAG -t ${{ env.SERVICE_IMAGE }}:latest -f service/Dockerfile ./service
-          docker push ${{ env.SERVICE_IMAGE }}:$TAG
-          docker push ${{ env.SERVICE_IMAGE }}:latest
-          # Set output variable for next step
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          docker build -t ${{ env.SERVICE_IMAGE }}:${{ github.sha }} -f service/Dockerfile .
+          docker push ${{ env.SERVICE_IMAGE }}:${{ github.sha }}
 
-      - name: Deploy service to Azure App Service
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: ${{ env.WEBAPP_NAME_SERVICE }}
-          images: ${{ env.SERVICE_IMAGE }}:${{ steps.build.outputs.tag }}
-          resource-group-name: ${{ env.RESOURCE_GROUP }}
+      - name: Deploy to Azure Web App
+        run: |
+          az webapp config container set \
+            --name ${{ env.WEBAPP_NAME_SERVICE }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --docker-custom-image-name ${{ env.SERVICE_IMAGE }}:${{ github.sha }} \
+            --docker-registry-server-url https://${{ env.REGISTRY_NAME }}.azurecr.io \
+            --docker-registry-server-user ${{ secrets.REGISTRY_USERNAME }} \
+            --docker-registry-server-password ${{ secrets.REGISTRY_PASSWORD }}
+
+          az webapp config appsettings set \
+            --name ${{ env.WEBAPP_NAME_SERVICE }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --settings \
+              GIT_SHA=${{ github.sha }}
