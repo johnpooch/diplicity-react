@@ -29,12 +29,22 @@ jobs:
 
       - name: Build and push worker image
         run: |
-          docker build --target worker -t ${{ env.WORKER_IMAGE }} -f service/Dockerfile ./service
-          docker push ${{ env.WORKER_IMAGE }}
+          docker build -t ${{ env.WORKER_IMAGE }}:${{ github.sha }} -f service/Dockerfile ./service
+          docker push ${{ env.WORKER_IMAGE }}:${{ github.sha }}
 
-      - name: Deploy worker to Azure App Service
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: ${{ env.WEBAPP_NAME_WORKER }}
-          images: ${{ env.WORKER_IMAGE }}
-          resource-group-name: ${{ env.RESOURCE_GROUP }}
+      - name: Deploy to Azure Web App
+        run: |
+          az webapp config container set \
+            --name ${{ env.WEBAPP_NAME_WORKER }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --docker-custom-image-name ${{ env.WORKER_IMAGE }}:${{ github.sha }} \
+            --docker-registry-server-url https://${{ env.REGISTRY_NAME }}.azurecr.io \
+            --docker-registry-server-user ${{ secrets.REGISTRY_USERNAME }} \
+            --docker-registry-server-password ${{ secrets.REGISTRY_PASSWORD }}
+
+          az webapp config appsettings set \
+            --name ${{ env.WEBAPP_NAME_WORKER }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --settings \
+              GIT_SHA=${{ github.sha }}
+              DJANGO_ALLOWED_HOSTS="diplicity-worker.azurewebsites.net,169.254.129.6"
