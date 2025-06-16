@@ -29,7 +29,7 @@ jobs:
 
       - name: Build and push service image
         run: |
-          docker build -t ${{ env.SERVICE_IMAGE }}:${{ github.sha }} -f service/Dockerfile .
+          docker build -t ${{ env.SERVICE_IMAGE }}:${{ github.sha }} -f service/Dockerfile ./service
           docker push ${{ env.SERVICE_IMAGE }}:${{ github.sha }}
 
       - name: Deploy to Azure Web App
