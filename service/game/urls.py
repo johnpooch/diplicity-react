@@ -49,4 +49,5 @@ urlpatterns = [
         views.OrderListView.as_view(),
         name="order-list",
     ),
+    path("version/", views.VersionRetrieveView.as_view(), name="version-retrieve"),
 ]

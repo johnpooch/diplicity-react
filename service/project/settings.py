@@ -219,3 +219,6 @@ SPECTACULAR_SETTINGS = {
         "drf_spectacular.hooks.postprocess_schema_enums",
     ],
 }
+
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development");
+VERSION = os.getenv("GIT_SHA", "0.0.0");
