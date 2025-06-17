@@ -21,10 +21,6 @@ class Command(BaseCommand):
         
         with transaction.atomic():
             models.Variant.objects.create(
-                name="Classical",
-                id="classical",
-            )
-            models.Variant.objects.create(
                 name="Italy vs Germany",
                 id="italy-vs-germany",
             )
