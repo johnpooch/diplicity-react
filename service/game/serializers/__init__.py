@@ -9,6 +9,7 @@ from .auth_serializers import AuthSerializer
 from .order_serializers import OrderSerializer, NationOrderSerializer
 from .variant_serializers import VariantSerializer
 from .user_profile_serializers import UserProfileSerializer
+from .version_serializers import VersionSerializer
 
 __all__ = [
     "AdjudicationResponseSerializer",
@@ -20,4 +21,5 @@ __all__ = [
     "NationOrderSerializer",
     "VariantSerializer",
     "UserProfileSerializer",
+    "VersionSerializer",
 ]
