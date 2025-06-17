@@ -118,10 +118,7 @@ def classical_variant(django_db_setup, django_db_blocker):
     Create a test variant.
     """
     with django_db_blocker.unblock():
-        return models.Variant.objects.create(
-            id="classical",
-            name="Classical"
-        )
+        return models.Variant.objects.get(id="classical")
 
 @pytest.fixture
 def base_pending_game_for_primary_user(db, classical_variant):
