@@ -60,7 +60,7 @@ jobs:
           max_attempts=60
           attempt=1
           while [ $attempt -le $max_attempts ]; do
-            if curl -s -f "https://diplicity-service.azurewebsites.net/version" | grep -q "${{ github.sha }}"; then
+            if curl -s -f "https://diplicity-service.azurewebsites.net/version/" | grep -q "${{ github.sha }}"; then
               echo "Service is ready with correct version!"
               exit 0
             fi
