@@ -12,9 +12,11 @@ def test_list_variants_success(authenticated_client, classical_variant):
     url = reverse(viewname)
     response = authenticated_client.get(url)
     assert response.status_code == status.HTTP_200_OK
-    assert len(response.data) == 1
+    assert len(response.data) == 2
     assert response.data[0]["id"] == classical_variant.id
     assert response.data[0]["name"] == classical_variant.name
+    assert response.data[1]["id"] == "italy-vs-germany"
+    assert response.data[1]["name"] == "Italy vs Germany"
 
 @pytest.mark.django_db
 def test_list_variants_unauthenticated(unauthenticated_client):
