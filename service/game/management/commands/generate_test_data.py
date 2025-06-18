@@ -20,10 +20,6 @@ class Command(BaseCommand):
         self.client = APIClient()
         
         with transaction.atomic():
-            models.Variant.objects.create(
-                name="Italy vs Germany",
-                id="italy-vs-germany",
-            )
             user1 = User.objects.create_user(
                 username="johnmcdowell",
                 email="johnmcdowell0801@gmail.com",
