@@ -9,7 +9,7 @@ const styles: Styles = {
     justifyContent: "center",
     alignItems: "center",
     height: "100vh",
-    backgroundImage: "url('/src/static/img/login_background.jpg')",
+    backgroundImage: "url('/login_background.jpg')",
     backgroundSize: "cover",
     backgroundPosition: "54%",
     backgroundRepeat: "no-repeat",
