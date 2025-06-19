@@ -113,6 +113,14 @@ def unauthenticated_client():
     return APIClient()
 
 @pytest.fixture(scope="session")
+def italy_vs_germany_variant(django_db_setup, django_db_blocker):
+    """
+    Create a test variant.
+    """
+    with django_db_blocker.unblock():
+        return models.Variant.objects.get(id="italy-vs-germany")
+
+@pytest.fixture(scope="session")
 def classical_variant(django_db_setup, django_db_blocker):
     """
     Create a test variant.
@@ -319,6 +327,14 @@ def mock_notify_task():
     Create a mock for notify_task.apply_async.
     """
     with patch("game.tasks.notify_task.apply_async") as mock:
+        yield mock
+
+@pytest.fixture
+def mock_start_task():
+    """
+    Create a mock for start_task.delay.
+    """
+    with patch("game.tasks.start_task.delay") as mock:
         yield mock
 
 @pytest.fixture

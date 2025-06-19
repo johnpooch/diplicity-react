@@ -55,3 +55,21 @@ def test_join_game_not_found(authenticated_client):
     url = reverse(viewname, args=[999])
     response = authenticated_client.post(url)
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
+@pytest.mark.django_db
+def test_join_game_max_players(authenticated_client, pending_game_created_by_secondary_user, italy_vs_germany_variant, tertiary_user, mock_start_task):
+    """
+    Test that a user cannot join a game that already has the maximum number of players.
+    This simulates a scenario where the task worker failed to start the game after
+    all players joined.
+    """
+    game = pending_game_created_by_secondary_user
+    game.variant = italy_vs_germany_variant
+    game.save()
+
+    game.members.create(user=tertiary_user)
+    
+    url = reverse(viewname, args=[game.id])
+    response = authenticated_client.post(url)
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    mock_start_task.assert_not_called()
