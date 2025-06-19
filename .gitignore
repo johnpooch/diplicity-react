@@ -26,3 +26,6 @@ dist-ssr
 storybook-static
 
 service/game/tests/prof/
+
+# Django static files
+staticfiles/

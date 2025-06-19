@@ -12,6 +12,9 @@ else
     exit 1
 fi
 
+echo "Collecting static files..."
+python manage.py collectstatic --noinput
+
 echo "Creating superuser if it doesn't exist..."
 python manage.py shell << EOF
 from django.contrib.auth import get_user_model
