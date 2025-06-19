@@ -213,6 +213,11 @@ class GameService(BaseService):
                 detail="User is already a member of the game."
             )
 
+        if game.members.count() >= len(game.variant.nations):
+            raise exceptions.ValidationError(
+                detail="Game already has the maximum number of players."
+            )
+
         game.members.create(user=self.user)
 
         return game
