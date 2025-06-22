@@ -15,15 +15,15 @@ fi
 echo "Collecting static files..."
 python manage.py collectstatic --noinput
 
-echo "Creating superuser if it doesn't exist..."
+echo "Creating superuser (deleting existing if present)..."
 python manage.py shell << EOF
 from django.contrib.auth import get_user_model
 User = get_user_model()
-if not User.objects.filter(username='superuser').exists():
-    User.objects.create_superuser('superuser', 'superuser@example.com', '$DJANGO_SUPERUSER_PASSWORD')
-    print("Superuser created successfully")
-else:
-    print("Superuser already exists")
+if User.objects.filter(username='superuser').exists():
+    User.objects.filter(username='superuser').delete()
+    print("Existing superuser deleted")
+User.objects.create_superuser('superuser', 'superuser@example.com', '$DJANGO_SUPERUSER_PASSWORD')
+print("Superuser created successfully")
 EOF
 
 echo "Starting Gunicorn..."
