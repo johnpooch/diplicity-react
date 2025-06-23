@@ -1,6 +1,8 @@
 import uuid
 
 from celery import Task as CeleryTask, shared_task
+from celery.result import AsyncResult
+from django.db import transaction
 
 from . import models, services
 
@@ -9,13 +11,25 @@ class BaseTask(CeleryTask):
 
     def apply_async(self, args, kwargs, **options):
         task_id = options.get('task_id', uuid.uuid4())
+        options['task_id'] = task_id
+
         task, created = models.Task.objects.get_or_create(
             id=task_id,
-            name=self.name,
-            status=models.Task.PENDING,
+            defaults={
+                'name': self.name,
+                'status': models.Task.PENDING,
+            }
         )
-        options['task_id'] = task_id
-        return super().apply_async(args, kwargs, **options)
+
+        if not created and task.status != models.Task.PENDING:
+            task.status = models.Task.PENDING
+            task.save()
+
+        transaction.on_commit(
+            lambda: super(BaseTask, self).apply_async(args, kwargs, **options)
+        )
+
+        return AsyncResult(task_id)
 
     def before_start(self, task_id, args, kwargs):
         task = models.Task.objects.get(id=task_id)
