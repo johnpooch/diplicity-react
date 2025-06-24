@@ -236,3 +236,82 @@ SPECTACULAR_SETTINGS = {
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development");
 VERSION = os.getenv("GIT_SHA", "0.0.0");
+
+if DEBUG:
+    ROOT_LOG_LEVEL = "DEBUG"
+    DJANGO_LOG_LEVEL = "DEBUG"
+    DB_LOG_LEVEL = "DEBUG"
+    GAME_LOG_LEVEL = "DEBUG"
+else:
+    ROOT_LOG_LEVEL = "INFO"
+    DJANGO_LOG_LEVEL = "WARNING"
+    DB_LOG_LEVEL = "WARNING"
+    GAME_LOG_LEVEL = "INFO"
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{levelname}] {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '[{levelname}] {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+            'level': ROOT_LOG_LEVEL,
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': ROOT_LOG_LEVEL,
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': DJANGO_LOG_LEVEL,
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'WARNING',  # Only log warnings and errors for requests
+            'propagate': False,
+        },
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': DB_LOG_LEVEL,
+            'propagate': False,
+        },
+        'django.security': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'game': {
+            'handlers': ['console'],
+            'level': GAME_LOG_LEVEL,
+            'propagate': False,
+        },
+        'celery': {
+            'handlers': ['console'],
+            'level': GAME_LOG_LEVEL,
+            'propagate': False,
+        },
+        'celery.task': {
+            'handlers': ['console'],
+            'level': GAME_LOG_LEVEL,
+            'propagate': False,
+        },
+        'celery.worker': {
+            'handlers': ['console'],
+            'level': GAME_LOG_LEVEL,
+            'propagate': False,
+        },
+    },
+}
