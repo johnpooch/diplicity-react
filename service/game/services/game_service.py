@@ -1,5 +1,6 @@
 import random
 import json
+import logging
 
 from django.db.models import (
     BooleanField,
@@ -27,6 +28,8 @@ from rest_framework import exceptions
 from .. import models, tasks, util
 from .base_service import BaseService
 
+logger = logging.getLogger("game")
+
 
 class GameService(BaseService):
     def __init__(self, user, adjudication_service=None):
@@ -34,6 +37,7 @@ class GameService(BaseService):
         self.adjudication_service = adjudication_service
 
     def list(self, filters=None):
+        logger.info(f"GameService.list() called with filters: {filters}")
         filters = filters or {}
         if filters.get("mine"):
             queryset = models.Game.objects.filter(members__user=self.user)
@@ -145,16 +149,23 @@ class GameService(BaseService):
             ),
         )
 
+        logger.info(f"GameService.list() returning queryset: {queryset}")
         return queryset
 
     def retrieve(self, game_id):
+        logger.info(f"GameService.retrieve() called with game_id: {game_id}")
         queryset = self.list()
+
+        logger.info(f"GameService.retrieve() returning queryset: {queryset}")
         return get_object_or_404(queryset.distinct(), id=game_id)
 
     @transaction.atomic
     def create(self, data):
+        logger.info(f"GameService.create() called with data: {data}")
+
         variant = models.Variant.objects.filter(id=data["variant"]).first()
         if not variant:
+            logger.error(f"GameService.create() variant not found: {data['variant']}")
             raise exceptions.ValidationError(
                 detail=f"Variant with name {data['variant']} does not exist."
             )
@@ -200,54 +211,71 @@ class GameService(BaseService):
                 private=False,
             )
 
+        logger.info(f"GameService.create() returning game: {game}")
         return game
 
     def join(self, game_id):
+        logger.info(f"GameService.join() called with game_id: {game_id}")
+
         game = get_object_or_404(models.Game, id=game_id)
 
         if game.status != models.Game.PENDING:
+            logger.warning(f"GameService.join() called when game is not pending. This shouldn't happen.")
             raise exceptions.PermissionDenied(detail="Cannot join a non-pending game.")
 
         if game.members.filter(user=self.user).exists():
+            logger.warning(f"GameService.join() called when user is already a member of the game. This shouldn't happen.")
             raise exceptions.ValidationError(
                 detail="User is already a member of the game."
             )
 
         if game.members.count() >= len(game.variant.nations):
+            logger.warning(f"GameService.join() called when game already has the maximum number of players. This shouldn't happen.")
             raise exceptions.ValidationError(
                 detail="Game already has the maximum number of players."
             )
 
         game.members.create(user=self.user)
 
+        logger.info(f"GameService.join() returning game: {game}")
         return game
 
     def leave(self, game_id):
+        logger.info(f"GameService.leave() called with game_id: {game_id}")
         game = get_object_or_404(models.Game, id=game_id)
 
         if game.status != models.Game.PENDING:
+            logger.warning(f"GameService.leave() called when game is not pending. This shouldn't happen.")
             raise exceptions.PermissionDenied(detail="Cannot leave a non-pending game.")
 
         member = game.members.filter(user=self.user).first()
         if not member:
+            logger.warning(f"GameService.leave() called when user is not a member of the game. This shouldn't happen.")
             raise exceptions.ValidationError(detail="User is not a member of the game.")
 
         member.delete()
 
+        logger.info(f"GameService.leave() returning game: {game}")
+        return game
+
     def start(self, game_id):
+        logger.info(f"GameService.start() called with game_id: {game_id}")
 
         game = get_object_or_404(models.Game, id=game_id)
 
         if game.status != models.Game.PENDING:
+            logger.warning(f"GameService.start() called when game is not pending. This shouldn't happen.")
             raise exceptions.PermissionDenied(detail="Cannot start a non-pending game.")
 
         try:
             adjudication_response = self.adjudication_service.start(game)
         except Exception as e:
+            logger.error(f"GameService.start() adjudication service failed: {str(e)}")
             raise exceptions.ValidationError(
                 detail=f"Adjudication service failed: {str(e)}"
             )
 
+        logger.info(f"GameService.start() starting game: {game}")
         with transaction.atomic():
             self._set_nations(game)
             self._create_phase_states(game, adjudication_response["options"])
@@ -270,21 +298,30 @@ class GameService(BaseService):
             "game_id": game.id,
             "type": "game_start",
         }
+
+        logger.info(f"GameService.start() notifying users: {user_ids}")
         tasks.notify_task.apply_async(args=[user_ids, data], kwargs={})
+
+        logger.info(f"GameService.start() returning game: {game}")
         return game
 
     def resolve(self, game_id):
+        logger.info(f"GameService.resolve() called with game_id: {game_id}")
+
         game = get_object_or_404(models.Game, id=game_id)
 
         try:
             adjudication_response = self.adjudication_service.resolve(game)
         except Exception as e:
+            logger.error(f"GameService.resolve() adjudication service failed: {str(e)}")
             raise exceptions.ValidationError(
                 detail=f"Adjudication service failed: {str(e)}"
             )
 
         phase_data = adjudication_response["phase"]
         options_data = adjudication_response["options"]
+
+        logger.info(f"GameService.resolve() resolving phase: {phase_data}")
 
         with transaction.atomic():
             # Set the status of the current phase to completed
@@ -328,8 +365,11 @@ class GameService(BaseService):
             "game_id": game.id,
             "type": "game_resolve",
         }
+
+        logger.info(f"GameService.resolve() notifying users: {user_ids}")
         tasks.notify_task.apply_async(args=[user_ids, data], kwargs={})
 
+        logger.info(f"GameService.resolve() returning game: {game}")
         return game
 
     def _create_phase(self, game, phase_data):
@@ -418,29 +458,37 @@ class GameService(BaseService):
         return confirmed_count == active_members.count()
 
     def confirm_phase(self, game_id):
+        logger.info(f"GameService.confirm_phase() called with game_id: {game_id}")
+
         game = get_object_or_404(models.Game, id=game_id)
 
         if game.status != models.Game.ACTIVE:
+            logger.warning(f"GameService.confirm_phase() called when game is not active. This shouldn't happen.")
             raise exceptions.ValidationError(detail="Game is not active.")
 
         member = game.members.filter(user=self.user).first()
         if not member:
+            logger.warning(f"GameService.confirm_phase() called when user is not a member of the game. This shouldn't happen.")
             raise exceptions.ValidationError(detail="User is not a member of the game.")
 
         if member.eliminated:
+            logger.warning(f"GameService.confirm_phase() called when user is eliminated from the game. This shouldn't happen.")
             raise exceptions.ValidationError(detail="User is eliminated from the game.")
 
         if member.kicked:
+            logger.warning(f"GameService.confirm_phase() called when user is kicked from the game. This shouldn't happen.")
             raise exceptions.ValidationError(detail="User is kicked from the game.")
 
         current_phase = game.phases.last()
         if not current_phase:
+            logger.warning(f"GameService.confirm_phase() called when no current phase found for the game. This shouldn't happen.")
             raise exceptions.ValidationError(
                 detail="No current phase found for the game."
             )
 
         phase_state = current_phase.phase_states.filter(member=member).first()
         if not phase_state:
+            logger.warning(f"GameService.confirm_phase() called when no phase state found for the user. This shouldn't happen.")
             raise exceptions.ValidationError(
                 detail="No phase state found for the user."
             )
@@ -448,8 +496,11 @@ class GameService(BaseService):
         phase_state.orders_confirmed = not phase_state.orders_confirmed
         phase_state.save()
 
+        logger.info(f"GameService.confirm_phase() phase confirmed: {phase_state}")
+
         # Check if all active members have confirmed their orders
         if phase_state.orders_confirmed and self._should_resolve_phase(game):
+            logger.info(f"GameService.confirm_phase() all orders confirmed, resolving phase: {game}")
             # Execute the resolution task immediately if it exists
             if game.resolution_task:
                 tasks.resolve_task.apply_async(
