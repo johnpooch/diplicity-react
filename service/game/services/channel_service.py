@@ -87,8 +87,11 @@ class ChannelService(BaseService):
 
         logger.info(f"ChannelService.create_message() returning message: {message}")
 
-        # Notify other members
-        other_members = channel.members.exclude(id=member.id)
+        if channel.private:
+            other_members = channel.members.exclude(id=member.id)
+        else:
+            other_members = game.members.exclude(id=member.id)
+        
         user_ids = [m.user.id for m in other_members]
         notification_data = {
             "title": "New Message",
@@ -148,7 +151,7 @@ class ChannelService(BaseService):
             "messages__sender__user"
         ).filter(
             Q(private=False) | Q(members=member)
-        )
+        ).distinct()
         channel = get_object_or_404(queryset, id=channel_id)
 
         # Annotate is_current_user for message senders
