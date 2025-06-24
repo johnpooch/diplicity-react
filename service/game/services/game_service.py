@@ -299,7 +299,7 @@ class GameService(BaseService):
             "type": "game_start",
         }
 
-        logger.info(f"GameService.start() notifying users: {user_ids}")
+        logger.info(f"GameService.start() adding task to notify users: {user_ids}")
         tasks.notify_task.apply_async(args=[user_ids, data], kwargs={})
 
         logger.info(f"GameService.start() returning game: {game}")
@@ -366,7 +366,7 @@ class GameService(BaseService):
             "type": "game_resolve",
         }
 
-        logger.info(f"GameService.resolve() notifying users: {user_ids}")
+        logger.info(f"GameService.resolve() adding task to notify users: {user_ids}")
         tasks.notify_task.apply_async(args=[user_ids, data], kwargs={})
 
         logger.info(f"GameService.resolve() returning game: {game}")
