@@ -22,10 +22,4 @@ dist-ssr
 *.sw?
 
 *storybook.log
-.env
 storybook-static
-
-service/game/tests/prof/
-
-# Django static files
-staticfiles/

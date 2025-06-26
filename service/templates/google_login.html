@@ -1,0 +1,40 @@
+<!-- filepath: e:\diplicity-django\templates\google_login.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script>
+        // Ensure the origin (e.g., http://localhost:8000) is added to the
+        // "Authorized JavaScript origins" in the Google Cloud Console.
+        function handleCredentialResponse(response) {
+            if (response && response.credential) {
+                console.log("Encoded JWT ID token: " + response.credential);
+                // Add logic to send the token to your server for verification
+            } else {
+                console.error("No credential received.");
+            }
+        }
+
+        window.onload = function () {
+            try {
+                google.accounts.id.initialize({
+                    client_id: "{{ google_client_id }}",
+                    callback: handleCredentialResponse
+                });
+                google.accounts.id.renderButton(
+                    document.getElementById("google-signin-button"),
+                    { theme: "outline", size: "large" } // Customization options
+                );
+            } catch (error) {
+                console.error("Error initializing Google Sign-In:", error);
+            }
+        };
+    </script>
+</head>
+
+<body>
+    <div id="google-signin-button"></div>
+</body>
+
+</html>
