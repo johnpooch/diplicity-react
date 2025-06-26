@@ -1,0 +1,72 @@
+name: Build and Deploy Worker
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  REGISTRY_NAME: diplicityregistry
+  WORKER_IMAGE: diplicityregistry.azurecr.io/worker
+  WEBAPP_NAME_WORKER: diplicity-worker
+  RESOURCE_GROUP: diplicity-rg
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Log in to ACR
+        run: |
+          echo ${{ secrets.REGISTRY_PASSWORD }} | docker login ${{ env.REGISTRY_NAME }}.azurecr.io -u ${{ secrets.REGISTRY_USERNAME }} --password-stdin
+
+      - name: Build and push worker image
+        run: |
+          docker build -t ${{ env.WORKER_IMAGE }}:${{ github.sha }} -f service/Dockerfile --target worker ./service
+          docker push ${{ env.WORKER_IMAGE }}:${{ github.sha }}
+
+      - name: Deploy to Azure Web App
+        run: |
+          az webapp config container set \
+            --name ${{ env.WEBAPP_NAME_WORKER }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --docker-custom-image-name ${{ env.WORKER_IMAGE }}:${{ github.sha }} \
+            --docker-registry-server-url https://${{ env.REGISTRY_NAME }}.azurecr.io \
+            --docker-registry-server-user ${{ secrets.REGISTRY_USERNAME }} \
+            --docker-registry-server-password ${{ secrets.REGISTRY_PASSWORD }}
+
+          az webapp config appsettings set \
+            --name ${{ env.WEBAPP_NAME_WORKER }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --settings \
+              GIT_SHA=${{ github.sha }} \
+              ENVIRONMENT=production \
+              DJANGO_ALLOWED_HOSTS="diplicity-worker.azurewebsites.net,169.254.129.6"
+
+  wait-for-worker:
+    needs: [build-and-deploy]
+    runs-on: ubuntu-latest
+    if: success()
+    steps:
+      - name: Wait for worker to be ready
+        run: |
+          max_attempts=60
+          attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            if curl -s -f "https://diplicity-worker.azurewebsites.net/" | grep -q "${{ github.sha }}"; then
+              echo "Worker is ready with correct version!"
+              exit 0
+            fi
+            echo "Attempt $attempt of $max_attempts: Worker not ready yet or wrong version, waiting..."
+            sleep 10
+            attempt=$((attempt + 1))
+          done
+          echo "Worker failed to become ready with correct version after $max_attempts attempts"
+          exit 1
