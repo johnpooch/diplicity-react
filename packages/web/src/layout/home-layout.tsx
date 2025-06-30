@@ -18,6 +18,8 @@ import {
   Person as ProfileIcon,
 } from "@mui/icons-material";
 import { DrawerNavigation, DrawerNavigationAction } from "../components";
+import { IconName } from "../components/elements/Icon";
+import { SideNavigation } from "../components/elements/SideNavigation";
 
 const styles: Styles = {
   mobileAppBar: {
@@ -63,11 +65,11 @@ const styles: Styles = {
 };
 
 const NavigationItems = [
-  { label: "My Games", icon: <MyGamesIcon />, value: "/" },
-  { label: "Find Games", icon: <FindGamesIcon />, value: "/find-games" },
-  { label: "Create Game", icon: <CreateGameIcon />, value: "/create-game" },
-  { label: "Profile", icon: <ProfileIcon />, value: "/profile" },
-] as const;
+  { label: "My Games", icon: IconName.MyGames, value: "/" },
+  { label: "Find Games", icon: IconName.FindGames, value: "/find-games" },
+  { label: "Create Game", icon: IconName.CreateGame, value: "/create-game" },
+  { label: "Profile", icon: IconName.Profile, value: "/profile" },
+];
 
 const InfoPanel: React.FC = () => {
   const learnLink =
@@ -130,7 +132,7 @@ const HomeLayout: React.FC = () => {
                 <BottomNavigationAction
                   key={item.value}
                   label={item.label}
-                  icon={item.icon}
+                  // icon={item.icon}
                   value={item.value}
                 />
               ))}
@@ -141,7 +143,7 @@ const HomeLayout: React.FC = () => {
         <Stack sx={styles.largeRoot}>
           <Grid2 container sx={styles.largeContentContainer}>
             <Grid2 size="auto" sx={styles.drawerNavigationContainer}>
-              <DrawerNavigation
+              {/* <DrawerNavigation
                 variant={isDesktop ? "expanded" : "collapsed"}
                 value={navigation}
                 onChange={handleNavigationChange}
@@ -154,7 +156,13 @@ const HomeLayout: React.FC = () => {
                     value={item.value}
                   />
                 ))}
-              </DrawerNavigation>
+              </DrawerNavigation> */}
+              <SideNavigation
+                options={NavigationItems}
+                selectedValue={navigation}
+                onChange={handleNavigationChange}
+                variant={isDesktop ? "expanded" : "collapsed"}
+              />
             </Grid2>
             <Grid2 size="grow">
               <Stack sx={{ alignItems: "center" }}>

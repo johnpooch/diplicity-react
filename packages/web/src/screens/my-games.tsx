@@ -14,6 +14,13 @@ const statuses = [
   { value: "completed", label: "Finished", icon: <FinishedIcon /> },
 ] as const;
 
+// Priority order for which status to select if there are games in that status
+const statusPriority = [
+  "active",
+  "pending",
+  "completed",
+] as const;
+
 type Status = (typeof statuses)[number]["value"];
 
 const MyGames: React.FC = () => {
@@ -23,22 +30,11 @@ const MyGames: React.FC = () => {
 
   useEffect(() => {
     if (query.data) {
-      const stagingGames = query.data.filter(
-        (game) => game.status === "pending"
+      const firstStatusWithGames = statusPriority.find(status =>
+        query.data!.some(game => game.status === status)
       );
-      const startedGames = query.data.filter(
-        (game) => game.status === "active"
-      );
-      const finishedGames = query.data.filter(
-        (game) => game.status === "completed"
-      );
-
-      if (startedGames.length > 0) {
-        setSelectedStatus("active");
-      } else if (stagingGames.length > 0) {
-        setSelectedStatus("pending");
-      } else if (finishedGames.length > 0) {
-        setSelectedStatus("completed");
+      if (firstStatusWithGames) {
+        setSelectedStatus(firstStatusWithGames);
       }
     }
   }, [query.data]);

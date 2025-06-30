@@ -1,30 +1,29 @@
-import { Stack, Typography, IconButton, Divider } from "@mui/material";
+import { Stack, Divider } from "@mui/material";
 import { NavigateFunction, Outlet, useNavigate } from "react-router";
-import { ArrowBack as BackIcon } from "@mui/icons-material";
+import { IconButton } from "../../components/elements/Button";
+import { IconName } from "../../components/elements/Icon";
+import { AppBar } from "../../components/elements/AppBar";
 import { useSelectedGameContext } from "../../context";
 
 type GameDetailSecondaryScreenLayoutProps = {
-  title: string | React.ReactNode;
+  title: string;
   onNavigateBack: (navigate: NavigateFunction, gameId: string) => void;
 };
 
 const GameDetailSecondaryScreenLayout: React.FC<
   GameDetailSecondaryScreenLayoutProps
 > = (props) => {
-  const { gameId } = useSelectedGameContext();
   const navigate = useNavigate();
+  const { gameId } = useSelectedGameContext();
+
   return (
     <Stack sx={styles.root}>
-      <Stack sx={styles.topBar}>
-        <IconButton onClick={() => props.onNavigateBack(navigate, gameId)}>
-          <BackIcon />
-        </IconButton>
-        {typeof props.title === "string" ? (
-          <Typography variant="h1">{props.title}</Typography>
-        ) : (
-          props.title
-        )}
-      </Stack>
+      <AppBar title={props.title} leftButton={
+        <IconButton
+          icon={IconName.Back}
+          onClick={() => props.onNavigateBack(navigate, gameId)}
+        />}
+      />
       <Divider />
       <Outlet />
     </Stack>

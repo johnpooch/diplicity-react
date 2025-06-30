@@ -14,6 +14,8 @@ import { Stack, useMediaQuery, useTheme } from "@mui/material";
 import { ParseMap } from "./screens/parse-map";
 import * as Desktop from "./screens/desktop";
 import * as Mobile from "./screens/mobile";
+import { MyGames as NewMyGames } from "./components/screens/MyGames";
+import { FindGames as NewFindGames } from "./components/screens/FindGames";
 import {
   Panel,
   Channel,
@@ -44,6 +46,8 @@ const Router: React.FC = () => {
 
   return loggedIn ? (
     <Routes>
+      <Route path="/new-my-games" element={<NewMyGames />} />
+      <Route path="/new-find-games" element={<NewFindGames />} />
       <Route path="/parse-map" element={<ParseMap />} />
       <Route element={<HomeLayout />}>
         <Route index element={<MyGames />} />
