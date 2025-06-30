@@ -106,6 +106,7 @@ const styles: Styles = {
   avatarStackButton: {
     justifyContent: "flex-start",
     width: "fit-content",
+    padding: "8px 0px 8px 0px",
   },
   avatarStackContainer: {
     alignItems: "center",

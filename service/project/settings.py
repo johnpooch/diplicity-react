@@ -30,7 +30,7 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-gdnbe1&siif)1gsuv+f
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,service').split(',')
 
 # CSRF Settings
 CSRF_TRUSTED_ORIGINS = [
@@ -73,7 +73,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-CORS_ALLOWED_ORIGINS = os.getenv('DJANGO_CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:5173').split(',')
+CORS_ALLOWED_ORIGINS = os.getenv('DJANGO_CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:5173,http://diplicity-web:5173').split(',')
 
 ROOT_URLCONF = "project.urls"
 
@@ -101,27 +101,15 @@ WSGI_APPLICATION = "project.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# Debug logging for environment variables
-print("=== Environment Variables Debug ===")
-print(f"DATABASE_URL exists: {'DATABASE_URL' in os.environ}")
-print(f"All environment variables: {dict(os.environ)}")
-print("=================================")
-
 if "DATABASE_URL" in os.environ:
     db_url = os.getenv("DATABASE_URL")
-    print(f"Raw DATABASE_URL: {db_url}")
-    try:
-        DATABASES = {
-            "default": dj_database_url.config(
-                default=db_url,
-                conn_max_age=60,
-                conn_health_checks=True,
-            )
-        }
-        print(f"Successfully parse database config: {DATABASES['default']}")
-    except Exception as e:
-        print(f"Error parsing DATABASE_URL: {str(e)}")
-        raise
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=db_url,
+            conn_max_age=60,
+            conn_health_checks=True,
+        )
+    }
 else:
     DATABASES = {
         "default": {
