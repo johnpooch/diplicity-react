@@ -10,7 +10,7 @@ class MemberSerializer(serializers.Serializer):
     name = serializers.CharField(source="user.profile.name")
     picture = serializers.CharField(source="user.profile.picture")
     nation = serializers.CharField()
-    is_current_user = serializers.BooleanField()
+    # is_current_user = serializers.BooleanField()
 
 
 class ProvinceSerializer(serializers.Serializer):
@@ -52,7 +52,7 @@ class PhaseSerializer(serializers.Serializer):
     remaining_time = serializers.CharField()
     units = UnitSerializer(many=True)
     supply_centers = SupplyCenterSerializer(many=True)
-    options = NationOptionsSerializer(many=True, source="options_list")
+    # options = NationOptionsSerializer(many=True)
 
 
 class GameSerializer(serializers.Serializer):
@@ -64,8 +64,8 @@ class GameSerializer(serializers.Serializer):
     can_join = serializers.BooleanField()
     can_leave = serializers.BooleanField()
     current_phase = PhaseSerializer()
-    phases = PhaseSerializer(many=True)
-    members = MemberSerializer(many=True)
+    # phases = PhaseSerializer(many=True)
+    # members = MemberSerializer(many=True)
     variant = VariantSerializer()
     phase_confirmed = serializers.BooleanField()
     can_confirm_phase = serializers.BooleanField()

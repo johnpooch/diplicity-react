@@ -85,3 +85,9 @@ class Game(BaseModel):
         if self.movement_phase_duration == self.TWENTY_FOUR_HOURS:
             return 24 * 60 * 60
         return 0
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['status']),
+            models.Index(fields=['variant']),
+        ]

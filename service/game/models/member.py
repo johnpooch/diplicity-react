@@ -18,3 +18,10 @@ class Member(BaseModel):
     def nation_data(self):
         variant = self.game.variant
         return next((n for n in variant.nations if n["name"] == self.nation), None)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['game', 'user']),
+            models.Index(fields=['user']),
+            models.Index(fields=['game']),
+        ]

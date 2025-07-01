@@ -152,6 +152,12 @@ const injectedRtkApi = api.injectEndpoints({
     variantsList: build.query<VariantsListApiResponse, VariantsListApiArg>({
       query: () => ({ url: `/variants/` }),
     }),
+    versionRetrieve: build.query<
+      VersionRetrieveApiResponse,
+      VersionRetrieveApiArg
+    >({
+      query: () => ({ url: `/version/` }),
+    }),
   }),
   overrideExisting: false,
 });
@@ -334,6 +340,8 @@ export type UserRetrieveApiResponse = /** status 200  */ UserProfile;
 export type UserRetrieveApiArg = void;
 export type VariantsListApiResponse = /** status 200  */ Variant[];
 export type VariantsListApiArg = void;
+export type VersionRetrieveApiResponse = /** status 200  */ Version;
+export type VersionRetrieveApiArg = void;
 export type TokenRefresh = {};
 export type TokenRefreshRead = {
   access: string;
@@ -391,12 +399,6 @@ export type SupplyCenter = {
   province: Province;
   nation: Nation;
 };
-export type NationOptions = {
-  nation: string;
-  options: {
-    [key: string]: any;
-  };
-};
 export type Phase = {
   id: number;
   ordinal: number;
@@ -407,15 +409,6 @@ export type Phase = {
   remainingTime: string;
   units: Unit[];
   supplyCenters: SupplyCenter[];
-  options: NationOptions[];
-};
-export type Member = {
-  id: number;
-  username: string;
-  name: string;
-  picture: string;
-  nation: string;
-  isCurrentUser: boolean;
 };
 export type Start = {
   season: string;
@@ -446,8 +439,6 @@ export type Game = {
   canJoin: boolean;
   canLeave: boolean;
   currentPhase: Phase;
-  phases: Phase[];
-  members: Member[];
   variant: Variant;
   phaseConfirmed: boolean;
   canConfirmPhase: boolean;
@@ -511,6 +502,10 @@ export type UserProfile = {
   username: string;
   email: string;
 };
+export type Version = {
+  environment: string;
+  version: string;
+};
 export const {
   useApiSchemaRetrieveQuery,
   useApiTokenRefreshCreateMutation,
@@ -531,4 +526,5 @@ export const {
   useGamesListQuery,
   useUserRetrieveQuery,
   useVariantsListQuery,
+  useVersionRetrieveQuery,
 } = injectedRtkApi;

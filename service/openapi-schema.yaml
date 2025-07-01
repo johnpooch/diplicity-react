@@ -526,6 +526,21 @@ paths:
                 items:
                   $ref: '#/components/schemas/Variant'
           description: ''
+  /version/:
+    get:
+      operationId: versionRetrieve
+      tags:
+      - version
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Version'
+          description: ''
 components:
   schemas:
     Auth:
@@ -644,14 +659,6 @@ components:
           type: boolean
         currentPhase:
           $ref: '#/components/schemas/Phase'
-        phases:
-          type: array
-          items:
-            $ref: '#/components/schemas/Phase'
-        members:
-          type: array
-          items:
-            $ref: '#/components/schemas/Member'
         variant:
           $ref: '#/components/schemas/Variant'
         phaseConfirmed:
@@ -664,12 +671,10 @@ components:
       - canLeave
       - currentPhase
       - id
-      - members
       - movementPhaseDuration
       - name
       - nationAssignment
       - phaseConfirmed
-      - phases
       - status
       - variant
     GameCreateRequest:
@@ -686,28 +691,6 @@ components:
       required:
       - name
       - variant
-    Member:
-      type: object
-      properties:
-        id:
-          type: integer
-        username:
-          type: string
-        name:
-          type: string
-        picture:
-          type: string
-        nation:
-          type: string
-        isCurrentUser:
-          type: boolean
-      required:
-      - id
-      - isCurrentUser
-      - name
-      - nation
-      - picture
-      - username
     Message:
       type: object
       properties:
@@ -743,17 +726,6 @@ components:
       description: |-
         * `random` - Random
         * `ordered` - Ordered
-    NationOptions:
-      type: object
-      properties:
-        nation:
-          type: string
-        options:
-          type: object
-          additionalProperties: {}
-      required:
-      - nation
-      - options
     NationOrder:
       type: object
       properties:
@@ -844,14 +816,9 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SupplyCenter'
-        options:
-          type: array
-          items:
-            $ref: '#/components/schemas/NationOptions'
       required:
       - id
       - name
-      - options
       - ordinal
       - remainingTime
       - season
@@ -1008,6 +975,16 @@ components:
       - nations
       - provinces
       - start
+    Version:
+      type: object
+      properties:
+        environment:
+          type: string
+        version:
+          type: string
+      required:
+      - environment
+      - version
   securitySchemes:
     jwtAuth:
       type: http
