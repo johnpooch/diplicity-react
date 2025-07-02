@@ -106,13 +106,13 @@ class GameService(BaseService):
                     {
                         'type': unit.type,
                         'nation': {'name': unit.nation},
-                        'province': {'id': unit.province, 'name': unit.province}
+                        'province': {'id': unit.province, 'name': unit.province, 'type': 'TODO', 'supply_center': 'TODO'}
                     }
                     for unit in phase.units.all()
                 ],
                 'supply_centers': [
                     {
-                        'province': {'id': sc.province, 'name': sc.province},
+                        'province': {'id': sc.province, 'name': sc.province, 'type': 'TODO', 'supply_center': 'TODO'},
                         'nation': {'name': sc.nation}
                     }
                     for sc in phase.supply_centers.all()

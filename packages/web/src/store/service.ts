@@ -380,9 +380,8 @@ export type FcmDeviceRead = {
   dateCreated: string | null;
   type: TypeEnum;
 };
-export type Nation = {
+export type PhaseNation = {
   name: string;
-  color: string;
 };
 export type Province = {
   id: string;
@@ -392,12 +391,18 @@ export type Province = {
 };
 export type Unit = {
   type: string;
-  nation: Nation;
+  nation: PhaseNation;
   province: Province;
 };
 export type SupplyCenter = {
   province: Province;
-  nation: Nation;
+  nation: PhaseNation;
+};
+export type NationOptions = {
+  nation: string;
+  options: {
+    [key: string]: any;
+  };
 };
 export type Phase = {
   id: number;
@@ -409,6 +414,19 @@ export type Phase = {
   remainingTime: string;
   units: Unit[];
   supplyCenters: SupplyCenter[];
+  options: NationOptions[];
+};
+export type Member = {
+  id: number;
+  username: string;
+  name: string;
+  picture: string;
+  nation: string;
+  isCurrentUser: boolean;
+};
+export type Nation = {
+  name: string;
+  color: string;
 };
 export type Start = {
   season: string;
@@ -439,6 +457,8 @@ export type Game = {
   canJoin: boolean;
   canLeave: boolean;
   currentPhase: Phase;
+  phases: Phase[];
+  members: Member[];
   variant: Variant;
   phaseConfirmed: boolean;
   canConfirmPhase: boolean;
