@@ -19,9 +19,9 @@ class MemberSerializer(serializers.Serializer):
 
 class ProvinceSerializer(serializers.Serializer):
     id = serializers.CharField()
-    # name = serializers.CharField()
-    # type = serializers.CharField()
-    # supply_center = serializers.BooleanField()
+    name = serializers.CharField()
+    type = serializers.CharField()
+    supply_center = serializers.BooleanField()
 
 
 class UnitSerializer(serializers.Serializer):
