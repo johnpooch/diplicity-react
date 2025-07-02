@@ -475,11 +475,11 @@ def active_game_with_phase_options(db, active_game_with_phase_state):
     import json
     from django.conf import settings
 
-    phase_state = active_game_with_phase_state.current_phase.phase_states.first()
+    phase = active_game_with_phase_state.current_phase
     with open(f"{settings.BASE_DIR}/game/data/options/options.json") as f:
         json_string = f.read()
-    phase_state.options = json.dumps(json.loads(json_string))
-    phase_state.save()
+    phase.options = json.dumps(json.loads(json_string))
+    phase.save()
     return active_game_with_phase_state
 
 @pytest.fixture
