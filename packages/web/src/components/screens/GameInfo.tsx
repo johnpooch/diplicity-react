@@ -19,6 +19,7 @@ import { useNavigate, useParams } from "react-router";
 import { Table } from "../elements/Table";
 import { InteractiveMap } from "../interactive-map/interactive-map";
 import { MapSkeleton } from "../composites/MapSkeleton";
+import { getCurrentPhase } from "../../util";
 
 const GameInfo: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -109,7 +110,7 @@ const GameInfo: React.FC = () => {
                 {query.data ? (
                   <InteractiveMap
                     variant={query.data.variant}
-                    phase={query.data.currentPhase}
+                    phase={getCurrentPhase(query.data.phases)}
                     orders={[]}
                   />
                 ) : (

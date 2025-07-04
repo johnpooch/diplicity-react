@@ -20,7 +20,7 @@ class Order(BaseModel):
         return self.phase_state.member.nation
 
     def clean(self):
-        options_json = json.loads(self.phase_state.options)
+        options_json = self.phase_state.phase.options_dict
 
         try:
             if self.source not in options_json:
