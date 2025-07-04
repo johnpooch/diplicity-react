@@ -38,7 +38,7 @@ const GameInfo: React.FC = () => {
 
   return (
     <QueryContainer query={query}>
-      {(game) => (
+      {game => (
         <>
           {game.status === "pending" && (
             <Alert severity="info" icon={<InfoIcon />}>
@@ -71,7 +71,7 @@ const GameInfo: React.FC = () => {
                   onClick={handlePlayerInfo}
                 >
                   <AvatarGroup total={game.members.length} max={7}>
-                    {game.members.map((member) => (
+                    {game.members.map(member => (
                       <Avatar
                         sx={styles.avatar}
                         key={member.username}
@@ -135,16 +135,16 @@ const GameInfo: React.FC = () => {
 };
 
 const styles: Styles = {
-  listSubheader: (theme) => ({
+  listSubheader: theme => ({
     textAlign: "left",
     color: theme.palette.text.primary,
   }),
-  listItemIcon: (theme) => ({
+  listItemIcon: theme => ({
     color: theme.palette.text.primary,
     minWidth: "fit-content",
     padding: 1,
   }),
-  listItemPrimaryText: (theme) => ({
+  listItemPrimaryText: theme => ({
     color: theme.palette.text.primary,
   }),
   avatarStackButton: {

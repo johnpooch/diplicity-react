@@ -9,6 +9,7 @@ function randomOf(ary: string[]) {
     return ary[Math.floor(Math.random() * ary.length)];
 }
 
+// Get the phase with the highest ordinal
 function getCurrentPhase(phases: Phase[]) {
     return phases.reduce((max, phase) => {
         if (phase.ordinal > max.ordinal) {

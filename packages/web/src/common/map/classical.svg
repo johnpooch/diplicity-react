@@ -1,6 +1,7 @@
+
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg
-   inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20)"
+   inkscape:version="1.3.2 (091e20e, 2023-11-25, custom)"
    sodipodi:docname="map.svg"
    id="svg10"
    version="1.1"
@@ -196,15 +197,15 @@
      inkscape:document-rotation="0"
      inkscape:current-layer="supply-centers"
      inkscape:window-maximized="1"
-     inkscape:window-y="-8"
-     inkscape:window-x="-8"
-     inkscape:cy="1252.75"
-     inkscape:cx="572.25"
-     inkscape:zoom="2"
+     inkscape:window-y="-9"
+     inkscape:window-x="-9"
+     inkscape:cy="815.5"
+     inkscape:cx="696.5"
+     inkscape:zoom="1"
      showgrid="false"
      id="namedview12"
-     inkscape:window-height="1017"
-     inkscape:window-width="1920"
+     inkscape:window-height="1361"
+     inkscape:window-width="2560"
      inkscape:pageshadow="2"
      inkscape:pageopacity="0"
      guidetolerance="10"
@@ -213,7 +214,9 @@
      borderopacity="1"
      bordercolor="#666666"
      pagecolor="#ffffff"
-     inkscape:pagecheckerboard="0" />
+     inkscape:pagecheckerboard="0"
+     inkscape:showpageshadow="2"
+     inkscape:deskcolor="#d1d1d1" />
   <!-- Generator: Sketch 63.1 (92452) - https://sketch.com -->
   <title
      id="title2">background</title>
@@ -854,6 +857,11 @@
        style="display:inline;fill:none;stroke:#000000;stroke-width:2.25273;stroke-opacity:0.470588;enable-background:new"
        id="tunCenter"
        d="m 604.13606,1314.8991 c 4.8887,-2.5281 2.5895,-9.3976 -3.1454,-9.3976 -1.1348,0 -2.1738,0.502 -3.2348,1.563 -4.3152,4.3152 0.8709,10.6836 6.3802,7.8346 z m -6.5991,0.6722 c -4.9999,-3.9329 -2.3891,-11.1392 4.0356,-11.1392 4.0572,0 6.1166,2.0704 6.1166,6.1492 0,5.4018 -5.9259,8.3145 -10.1522,4.99 z m 8.257,3.3102 c 6.5417,-3.3374 6.4585,-13.3439 -0.1374,-16.5369 -8.7036,-4.2134 -17.3355,5.4274 -11.9778,13.3777 2.7811,4.1267 7.703,5.4102 12.1153,3.1592 z m -8.799,1.3688 c -8.2067,-3.6631 -7.9607,-15.7787 0.3911,-19.2684 9.9186,-4.1442 18.8997,7.5837 12.3709,16.1546 -2.6643,3.4975 -8.6374,4.9549 -12.762,3.1138 z" />
+    <path
+       inkscape:connector-curvature="0"
+       style="display:inline;fill:none;stroke:#000000;stroke-width:2.2527;stroke-opacity:0.470588;enable-background:new"
+       id="ruhCenter"
+       d="m 579.75441,800.89178 c 4.88859,-2.52799 2.58943,-9.39757 -3.14533,-9.39757 -1.13479,0 -2.17376,0.50199 -3.23472,1.563 -4.31513,4.31528 0.87086,10.68356 6.38005,7.83457 z m -6.59896,0.6722 c -4.99969,-3.9328 -2.38895,-11.13919 4.03551,-11.13919 4.05712,0 6.11657,2.07041 6.11657,6.14921 0,5.40178 -5.92587,8.31449 -10.15208,4.98998 z m 8.25684,3.31019 c 6.54156,-3.33729 6.45835,-13.34387 -0.13741,-16.53687 -8.70343,-4.21339 -17.33515,5.4274 -11.97755,13.37769 2.78105,4.12669 7.70284,5.41019 12.11505,3.15918 z m -8.79883,1.3689 c -8.20653,-3.66309 -7.96053,-15.77877 0.3911,-19.26837 9.91838,-4.14429 18.89929,7.58371 12.37063,16.15448 -2.66425,3.49749 -8.63722,4.95488 -12.76173,3.11389 z" />
   </g>
   <g
      style="display:none"
@@ -955,11 +963,6 @@
        style="display:inline;fill:none;stroke:#000000;stroke-width:2.25273085;stroke-opacity:0.47058824;enable-background:new"
        id="apuCenter"
        d="m 765.5599,1115.8634 c 4.8887,-2.5281 2.5895,-9.3976 -3.1454,-9.3976 -1.1348,0 -2.1738,0.502 -3.2348,1.563 -4.3152,4.3152 0.8709,10.6836 6.3802,7.8346 z m -6.5991,0.6722 c -4.9999,-3.9329 -2.3891,-11.1392 4.0356,-11.1392 4.0572,0 6.1166,2.0704 6.1166,6.1492 0,5.4017 -5.9259,8.3145 -10.1522,4.99 z m 8.257,3.3102 c 6.5417,-3.3374 6.4584,-13.3439 -0.1374,-16.5369 -8.7036,-4.2134 -17.3355,5.4274 -11.9778,13.3777 2.7811,4.1267 7.703,5.4102 12.1153,3.1592 z m -8.799,1.3688 c -8.2067,-3.6631 -7.9607,-15.7787 0.3911,-19.2684 9.9186,-4.1442 18.8997,7.5837 12.3708,16.1546 -2.6642,3.4975 -8.6373,4.9549 -12.7619,3.1138 z" />
-    <path
-       inkscape:connector-curvature="0"
-       style="display:inline;fill:none;stroke:#000000;stroke-width:2.25273085;stroke-opacity:0.47058824;enable-background:new"
-       id="ruhCenter"
-       d="m 574.66888,783.52159 c 4.8887,-2.528 2.5895,-9.3976 -3.1453,-9.3976 -1.1349,0 -2.1739,0.5021 -3.2348,1.563 -4.3153,4.3153 0.8708,10.6836 6.3801,7.8346 z m -6.5991,0.6722 c -4.9998,-3.9328 -2.389,-11.1392 4.0356,-11.1392 4.0572,0 6.1167,2.0704 6.1167,6.1492 0,5.4018 -5.9259,8.3145 -10.1523,4.99 z m 8.257,3.3102 c 6.5417,-3.3373 6.4585,-13.3438 -0.1374,-16.5369 -8.7036,-4.2133 -17.3354,5.4274 -11.9778,13.3777 2.7811,4.1267 7.703,5.4102 12.1153,3.1592 z m -8.799,1.3689 c -8.2066,-3.6631 -7.9607,-15.7788 0.3911,-19.2684 9.9187,-4.1443 18.8997,7.5837 12.3709,16.1545 -2.6643,3.4976 -8.6374,4.9549 -12.762,3.1139 z" />
     <path
        inkscape:connector-curvature="0"
        style="display:inline;fill:none;stroke:#000000;stroke-width:2.25273085;stroke-opacity:0.47058824;enable-background:new"
@@ -1708,6 +1711,35 @@
          cy="560.24542"
          cx="353.90765"
          id="path1214-5-0-01-8"
+         style="display:inline;mix-blend-mode:normal;fill:#ffffff;fill-opacity:0.7;stroke:none;stroke-width:1.53949;stroke-linecap:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.7;paint-order:normal" />
+    </g>
+    <g
+       transform="translate(221.74184,228.69949)"
+       style="display:inline"
+       id="g1271-4-1-3">
+      <circle
+         r="10"
+         cy="560.24542"
+         cx="353.90765"
+         id="path1214-37-1-5"
+         style="mix-blend-mode:normal;fill:none;fill-opacity:0.7;stroke:#000005;stroke-width:3.5;stroke-linecap:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.7;paint-order:normal" />
+      <circle
+         style="display:inline;mix-blend-mode:normal;fill:none;fill-opacity:0.7;stroke:#ffffff;stroke-width:1;stroke-linecap:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.7;paint-order:normal"
+         id="path1214-9-08-1-8"
+         cx="353.90765"
+         cy="560.24542"
+         r="7.9344115" />
+      <circle
+         style="display:inline;mix-blend-mode:normal;fill:none;fill-opacity:0.7;stroke:#000005;stroke-width:3.5;stroke-linecap:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.7;paint-order:normal"
+         id="path1214-5-10-5-2"
+         cx="353.90765"
+         cy="560.24542"
+         r="5.8176403" />
+      <circle
+         r="4.1615906"
+         cy="560.24542"
+         cx="353.90765"
+         id="path1214-5-0-01-8-1"
          style="display:inline;mix-blend-mode:normal;fill:#ffffff;fill-opacity:0.7;stroke:none;stroke-width:1.53949;stroke-linecap:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.7;paint-order:normal" />
     </g>
     <g
@@ -2590,31 +2622,32 @@
      id="names"
      inkscape:groupmode="layer">
     <text
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        transform="rotate(-8)"
-       id="mar"
+       id="Marseilles"
        x="-89.661316"
        y="79.871475"><tspan
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;font-variant-east-asian:normal"
          id="tspan6"
          y="1059.7118"
          x="287.17596">Marseilles</tspan></text>
     <text
-       style="font-weight:bold;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';letter-spacing:-0.5;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:16px;font-family:'Libre Baskerville';letter-spacing:-0.5;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        letter-spacing="-0.5"
        font-weight="bold"
        font-size="16"
        transform="rotate(-62)"
-       id="por"
+       id="Portugal"
        x="-941.6297"
        y="-429.49454"><tspan
          id="tspan9"
          y="613.40924"
-         x="-903.6347">Portugal</tspan></text>
+         x="-903.6347"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Portugal</tspan></text>
     <text
-       style="font-weight:bold;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        transform="rotate(-4)"
@@ -2623,9 +2656,10 @@
        y="15.721663"><tspan
          id="tspan12"
          y="1101.5227"
-         x="143.11626">Spain</tspan></text>
+         x="143.11626"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Spain</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:20px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:20px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="normal"
        font-style="italic"
        font-size="20"
@@ -2634,20 +2668,22 @@
        y="23.72296"><tspan
          id="tspan15"
          y="1318.8353"
-         x="251.59637">N. Africa</tspan></text>
+         x="251.59637"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:20px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">N. Africa</tspan></text>
     <text
-       style="font-weight:bold;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        transform="rotate(1)"
-       id="tun"
+       id="Tunis"
        x="69.488335"
        y="16.046329"><tspan
          id="tspan18"
          y="1318.4242"
-         x="583.89038">Tunis</tspan></text>
+         x="583.89038"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Tunis</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:3;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:15.16666698px;font-family:'Libre Baskerville';letter-spacing:3;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        letter-spacing="3"
        font-weight="normal"
        font-style="italic"
@@ -2658,9 +2694,10 @@
        y="60.321827"><tspan
          id="tspan21"
          y="1256.1332"
-         x="143.2724">WEST MEDITERRANEAN</tspan></text>
+         x="143.2724"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:15.16666698px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">WEST MEDITERRANEAN</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:3;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:15.16666698px;font-family:'Libre Baskerville';letter-spacing:3;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        letter-spacing="3"
        font-weight="normal"
        font-style="italic"
@@ -2670,20 +2707,22 @@
        y="19.657095"><tspan
          id="tspan24"
          y="1087.7694"
-         x="467.19199">GOL</tspan></text>
+         x="467.19199"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:15.16666698px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">GOL</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:12px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15.1667px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Italic';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
        font-weight="normal"
        font-style="italic"
        font-size="12"
        id="Gulf-of-Lyon"
-       x="44.865673"
-       y="19.657095"><tspan
+       x="36.865673"
+       y="21.657095"><tspan
          id="tspan27"
-         y="1102.7694"
-         x="453.19199">Gulf of Lyon</tspan></text>
+         y="1104.7694"
+         x="445.19199"
+         style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15.1667px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Italic';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Gulf of Lyon</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:0.5;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:16px;font-family:'Libre Baskerville';letter-spacing:0.5;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        letter-spacing="0.5"
        font-weight="normal"
        font-style="italic"
@@ -2694,9 +2733,10 @@
        y="86.85247"><tspan
          id="tspan30"
          y="1029.7653"
-         x="101.97352">Gascony</tspan></text>
+         x="101.97352"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Gascony</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:20px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:2;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:15.16666698px;font-family:'Libre Baskerville';letter-spacing:2;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        letter-spacing="2"
        font-weight="normal"
        font-style="italic"
@@ -2707,21 +2747,22 @@
        y="24.408772"><tspan
          id="tspan33"
          y="862.82489"
-         x="-27.124723">MID ATLANTIC</tspan></text>
+         x="-27.124723"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:15.16666698px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">MID ATLANTIC</tspan></text>
     <text
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        transform="rotate(19.8)"
        id="Brest"
        x="314.427"
        y="-141.47972"><tspan
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;font-variant-east-asian:normal"
          id="tspan36"
          y="675.07043"
          x="594.9176">Brest</tspan></text>
     <text
-       style="font-weight:bold;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        transform="rotate(-1)"
@@ -2730,10 +2771,11 @@
        y="26.958044"><tspan
          id="tspan39"
          y="873.87158"
-         x="392.42465">Paris</tspan></text>
+         x="392.42465"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Paris</tspan></text>
     <text
        transform="rotate(-2)"
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="normal"
        font-style="italic"
        font-size="16"
@@ -2742,9 +2784,10 @@
        y="38.630032"><tspan
          id="tspan42"
          y="818.74243"
-         x="402.63971">Picardy</tspan></text>
+         x="402.63971"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Picardy</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="normal"
        font-style="italic"
        font-size="16"
@@ -2754,9 +2797,10 @@
        y="78.353035"><tspan
          id="tspan45"
          y="959.49921"
-         x="-422.6123">Burgundy</tspan></text>
+         x="-422.6123"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Burgundy</tspan></text>
     <text
-       style="font-weight:bold;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        transform="rotate(32)"
@@ -2765,9 +2809,10 @@
        y="-366.95837"><tspan
          id="tspan48"
          y="382.95563"
-         x="805.9118">Belgium</tspan></text>
+         x="805.9118"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Belgium</tspan></text>
     <text
-       style="font-weight:bold;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';letter-spacing:0.3;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:16px;font-family:'Libre Baskerville';letter-spacing:0.3;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        letter-spacing="0.3"
        font-weight="bold"
        font-size="16"
@@ -2777,34 +2822,36 @@
        y="209.37843"><tspan
          id="tspan51"
          y="903.47369"
-         x="32.482983">Holland</tspan></text>
+         x="32.482983"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Holland</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:0.3;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;letter-spacing:0.3;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
        letter-spacing="0.3"
        font-weight="normal"
        font-style="italic"
        font-size="16"
-       transform="rotate(-25)"
+       transform="rotate(-12.994847)"
        id="Ruhr"
-       x="-342.11783"
-       y="192.17783"><tspan
+       x="-153.42319"
+       y="147.00403"><tspan
          id="tspan54"
-         y="975.23688"
-         x="168.0829">Ruhr</tspan></text>
+         y="930.06299"
+         x="356.77747"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Ruhr</tspan></text>
     <text
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0.3;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;letter-spacing:0.3;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;font-variant-east-asian:normal"
        letter-spacing="0.3"
        font-weight="bold"
        font-size="16"
        id="Munich"
        x="52.421604"
        y="27.943884"><tspan
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;font-variant-east-asian:normal"
          id="tspan57"
          y="866.28656"
          x="611.52991">Munich</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:0.5;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:16px;font-family:'Libre Baskerville';letter-spacing:0.5;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        letter-spacing="0.5"
        font-weight="normal"
        font-style="italic"
@@ -2815,10 +2862,11 @@
        y="58.099823"><tspan
          id="tspan60"
          y="1012.7062"
-         x="497.26654">Piedmont</tspan></text>
+         x="497.26654"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Piedmont</tspan></text>
     <text
        transform="rotate(-1)"
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:0.5;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:16px;font-family:'Libre Baskerville';letter-spacing:0.5;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        letter-spacing="0.5"
        font-weight="normal"
        font-style="italic"
@@ -2828,9 +2876,10 @@
        y="37.602303"><tspan
          id="tspan63"
          y="932.71466"
-         x="649.40149">Tyrolia</tspan></text>
+         x="649.40149"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Tyrolia</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:0.5;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:16px;font-family:'Libre Baskerville';letter-spacing:0.5;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        letter-spacing="0.5"
        font-weight="normal"
        font-style="italic"
@@ -2841,22 +2890,23 @@
        y="-756.3598"><tspan
          id="tspan66"
          y="262.78284"
-         x="1163.7209">Tuscany</tspan></text>
+         x="1163.7209"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Tuscany</tspan></text>
     <text
        y="217.50546"
        x="-788.24664"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:1;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;letter-spacing:1;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;font-variant-east-asian:normal"
        letter-spacing="1"
        font-weight="bold"
        font-size="16"
        transform="rotate(-43)"
        id="Venice"><tspan
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;font-variant-east-asian:normal"
          id="tspan69"
          y="1168.4766"
          x="-201.94553">Venice</tspan></text>
     <text
-       style="font-weight:bold;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        transform="rotate(44)"
@@ -2865,32 +2915,34 @@
        y="-765.75018"><tspan
          id="tspan72"
          y="311.88766"
-         x="1234.413">Rome</tspan></text>
+         x="1234.413"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Rome</tspan></text>
     <text
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        transform="rotate(40)"
        id="Naples"
        x="618.44452"
        y="-730.25916"><tspan
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;font-variant-east-asian:normal"
          id="tspan75"
          y="400.91229"
          x="1296.7502">Naples</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:12px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15.1667px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Italic';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
        font-weight="normal"
        font-style="italic"
        font-size="12"
        id="Tyrhennian-Sea"
-       x="44.865673"
-       y="19.657095"><tspan
+       x="39.865673"
+       y="21.657095"><tspan
          id="tspan78"
-         y="1190.7694"
-         x="624.19202">Tyrrhenian Sea</tspan></text>
+         y="1192.7694"
+         x="619.19202"
+         style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15.1667px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Italic';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Tyrrhenian Sea</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:1;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:16px;font-family:'Libre Baskerville';letter-spacing:1;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        letter-spacing="1"
        font-weight="normal"
        font-style="italic"
@@ -2901,21 +2953,22 @@
        y="-617.25311"><tspan
          id="tspan81"
          y="487.85934"
-         x="1235.8694">Apulia</tspan></text>
+         x="1235.8694"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Apulia</tspan></text>
     <text
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        transform="rotate(39)"
        id="Trieste"
        x="516.49115"
        y="-702.73975"><tspan
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;font-variant-east-asian:normal"
          id="tspan84"
          y="300.11441"
          x="1237.8912">Trieste</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:1;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:16px;font-family:'Libre Baskerville';letter-spacing:1;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        letter-spacing="1"
        font-weight="normal"
        font-style="italic"
@@ -2926,20 +2979,21 @@
        y="-1777.9692"><tspan
          id="tspan87"
          y="-666.58679"
-         x="1229.0223">Albania</tspan></text>
+         x="1229.0223"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Albania</tspan></text>
     <text
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        id="Kiel"
        x="44.611557"
        y="21.435911"><tspan
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;font-variant-east-asian:normal"
          id="tspan90"
          y="713.5484"
          x="606.93793">Kiel</tspan></text>
     <text
-       style="font-weight:bold;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        transform="rotate(33)"
@@ -2948,9 +3002,10 @@
        y="-694.52472"><tspan
          id="tspan93"
          y="484.52112"
-         x="1387.006">Greece</tspan></text>
+         x="1387.006"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Greece</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:15.16666698px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="normal"
        font-style="italic"
        font-size="16"
@@ -2959,9 +3014,10 @@
        y="19.657095"><tspan
          id="tspan96"
          y="1176.6666"
-         x="651.29877">TYS</tspan></text>
+         x="651.29877"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:15.16666698px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">TYS</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:3;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:16px;font-family:'Libre Baskerville';letter-spacing:3;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        letter-spacing="3"
        font-weight="normal"
        font-style="italic"
@@ -2972,9 +3028,10 @@
        y="-769.52802"><tspan
          id="tspan99"
          y="284.85971"
-         x="1205.963">ADRIATIC SEA</tspan></text>
+         x="1205.963"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">ADRIATIC SEA</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:3;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:16px;font-family:'Libre Baskerville';letter-spacing:3;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        letter-spacing="3"
        font-weight="normal"
        font-style="italic"
@@ -2985,9 +3042,10 @@
        y="128.66792"><tspan
          id="tspan102"
          y="1418.955"
-         x="588.73065">IONIAN SEA</tspan></text>
+         x="588.73065"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">IONIAN SEA</tspan></text>
     <text
-       style="font-weight:bold;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        transform="rotate(69)"
@@ -2996,9 +3054,10 @@
        y="-1500.0459"><tspan
          id="tspan105"
          y="-461.13901"
-         x="1308.8326">Serbia</tspan></text>
+         x="1308.8326"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Serbia</tspan></text>
     <text
-       style="font-weight:bold;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        transform="rotate(22)"
@@ -3007,9 +3066,10 @@
        y="-338.08649"><tspan
          id="tspan108"
          y="562.84833"
-         x="1059.3024">Vienna</tspan></text>
+         x="1059.3024"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Vienna</tspan></text>
     <text
-       style="font-weight:bold;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        id="Budapest"
@@ -3017,9 +3077,10 @@
        y="33.621559"><tspan
          id="tspan111"
          y="935.73401"
-         x="876.65649">Budapest</tspan></text>
+         x="876.65649"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Budapest</tspan></text>
     <text
-       style="font-weight:bold;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        transform="rotate(-4)"
@@ -3028,9 +3089,10 @@
        y="94.651184"><tspan
          id="tspan114"
          y="1056.5618"
-         x="906.7063">Rumania</tspan></text>
+         x="906.7063"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Rumania</tspan></text>
     <text
-       style="font-weight:bold;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        transform="rotate(-1)"
@@ -3039,10 +3101,11 @@
        y="35.703762"><tspan
          id="tspan117"
          y="1079.1096"
-         x="953.11902">Bulgaria</tspan></text>
+         x="953.11902"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Bulgaria</tspan></text>
     <text
        transform="rotate(-6)"
-       style="font-weight:bold;font-size:12px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:12px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="12"
        id="SC"
@@ -3050,9 +3113,10 @@
        y="127.71195"><tspan
          id="tspan120"
          y="1219.8241"
-         x="876.54443">SC</tspan></text>
+         x="876.54443"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:12px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">SC</tspan></text>
     <text
-       style="font-weight:bold;font-size:12px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:12px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="12"
        transform="rotate(-62)"
@@ -3061,9 +3125,10 @@
        y="433.39386"><tspan
          id="tspan123"
          y="1435.1688"
-         x="-416.16891">EC</tspan></text>
+         x="-416.16891"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:12px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">EC</tspan></text>
     <text
-       style="font-weight:bold;font-size:12px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:12px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="12"
        id="text128"
@@ -3071,9 +3136,10 @@
        y="28.157095"><tspan
          id="tspan126"
          y="462.26962"
-         x="997.19202">SC</tspan></text>
+         x="997.19202"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:12px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">SC</tspan></text>
     <text
-       style="font-weight:bold;font-size:12px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:12px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="12"
        transform="rotate(-2)"
@@ -3082,9 +3148,10 @@
        y="66.840134"><tspan
          id="tspan130"
          y="251.95259"
-         x="1113.7767">NC</tspan></text>
+         x="1113.7767"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:12px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">NC</tspan></text>
     <text
-       style="font-weight:bold;font-size:12px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:12px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="12"
        transform="rotate(10)"
@@ -3093,9 +3160,10 @@
        y="-32.134262"><tspan
          id="tspan133"
          y="1151.2832"
-         x="418.8399">SC</tspan></text>
+         x="418.8399"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:12px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">SC</tspan></text>
     <text
-       style="font-weight:bold;font-size:12px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:12px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="12"
        transform="rotate(21)"
@@ -3104,9 +3172,10 @@
        y="-125.56636"><tspan
          id="tspan137"
          y="837.90442"
-         x="558.62531">NC</tspan></text>
+         x="558.62531"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:12px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">NC</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:3;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:15.16666698px;font-family:'Libre Baskerville';letter-spacing:3;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        letter-spacing="3"
        font-weight="normal"
        font-style="italic"
@@ -3117,9 +3186,10 @@
        y="-1550.8507"><tspan
          id="tspan141"
          y="-335.57724"
-         x="1505.2748">AEGEAN SEA</tspan></text>
+         x="1505.2748"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:15.16666698px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">AEGEAN SEA</tspan></text>
     <text
-       style="font-weight:bold;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        transform="rotate(24)"
@@ -3128,9 +3198,10 @@
        y="-532.66626"><tspan
          id="tspan144"
          y="583.78656"
-         x="1414.3816">Constantinople</tspan></text>
+         x="1414.3816"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Constantinople</tspan></text>
     <text
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0.3;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;letter-spacing:0.3;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;font-variant-east-asian:normal"
        letter-spacing="0.3"
        font-weight="bold"
        font-size="16"
@@ -3138,12 +3209,12 @@
        id="Smyrna"
        x="-188.731"
        y="236.31662"><tspan
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;font-variant-east-asian:normal"
          id="tspan147"
          y="1417.4423"
          x="953.25513">Smyrna</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="normal"
        font-style="italic"
        font-size="16"
@@ -3152,9 +3223,10 @@
        y="24.606842"><tspan
          id="tspan150"
          y="1277.7191"
-         x="1425.6772">Syria</tspan></text>
+         x="1425.6772"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Syria</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:3;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:15.16666698px;font-family:'Libre Baskerville';letter-spacing:3;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        letter-spacing="3"
        font-weight="normal"
        font-style="italic"
@@ -3164,9 +3236,10 @@
        y="19.455824"><tspan
          id="tspan153"
          y="1323.0511"
-         x="1136.281">EAST MED</tspan></text>
+         x="1136.281"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:15.16666698px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">EAST MED</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="normal"
        font-style="italic"
        font-size="16"
@@ -3175,33 +3248,34 @@
        y="23.899736"><tspan
          id="tspan156"
          y="1109.5834"
-         x="1411.4347">Armenia</tspan></text>
+         x="1411.4347"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Armenia</tspan></text>
     <text
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        transform="rotate(-14)"
        id="Ankara"
        x="-257.21552"
        y="286.57471"><tspan
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;font-variant-east-asian:normal"
          id="tspan159"
          y="1362.9812"
          x="928.82635">Ankara</tspan></text>
     <text
        transform="rotate(-1)"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        id="Sevastopol"
        x="27.479244"
        y="15.476991"><tspan
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;font-variant-east-asian:normal"
          id="tspan162"
          y="811.24335"
          x="1351.7241">Sevastopol</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:3;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:15.16666698px;font-family:'Libre Baskerville';letter-spacing:3;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        letter-spacing="3"
        font-weight="normal"
        font-style="italic"
@@ -3212,9 +3286,10 @@
        y="183.08401"><tspan
          id="tspan165"
          y="1159.3712"
-         x="1031.1193">BLACK SEA</tspan></text>
+         x="1031.1193"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:15.16666698px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">BLACK SEA</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="normal"
        font-style="italic"
        font-size="16"
@@ -3223,9 +3298,10 @@
        y="24.80221"><tspan
          id="tspan168"
          y="836.16528"
-         x="715.72333">Bohemia</tspan></text>
+         x="715.72333"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Bohemia</tspan></text>
     <text
-       style="font-weight:bold;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        id="Berlin"
@@ -3233,10 +3309,11 @@
        y="37.687923"><tspan
          id="tspan171"
          y="737.53027"
-         x="674.79681">Berlin</tspan></text>
+         x="674.79681"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Berlin</tspan></text>
     <text
        transform="rotate(10)"
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="normal"
        font-style="italic"
        font-size="16"
@@ -3245,9 +3322,10 @@
        y="-120.92889"><tspan
          id="tspan174"
          y="626.27386"
-         x="866.32587">Silesia</tspan></text>
+         x="866.32587"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Silesia</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="normal"
        font-style="italic"
        font-size="16"
@@ -3257,9 +3335,10 @@
        y="-383.90427"><tspan
          id="tspan177"
          y="420.66037"
-         x="1158.8909">Galicia</tspan></text>
+         x="1158.8909"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Galicia</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="normal"
        font-style="italic"
        font-size="16"
@@ -3269,9 +3348,10 @@
        y="347.58691"><tspan
          id="tspan180"
          y="1110.4774"
-         x="787.67822">Ukraine</tspan></text>
+         x="787.67822"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Ukraine</tspan></text>
     <text
-       style="font-weight:bold;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        transform="rotate(-2)"
@@ -3280,9 +3360,10 @@
        y="63.73431"><tspan
          id="tspan183"
          y="778.31152"
-         x="866.53564">Warsaw</tspan></text>
+         x="866.53564"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Warsaw</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Italic';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="normal"
        font-style="italic"
        font-size="16"
@@ -3292,9 +3373,10 @@
        y="296.21231"><tspan
          id="tspan186"
          y="961.36377"
-         x="465.21808">Prussia</tspan></text>
+         x="465.21808"
+         style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Italic';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Prussia</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="normal"
        font-style="italic"
        font-size="16"
@@ -3303,9 +3385,10 @@
        y="25.657095"><tspan
          id="tspan189"
          y="560.6571"
-         x="945.86572">LVN</tspan></text>
+         x="945.86572"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">LVN</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:12px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:12px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="normal"
        font-style="italic"
        font-size="12"
@@ -3314,21 +3397,22 @@
        y="25.657095"><tspan
          id="tspan192"
          y="578.6571"
-         x="940.86572">Livonia</tspan></text>
+         x="940.86572"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:12px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Livonia</tspan></text>
     <text
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        transform="rotate(-3)"
        id="Moscow"
        x="17.379271"
        y="86.904396"><tspan
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;font-variant-east-asian:normal"
          id="tspan195"
          y="565.67206"
          x="1233.6033">Moscow</tspan></text>
     <text
-       style="font-weight:bold;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        transform="rotate(19)"
@@ -3337,21 +3421,22 @@
        y="-220.46843"><tspan
          id="tspan198"
          y="362.68149"
-         x="773.63776">Denmark</tspan></text>
+         x="773.63776"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Denmark</tspan></text>
     <text
-       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        transform="rotate(-24)"
        id="St.-Petersburg"
        x="-204.28355"
        y="450.02145"><tspan
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;font-variant-east-asian:normal"
          id="tspan201"
          y="803.82404"
          x="837.04779">St. Petersburg</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="normal"
        font-style="italic"
        font-size="16"
@@ -3361,9 +3446,10 @@
        y="140.72809"><tspan
          id="tspan204"
          y="473.60425"
-         x="860.70776">Finland</tspan></text>
+         x="860.70776"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Finland</tspan></text>
     <text
-       style="font-weight:bold;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        id="Sweden"
@@ -3371,9 +3457,10 @@
        y="28.182276"><tspan
          id="tspan207"
          y="468.75381"
-         x="724.06073">Sweden</tspan></text>
+         x="724.06073"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Sweden</tspan></text>
     <text
-       style="font-weight:bold;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        transform="rotate(-8)"
@@ -3382,9 +3469,10 @@
        y="103.69776"><tspan
          id="tspan210"
          y="496.1937"
-         x="550.82184">Norway</tspan></text>
+         x="550.82184"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Norway</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:4;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:15.16666698px;font-family:'Libre Baskerville';letter-spacing:4;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        letter-spacing="4"
        font-weight="normal"
        font-style="italic"
@@ -3395,9 +3483,10 @@
        y="392.53201"><tspan
          id="tspan213"
          y="978.69696"
-         x="172.81987">BALTIC SEA</tspan></text>
+         x="172.81987"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:15.16666698px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">BALTIC SEA</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:4;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:15.16666698px;font-family:'Libre Baskerville';letter-spacing:4;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        letter-spacing="4"
        font-weight="normal"
        font-style="italic"
@@ -3408,9 +3497,10 @@
        y="159.17911"><tspan
          id="tspan216"
          y="664.86725"
-         x="494.99185">SKA</tspan></text>
+         x="494.99185"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:15.16666698px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">SKA</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:4;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:15.16666698px;font-family:'Libre Baskerville';letter-spacing:4;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        letter-spacing="4"
        font-weight="normal"
        font-style="italic"
@@ -3421,11 +3511,12 @@
        y="-250.12083"><tspan
          id="tspan219"
          y="-221.88521"
-         x="918.98529">BARENTS SEA</tspan></text>
+         x="918.98529"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:15.16666698px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">BARENTS SEA</tspan></text>
     <text
        y="84.807922"
        x="15.489122"
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:2;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:15.16666698px;font-family:'Libre Baskerville';letter-spacing:2;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        letter-spacing="2"
        font-weight="normal"
        font-style="italic"
@@ -3434,21 +3525,23 @@
        id="BOT"><tspan
          id="tspan222"
          y="527.78339"
-         x="807.74084">BOT</tspan></text>
+         x="807.74084"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:15.16666698px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">BOT</tspan></text>
     <text
-       y="84.762848"
-       x="14.272599"
-       style="font-style:italic;font-weight:normal;font-size:12px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       y="155.929"
+       x="139.10051"
+       style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.7107px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Italic';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:0.838065"
        font-weight="normal"
        font-style="italic"
        font-size="12"
        transform="rotate(-4)"
        id="Gulf-of-Bothnia"><tspan
          id="tspan225"
-         y="543.67926"
-         x="783.4873">Gulf of Bothnia</tspan></text>
+         y="540.53101"
+         x="783.75281"
+         style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.7107px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Italic';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.838065">Gulf of Bothnia</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:4;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:15.16666698px;font-family:'Libre Baskerville';letter-spacing:4;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        letter-spacing="4"
        font-weight="normal"
        font-style="italic"
@@ -3459,33 +3552,36 @@
        y="94.068329"><tspan
          id="tspan228"
          y="702.05139"
-         x="460.99426">HEL</tspan></text>
+         x="460.99426"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:15.16666698px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">HEL</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:12px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.2698px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Italic';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:0.874934"
        font-weight="normal"
        font-style="italic"
        font-size="12"
        transform="rotate(-8)"
        id="Helgoland"
-       x="-49.610519"
-       y="93.325745"><tspan
+       x="13.589902"
+       y="173.21858"><tspan
          id="tspan231"
-         y="716.87073"
-         x="448.51733">Helgoland</tspan></text>
+         y="718.77924"
+         x="449.41882"
+         style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.2699px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Italic';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.874934">Helgoland</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:12px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.2698px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Italic';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:0.874934"
        font-weight="normal"
        font-style="italic"
        font-size="12"
        transform="rotate(-8)"
        id="Bight"
-       x="-51.634995"
-       y="93.410614"><tspan
+       x="15.325422"
+       y="176.2849"><tspan
          id="tspan234"
-         y="731.38879"
-         x="463.612">Bight</tspan></text>
+         y="734.47357"
+         x="466.13248"
+         style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.2699px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Italic';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.874934">Bight</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="normal"
        font-style="italic"
        font-size="16"
@@ -3495,9 +3591,10 @@
        y="-523.5376"><tspan
          id="tspan237"
          y="151.29619"
-         x="741.84558">Wales</tspan></text>
+         x="741.84558"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Wales</tspan></text>
     <text
-       style="font-weight:bold;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        transform="rotate(-9)"
@@ -3506,9 +3603,10 @@
        y="78.877831"><tspan
          id="tspan240"
          y="772.11609"
-         x="262.08569">London</tspan></text>
+         x="262.08569"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">London</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:3;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:15.16666698px;font-family:'Libre Baskerville';letter-spacing:3;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        letter-spacing="3"
        font-weight="normal"
        font-style="italic"
@@ -3519,28 +3617,30 @@
        y="65.409996"><tspan
          id="tspan243"
          y="734.67438"
-         x="-182.3685">IRISH SEA</tspan></text>
+         x="-182.3685"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:15.16666698px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">IRISH SEA</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:3;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.0197px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Italic';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;letter-spacing:2.57532;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:0.858439"
        letter-spacing="3"
        font-weight="normal"
        font-style="italic"
        font-size="16"
        transform="rotate(-3)"
        id="ENGLISH-CHANNEL"
-       x="10.376066"
-       y="38.076077"><tspan
+       x="40.392521"
+       y="140.91208"><tspan
          id="tspan246"
-         y="781.18921"
-         x="222.54822">ENGLISH</tspan><tspan
-         style="font-size:12px;letter-spacing:2.25"
+         y="778.82953"
+         x="222.52942"
+         style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.0197px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Italic';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.858439">ENGLISH</tspan><tspan
+         style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.0197px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Italic';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;letter-spacing:1.93149;stroke-width:0.858439"
          id="tspan248"
          letter-spacing="2.25"
          font-size="12"
-         y="801.18921"
-         x="232.13321">CHANNEL</tspan></text>
+         y="795.99835"
+         x="230.75755">CHANNEL</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="normal"
        font-style="italic"
        font-size="16"
@@ -3550,12 +3650,14 @@
        y="87.448486"><tspan
          id="tspan251"
          y="733.66229"
-         x="272.83041">York</tspan><tspan
+         x="272.83041"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">York</tspan><tspan
          id="tspan458"
          y="747.66229"
-         x="272.83041">shire</tspan></text>
+         x="272.83041"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">shire</tspan></text>
     <text
-       style="font-weight:bold;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-weight:bold;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Bold';font-style:normal;font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        transform="rotate(5)"
@@ -3564,21 +3666,22 @@
        y="-12.229447"><tspan
          id="tspan254"
          y="587.88684"
-         x="418.94147">LVP</tspan></text>
+         x="418.94147"
+         style="-inkscape-font-specification:'Libre Baskerville, Bold';font-family:'Libre Baskerville';font-weight:bold;font-style:normal;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">LVP</tspan></text>
     <text
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:12px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
        font-weight="bold"
        font-size="12"
        transform="rotate(5)"
        id="Liverpool"
-       x="104.35056"
-       y="-12.881"><tspan
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start"
+       x="102.55871"
+       y="-13.079137"><tspan
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:12px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:start;writing-mode:lr-tb;text-anchor:start"
          id="tspan257"
-         y="599.2334"
-         x="402.55045">Liverpool</tspan></text>
+         y="599.03528"
+         x="400.75861">Liverpool</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:16px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="normal"
        font-style="italic"
        font-size="16"
@@ -3588,21 +3691,22 @@
        y="114.39823"><tspan
          id="tspan260"
          y="603.71216"
-         x="-222.91415">Clyde</tspan></text>
+         x="-222.91415"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:16px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Clyde</tspan></text>
     <text
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;font-variant-east-asian:normal"
        font-weight="bold"
        font-size="16"
        transform="rotate(79)"
        id="Edinburgh"
        x="259.99402"
        y="-806.49957"><tspan
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;font-family:LibreBaskerville-Bold, 'Libre Baskerville';-inkscape-font-specification:'LibreBaskerville-Bold, Libre Baskerville, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16px;font-family:'Libre Baskerville';-inkscape-font-specification:'Libre Baskerville, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;font-variant-east-asian:normal"
          id="tspan263"
          y="-281.43948"
          x="571.31104">Edinburgh</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:3;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:15.16666698px;font-family:'Libre Baskerville';letter-spacing:3;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        letter-spacing="3"
        font-weight="normal"
        font-style="italic"
@@ -3613,9 +3717,10 @@
        y="91.255295"><tspan
          id="tspan266"
          y="628.38013"
-         x="383.94171">NTH</tspan></text>
+         x="383.94171"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:15.16666698px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">NTH</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:12px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:15.16666698px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="normal"
        font-style="italic"
        font-size="12"
@@ -3625,9 +3730,10 @@
        y="91.27449"><tspan
          id="tspan269"
          y="645.39313"
-         x="379.37543">North Sea</tspan></text>
+         x="379.37543"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:15.16666698px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">North Sea</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:20px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:3.75;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:15.16666698px;font-family:'Libre Baskerville';letter-spacing:3.75;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        letter-spacing="3.75"
        font-weight="normal"
        font-style="italic"
@@ -3638,9 +3744,10 @@
        y="27.506989"><tspan
          id="tspan272"
          y="438.62216"
-         x="47.623047">N. ATLANTIC</tspan></text>
+         x="47.623047"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:15.16666698px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">N. ATLANTIC</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:3;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:15.16666698px;font-family:'Libre Baskerville';letter-spacing:3;display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        letter-spacing="3"
        font-weight="normal"
        font-style="italic"
@@ -3651,9 +3758,10 @@
        y="67.336266"><tspan
          id="tspan275"
          y="249.45255"
-         x="512.80786">NRG</tspan></text>
+         x="512.80786"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:15.16666698px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">NRG</tspan></text>
     <text
-       style="font-style:italic;font-weight:normal;font-size:12px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1"
+       style="font-style:italic;font-weight:normal;font-size:15.16666698px;font-family:'Libre Baskerville';display:inline;fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1;-inkscape-font-specification:'Libre Baskerville, Italic';font-stretch:normal;font-variant:normal;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
        font-weight="normal"
        font-style="italic"
        font-size="12"
@@ -3663,7 +3771,8 @@
        y="67.277275"><tspan
          id="tspan278"
          y="264.39169"
-         x="492.28937">Norwegian Sea</tspan></text>
+         x="492.28937"
+         style="-inkscape-font-specification:'Libre Baskerville, Italic';font-family:'Libre Baskerville';font-weight:normal;font-style:italic;font-stretch:normal;font-variant:normal;font-size:15.16666698px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">Norwegian Sea</tspan></text>
   </g>
   <g
      style="display:inline"

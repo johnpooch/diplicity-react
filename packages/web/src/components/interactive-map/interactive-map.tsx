@@ -5,7 +5,7 @@ import { CurvedArrow } from "./shapes/curved-arrow";
 import { Octagon } from "./shapes/octagon";
 import { NationOrder, Phase, Variant } from "../../store";
 
-import classical from "../../data/map/classical.json";
+import classical from "../../maps/classical.json";
 
 const VARIANT_MAPS: Record<string, typeof classical> = {
   classical,
@@ -146,7 +146,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
       {map.backgroundElements.map((element, index) => (
         <g key={index}>
           <path
-            d={element.path}
+            d={element.d}
             fill={element.styles.fill}
             stroke={element.styles.stroke}
             strokeWidth={element.styles.strokeWidth}
@@ -158,7 +158,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
           <g key={province.id}>
             <path
               id={province.id}
-              d={province.path}
+              d={province.path.d}
               fill={getFill(province.id)}
               stroke={getStroke(province.id)}
               strokeWidth={getStrokeWidth(province.id)}
@@ -173,20 +173,22 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
             {province.supplyCenter && (
               <g>
                 <circle
-                  cx={province.center.x}
-                  cy={province.center.y}
+                  cx={province.supplyCenter.x}
+                  cy={province.supplyCenter.y}
+                  r={10}
+                  fill="white"
+                  stroke="black"
+                  opacity={0.7}
+                  strokeWidth={4}
+                />
+                <circle
+                  cx={province.supplyCenter.x}
+                  cy={province.supplyCenter.y}
                   r={5}
                   fill="none"
                   stroke="black"
-                  strokeWidth={1}
-                />
-                <circle
-                  cx={province.center.x}
-                  cy={province.center.y}
-                  r={3}
-                  fill="none"
-                  stroke="black"
-                  strokeWidth={1}
+                  opacity={0.7}
+                  strokeWidth={4}
                 />
               </g>
             )}
@@ -195,24 +197,23 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
       })}
       {map.provinces.map(
         (province) =>
-          province.text && (
+          province.text && province.text.map((text) => (
             <text
               key={province.id}
-              x={province.text.point.x + 35}
-              y={province.text.point.y + 20}
-              fontSize={province.text.styles.fontSize}
-              fontFamily={province.text.styles.fontFamily}
-              fontWeight={province.text.styles.fontWeight}
-              transform={province.text.styles.transform}
+              x={text.point.x}
+              y={text.point.y}
+              style={text.styles}
+              fontSize={text.styles.fontSize}
+              transform={text.transform}
             >
-              {province.text.value}
+              {text.value}
             </text>
-          )
+          ))
       )}
       {map.borders.map((element, index) => (
         <path
           key={index}
-          d={element.path}
+          d={element.d}
           fill="none"
           stroke="black"
           strokeWidth={1}
@@ -221,7 +222,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
       {map.impassableProvinces.map((element, index) => (
         <path
           key={index}
-          d={element.path}
+          d={element.d}
           fill="url(#impassableStripes)"
           stroke="black"
           strokeWidth={1}
@@ -247,8 +248,8 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
               strokeWidth={2}
             />
             <text
-              x={x - 10}
-              y={y - 6}
+              x={x}
+              y={y}
               fontSize="12"
               fontWeight="bold"
               fill="black"
