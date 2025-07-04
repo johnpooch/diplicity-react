@@ -14,6 +14,7 @@ import { useNavigate } from "react-router";
 import { service } from "../store";
 import { GameMenu } from "./game-menu";
 import { InteractiveMap } from "./interactive-map/interactive-map";
+import { getCurrentPhase } from "../util";
 
 const MAX_AVATARS = 10;
 
@@ -21,6 +22,8 @@ const GameCard: React.FC<
   (typeof service.endpoints.gamesList.Types.ResultType)[number]
 > = (game) => {
   const navigate = useNavigate();
+
+  const currentPhase = getCurrentPhase(game.phases);
 
   const handleClickGameInfo = () => {
     navigate(`/game-info/${game.id}`);
@@ -51,7 +54,11 @@ const GameCard: React.FC<
     >
       <Link underline="hover" onClick={handleClickGame}>
         <ListItemAvatar sx={styles.mapContainer}>
-          <InteractiveMap variant={game.variant} phase={game.currentPhase} orders={[]} />
+          <InteractiveMap
+            variant={game.variant}
+            phase={currentPhase}
+            orders={[]}
+          />
         </ListItemAvatar>
       </Link>
       <Stack>

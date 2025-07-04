@@ -1,0 +1,38 @@
+[MASTER]
+# Load the Django plugin
+load-plugins=pylint_django
+
+# Django settings module
+django-settings-module=project.settings
+
+[MESSAGES CONTROL]
+# Disable specific warnings that are common in Django projects
+disable=
+    C0114, # missing-module-docstring
+    C0115, # missing-class-docstring
+    C0116, # missing-function-docstring
+    C0301, # line-too-long
+    W0611, # unused-import
+    W0612, # unused-variable
+    W0613, # unused-argument
+    R0903, # too-few-public-methods
+    R0913, # too-many-arguments
+    R0914, # too-many-locals
+    R0915, # too-many-statements
+
+[FORMAT]
+max-line-length=88
+
+[BASIC]
+# Good variable names which should always be accepted
+good-names=i,j,k,ex,Run,_,id
+
+[SIMILARITIES]
+# Minimum lines number of a similarity
+min-similarity-lines=4
+# Ignore imports when computing similarities
+ignore-imports=yes
+
+[DJANGO]
+# Django-specific settings
+django-settings-module=project.settings 
