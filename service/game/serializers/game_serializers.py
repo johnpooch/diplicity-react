@@ -41,8 +41,10 @@ class NationOptionsSerializer(serializers.Serializer):
 
     def to_representation(self, instance):
         return {
-            'nation': instance['nation'],
-            'options': json.loads(instance['options']) if instance.get('options') else {}
+            "nation": instance["nation"],
+            "options": (
+                json.loads(instance["options"]) if instance.get("options") else {}
+            ),
         }
 
 
@@ -67,10 +69,8 @@ class GameSerializer(serializers.Serializer):
     nation_assignment = serializers.CharField()
     can_join = serializers.BooleanField()
     can_leave = serializers.BooleanField()
-    current_phase = PhaseSerializer()
     phases = PhaseSerializer(many=True)
     members = MemberSerializer(many=True)
     variant = VariantSerializer()
     phase_confirmed = serializers.BooleanField()
     can_confirm_phase = serializers.BooleanField()
-

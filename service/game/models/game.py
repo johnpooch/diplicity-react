@@ -1,11 +1,39 @@
-from django.db import models
-from .base import BaseModel
 from datetime import timedelta
 import re
 import uuid
 
+from django.db import models
+from .base import BaseModel
+
+
+class GameQuerySet(models.QuerySet):
+    def with_variant(self):
+        return self.select_related("variant")
+
+    def with_phases(self):
+        return self.prefetch_related(
+            "phases__units",
+            "phases__supply_centers",
+            "phases__phase_states",
+        )
+
+    def with_members(self):
+        return self.prefetch_related("members__user__profile")
+
+    def includes_user(self, user):
+        return self.filter(members__user=user)
+
+    def joinable(self, user):
+        return self.filter(status=Game.PENDING).exclude(members__user=user)
+
+
+class GameManager(models.Manager):
+    def get_queryset(self):
+        return GameQuerySet(self.model, using=self._db)
+
 
 class Game(BaseModel):
+    objects = GameManager()
 
     PENDING = "pending"
     ACTIVE = "active"
@@ -57,13 +85,13 @@ class Game(BaseModel):
 
     def _generate_id(self):
         # Convert name to lowercase and replace spaces with hyphens
-        base_id = re.sub(r'[^a-z0-9]+', '-', self.name.lower())
-        base_id = re.sub(r'^-+|-+$', '', base_id)  # Remove leading/trailing hyphens
-        
+        base_id = re.sub(r"[^a-z0-9]+", "-", self.name.lower())
+        base_id = re.sub(r"^-+|-+$", "", base_id)  # Remove leading/trailing hyphens
+
         # Check if this base_id already exists
         if not Game.objects.filter(id=base_id).exists():
             return base_id
-            
+
         # If it exists, append a short UUID
         return f"{base_id}-{str(uuid.uuid4())[:8]}"
 
@@ -88,6 +116,6 @@ class Game(BaseModel):
 
     class Meta:
         indexes = [
-            models.Index(fields=['status']),
-            models.Index(fields=['variant']),
+            models.Index(fields=["status"]),
+            models.Index(fields=["variant"]),
         ]

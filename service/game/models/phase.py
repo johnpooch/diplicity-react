@@ -1,7 +1,8 @@
+import json
+
 from django.db import models
 from .base import BaseModel
 from .game import Game
-import json
 
 
 class Phase(BaseModel):
