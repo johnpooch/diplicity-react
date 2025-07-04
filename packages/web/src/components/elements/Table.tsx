@@ -1,9 +1,6 @@
 import React from "react";
 import {
-  Table as MuiTable,
-  TableBody,
   TableRow,
-  TableCell,
   TableContainer,
   Paper,
   List,

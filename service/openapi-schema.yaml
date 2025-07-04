@@ -526,6 +526,21 @@ paths:
                 items:
                   $ref: '#/components/schemas/Variant'
           description: ''
+  /version/:
+    get:
+      operationId: versionRetrieve
+      tags:
+      - version
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Version'
+          description: ''
 components:
   schemas:
     Auth:
@@ -859,6 +874,13 @@ components:
       - type
       - units
       - year
+    PhaseNation:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+      - name
     Province:
       type: object
       properties:
@@ -922,7 +944,7 @@ components:
         province:
           $ref: '#/components/schemas/Province'
         nation:
-          $ref: '#/components/schemas/Nation'
+          $ref: '#/components/schemas/PhaseNation'
       required:
       - nation
       - province
@@ -954,7 +976,7 @@ components:
         type:
           type: string
         nation:
-          $ref: '#/components/schemas/Nation'
+          $ref: '#/components/schemas/PhaseNation'
         province:
           $ref: '#/components/schemas/Province'
       required:
@@ -1008,6 +1030,16 @@ components:
       - nations
       - provinces
       - start
+    Version:
+      type: object
+      properties:
+        environment:
+          type: string
+        version:
+          type: string
+      required:
+      - environment
+      - version
   securitySchemes:
     jwtAuth:
       type: http
