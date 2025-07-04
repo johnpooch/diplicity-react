@@ -1,9 +1,11 @@
-import { Stack, Typography, IconButton, Divider } from "@mui/material";
+import { Stack, Divider } from "@mui/material";
 import { NavigateFunction, Outlet, useNavigate } from "react-router";
-import { ArrowBack as BackIcon } from "@mui/icons-material";
+import { AppBar } from "../../components/elements/AppBar";
+import { IconButton } from "../../components/elements/Button";
+import { IconName } from "../../components/elements/Icon";
 
 type HomeSecondaryScreenLayoutProps = {
-  title: string | React.ReactNode;
+  title: string;
   onNavigateBack: (navigate: NavigateFunction) => void;
   secondaryAction?: React.ReactNode;
 };
@@ -14,19 +16,13 @@ const HomeSecondaryScreenLayout: React.FC<HomeSecondaryScreenLayoutProps> = (
   const navigate = useNavigate();
   return (
     <Stack sx={styles.root}>
-      <Stack sx={styles.topBar}>
-        <Stack sx={styles.backButtonTitleContainer}>
-          <IconButton onClick={() => props.onNavigateBack(navigate)}>
-            <BackIcon />
-          </IconButton>
-          {typeof props.title === "string" ? (
-            <Typography variant="h1">{props.title}</Typography>
-          ) : (
-            props.title
-          )}
-        </Stack>
-        {props.secondaryAction}
-      </Stack>
+      <AppBar title={props.title} leftButton={
+        <IconButton
+          icon={IconName.Back}
+          onClick={() => props.onNavigateBack(navigate)}
+        />}
+        rightButton={props.secondaryAction}
+      />
       <Divider />
       <Outlet />
     </Stack>

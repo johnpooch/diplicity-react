@@ -20,10 +20,11 @@ const MAX_AVATARS = 10;
 
 const GameCard: React.FC<
   (typeof service.endpoints.gamesList.Types.ResultType)[number]
-> = (game) => {
+> = game => {
   const navigate = useNavigate();
 
   const currentPhase = getCurrentPhase(game.phases);
+  console.log(currentPhase);
 
   const handleClickGameInfo = () => {
     navigate(`/game-info/${game.id}`);
@@ -79,11 +80,7 @@ const GameCard: React.FC<
           <Button sx={styles.avatarStackButton} onClick={handleClickPlayerInfo}>
             <AvatarGroup total={game.members.length}>
               {game.members.slice(0, MAX_AVATARS).map((member, index) => (
-                <Avatar
-                  sx={styles.avatar}
-                  key={index}
-                  src={member.picture}
-                />
+                <Avatar sx={styles.avatar} key={index} src={member.picture} />
               ))}
             </AvatarGroup>
           </Button>
@@ -94,7 +91,7 @@ const GameCard: React.FC<
 };
 
 const styles: Styles = {
-  listItem: (theme) => ({
+  listItem: theme => ({
     gap: 1,
     borderBottom: `1px solid ${theme.palette.divider}`,
     alignItems: "center",
@@ -113,6 +110,7 @@ const styles: Styles = {
   avatarStackButton: {
     justifyContent: "flex-start",
     width: "fit-content",
+    padding: "8px 0px 8px 0px",
   },
   avatarStackContainer: {
     alignItems: "center",

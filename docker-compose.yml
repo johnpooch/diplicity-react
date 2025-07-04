@@ -73,11 +73,18 @@ services:
       - .:/app
     env_file:
       - .env
+    environment:
+      - DJANGO_DEBUG=True
+      - ROOT_LOG_LEVEL=INFO
+      - DJANGO_LOG_LEVEL=INFO
+      - DB_LOG_LEVEL=WARNING
+      - GAME_LOG_LEVEL=INFO
     working_dir: /app/service
     command: >
       sh -c " python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     networks:
       - diplicity-network
+    tty: true
 
   test-service:
     container_name: diplicity-test-service
@@ -126,6 +133,12 @@ services:
       - diplicity-network
     env_file:
       - .env
+    environment:
+      - DJANGO_DEBUG=False
+      - ROOT_LOG_LEVEL=INFO
+      - DJANGO_LOG_LEVEL=INFO
+      - DB_LOG_LEVEL=WARNING
+      - GAME_LOG_LEVEL=INFO
 
 networks:
   diplicity-network:
