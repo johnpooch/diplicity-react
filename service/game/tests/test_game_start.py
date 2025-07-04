@@ -27,13 +27,8 @@ def test_start_game_assigns_options(game_service, pending_game_created_by_primar
     Test that starting a game assigns options to all nations.
     """
     game = game_service.start(pending_game_created_by_primary_user.id)
-    for member in game.members.all():
-        phase_state = models.PhaseState.objects.filter(
-            phase=game.current_phase, member=member
-        ).first()
-        assert phase_state is not None
-        expected_options = game_service.adjudication_service.start.return_value["options"].get(member.nation)
-        assert json.loads(phase_state.options) == expected_options
+    expected_options = game_service.adjudication_service.start.return_value["options"]
+    assert game.current_phase.options_dict == expected_options
 
 @pytest.mark.django_db
 def test_start_game_sends_notifications(game_service, pending_game_created_by_primary_user, mock_notify_task, mock_resolve_task):

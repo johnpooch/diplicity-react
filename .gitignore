@@ -29,3 +29,5 @@ service/game/tests/prof/
 
 # Django static files
 staticfiles/
+
+dump.json

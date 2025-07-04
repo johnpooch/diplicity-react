@@ -25,6 +25,7 @@ import { service } from "../store";
 import { useNavigate } from "react-router";
 import { InteractiveMap } from "../components/interactive-map/interactive-map";
 import { useSelectedGameContext } from "../context";
+import { getCurrentPhase } from "../util";
 
 const GameInfo: React.FC = () => {
   const { gameId } = useSelectedGameContext();
@@ -96,7 +97,7 @@ const GameInfo: React.FC = () => {
             <ListItem>
               <InteractiveMap
                 variant={game.variant}
-                phase={game.currentPhase}
+                phase={getCurrentPhase(game.phases)}
                 orders={[]}
               />
             </ListItem>
