@@ -1,35 +1,20 @@
 import React from "react";
 import { Navigate, Route, Routes } from "react-router";
 import { useSelector } from "react-redux";
-import { GameInfo, PlayerInfo, Login } from "./screens";
-import { Stack, useMediaQuery, useTheme } from "@mui/material";
+import { Login } from "./screens";
+import { useMediaQuery, useTheme } from "@mui/material";
 import { ParseMap } from "./screens/parse-map";
-import * as Desktop from "./screens/desktop";
-import * as Mobile from "./screens/mobile";
 import { MyGames as NewMyGames } from "./components/screens/MyGames";
 import { FindGames as NewFindGames } from "./components/screens/FindGames";
 import { CreateGame as NewCreateGame } from "./components/screens/CreateGame";
 import { Profile as NewProfile } from "./components/screens/Profile";
 import { GameInfo as NewGameInfo } from "./components/screens/GameInfo";
 import { PlayerInfo as NewPlayerInfo } from "./components/screens/PlayerInfo";
-import {
-  Panel,
-  Channel,
-  ChannelTextField,
-  ChannelList,
-  Map,
-  CreateChannel,
-  CreateChannelAction,
-  OrderList,
-} from "./components";
-import { PhaseSelect } from "./components/phase-select";
-import { GameName } from "./components/game-name";
-import {
-  CreateChannelContextProvider,
-  CreateOrderContextProvider,
-  SelectedChannelContextProvider,
-} from "./context";
 import { selectAuth } from "./store";
+import { GameDetail } from "./components/screens/GameDetail";
+import { GameDetailMapLayout } from "./components/layouts/GameDetailMapLayout";
+import { SelectedPhaseContextProvider } from "./context";
+import { Orders } from "./components/screens/Orders";
 
 const Router: React.FC = () => {
   const { loggedIn } = useSelector(selectAuth);
@@ -44,6 +29,35 @@ const Router: React.FC = () => {
       <Route path="/profile" element={<NewProfile />} />
       <Route path="/game-info/:gameId" element={<NewGameInfo />} />
       <Route path="/player-info/:gameId" element={<NewPlayerInfo />} />
+      <Route
+        path="/game/:gameId"
+        element={
+          <SelectedPhaseContextProvider>
+            <GameDetailMapLayout />
+          </SelectedPhaseContextProvider>
+        }
+      >
+        <Route index element={<Orders />} />
+      </Route>
+      {isMobile ? (
+        <>
+          {/* <Route path="/game/:gameId" element={<GameDetail panel="orders" />} />
+          <Route path="/game/:gameId" element={<GameDetail panel="orders" />} /> */}
+        </>
+      ) : (
+        <>
+          {/* Use layout approach for desktop - move map to the right and otherwise make it the same as mobile */}
+          <Route path="/game/:gameId" element={<GameDetail panel="orders" />} />
+          {/* <Route
+            path="/game/:gameId/orders"
+            element={<GameDetail panel="orders" />}
+          />
+          <Route
+            path="/game/:gameId/chat"
+            element={<GameDetail panel="chat" />}
+          /> */}
+        </>
+      )}
       <Route path="/parse-map" element={<ParseMap />} />
       {/* <Route element={<HomeLayout />}>
         <Route index element={<MyGames />} />
@@ -147,7 +161,7 @@ const Router: React.FC = () => {
           <Route index element={<PlayerInfo />} />
         </Route>
       </Route> */}
-      {isMobile ? (
+      {/* {isMobile ? (
         <Route path="game/:gameId">
           <Route element={<Mobile.GameDetailLayout />}>
             <Route
@@ -413,7 +427,7 @@ const Router: React.FC = () => {
             </Route>
           </Route>
         </Route>
-      )}
+      )} */}
     </Routes>
   ) : (
     <Routes>

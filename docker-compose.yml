@@ -117,28 +117,29 @@ services:
     networks:
       - diplicity-network
 
-  worker:
+  phase-resolver:
     build:
       context: ./service
       dockerfile: Dockerfile
-      target: worker
-    container_name: diplicity-worker
-    depends_on:
-      - db
+      target: development
+    container_name: diplicity-phase-resolver
     working_dir: /app/service
     volumes:
       - .:/app
-    command: celery -A project worker --loglevel=info
-    networks:
-      - diplicity-network
     env_file:
       - .env
     environment:
-      - DJANGO_DEBUG=False
+      - DJANGO_DEBUG=True
       - ROOT_LOG_LEVEL=INFO
       - DJANGO_LOG_LEVEL=INFO
       - DB_LOG_LEVEL=WARNING
       - GAME_LOG_LEVEL=INFO
+    command: >
+      sh -c 'while true; do python manage.py resolve_due_phases; sleep 60; done'
+    networks:
+      - diplicity-network
+    depends_on:
+      - db
 
 networks:
   diplicity-network:

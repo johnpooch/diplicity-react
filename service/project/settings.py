@@ -168,10 +168,6 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
-
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 
@@ -282,21 +278,6 @@ LOGGING = {
             'propagate': False,
         },
         'game': {
-            'handlers': ['console'],
-            'level': GAME_LOG_LEVEL,
-            'propagate': False,
-        },
-        'celery': {
-            'handlers': ['console'],
-            'level': GAME_LOG_LEVEL,
-            'propagate': False,
-        },
-        'celery.task': {
-            'handlers': ['console'],
-            'level': GAME_LOG_LEVEL,
-            'propagate': False,
-        },
-        'celery.worker': {
             'handlers': ['console'],
             'level': GAME_LOG_LEVEL,
             'propagate': False,

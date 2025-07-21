@@ -74,9 +74,6 @@ class Game(BaseModel):
         choices=NATION_ASSIGNMENT_CHOICES,
         default=RANDOM,
     )
-    resolution_task = models.OneToOneField(
-        "Task", on_delete=models.SET_NULL, null=True, blank=True, related_name="game"
-    )
 
     def save(self, *args, **kwargs):
         if not self.id:

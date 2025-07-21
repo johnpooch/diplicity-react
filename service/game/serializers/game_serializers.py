@@ -1,6 +1,7 @@
 from rest_framework import serializers
 import json
 
+from game.models import Phase
 from .variant_serializers import VariantSerializer
 
 
@@ -35,19 +36,6 @@ class SupplyCenterSerializer(serializers.Serializer):
     nation = PhaseNationSerializer()
 
 
-class NationOptionsSerializer(serializers.Serializer):
-    nation = serializers.CharField()
-    options = serializers.DictField()
-
-    def to_representation(self, instance):
-        return {
-            "nation": instance["nation"],
-            "options": (
-                json.loads(instance["options"]) if instance.get("options") else {}
-            ),
-        }
-
-
 class PhaseSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     ordinal = serializers.IntegerField()
@@ -55,10 +43,27 @@ class PhaseSerializer(serializers.Serializer):
     year = serializers.CharField()
     name = serializers.CharField()
     type = serializers.CharField()
-    remaining_time = serializers.CharField()
+    remaining_time = serializers.SerializerMethodField()
     units = UnitSerializer(many=True)
     supply_centers = SupplyCenterSerializer(many=True)
-    options = NationOptionsSerializer(many=True)
+    options = serializers.DictField()
+    status = serializers.ChoiceField(choices=Phase.STATUS_CHOICES)
+
+    def get_remaining_time(self, obj):
+        if isinstance(obj, dict):
+            value = obj.get("remaining_time")
+            if value is None:
+                return None
+            # If value is already a number, return it
+            if isinstance(value, (int, float)):
+                return value
+            # If value is a timedelta, convert to seconds
+            try:
+                return value.total_seconds()
+            except Exception:
+                return None
+        # Fallback for Phase instance
+        return obj.remaining_time.total_seconds() if getattr(obj, "remaining_time", None) else None
 
 
 class GameSerializer(serializers.Serializer):

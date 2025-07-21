@@ -53,16 +53,13 @@ def test_create_message_in_public_channel_without_explicit_members(authenticated
     
     # Verify that notify_task was called with the correct user IDs
     secondary_user_id = game_with_two_members.members.get(nation="France").user.id
-    mock_notify_task.assert_called_once_with(
-        args=[[secondary_user_id], {
-            "title": "New Message",
-            "body": f"primaryuser sent a message in Public Press.",
-            "type": "channel_message",
-            "game_id": str(game_with_two_members.id),
-            "channel_id": str(public_channel.id),
-        }],
-        kwargs={}
-    )
+    mock_notify_task.assert_called_once_with([secondary_user_id], {
+        "title": "New Message",
+        "body": f"primaryuser sent a message in Public Press.",
+        "type": "channel_message",
+        "game_id": str(game_with_two_members.id),
+        "channel_id": str(public_channel.id),
+    })
 
 @pytest.mark.django_db
 def test_create_message_in_private_channel_notifies_only_channel_members(authenticated_client, game_with_two_members, mock_notify_task):
@@ -84,16 +81,13 @@ def test_create_message_in_private_channel_notifies_only_channel_members(authent
     assert response.status_code == status.HTTP_201_CREATED
     
     # Verify that notify_task was called with empty user_ids (no other channel members)
-    mock_notify_task.assert_called_once_with(
-        args=[[], {
-            "title": "New Message",
-            "body": f"primaryuser sent a message in Private Channel.",
-            "type": "channel_message",
-            "game_id": str(game_with_two_members.id),
-            "channel_id": str(private_channel.id),
-        }],
-        kwargs={}
-    )
+    mock_notify_task.assert_called_once_with([], {
+        "title": "New Message",
+        "body": f"primaryuser sent a message in Private Channel.",
+        "type": "channel_message",
+        "game_id": str(game_with_two_members.id),
+        "channel_id": str(private_channel.id),
+    })
 
 @pytest.mark.django_db
 def test_create_message_in_private_channel_with_multiple_members(authenticated_client, game_with_two_members, mock_notify_task):
@@ -117,16 +111,13 @@ def test_create_message_in_private_channel_with_multiple_members(authenticated_c
     
     # Verify that notify_task was called with the secondary user's ID
     secondary_user_id = secondary_member.user.id
-    mock_notify_task.assert_called_once_with(
-        args=[[secondary_user_id], {
-            "title": "New Message",
-            "body": f"primaryuser sent a message in Private Channel.",
-            "type": "channel_message",
-            "game_id": str(game_with_two_members.id),
-            "channel_id": str(private_channel.id),
-        }],
-        kwargs={}
-    )
+    mock_notify_task.assert_called_once_with([secondary_user_id], {
+        "title": "New Message",
+        "body": f"primaryuser sent a message in Private Channel.",
+        "type": "channel_message",
+        "game_id": str(game_with_two_members.id),
+        "channel_id": str(private_channel.id),
+    })
 
 @pytest.mark.django_db
 def test_create_message_in_public_channel_with_explicit_members_still_notifies_all(authenticated_client, game_with_two_members, mock_notify_task):
@@ -151,16 +142,13 @@ def test_create_message_in_public_channel_with_explicit_members_still_notifies_a
     
     # Verify that notify_task was called with the secondary user's ID (all game members except sender)
     secondary_user_id = secondary_member.user.id
-    mock_notify_task.assert_called_once_with(
-        args=[[secondary_user_id], {
-            "title": "New Message",
-            "body": f"primaryuser sent a message in Public Press.",
-            "type": "channel_message",
-            "game_id": str(game_with_two_members.id),
-            "channel_id": str(public_channel.id),
-        }],
-        kwargs={}
-    )
+    mock_notify_task.assert_called_once_with([secondary_user_id], {
+        "title": "New Message",
+        "body": f"primaryuser sent a message in Public Press.",
+        "type": "channel_message",
+        "game_id": str(game_with_two_members.id),
+        "channel_id": str(public_channel.id),
+    })
 
 @pytest.mark.django_db
 def test_create_message_in_private_channel_as_non_member_fails(authenticated_client_for_secondary_user, active_game_with_private_channel):

@@ -657,8 +657,6 @@ components:
           type: boolean
         canLeave:
           type: boolean
-        currentPhase:
-          $ref: '#/components/schemas/Phase'
         phases:
           type: array
           items:
@@ -677,7 +675,6 @@ components:
       - canConfirmPhase
       - canJoin
       - canLeave
-      - currentPhase
       - id
       - members
       - movementPhaseDuration
@@ -758,17 +755,6 @@ components:
       description: |-
         * `random` - Random
         * `ordered` - Ordered
-    NationOptions:
-      type: object
-      properties:
-        nation:
-          type: string
-        options:
-          type: object
-          additionalProperties: {}
-      required:
-      - nation
-      - options
     NationOrder:
       type: object
       properties:
@@ -860,9 +846,10 @@ components:
           items:
             $ref: '#/components/schemas/SupplyCenter'
         options:
-          type: array
-          items:
-            $ref: '#/components/schemas/NationOptions'
+          type: object
+          additionalProperties: {}
+        status:
+          $ref: '#/components/schemas/StatusEnum'
       required:
       - id
       - name
@@ -870,6 +857,7 @@ components:
       - ordinal
       - remainingTime
       - season
+      - status
       - supplyCenters
       - type
       - units
@@ -938,6 +926,16 @@ components:
       - type
       - units
       - year
+    StatusEnum:
+      enum:
+      - pending
+      - active
+      - completed
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `active` - Active
+        * `completed` - Completed
     SupplyCenter:
       type: object
       properties:

@@ -8,11 +8,9 @@ The project is comprised of the following components:
 
 - **Django service**: The service is built using a Dockerfile. Using a GitHub Actions workflow, a docker image is built and pushed to an Azure Container Registry and then deployed to an Azure Web App.
 
-- **Django worker**: The worker is built using a Dockerfile. Using a GitHub Actions workflow, a docker image is built and pushed to an Azure Container Registry and then deployed to an Azure Web App.
+- **CRON job**: The CRON job is a simple Python script that runs every minute and resolves any due phases.
 
 - **PostgreSQL database**: The database is deployed as an Azure Database for PostgreSQL.
-
-- **Service bus**: The service bus is deployed as an Azure Service Bus. Note, this is used in local development as well as in production.
 
 - **Key vault**: The key vault is deployed as an Azure Key Vault. This is used to store secrets and shared configuration.
 

@@ -5,7 +5,7 @@ from django.db import transaction
 from django.db.models import Q, Case, When, Value, BooleanField
 from rest_framework import exceptions
 
-from .. import models, tasks
+from .. import models
 from .base_service import BaseService
 
 logger = logging.getLogger("game")
@@ -102,7 +102,8 @@ class ChannelService(BaseService):
         }
 
         logger.info(f"ChannelService.create_message() adding task to notify users: {user_ids}")
-        tasks.notify_task.apply_async(args=[user_ids, notification_data], kwargs={})
+        from .notification_service import NotificationService
+        NotificationService(self.user).notify(user_ids, notification_data)
 
         logger.info(f"ChannelService.create_message() returning message: {message}")
         return message
