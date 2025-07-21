@@ -14,7 +14,9 @@ import {
   ArrowRight as NextIcon,
 } from "@mui/icons-material";
 import { QueryContainer } from "./query-container";
-import { useSelectedGameContext, useSelectedPhaseContext } from "../context";
+import { useSelectedPhaseContext } from "../context";
+import { service } from "../store";
+import { useParams } from "react-router";
 
 const StyledInput = styled(InputBase)``;
 
@@ -32,13 +34,19 @@ const PhaseSelect = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  const { gameRetrieveQuery } = useSelectedGameContext();
+  const { gameId } = useParams<{ gameId: string }>();
+  if (!gameId) throw new Error("Game ID is required");
+
   const { selectedPhase, setSelectedPhase } = useSelectedPhaseContext();
+
+  const gameRetrieveQuery = service.endpoints.gameRetrieve.useQuery({
+    gameId,
+  });
 
   return (
     <QueryContainer query={gameRetrieveQuery} onRenderLoading={() => <></>}>
-      {(game) => {
-        const phase = game.phases.find((p) => p.id === selectedPhase);
+      {game => {
+        const phase = game.phases.find(p => p.id === selectedPhase);
         if (!phase) throw new Error("Phase not found");
 
         const previousDisabled = phase.ordinal === 1;
@@ -72,12 +80,12 @@ const PhaseSelect = () => {
             <StyledFormControl>
               <StyledSelect
                 value={selectedPhase}
-                onChange={(event) =>
+                onChange={event =>
                   handlePhaseSelect(event.target.value as number)
                 }
                 input={<StyledInput />}
               >
-                {game.phases.map((phase) => (
+                {game.phases.map(phase => (
                   <MenuItem key={phase.id} value={phase.id}>
                     {phase.name}
                   </MenuItem>

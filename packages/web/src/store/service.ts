@@ -398,12 +398,7 @@ export type SupplyCenter = {
   province: Province;
   nation: PhaseNation;
 };
-export type NationOptions = {
-  nation: string;
-  options: {
-    [key: string]: any;
-  };
-};
+export type StatusEnum = "pending" | "active" | "completed";
 export type Phase = {
   id: number;
   ordinal: number;
@@ -414,7 +409,10 @@ export type Phase = {
   remainingTime: string;
   units: Unit[];
   supplyCenters: SupplyCenter[];
-  options: NationOptions[];
+  options: {
+    [key: string]: any;
+  };
+  status: StatusEnum;
 };
 export type Member = {
   id: number;
@@ -456,7 +454,6 @@ export type Game = {
   nationAssignment: string;
   canJoin: boolean;
   canLeave: boolean;
-  currentPhase: Phase;
   phases: Phase[];
   members: Member[];
   variant: Variant;

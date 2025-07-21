@@ -2,7 +2,6 @@ from django.contrib import admin
 from django.contrib import messages
 from .models import (
     Variant,
-    Task,
     Channel,
     ChannelMember,
     ChannelMessage,
@@ -92,12 +91,6 @@ class SupplyCenterAdmin(admin.ModelAdmin):
     list_display = ('province', 'nation', 'phase')
     list_filter = ('nation',)
     search_fields = ('province',)
-
-@admin.register(Task)
-class TaskAdmin(admin.ModelAdmin):
-    list_display = ('name', 'status', 'created_at', 'updated_at', 'result')
-    list_filter = ('status',)
-    search_fields = ('name',)
 
 @admin.register(Unit)
 class UnitAdmin(admin.ModelAdmin):

@@ -6,6 +6,7 @@ import { IconButton } from "../elements/Button";
 interface HomeAppBarProps {
   title: string;
   onNavigateBack?: () => void;
+  leftButton?: React.ReactNode;
 }
 
 const HomeAppBar: React.FC<HomeAppBarProps> = props => {
@@ -22,7 +23,13 @@ const HomeAppBar: React.FC<HomeAppBarProps> = props => {
   return (
     <AppBar
       title={props.title}
-      leftButton={<IconButton icon={IconName.Back} onClick={onClickBack} />}
+      leftButton={
+        props.leftButton ? (
+          props.leftButton
+        ) : (
+          <IconButton icon={IconName.Back} onClick={onClickBack} />
+        )
+      }
     />
   );
 };

@@ -1,14 +1,22 @@
-import { useSelectedGameContext, useSelectedPhaseContext } from "../context";
+import { useSelectedPhaseContext } from "../context";
 import { service } from "../store";
 import { InteractiveMap } from "./interactive-map/interactive-map";
 import { QueryContainer } from "./query-container";
 import { useSelector } from "react-redux";
 import { orderSlice } from "../store/order";
+import { useParams } from "react-router";
 
 const Map: React.FC = () => {
-  const order = useSelector(orderSlice.selectors.selectOrder);
+  const { gameId } = useParams<{ gameId: string }>();
+  if (!gameId) throw new Error("Game ID is required");
+
   const { selectedPhase } = useSelectedPhaseContext();
-  const { gameId, gameRetrieveQuery } = useSelectedGameContext();
+
+  const order = useSelector(orderSlice.selectors.selectOrder);
+
+  const gameRetrieveQuery = service.endpoints.gameRetrieve.useQuery({
+    gameId,
+  });
 
   const ordersListQuery = service.endpoints.gamePhaseOrdersList.useQuery({
     gameId,
@@ -17,11 +25,11 @@ const Map: React.FC = () => {
 
   return (
     <QueryContainer query={ordersListQuery}>
-      {(orders) => {
+      {orders => {
         return (
           <QueryContainer query={gameRetrieveQuery}>
-            {(game) => {
-              const phase = game.phases.find((p) => p.id === selectedPhase);
+            {game => {
+              const phase = game.phases.find(p => p.id === selectedPhase);
               if (!phase) throw new Error("Phase not found");
               return (
                 <div
