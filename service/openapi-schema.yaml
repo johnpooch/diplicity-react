@@ -837,6 +837,7 @@ components:
           type: string
         remainingTime:
           type: string
+          readOnly: true
         units:
           type: array
           items:
