@@ -469,7 +469,7 @@ def active_game_with_phase_options(db, active_game_with_phase_state):
     from django.conf import settings
 
     phase = active_game_with_phase_state.current_phase
-    with open(f"{settings.BASE_DIR}/game/data/options/options.json") as f:
+    with open(f"{settings.BASE_DIR}/game/tests/data/options.json") as f:
         json_string = f.read()
     phase.options = json.dumps(json.loads(json_string))
     phase.save()
