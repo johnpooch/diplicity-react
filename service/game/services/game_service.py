@@ -17,15 +17,12 @@ from django.db.models import (
 )
 from django.db.models.functions import JSONObject
 from django.contrib.postgres.aggregates import JSONBAgg
-from django.db.models.aggregates import Aggregate
-from django.conf import settings
-from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework import exceptions
 
-from .. import models, tasks, util
+from .. import models, tasks
 from .base_service import BaseService
 
 logger = logging.getLogger("game")
@@ -80,7 +77,7 @@ class GameService(BaseService):
 
         # Active phase subquery
         active_phase_subquery = models.Phase.objects.filter(
-            game=OuterRef("pk"), 
+            game=OuterRef("pk"),
             status=models.Phase.ACTIVE
         )
 
@@ -401,12 +398,12 @@ class GameService(BaseService):
     def _set_nations(self, game):
         nations = game.variant.nations
         members = game.members.all().order_by('created_at')
-        
+
         if game.nation_assignment == models.Game.RANDOM:
             # Shuffle nations for random assignment
             nations = list(nations)
             random.shuffle(nations)
-        
+
         # Assign nations to members in either random or ordered fashion
         for member, nation in zip(members, nations):
             member.nation = nation["name"]
