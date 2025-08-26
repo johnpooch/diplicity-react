@@ -12,9 +12,6 @@ class Variant(BaseModel):
     start_data = models.JSONField()
     provinces_data = models.JSONField()
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     @property
     def nations(self):
         return self.nations_data
