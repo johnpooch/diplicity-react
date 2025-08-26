@@ -1,7 +1,9 @@
+import json
+
 from django.db import models
 from .base import BaseModel
 from .game import Game
-import json
+from datetime import timedelta
 
 
 class Phase(BaseModel):
@@ -24,7 +26,8 @@ class Phase(BaseModel):
     season = models.CharField(max_length=10)
     year = models.IntegerField()
     type = models.CharField(max_length=10)
-    remaining_time = models.DurationField(null=True, blank=True)
+    scheduled_resolution = models.DateTimeField(null=True, blank=True)
+    options = models.TextField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
         if not self.pk:  # Check if the instance is being created
@@ -42,12 +45,18 @@ class Phase(BaseModel):
         return f"{self.season} {self.year}, {self.type}"
 
     @property
-    def options(self):
-        options_dict = {}
-        for phase_state in self.phase_states.all():
-            if phase_state.options:
-                try:
-                    options_dict[phase_state.member.nation] = json.loads(phase_state.options)
-                except json.JSONDecodeError:
-                    pass
-        return options_dict
+    def options_dict(self):
+        if self.options:
+            try:
+                return json.loads(str(self.options))
+            except json.JSONDecodeError:
+                return {}
+        return {}
+
+    @property
+    def remaining_time(self):
+        from django.utils import timezone
+        if self.scheduled_resolution and self.status == self.ACTIVE:
+            delta = self.scheduled_resolution - timezone.now()
+            return max(delta, timedelta(seconds=0))
+        return None

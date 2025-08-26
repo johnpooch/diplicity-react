@@ -152,6 +152,12 @@ const injectedRtkApi = api.injectEndpoints({
     variantsList: build.query<VariantsListApiResponse, VariantsListApiArg>({
       query: () => ({ url: `/variants/` }),
     }),
+    versionRetrieve: build.query<
+      VersionRetrieveApiResponse,
+      VersionRetrieveApiArg
+    >({
+      query: () => ({ url: `/version/` }),
+    }),
   }),
   overrideExisting: false,
 });
@@ -334,6 +340,8 @@ export type UserRetrieveApiResponse = /** status 200  */ UserProfile;
 export type UserRetrieveApiArg = void;
 export type VariantsListApiResponse = /** status 200  */ Variant[];
 export type VariantsListApiArg = void;
+export type VersionRetrieveApiResponse = /** status 200  */ Version;
+export type VersionRetrieveApiArg = void;
 export type TokenRefresh = {};
 export type TokenRefreshRead = {
   access: string;
@@ -372,9 +380,8 @@ export type FcmDeviceRead = {
   dateCreated: string | null;
   type: TypeEnum;
 };
-export type Nation = {
+export type PhaseNation = {
   name: string;
-  color: string;
 };
 export type Province = {
   id: string;
@@ -384,19 +391,14 @@ export type Province = {
 };
 export type Unit = {
   type: string;
-  nation: Nation;
+  nation: PhaseNation;
   province: Province;
 };
 export type SupplyCenter = {
   province: Province;
-  nation: Nation;
+  nation: PhaseNation;
 };
-export type NationOptions = {
-  nation: string;
-  options: {
-    [key: string]: any;
-  };
-};
+export type StatusEnum = "pending" | "active" | "completed";
 export type Phase = {
   id: number;
   ordinal: number;
@@ -407,7 +409,10 @@ export type Phase = {
   remainingTime: string;
   units: Unit[];
   supplyCenters: SupplyCenter[];
-  options: NationOptions[];
+  options: {
+    [key: string]: any;
+  };
+  status: StatusEnum;
 };
 export type Member = {
   id: number;
@@ -416,6 +421,10 @@ export type Member = {
   picture: string;
   nation: string;
   isCurrentUser: boolean;
+};
+export type Nation = {
+  name: string;
+  color: string;
 };
 export type Start = {
   season: string;
@@ -445,7 +454,6 @@ export type Game = {
   nationAssignment: string;
   canJoin: boolean;
   canLeave: boolean;
-  currentPhase: Phase;
   phases: Phase[];
   members: Member[];
   variant: Variant;
@@ -511,6 +519,10 @@ export type UserProfile = {
   username: string;
   email: string;
 };
+export type Version = {
+  environment: string;
+  version: string;
+};
 export const {
   useApiSchemaRetrieveQuery,
   useApiTokenRefreshCreateMutation,
@@ -531,4 +543,5 @@ export const {
   useGamesListQuery,
   useUserRetrieveQuery,
   useVariantsListQuery,
+  useVersionRetrieveQuery,
 } = injectedRtkApi;

@@ -4,7 +4,7 @@
 if [ "$#" -ne 3 ]; then
     echo "Usage: $0 <app> <setting_name> <setting_value>"
     echo "Example: $0 service DATABASE_URL \"@Microsoft.KeyVault(SecretUri=https://diplicityKeyVault.vault.azure.net/secrets/DATABASE-URL)\""
-    echo "App must be either 'service' or 'worker'"
+    echo "App must be 'service'"
     exit 1
 fi
 
@@ -13,8 +13,8 @@ SETTING_NAME="$2"
 SETTING_VALUE="$3"
 
 # Validate app type
-if [ "$APP_TYPE" != "service" ] && [ "$APP_TYPE" != "worker" ]; then
-    echo "Error: App must be either 'service' or 'worker'"
+if [ "$APP_TYPE" != "service" ]; then
+    echo "Error: App must be 'service'"
     exit 1
 fi
 

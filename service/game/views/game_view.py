@@ -2,7 +2,7 @@ from rest_framework import status, views, permissions, serializers
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
 
-from .. import services, tasks
+from .. import services
 from ..serializers import GameSerializer
 from ..models import Game
 
@@ -84,7 +84,8 @@ class GameJoinView(views.APIView):
         game = game_service.join(game_id)
 
         if len(game.variant.nations) == game.members.count():
-            tasks.start_task.delay(game.id)
+            # Synchronously start the game if full
+            game_service.start(game.id)
 
         game = game_service.retrieve(game.id)
         serializer = GameSerializer(game)

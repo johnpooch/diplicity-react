@@ -1,41 +1,20 @@
 import React from "react";
 import { Navigate, Route, Routes } from "react-router";
 import { useSelector } from "react-redux";
-import {
-  CreateGame,
-  FindGames,
-  GameInfo,
-  MyGames,
-  PlayerInfo,
-  Profile,
-  Login,
-} from "./screens";
-import { Stack, useMediaQuery, useTheme } from "@mui/material";
+import { Login } from "./screens";
+import { useMediaQuery, useTheme } from "@mui/material";
 import { ParseMap } from "./screens/parse-map";
-import * as Desktop from "./screens/desktop";
-import * as Mobile from "./screens/mobile";
-import {
-  Panel,
-  Channel,
-  ChannelTextField,
-  ChannelList,
-  Map,
-  CreateChannel,
-  CreateChannelAction,
-  GameMenu,
-  OrderList,
-  QueryContainer,
-} from "./components";
-import { PhaseSelect } from "./components/phase-select";
-import { GameName } from "./components/game-name";
-import {
-  CreateChannelContextProvider,
-  CreateOrderContextProvider,
-  SelectedChannelContextProvider,
-  SelectedGameContextProvider,
-} from "./context";
+import { MyGames as NewMyGames } from "./components/screens/MyGames";
+import { FindGames as NewFindGames } from "./components/screens/FindGames";
+import { CreateGame as NewCreateGame } from "./components/screens/CreateGame";
+import { Profile as NewProfile } from "./components/screens/Profile";
+import { GameInfo as NewGameInfo } from "./components/screens/GameInfo";
+import { PlayerInfo as NewPlayerInfo } from "./components/screens/PlayerInfo";
 import { selectAuth } from "./store";
-import { HomeLayout } from "./layout";
+import { GameDetail } from "./components/screens/GameDetail";
+import { GameDetailMapLayout } from "./components/layouts/GameDetailMapLayout";
+import { SelectedPhaseContextProvider } from "./context";
+import { Orders } from "./components/screens/Orders";
 
 const Router: React.FC = () => {
   const { loggedIn } = useSelector(selectAuth);
@@ -44,15 +23,50 @@ const Router: React.FC = () => {
 
   return loggedIn ? (
     <Routes>
+      <Route index element={<NewMyGames />} />
+      <Route path="/find-games" element={<NewFindGames />} />
+      <Route path="/create-game" element={<NewCreateGame />} />
+      <Route path="/profile" element={<NewProfile />} />
+      <Route path="/game-info/:gameId" element={<NewGameInfo />} />
+      <Route path="/player-info/:gameId" element={<NewPlayerInfo />} />
+      <Route
+        path="/game/:gameId"
+        element={
+          <SelectedPhaseContextProvider>
+            <GameDetailMapLayout />
+          </SelectedPhaseContextProvider>
+        }
+      >
+        <Route index element={<Orders />} />
+      </Route>
+      {isMobile ? (
+        <>
+          {/* <Route path="/game/:gameId" element={<GameDetail panel="orders" />} />
+          <Route path="/game/:gameId" element={<GameDetail panel="orders" />} /> */}
+        </>
+      ) : (
+        <>
+          {/* Use layout approach for desktop - move map to the right and otherwise make it the same as mobile */}
+          <Route path="/game/:gameId" element={<GameDetail panel="orders" />} />
+          {/* <Route
+            path="/game/:gameId/orders"
+            element={<GameDetail panel="orders" />}
+          />
+          <Route
+            path="/game/:gameId/chat"
+            element={<GameDetail panel="chat" />}
+          /> */}
+        </>
+      )}
       <Route path="/parse-map" element={<ParseMap />} />
-      <Route element={<HomeLayout />}>
+      {/* <Route element={<HomeLayout />}>
         <Route index element={<MyGames />} />
         <Route
           path="find-games"
           element={
             <Desktop.HomeSecondaryScreenLayout
               title="Find games"
-              onNavigateBack={(navigate) => navigate("/")}
+              onNavigateBack={navigate => navigate("/")}
             />
           }
         >
@@ -63,7 +77,7 @@ const Router: React.FC = () => {
           element={
             <Desktop.HomeSecondaryScreenLayout
               title="Create game"
-              onNavigateBack={(navigate) => navigate("/")}
+              onNavigateBack={navigate => navigate("/")}
             />
           }
         >
@@ -74,7 +88,7 @@ const Router: React.FC = () => {
           element={
             <Desktop.HomeSecondaryScreenLayout
               title="Profile"
-              onNavigateBack={(navigate) => navigate("/")}
+              onNavigateBack={navigate => navigate("/")}
             />
           }
         >
@@ -87,19 +101,19 @@ const Router: React.FC = () => {
               {({ gameRetrieveQuery }) => (
                 <Desktop.HomeSecondaryScreenLayout
                   title="Game info"
-                  onNavigateBack={(navigate) => navigate("/")}
+                  onNavigateBack={navigate => navigate("/")}
                   secondaryAction={
                     <QueryContainer
                       query={gameRetrieveQuery}
                       onRenderLoading={() => <> </>}
                     >
-                      {(game) => (
+                      {game => (
                         <GameMenu
                           game={game}
-                          onClickGameInfo={(navigate) =>
+                          onClickGameInfo={navigate =>
                             navigate(`/game-info/${game.id}`)
                           }
-                          onClickPlayerInfo={(navigate) =>
+                          onClickPlayerInfo={navigate =>
                             navigate(`/player-info/${game.id}`)
                           }
                         />
@@ -125,20 +139,20 @@ const Router: React.FC = () => {
                       query={gameRetrieveQuery}
                       onRenderLoading={() => <> </>}
                     >
-                      {(game) => (
+                      {game => (
                         <GameMenu
                           game={game}
-                          onClickGameInfo={(navigate) =>
+                          onClickGameInfo={navigate =>
                             navigate(`/game-info/${game.id}`)
                           }
-                          onClickPlayerInfo={(navigate) =>
+                          onClickPlayerInfo={navigate =>
                             navigate(`/player-info/${game.id}`)
                           }
                         />
                       )}
                     </QueryContainer>
                   }
-                  onNavigateBack={(navigate) => navigate("/")}
+                  onNavigateBack={navigate => navigate("/")}
                 />
               )}
             </SelectedGameContextProvider>
@@ -146,8 +160,8 @@ const Router: React.FC = () => {
         >
           <Route index element={<PlayerInfo />} />
         </Route>
-      </Route>
-      {isMobile ? (
+      </Route> */}
+      {/* {isMobile ? (
         <Route path="game/:gameId">
           <Route element={<Mobile.GameDetailLayout />}>
             <Route
@@ -306,7 +320,6 @@ const Router: React.FC = () => {
                       <Panel.Content>
                         <OrderList />
                       </Panel.Content>
-
                     </Panel>
                   </CreateOrderContextProvider>
                 }
@@ -323,12 +336,7 @@ const Router: React.FC = () => {
                   </CreateOrderContextProvider>
                 }
               />
-              <Route
-                path="chat"
-                element={
-                  <ChannelList />
-                }
-              />
+              <Route path="chat" element={<ChannelList />} />
             </Route>
             <Route
               element={
@@ -419,7 +427,7 @@ const Router: React.FC = () => {
             </Route>
           </Route>
         </Route>
-      )}
+      )} */}
     </Routes>
   ) : (
     <Routes>

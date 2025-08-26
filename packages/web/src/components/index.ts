@@ -5,7 +5,6 @@ export * from "./channel-text-field";
 export * from "./create-channel";
 export * from "./create-channel-action";
 export * from "./create-order";
-export * from "./drawer-navigation";
 export * from "./feedback";
 export * from "./game-card";
 export * from "./game-menu";
