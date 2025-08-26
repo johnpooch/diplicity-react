@@ -4,6 +4,3 @@ line-length = 88
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "project.settings"
 python_files = ["test_*.py"]
-markers = [
-    "slow: marks tests that call external APIs (deselect with '-m \"not slow\"')"
-]

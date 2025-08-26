@@ -10,14 +10,9 @@
   "[typescriptreact]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "python.linting.enabled": true,
-  "python.linting.pylintEnabled": true,
-  "python.linting.pylintArgs": [
-    "--load-plugins=pylint_django",
-    "--django-settings-module=project.settings",
-    "--disable=C0114,C0115,C0116,C0301,W0611,W0612,W0613,R0903,R0913,R0914,R0915"
-  ],
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  },
   "python.defaultInterpreterPath": "/usr/bin/python3",
   "python.terminal.activateEnvironment": true,
-  "python.linting.pylintPath": "pylint"
 }
