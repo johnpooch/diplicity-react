@@ -30,19 +30,6 @@ FROM base AS development
 # Use the default root user for development
 USER root
 
-# Worker stage: Non-root user
-FROM base AS worker
-
-# Copy health check and entrypoint
-COPY worker/health_check.py /app/worker/
-COPY --chmod=755 worker_entrypoint.sh /app/
-
-# Create a non-root user for the worker
-RUN useradd -ms /bin/bash celeryuser
-
-# Switch to the non-root user
-USER celeryuser 
-
 EXPOSE 8000
 
 CMD ["/app/worker_entrypoint.sh"]

@@ -30,7 +30,7 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-gdnbe1&siif)1gsuv+f
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,service').split(',')
 
 # CSRF Settings
 CSRF_TRUSTED_ORIGINS = [
@@ -73,7 +73,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-CORS_ALLOWED_ORIGINS = os.getenv('DJANGO_CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:5173').split(',')
+CORS_ALLOWED_ORIGINS = os.getenv('DJANGO_CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:5173,http://diplicity-web:5173').split(',')
 
 ROOT_URLCONF = "project.urls"
 
@@ -101,27 +101,15 @@ WSGI_APPLICATION = "project.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# Debug logging for environment variables
-print("=== Environment Variables Debug ===")
-print(f"DATABASE_URL exists: {'DATABASE_URL' in os.environ}")
-print(f"All environment variables: {dict(os.environ)}")
-print("=================================")
-
 if "DATABASE_URL" in os.environ:
     db_url = os.getenv("DATABASE_URL")
-    print(f"Raw DATABASE_URL: {db_url}")
-    try:
-        DATABASES = {
-            "default": dj_database_url.config(
-                default=db_url,
-                conn_max_age=60,
-                conn_health_checks=True,
-            )
-        }
-        print(f"Successfully parse database config: {DATABASES['default']}")
-    except Exception as e:
-        print(f"Error parsing DATABASE_URL: {str(e)}")
-        raise
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=db_url,
+            conn_max_age=60,
+            conn_health_checks=True,
+        )
+    }
 else:
     DATABASES = {
         "default": {
@@ -172,17 +160,20 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# Enable WhiteNoise's GZip compression of static assets
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# Storage configuration (replaces deprecated STATICFILES_STORAGE)
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
@@ -238,10 +229,10 @@ ENVIRONMENT = os.getenv("ENVIRONMENT", "development");
 VERSION = os.getenv("GIT_SHA", "0.0.0");
 
 if DEBUG:
-    ROOT_LOG_LEVEL = "DEBUG"
-    DJANGO_LOG_LEVEL = "DEBUG"
-    DB_LOG_LEVEL = "DEBUG"
-    GAME_LOG_LEVEL = "DEBUG"
+    ROOT_LOG_LEVEL = "INFO"
+    DJANGO_LOG_LEVEL = "INFO"
+    DB_LOG_LEVEL = "INFO"
+    GAME_LOG_LEVEL = "INFO"
 else:
     ROOT_LOG_LEVEL = "INFO"
     DJANGO_LOG_LEVEL = "WARNING"
@@ -294,21 +285,6 @@ LOGGING = {
             'propagate': False,
         },
         'game': {
-            'handlers': ['console'],
-            'level': GAME_LOG_LEVEL,
-            'propagate': False,
-        },
-        'celery': {
-            'handlers': ['console'],
-            'level': GAME_LOG_LEVEL,
-            'propagate': False,
-        },
-        'celery.task': {
-            'handlers': ['console'],
-            'level': GAME_LOG_LEVEL,
-            'propagate': False,
-        },
-        'celery.worker': {
             'handlers': ['console'],
             'level': GAME_LOG_LEVEL,
             'propagate': False,

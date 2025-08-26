@@ -526,6 +526,21 @@ paths:
                 items:
                   $ref: '#/components/schemas/Variant'
           description: ''
+  /version/:
+    get:
+      operationId: versionRetrieve
+      tags:
+      - version
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Version'
+          description: ''
 components:
   schemas:
     Auth:
@@ -642,8 +657,6 @@ components:
           type: boolean
         canLeave:
           type: boolean
-        currentPhase:
-          $ref: '#/components/schemas/Phase'
         phases:
           type: array
           items:
@@ -662,7 +675,6 @@ components:
       - canConfirmPhase
       - canJoin
       - canLeave
-      - currentPhase
       - id
       - members
       - movementPhaseDuration
@@ -743,17 +755,6 @@ components:
       description: |-
         * `random` - Random
         * `ordered` - Ordered
-    NationOptions:
-      type: object
-      properties:
-        nation:
-          type: string
-        options:
-          type: object
-          additionalProperties: {}
-      required:
-      - nation
-      - options
     NationOrder:
       type: object
       properties:
@@ -836,6 +837,7 @@ components:
           type: string
         remainingTime:
           type: string
+          readOnly: true
         units:
           type: array
           items:
@@ -845,9 +847,10 @@ components:
           items:
             $ref: '#/components/schemas/SupplyCenter'
         options:
-          type: array
-          items:
-            $ref: '#/components/schemas/NationOptions'
+          type: object
+          additionalProperties: {}
+        status:
+          $ref: '#/components/schemas/StatusEnum'
       required:
       - id
       - name
@@ -855,10 +858,18 @@ components:
       - ordinal
       - remainingTime
       - season
+      - status
       - supplyCenters
       - type
       - units
       - year
+    PhaseNation:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+      - name
     Province:
       type: object
       properties:
@@ -916,13 +927,23 @@ components:
       - type
       - units
       - year
+    StatusEnum:
+      enum:
+      - pending
+      - active
+      - completed
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `active` - Active
+        * `completed` - Completed
     SupplyCenter:
       type: object
       properties:
         province:
           $ref: '#/components/schemas/Province'
         nation:
-          $ref: '#/components/schemas/Nation'
+          $ref: '#/components/schemas/PhaseNation'
       required:
       - nation
       - province
@@ -954,7 +975,7 @@ components:
         type:
           type: string
         nation:
-          $ref: '#/components/schemas/Nation'
+          $ref: '#/components/schemas/PhaseNation'
         province:
           $ref: '#/components/schemas/Province'
       required:
@@ -1008,6 +1029,16 @@ components:
       - nations
       - provinces
       - start
+    Version:
+      type: object
+      properties:
+        environment:
+          type: string
+        version:
+          type: string
+      required:
+      - environment
+      - version
   securitySchemes:
     jwtAuth:
       type: http

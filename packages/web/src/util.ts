@@ -9,6 +9,16 @@ function randomOf(ary: string[]) {
     return ary[Math.floor(Math.random() * ary.length)];
 }
 
+// Get the phase with the highest ordinal
+function getCurrentPhase(phases: Phase[]) {
+    return phases.reduce((max, phase) => {
+        if (phase.ordinal > max.ordinal) {
+            return phase;
+        }
+        return max;
+    }, phases[0]);
+}
+
 function dziemba_levenshtein(a: string, b: string) {
     let tmp;
     if (a.length === 0) {
@@ -289,4 +299,4 @@ const getOrderSummary = (order: Order, variant: Variant, phase: Phase) => {
 
 }
 
-export { formatOrderText, transformResolution, getStepLabel, getOrderSummary, getOptions, getProvince };
+export { formatOrderText, transformResolution, getStepLabel, getOrderSummary, getOptions, getProvince, getCurrentPhase };

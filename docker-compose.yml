@@ -48,7 +48,7 @@ services:
           ignore:
             - node_modules
     container_name: diplicity-web
-    entrypoint: [ "npm", "run", "dev" ]
+    entrypoint: ["npm", "run", "dev"]
     ports:
       - "5173:5173"
     volumes:
@@ -73,11 +73,18 @@ services:
       - .:/app
     env_file:
       - .env
+    environment:
+      - DJANGO_DEBUG=True
+      - ROOT_LOG_LEVEL=INFO
+      - DJANGO_LOG_LEVEL=INFO
+      - DB_LOG_LEVEL=WARNING
+      - GAME_LOG_LEVEL=INFO
     working_dir: /app/service
     command: >
-      sh -c " python manage.py flush --no-input && python manage.py migrate && python manage.py generate_test_data && python manage.py createsuperuser --noinput --username $DJANGO_SUPERUSER_USERNAME --email  $DJANGO_SUPERUSER_EMAIL && python manage.py runserver 0.0.0.0:8000"
+      sh -c " python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     networks:
       - diplicity-network
+    tty: true
 
   test-service:
     container_name: diplicity-test-service
@@ -110,22 +117,29 @@ services:
     networks:
       - diplicity-network
 
-  worker:
+  phase-resolver:
     build:
       context: ./service
       dockerfile: Dockerfile
-      target: worker
-    container_name: diplicity-worker
-    depends_on:
-      - db
+      target: development
+    container_name: diplicity-phase-resolver
     working_dir: /app/service
     volumes:
       - .:/app
-    command: celery -A project worker --loglevel=info
-    networks:
-      - diplicity-network
     env_file:
       - .env
+    environment:
+      - DJANGO_DEBUG=True
+      - ROOT_LOG_LEVEL=INFO
+      - DJANGO_LOG_LEVEL=INFO
+      - DB_LOG_LEVEL=WARNING
+      - GAME_LOG_LEVEL=INFO
+    command: >
+      sh -c 'while true; do python manage.py resolve_due_phases; sleep 60; done'
+    networks:
+      - diplicity-network
+    depends_on:
+      - db
 
 networks:
   diplicity-network:
