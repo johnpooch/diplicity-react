@@ -445,6 +445,7 @@ export type Variant = {
   nations: Nation[];
   start: Start;
   provinces: Province[];
+  initialPhase: Phase;
 };
 export type Game = {
   id: string;
