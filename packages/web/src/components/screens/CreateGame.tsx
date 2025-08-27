@@ -17,6 +17,7 @@ import { useNavigate } from "react-router";
 import { useFormik } from "formik";
 import { randomGameName } from "../../util";
 import { Table } from "../elements/Table";
+import { InteractiveMap } from "../interactive-map/interactive-map";
 
 const initialValues = {
   name: randomGameName(),
@@ -91,13 +92,16 @@ const CreateGame: React.FC = () => {
             )}
             {query.isLoading ? (
               <Skeleton variant="rectangular" width="100%" height={400} />
-            ) : (
-              <img
-                style={{ maxWidth: "100%", maxHeight: "100%" }}
-                src={`https://diplicity-engine.appspot.com/Variant/${selectedVariant?.name}/Map.svg`}
-                alt={selectedVariant?.name}
+            ) : selectedVariant?.initialPhase ? (
+              <InteractiveMap
+                variant={selectedVariant}
+                phase={selectedVariant.initialPhase}
+                interactive={false}
+                orders={undefined}
+                orderInProgress={undefined}
+                onClickProvince={undefined}
               />
-            )}
+            ) : null}
             <Table
               rows={[
                 {
@@ -114,7 +118,7 @@ const CreateGame: React.FC = () => {
                   value: query.isLoading ? (
                     <Skeleton variant="text" width={100} />
                   ) : (
-                    selectedVariant?.start.year.toString()
+                    selectedVariant?.initialPhase?.year.toString()
                   ),
                   icon: IconName.StartYear,
                 },
