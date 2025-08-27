@@ -13,6 +13,7 @@ import { HomeLayout } from "../layouts/HomeLayout";
 import { service } from "../../store";
 import { HomeAppBar } from "../composites/HomeAppBar";
 import { useNavigate, useParams } from "react-router";
+import { GameMenu } from "../game-menu";
 
 const PlayerInfo: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -28,7 +29,19 @@ const PlayerInfo: React.FC = () => {
   return (
     <HomeLayout
       appBar={
-        <HomeAppBar title="Player Info" onNavigateBack={() => navigate(-1)} />
+        <HomeAppBar
+          title="Player Info"
+          onNavigateBack={() => navigate("/")}
+          rightButton={
+            query.data && (
+              <GameMenu
+                game={query.data}
+                onClickGameInfo={() => navigate(`/game-info/${gameId}`)}
+                onClickPlayerInfo={() => navigate(`/player-info/${gameId}`)}
+              />
+            )
+          }
+        />
       }
       bottomNavigation={<div></div>}
       content={
@@ -43,23 +56,23 @@ const PlayerInfo: React.FC = () => {
             <List>
               {query.data
                 ? query.data.members.map(member => (
-                    <ListItem key={member.username}>
-                      <ListItemAvatar>
-                        <Avatar src={member.picture} alt={member.username} />
-                      </ListItemAvatar>
-                      <ListItemText primary={member.username} />
-                    </ListItem>
-                  ))
+                  <ListItem key={member.username}>
+                    <ListItemAvatar>
+                      <Avatar src={member.picture} alt={member.username} />
+                    </ListItemAvatar>
+                    <ListItemText primary={member.username} />
+                  </ListItem>
+                ))
                 : Array.from({ length: 3 }, (_, index) => (
-                    <ListItem key={index}>
-                      <ListItemAvatar>
-                        <Skeleton variant="circular" width={40} height={40} />
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={<Skeleton variant="text" width={150} />}
-                      />
-                    </ListItem>
-                  ))}
+                  <ListItem key={index}>
+                    <ListItemAvatar>
+                      <Skeleton variant="circular" width={40} height={40} />
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={<Skeleton variant="text" width={150} />}
+                    />
+                  </ListItem>
+                ))}
             </List>
           </>
         </Stack>

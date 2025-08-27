@@ -48,7 +48,7 @@ const CreateGame: React.FC = () => {
 
   return (
     <HomeLayout
-      appBar={<HomeAppBar title="Create Game" />}
+      appBar={<HomeAppBar title="Create Game" onNavigateBack={() => navigate("/")} />}
       content={
         <form
           onSubmit={e => {
