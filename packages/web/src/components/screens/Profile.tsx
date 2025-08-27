@@ -20,8 +20,10 @@ import { IconName } from "../elements/Icon";
 import { IconButton } from "../elements/Button";
 import { useMessaging } from "../../context";
 import { useDispatch } from "react-redux";
+import { useNavigate } from "react-router";
 
 const Profile: React.FC = () => {
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const query = service.endpoints.userRetrieve.useQuery();
   const { enableMessaging, enabled, disableMessaging } = useMessaging();
@@ -55,7 +57,7 @@ const Profile: React.FC = () => {
 
   return (
     <HomeLayout
-      appBar={<HomeAppBar title="Profile" />}
+      appBar={<HomeAppBar title="Profile" onNavigateBack={() => navigate("/")} />}
       content={
         <Stack>
           <NotificationBanner />

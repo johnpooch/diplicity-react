@@ -20,6 +20,7 @@ import { Table } from "../elements/Table";
 import { InteractiveMap } from "../interactive-map/interactive-map";
 import { MapSkeleton } from "../composites/MapSkeleton";
 import { getCurrentPhase } from "../../util";
+import { GameMenu } from "../game-menu";
 
 const GameInfo: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -39,7 +40,19 @@ const GameInfo: React.FC = () => {
   return (
     <HomeLayout
       appBar={
-        <HomeAppBar title="Game Info" onNavigateBack={() => navigate(-1)} />
+        <HomeAppBar
+          title="Game Info"
+          onNavigateBack={() => navigate("/")}
+          rightButton={
+            query.data && (
+              <GameMenu
+                game={query.data}
+                onClickGameInfo={() => navigate(`/game-info/${gameId}`)}
+                onClickPlayerInfo={() => navigate(`/player-info/${gameId}`)}
+              />
+            )
+          }
+        />
       }
       bottomNavigation={<div></div>}
       content={

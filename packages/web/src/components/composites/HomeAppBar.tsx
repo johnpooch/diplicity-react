@@ -7,6 +7,7 @@ interface HomeAppBarProps {
   title: string;
   onNavigateBack?: () => void;
   leftButton?: React.ReactNode;
+  rightButton?: React.ReactNode;
 }
 
 const HomeAppBar: React.FC<HomeAppBarProps> = props => {
@@ -20,6 +21,8 @@ const HomeAppBar: React.FC<HomeAppBarProps> = props => {
     }
   };
 
+  console.log(props.rightButton);
+
   return (
     <AppBar
       title={props.title}
@@ -30,6 +33,7 @@ const HomeAppBar: React.FC<HomeAppBarProps> = props => {
           <IconButton icon={IconName.Back} onClick={onClickBack} />
         )
       }
+      rightButton={props.rightButton}
     />
   );
 };

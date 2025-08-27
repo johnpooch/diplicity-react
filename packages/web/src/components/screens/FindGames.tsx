@@ -8,9 +8,11 @@ import { GameCardSkeleton } from "../composites/GameCardSkeleton";
 import { HomeAppBar } from "../composites/HomeAppBar";
 import { Notice } from "../elements/Notice";
 import { IconName } from "../elements/Icon";
+import { useNavigate } from "react-router";
 
 const FindGames: React.FC = () => {
   const query = service.endpoints.gamesList.useQuery({ canJoin: true });
+  const navigate = useNavigate();
 
   if (query.isError) {
     return <div>Error</div>;
@@ -18,7 +20,7 @@ const FindGames: React.FC = () => {
 
   return (
     <HomeLayout
-      appBar={<HomeAppBar title="Find Games" />}
+      appBar={<HomeAppBar title="Find Games" onNavigateBack={() => navigate("/")} />}
       content={
         <Stack>
           <NotificationBanner />
