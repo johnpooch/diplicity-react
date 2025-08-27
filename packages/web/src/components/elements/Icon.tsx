@@ -15,6 +15,11 @@ import Chat from "@mui/icons-material/Chat";
 import Orders from "@mui/icons-material/Gavel";
 import OrdersConfirmed from "@mui/icons-material/CheckBox";
 import OrdersNotConfirmed from "@mui/icons-material/CheckBoxOutlineBlank";
+import Map from "@mui/icons-material/Map";
+import GroupAdd from "@mui/icons-material/GroupAdd";
+import NoChannels from "@mui/icons-material/Forum";
+import Cancel from "@mui/icons-material/Cancel";
+import Close from "@mui/icons-material/Close";
 
 import { SxProps, Theme } from "@mui/material";
 
@@ -36,6 +41,11 @@ enum IconName {
   CreateOrder = "create-order",
   OrdersConfirmed = "orders-confirmed",
   OrdersNotConfirmed = "orders-not-confirmed",
+  Map = "map",
+  GroupAdd = "group-add",
+  NoChannels = "no-channels",
+  Cancel = "cancel",
+  Close = "close",
 }
 
 const IconMap = {
@@ -56,6 +66,11 @@ const IconMap = {
   [IconName.CreateOrder]: CreateOrder,
   [IconName.OrdersConfirmed]: OrdersConfirmed,
   [IconName.OrdersNotConfirmed]: OrdersNotConfirmed,
+  [IconName.Map]: Map,
+  [IconName.GroupAdd]: GroupAdd,
+  [IconName.NoChannels]: NoChannels,
+  [IconName.Cancel]: Cancel,
+  [IconName.Close]: Close,
 };
 
 interface IconProps {

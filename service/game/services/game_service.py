@@ -5,35 +5,13 @@ import time
 from django.db import connection, reset_queries
 from functools import wraps
 
-<<<<<<< HEAD
-from django.db.models import (
-    BooleanField,
-    Case,
-    Value,
-    When,
-    Prefetch,
-    OuterRef,
-    Exists,
-    Q,
-    Subquery,
-    JSONField,
-    F,
-)
-from django.db.models.functions import JSONObject
-from django.contrib.postgres.aggregates import JSONBAgg
-=======
 from django.shortcuts import get_object_or_404
->>>>>>> e344a9d874b14f95f1a4e45cdcb65b3d3de14cac
 from django.db import transaction
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework import exceptions
 
-<<<<<<< HEAD
-from .. import models, tasks
-=======
 from .. import models
->>>>>>> e344a9d874b14f95f1a4e45cdcb65b3d3de14cac
 from .base_service import BaseService
 
 logger = logging.getLogger("game")
@@ -199,27 +177,6 @@ class GameService(BaseService):
             for member in members
         ]
 
-<<<<<<< HEAD
-        # Active phase subquery
-        active_phase_subquery = models.Phase.objects.filter(
-            game=OuterRef("pk"),
-            status=models.Phase.ACTIVE
-        )
-
-        # Member status subquery - ensure we check both membership and status
-        member_status_subquery = models.Member.objects.filter(
-            game=OuterRef("pk"),
-            user=self.user,
-            eliminated=False,
-            kicked=False,
-        )
-
-        # Prefetch phases with options annotation
-        phases_prefetch = Prefetch(
-            "phases",
-            queryset=models.Phase.objects.annotate(
-                options_list=Subquery(options_subquery, output_field=JSONField())
-=======
     def _get_phase_data(self, phase, variant):
         units = phase.units.all()
         units_data = []
@@ -237,7 +194,6 @@ class GameService(BaseService):
                     "nation": {"name": unit.nation},
                     "province": province,
                 }
->>>>>>> e344a9d874b14f95f1a4e45cdcb65b3d3de14cac
             )
 
         supply_centers = phase.supply_centers.all()
@@ -531,11 +487,7 @@ class GameService(BaseService):
 
     def _set_nations(self, game):
         nations = game.variant.nations
-<<<<<<< HEAD
-        members = game.members.all().order_by('created_at')
-=======
         members = game.members.all().order_by("created_at")
->>>>>>> e344a9d874b14f95f1a4e45cdcb65b3d3de14cac
 
         if game.nation_assignment == models.Game.RANDOM:
             # Shuffle nations for random assignment

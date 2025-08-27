@@ -5,6 +5,7 @@ import { QueryContainer } from "./query-container";
 import { useSelector } from "react-redux";
 import { orderSlice } from "../store/order";
 import { useParams } from "react-router";
+import { Stack } from "@mui/material";
 
 const Map: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -32,12 +33,13 @@ const Map: React.FC = () => {
               const phase = game.phases.find(p => p.id === selectedPhase);
               if (!phase) throw new Error("Phase not found");
               return (
-                <div
-                  style={{
-                    height: "100%",
-                    width: "100%",
-                  }}
-                >
+                <Stack sx={{
+                  width: "100%",
+                  height: "100%",
+                  overflow: "auto",
+                  minHeight: 0 // This is important for flexbox overflow to work
+                }}>
+
                   <InteractiveMap
                     interactive
                     variant={game.variant}
@@ -45,7 +47,7 @@ const Map: React.FC = () => {
                     orders={orders}
                     orderInProgress={order}
                   />
-                </div>
+                </Stack>
               );
             }}
           </QueryContainer>

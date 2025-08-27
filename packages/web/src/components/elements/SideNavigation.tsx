@@ -1,7 +1,7 @@
 import { Drawer, List, ListItem } from "@mui/material";
 import { IconName } from "./Icon";
 import { createUseStyles } from "../utils/styles";
-import { IconButton, ListItemButton } from "./Button";
+import { ListItemButton } from "./Button";
 import { useMatch } from "react-router";
 
 interface SideNavigationProps {

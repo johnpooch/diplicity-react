@@ -278,17 +278,17 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
                 onRenderBottomCenter={
                   o.resolution && o.resolution.status !== "Succeeded"
                     ? (x, y) => (
-                        <Cross
-                          x={x}
-                          y={y}
-                          width={ORDER_FAILED_CROSS_WIDTH}
-                          length={ORDER_FAILED_CROSS_LENGTH}
-                          angle={45}
-                          fill={ORDER_FAILED_CROSS_FILL}
-                          stroke={ORDER_FAILED_CROSS_STROKE}
-                          strokeWidth={ORDER_FAILED_CROSS_STROKE_WIDTH}
-                        />
-                      )
+                      <Cross
+                        x={x}
+                        y={y}
+                        width={ORDER_FAILED_CROSS_WIDTH}
+                        length={ORDER_FAILED_CROSS_LENGTH}
+                        angle={45}
+                        fill={ORDER_FAILED_CROSS_FILL}
+                        stroke={ORDER_FAILED_CROSS_STROKE}
+                        strokeWidth={ORDER_FAILED_CROSS_STROKE_WIDTH}
+                      />
+                    )
                     : undefined
                 }
               />

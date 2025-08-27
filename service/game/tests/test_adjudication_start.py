@@ -23,7 +23,6 @@ def get_supply_center(response, province):
     )
 
 @pytest.mark.django_db
-@pytest.mark.slow
 def test_start_classical(adjudication_service, active_game_with_phase_state):
     """
     Test starting a classical game.

@@ -1,8 +1,16 @@
+import { useNavigate } from "react-router";
 import { AppBar } from "../elements/AppBar";
+import { IconButton } from "../elements/Button";
+import { IconName } from "../elements/Icon";
 import { createUseStyles } from "../utils/styles";
+import { useResponsiveness } from "../utils/responsive";
+import { Divider } from "@mui/material";
 
 interface GameDetailAppBarProps {
   title?: string | React.ReactNode;
+  onNavigateBack?: () => void;
+  leftButton?: React.ReactNode;
+  variant?: "primary" | "secondary";
 }
 
 const useStyles = createUseStyles<GameDetailAppBarProps>(() => ({
@@ -14,9 +22,36 @@ const useStyles = createUseStyles<GameDetailAppBarProps>(() => ({
 }));
 
 const GameDetailAppBar: React.FC<GameDetailAppBarProps> = props => {
-  const styles = useStyles(props);
+  const navigate = useNavigate();
+  const responsiveness = useResponsiveness();
+  const { variant = "primary" } = props;
 
-  return <AppBar title={props.title} sx={styles.root} />;
+  const onClickBack = () => {
+    if (props.onNavigateBack) {
+      props.onNavigateBack();
+    } else {
+      navigate(-1);
+    }
+  };
+
+  return (
+    <>
+      <AppBar
+        title={props.title}
+        leftButton={
+          responsiveness.device === "mobile" && (
+            <IconButton icon={IconName.Back} onClick={onClickBack} />
+          )
+        }
+        rightButton={
+          variant === "secondary" && responsiveness.device !== "mobile" && (
+            <IconButton icon={IconName.Close} onClick={onClickBack} />
+          )
+        }
+      />
+      <Divider />
+    </>
+  )
 };
 
 export { GameDetailAppBar };

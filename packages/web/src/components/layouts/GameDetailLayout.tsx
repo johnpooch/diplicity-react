@@ -1,7 +1,9 @@
-import { Stack, Grid2 as Grid } from "@mui/material";
+import { Stack, Grid2 as Grid, Button } from "@mui/material";
 import { createUseStyles } from "../utils/styles";
 import { useResponsiveness } from "../utils/responsive";
 import { GameDetailSideNavigation } from "../composites/GameDetailSideNavigation";
+import { GameDetailBottomNavigation } from "../composites/GameDetailBottomNavigation";
+import { Panel } from "../panel";
 // import { GameDetailBottomNavigation } from "../composites/GameDetailBottomNavigation";
 
 interface GameDetailLayoutProps {
@@ -21,16 +23,24 @@ const useStyles = createUseStyles<GameDetailLayoutProps>(() => ({
     display: "flex",
     justifyContent: "center",
     flexGrow: 1,
-    maxWidth: 1000,
     width: "100%",
-  },
-  leftPanel: {
-    borderRight: theme => `1px solid ${theme.palette.divider}`,
+    maxHeight: "100%",
   },
   appBarContainer: {
     borderBottom: theme => `1px solid ${theme.palette.divider}`,
   },
-  centerPanel: {},
+  leftPanel: {
+    borderRight: theme => `1px solid ${theme.palette.divider}`,
+    maxHeight: "100%",
+  },
+  centerPanel: {
+    maxHeight: "100%",
+    borderRight: theme => `1px solid ${theme.palette.divider}`,
+  },
+  rightPanel: {
+    borderLeft: theme => `1px solid ${theme.palette.divider}`,
+    maxHeight: "100%",
+  },
 }));
 
 const GameDetailLayout: React.FC<GameDetailLayoutProps> = props => {
@@ -38,22 +48,35 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = props => {
   const responsiveness = useResponsiveness();
 
   return (
-    <Stack sx={styles.root}>
-      <Grid container sx={styles.container}>
+    <>
+      <Stack sx={{ flexDirection: "row", height: "100vh" }}>
         {responsiveness.device !== "mobile" && (
-          <Grid size="auto" sx={styles.leftPanel}>
+          <Stack sx={{}}>
             {props.leftPanel ? props.leftPanel : <GameDetailSideNavigation />}
-          </Grid>
-        )}
-        <Grid size="grow" sx={styles.centerPanel}>
-          <Stack sx={{ height: "100%" }}>
-            <Stack sx={styles.appBarContainer}>{props.appBar}</Stack>
-            {props.content}
           </Stack>
-        </Grid>
-      </Grid>
-    </Stack>
-  );
+        )}
+        <Stack sx={{
+          flexGrow: responsiveness.device === "mobile" ? 1 : undefined,
+          width: responsiveness.device === "mobile" ? "100%" : 300,
+          borderRight: theme => `1px solid ${theme.palette.divider}`,
+          borderLeft: theme => `1px solid ${theme.palette.divider}`,
+          height: responsiveness.device === "mobile" ? "calc(100vh - 56px)" : "100vh",
+          overflow: "hidden",
+        }}>
+          {props.appBar}
+          {props.content}
+          {responsiveness.device === "mobile" && (
+            props.bottomNavigation ? props.bottomNavigation : <GameDetailBottomNavigation />
+          )}
+        </Stack>
+        {responsiveness.device !== "mobile" && (
+          <Stack sx={{ flexGrow: 1 }}>
+            {props.rightPanel}
+          </Stack>
+        )}
+      </Stack>
+    </>
+  )
 };
 
 export { GameDetailLayout };

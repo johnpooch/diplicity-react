@@ -8,11 +8,14 @@
   "prettier.requireConfig": true,
   "typescript.preferences.importModuleSpecifier": "relative",
   "[typescriptreact]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "vscode.typescript-language-features"
   },
   "[python]": {
     "editor.defaultFormatter": "ms-python.black-formatter"
   },
   "python.defaultInterpreterPath": "/usr/bin/python3",
   "python.terminal.activateEnvironment": true,
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
 }

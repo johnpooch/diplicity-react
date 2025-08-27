@@ -3,6 +3,8 @@ import { Box, Divider, Stack } from "@mui/material";
 const styles: Styles = {
   root: {
     flexGrow: 1,
+    height: "100%",
+    maxHeight: "100%",
     overflow: "hidden",
   },
   content: {

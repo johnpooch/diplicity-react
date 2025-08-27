@@ -40,7 +40,6 @@ const HomeBottomNavigation: React.FC = () => {
           {NavigationItems.map(item => (
             <BottomNavigationAction
               key={item.value}
-              label={item.label}
               icon={<Icon name={item.icon} />}
               value={item.value}
             />

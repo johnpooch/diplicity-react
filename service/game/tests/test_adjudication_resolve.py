@@ -41,7 +41,6 @@ def create_order(phase, nation, order_type, source, target=None, aux=None):
     )
 
 @pytest.mark.django_db
-@pytest.mark.slow
 def test_resolve_move(adjudication_service, game_with_two_members):
     """
     Test resolving a simple move order.
@@ -73,7 +72,6 @@ def test_resolve_move(adjudication_service, game_with_two_members):
     assert resolution["result"] == "OK"
 
 @pytest.mark.django_db
-@pytest.mark.slow
 def test_resolve_move_to_source(adjudication_service, game_with_two_members):
     """
     Test resolving a move order to the source province.
@@ -100,7 +98,6 @@ def test_resolve_move_to_source(adjudication_service, game_with_two_members):
     assert resolution["by"] is None
 
 @pytest.mark.django_db
-@pytest.mark.slow
 def test_resolve_move_bounce(adjudication_service, game_with_two_members):
     """
     Test resolving a move order that results in a bounce.
@@ -129,7 +126,6 @@ def test_resolve_move_bounce(adjudication_service, game_with_two_members):
     assert resolution["by"] == "lvp"
 
 @pytest.mark.django_db
-@pytest.mark.slow
 def test_resolve_successful_support_move(adjudication_service, game_with_two_members):
     """
     Test resolving a successful supported move.
@@ -161,7 +157,6 @@ def test_resolve_successful_support_move(adjudication_service, game_with_two_mem
     assert resolution_support["result"] == "OK"
 
 @pytest.mark.django_db
-@pytest.mark.slow
 def test_resolve_support_without_move(adjudication_service, game_with_two_members):
     """
     Test resolving a support order without a corresponding move.
@@ -190,7 +185,6 @@ def test_resolve_support_without_move(adjudication_service, game_with_two_member
     assert resolution_support["by"] is None
 
 @pytest.mark.django_db
-@pytest.mark.slow
 def test_resolve_valid_retreat(adjudication_service, game_with_two_members):
     """
     Test resolving a valid retreat order.
@@ -223,7 +217,6 @@ def test_resolve_valid_retreat(adjudication_service, game_with_two_members):
     assert response["phase"]["type"] == "Movement"
 
 @pytest.mark.django_db
-@pytest.mark.slow
 def test_resolve_invalid_retreat(adjudication_service, game_with_two_members):
     """
     Test resolving an invalid retreat order.
