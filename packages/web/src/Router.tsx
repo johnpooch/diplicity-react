@@ -1,8 +1,7 @@
 import React from "react";
-import { Navigate, Route, Routes } from "react-router";
+import { Navigate, Outlet, Route, Routes } from "react-router";
 import { useSelector } from "react-redux";
 import { Login } from "./screens";
-import { useMediaQuery, useTheme } from "@mui/material";
 import { ParseMap } from "./screens/parse-map";
 import { MyGames as NewMyGames } from "./components/screens/MyGames";
 import { FindGames as NewFindGames } from "./components/screens/FindGames";
@@ -11,15 +10,15 @@ import { Profile as NewProfile } from "./components/screens/Profile";
 import { GameInfo as NewGameInfo } from "./components/screens/GameInfo";
 import { PlayerInfo as NewPlayerInfo } from "./components/screens/PlayerInfo";
 import { selectAuth } from "./store";
-import { GameDetail } from "./components/screens/GameDetail";
-import { GameDetailMapLayout } from "./components/layouts/GameDetailMapLayout";
-import { SelectedPhaseContextProvider } from "./context";
-import { Orders } from "./components/screens/Orders";
+import { SelectedGameContextProvider, SelectedPhaseContextProvider } from "./context";
+import { GameDetail } from "./components/screens";
+import { ChannelCreateScreen } from "./components/screens/GameDetail/ChannelCreateScreen";
+import { ChannelScreen } from "./components/screens/GameDetail/ChannelScreen";
+import { useResponsiveness } from "./components/utils/responsive";
 
 const Router: React.FC = () => {
   const { loggedIn } = useSelector(selectAuth);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const responsiveness = useResponsiveness();
 
   return loggedIn ? (
     <Routes>
@@ -29,26 +28,45 @@ const Router: React.FC = () => {
       <Route path="/profile" element={<NewProfile />} />
       <Route path="/game-info/:gameId" element={<NewGameInfo />} />
       <Route path="/player-info/:gameId" element={<NewPlayerInfo />} />
-      <Route
-        path="/game/:gameId"
-        element={
+      <Route path="/game/:gameId" element={
+        <SelectedGameContextProvider>
           <SelectedPhaseContextProvider>
-            <GameDetailMapLayout />
+            <Outlet />
           </SelectedPhaseContextProvider>
-        }
-      >
-        <Route index element={<Orders />} />
+        </SelectedGameContextProvider>
+      }>
+        <Route
+          path=""
+          element={responsiveness.device === "mobile" ? <GameDetail.MapScreen /> : <GameDetail.OrdersScreen />}
+        />
+        <Route
+          path="orders"
+          element={<GameDetail.OrdersScreen />}
+        />
+        <Route
+          path="chat"
+          element={<GameDetail.ChannelListScreen />}
+        />
+        <Route
+          path="chat/channel/create"
+          element={<ChannelCreateScreen />}
+        />
+        <Route
+          path="chat/channel/:channelId"
+          element={<ChannelScreen />}
+        />
       </Route>
-      {isMobile ? (
-        <>
-          {/* <Route path="/game/:gameId" element={<GameDetail panel="orders" />} />
+      {
+        responsiveness.device === "mobile" ? (
+          <>
+            {/* <Route path="/game/:gameId" element={<GameDetail panel="orders" />} />
           <Route path="/game/:gameId" element={<GameDetail panel="orders" />} /> */}
-        </>
-      ) : (
-        <>
-          {/* Use layout approach for desktop - move map to the right and otherwise make it the same as mobile */}
-          <Route path="/game/:gameId" element={<GameDetail panel="orders" />} />
-          {/* <Route
+          </>
+        ) : (
+          <>
+            {/* Use layout approach for desktop - move map to the right and otherwise make it the same as mobile */}
+            {/* <Route path="/game/:gameId" element={<GameDetail panel="orders" />} /> */}
+            {/* <Route
             path="/game/:gameId/orders"
             element={<GameDetail panel="orders" />}
           />
@@ -56,8 +74,9 @@ const Router: React.FC = () => {
             path="/game/:gameId/chat"
             element={<GameDetail panel="chat" />}
           /> */}
-        </>
-      )}
+          </>
+        )
+      }
       <Route path="/parse-map" element={<ParseMap />} />
       {/* <Route element={<HomeLayout />}>
         <Route index element={<MyGames />} />
@@ -428,7 +447,7 @@ const Router: React.FC = () => {
           </Route>
         </Route>
       )} */}
-    </Routes>
+    </Routes >
   ) : (
     <Routes>
       <Route path="*" element={<Navigate to="/" />} />

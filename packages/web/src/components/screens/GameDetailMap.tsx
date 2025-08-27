@@ -1,15 +1,11 @@
 import React from "react";
 import { Stack } from "@mui/material";
 import { service } from "../../store";
-import { HomeAppBar } from "../composites/HomeAppBar";
 import { GameDetailLayout } from "../layouts/GameDetailLayout";
 import { useParams } from "react-router";
+import { Map } from "../map";
 
-interface GameDetailProps {
-  panel: "orders" | "chat";
-}
-
-const GameDetail: React.FC<GameDetailProps> = () => {
+const GameDetailMap: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
   if (!gameId) throw new Error("gameId is required");
 
@@ -21,10 +17,12 @@ const GameDetail: React.FC<GameDetailProps> = () => {
 
   return (
     <GameDetailLayout
-      appBar={<HomeAppBar title={query.data?.name || ""} />}
-      content={<Stack></Stack>}
+      // appBar={<HomeAppBar title={query.data?.name || ""} />}
+      content={<Stack>
+        <Map />
+      </Stack>}
     />
   );
 };
 
-export { GameDetail };
+export { GameDetailMap };

@@ -15,6 +15,7 @@ def test_create_hold_valid(authenticated_client, active_game_with_phase_options)
         "source": "bud",
         "order_type": "Hold",
     }
+    print(active_game_with_phase_options.current_phase.options)
     response = authenticated_client.post(url, data, format="json")
     assert response.status_code == status.HTTP_201_CREATED
 

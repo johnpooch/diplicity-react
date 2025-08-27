@@ -27,7 +27,6 @@ const useStyles = createUseStyles(() => ({
     flexGrow: 1,
   },
   formControl: {
-    minWidth: 250,
   },
   iconButton: {
     height: "fit-content",

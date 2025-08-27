@@ -79,7 +79,8 @@ class GameJoinView(views.APIView):
         responses={200: GameSerializer},
     )
     def post(self, request, game_id, *args, **kwargs):
-        game_service = services.GameService(request.user)
+        adjudication_service = services.AdjudicationService(request.user)
+        game_service = services.GameService(request.user, adjudication_service)
 
         game = game_service.join(game_id)
 
