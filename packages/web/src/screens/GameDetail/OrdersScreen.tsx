@@ -9,20 +9,20 @@ import {
     Stack,
     Typography,
 } from "@mui/material";
-import { NationOrder, orderSlice, Phase, Province, service } from "../../../store";
+import { NationOrder, orderSlice, Phase, Province, service } from "../../store";
 import { GameDetailAppBar } from "./AppBar";
 import { GameDetailLayout } from "./Layout";
 import { useNavigate, useParams } from "react-router";
-import { Icon, IconName } from "../../Icon";
-import { IconButton } from "../../Button";
-import { PhaseSelect } from "../../PhaseSelect";
-import { useSelectedPhaseContext } from "../../../context";
-import { createUseStyles } from "../../utils/styles";
-import { OrderSummary } from "../../OrderSummary";
-import { CreateOrder } from "../../CreateOrder";
+import { Icon, IconName } from "../../components/Icon";
+import { IconButton } from "../../components/Button";
+import { PhaseSelect } from "../../components/PhaseSelect";
+import { useSelectedPhaseContext } from "../../context";
+import { createUseStyles } from "../../components/utils/styles";
+import { OrderSummary } from "../../components/OrderSummary";
+import { CreateOrder } from "../../components/CreateOrder";
 import { useDispatch } from "react-redux";
-import { Panel } from "../../Panel";
-import { GameMap } from "../../GameMap";
+import { Panel } from "../../components/Panel";
+import { GameMap } from "../../components/GameMap";
 
 /**
  * Represents a unit or province that can be ordered in the given phase.

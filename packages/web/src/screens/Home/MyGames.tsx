@@ -1,16 +1,16 @@
 import React, { useEffect } from "react";
 import { Stack } from "@mui/material";
 import { HomeLayout } from "./Layout";
-import { createUseStyles } from "../../utils/styles";
+import { createUseStyles } from "../../components/utils/styles";
 import { useState } from "react";
-import { Tabs } from "../../Tabs";
-import { DiplicityLogo } from "../../DiplicityLogo";
-import { service } from "../../../store";
-import { NotificationBanner } from "../../NotificationBanner";
-import { GameCard } from "../../GameCard";
-import { GameCardSkeleton } from "../../GameCardSkeleton";
-import { Notice } from "../../Notice";
-import { IconName } from "../../Icon";
+import { Tabs } from "../../components/Tabs";
+import { DiplicityLogo } from "../../components/DiplicityLogo";
+import { service } from "../../store";
+import { NotificationBanner } from "../../components/NotificationBanner";
+import { GameCard } from "../../components/GameCard";
+import { GameCardSkeleton } from "../../components/GameCardSkeleton";
+import { Notice } from "../../components/Notice";
+import { IconName } from "../../components/Icon";
 
 const useStyles = createUseStyles(() => ({
   header: {

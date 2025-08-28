@@ -1,6 +1,6 @@
 import { Stack } from "@mui/material";
-import { createUseStyles } from "../../utils/styles";
-import { useResponsiveness } from "../../utils/responsive";
+import { createUseStyles } from "../../components/utils/styles";
+import { useResponsiveness } from "../../components/utils/responsive";
 import { GameDetailSideNavigation } from "./SideNavigation";
 import { GameDetailBottomNavigation } from "./BottomNavigation";
 

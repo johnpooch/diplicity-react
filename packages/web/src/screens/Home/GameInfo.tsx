@@ -12,15 +12,15 @@ import {
   Stack,
 } from "@mui/material";
 import { HomeLayout } from "./Layout";
-import { service } from "../../../store";
+import { service } from "../../store";
 import { HomeAppBar } from "./AppBar";
-import { IconName } from "../../Icon";
+import { IconName } from "../../components/Icon";
 import { useNavigate, useParams } from "react-router";
-import { Table } from "../../Table";
-import { InteractiveMap } from "../../InteractiveMap/InteractiveMap";
-import { MapSkeleton } from "../../MapSkeleton";
-import { getCurrentPhase } from "../../../util";
-import { GameMenu } from "../../GameMenu";
+import { Table } from "../../components/Table";
+import { InteractiveMap } from "../../components/InteractiveMap/InteractiveMap";
+import { MapSkeleton } from "../../components/MapSkeleton";
+import { getCurrentPhase } from "../../util";
+import { GameMenu } from "../../components/GameMenu";
 
 const GameInfo: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();

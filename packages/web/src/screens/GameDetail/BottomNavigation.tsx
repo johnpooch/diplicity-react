@@ -1,12 +1,12 @@
 import { useNavigate, useParams } from "react-router";
-import { IconName } from "../../Icon";
+import { IconName } from "../../components/Icon";
 import { useEffect, useState } from "react";
 import {
     AppBar,
     BottomNavigation,
     BottomNavigationAction,
 } from "@mui/material";
-import { Icon } from "../../Icon";
+import { Icon } from "../../components/Icon";
 
 const GameDetailBottomNavigation: React.FC = () => {
     const navigate = useNavigate();

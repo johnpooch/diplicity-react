@@ -13,12 +13,12 @@ import {
   Skeleton,
 } from "@mui/material";
 import { HomeLayout } from "./Layout";
-import { authSlice, service } from "../../../store";
-import { NotificationBanner } from "../../NotificationBanner";
+import { authSlice, service } from "../../store";
+import { NotificationBanner } from "../../components/NotificationBanner";
 import { HomeAppBar } from "./AppBar";
-import { IconName } from "../../Icon";
-import { IconButton } from "../../Button";
-import { useMessaging } from "../../../context";
+import { IconName } from "../../components/Icon";
+import { IconButton } from "../../components/Button";
+import { useMessaging } from "../../context";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router";
 

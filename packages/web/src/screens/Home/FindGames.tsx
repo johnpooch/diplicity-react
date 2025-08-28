@@ -1,13 +1,13 @@
 import React from "react";
 import { Stack } from "@mui/material";
 import { HomeLayout } from "./Layout";
-import { service } from "../../../store";
-import { NotificationBanner } from "../../NotificationBanner";
-import { GameCard } from "../../GameCard";
-import { GameCardSkeleton } from "../../GameCardSkeleton";
+import { service } from "../../store";
+import { NotificationBanner } from "../../components/NotificationBanner";
+import { GameCard } from "../../components/GameCard";
+import { GameCardSkeleton } from "../../components/GameCardSkeleton";
 import { HomeAppBar } from "./AppBar";
-import { Notice } from "../../Notice";
-import { IconName } from "../../Icon";
+import { Notice } from "../../components/Notice";
+import { IconName } from "../../components/Icon";
 import { useNavigate } from "react-router";
 
 const FindGames: React.FC = () => {

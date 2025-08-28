@@ -9,15 +9,15 @@ import {
     Divider,
 } from "@mui/material";
 import { Send as SendIcon } from "@mui/icons-material";
-import { service } from "../../../store";
+import { service } from "../../store";
 import { GameDetailAppBar } from "./AppBar";
 import { GameDetailLayout } from "./Layout";
 import { useNavigate, useParams } from "react-router";
-import { Icon, IconName } from "../../Icon";
-import { createUseStyles } from "../../utils/styles";
-import { Panel } from "../../Panel";
-import { GameMap } from "../../GameMap";
-import { ChannelMessage } from "../../ChannelMessage";
+import { Icon, IconName } from "../../components/Icon";
+import { createUseStyles } from "../../components/utils/styles";
+import { Panel } from "../../components/Panel";
+import { GameMap } from "../../components/GameMap";
+import { ChannelMessage } from "../../components/ChannelMessage";
 
 const useStyles = createUseStyles(() => ({
     root: {
