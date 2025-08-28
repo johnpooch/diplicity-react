@@ -166,11 +166,11 @@ const OrdersScreen: React.FC = props => {
                 <Panel>
                     <Panel.Content>
                         {Object.entries(orderables).map(([nation, orderables]) => (
-                            <Stack>
+                            <Stack key={nation}>
                                 <ListSubheader key={nation}>{nation}</ListSubheader>
                                 <Divider />
                                 <List disablePadding>
-                                    {orderables.map(orderable => (
+                                    {orderables.map((orderable, index) => (
                                         <ListItem
                                             divider
                                             secondaryAction={
@@ -181,6 +181,7 @@ const OrdersScreen: React.FC = props => {
                                                     }
                                                 />
                                             }
+                                            key={`${orderable.provinceId}-${index}`}
                                         >
                                             <ListItemText
                                                 primary={
