@@ -3,6 +3,7 @@ import { IconName } from "./Icon";
 import { createUseStyles } from "../utils/styles";
 import { ListItemButton } from "./Button";
 import { useMatch } from "react-router";
+import React from "react";
 
 interface SideNavigationProps {
   options: {
@@ -37,7 +38,6 @@ const useItemStyles = createUseStyles<{
 }));
 
 const SideNavigationItem: React.FC<{
-  key: string;
   option: {
     label: string;
     icon: IconName;
@@ -52,7 +52,7 @@ const SideNavigationItem: React.FC<{
   const styles = useItemStyles({ selected, variant: props.variant });
 
   return (
-    <ListItem key={props.key} disablePadding>
+    <ListItem disablePadding>
       {props.variant === "expanded" ? (
         <ListItemButton
           sx={styles.root}
@@ -82,11 +82,12 @@ const SideNavigation: React.FC<SideNavigationProps> = props => {
     <Drawer variant="permanent" sx={styles.root}>
       <List>
         {props.options.map(option => (
-          <SideNavigationItem
-            key={option.path}
-            option={option}
-            variant={props.variant}
-          />
+          <React.Fragment key={option.path}>
+            <SideNavigationItem
+              option={option}
+              variant={props.variant}
+            />
+          </React.Fragment>
         ))}
       </List>
     </Drawer>
