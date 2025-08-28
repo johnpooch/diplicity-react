@@ -2,7 +2,6 @@ import React from "react";
 import { Navigate, Outlet, Route, Routes } from "react-router";
 import { useSelector } from "react-redux";
 import { Login } from "./screens";
-import { ParseMap } from "./screens/parse-map";
 import { MyGames as NewMyGames } from "./components/screens/MyGames";
 import { FindGames as NewFindGames } from "./components/screens/FindGames";
 import { CreateGame as NewCreateGame } from "./components/screens/CreateGame";
@@ -77,7 +76,6 @@ const Router: React.FC = () => {
           </>
         )
       }
-      <Route path="/parse-map" element={<ParseMap />} />
       {/* <Route element={<HomeLayout />}>
         <Route index element={<MyGames />} />
         <Route
