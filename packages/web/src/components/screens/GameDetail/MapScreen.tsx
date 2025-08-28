@@ -1,10 +1,10 @@
 import React from "react";
 import { service } from "../../../store";
-import { GameDetailLayout } from "../../layouts/GameDetailLayout";
+import { GameDetailLayout } from "./Layout";
 import { useNavigate, useParams } from "react-router";
-import { Map } from "../../map";
-import { GameDetailAppBar } from "../../composites/GameDetailAppBar";
-import { PhaseSelect } from "../../composites/PhaseSelect";
+import { GameMap } from "../../GameMap";
+import { GameDetailAppBar } from "./AppBar";
+import { PhaseSelect } from "../../PhaseSelect";
 
 const MapScreen: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -21,7 +21,7 @@ const MapScreen: React.FC = () => {
     <GameDetailLayout
       appBar={<GameDetailAppBar title={<PhaseSelect />} onNavigateBack={() => navigate("/")} />}
       content={
-        <Map />
+        <GameMap />
       }
     />
   );

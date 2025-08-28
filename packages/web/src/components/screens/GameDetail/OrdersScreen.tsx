@@ -10,19 +10,19 @@ import {
     Typography,
 } from "@mui/material";
 import { NationOrder, orderSlice, Phase, Province, service } from "../../../store";
-import { GameDetailAppBar } from "../../composites/GameDetailAppBar";
-import { GameDetailLayout } from "../../layouts/GameDetailLayout";
+import { GameDetailAppBar } from "./AppBar";
+import { GameDetailLayout } from "./Layout";
 import { useNavigate, useParams } from "react-router";
-import { Icon, IconName } from "../../elements/Icon";
-import { IconButton } from "../../elements/Button";
-import { PhaseSelect } from "../../composites/PhaseSelect";
+import { Icon, IconName } from "../../Icon";
+import { IconButton } from "../../Button";
+import { PhaseSelect } from "../../PhaseSelect";
 import { useSelectedPhaseContext } from "../../../context";
 import { createUseStyles } from "../../utils/styles";
-import { OrderSummary } from "../../order-summary";
-import { CreateOrder } from "../../create-order";
+import { OrderSummary } from "../../OrderSummary";
+import { CreateOrder } from "../../CreateOrder";
 import { useDispatch } from "react-redux";
-import { Panel } from "../../panel";
-import { Map } from "../../map";
+import { Panel } from "../../Panel";
+import { GameMap } from "../../GameMap";
 
 /**
  * Represents a unit or province that can be ordered in the given phase.
@@ -160,7 +160,7 @@ const OrdersScreen: React.FC = props => {
         <GameDetailLayout
             appBar={<GameDetailAppBar title={<PhaseSelect />} onNavigateBack={() => navigate("/")} />}
             rightPanel={
-                <Map />
+                <GameMap />
             }
             content={
                 <Panel>
