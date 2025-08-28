@@ -17,7 +17,7 @@ import { Icon, IconName } from "../../elements/Icon";
 import { createUseStyles } from "../../utils/styles";
 import { Panel } from "../../panel";
 import { Map } from "../../map";
-import { ChannelMessage } from "../../channel-message";
+import { ChannelMessage } from "../../ChannelMessage";
 
 const useStyles = createUseStyles(() => ({
     root: {
