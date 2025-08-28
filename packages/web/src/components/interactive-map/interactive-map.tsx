@@ -198,9 +198,9 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
       {map.provinces.map(
         province =>
           province.text &&
-          province.text.map(text => (
+          province.text.map((text, index) => (
             <text
-              key={province.id}
+              key={`${province.id}-${index}`}
               x={text.point.x}
               y={text.point.y}
               style={text.styles}
@@ -213,7 +213,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
       )}
       {map.borders.map((element, index) => (
         <path
-          key={index}
+          key={`${element.id}-${index}`}
           d={element.d}
           fill="none"
           stroke="black"
@@ -222,14 +222,14 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
       ))}
       {map.impassableProvinces.map((element, index) => (
         <path
-          key={index}
+          key={`${element.id}-${index}`}
           d={element.d}
           fill="url(#impassableStripes)"
           stroke="black"
           strokeWidth={1}
         />
       ))}
-      {props.phase.units.map(unit => {
+      {props.phase.units.map((unit, index) => {
         const province = map.provinces.find(p => p.id === unit.province.id);
         if (!province) return null;
         const { x, y } = province.center;
@@ -239,7 +239,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
         if (!color) throw new Error("Color not found");
 
         return (
-          <g>
+          <g key={`${unit.province.id}-${index}`}>
             <circle
               cx={x - 10}
               cy={y - 10}
@@ -269,6 +269,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
             if (!source) return null;
             return (
               <Octagon
+                key={o.source}
                 x={source.center.x - UNIT_OFFSET_X}
                 y={source.center.y - UNIT_OFFSET_Y}
                 strokeWidth={ORDER_LINE_WIDTH}
@@ -309,6 +310,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
             if (!aux) return null;
             return (
               <CurvedArrow
+                key={o.source}
                 x1={source.center.x - UNIT_OFFSET_X}
                 y1={source.center.y - UNIT_OFFSET_Y}
                 x2={target.center.x - UNIT_OFFSET_X}
@@ -340,6 +342,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
             if (!target) return null;
             return (
               <Arrow
+                key={o.source}
                 x1={source.center.x - UNIT_OFFSET_X}
                 y1={source.center.y - UNIT_OFFSET_Y}
                 x2={target.center.x - UNIT_OFFSET_X}
@@ -355,9 +358,9 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
             );
           });
       })}
-      {map.provinces.map((province, index) => {
+      {map.provinces.map(province => {
         return (
-          <g key={index}>
+          <g key={province.id}>
             <path
               id={province.id}
               d={province.path.d}

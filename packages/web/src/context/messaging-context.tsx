@@ -99,8 +99,6 @@ const MessagingContextProvider: React.FC<MessagingContextProviderProps> = (
     }
   };
 
-  console.log("Devices list query data:", devicesListQuery.data);
-
   // Notifications are considered "enabled" if the token is set and the devices
   // is in the list and active
   const enabled = Boolean(
