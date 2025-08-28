@@ -116,28 +116,6 @@ const formatOrderText = (order: {
     return `${order.source} ${order.orderType} to ${order.target}`;
 }
 
-/**
- * Transforms a resolution string into a human-readable label
- * and extracts `by` if it exists.
- */
-const transformResolution = (resolution: string): { outcome: string, by?: string } => {
-    const resolutionMap: Record<string, string> = {
-        OK: "Succeeded",
-        ErrBounce: "Bounced",
-        ErrSupportBroken: "Support broken",
-        ErrInvalidSupporteeOrder: "Invalid order",
-    }
-
-    const regex = /([^:]+)(?::(.+))?/;
-
-    const match = resolution.match(regex);
-    if (!match) throw new Error(`Unexpected resolution: ${resolution}`);
-    return {
-        outcome: resolutionMap[match[1]],
-        by: match[2],
-    };
-};
-
 type Order = ReturnType<typeof orderSlice.selectors.selectOrder>;
 
 const getStepLabel = (step: string, order: Order) => {
@@ -299,4 +277,4 @@ const getOrderSummary = (order: Order, variant: Variant, phase: Phase) => {
 
 }
 
-export { formatOrderText, transformResolution, getStepLabel, getOrderSummary, getOptions, getProvince, getCurrentPhase };
+export { formatOrderText, getStepLabel, getOrderSummary, getOptions, getProvince, getCurrentPhase };

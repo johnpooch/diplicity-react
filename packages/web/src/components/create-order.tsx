@@ -1,7 +1,6 @@
 import { Stack, Typography, Button, IconButton } from "@mui/material";
 import { QueryContainer } from "./query-container";
 import { Close as CloseIcon } from "@mui/icons-material";
-import { useSelectedGameContext } from "../context";
 import { useDispatch, useSelector } from "react-redux";
 import { orderSlice, service } from "../store";
 import React from "react";

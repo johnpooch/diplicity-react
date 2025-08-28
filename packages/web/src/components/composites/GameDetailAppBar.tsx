@@ -2,7 +2,6 @@ import { useNavigate } from "react-router";
 import { AppBar } from "../elements/AppBar";
 import { IconButton } from "../elements/Button";
 import { IconName } from "../elements/Icon";
-import { createUseStyles } from "../utils/styles";
 import { useResponsiveness } from "../utils/responsive";
 import { Divider } from "@mui/material";
 
@@ -12,14 +11,6 @@ interface GameDetailAppBarProps {
   leftButton?: React.ReactNode;
   variant?: "primary" | "secondary";
 }
-
-const useStyles = createUseStyles<GameDetailAppBarProps>(() => ({
-  root: {
-    width: "100%",
-    paddingLeft: 2,
-    paddingRight: 2,
-  },
-}));
 
 const GameDetailAppBar: React.FC<GameDetailAppBarProps> = props => {
   const navigate = useNavigate();

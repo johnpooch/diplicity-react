@@ -1,10 +1,8 @@
-import { Stack, Grid2 as Grid, Button } from "@mui/material";
+import { Stack } from "@mui/material";
 import { createUseStyles } from "../utils/styles";
 import { useResponsiveness } from "../utils/responsive";
 import { GameDetailSideNavigation } from "../composites/GameDetailSideNavigation";
 import { GameDetailBottomNavigation } from "../composites/GameDetailBottomNavigation";
-import { Panel } from "../panel";
-// import { GameDetailBottomNavigation } from "../composites/GameDetailBottomNavigation";
 
 interface GameDetailLayoutProps {
   appBar?: React.ReactNode;
@@ -14,33 +12,39 @@ interface GameDetailLayoutProps {
   content: React.ReactNode;
 }
 
-const useStyles = createUseStyles<GameDetailLayoutProps>(() => ({
+const useStyles = createUseStyles<GameDetailLayoutProps>((_props, theme) => ({
   root: {
-    alignItems: "center",
-    height: "100vh",
+    flexDirection: "row",
+    height: "100vh"
   },
   container: {
-    display: "flex",
-    justifyContent: "center",
-    flexGrow: 1,
-    width: "100%",
-    maxHeight: "100%",
+
   },
   appBarContainer: {
-    borderBottom: theme => `1px solid ${theme.palette.divider}`,
+
   },
   leftPanel: {
-    borderRight: theme => `1px solid ${theme.palette.divider}`,
-    maxHeight: "100%",
+
   },
   centerPanel: {
-    maxHeight: "100%",
-    borderRight: theme => `1px solid ${theme.palette.divider}`,
+    flexGrow: 1,
+    width: 300,
+    borderRight: `1px solid ${theme.palette.divider}`,
+    borderLeft: `1px solid ${theme.palette.divider}`,
+    height: "100vh",
+    overflow: "hidden"
+  },
+  centerPanelMobile: {
+    flexGrow: 1,
+    width: "100%",
+    borderRight: `1px solid ${theme.palette.divider}`,
+    borderLeft: `1px solid ${theme.palette.divider}`,
+    height: "calc(100vh - 56px)",
+    overflow: "hidden"
   },
   rightPanel: {
-    borderLeft: theme => `1px solid ${theme.palette.divider}`,
-    maxHeight: "100%",
-  },
+    flexGrow: 1
+  }
 }));
 
 const GameDetailLayout: React.FC<GameDetailLayoutProps> = props => {
@@ -48,34 +52,25 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = props => {
   const responsiveness = useResponsiveness();
 
   return (
-    <>
-      <Stack sx={{ flexDirection: "row", height: "100vh" }}>
-        {responsiveness.device !== "mobile" && (
-          <Stack sx={{}}>
-            {props.leftPanel ? props.leftPanel : <GameDetailSideNavigation />}
-          </Stack>
-        )}
-        <Stack sx={{
-          flexGrow: responsiveness.device === "mobile" ? 1 : undefined,
-          width: responsiveness.device === "mobile" ? "100%" : 300,
-          borderRight: theme => `1px solid ${theme.palette.divider}`,
-          borderLeft: theme => `1px solid ${theme.palette.divider}`,
-          height: responsiveness.device === "mobile" ? "calc(100vh - 56px)" : "100vh",
-          overflow: "hidden",
-        }}>
-          {props.appBar}
-          {props.content}
-          {responsiveness.device === "mobile" && (
-            props.bottomNavigation ? props.bottomNavigation : <GameDetailBottomNavigation />
-          )}
+    <Stack sx={styles.root}>
+      {responsiveness.device !== "mobile" && (
+        <Stack sx={styles.leftPanel}>
+          {props.leftPanel ? props.leftPanel : <GameDetailSideNavigation />}
         </Stack>
-        {responsiveness.device !== "mobile" && (
-          <Stack sx={{ flexGrow: 1 }}>
-            {props.rightPanel}
-          </Stack>
+      )}
+      <Stack sx={responsiveness.device === "mobile" ? styles.centerPanelMobile : styles.centerPanel}>
+        {props.appBar}
+        {props.content}
+        {responsiveness.device === "mobile" && (
+          props.bottomNavigation ? props.bottomNavigation : <GameDetailBottomNavigation />
         )}
       </Stack>
-    </>
+      {responsiveness.device !== "mobile" && (
+        <Stack sx={styles.rightPanel}>
+          {props.rightPanel}
+        </Stack>
+      )}
+    </Stack>
   )
 };
 

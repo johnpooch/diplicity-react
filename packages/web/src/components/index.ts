@@ -11,7 +11,6 @@ export * from "./game-menu";
 export * from "./game-name";
 export * from "./map";
 export * from "./notification-banner";
-export * from "./order-list";
 export * from "./order-summary";
 export * from "./panel";
 export * from "./phase-select";
