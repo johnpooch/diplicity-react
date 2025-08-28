@@ -355,9 +355,9 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
             );
           });
       })}
-      {map.provinces.map(province => {
+      {map.provinces.map((province, index) => {
         return (
-          <g key={province.id}>
+          <g key={index}>
             <path
               id={province.id}
               d={province.path.d}
