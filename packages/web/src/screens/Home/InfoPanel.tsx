@@ -1,5 +1,5 @@
 import { Link, Stack, Typography } from "@mui/material";
-import { createUseStyles } from "../../utils/styles";
+import { createUseStyles } from "../../components/utils/styles";
 
 const useStyles = createUseStyles(() => ({
     infoContainer: {

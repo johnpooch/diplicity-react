@@ -1,7 +1,7 @@
 import React from "react";
 import { Typography, Box, Stack, Avatar } from "@mui/material";
 import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
-import { service } from "../../store";
+import { service } from "../store";
 
 const styles: Styles = {
   background: {

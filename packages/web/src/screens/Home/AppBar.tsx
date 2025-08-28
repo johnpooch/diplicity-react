@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router";
-import { IconName } from "../../Icon";
-import { AppBar } from "../../AppBar";
-import { IconButton } from "../../Button";
+import { IconName } from "../../components/Icon";
+import { AppBar } from "../../components/AppBar";
+import { IconButton } from "../../components/Button";
 
 interface HomeAppBarProps {
   title: string;

@@ -10,14 +10,14 @@ import {
   Skeleton,
 } from "@mui/material";
 import { HomeLayout } from "./Layout";
-import { service } from "../../../store";
+import { service } from "../../store";
 import { HomeAppBar } from "./AppBar";
-import { IconName } from "../../Icon";
+import { IconName } from "../../components/Icon";
 import { useNavigate } from "react-router";
 import { useFormik } from "formik";
-import { randomGameName } from "../../../util";
-import { Table } from "../../Table";
-import { InteractiveMap } from "../../InteractiveMap/InteractiveMap";
+import { randomGameName } from "../../util";
+import { Table } from "../../components/Table";
+import { InteractiveMap } from "../../components/InteractiveMap/InteractiveMap";
 
 const initialValues = {
   name: randomGameName(),

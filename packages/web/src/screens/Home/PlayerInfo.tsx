@@ -10,10 +10,10 @@ import {
   Stack,
 } from "@mui/material";
 import { HomeLayout } from "./Layout";
-import { service } from "../../../store";
+import { service } from "../../store";
 import { HomeAppBar } from "./AppBar";
 import { useNavigate, useParams } from "react-router";
-import { GameMenu } from "../../GameMenu";
+import { GameMenu } from "../../components/GameMenu";
 
 const PlayerInfo: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();

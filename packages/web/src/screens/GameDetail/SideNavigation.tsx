@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from "react-router";
-import { IconName } from "../../Icon";
-import { SideNavigation } from "../../SideNavigation";
+import { IconName } from "../../components/Icon";
+import { SideNavigation } from "../../components/SideNavigation";
 
 const GameDetailSideNavigation: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();

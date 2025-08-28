@@ -1,7 +1,7 @@
 import React from "react";
 import { Stack } from "@mui/material";
 import { service } from "../store";
-import { GameDetailLayout } from "./screens/GameDetail/Layout";
+import { GameDetailLayout } from "../screens/GameDetail/Layout";
 import { useParams } from "react-router";
 import { GameMap } from "./GameMap";
 

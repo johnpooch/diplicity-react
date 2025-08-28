@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { IconName } from "../../Icon";
+import { IconName } from "../../components/Icon";
 import { useEffect, useState } from "react";
 import {
   AppBar,
@@ -7,7 +7,7 @@ import {
   BottomNavigationAction,
   Stack,
 } from "@mui/material";
-import { Icon } from "../../Icon";
+import { Icon } from "../../components/Icon";
 
 const NavigationItems = [
   { label: "My Games", icon: IconName.MyGames, value: "/" },

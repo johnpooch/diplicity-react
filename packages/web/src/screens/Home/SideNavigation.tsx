@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router";
-import { IconName } from "../../Icon";
-import { useResponsiveness } from "../../utils/responsive";
-import { SideNavigation } from "../../SideNavigation";
+import { IconName } from "../../components/Icon";
+import { useResponsiveness } from "../../components/utils/responsive";
+import { SideNavigation } from "../../components/SideNavigation";
 
 const HomeSideNavigation: React.FC = () => {
   const navigate = useNavigate();

@@ -1,10 +1,10 @@
 import React from "react";
-import { service } from "../../../store";
+import { service } from "../../store";
 import { GameDetailLayout } from "./Layout";
 import { useNavigate, useParams } from "react-router";
-import { GameMap } from "../../GameMap";
+import { GameMap } from "../../components/GameMap";
 import { GameDetailAppBar } from "./AppBar";
-import { PhaseSelect } from "../../PhaseSelect";
+import { PhaseSelect } from "../../components/PhaseSelect";
 
 const MapScreen: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();

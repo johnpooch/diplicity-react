@@ -1,8 +1,8 @@
 import { useNavigate } from "react-router";
-import { AppBar } from "../../AppBar";
-import { IconButton } from "../../Button";
-import { IconName } from "../../Icon";
-import { useResponsiveness } from "../../utils/responsive";
+import { AppBar } from "../../components/AppBar";
+import { IconButton } from "../../components/Button";
+import { IconName } from "../../components/Icon";
+import { useResponsiveness } from "../../components/utils/responsive";
 import { Divider } from "@mui/material";
 
 interface GameDetailAppBarProps {

@@ -1,10 +1,10 @@
 import React from "react";
 import { Navigate, Outlet, Route, Routes } from "react-router";
 import { useSelector } from "react-redux";
-import { Login } from "./components/screens/Login";
+import { Login } from "./screens/Login";
 import { selectAuth } from "./store";
 import { SelectedGameContextProvider, SelectedPhaseContextProvider } from "./context";
-import { GameDetail, Home } from "./components/screens";
+import { GameDetail, Home } from "./screens";
 import { useResponsiveness } from "./components/utils/responsive";
 
 const Router: React.FC = () => {
