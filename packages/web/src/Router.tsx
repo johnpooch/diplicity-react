@@ -2,17 +2,9 @@ import React from "react";
 import { Navigate, Outlet, Route, Routes } from "react-router";
 import { useSelector } from "react-redux";
 import { Login } from "./components/screens/Login";
-import { MyGames as NewMyGames } from "./components/screens/MyGames";
-import { FindGames as NewFindGames } from "./components/screens/FindGames";
-import { CreateGame as NewCreateGame } from "./components/screens/CreateGame";
-import { Profile as NewProfile } from "./components/screens/Profile";
-import { GameInfo as NewGameInfo } from "./components/screens/GameInfo";
-import { PlayerInfo as NewPlayerInfo } from "./components/screens/PlayerInfo";
 import { selectAuth } from "./store";
 import { SelectedGameContextProvider, SelectedPhaseContextProvider } from "./context";
-import { GameDetail } from "./components/screens";
-import { ChannelCreateScreen } from "./components/screens/GameDetail/ChannelCreateScreen";
-import { ChannelScreen } from "./components/screens/GameDetail/ChannelScreen";
+import { GameDetail, Home } from "./components/screens";
 import { useResponsiveness } from "./components/utils/responsive";
 
 const Router: React.FC = () => {
@@ -21,12 +13,12 @@ const Router: React.FC = () => {
 
   return loggedIn ? (
     <Routes>
-      <Route index element={<NewMyGames />} />
-      <Route path="/find-games" element={<NewFindGames />} />
-      <Route path="/create-game" element={<NewCreateGame />} />
-      <Route path="/profile" element={<NewProfile />} />
-      <Route path="/game-info/:gameId" element={<NewGameInfo />} />
-      <Route path="/player-info/:gameId" element={<NewPlayerInfo />} />
+      <Route index element={<Home.MyGames />} />
+      <Route path="/find-games" element={<Home.FindGames />} />
+      <Route path="/create-game" element={<Home.CreateGame />} />
+      <Route path="/profile" element={<Home.Profile />} />
+      <Route path="/game-info/:gameId" element={<Home.GameInfo />} />
+      <Route path="/player-info/:gameId" element={<Home.PlayerInfo />} />
       <Route path="/game/:gameId" element={
         <SelectedGameContextProvider>
           <SelectedPhaseContextProvider>
@@ -48,11 +40,11 @@ const Router: React.FC = () => {
         />
         <Route
           path="chat/channel/create"
-          element={<ChannelCreateScreen />}
+          element={<GameDetail.ChannelCreateScreen />}
         />
         <Route
           path="chat/channel/:channelId"
-          element={<ChannelScreen />}
+          element={<GameDetail.ChannelScreen />}
         />
       </Route>
     </Routes >

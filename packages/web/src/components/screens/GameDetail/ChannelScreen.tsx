@@ -10,13 +10,13 @@ import {
 } from "@mui/material";
 import { Send as SendIcon } from "@mui/icons-material";
 import { service } from "../../../store";
-import { GameDetailAppBar } from "../../composites/GameDetailAppBar";
-import { GameDetailLayout } from "../../layouts/GameDetailLayout";
+import { GameDetailAppBar } from "./AppBar";
+import { GameDetailLayout } from "./Layout";
 import { useNavigate, useParams } from "react-router";
-import { Icon, IconName } from "../../elements/Icon";
+import { Icon, IconName } from "../../Icon";
 import { createUseStyles } from "../../utils/styles";
-import { Panel } from "../../panel";
-import { Map } from "../../map";
+import { Panel } from "../../Panel";
+import { GameMap } from "../../GameMap";
 import { ChannelMessage } from "../../ChannelMessage";
 
 const useStyles = createUseStyles(() => ({
@@ -99,7 +99,7 @@ const ChannelScreen: React.FC = props => {
     return (
         <GameDetailLayout
             appBar={<GameDetailAppBar title={channel.name} onNavigateBack={() => navigate(`/game/${gameId}/chat`)} variant="secondary" />}
-            rightPanel={<Map />}
+            rightPanel={<GameMap />}
             content={
                 <Panel>
                     <Panel.Content>

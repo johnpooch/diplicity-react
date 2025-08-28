@@ -12,13 +12,13 @@ import {
     Stack,
 } from "@mui/material";
 import { service } from "../../../store";
-import { GameDetailAppBar } from "../../composites/GameDetailAppBar";
-import { GameDetailLayout } from "../../layouts/GameDetailLayout";
+import { GameDetailAppBar } from "./AppBar";
+import { GameDetailLayout } from "./Layout";
 import { useNavigate, useParams } from "react-router";
-import { Icon, IconName } from "../../elements/Icon";
+import { Icon, IconName } from "../../Icon";
 import { createUseStyles } from "../../utils/styles";
-import { Panel } from "../../panel";
-import { Map } from "../../map";
+import { Panel } from "../../Panel";
+import { GameMap } from "../../GameMap";
 
 
 const useStyles = createUseStyles(() => ({
@@ -80,7 +80,7 @@ const ChannelCreateScreen: React.FC = props => {
                 variant="secondary"
                 onNavigateBack={handleBack}
             />}
-            rightPanel={<Map />}
+            rightPanel={<GameMap />}
             content={
                 <Panel>
                     <Panel.Content>
