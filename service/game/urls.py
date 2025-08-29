@@ -51,7 +51,7 @@ urlpatterns = [
     ),
     path(
         "game/<str:game_id>/phase/<int:phase_id>/options/",
-        views.ListOptionsView.as_view(),
+        views.OptionsListView.as_view(),
         name="options-list",
     ),
     path("version/", views.VersionRetrieveView.as_view(), name="version-retrieve"),

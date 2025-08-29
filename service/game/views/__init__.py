@@ -13,7 +13,7 @@ from .channel_view import (
 )
 from .variant_view import VariantListView
 from .order_view import OrderCreateView, OrderListView
-from .options_view import ListOptionsView
+from .options_view import OptionsListView
 from .auth_view import AuthLoginView
 from .user_profile_view import UserProfileRetrieveView
 from .version_view import VersionRetrieveView
@@ -31,7 +31,7 @@ __all__ = [
     "VariantListView",
     "OrderCreateView",
     "OrderListView",
-    "ListOptionsView",
+    "OptionsListView",
     "AuthLoginView",
     "UserProfileRetrieveView",
     "VersionRetrieveView",

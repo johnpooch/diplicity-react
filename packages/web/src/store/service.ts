@@ -129,6 +129,16 @@ const injectedRtkApi = api.injectEndpoints({
         body: queryArg.orderCreateRequest,
       }),
     }),
+    gamePhaseOptionsCreate: build.mutation<
+      GamePhaseOptionsCreateApiResponse,
+      GamePhaseOptionsCreateApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/game/${queryArg.gameId}/phase/${queryArg.phaseId}/options/`,
+        method: "POST",
+        body: queryArg.listOptionsRequest,
+      }),
+    }),
     gamePhaseOrdersList: build.query<
       GamePhaseOrdersListApiResponse,
       GamePhaseOrdersListApiArg
@@ -286,11 +296,11 @@ export type DevicesUpdateApiResponse = /** status 200  */ FcmDeviceRead;
 export type DevicesUpdateApiArg = {
   fcmDevice: FcmDevice;
 };
-export type GameCreateApiResponse = /** status 201  */ Game;
+export type GameCreateApiResponse = /** status 201  */ GameRead;
 export type GameCreateApiArg = {
   gameCreateRequest: GameCreateRequest;
 };
-export type GameRetrieveApiResponse = /** status 200  */ Game;
+export type GameRetrieveApiResponse = /** status 200  */ GameRead;
 export type GameRetrieveApiArg = {
   gameId: string;
 };
@@ -309,11 +319,11 @@ export type GameChannelsListApiResponse = /** status 200  */ Channel[];
 export type GameChannelsListApiArg = {
   gameId: string;
 };
-export type GameConfirmCreateApiResponse = /** status 200  */ Game;
+export type GameConfirmCreateApiResponse = /** status 200  */ GameRead;
 export type GameConfirmCreateApiArg = {
   gameId: string;
 };
-export type GameJoinCreateApiResponse = /** status 200  */ Game;
+export type GameJoinCreateApiResponse = /** status 200  */ GameRead;
 export type GameJoinCreateApiArg = {
   gameId: string;
 };
@@ -326,19 +336,25 @@ export type GameOrderCreateApiArg = {
   gameId: string;
   orderCreateRequest: OrderCreateRequest;
 };
+export type GamePhaseOptionsCreateApiResponse = /** status 200  */ Option[];
+export type GamePhaseOptionsCreateApiArg = {
+  gameId: string;
+  phaseId: number;
+  listOptionsRequest: ListOptionsRequest;
+};
 export type GamePhaseOrdersListApiResponse = /** status 200  */ NationOrder[];
 export type GamePhaseOrdersListApiArg = {
   gameId: string;
   phaseId: number;
 };
-export type GamesListApiResponse = /** status 200  */ Game[];
+export type GamesListApiResponse = /** status 200  */ GameRead[];
 export type GamesListApiArg = {
   canJoin?: boolean;
   mine?: boolean;
 };
 export type UserRetrieveApiResponse = /** status 200  */ UserProfile;
 export type UserRetrieveApiArg = void;
-export type VariantsListApiResponse = /** status 200  */ Variant[];
+export type VariantsListApiResponse = /** status 200  */ VariantRead[];
 export type VariantsListApiArg = void;
 export type VersionRetrieveApiResponse = /** status 200  */ Version;
 export type VersionRetrieveApiArg = void;
@@ -406,6 +422,20 @@ export type Phase = {
   year: string;
   name: string;
   type: string;
+  units: Unit[];
+  supplyCenters: SupplyCenter[];
+  options: {
+    [key: string]: any;
+  };
+  status: StatusEnum;
+};
+export type PhaseRead = {
+  id: number;
+  ordinal: number;
+  season: string;
+  year: string;
+  name: string;
+  type: string;
   remainingTime: string;
   units: Unit[];
   supplyCenters: SupplyCenter[];
@@ -447,6 +477,16 @@ export type Variant = {
   provinces: Province[];
   initialPhase: Phase;
 };
+export type VariantRead = {
+  id: string;
+  name: string;
+  description: string;
+  author?: string;
+  nations: Nation[];
+  start: Start;
+  provinces: Province[];
+  initialPhase: PhaseRead;
+};
 export type Game = {
   id: string;
   name: string;
@@ -458,6 +498,20 @@ export type Game = {
   phases: Phase[];
   members: Member[];
   variant: Variant;
+  phaseConfirmed: boolean;
+  canConfirmPhase: boolean;
+};
+export type GameRead = {
+  id: string;
+  name: string;
+  status: string;
+  movementPhaseDuration: string;
+  nationAssignment: string;
+  canJoin: boolean;
+  canLeave: boolean;
+  phases: PhaseRead[];
+  members: Member[];
+  variant: VariantRead;
   phaseConfirmed: boolean;
   canConfirmPhase: boolean;
 };
@@ -509,6 +563,19 @@ export type OrderCreateRequest = {
   target?: string | null;
   aux?: string | null;
 };
+export type Option = {
+  province: Province;
+  unit?: Unit | null;
+};
+export type PartialOrder = {
+  source?: string | null;
+  target?: string | null;
+  aux?: string | null;
+  orderType?: string | null;
+};
+export type ListOptionsRequest = {
+  order: PartialOrder;
+};
 export type NationOrder = {
   nation: string;
   orders: Order[];
@@ -540,6 +607,7 @@ export const {
   useGameJoinCreateMutation,
   useGameLeaveDestroyMutation,
   useGameOrderCreateMutation,
+  useGamePhaseOptionsCreateMutation,
   useGamePhaseOrdersListQuery,
   useGamesListQuery,
   useUserRetrieveQuery,
