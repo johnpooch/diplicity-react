@@ -444,6 +444,39 @@ paths:
               schema:
                 $ref: '#/components/schemas/Order'
           description: ''
+  /game/{gameId}/phase/{phaseId}/options/:
+    post:
+      operationId: gamePhaseOptionsCreate
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: phaseId
+        schema:
+          type: integer
+        required: true
+      tags:
+      - game
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListOptionsRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Option'
+          description: ''
   /game/{gameId}/phase/{phaseId}/orders/:
     get:
       operationId: gamePhaseOrdersList
@@ -698,6 +731,13 @@ components:
       required:
       - name
       - variant
+    ListOptionsRequest:
+      type: object
+      properties:
+        order:
+          $ref: '#/components/schemas/PartialOrder'
+      required:
+      - order
     Member:
       type: object
       properties:
@@ -767,6 +807,17 @@ components:
       required:
       - nation
       - orders
+    Option:
+      type: object
+      properties:
+        province:
+          $ref: '#/components/schemas/Province'
+        unit:
+          allOf:
+          - $ref: '#/components/schemas/Unit'
+          nullable: true
+      required:
+      - province
     Order:
       type: object
       properties:
@@ -820,6 +871,21 @@ components:
       required:
       - by
       - status
+    PartialOrder:
+      type: object
+      properties:
+        source:
+          type: string
+          nullable: true
+        target:
+          type: string
+          nullable: true
+        aux:
+          type: string
+          nullable: true
+        orderType:
+          type: string
+          nullable: true
     Phase:
       type: object
       properties:
@@ -1022,9 +1088,12 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Province'
+        initialPhase:
+          $ref: '#/components/schemas/Phase'
       required:
       - description
       - id
+      - initialPhase
       - name
       - nations
       - provinces

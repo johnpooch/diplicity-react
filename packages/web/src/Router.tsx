@@ -35,6 +35,10 @@ const Router: React.FC = () => {
           element={<GameDetail.OrdersScreen />}
         />
         <Route
+          path="create-order"
+          element={<GameDetail.CreateOrderScreen />}
+        />
+        <Route
           path="chat"
           element={<GameDetail.ChannelListScreen />}
         />
