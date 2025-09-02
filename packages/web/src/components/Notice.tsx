@@ -10,7 +10,7 @@ interface NoticeProps {
     sx?: SxProps<Theme>;
 }
 
-const useNoticeStyles = createUseStyles<NoticeProps>(
+const useStyles = createUseStyles<NoticeProps>(
     (props, theme) => ({
         container: {
             display: "flex",
@@ -45,7 +45,7 @@ const useNoticeStyles = createUseStyles<NoticeProps>(
 );
 
 const Notice: React.FC<NoticeProps> = (props) => {
-    const styles = useNoticeStyles(props);
+    const styles = useStyles(props);
 
     return (
         <Box sx={styles.container}>

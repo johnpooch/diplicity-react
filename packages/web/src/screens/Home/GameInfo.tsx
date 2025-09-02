@@ -125,6 +125,7 @@ const GameInfo: React.FC = () => {
                     variant={query.data.variant}
                     phase={getCurrentPhase(query.data.phases)}
                     orders={[]}
+                    selected={[]}
                   />
                 ) : (
                   <MapSkeleton />

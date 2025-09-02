@@ -97,9 +97,8 @@ const CreateGame: React.FC = () => {
                 variant={selectedVariant}
                 phase={selectedVariant.initialPhase}
                 interactive={false}
+                selected={[]}
                 orders={undefined}
-                orderInProgress={undefined}
-                onClickProvince={undefined}
               />
             ) : null}
             <Table

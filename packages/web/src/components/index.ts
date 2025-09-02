@@ -1,5 +1,4 @@
 export * from "./ChannelMessage";
-export * from "./CreateOrder";
 export * from "./Feedback";
 export * from "./GameCard";
 export * from "./GameMenu";

@@ -1,11 +1,10 @@
-import { useSelectedPhaseContext } from "../context";
+import { useSelectedGameContext, useSelectedPhaseContext } from "../context";
 import { service } from "../store";
 import { InteractiveMap } from "./InteractiveMap/InteractiveMap";
-import { useSelector } from "react-redux";
-import { orderSlice } from "../store/order";
-import { useParams } from "react-router";
-import { Stack } from "@mui/material";
+import { MenuItem, Stack } from "@mui/material";
 import { createUseStyles } from "./utils/styles";
+import { FloatingMenu } from "./FloatingMenu";
+import { useState, useRef, useEffect } from "react";
 
 const useStyles = createUseStyles(() => ({
   mapContainer: {
@@ -17,16 +16,19 @@ const useStyles = createUseStyles(() => ({
 }));
 
 const GameMap: React.FC = () => {
-  const { gameId } = useParams<{ gameId: string }>();
-  if (!gameId) throw new Error("Game ID is required");
+  const { gameId, gameRetrieveQuery } = useSelectedGameContext();
 
   const styles = useStyles({});
   const { selectedPhase } = useSelectedPhaseContext();
 
-  const order = useSelector(orderSlice.selectors.selectOrder);
+  const [menuPosition, setMenuPosition] = useState<{ x: number, y: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const gameRetrieveQuery = service.endpoints.gameRetrieve.useQuery({
-    gameId,
+  const [createInteractive, createInteractiveQuery] =
+    service.endpoints.gameOrdersCreateInteractiveCreate.useMutation({ fixedCacheKey: "create-interactive" });
+
+  const orderableProvincesQuery = service.endpoints.gameOrderableProvincesList.useQuery({
+    gameId: gameId,
   });
 
   const ordersListQuery = service.endpoints.gamePhaseOrdersList.useQuery({
@@ -34,17 +36,96 @@ const GameMap: React.FC = () => {
     phaseId: selectedPhase,
   });
 
+  useEffect(() => {
+    if (createInteractiveQuery.data?.completed) {
+      createInteractiveQuery.reset();
+    }
+  }, [createInteractiveQuery.data]);
+
+  const handleProvinceClick = (province: string, event: React.MouseEvent<SVGSVGElement>) => {
+    // Always calculate and store the click position first, regardless of order state
+    let x = 0, y = 0;
+    if (containerRef.current) {
+      const containerRect = containerRef.current.getBoundingClientRect();
+      x = event.clientX - containerRect.left;
+      y = event.clientY - containerRect.top;
+
+      console.log('Province clicked:', province, 'at coordinates:', { x, y });
+      console.log('Container rect:', containerRect);
+    }
+
+    const orderableProvince = orderableProvincesQuery.data?.find(p => p.province.id === province);
+    const options = createInteractiveQuery.data?.options;
+
+    // If the createInteractive query has data, only allow options to be selected. If not, allow orderable provinces to be selected.
+    if (createInteractiveQuery.data) {
+      if (options?.some(o => o.value === province)) {
+        createInteractive({
+          gameId,
+          interactiveOrderCreateRequest: {
+            selected: [...createInteractiveQuery.data?.selected, province],
+          },
+        });
+      }
+    } else {
+      if (orderableProvince) {
+
+        // Only update position if coordinates are reasonable (not 0,0 from a bad calculation)
+        if (x > 0 && y > 0) {
+          setMenuPosition({ x, y });
+        }
+        createInteractive({
+          gameId,
+          interactiveOrderCreateRequest: {
+            selected: [province],
+          },
+        });
+      }
+    }
+  };
+
+  const handleSelectOrderOption = (option: string) => {
+    if (createInteractiveQuery.data) {
+      createInteractive({
+        gameId,
+        interactiveOrderCreateRequest: {
+          selected: [...createInteractiveQuery.data.selected, option],
+        },
+      });
+    }
+  };
+
   return (
-    <Stack sx={styles.mapContainer}>
+    <Stack ref={containerRef} sx={styles.mapContainer}>
       {
         gameRetrieveQuery.data && ordersListQuery.data && (
-          <InteractiveMap
-            interactive
-            variant={gameRetrieveQuery.data.variant}
-            phase={gameRetrieveQuery.data.phases.find(p => p.id === selectedPhase)!}
-            orders={ordersListQuery.data}
-            orderInProgress={order}
-          />
+          <>
+            <InteractiveMap
+              interactive
+              variant={gameRetrieveQuery.data.variant}
+              phase={gameRetrieveQuery.data.phases.find(p => p.id === selectedPhase)!}
+              orders={ordersListQuery.data}
+              selected={createInteractiveQuery.data?.selected ?? []}
+              highlighted={createInteractiveQuery.data?.options?.map(o => o.value) ?? []}
+              onClickProvince={handleProvinceClick}
+            />
+            <FloatingMenu
+              open={createInteractiveQuery.data?.step === "select-order-type" && menuPosition !== null}
+              onClose={() => {
+                createInteractiveQuery.reset();
+                setMenuPosition(null);
+              }}
+              x={menuPosition?.x ?? 0}
+              y={menuPosition?.y ?? 0}
+              container={containerRef.current}
+            >
+              {createInteractiveQuery.data?.options.map(o => (
+                <MenuItem key={o.value} onClick={() => handleSelectOrderOption(o.value)}>
+                  {o.label}
+                </MenuItem>
+              ))}
+            </FloatingMenu>
+          </>
         )
       }
     </Stack >

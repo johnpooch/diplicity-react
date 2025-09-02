@@ -2,9 +2,9 @@ import React from "react";
 import { service } from "../../store";
 import { GameDetailAppBar } from "./AppBar";
 import { GameDetailLayout } from "./Layout";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate } from "react-router";
 import { PhaseSelect } from "../../components/PhaseSelect";
-import { useSelectedPhaseContext } from "../../context";
+import { useSelectedGameContext, useSelectedPhaseContext } from "../../context";
 import { GameMap } from "../../components/GameMap";
 import { ActivePhaseOrders } from "./ActivePhaseOrders";
 import { InactivePhaseOrders } from "./InactivePhaseOrders";
@@ -12,15 +12,10 @@ import { InactivePhaseOrders } from "./InactivePhaseOrders";
 
 
 const OrdersScreen: React.FC = () => {
-    const { gameId } = useParams<{ gameId: string }>();
-    if (!gameId) throw new Error("Game ID is required");
+    const { gameId, gameRetrieveQuery } = useSelectedGameContext();
 
     const navigate = useNavigate();
     const { selectedPhase } = useSelectedPhaseContext();
-
-    const gameRetrieveQuery = service.endpoints.gameRetrieve.useQuery({
-        gameId,
-    });
 
     const ordersListQuery = service.endpoints.gamePhaseOrdersList.useQuery({
         gameId,

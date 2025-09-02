@@ -11,9 +11,8 @@ import {
   ArrowLeft as PreviousIcon,
   ArrowRight as NextIcon,
 } from "@mui/icons-material";
-import { useSelectedPhaseContext } from "../context";
+import { useSelectedGameContext, useSelectedPhaseContext } from "../context";
 import { service } from "../store";
-import { useParams } from "react-router";
 import { createUseStyles } from "./utils/styles";
 import { useResponsiveness } from "./utils/responsive";
 
@@ -38,14 +37,8 @@ const PhaseSelect: React.FC = () => {
   const responsiveness = useResponsiveness();
   const isMobile = responsiveness.device === "mobile";
 
-  const { gameId } = useParams<{ gameId: string }>();
-  if (!gameId) throw new Error("Game ID is required");
-
+  const { gameRetrieveQuery } = useSelectedGameContext();
   const { selectedPhase, setSelectedPhase } = useSelectedPhaseContext();
-
-  const gameRetrieveQuery = service.endpoints.gameRetrieve.useQuery({
-    gameId,
-  });
 
   if (gameRetrieveQuery.isLoading) {
     return null;

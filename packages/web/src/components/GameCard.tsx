@@ -15,14 +15,49 @@ import { service } from "../store";
 import { GameMenu } from "./GameMenu";
 import { InteractiveMap } from "./InteractiveMap/InteractiveMap";
 import { getCurrentPhase } from "../util";
+import { createUseStyles } from "./utils/styles";
 
 const MAX_AVATARS = 10;
 
-const GameCard: React.FC<
-  (typeof service.endpoints.gamesList.Types.ResultType)[number]
-> = game => {
-  const navigate = useNavigate();
+type GameCardProps = (typeof service.endpoints.gamesList.Types.ResultType)[number];
 
+const useStyles = createUseStyles<GameCardProps>(() => ({
+  listItem: (theme) => ({
+    gap: 1,
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    alignItems: "center",
+  }),
+  mapContainer: {
+    display: "flex",
+    width: 80,
+  },
+  secondaryContainer: {
+    gap: 1,
+  },
+  rulesContainer: {
+    gap: 1,
+    flexDirection: "row",
+  },
+  avatarStackButton: {
+    justifyContent: "flex-start",
+    width: "fit-content",
+    padding: "8px 0px 8px 0px",
+  },
+  avatarStackContainer: {
+    alignItems: "center",
+  },
+  avatar: {
+    width: 24,
+    height: 24,
+  },
+  extraMembersText: {
+    marginLeft: "4px",
+  },
+}));
+
+const GameCard: React.FC<GameCardProps> = (game) => {
+  const navigate = useNavigate();
+  const styles = useStyles(game);
   const currentPhase = getCurrentPhase(game.phases);
   console.log(currentPhase);
 
@@ -59,6 +94,7 @@ const GameCard: React.FC<
             variant={game.variant}
             phase={currentPhase}
             orders={[]}
+            selected={[]}
           />
         </ListItemAvatar>
       </Link>
@@ -90,38 +126,5 @@ const GameCard: React.FC<
   );
 };
 
-const styles: Styles = {
-  listItem: theme => ({
-    gap: 1,
-    borderBottom: `1px solid ${theme.palette.divider}`,
-    alignItems: "center",
-  }),
-  mapContainer: {
-    display: "flex",
-    width: 80,
-  },
-  secondaryContainer: {
-    gap: 1,
-  },
-  rulesContainer: {
-    gap: 1,
-    flexDirection: "row",
-  },
-  avatarStackButton: {
-    justifyContent: "flex-start",
-    width: "fit-content",
-    padding: "8px 0px 8px 0px",
-  },
-  avatarStackContainer: {
-    alignItems: "center",
-  },
-  avatar: {
-    width: 24,
-    height: 24,
-  },
-  extraMembersText: {
-    marginLeft: "4px",
-  },
-};
 
 export { GameCard };

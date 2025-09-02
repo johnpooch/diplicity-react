@@ -418,9 +418,35 @@ paths:
       responses:
         '204':
           description: No response body
-  /game/{gameId}/order/:
+  /game/{gameId}/orderable-provinces/:
+    get:
+      operationId: gameOrderableProvincesList
+      description: |-
+        Lists the provinces that the user can order for the current phase,
+        along with any existing orders for those provinces.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrderableProvinceListResponse'
+          description: ''
+  /game/{gameId}/orders/create-interactive/:
     post:
-      operationId: gameOrderCreate
+      operationId: gameOrdersCreateInteractiveCreate
+      description: Interactive order creation endpoint for progressive order building.
       parameters:
       - in: path
         name: gameId
@@ -433,16 +459,16 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OrderCreateRequest'
+              $ref: '#/components/schemas/InteractiveOrderCreateRequest'
         required: true
       security:
       - jwtAuth: []
       responses:
-        '201':
+        '200':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Order'
+                $ref: '#/components/schemas/InteractiveOrderCreateResponse'
           description: ''
   /game/{gameId}/phase/{phaseId}/options/:
     post:
@@ -502,7 +528,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/NationOrder'
+                  $ref: '#/components/schemas/OrderListResponse'
           description: ''
   /games/:
     get:
@@ -731,6 +757,45 @@ components:
       required:
       - name
       - variant
+    InteractiveOrderCreateRequest:
+      type: object
+      description: Request serializer for interactive order creation
+      properties:
+        selected:
+          type: array
+          items:
+            type: string
+          description: Array of selected options representing the current order path
+      required:
+      - selected
+    InteractiveOrderCreateResponse:
+      type: object
+      description: Response serializer for interactive order creation
+      properties:
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderOption'
+        step:
+          type: string
+        title:
+          type: string
+        completed:
+          type: boolean
+        selected:
+          type: array
+          items:
+            type: string
+        createdOrder:
+          allOf:
+          - $ref: '#/components/schemas/Order'
+          nullable: true
+      required:
+      - completed
+      - options
+      - selected
+      - step
+      - title
     ListOptionsRequest:
       type: object
       properties:
@@ -795,18 +860,6 @@ components:
       description: |-
         * `random` - Random
         * `ordered` - Ordered
-    NationOrder:
-      type: object
-      properties:
-        nation:
-          type: string
-        orders:
-          type: array
-          items:
-            $ref: '#/components/schemas/Order'
-      required:
-      - nation
-      - orders
     Option:
       type: object
       properties:
@@ -826,12 +879,14 @@ components:
         orderType:
           type: string
         source:
-          type: string
+          $ref: '#/components/schemas/OrderProvince'
         target:
-          type: string
+          allOf:
+          - $ref: '#/components/schemas/OrderProvince'
           nullable: true
         aux:
-          type: string
+          allOf:
+          - $ref: '#/components/schemas/OrderProvince'
           nullable: true
         resolution:
           allOf:
@@ -844,22 +899,45 @@ components:
       - resolution
       - source
       - target
-    OrderCreateRequest:
+    OrderListResponse:
       type: object
       properties:
-        orderType:
+        nation:
           type: string
-        source:
-          type: string
-        target:
-          type: string
-          nullable: true
-        aux:
-          type: string
-          nullable: true
+        orders:
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
       required:
-      - orderType
-      - source
+      - nation
+      - orders
+    OrderOption:
+      type: object
+      description: Serializer for individual order options in interactive creation
+      properties:
+        value:
+          type: string
+        label:
+          type: string
+      required:
+      - label
+      - value
+    OrderProvince:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        supplyCenter:
+          type: boolean
+      required:
+      - id
+      - name
+      - supplyCenter
+      - type
     OrderResolution:
       type: object
       properties:
@@ -871,6 +949,18 @@ components:
       required:
       - by
       - status
+    OrderableProvinceListResponse:
+      type: object
+      properties:
+        province:
+          $ref: '#/components/schemas/OrderProvince'
+        order:
+          allOf:
+          - $ref: '#/components/schemas/Order'
+          nullable: true
+      required:
+      - order
+      - province
     PartialOrder:
       type: object
       properties:
