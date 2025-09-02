@@ -18,6 +18,7 @@ import { createUseStyles } from "../../components/utils/styles";
 import { Panel } from "../../components/Panel";
 import { GameMap } from "../../components/GameMap";
 import { ChannelMessage } from "../../components/ChannelMessage";
+import { useSelectedGameContext } from "../../context";
 
 const useStyles = createUseStyles(() => ({
     root: {
@@ -46,8 +47,8 @@ const useStyles = createUseStyles(() => ({
 }));
 
 const ChannelScreen: React.FC = props => {
-    const { gameId, channelId } = useParams<{ gameId: string; channelId: string }>();
-    if (!gameId) throw new Error("Game ID is required");
+    const { gameId } = useSelectedGameContext();
+    const { channelId } = useParams<{ channelId: string }>();
     if (!channelId) throw new Error("Channel ID is required");
 
     const styles = useStyles(props);

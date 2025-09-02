@@ -1,4 +1,25 @@
 import { Chip, Stack, Typography } from "@mui/material";
+import { createUseStyles } from "./utils/styles";
+
+type OrderSummaryProps = {
+  source: string;
+  unitType?: string;
+  destination?: string | null;
+  aux?: string | null;
+  type?: string;
+};
+
+const useStyles = createUseStyles<{}>(() => ({
+  chip: (theme) => ({
+    backgroundColor: theme.palette.secondary.main,
+    color: theme.palette.secondary.contrastText,
+    fontWeight: 800,
+    borderRadius: theme.shape.borderRadius,
+    "& .MuiChip-label": {
+      padding: theme.spacing(0.5, 1),
+    },
+  }),
+}));
 
 /**
  * Renders an order as text, with a chip indicating the type of order.
@@ -106,9 +127,12 @@ const OrderSummary: React.FC<OrderSummaryProps> = (props) => {
   return <>{getOrderSummary()}</>;
 };
 
-const OrderSummaryChip: React.FC<{ label: string }> = ({ label }) => (
-  <Chip sx={styles.chip} size="small" label={label} />
-);
+const OrderSummaryChip: React.FC<{ label: string }> = ({ label }) => {
+  const styles = useStyles({});
+  return (
+    <Chip sx={styles.chip} size="small" label={label} />
+  )
+}
 
 const OrderSummaryText: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -122,24 +146,5 @@ const OrderSummaryContainer: React.FC<{ children: React.ReactNode }> = ({
   </Stack>
 );
 
-type OrderSummaryProps = {
-  source: string;
-  unitType?: string;
-  destination?: string | null;
-  aux?: string | null;
-  type?: string;
-};
-
-const styles: Styles = {
-  chip: (theme) => ({
-    backgroundColor: theme.palette.secondary.main,
-    color: theme.palette.secondary.contrastText,
-    fontWeight: 800,
-    borderRadius: theme.shape.borderRadius,
-    "& .MuiChip-label": {
-      padding: theme.spacing(0.5, 1),
-    },
-  }),
-};
 
 export { OrderSummary };

@@ -40,11 +40,6 @@ urlpatterns = [
     path("user/", views.UserProfileRetrieveView.as_view(), name="user-profile"),
     path("variants/", views.VariantListView.as_view(), name="variant-list"),
     path(
-        "game/<str:game_id>/order/",
-        views.OrderCreateView.as_view(),
-        name="order-create",
-    ),
-    path(
         "game/<str:game_id>/phase/<int:phase_id>/orders/",
         views.OrderListView.as_view(),
         name="order-list",
@@ -53,6 +48,16 @@ urlpatterns = [
         "game/<str:game_id>/phase/<int:phase_id>/options/",
         views.OptionsListView.as_view(),
         name="options-list",
+    ),
+    path(
+        "game/<str:game_id>/orderable-provinces/",
+        views.OrderableProvincesListView.as_view(),
+        name="orderable-provinces-list",
+    ),
+    path(
+        "game/<str:game_id>/orders/create-interactive/",
+        views.InteractiveOrderCreateView.as_view(),
+        name="interactive-order-create",
     ),
     path("version/", views.VersionRetrieveView.as_view(), name="version-retrieve"),
 ]

@@ -119,14 +119,22 @@ const injectedRtkApi = api.injectEndpoints({
         method: "DELETE",
       }),
     }),
-    gameOrderCreate: build.mutation<
-      GameOrderCreateApiResponse,
-      GameOrderCreateApiArg
+    gameOrderableProvincesList: build.query<
+      GameOrderableProvincesListApiResponse,
+      GameOrderableProvincesListApiArg
     >({
       query: (queryArg) => ({
-        url: `/game/${queryArg.gameId}/order/`,
+        url: `/game/${queryArg.gameId}/orderable-provinces/`,
+      }),
+    }),
+    gameOrdersCreateInteractiveCreate: build.mutation<
+      GameOrdersCreateInteractiveCreateApiResponse,
+      GameOrdersCreateInteractiveCreateApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/game/${queryArg.gameId}/orders/create-interactive/`,
         method: "POST",
-        body: queryArg.orderCreateRequest,
+        body: queryArg.interactiveOrderCreateRequest,
       }),
     }),
     gamePhaseOptionsCreate: build.mutation<
@@ -331,10 +339,16 @@ export type GameLeaveDestroyApiResponse = unknown;
 export type GameLeaveDestroyApiArg = {
   gameId: string;
 };
-export type GameOrderCreateApiResponse = /** status 201  */ Order;
-export type GameOrderCreateApiArg = {
+export type GameOrderableProvincesListApiResponse =
+  /** status 200  */ OrderableProvinceListResponse[];
+export type GameOrderableProvincesListApiArg = {
   gameId: string;
-  orderCreateRequest: OrderCreateRequest;
+};
+export type GameOrdersCreateInteractiveCreateApiResponse =
+  /** status 200  */ InteractiveOrderCreateResponse;
+export type GameOrdersCreateInteractiveCreateApiArg = {
+  gameId: string;
+  interactiveOrderCreateRequest: InteractiveOrderCreateRequest;
 };
 export type GamePhaseOptionsCreateApiResponse = /** status 200  */ Option[];
 export type GamePhaseOptionsCreateApiArg = {
@@ -342,7 +356,8 @@ export type GamePhaseOptionsCreateApiArg = {
   phaseId: number;
   listOptionsRequest: ListOptionsRequest;
 };
-export type GamePhaseOrdersListApiResponse = /** status 200  */ NationOrder[];
+export type GamePhaseOrdersListApiResponse =
+  /** status 200  */ OrderListResponse[];
 export type GamePhaseOrdersListApiArg = {
   gameId: string;
   phaseId: number;
@@ -545,6 +560,12 @@ export type ChannelCreateRequest = {
 export type ChannelMessageCreateRequest = {
   body: string;
 };
+export type OrderProvince = {
+  id: string;
+  name: string;
+  type: string;
+  supplyCenter: boolean;
+};
 export type OrderResolution = {
   status: string;
   by: string | null;
@@ -552,16 +573,30 @@ export type OrderResolution = {
 export type Order = {
   id: number;
   orderType: string;
-  source: string;
-  target: string | null;
-  aux: string | null;
+  source: OrderProvince;
+  target: OrderProvince | null;
+  aux: OrderProvince | null;
   resolution: OrderResolution | null;
 };
-export type OrderCreateRequest = {
-  orderType: string;
-  source: string;
-  target?: string | null;
-  aux?: string | null;
+export type OrderableProvinceListResponse = {
+  province: OrderProvince;
+  order: Order | null;
+};
+export type OrderOption = {
+  value: string;
+  label: string;
+};
+export type InteractiveOrderCreateResponse = {
+  options: OrderOption[];
+  step: string;
+  title: string;
+  completed: boolean;
+  selected: string[];
+  createdOrder?: Order | null;
+};
+export type InteractiveOrderCreateRequest = {
+  /** Array of selected options representing the current order path */
+  selected: string[];
 };
 export type Option = {
   province: Province;
@@ -576,7 +611,7 @@ export type PartialOrder = {
 export type ListOptionsRequest = {
   order: PartialOrder;
 };
-export type NationOrder = {
+export type OrderListResponse = {
   nation: string;
   orders: Order[];
 };
@@ -606,7 +641,8 @@ export const {
   useGameConfirmCreateMutation,
   useGameJoinCreateMutation,
   useGameLeaveDestroyMutation,
-  useGameOrderCreateMutation,
+  useGameOrderableProvincesListQuery,
+  useGameOrdersCreateInteractiveCreateMutation,
   useGamePhaseOptionsCreateMutation,
   useGamePhaseOrdersListQuery,
   useGamesListQuery,

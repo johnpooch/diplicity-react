@@ -3,7 +3,7 @@ import { Arrow } from "./shapes/arrow";
 import { Cross } from "./shapes/cross";
 import { CurvedArrow } from "./shapes/curved-arrow";
 import { Octagon } from "./shapes/octagon";
-import { NationOrder, Phase, Variant } from "../../store";
+import { OrderListResponse, Phase, Variant } from "../../store";
 
 import classical from "../../maps/classical.json";
 
@@ -19,27 +19,24 @@ type InteractiveMapProps = {
   interactive?: boolean;
   variant: Variant;
   phase: Phase;
-  orderInProgress?: {
-    source?: string;
-    type?: string;
-    target?: string;
-    aux?: string;
-  };
-  orders: NationOrder[] | undefined;
-  onClickProvince?: (province: string) => void;
+  selected: string[];
+  highlighted?: string[];
+  orders: OrderListResponse[] | undefined;
+  onClickProvince?: (province: string, event: React.MouseEvent<SVGSVGElement>) => void;
 };
+
 
 const HOVER_STROKE_WIDTH = 5;
 const HOVER_STROKE_COLOR = "white";
 const HOVER_FILL = "rgba(255, 255, 255, 0.6)";
 
-const SOURCE_STROKE_WIDTH = 5;
-const SOURCE_STROKE_COLOR = "white";
-const SOURCE_FILL = "rgba(255, 255, 255, 0.8)";
+const SELECTED_STROKE_WIDTH = 5;
+const SELECTED_STROKE_COLOR = "white";
+const SELECTED_FILL = "rgba(255, 255, 255, 0.8)";
 
-const TARGET_STROKE_WIDTH = 5;
-const TARGET_STROKE_COLOR = "white";
-const TARGET_FILL = "rgba(255, 255, 255, 0.8)";
+const HIGHLIGHTED_STROKE_WIDTH = 5;
+const HIGHLIGHTED_STROKE_COLOR = "#FFFFFF";
+const HIGHLIGHTED_FILL = "rgba(255, 255, 255, 0.8)";
 
 const DEFAULT_FILL = "transparent";
 
@@ -66,44 +63,54 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
   const map = getMap(props.variant);
 
   const getFill = (provinceId: string) => {
-    const isSource = props.orderInProgress?.source === provinceId;
-    const isTarget = props.orderInProgress?.target === provinceId;
+    const isSelected = props.selected.includes(provinceId);
+    const isHighlighted = props.highlighted?.includes(provinceId);
     const isHovered = hoveredProvince === provinceId;
     const supplyCenter = props.phase.supplyCenters.find(
       sc => sc.province.id === provinceId
     );
+
+    // For supply centers with nation colors
     if (supplyCenter) {
       const color = props.variant.nations.find(
         n => n.name === supplyCenter.nation.name
       )?.color;
       if (!color) throw new Error("Color not found");
+
       return color.replace(
         /rgb(a?)\((\d+), (\d+), (\d+)(, [\d.]+)?\)/,
-        // "rgba($2, $3, $4, 0.4)"
-        `rgba($2, $3, $4, ${isSource ? 0.3 : isHovered ? 0.4 : 0.5})`
+        `rgba($2, $3, $4, ${isSelected ? 0.3 : isHighlighted ? 0.3 : isHovered ? 0.4 : 0.5})`
       );
     }
-    if (isSource) return SOURCE_FILL;
-    if (isTarget) return TARGET_FILL;
-    if (hoveredProvince === provinceId) return HOVER_FILL;
+
+    // For non-supply center provinces
+    if (isSelected) return SELECTED_FILL;
+    // if (isHighlighted) return HIGHLIGHTED_FILL;
+    if (isHovered) return HOVER_FILL;
     return DEFAULT_FILL;
   };
 
   const getStroke = (provinceId: string) => {
-    const isSource = props.orderInProgress?.source === provinceId;
-    const isTarget = props.orderInProgress?.target === provinceId;
-    if (isSource) return SOURCE_STROKE_COLOR;
-    if (isTarget) return TARGET_STROKE_COLOR;
-    if (hoveredProvince === provinceId) return HOVER_STROKE_COLOR;
+    const isSelected = props.selected.includes(provinceId);
+    const isHighlighted = props.highlighted?.includes(provinceId);
+    const isHovered = hoveredProvince === provinceId;
+
+    if (isSelected) return SELECTED_STROKE_COLOR;
+    if (isHovered && isHighlighted) return HOVER_STROKE_COLOR; // White stroke when hovering highlighted
+    if (isHighlighted) return HIGHLIGHTED_STROKE_COLOR;
+    if (isHovered) return HOVER_STROKE_COLOR;
     return "none";
   };
 
   const getStrokeWidth = (provinceId: string) => {
-    const isSource = props.orderInProgress?.source === provinceId;
-    const isTarget = props.orderInProgress?.target === provinceId;
-    if (isSource) return SOURCE_STROKE_WIDTH;
-    if (isTarget) return TARGET_STROKE_WIDTH;
-    if (hoveredProvince === provinceId) return HOVER_STROKE_WIDTH;
+    const isSelected = props.selected.includes(provinceId);
+    const isHighlighted = props.highlighted?.includes(provinceId);
+    const isHovered = hoveredProvince === provinceId;
+
+    if (isSelected) return SELECTED_STROKE_WIDTH;
+    if (isHovered && isHighlighted) return HOVER_STROKE_WIDTH; // Thick white stroke when hovering highlighted
+    if (isHighlighted) return HIGHLIGHTED_STROKE_WIDTH;
+    if (isHovered) return HOVER_STROKE_WIDTH;
     return 1;
   };
 
@@ -142,6 +149,23 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
             x1="0"
           />
         </pattern>
+        <pattern
+          patternTransform="rotate(45)"
+          height="8"
+          width="8"
+          patternUnits="userSpaceOnUse"
+          id="highlightedStripes"
+        >
+          <line
+            strokeWidth="2"
+            strokeOpacity="0.6"
+            stroke="#FFFFFF"
+            y2="8"
+            x2="0"
+            y1="0"
+            x1="0"
+          />
+        </pattern>
       </defs>
       {map.backgroundElements.map((element, index) => (
         <g key={index}>
@@ -154,6 +178,10 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
         </g>
       ))}
       {map.provinces.map(province => {
+        const isHighlighted = props.highlighted?.includes(province.id);
+        const isHovered = hoveredProvince === province.id;
+        const isSelected = props.selected.includes(province.id);
+
         return (
           <g key={province.id}>
             <path
@@ -166,10 +194,27 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
                 props.interactive && setHoveredProvince(province.id)
               }
               onMouseLeave={() => props.interactive && setHoveredProvince(null)}
-              onClick={() =>
-                props.interactive && props.onClickProvince?.(province.id)
+              onClick={(event) =>
+                props.interactive && props.onClickProvince?.(province.id, event)
               }
-            />
+            >
+              {isHighlighted && !isSelected && !isHovered && (
+                <animate
+                  attributeName="stroke-width"
+                  values={`${HIGHLIGHTED_STROKE_WIDTH};${HIGHLIGHTED_STROKE_WIDTH + 2};${HIGHLIGHTED_STROKE_WIDTH}`}
+                  dur="2s"
+                  repeatCount="indefinite"
+                />
+              )}
+            </path>
+            {isHighlighted && (
+              <path
+                d={province.path.d}
+                fill="url(#highlightedStripes)"
+                stroke="none"
+                pointerEvents="none"
+              />
+            )}
             {province.supplyCenter && (
               <g>
                 <circle
@@ -265,11 +310,11 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
         return orders
           .filter(o => o.orderType === "Hold")
           .map(o => {
-            const source = map.provinces.find(p => p.id === o.source);
+            const source = map.provinces.find(p => p.id === o.source.id);
             if (!source) return null;
             return (
               <Octagon
-                key={o.source}
+                key={o.source.id}
                 x={source.center.x - UNIT_OFFSET_X}
                 y={source.center.y - UNIT_OFFSET_Y}
                 strokeWidth={ORDER_LINE_WIDTH}
@@ -302,15 +347,15 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
         return orders
           .filter(o => o.orderType === "Support")
           .map(o => {
-            const source = map.provinces.find(p => p.id === o.source);
-            const target = map.provinces.find(p => p.id === o.target);
-            const aux = map.provinces.find(p => p.id === o.aux);
+            const source = map.provinces.find(p => p.id === o.source.id);
+            const target = map.provinces.find(p => p.id === o.target?.id);
+            const aux = map.provinces.find(p => p.id === o.aux?.id);
             if (!source) return null;
             if (!target) return null;
             if (!aux) return null;
             return (
               <CurvedArrow
-                key={o.source}
+                key={o.source.id}
                 x1={source.center.x - UNIT_OFFSET_X}
                 y1={source.center.y - UNIT_OFFSET_Y}
                 x2={target.center.x - UNIT_OFFSET_X}
@@ -336,13 +381,13 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
         return orders
           .filter(o => o.orderType === "Move")
           .map(o => {
-            const source = map.provinces.find(p => p.id === o.source);
-            const target = map.provinces.find(p => p.id === o.target);
+            const source = map.provinces.find(p => p.id === o.source.id);
+            const target = map.provinces.find(p => p.id === o.target?.id);
             if (!source) return null;
             if (!target) return null;
             return (
               <Arrow
-                key={o.source}
+                key={o.source.id}
                 x1={source.center.x - UNIT_OFFSET_X}
                 y1={source.center.y - UNIT_OFFSET_Y}
                 x2={target.center.x - UNIT_OFFSET_X}
@@ -369,8 +414,8 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
                 props.interactive && setHoveredProvince(province.id)
               }
               onMouseLeave={() => props.interactive && setHoveredProvince(null)}
-              onClick={() =>
-                props.interactive && props.onClickProvince?.(province.id)
+              onClick={(event) =>
+                props.interactive && props.onClickProvince?.(province.id, event)
               }
             />
           </g>

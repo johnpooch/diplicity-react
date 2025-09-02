@@ -1,4 +1,5 @@
 import { Avatar, Stack, Typography } from "@mui/material";
+import { createUseStyles } from "./utils/styles";
 
 const EMPTY_AVATAR_WIDTH = 40;
 const TWENTY_PERCENT_OPACITY_HEX_SUFFIX = "33";
@@ -7,11 +8,42 @@ const USER_BORDER_RADIUS = `${BORDER_RADIUS} ${BORDER_RADIUS} ${BORDER_RADIUS} 0
 const NON_USER_BORDER_RADIUS = `${BORDER_RADIUS} ${BORDER_RADIUS} 0 ${BORDER_RADIUS}`;
 const FALLBACK_BORDER_COLOR = "#a9a9a9";
 
-/**
- * A chat message.
- */
+type ChannelMessageProps = {
+  name: string;
+  message: string;
+  date: string;
+  showAvatar: boolean;
+  avatar: string;
+  color: string;
+  isUser: boolean;
+};
+
+const useStyles = createUseStyles<ChannelMessageProps>((props) => ({
+  container: {
+    flexDirection: props.isUser ? "row" : "row-reverse",
+    gap: 2,
+  },
+  messageAndDate: {
+    minWidth: `50%`,
+    alignItems: props.isUser ? "flex-start" : "flex-end",
+  },
+  message: {
+    width: "100%",
+    background: `${props.color}${TWENTY_PERCENT_OPACITY_HEX_SUFFIX}`,
+    padding: 1,
+    gap: 1,
+    border: !colorIsVeryLight(props.color)
+      ? `1px solid ${props.color}`
+      : `1px solid ${FALLBACK_BORDER_COLOR}`,
+    borderRadius: props.isUser ? USER_BORDER_RADIUS : NON_USER_BORDER_RADIUS,
+  },
+  emptyAvatar: {
+    minWidth: EMPTY_AVATAR_WIDTH,
+  },
+}));
+
 const ChannelMessage: React.FC<ChannelMessageProps> = (props) => {
-  const styles = createStyles(props);
+  const styles = useStyles(props);
   return (
     <Stack sx={styles.container}>
       {props.showAvatar ? (
@@ -37,40 +69,6 @@ const colorIsVeryLight = (color: string): boolean => {
   const g = parseInt(hex.substr(2, 2), 16);
   const b = parseInt(hex.substr(4, 2), 16);
   return r + g + b > 500;
-};
-
-const createStyles = (props: ChannelMessageProps): Styles => ({
-  container: {
-    flexDirection: props.isUser ? "row" : "row-reverse",
-    gap: 2,
-  },
-  messageAndDate: {
-    minWidth: `50%`,
-    alignItems: props.isUser ? "flex-start" : "flex-end",
-  },
-  message: {
-    width: "100%",
-    background: `${props.color}${TWENTY_PERCENT_OPACITY_HEX_SUFFIX}`,
-    padding: 1,
-    gap: 1,
-    border: !colorIsVeryLight(props.color)
-      ? `1px solid ${props.color}`
-      : `1px solid ${FALLBACK_BORDER_COLOR}`,
-    borderRadius: props.isUser ? USER_BORDER_RADIUS : NON_USER_BORDER_RADIUS,
-  },
-  emptyAvatar: {
-    minWidth: EMPTY_AVATAR_WIDTH,
-  },
-});
-
-type ChannelMessageProps = {
-  name: string;
-  message: string;
-  date: string;
-  showAvatar: boolean;
-  avatar: string;
-  color: string;
-  isUser: boolean;
 };
 
 export { ChannelMessage };

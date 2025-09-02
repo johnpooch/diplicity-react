@@ -14,11 +14,12 @@ import {
 import { service } from "../../store";
 import { GameDetailAppBar } from "./AppBar";
 import { GameDetailLayout } from "./Layout";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate } from "react-router";
 import { Icon, IconName } from "../../components/Icon";
 import { createUseStyles } from "../../components/utils/styles";
 import { Panel } from "../../components/Panel";
 import { GameMap } from "../../components/GameMap";
+import { useSelectedGameContext } from "../../context";
 
 
 const useStyles = createUseStyles(() => ({
@@ -31,15 +32,13 @@ const useStyles = createUseStyles(() => ({
 }));
 
 const ChannelCreateScreen: React.FC = props => {
-    const { gameId } = useParams<{ gameId: string }>();
-    if (!gameId) throw new Error("Game ID is required");
+    const { gameId, gameRetrieveQuery } = useSelectedGameContext();
 
     const styles = useStyles(props);
     const navigate = useNavigate();
 
     const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
 
-    const gameRetrieveQuery = service.endpoints.gameRetrieve.useQuery({ gameId });
     const [createChannel, createChannelMutation] = service.endpoints.gameChannelCreate.useMutation();
 
     const handleToggle = (memberId: number) => {

@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "react-router";
+import { useNavigate } from "react-router";
 import { IconName } from "../../components/Icon";
 import { useEffect, useState } from "react";
 import {
@@ -7,13 +7,12 @@ import {
     BottomNavigationAction,
 } from "@mui/material";
 import { Icon } from "../../components/Icon";
+import { useSelectedGameContext } from "../../context";
 
 const GameDetailBottomNavigation: React.FC = () => {
     const navigate = useNavigate();
-    const { gameId } = useParams<{ gameId: string }>();
+    const { gameId } = useSelectedGameContext();
     const [navigation, setNavigation] = useState(location.pathname);
-
-    if (!gameId) throw new Error("Game ID is required");
 
     const NavigationItems = [
         { label: "Map", icon: IconName.Map, value: `/game/${gameId}` },

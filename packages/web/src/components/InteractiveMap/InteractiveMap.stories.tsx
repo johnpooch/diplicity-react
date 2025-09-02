@@ -47,12 +47,17 @@ export default {
           {
             id: 1,
             orderType: "Hold",
-            source: "lon"
+            source: {
+              id: "lon",
+              name: "London",
+              type: "land",
+              supplyCenter: true
+            }
           }
         ]
       }
     ],
-    orderInProgress: undefined,
+    selected: [],
     onClickProvince: () => { },
   },
 } as Meta;

@@ -14,11 +14,12 @@ import {
 import { service } from "../../store";
 import { GameDetailAppBar } from "./AppBar";
 import { GameDetailLayout } from "./Layout";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate } from "react-router";
 import { Icon, IconName } from "../../components/Icon";
 import { createUseStyles } from "../../components/utils/styles";
 import { Panel } from "../../components/Panel";
 import { GameMap } from "../../components/GameMap";
+import { useSelectedGameContext } from "../../context";
 
 const useStyles = createUseStyles(() => ({
     emptyContainer: {
@@ -32,8 +33,7 @@ const getLatestMessagePreview = (messages: any[]) => {
 };
 
 const ChannelListScreen: React.FC = props => {
-    const { gameId } = useParams<{ gameId: string }>();
-    if (!gameId) throw new Error("Game ID is required");
+    const { gameId } = useSelectedGameContext();
 
     const styles = useStyles(props);
 
