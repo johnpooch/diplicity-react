@@ -986,7 +986,7 @@ components:
         season:
           type: string
         year:
-          type: string
+          type: integer
         name:
           type: string
         type:

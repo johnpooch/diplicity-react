@@ -54,6 +54,8 @@ class AdjudicationService(BaseService):
 
         request_data = AdjudicationGameSerializer(game)
 
+        print(request_data.data)
+
         response = requests.post(
             f"{self.base_url}/resolve-with-options/{game.variant.name}",
             json=request_data.data,

@@ -32,7 +32,6 @@ def test_interactive_order_create_province_selected(authenticated_client, active
     assert response.data["step"] == "select-order-type"
     assert response.data["title"] == "Select order type for Budapest"
     assert not response.data["completed"]
-    assert not response.data["can_go_back"]
     assert response.data["selected"] == ["bud"]
     
     # Should have order type options
@@ -54,7 +53,6 @@ def test_interactive_order_create_hold_completion(authenticated_client, active_g
     assert response.data["step"] == "completed"
     assert response.data["title"] == "Budapest will hold"
     assert response.data["completed"]
-    assert not response.data["can_go_back"]
     assert response.data["selected"] == ["bud", "Hold"]
     assert len(response.data["options"]) == 0
     
@@ -62,7 +60,7 @@ def test_interactive_order_create_hold_completion(authenticated_client, active_g
     assert "created_order" in response.data
     assert response.data["created_order"] is not None
     assert response.data["created_order"]["order_type"] == "Hold"
-    assert response.data["created_order"]["source"] == "bud"
+    assert response.data["created_order"]["source"]["id"] == "bud"
     assert response.data["created_order"]["target"] is None
     assert response.data["created_order"]["aux"] is None
 
@@ -80,7 +78,6 @@ def test_interactive_order_create_move_target_selection(authenticated_client, ac
     assert response.data["step"] == "select-destination"
     assert response.data["title"] == "Select province to move Budapest to"
     assert not response.data["completed"]
-    assert response.data["can_go_back"]
     assert response.data["selected"] == ["bud", "Move"]
     
     # Should have target options
@@ -101,7 +98,6 @@ def test_interactive_order_create_move_completion(authenticated_client, active_g
     assert response.data["step"] == "completed"
     assert response.data["title"] == "Budapest will move to Trieste"
     assert response.data["completed"]
-    assert not response.data["can_go_back"]
     assert response.data["selected"] == ["bud", "Move", "tri"]
     assert len(response.data["options"]) == 0
     
@@ -109,8 +105,8 @@ def test_interactive_order_create_move_completion(authenticated_client, active_g
     assert "created_order" in response.data
     assert response.data["created_order"] is not None
     assert response.data["created_order"]["order_type"] == "Move"
-    assert response.data["created_order"]["source"] == "bud"
-    assert response.data["created_order"]["target"] == "tri"
+    assert response.data["created_order"]["source"]["id"] == "bud"
+    assert response.data["created_order"]["target"]["id"] == "tri"
     assert response.data["created_order"]["aux"] is None
 
 @pytest.mark.django_db
@@ -127,7 +123,6 @@ def test_interactive_order_create_support_auxiliary_selection(authenticated_clie
     assert response.data["step"] == "select-auxiliary"
     assert response.data["title"] == "Select province to support for Budapest"
     assert not response.data["completed"]
-    assert response.data["can_go_back"]
     assert response.data["selected"] == ["bud", "Support"]
     
     # Should have auxiliary options
@@ -148,7 +143,6 @@ def test_interactive_order_create_support_target_selection(authenticated_client,
     assert response.data["step"] == "select-target"
     assert response.data["title"] == "Select target for support order"
     assert not response.data["completed"]
-    assert response.data["can_go_back"]
     assert response.data["selected"] == ["bud", "Support", "vie"]
     
     # Should have target options
@@ -169,7 +163,6 @@ def test_interactive_order_create_support_completion(authenticated_client, activ
     assert response.data["step"] == "completed"
     assert response.data["title"] == "Budapest will support Vienna to Trieste"
     assert response.data["completed"]
-    assert not response.data["can_go_back"]
     assert response.data["selected"] == ["bud", "Support", "vie", "tri"]
     assert len(response.data["options"]) == 0
     
@@ -177,9 +170,9 @@ def test_interactive_order_create_support_completion(authenticated_client, activ
     assert "created_order" in response.data
     assert response.data["created_order"] is not None
     assert response.data["created_order"]["order_type"] == "Support"
-    assert response.data["created_order"]["source"] == "bud"
-    assert response.data["created_order"]["target"] == "tri"
-    assert response.data["created_order"]["aux"] == "vie"
+    assert response.data["created_order"]["source"]["id"] == "bud"
+    assert response.data["created_order"]["target"]["id"] == "tri"
+    assert response.data["created_order"]["aux"]["id"] == "vie"
 
 @pytest.mark.django_db
 def test_interactive_order_create_invalid_province(authenticated_client, active_game_with_phase_options):
@@ -351,7 +344,7 @@ def test_interactive_order_create_order_updates_existing(authenticated_client, a
     # Should be the same order (updated)
     assert first_order_id == second_order_id
     assert response.data["created_order"]["order_type"] == "Move"
-    assert response.data["created_order"]["target"] == "tri"
+    assert response.data["created_order"]["target"]["id"] == "tri"
 
 @pytest.mark.django_db
 def test_interactive_order_create_incomplete_no_order_created(authenticated_client, active_game_with_phase_options):

@@ -62,7 +62,10 @@ class AdjudicationGameSerializer(serializers.Serializer):
                 if order.aux:
                     parts.append(order.aux)
                 nation_orders[order.source] = parts
-            orders[phase_state.member.nation] = nation_orders
+            
+            # Only include nations that have orders
+            if nation_orders:
+                orders[phase_state.member.nation] = nation_orders
 
         return orders
 
