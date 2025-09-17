@@ -3,6 +3,7 @@ import json
 from django.db import models
 from .base import BaseModel
 from .game import Game
+from datetime import timedelta
 
 
 class Phase(BaseModel):
@@ -25,7 +26,7 @@ class Phase(BaseModel):
     season = models.CharField(max_length=10)
     year = models.IntegerField()
     type = models.CharField(max_length=10)
-    remaining_time = models.DurationField(null=True, blank=True)
+    scheduled_resolution = models.DateTimeField(null=True, blank=True)
     options = models.TextField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
@@ -51,3 +52,11 @@ class Phase(BaseModel):
             except json.JSONDecodeError:
                 return {}
         return {}
+
+    @property
+    def remaining_time(self):
+        from django.utils import timezone
+        if self.scheduled_resolution and self.status == self.ACTIVE:
+            delta = self.scheduled_resolution - timezone.now()
+            return max(delta, timedelta(seconds=0))
+        return None

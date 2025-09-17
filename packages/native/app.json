@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.diplicity.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -35,7 +36,12 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "@react-native-google-signin/google-signin"
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.635122585664-lindn9bbl8324it4hda2i0atqjtilkj9"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

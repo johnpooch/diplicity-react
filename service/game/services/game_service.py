@@ -11,7 +11,7 @@ from django.utils import timezone
 from datetime import timedelta
 from rest_framework import exceptions
 
-from .. import models, tasks
+from .. import models
 from .base_service import BaseService
 
 logger = logging.getLogger("game")
@@ -218,12 +218,13 @@ class GameService(BaseService):
             "ordinal": phase.ordinal,
             "season": phase.season,
             "year": phase.year,
-            "name": f"{phase.season} {phase.year}",
+            "name": f"{phase.season} {phase.year}, {phase.type}",
             "type": phase.type,
             "remaining_time": phase.remaining_time,
             "units": units_data,
             "supply_centers": supply_centers_data,
             "options": phase.options_dict,
+            "status": phase.status,
         }
 
     @transaction.atomic
@@ -382,7 +383,8 @@ class GameService(BaseService):
         }
 
         logger.info("GameService.start() adding task to notify users: %s", user_ids)
-        tasks.notify_task.apply_async(args=[user_ids, data], kwargs={})
+        from .notification_service import NotificationService
+        NotificationService(self.user).notify(user_ids, data)
 
         logger.info("GameService.start() returning game: %s", game)
         return game
@@ -391,6 +393,10 @@ class GameService(BaseService):
         logger.info("GameService.resolve() called with game_id: %s", game_id)
 
         game = get_object_or_404(models.Game, id=game_id)
+
+        if self.adjudication_service is None:
+            from .adjudication_service import AdjudicationService
+            self.adjudication_service = AdjudicationService(self.user)
 
         try:
             adjudication_response = self.adjudication_service.resolve(game)
@@ -446,7 +452,8 @@ class GameService(BaseService):
         }
 
         logger.info("GameService.resolve() adding task to notify users: %s", user_ids)
-        tasks.notify_task.apply_async(args=[user_ids, data], kwargs={})
+        from .notification_service import NotificationService
+        NotificationService(self.user).notify(user_ids, data)
 
         logger.info("GameService.resolve() returning game: %s", game)
         return game
@@ -459,7 +466,15 @@ class GameService(BaseService):
             year=phase_data["year"],
             type=phase_data["type"],
             options=json.dumps(options_data),
+            status=models.Phase.ACTIVE,
         )
+        
+        # Check if this phase has no valid moves for any nation
+        if self._has_no_valid_moves(options_data):
+            logger.info(f"Phase {phase.id} has no valid moves, scheduling immediate resolution")
+            from django.utils import timezone
+            phase.scheduled_resolution = timezone.now()
+            phase.save()
 
         for unit_data in phase_data["units"]:
             models.Unit.objects.create(
@@ -477,6 +492,29 @@ class GameService(BaseService):
             )
 
         return phase
+
+    def _has_no_valid_moves(self, options_data):
+        """
+        Check if the options data indicates no valid moves for any nation.
+        
+        Args:
+            options_data: The options dictionary from adjudication service
+            
+        Returns:
+            bool: True if no nation has any valid moves
+        """
+        if not options_data or not isinstance(options_data, dict):
+            return True
+            
+        # Check if any nation has valid moves
+        for nation, nation_options in options_data.items():
+            if nation_options and isinstance(nation_options, dict):
+                # If this nation has any provinces with orders, there are valid moves
+                if any(province_data for province_data in nation_options.values()):
+                    return False
+                    
+        # No nation has any valid moves
+        return True
 
     def _set_nations(self, game):
         nations = game.variant.nations
@@ -501,19 +539,17 @@ class GameService(BaseService):
             )
 
     def _create_resolution_task(self, game):
+        phase = game.current_phase
+        
+        # If scheduled_resolution is already set (e.g., for immediate resolution), don't override it
+        if phase.scheduled_resolution is not None:
+            logger.info(f"Phase {phase.id} already has scheduled resolution, skipping normal scheduling")
+            return
+            
         phase_duration_seconds = game.get_phase_duration_seconds()
         scheduled_for = timezone.now() + timedelta(seconds=phase_duration_seconds)
-        task_result = tasks.resolve_task.apply_async(
-            args=[game.id],
-            kwargs={},
-            countdown=phase_duration_seconds,
-        )
-        task = models.Task.objects.get(id=task_result.task_id)
-        task.scheduled_for = scheduled_for
-        task.save()
-
-        game.resolution_task = task
-        game.save()
+        phase.scheduled_resolution = scheduled_for
+        phase.save()
 
     def _should_resolve_phase(self, game):
         """
@@ -583,24 +619,21 @@ class GameService(BaseService):
                 detail="No phase state found for the user."
             )
 
+        print("CONFIRMING PHASE")
         phase_state.orders_confirmed = not phase_state.orders_confirmed
         phase_state.save()
+        print("PHASE STATE SAVED")
 
         logger.info("GameService.confirm_phase() phase confirmed: %s", phase_state)
 
         # Check if all active members have confirmed their orders
         if phase_state.orders_confirmed and self._should_resolve_phase(game):
+            print("RESOLVING PHASE")
             logger.info(
                 "GameService.confirm_phase() all orders confirmed, resolving phase: %s",
                 game,
             )
-            # Execute the resolution task immediately if it exists
-            if game.resolution_task:
-                tasks.resolve_task.apply_async(
-                    args=[game.id],
-                    kwargs={},
-                    task_id=game.resolution_task.id,
-                    countdown=0,  # Execute immediately
-                )
+            # Execute the resolution synchronously if it exists
+            self.resolve(game.id)
 
         return phase_state

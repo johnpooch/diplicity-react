@@ -4,7 +4,7 @@ from game import models
 import json
 
 @pytest.mark.django_db
-def test_resolve_successful_move(game_service, active_game_with_orders, mock_notify_task, mock_resolve_task):
+def test_resolve_successful_move(game_service, active_game_with_orders, mock_notify_task):
     """
     Test that resolving a successful move creates the correct resolution.
     """
@@ -18,7 +18,7 @@ def test_resolve_successful_move(game_service, active_game_with_orders, mock_not
     assert resolution.by is None
 
 @pytest.mark.django_db
-def test_resolve_bounce(game_service, active_game_with_orders, mock_notify_task, mock_resolve_task):
+def test_resolve_bounce(game_service, active_game_with_orders, mock_notify_task):
     """
     Test that resolving a bounce creates the correct resolution.
     """
@@ -53,7 +53,7 @@ def test_resolve_bounce(game_service, active_game_with_orders, mock_notify_task,
     assert resolution.by == "lvp"
 
 @pytest.mark.django_db
-def test_resolve_invalid_support_order(game_service, active_game_with_orders, mock_notify_task, mock_resolve_task):
+def test_resolve_invalid_support_order(game_service, active_game_with_orders, mock_notify_task):
     """
     Test that resolving an invalid support order creates the correct resolution.
     """
@@ -88,7 +88,7 @@ def test_resolve_invalid_support_order(game_service, active_game_with_orders, mo
     assert resolution.by is None
 
 @pytest.mark.django_db
-def test_resolve_multiple_orders(game_service, active_game_with_multiple_orders, mock_notify_task, mock_resolve_task):
+def test_resolve_multiple_orders(game_service, active_game_with_multiple_orders, mock_notify_task):
     """
     Test that resolving multiple orders creates the correct resolutions.
     """

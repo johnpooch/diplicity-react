@@ -38,16 +38,13 @@ def test_start_game_sends_notifications(game_service, pending_game_created_by_pr
     game = game_service.start(pending_game_created_by_primary_user.id)
     user_ids = [member.user.id for member in game.members.all()]
     mock_notify_task.assert_called_once_with(
-        args=[
-            user_ids,
-            {
-                "title": "Game Started",
-                "body": f"Game '{game.name}' has started!",
-                "game_id": game.id,
-                "type": "game_start",
-            },
-        ],
-        kwargs={},
+        user_ids,
+        {
+            "title": "Game Started",
+            "body": f"Game '{game.name}' has started!",
+            "game_id": game.id,
+            "type": "game_start",
+        },
     )
 
 @pytest.mark.django_db

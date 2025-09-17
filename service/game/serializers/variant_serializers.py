@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from .phase_serializers import PhaseSerializer
+
 
 class ProvinceSerializer(serializers.Serializer):
     id = serializers.CharField()
@@ -29,3 +31,5 @@ class VariantSerializer(serializers.Serializer):
     nations = NationSerializer(many=True)
     start = StartSerializer()
     provinces = ProvinceSerializer(many=True)
+    initial_phase = PhaseSerializer()
+

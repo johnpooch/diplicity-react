@@ -7,6 +7,7 @@ from .variant_service import VariantService
 from .auth_service import AuthService
 from .user_profile_service import UserProfileService
 from .version_service import VersionService
+from .option_service import OptionService
 
 __all__ = [
     "AdjudicationService",
@@ -18,4 +19,5 @@ __all__ = [
     "AuthService",
     "UserProfileService",
     "VersionService",
+    "OptionService",
 ]

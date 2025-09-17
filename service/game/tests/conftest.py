@@ -317,30 +317,18 @@ def mock_adjudication_service():
 @pytest.fixture
 def mock_notify_task():
     """
-    Create a mock for notify_task.apply_async.
+    Create a mock for NotificationService.notify.
     """
-    with patch("game.tasks.notify_task.apply_async") as mock:
-        yield mock
-
-
-@pytest.fixture
-def mock_start_task():
-    """
-    Create a mock for start_task.delay.
-    """
-    with patch("game.tasks.start_task.delay") as mock:
+    with patch("game.services.notification_service.NotificationService.notify") as mock:
         yield mock
 
 
 @pytest.fixture
 def mock_resolve_task():
     """
-    Create a mock for resolve_task.apply_async.
+    Create a mock for GameService.resolve.
     """
-    with patch("game.tasks.resolve_task.apply_async") as mock:
-        mock_task_result = MagicMock(task_id=12345)
-        mock.return_value = mock_task_result
-        models.Task.objects.create(id=mock_task_result.task_id)
+    with patch("game.services.game_service.GameService.resolve") as mock:
         yield mock
 
 
@@ -419,17 +407,6 @@ def active_game_with_kicked_member(db, active_game_with_phase_state, secondary_u
 
 
 @pytest.fixture
-def active_game_with_resolution_task(db, active_game_with_phase_state):
-    """
-    Creates an active game with a resolution task.
-    """
-    task = models.Task.objects.create()
-    active_game_with_phase_state.resolution_task = task
-    active_game_with_phase_state.save()
-    return active_game_with_phase_state
-
-
-@pytest.fixture
 def active_game_with_orders(db, active_game_with_phase_state):
     """
     Creates an active game with orders for the primary user.
@@ -492,7 +469,7 @@ def active_game_with_phase_options(db, active_game_with_phase_state):
     from django.conf import settings
 
     phase = active_game_with_phase_state.current_phase
-    with open(f"{settings.BASE_DIR}/game/data/options/options.json") as f:
+    with open(f"{settings.BASE_DIR}/game/tests/data/options.json") as f:
         json_string = f.read()
     phase.options = json.dumps(json.loads(json_string))
     phase.save()
