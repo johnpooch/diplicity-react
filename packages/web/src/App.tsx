@@ -4,7 +4,7 @@ import { Provider } from "react-redux";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import Router from "./Router";
 import theme from "./theme";
-import { Feedback } from "./components/Feedbackrename";
+import { Feedback } from "./components/Feedback";
 import { MessagingContextProvider } from "./context";
 import { store } from "./store";
 
