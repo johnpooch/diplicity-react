@@ -12,7 +12,6 @@ import {
   ArrowRight as NextIcon,
 } from "@mui/icons-material";
 import { useSelectedGameContext, useSelectedPhaseContext } from "../context";
-import { service } from "../store";
 import { createUseStyles } from "./utils/styles";
 import { useResponsiveness } from "./utils/responsive";
 

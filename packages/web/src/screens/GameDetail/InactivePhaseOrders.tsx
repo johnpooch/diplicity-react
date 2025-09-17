@@ -14,12 +14,12 @@ import { Panel } from "../../components/Panel";
 import { createUseStyles } from "../../components/utils/styles";
 
 type Orderable = {
-    province?: string;
+    province?: Province;
     provinceId: string;
     unitType?: string;
     order?: {
-        target?: string;
-        aux?: string;
+        target?: Province;
+        aux?: Province;
         orderType?: string;
         resolution?: {
             status?: string;
@@ -46,13 +46,13 @@ const generateOrderables = (
         orderables[nation] = sources.map(source => {
             const order = orders.find(o => o.source.id === source);
             return {
-                province: provinces.find(p => p.id === source)?.name,
+                province: provinces.find(p => p.id === source),
                 provinceId: source,
                 unitType: phase.units.find(u => u.province.id === source)?.type,
                 order: order
                     ? {
-                        target: provinces.find(p => p.id === order.target?.id)?.name,
-                        aux: provinces.find(p => p.id === order.aux?.id)?.name,
+                        target: provinces.find(p => p.id === order.target?.id),
+                        aux: provinces.find(p => p.id === order.aux?.id),
                         orderType: order.orderType,
                         resolution: order.resolution
                             ? {
@@ -110,7 +110,7 @@ export const InactivePhaseOrders: React.FC<InactivePhaseOrdersProps> = (props) =
                                         primary={
                                             orderable.order ? (
                                                 <OrderSummary
-                                                    source={orderable.province as string}
+                                                    source={orderable.province?.name ?? ""}
                                                     destination={orderable.order.target?.name}
                                                     aux={orderable.order.aux?.name}
                                                     type={orderable.order.orderType}
@@ -119,7 +119,7 @@ export const InactivePhaseOrders: React.FC<InactivePhaseOrdersProps> = (props) =
                                                 <Typography variant="body1">
                                                     {orderable.unitType
                                                         ? `${orderable.unitType.charAt(0).toUpperCase()}${orderable.unitType.slice(1)} ${orderable.province}`
-                                                        : orderable.province}
+                                                        : orderable.province?.name}
                                                 </Typography>
                                             )
                                         }

@@ -42,7 +42,7 @@ const GameMap: React.FC = () => {
     }
   }, [createInteractiveQuery.data]);
 
-  const handleProvinceClick = (province: string, event: React.MouseEvent<SVGSVGElement>) => {
+  const handleProvinceClick = (province: string, event: React.MouseEvent<SVGPathElement>) => {
     // Always calculate and store the click position first, regardless of order state
     let x = 0, y = 0;
     if (containerRef.current) {

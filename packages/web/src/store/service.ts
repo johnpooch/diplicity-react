@@ -434,7 +434,7 @@ export type Phase = {
   id: number;
   ordinal: number;
   season: string;
-  year: string;
+  year: number;
   name: string;
   type: string;
   units: Unit[];
@@ -448,7 +448,7 @@ export type PhaseRead = {
   id: number;
   ordinal: number;
   season: string;
-  year: string;
+  year: number;
   name: string;
   type: string;
   remainingTime: string;

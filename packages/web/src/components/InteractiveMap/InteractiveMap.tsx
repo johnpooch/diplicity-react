@@ -22,7 +22,7 @@ type InteractiveMapProps = {
   selected: string[];
   highlighted?: string[];
   orders: OrderListResponse[] | undefined;
-  onClickProvince?: (province: string, event: React.MouseEvent<SVGSVGElement>) => void;
+  onClickProvince?: (province: string, event: React.MouseEvent<SVGPathElement>) => void;
 };
 
 
@@ -36,7 +36,6 @@ const SELECTED_FILL = "rgba(255, 255, 255, 0.8)";
 
 const HIGHLIGHTED_STROKE_WIDTH = 5;
 const HIGHLIGHTED_STROKE_COLOR = "#FFFFFF";
-const HIGHLIGHTED_FILL = "rgba(255, 255, 255, 0.8)";
 
 const DEFAULT_FILL = "transparent";
 
