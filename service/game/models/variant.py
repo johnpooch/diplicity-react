@@ -30,7 +30,7 @@ class Variant(BaseModel):
         start_data = self.start
         if not start_data:
             return None
-            
+
         # Create a synthetic phase from the start data
         initial_phase = {
             'id': 0,
@@ -45,7 +45,9 @@ class Variant(BaseModel):
             'options': {},
             'status': 'pending'
         }
-        
+
+        print(initial_phase)
+
         # Convert units
         for unit_data in start_data.get('units', []):
             unit = {

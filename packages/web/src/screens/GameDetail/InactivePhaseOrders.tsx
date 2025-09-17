@@ -8,14 +8,11 @@ import {
     Stack,
     Typography,
 } from "@mui/material";
-import { NationOrder, Phase, Province } from "../../store";
+import { OrderListResponse, Phase, Province } from "../../store";
 import { OrderSummary } from "../../components/OrderSummary";
 import { Panel } from "../../components/Panel";
 import { createUseStyles } from "../../components/utils/styles";
 
-/**
- * Represents a unit or province that can be ordered in the given phase.
- */
 type Orderable = {
     province?: string;
     provinceId: string;
@@ -33,7 +30,7 @@ type Orderable = {
 
 const generateOrderables = (
     phase: Phase,
-    nationOrders: NationOrder[],
+    nationOrders: OrderListResponse[],
     provinces: Province[]
 ) => {
     const { options } = phase;
@@ -47,15 +44,15 @@ const generateOrderables = (
         const orders = nationOrders.find(o => o.nation === nation)?.orders ?? [];
 
         orderables[nation] = sources.map(source => {
-            const order = orders.find(o => o.source === source);
+            const order = orders.find(o => o.source.id === source);
             return {
                 province: provinces.find(p => p.id === source)?.name,
                 provinceId: source,
                 unitType: phase.units.find(u => u.province.id === source)?.type,
                 order: order
                     ? {
-                        target: provinces.find(p => p.id === order.target)?.name,
-                        aux: provinces.find(p => p.id === order.aux)?.name,
+                        target: provinces.find(p => p.id === order.target?.id)?.name,
+                        aux: provinces.find(p => p.id === order.aux?.id)?.name,
                         orderType: order.orderType,
                         resolution: order.resolution
                             ? {
@@ -86,7 +83,7 @@ const useStyles = createUseStyles(() => ({
 
 interface InactivePhaseOrdersProps {
     phase: Phase;
-    nationOrders: NationOrder[];
+    nationOrders: OrderListResponse[];
     provinces: Province[];
 }
 
@@ -114,8 +111,8 @@ export const InactivePhaseOrders: React.FC<InactivePhaseOrdersProps> = (props) =
                                             orderable.order ? (
                                                 <OrderSummary
                                                     source={orderable.province as string}
-                                                    destination={orderable.order.target}
-                                                    aux={orderable.order.aux}
+                                                    destination={orderable.order.target?.name}
+                                                    aux={orderable.order.aux?.name}
                                                     type={orderable.order.orderType}
                                                 />
                                             ) : (

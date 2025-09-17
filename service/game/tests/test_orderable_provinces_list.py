@@ -38,18 +38,20 @@ def test_list_orderable_provinces_with_existing_orders(authenticated_client, act
     """
     Test listing orderable provinces when orders already exist.
     """
-    # First create some orders using the correct provinces
-    create_url = reverse("order-create", args=[active_game_with_phase_options.id])
-    
-    # Create a hold order
-    order_data = {"source": "bud", "order_type": "Hold"}
+    # First create some orders using the interactive endpoint
+    create_url = reverse("interactive-order-create", args=[active_game_with_phase_options.id])
+
+    # Create a hold order: [province, order_type]
+    order_data = {"selected": ["bud", "Hold"]}
     create_response = authenticated_client.post(create_url, order_data, format="json")
-    assert create_response.status_code == status.HTTP_201_CREATED
-    
-    # Create a move order
-    order_data = {"source": "vie", "target": "tri", "order_type": "Move"}
+    assert create_response.status_code == status.HTTP_200_OK
+    assert create_response.data["completed"] is True
+
+    # Create a move order: [province, order_type, target]
+    order_data = {"selected": ["vie", "Move", "tri"]}
     create_response = authenticated_client.post(create_url, order_data, format="json")
-    assert create_response.status_code == status.HTTP_201_CREATED
+    assert create_response.status_code == status.HTTP_200_OK
+    assert create_response.data["completed"] is True
     
     # Now test listing orderable provinces
     url = reverse(viewname, args=[active_game_with_phase_options.id])
@@ -227,14 +229,12 @@ def test_list_orderable_provinces_after_creating_order(authenticated_client, act
     """
     Test listing orderable provinces after creating an order.
     """
-    # First create an order
-    create_url = reverse("order-create", args=[active_game_with_phase_options.id])
-    order_data = {
-        "source": "bud",
-        "order_type": "Hold",
-    }
+    # First create an order using interactive endpoint
+    create_url = reverse("interactive-order-create", args=[active_game_with_phase_options.id])
+    order_data = {"selected": ["bud", "Hold"]}
     create_response = authenticated_client.post(create_url, order_data, format="json")
-    assert create_response.status_code == status.HTTP_201_CREATED
+    assert create_response.status_code == status.HTTP_200_OK
+    assert create_response.data["completed"] is True
     
     # Then list orderable provinces
     list_url = reverse(viewname, args=[active_game_with_phase_options.id])
@@ -246,7 +246,7 @@ def test_list_orderable_provinces_after_creating_order(authenticated_client, act
     bud_province = next(p for p in response.data if p["province"]["id"] == "bud")
     assert bud_province["order"] is not None
     assert bud_province["order"]["order_type"] == "Hold"
-    assert bud_province["order"]["source"] == "bud"
+    assert bud_province["order"]["source"]["id"] == "bud"
     
     # Other provinces should still have no orders
     vie_province = next(p for p in response.data if p["province"]["id"] == "vie")
@@ -257,25 +257,20 @@ def test_list_orderable_provinces_after_updating_order(authenticated_client, act
     """
     Test listing orderable provinces after updating an existing order.
     """
-    create_url = reverse("order-create", args=[active_game_with_phase_options.id])
-    
+    create_url = reverse("interactive-order-create", args=[active_game_with_phase_options.id])
+
     # First create a hold order
-    order_data = {
-        "source": "bud",
-        "order_type": "Hold",
-    }
+    order_data = {"selected": ["bud", "Hold"]}
     create_response = authenticated_client.post(create_url, order_data, format="json")
-    assert create_response.status_code == status.HTTP_201_CREATED
-    original_order_id = create_response.data["id"]
-    
+    assert create_response.status_code == status.HTTP_200_OK
+    assert create_response.data["completed"] is True
+    original_order_id = create_response.data["created_order"]["id"]
+
     # Then update it to a move order
-    order_data = {
-        "source": "bud",
-        "target": "tri",
-        "order_type": "Move",
-    }
+    order_data = {"selected": ["bud", "Move", "tri"]}
     update_response = authenticated_client.post(create_url, order_data, format="json")
-    assert update_response.status_code == status.HTTP_201_CREATED
+    assert update_response.status_code == status.HTTP_200_OK
+    assert update_response.data["completed"] is True
     
     # List orderable provinces
     list_url = reverse(viewname, args=[active_game_with_phase_options.id])
@@ -288,6 +283,6 @@ def test_list_orderable_provinces_after_updating_order(authenticated_client, act
     assert bud_province["order"] is not None
     assert bud_province["order"]["id"] == original_order_id  # Same order ID
     assert bud_province["order"]["order_type"] == "Move"  # Updated type
-    assert bud_province["order"]["source"] == "bud"
+    assert bud_province["order"]["source"]["id"] == "bud"
     assert bud_province["order"]["target"]["id"] == "tri"  # Updated target province ID
     assert bud_province["order"]["target"]["name"] == "Trieste"  # Updated target province name

@@ -46,7 +46,7 @@ def test_variant_initial_phase_field(authenticated_client, classical_variant):
     # Check that initial_phase field exists and has the expected structure
     assert "initial_phase" in classical_variant_data
     initial_phase = classical_variant_data["initial_phase"]
-    
+
     # Check basic phase fields
     assert initial_phase["id"] == 0
     assert initial_phase["ordinal"] == 1

@@ -29,7 +29,7 @@ class PhaseSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     ordinal = serializers.IntegerField()
     season = serializers.CharField()
-    year = serializers.CharField()
+    year = serializers.IntegerField()
     name = serializers.CharField()
     type = serializers.CharField()
     remaining_time = serializers.SerializerMethodField()

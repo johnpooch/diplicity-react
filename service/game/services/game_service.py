@@ -218,7 +218,7 @@ class GameService(BaseService):
             "ordinal": phase.ordinal,
             "season": phase.season,
             "year": phase.year,
-            "name": f"{phase.season} {phase.year}",
+            "name": f"{phase.season} {phase.year}, {phase.type}",
             "type": phase.type,
             "remaining_time": phase.remaining_time,
             "units": units_data,
@@ -466,7 +466,15 @@ class GameService(BaseService):
             year=phase_data["year"],
             type=phase_data["type"],
             options=json.dumps(options_data),
+            status=models.Phase.ACTIVE,
         )
+        
+        # Check if this phase has no valid moves for any nation
+        if self._has_no_valid_moves(options_data):
+            logger.info(f"Phase {phase.id} has no valid moves, scheduling immediate resolution")
+            from django.utils import timezone
+            phase.scheduled_resolution = timezone.now()
+            phase.save()
 
         for unit_data in phase_data["units"]:
             models.Unit.objects.create(
@@ -484,6 +492,29 @@ class GameService(BaseService):
             )
 
         return phase
+
+    def _has_no_valid_moves(self, options_data):
+        """
+        Check if the options data indicates no valid moves for any nation.
+        
+        Args:
+            options_data: The options dictionary from adjudication service
+            
+        Returns:
+            bool: True if no nation has any valid moves
+        """
+        if not options_data or not isinstance(options_data, dict):
+            return True
+            
+        # Check if any nation has valid moves
+        for nation, nation_options in options_data.items():
+            if nation_options and isinstance(nation_options, dict):
+                # If this nation has any provinces with orders, there are valid moves
+                if any(province_data for province_data in nation_options.values()):
+                    return False
+                    
+        # No nation has any valid moves
+        return True
 
     def _set_nations(self, game):
         nations = game.variant.nations
@@ -508,9 +539,15 @@ class GameService(BaseService):
             )
 
     def _create_resolution_task(self, game):
+        phase = game.current_phase
+        
+        # If scheduled_resolution is already set (e.g., for immediate resolution), don't override it
+        if phase.scheduled_resolution is not None:
+            logger.info(f"Phase {phase.id} already has scheduled resolution, skipping normal scheduling")
+            return
+            
         phase_duration_seconds = game.get_phase_duration_seconds()
         scheduled_for = timezone.now() + timedelta(seconds=phase_duration_seconds)
-        phase = game.current_phase
         phase.scheduled_resolution = scheduled_for
         phase.save()
 

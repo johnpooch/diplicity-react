@@ -23,6 +23,9 @@ RUN apt-get update && apt-get install -y \
 # Install global npm packages
 RUN npm install -g npm@latest
 
+# Install Claude CLI globally
+RUN npm install -g @anthropic-ai/claude-code
+
 # Set working directory
 WORKDIR /app
 

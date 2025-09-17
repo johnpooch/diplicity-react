@@ -144,7 +144,6 @@ services:
 networks:
   diplicity-network:
     name: diplicity-network
-    driver: bridge
 
 volumes:
   postgres_data:
