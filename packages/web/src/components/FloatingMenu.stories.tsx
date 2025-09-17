@@ -17,12 +17,12 @@ type Story = StoryObj<typeof FloatingMenu>;
 const InteractiveTemplate = (args: any) => {
   const [open, setOpen] = useState(false);
   const [anchorPoint, setAnchorPoint] = useState({ x: 200, y: 150 });
-  
+
   const handleMapClick = (event: React.MouseEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    
+
     setAnchorPoint({ x, y });
     setOpen(true);
   };
@@ -58,7 +58,7 @@ const InteractiveTemplate = (args: any) => {
         <Typography variant="body1" color="textSecondary">
           (Resize browser to test mobile behavior)
         </Typography>
-        
+
         {/* Visual indicator of click position */}
         <Box
           sx={{
@@ -106,13 +106,13 @@ export const Interactive: Story = {
 
 // Test positioning near edges
 const EdgeTestTemplate = (args: any) => {
-  const [menus, setMenus] = useState<Array<{x: number, y: number, id: number}>>([]);
+  const [menus, setMenus] = useState<Array<{ x: number, y: number, id: number }>>([]);
 
   const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    
+
     setMenus([{ x, y, id: Date.now() }]);
   };
 
@@ -137,12 +137,12 @@ const EdgeTestTemplate = (args: any) => {
           position: "relative",
         }}
       >
-        <Typography 
-          variant="h5" 
-          sx={{ 
-            position: "absolute", 
-            top: "50%", 
-            left: "50%", 
+        <Typography
+          variant="h5"
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
             transform: "translate(-50%, -50%)",
             textAlign: "center"
           }}
@@ -211,7 +211,7 @@ const ContainerTemplate = (args: any) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    
+
     setAnchorPoint({ x, y });
     setOpen(true);
   };
@@ -221,9 +221,9 @@ const ContainerTemplate = (args: any) => {
       <Typography variant="h5" sx={{ mb: 2 }}>
         Container-relative positioning
       </Typography>
-      
+
       <Box
-        ref={(el) => setContainer(el)}
+        ref={(el) => setContainer(el as HTMLElement)}
         onClick={handleContainerClick}
         sx={{
           width: 600,
@@ -240,7 +240,7 @@ const ContainerTemplate = (args: any) => {
         }}
       >
         <Typography>Click inside this container</Typography>
-        
+
         <Box
           sx={{
             position: "absolute",

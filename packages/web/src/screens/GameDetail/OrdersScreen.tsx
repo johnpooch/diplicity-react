@@ -52,8 +52,6 @@ const OrdersScreen: React.FC = () => {
                     <ActivePhaseOrders
                         phase={currentPhase}
                         userNation={userNation}
-                        nationOrders={orders}
-                        provinces={game.variant.provinces}
                         onConfirmOrders={handleConfirmOrders}
                         isPhaseConfirmed={game.phaseConfirmed}
                         isConfirming={confirmOrdersMutation.isLoading}
