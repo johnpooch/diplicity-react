@@ -62,11 +62,13 @@ class PolygonConverter extends PathConverter {
     protected expectedTag = "polygon";
 
     protected buildPath(element: Element): string {
-        // const points = element.points;
         const points = element.getAttribute("points")?.split(" ") || [];
         let pathData = "";
 
         for (let i = 0; i < points.length; i++) {
+            if (points[i] === "") {
+                continue;
+            }
             const point = points[i].split(",");
             if (i === 0) {
                 pathData = `M ${point[0]} ${point[1]}`;

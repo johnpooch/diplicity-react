@@ -7,7 +7,6 @@ from .order import Order
 from .order_resolution import OrderResolution
 from .phase import Phase
 from .phase_state import PhaseState
-from .task import Task
 from .unit import Unit
 from .user_profile import UserProfile
 from .variant import Variant
@@ -23,7 +22,7 @@ __all__ = [
     "OrderResolution",
     "Phase",
     "PhaseState",
-    "Task",
+    "Unit",
     "UserProfile",
     "Variant",
     "SupplyCenter",

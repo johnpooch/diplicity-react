@@ -160,17 +160,20 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# Enable WhiteNoise's GZip compression of static assets
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# Storage configuration (replaces deprecated STATICFILES_STORAGE)
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
@@ -282,21 +285,6 @@ LOGGING = {
             'propagate': False,
         },
         'game': {
-            'handlers': ['console'],
-            'level': GAME_LOG_LEVEL,
-            'propagate': False,
-        },
-        'celery': {
-            'handlers': ['console'],
-            'level': GAME_LOG_LEVEL,
-            'propagate': False,
-        },
-        'celery.task': {
-            'handlers': ['console'],
-            'level': GAME_LOG_LEVEL,
-            'propagate': False,
-        },
-        'celery.worker': {
             'handlers': ['console'],
             'level': GAME_LOG_LEVEL,
             'propagate': False,

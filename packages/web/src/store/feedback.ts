@@ -56,6 +56,17 @@ const feedbackSlice = createSlice({
                     message: `Channel created successfully`,
                 };
             }
+        ),
+        builder.addMatcher(
+            service.endpoints.gameOrdersCreateInteractiveCreate.matchFulfilled,
+            (_, action) => {
+                if (action.payload.completed) {
+                    return {
+                        severity: "success",
+                        message: action.payload.title,
+                    };
+                }
+            }
         )
     },
 });

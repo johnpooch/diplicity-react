@@ -1,4 +1,4 @@
-import { orderSlice, Phase, Variant } from "./store";
+import { Order, Phase, Variant } from "./store";
 import { adjectives, conflictSynonyms, nouns } from "./terms";
 
 function capitalize(s: string) {
@@ -116,126 +116,6 @@ const formatOrderText = (order: {
     return `${order.source} ${order.orderType} to ${order.target}`;
 }
 
-/**
- * Transforms a resolution string into a human-readable label
- * and extracts `by` if it exists.
- */
-const transformResolution = (resolution: string): { outcome: string, by?: string } => {
-    const resolutionMap: Record<string, string> = {
-        OK: "Succeeded",
-        ErrBounce: "Bounced",
-        ErrSupportBroken: "Support broken",
-        ErrInvalidSupporteeOrder: "Invalid order",
-    }
-
-    const regex = /([^:]+)(?::(.+))?/;
-
-    const match = resolution.match(regex);
-    if (!match) throw new Error(`Unexpected resolution: ${resolution}`);
-    return {
-        outcome: resolutionMap[match[1]],
-        by: match[2],
-    };
-};
-
-type Order = ReturnType<typeof orderSlice.selectors.selectOrder>;
-
-const getStepLabel = (step: string, order: Order) => {
-    if (step === "source") {
-        return "Select unit to order";
-    }
-    if (step === "type") {
-        return "Select order type";
-    }
-    if (step === "aux") {
-        return `Select unit to ${order.type}`;
-    }
-    if (step === "target") {
-        return "Select destination";
-    }
-    throw new Error(`Unknown step: ${step}`);
-}
-
-const getOptions = (order: Order, options: Record<string, any>, variant: Variant) => {
-    // If no source selected yet, return all top level provinces
-    if (!order.source) {
-        return Object.keys(options)
-            .map(id => ({
-                key: id,
-                label: variant.provinces.find(p => p.id === id)?.name || id
-            }))
-            .sort((a, b) => a.label.localeCompare(b.label));
-    }
-
-    // Start at the source province node
-    let node = options[order.source];
-    if (!node) return [];
-
-    // Move to Next
-    node = node.Next;
-    if (!node) return [];
-
-    // If no type selected yet, return order types
-    if (!order.type) {
-        return Object.keys(node)
-            .map(type => ({
-                key: type,
-                label: type
-            }))
-            .sort((a, b) => a.key.localeCompare(b.key));
-    }
-
-    // Move to type node
-    node = node[order.type];
-    if (!node) return [];
-
-    // Move to Next
-    node = node.Next;
-    if (!node) return [];
-
-    // Skip the SrcProvince level by moving to its Next
-    if (node[order.source]?.Type === "SrcProvince") {
-        node = node[order.source].Next;
-        if (!node) return [];
-    }
-
-    // For Move orders, if target is already selected, return empty array
-    if (order.type === "Move" && order.target) {
-        return [];
-    }
-
-    // For Support orders, if both aux and target are selected, return empty array
-    if (order.type === "Support" && order.aux && order.target) {
-        return [];
-    }
-
-    // If no aux selected yet and we have aux options, return those
-    if (!order.aux && Object.keys(node).length > 0 && node[Object.keys(node)[0]].Type === "Province") {
-        return Object.keys(node)
-            .map(id => ({
-                key: id,
-                label: variant.provinces.find(p => p.id === id)?.name || id
-            }))
-            .sort((a, b) => a.label.localeCompare(b.label));
-    }
-
-    // If aux is selected, move to aux node
-    if (order.aux) {
-        node = node[order.aux];
-        if (!node) return [];
-        node = node.Next;
-        if (!node) return [];
-    }
-
-    // Return target provinces if available
-    return Object.keys(node)
-        .map(id => ({
-            key: id,
-            label: variant.provinces.find(p => p.id === id)?.name || id
-        }))
-        .sort((a, b) => a.label.localeCompare(b.label));
-}
-
 const getProvince = (id: string, variant: Variant, phase: Phase): {
     id: string;
     name: string;
@@ -253,21 +133,21 @@ const getProvince = (id: string, variant: Variant, phase: Phase): {
 }
 
 const getOrderSummary = (order: Order, variant: Variant, phase: Phase) => {
-    const source = order.source ? getProvince(order.source, variant, phase) : undefined;
-    const target = order.target ? getProvince(order.target, variant, phase) : undefined;
-    const aux = order.aux ? getProvince(order.aux, variant, phase) : undefined;
+    const source = order.source ? getProvince(order.source.id, variant, phase) : undefined;
+    const target = order.target ? getProvince(order.target.id, variant, phase) : undefined;
+    const aux = order.aux ? getProvince(order.aux.id, variant, phase) : undefined;
 
     if (!source) return "";
 
-    if (!order.type) {
+    if (!order.orderType) {
         return `${source.unitType} ${source.name}...`;
     }
 
-    if (order.type === "Hold") {
+    if (order.orderType === "Hold") {
         return `${source.unitType} ${source.name} Hold`;
     }
 
-    if (order.type === "Move") {
+    if (order.orderType === "Move") {
         if (!target) {
             return `${source.unitType} ${source.name} Move to...`;
         } else {
@@ -275,7 +155,7 @@ const getOrderSummary = (order: Order, variant: Variant, phase: Phase) => {
         }
     }
 
-    if (order.type === "Support") {
+    if (order.orderType === "Support") {
         if (!aux) {
             return `${source.unitType} ${source.name} Support...`;
         } else if (!target) {
@@ -285,7 +165,7 @@ const getOrderSummary = (order: Order, variant: Variant, phase: Phase) => {
         }
     }
 
-    if (order.type === "Convoy") {
+    if (order.orderType === "Convoy") {
         if (!aux) {
             return `${source.unitType} ${source.name} Convoy...`;
         } else if (!target) {
@@ -295,8 +175,8 @@ const getOrderSummary = (order: Order, variant: Variant, phase: Phase) => {
         }
     }
 
-    throw new Error(`Unknown order type: ${order.type}`);
+    throw new Error(`Unknown order type: ${order.orderType}`);
 
 }
 
-export { formatOrderText, transformResolution, getStepLabel, getOrderSummary, getOptions, getProvince, getCurrentPhase };
+export { formatOrderText, getOrderSummary, getProvince, getCurrentPhase };
