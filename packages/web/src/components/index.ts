@@ -1,5 +1,5 @@
 export * from "./ChannelMessage";
-export * from "./Feedback";
+export * from "./Feedbackrename";
 export * from "./GameCard";
 export * from "./GameMenu";
 export * from "./GameMap";
