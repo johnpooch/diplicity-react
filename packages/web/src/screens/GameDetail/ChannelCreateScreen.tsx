@@ -17,7 +17,7 @@ import { GameDetailLayout } from "./Layout";
 import { useNavigate } from "react-router";
 import { Icon, IconName } from "../../components/Icon";
 import { createUseStyles } from "../../components/utils/styles";
-import { Panel } from "../../components/Panel";
+import { Panel } from "../../components/Panel-x";
 import { GameMap } from "../../components/GameMap";
 import { useSelectedGameContext } from "../../context";
 
