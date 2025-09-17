@@ -11,7 +11,7 @@ import {
 import { Phase, service } from "../../store";
 import { Icon, IconName } from "../../components/Icon";
 import { OrderSummary } from "../../components/OrderSummary";
-import { Panel } from "../../components/Panel-x";
+import { Panel } from "../../components/Panel";
 import { useSelectedGameContext } from "../../context";
 
 interface ActivePhaseOrdersProps {

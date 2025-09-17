@@ -18,7 +18,7 @@ import { useFormik } from "formik";
 import { randomGameName } from "../../util";
 import { Table } from "../../components/Table";
 import { InteractiveMap } from "../../components/InteractiveMap/InteractiveMap";
-import { Panel } from "../../components/Panel-x";
+import { Panel } from "../../components/Panel";
 
 const initialValues = {
   name: randomGameName(),

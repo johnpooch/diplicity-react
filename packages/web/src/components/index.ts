@@ -5,5 +5,5 @@ export * from "./GameMenu";
 export * from "./GameMap";
 export * from "./NotificationBanner";
 export * from "./OrderSummary";
-export * from "./Panel-x";
+export * from "./Panel";
 export * from "./PhaseSelect";

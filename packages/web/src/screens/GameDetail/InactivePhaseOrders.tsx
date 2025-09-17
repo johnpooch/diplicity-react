@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import { OrderListResponse, Phase, Province } from "../../store";
 import { OrderSummary } from "../../components/OrderSummary";
-import { Panel } from "../../components/Panel-x";
+import { Panel } from "../../components/Panel";
 import { createUseStyles } from "../../components/utils/styles";
 
 type Orderable = {
