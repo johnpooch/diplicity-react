@@ -300,7 +300,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
               fill="black"
               textAnchor="middle"
             >
-              {unit.type === "army" ? "A" : "F"}
+              {unit.type === "Army" ? "A" : "F"}
             </text>
           </g>
         );
