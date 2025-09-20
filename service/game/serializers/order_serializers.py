@@ -19,6 +19,7 @@ class OrderSerializer(serializers.Serializer):
     source = OrderProvinceSerializer()
     target = OrderProvinceSerializer(allow_null=True)
     aux = OrderProvinceSerializer(allow_null=True)
+    unit_type = serializers.CharField(allow_null=True)
     resolution = OrderResolutionSerializer(allow_null=True)
 
 
