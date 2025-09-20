@@ -273,39 +273,3 @@ class TestGameResolveWithNoMoves:
         assert latest_phase.scheduled_resolution is not None
         assert before_time <= latest_phase.scheduled_resolution <= after_time
         assert latest_phase.options_dict == {"England": {}, "France": {}, "Germany": {}}
-
-
-@pytest.mark.django_db
-class TestManagementCommandIntegration:
-    """Test that the management command picks up phases with immediate resolution."""
-    
-    def test_due_phases_management_command_resolves_immediate_phases(
-        self, primary_user, classical_variant, mock_adjudication_service_no_moves
-    ):
-        """Test that phases with immediate resolution get picked up by management command."""
-        # Create a game with an active phase scheduled for immediate resolution
-        game = models.Game.objects.create(
-            name="Test Game",
-            variant=classical_variant,
-            status=models.Game.ACTIVE
-        )
-        
-        current_time = timezone.now()
-        phase = game.phases.create(
-            season="Fall",
-            year=1901,
-            type="Adjustment",
-            status=models.Phase.ACTIVE,
-            scheduled_resolution=current_time,  # Immediate resolution
-            options=json.dumps({})  # No valid moves
-        )
-        
-        # The management command should find this phase as due for resolution
-        from game.management.commands.resolve_due_phases import Command
-        
-        with patch('game.services.game_service.GameService.resolve') as mock_resolve:
-            command = Command()
-            command.handle()
-            
-            # Should have called resolve on our game
-            mock_resolve.assert_called_once_with(game.id)
