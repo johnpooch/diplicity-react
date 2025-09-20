@@ -31,3 +31,6 @@ service/game/tests/prof/
 staticfiles/
 
 dump.json
+.python_packages
+__pycache__
+.venv

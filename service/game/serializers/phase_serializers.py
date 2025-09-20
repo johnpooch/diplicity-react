@@ -54,3 +54,8 @@ class PhaseSerializer(serializers.Serializer):
                 return None
         # Fallback for Phase instance
         return obj.remaining_time.total_seconds() if getattr(obj, "remaining_time", None) else None
+
+
+class PhaseResolveResponseSerializer(serializers.Serializer):
+    resolved = serializers.IntegerField()
+    failed = serializers.IntegerField()

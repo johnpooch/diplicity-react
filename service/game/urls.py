@@ -60,4 +60,5 @@ urlpatterns = [
         name="interactive-order-create",
     ),
     path("version/", views.VersionRetrieveView.as_view(), name="version-retrieve"),
+    path("phase/resolve/", views.PhaseResolveView.as_view(), name="phase-resolve"),
 ]
