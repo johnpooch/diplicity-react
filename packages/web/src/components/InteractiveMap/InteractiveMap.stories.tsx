@@ -22,7 +22,7 @@ export default {
     phase: {
       units: [
         {
-          type: "army",
+          type: "Army",
           nation: ENGLAND,
           province: LONDON,
         }

@@ -424,6 +424,7 @@ export type Unit = {
   type: string;
   nation: PhaseNation;
   province: Province;
+  dislodged: boolean;
 };
 export type SupplyCenter = {
   province: Province;
@@ -576,6 +577,7 @@ export type Order = {
   source: OrderProvince;
   target: OrderProvince | null;
   aux: OrderProvince | null;
+  unitType: string | null;
   resolution: OrderResolution | null;
 };
 export type OrderableProvinceListResponse = {

@@ -49,11 +49,13 @@ class OrderService(BaseService):
 
         # Check for existing order with same source
         existing_order = current_phase_state.orders.filter(source=data["source"]).first()
+
         if existing_order:
             # Update existing order
             existing_order.order_type = data["order_type"]
             existing_order.target = data.get("target")
             existing_order.aux = data.get("aux")
+            existing_order.unit_type = data.get("unit_type")
             try:
                 existing_order.full_clean()
             except Exception as e:
@@ -67,6 +69,7 @@ class OrderService(BaseService):
             source=data["source"],
             target=data.get("target"),
             aux=data.get("aux"),
+            unit_type=data.get("unit_type"),
         )
 
         try:
@@ -118,6 +121,7 @@ class OrderService(BaseService):
                 enhanced_order = {
                     "id": order.id,
                     "order_type": order.order_type,
+                    "unit_type": order.unit_type,
                     "source": province_lookup.get(order.source),
                     "target": province_lookup.get(order.target) if order.target else None,
                     "aux": province_lookup.get(order.aux) if order.aux else None,

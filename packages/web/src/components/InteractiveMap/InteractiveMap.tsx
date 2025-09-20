@@ -273,38 +273,49 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
           strokeWidth={1}
         />
       ))}
-      {props.phase.units.map((unit, index) => {
-        const province = map.provinces.find(p => p.id === unit.province.id);
-        if (!province) return null;
-        const { x, y } = province.center;
-        const color = props.variant.nations.find(
-          n => n.name === unit.nation.name
-        )?.color;
-        if (!color) throw new Error("Color not found");
+      {[...props.phase.units]
+        .sort((a, b) => {
+          // Sort so dislodged units are rendered last (on top)
+          if (a.dislodged && !b.dislodged) return 1;
+          if (!a.dislodged && b.dislodged) return -1;
+          return 0;
+        })
+        .map((unit, index) => {
+          const province = map.provinces.find(p => p.id === unit.province.id);
+          if (!province) return null;
+          const { x, y } = province.center;
+          const color = props.variant.nations.find(
+            n => n.name === unit.nation.name
+          )?.color;
+          if (!color) throw new Error("Color not found");
 
-        return (
-          <g key={`${unit.province.id}-${index}`}>
-            <circle
-              cx={x - 10}
-              cy={y - 10}
-              r={UNIT_RADIUS}
-              fill={color}
-              stroke="black"
-              strokeWidth={2}
-            />
-            <text
-              x={x - 10}
-              y={y - 5}
-              fontSize="15"
-              fontWeight="bold"
-              fill="black"
-              textAnchor="middle"
-            >
-              {unit.type === "army" ? "A" : "F"}
-            </text>
-          </g>
-        );
-      })}
+          // Offset dislodged units by a few pixels
+          const offsetX = unit.dislodged ? 8 : 0;
+          const offsetY = unit.dislodged ? 8 : 0;
+
+          return (
+            <g key={`${unit.province.id}-${index}`}>
+              <circle
+                cx={x - 10 + offsetX}
+                cy={y - 10 + offsetY}
+                r={UNIT_RADIUS}
+                fill={color}
+                stroke="black"
+                strokeWidth={2}
+              />
+              <text
+                x={x - 10 + offsetX}
+                y={y - 5 + offsetY}
+                fontSize="15"
+                fontWeight="bold"
+                fill="black"
+                textAnchor="middle"
+              >
+                {unit.type === "Army" ? "A" : "F"}
+              </text>
+            </g>
+          );
+        })}
       {props.orders?.map(({ orders }) => {
         return orders
           .filter(o => o.orderType === "Hold")
@@ -399,6 +410,42 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
                 stroke={"#000000"}
                 fill={"green"}
               />
+            );
+          });
+      })}
+      {props.orders?.map(({ nation, orders }) => {
+        const color = props.variant.nations.find(n => n.name === nation)
+          ?.color as string;
+        return orders
+          .filter(o => o.orderType === "Build")
+          .map(o => {
+            const source = map.provinces.find(p => p.id === o.source.id);
+            if (!source) return null;
+            const { x, y } = source.center;
+
+            return (
+              <g key={`build-${o.source.id}`}>
+                <circle
+                  cx={x - 10}
+                  cy={y - 10}
+                  r={UNIT_RADIUS}
+                  fill={color}
+                  stroke="black"
+                  strokeWidth={2}
+                  opacity={0.6}
+                />
+                <text
+                  x={x - 10}
+                  y={y - 5}
+                  fontSize="15"
+                  fontWeight="bold"
+                  fill="black"
+                  textAnchor="middle"
+                  opacity={0.6}
+                >
+                  {o.unitType === "Army" ? "A" : "F"}
+                </text>
+              </g>
             );
           });
       })}

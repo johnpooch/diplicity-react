@@ -46,8 +46,6 @@ class Variant(BaseModel):
             'status': 'pending'
         }
 
-        print(initial_phase)
-
         # Convert units
         for unit_data in start_data.get('units', []):
             unit = {
@@ -57,8 +55,9 @@ class Variant(BaseModel):
                     'id': unit_data['province'],
                     'name': unit_data['province'],
                     'type': 'land',  # Default assumption
-                    'supply_center': False
-                }
+                    'supply_center': False,
+                },
+                'dislodged': unit_data.get('dislodged', False)
             }
             initial_phase['units'].append(unit)
         

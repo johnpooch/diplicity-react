@@ -4,8 +4,8 @@ from .phase import Phase
 
 
 class Unit(BaseModel):
-    FLEET = "fleet"
-    ARMY = "army"
+    FLEET = "Fleet"
+    ARMY = "Army"
 
     UNIT_TYPE_CHOICES = (
         (FLEET, "Fleet"),

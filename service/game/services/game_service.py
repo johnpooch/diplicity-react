@@ -193,6 +193,7 @@ class GameService(BaseService):
                     "type": unit.type,
                     "nation": {"name": unit.nation},
                     "province": province,
+                    "dislodged": unit.dislodged,
                 }
             )
 
@@ -259,9 +260,10 @@ class GameService(BaseService):
             for unit_data in variant.start["units"]:
                 models.Unit.objects.create(
                     phase=phase,
-                    type=unit_data["type"].lower(),
+                    type=unit_data["type"],
                     nation=unit_data["nation"],
                     province=unit_data["province"],
+                    dislodged=unit_data.get("dislodged", False),
                 )
 
             # Create SupplyCenter instances for the phase
@@ -479,9 +481,10 @@ class GameService(BaseService):
         for unit_data in phase_data["units"]:
             models.Unit.objects.create(
                 phase=phase,
-                type=unit_data["type"].lower(),
+                type=unit_data["type"],
                 nation=unit_data["nation"],
                 province=unit_data["province"],
+                dislodged=unit_data.get("dislodged", False),
             )
 
         for sc_data in phase_data["supply_centers"]:
@@ -619,16 +622,13 @@ class GameService(BaseService):
                 detail="No phase state found for the user."
             )
 
-        print("CONFIRMING PHASE")
         phase_state.orders_confirmed = not phase_state.orders_confirmed
         phase_state.save()
-        print("PHASE STATE SAVED")
 
         logger.info("GameService.confirm_phase() phase confirmed: %s", phase_state)
 
         # Check if all active members have confirmed their orders
         if phase_state.orders_confirmed and self._should_resolve_phase(game):
-            print("RESOLVING PHASE")
             logger.info(
                 "GameService.confirm_phase() all orders confirmed, resolving phase: %s",
                 game,

@@ -1,6 +1,5 @@
-# This Dockerfile is specifically for development purposes.
-# It includes both frontend (Node.js) and backend (Python) dependencies
-# to support development of the full stack application in a single container.
+# This Dockerfile is specifically for the codegen service.
+# It includes both frontend (Node.js) and backend (Python) dependencies.
 
 # Base image with Node.js and Python
 FROM node:current-bullseye-slim
@@ -22,9 +21,6 @@ RUN apt-get update && apt-get install -y \
 
 # Install global npm packages
 RUN npm install -g npm@latest
-
-# Install Claude CLI globally
-RUN npm install -g @anthropic-ai/claude-code
 
 # Set working directory
 WORKDIR /app
