@@ -127,6 +127,9 @@ class GameService(BaseService):
             and not user_member.kicked
         )
 
+        # Calculate join/leave flags using extracted method
+        can_join, can_leave = self._calculate_join_leave_flags(game, user_member, members)
+
         # Build base game data
         game_data = {
             "id": game.id,
@@ -139,29 +142,35 @@ class GameService(BaseService):
             "variant": game.variant,
             "phase_confirmed": phase_confirmed,
             "can_confirm_phase": can_confirm_phase,
+            "can_join": can_join,
+            "can_leave": can_leave,
         }
 
-        # Add list-specific or retrieve-specific fields
-        if is_list_view:
-            game_data.update(
-                {
-                    "can_join": True,
-                    "can_leave": False,
-                }
-            )
-        else:
-            game_data.update(
-                {
-                    "can_join": (
-                        game.status == models.Game.PENDING
-                        and game.members.count() < len(game.variant.nations)
-                        and not user_member
-                    ),
-                    "can_leave": game.status == models.Game.PENDING and user_member,
-                }
-            )
-
         return game_data
+
+    def _calculate_join_leave_flags(self, game, user_member, members):
+        """
+        Calculate the can_join and can_leave flags for a game.
+
+        Args:
+            game: The Game instance
+            user_member: The user's Member instance for this game (None if not a member)
+            members: List of all Member instances for this game
+
+        Returns:
+            tuple: (can_join, can_leave) boolean flags
+        """
+        # can_join: game is PENDING + user is not a member + game has available slots
+        can_join = (
+            game.status == models.Game.PENDING
+            and user_member is None
+            and len(members) < len(game.variant.nations)
+        )
+
+        # can_leave: game is PENDING + user is a member
+        can_leave = game.status == models.Game.PENDING and user_member is not None
+
+        return can_join, can_leave
 
     def _build_members_data(self, members):
         """Build members data array with common logic."""
