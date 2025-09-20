@@ -127,6 +127,8 @@ class GameService(BaseService):
             and not user_member.kicked
         )
 
+        print("PHASES DATA", [self._get_phase_data(phase, game.variant) for phase in phases])
+
         # Build base game data
         game_data = {
             "id": game.id,
@@ -193,8 +195,11 @@ class GameService(BaseService):
                     "type": unit.type,
                     "nation": {"name": unit.nation},
                     "province": province,
+                    "dislodged": unit.dislodged,
                 }
             )
+
+        print("UNITS DATA", units_data)
 
         supply_centers = phase.supply_centers.all()
         supply_centers_data = []
@@ -259,9 +264,10 @@ class GameService(BaseService):
             for unit_data in variant.start["units"]:
                 models.Unit.objects.create(
                     phase=phase,
-                    type=unit_data["type"].lower(),
+                    type=unit_data["type"],
                     nation=unit_data["nation"],
                     province=unit_data["province"],
+                    dislodged=unit_data.get("dislodged", False),
                 )
 
             # Create SupplyCenter instances for the phase
@@ -479,9 +485,10 @@ class GameService(BaseService):
         for unit_data in phase_data["units"]:
             models.Unit.objects.create(
                 phase=phase,
-                type=unit_data["type"].lower(),
+                type=unit_data["type"],
                 nation=unit_data["nation"],
                 province=unit_data["province"],
+                dislodged=unit_data.get("dislodged", False),
             )
 
         for sc_data in phase_data["supply_centers"]:

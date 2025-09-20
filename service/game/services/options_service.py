@@ -107,6 +107,17 @@ class OptionsService:
                 raise InvalidOrderStateException(f"Order type '{order_type}' not available for province '{province}'")
             
             order_config = nation_options[province]["Next"][order_type]
+
+            if order_type == "Build":
+                unit_types = list(order_config["Next"].keys())
+                # Build orders need a unit type
+                return {
+                    "options": [{"value": unit_type, "label": unit_type} for unit_type in unit_types],
+                    "step": "select-unit-type",
+                    "title": f"Select unit type to build in {self._get_province_display_name(province)}",
+                    "completed": False,
+                    "can_go_back": True
+                }
             
             if order_type == "Hold":
                 # Hold orders are complete with just province + order type
@@ -171,6 +182,16 @@ class OptionsService:
                     "options": [],
                     "step": "completed", 
                     "title": f"{self._get_province_display_name(province)} will move to {self._get_province_display_name(param)}",
+                    "completed": True,
+                    "can_go_back": False
+                }
+
+            if order_type == "Build":
+                # Build order is complete
+                return {
+                    "options": [],
+                    "step": "completed",
+                    "title": f"{param} will be built in {self._get_province_display_name(province)}",
                     "completed": True,
                     "can_go_back": False
                 }
@@ -274,6 +295,18 @@ class OptionsService:
                 "order_type": "Move", 
                 "source": selected[0],
                 "target": selected[2],
+                "aux": None
+            }
+
+        if len(selected) == 3 and selected[1] == "Build":
+            # Build order: [province, "Build", unit_type]
+            print("Build order")
+            print(f"Selected: {selected}")
+            return {
+                "order_type": "Build",
+                "source": selected[0],
+                "target": None,
+                "unit_type": selected[2],
                 "aux": None
             }
         

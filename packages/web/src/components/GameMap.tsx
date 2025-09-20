@@ -110,7 +110,7 @@ const GameMap: React.FC = () => {
               onClickProvince={handleProvinceClick}
             />
             <FloatingMenu
-              open={createInteractiveQuery.data?.step === "select-order-type" && menuPosition !== null}
+              open={(createInteractiveQuery.data?.step === "select-order-type" || createInteractiveQuery.data?.step === "select-unit-type") && menuPosition !== null}
               onClose={() => {
                 createInteractiveQuery.reset();
                 setMenuPosition(null);

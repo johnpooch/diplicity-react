@@ -43,7 +43,8 @@ class OptionService(BaseService):
                 unit_serializer_data = {
                     "type": unit.type,
                     "nation": {"name": unit.nation},
-                    "province": province_serializer_data
+                    "province": province_serializer_data,
+                    "dislodged": unit.dislodged
                 }
             
             result.append({
@@ -118,8 +119,6 @@ class OptionService(BaseService):
             else:
                 raise exceptions.ValidationError(f"Invalid source province: {source_province}")
 
-        print(f"Current options: {current_options}")
-        
         if 'order_type' in partial_order and partial_order['order_type']:
             order_type = partial_order['order_type']
             if order_type in current_options:
