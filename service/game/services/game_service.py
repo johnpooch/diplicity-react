@@ -127,8 +127,6 @@ class GameService(BaseService):
             and not user_member.kicked
         )
 
-        print("PHASES DATA", [self._get_phase_data(phase, game.variant) for phase in phases])
-
         # Build base game data
         game_data = {
             "id": game.id,
@@ -198,8 +196,6 @@ class GameService(BaseService):
                     "dislodged": unit.dislodged,
                 }
             )
-
-        print("UNITS DATA", units_data)
 
         supply_centers = phase.supply_centers.all()
         supply_centers_data = []
@@ -626,16 +622,13 @@ class GameService(BaseService):
                 detail="No phase state found for the user."
             )
 
-        print("CONFIRMING PHASE")
         phase_state.orders_confirmed = not phase_state.orders_confirmed
         phase_state.save()
-        print("PHASE STATE SAVED")
 
         logger.info("GameService.confirm_phase() phase confirmed: %s", phase_state)
 
         # Check if all active members have confirmed their orders
         if phase_state.orders_confirmed and self._should_resolve_phase(game):
-            print("RESOLVING PHASE")
             logger.info(
                 "GameService.confirm_phase() all orders confirmed, resolving phase: %s",
                 game,

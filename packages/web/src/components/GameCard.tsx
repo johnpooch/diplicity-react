@@ -59,7 +59,6 @@ const GameCard: React.FC<GameCardProps> = (game) => {
   const navigate = useNavigate();
   const styles = useStyles(game);
   const currentPhase = getCurrentPhase(game.phases);
-  console.log(currentPhase);
 
   const handleClickGameInfo = () => {
     navigate(`/game-info/${game.id}`);

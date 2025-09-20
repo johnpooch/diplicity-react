@@ -300,8 +300,6 @@ class OptionsService:
 
         if len(selected) == 3 and selected[1] == "Build":
             # Build order: [province, "Build", unit_type]
-            print("Build order")
-            print(f"Selected: {selected}")
             return {
                 "order_type": "Build",
                 "source": selected[0],

@@ -46,8 +46,6 @@ class Variant(BaseModel):
             'status': 'pending'
         }
 
-        print(initial_phase)
-
         # Convert units
         for unit_data in start_data.get('units', []):
             unit = {

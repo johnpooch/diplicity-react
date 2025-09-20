@@ -24,7 +24,7 @@ jobs:
         
     - name: Run service tests
       run: |
-        docker compose run test-service
+        docker compose run --rm service python3 -m pytest
       env:
         DATABASE_NAME: diplicity
         DATABASE_USER: postgres
