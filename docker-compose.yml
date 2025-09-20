@@ -119,7 +119,7 @@ services:
       - DB_LOG_LEVEL=WARNING
       - GAME_LOG_LEVEL=INFO
     command: >
-      sh -c 'while true; do python manage.py resolve_due_phases; sleep 60; done'
+      sh -c 'while true; do python manage.py resolve_due_phases; sleep 10; done'
     networks:
       - diplicity-network
     depends_on:
