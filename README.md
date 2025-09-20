@@ -10,7 +10,7 @@ We are looking for developers to get involved with the project. If you want to c
 
 Diplicity React is a React-based web application which integrates with a Django REST API to manage game state, player actions, and other game-related functionalities.
 
-- **Application Deployment**: [Diplicity React App](https://diplicity.com)
+- **Live Deployment**: [Diplicity](https://diplicity.com)
 
 ## Getting Started
 
