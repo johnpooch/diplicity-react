@@ -12,6 +12,7 @@ class OrderResolution(BaseModel):
     INVALID_SUPPORT_ORDER = "ErrInvalidSupporteeOrder"
     ILLEGAL_SUPPORT_DESTINATION = "ErrIllegalSupportDestination"
     INVALID_DESTINATION = "ErrInvalidDestination"
+    MISSING_SUPPORT_UNIT = "ErrMissingSupportUnit"
 
     STATUS_CHOICES = [
         (SUCCEEDED, "Succeeded"),
@@ -21,6 +22,7 @@ class OrderResolution(BaseModel):
         (INVALID_SUPPORT_ORDER, "Invalid support order"),
         (ILLEGAL_SUPPORT_DESTINATION, "Illegal support destination"),
         (INVALID_DESTINATION, "Invalid destination"),
+        (MISSING_SUPPORT_UNIT, "Missing support unit"),
     ]
 
     order = models.OneToOneField(

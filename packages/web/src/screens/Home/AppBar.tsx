@@ -21,8 +21,6 @@ const HomeAppBar: React.FC<HomeAppBarProps> = props => {
     }
   };
 
-  console.log(props.rightButton);
-
   return (
     <AppBar
       title={props.title}

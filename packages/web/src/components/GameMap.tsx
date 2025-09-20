@@ -49,9 +49,6 @@ const GameMap: React.FC = () => {
       const containerRect = containerRef.current.getBoundingClientRect();
       x = event.clientX - containerRect.left;
       y = event.clientY - containerRect.top;
-
-      console.log('Province clicked:', province, 'at coordinates:', { x, y });
-      console.log('Container rect:', containerRect);
     }
 
     const orderableProvince = orderableProvincesQuery.data?.find(p => p.province.id === province);
@@ -110,7 +107,7 @@ const GameMap: React.FC = () => {
               onClickProvince={handleProvinceClick}
             />
             <FloatingMenu
-              open={createInteractiveQuery.data?.step === "select-order-type" && menuPosition !== null}
+              open={(createInteractiveQuery.data?.step === "select-order-type" || createInteractiveQuery.data?.step === "select-unit-type") && menuPosition !== null}
               onClose={() => {
                 createInteractiveQuery.reset();
                 setMenuPosition(null);

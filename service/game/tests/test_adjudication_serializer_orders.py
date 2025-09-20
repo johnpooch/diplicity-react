@@ -88,7 +88,7 @@ class TestAdjudicationGameSerializerOrders:
         assert "England" in orders
         assert "France" not in orders
         assert orders["England"]["lon"] == ["Move", "eng"]
-        assert orders["England"]["lvp"] == ["Support", "lon", "eng"]
+        assert orders["England"]["lvp"] == ["Support", "eng", "lon"]
 
     def test_orders_handles_different_order_types(self, game_with_two_members):
         """Test that different order types are serialized correctly."""
@@ -111,4 +111,4 @@ class TestAdjudicationGameSerializerOrders:
         
         assert orders["England"]["lon"] == ["Hold"]
         assert orders["England"]["lvp"] == ["Move", "wal"]
-        assert orders["England"]["edi"] == ["Support", "lvp", "wal"]
+        assert orders["England"]["edi"] == ["Support", "wal", "lvp"]

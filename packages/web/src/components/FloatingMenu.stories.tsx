@@ -31,8 +31,7 @@ const InteractiveTemplate = (args: any) => {
     setOpen(false);
   };
 
-  const handleMenuItemClick = (option: string) => {
-    console.log("Selected:", option);
+  const handleMenuItemClick = (_option: string) => {
     setOpen(false);
   };
 

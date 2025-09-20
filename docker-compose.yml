@@ -1,22 +1,5 @@
 version: "3.9"
 services:
-  development:
-    container_name: diplicity-development
-    build:
-      context: .
-      dockerfile: Dockerfile
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - /app/packages/native
-    env_file:
-      - .env
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    networks:
-      - diplicity-network
-    tty: true
-
   codegen:
     container_name: diplicity-codegen
     build:
@@ -86,22 +69,6 @@ services:
       - diplicity-network
     tty: true
 
-  test-service:
-    container_name: diplicity-test-service
-    build:
-      context: ./service
-      dockerfile: Dockerfile
-      target: development
-    command: >
-      sh -c "python3 -m pytest"
-    networks:
-      - diplicity-network
-    environment:
-      DATABASE_NAME: diplicity
-      DATABASE_USER: postgres
-      DATABASE_PASSWORD: postgres
-      DATABASE_HOST: db
-      DATABASE_PORT: 5432
 
   db:
     container_name: diplicity-db
@@ -135,7 +102,7 @@ services:
       - DB_LOG_LEVEL=WARNING
       - GAME_LOG_LEVEL=INFO
     command: >
-      sh -c 'while true; do python manage.py resolve_due_phases; sleep 60; done'
+      sh -c 'while true; do python manage.py resolve_due_phases; sleep 10; done'
     networks:
       - diplicity-network
     depends_on:

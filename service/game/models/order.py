@@ -7,6 +7,14 @@ from .phase_state import PhaseState
 
 
 class Order(BaseModel):
+    ARMY = "Army"
+    FLEET = "Fleet"
+
+    UNIT_TYPE_CHOICES = (
+        (ARMY, "Army"),
+        (FLEET, "Fleet"),
+    )
+
     phase_state = models.ForeignKey(
         PhaseState, on_delete=models.CASCADE, related_name="orders"
     )
@@ -14,6 +22,8 @@ class Order(BaseModel):
     source = models.CharField(max_length=50)
     target = models.CharField(max_length=50, null=True, blank=True)
     aux = models.CharField(max_length=50, null=True, blank=True)
+    # Unit type is only used for build orders
+    unit_type = models.CharField(max_length=50, choices=UNIT_TYPE_CHOICES, null=True, blank=True)
 
     @property
     def nation(self):

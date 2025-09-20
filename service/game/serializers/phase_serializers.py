@@ -18,6 +18,7 @@ class UnitSerializer(serializers.Serializer):
     type = serializers.CharField()
     nation = PhaseNationSerializer()
     province = ProvinceSerializer()
+    dislodged = serializers.BooleanField()
 
 
 class SupplyCenterSerializer(serializers.Serializer):
