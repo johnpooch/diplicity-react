@@ -8,82 +8,52 @@ We are looking for developers to get involved with the project. If you want to c
 
 ## Project Overview
 
-Diplicity React is a React-based web application which talks to a Django REST API to manage game state, player actions, and other game-related functionalities.
+Diplicity React is a React-based web application which integrates with a Django REST API to manage game state, player actions, and other game-related functionalities.
 
-- **Application Deployment**: [Diplicity React App](https://blue-cliff-00777a403.4.azurestaticapps.net/)
-
-## Technologies Used
-
-- **React**: A JavaScript library for building user interfaces.
-- **TypeScript**: A typed superset of JavaScript that compiles to plain JavaScript.
-- **Vite**: A fast build tool and development server for modern web projects.
-- **Material UI**: A popular React UI framework for building responsive and accessible user interfaces.
-- **Storybook**: A tool for developing UI components in isolation.
-- **Django**: A Python-based web framework for building robust and scalable web applications.
-- **Celery**: A task queue system for running background tasks.
+- **Application Deployment**: [Diplicity React App](https://diplicity.com)
 
 ## Getting Started
 
 ### Prerequisites
 
+#### Secrets
+
+Google sign in and other functionality will not work locally unless you have the required secrets. See the [.env.example](.env.example) file for more information.
+
+#### Docker
+
 Developing using Docker is the recommended way to run the application.
 
 Download and install Docker Desktop from [here](https://www.docker.com/products/docker-desktop/).
 
-You will also need to get a bunch of secrets. See the [.env.example](.env.example) file for more information.
+### Running the project locally
 
-### Getting started
+Open a terminal window and run the following command to build the entire project:
+```bash
+docker compose up service web db phase-resolver
+```
 
-1. Clone the repository:
+**Note** The terminal window will show logs from all of the containers which is useful for debugging.
 
-   ```sh
-   git clone https://github.com/johnpooch/diplicity-react.git
-   cd diplicity-react
-   ```
+The experience will now be available in your browser at `http://localhost:5173/`.
 
-2. Start the containers
+## Testing
 
-   ```sh
-   docker compose up
-   ```
+### Running Backend Tests
 
-3. To run Storybook, navigate to `/packages/web` and use the following command:
+The Django backend includes a comprehensive test suite.
 
-   ```sh
-   npm run storybook
-   ```
+To run all backend tests:
+```bash
+docker compose run --rm service python3 -m pytest -v
+```
 
-   Storybook will be available at `http://localhost:6006`.
+To run a specific test file:
+```bash
+docker compose run --rm service python3 -m pytest game/tests/test_game_create.py -v
+```
 
-## Developing on Android
-
-### Developing in web browser
-
-1. Navigate to the `native` package
-
-   ```sh
-   cd packages/native
-   ```
-
-2. Run Metro
-
-   ```sh
-   npx expo start
-   ```
-
-### Developing on Android device
-
-Follow the instructions here:
-https://docs.expo.dev/get-started/set-up-your-environment/?mode=development-build
-
-1. Navigate to the `native` packge
-
-   ```sh
-   cd packages/native
-   ```
-
-2. Run build command
-
-   ```sh
-   eas build --platform android --profile development
-   ```
+To run a specific test function:
+```bash
+docker compose run --rm service python3 -m pytest game/tests/test_game_create.py::test_create_game_success -v 
+```

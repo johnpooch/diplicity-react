@@ -137,7 +137,7 @@ def test_resolve_successful_support_move(adjudication_service, game_with_two_mem
     create_unit(phase, "England", "lon", "Fleet")
     create_unit(phase, "England", "lvp", "Army")
     create_order(phase, "England", "Move", "lon", "wal")
-    create_order(phase, "England", "Support", "lvp", "lon", "wal")
+    create_order(phase, "England", "Support", "lvp", "wal", "lon")
 
     response = adjudication_service.resolve(game)
 
@@ -168,7 +168,7 @@ def test_resolve_support_without_move(adjudication_service, game_with_two_member
     create_unit(phase, "England", "lon", "Fleet")
     create_unit(phase, "England", "lvp", "Army")
     create_order(phase, "England", "Hold", "lon")
-    create_order(phase, "England", "Support", "lvp", "lon", "wal")
+    create_order(phase, "England", "Support", "lvp", "wal", "lon")
 
     response = adjudication_service.resolve(game)
 

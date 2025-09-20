@@ -86,22 +86,6 @@ services:
       - diplicity-network
     tty: true
 
-  test-service:
-    container_name: diplicity-test-service
-    build:
-      context: ./service
-      dockerfile: Dockerfile
-      target: development
-    command: >
-      sh -c "python3 -m pytest"
-    networks:
-      - diplicity-network
-    environment:
-      DATABASE_NAME: diplicity
-      DATABASE_USER: postgres
-      DATABASE_PASSWORD: postgres
-      DATABASE_HOST: db
-      DATABASE_PORT: 5432
 
   db:
     container_name: diplicity-db

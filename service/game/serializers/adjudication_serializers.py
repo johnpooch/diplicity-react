@@ -99,6 +99,7 @@ class AdjudicationResponseResolutionSerializer(serializers.Serializer):
             "ErrInvalidSupporteeOrder",
             "ErrIllegalSupportDestination",
             "ErrInvalidDestination",
+            "ErrMissingSupportUnit",
         ],
     )
     By = serializers.CharField(source="by", required=False, allow_null=True)

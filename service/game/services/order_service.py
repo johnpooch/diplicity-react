@@ -50,9 +50,6 @@ class OrderService(BaseService):
         # Check for existing order with same source
         existing_order = current_phase_state.orders.filter(source=data["source"]).first()
 
-        print(f"Existing order: {existing_order}")
-        print(f"Data: {data}")
-
         if existing_order:
             # Update existing order
             existing_order.order_type = data["order_type"]

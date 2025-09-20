@@ -39,14 +39,13 @@ const MessagingContextProvider: React.FC<MessagingContextProviderProps> = (
   };
 
   useEffect(() => {
-    onMessageReceived((payload) => {
-      console.log("Message received. ", payload);
+    onMessageReceived((_payload) => {
+      // Handle received message
     });
   }, []);
 
   useEffect(() => {
     const createDeviceFromToken = async (token: string) => {
-      console.log("Creating device with token:", token);
       await createDevice({
         fcmDevice: {
           type: "web",
@@ -54,7 +53,6 @@ const MessagingContextProvider: React.FC<MessagingContextProviderProps> = (
           active: true,
         },
       }).unwrap();
-      console.log("Device created with token:", token);
       setToken(token);
     };
     if (token && loggedIn) {
@@ -80,10 +78,8 @@ const MessagingContextProvider: React.FC<MessagingContextProviderProps> = (
   };
 
   const disableMessaging = async (): Promise<void> => {
-    console.log("Disabling messaging");
     try {
       if (token) {
-        console.log("Deleting token");
         await createDevice({
           fcmDevice: {
             registrationId: token,
@@ -91,7 +87,6 @@ const MessagingContextProvider: React.FC<MessagingContextProviderProps> = (
             active: false,
           },
         }).unwrap();
-        console.log("Token deleted");
         setToken(undefined);
       }
     } catch (error) {

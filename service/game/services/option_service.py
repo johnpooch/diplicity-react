@@ -101,8 +101,7 @@ class OptionService(BaseService):
         
         # Get the options for this nation in this phase
         options = phase.options_dict.get(nation, {})
-        print(f"Options: {options}")
-        
+
         # If no partial order, return initial options (same as list method)
         if not partial_order:
             return self.list(game_id, phase_id)
