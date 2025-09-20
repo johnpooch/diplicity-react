@@ -1,22 +1,5 @@
 version: "3.9"
 services:
-  development:
-    container_name: diplicity-development
-    build:
-      context: .
-      dockerfile: Dockerfile
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - /app/packages/native
-    env_file:
-      - .env
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    networks:
-      - diplicity-network
-    tty: true
-
   codegen:
     container_name: diplicity-codegen
     build:

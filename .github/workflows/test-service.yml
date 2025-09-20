@@ -16,6 +16,9 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
       
+    - name: Create empty .env file for docker-compose
+      run: touch .env
+
     - name: Set up Docker Compose
       run: |
         docker compose up -d db
