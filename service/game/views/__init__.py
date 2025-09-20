@@ -17,6 +17,7 @@ from .options_view import OptionsListView
 from .auth_view import AuthLoginView
 from .user_profile_view import UserProfileRetrieveView
 from .version_view import VersionRetrieveView
+from .phase_view import PhaseResolveView
 
 __all__ = [
     "ChannelCreateView",
@@ -36,4 +37,5 @@ __all__ = [
     "AuthLoginView",
     "UserProfileRetrieveView",
     "VersionRetrieveView",
+    "PhaseResolveView",
 ]

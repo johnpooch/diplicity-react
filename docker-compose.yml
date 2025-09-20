@@ -102,7 +102,7 @@ services:
       - DB_LOG_LEVEL=WARNING
       - GAME_LOG_LEVEL=INFO
     command: >
-      sh -c 'while true; do python manage.py resolve_due_phases; sleep 10; done'
+      sh -c 'while true; do curl -X POST -H "Content-Type: application/json" http://service:8000/phase/resolve/ || echo "Failed to call phase resolve endpoint"; sleep 10; done'
     networks:
       - diplicity-network
     depends_on:
