@@ -14,8 +14,10 @@ from .utils import get_options_for_order
 class TestOrderListView:
 
     @pytest.mark.django_db
-    def test_list_orders_active_phase_primary_user_has_order(self, authenticated_client, active_game, primary_user):
-        game = active_game
+    def test_list_orders_active_phase_primary_user_has_order(
+        self, authenticated_client, order_active_game, primary_user
+    ):
+        game = order_active_game
         phase = game.current_phase
         phase_state = phase.phase_states.get(member__user=primary_user)
         Order.objects.create(phase_state=phase_state, order_type="Move", source="lon", target="eng")
@@ -44,8 +46,10 @@ class TestOrderListView:
         assert response.data[0]["unit_type"] is None
 
     @pytest.mark.django_db
-    def test_list_orders_active_phase_secondary_user_has_order(self, authenticated_client, active_game, secondary_user):
-        game = active_game
+    def test_list_orders_active_phase_secondary_user_has_order(
+        self, authenticated_client, order_active_game, secondary_user
+    ):
+        game = order_active_game
         phase = game.current_phase
         phase_state = phase.phase_states.get(member__user=secondary_user)
         Order.objects.create(phase_state=phase_state, order_type="Move", source="par", target="bur")
@@ -58,9 +62,9 @@ class TestOrderListView:
 
     @pytest.mark.django_db
     def test_list_orders_completed_phase_both_users_have_orders(
-        self, authenticated_client, active_game, primary_user, secondary_user
+        self, authenticated_client, order_active_game, primary_user, secondary_user
     ):
-        game = active_game
+        game = order_active_game
         phase = game.current_phase
 
         primary_phase_state = phase.phase_states.get(member__user=primary_user)
@@ -95,15 +99,15 @@ class TestOrderListView:
         assert france_order["resolution"]["by"] == "bur"
 
     @pytest.mark.django_db
-    def test_list_orders_invalid_phase(self, authenticated_client, active_game):
-        game = active_game
+    def test_list_orders_invalid_phase(self, authenticated_client, order_active_game):
+        game = order_active_game
         url = reverse("order-list", args=[game.id, 999])
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     @pytest.mark.django_db
-    def test_list_orders_unauthorized(self, unauthenticated_client, active_game):
-        game = active_game
+    def test_list_orders_unauthorized(self, unauthenticated_client, order_active_game):
+        game = order_active_game
         url = reverse("order-list", args=[game.id, game.current_phase.id])
         response = unauthenticated_client.get(url)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -458,9 +462,9 @@ class TestOrderListViewQueryPerformance:
 
     @pytest.mark.django_db
     def test_list_orders_query_count_with_one_order(
-        self, authenticated_client, active_game, primary_user, secondary_user
+        self, authenticated_client, order_active_game, primary_user, secondary_user
     ):
-        game = active_game
+        game = order_active_game
         phase = game.current_phase
         primary_phase_state = phase.phase_states.get(member__user=primary_user)
         Order.objects.create(phase_state=primary_phase_state, order_type="Move", source="lon", target="eng")
@@ -475,9 +479,9 @@ class TestOrderListViewQueryPerformance:
 
     @pytest.mark.django_db
     def test_list_orders_query_count_with_multiple_orders(
-        self, authenticated_client, active_game, primary_user, secondary_user
+        self, authenticated_client, order_active_game, primary_user, secondary_user
     ):
-        game = active_game
+        game = order_active_game
         phase = game.current_phase
         primary_phase_state = phase.phase_states.get(member__user=primary_user)
         secondary_phase_state = phase.phase_states.get(member__user=secondary_user)

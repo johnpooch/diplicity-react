@@ -11,6 +11,7 @@ from django.utils import timezone
 from datetime import timedelta
 from rest_framework import exceptions
 
+from django.apps import apps
 from .. import models
 from .base_service import BaseService
 
@@ -437,13 +438,15 @@ class GameService(BaseService):
                 by = resolution.get("by")
 
                 # Find the order for this province
-                order = models.Order.objects.filter(
+                Order = apps.get_model('order', 'Order')
+                order = Order.objects.filter(
                     phase_state__phase=current_phase, source=province
                 ).first()
 
                 if order:
                     # Create or update resolution
-                    models.OrderResolution.objects.update_or_create(
+                    OrderResolution = apps.get_model('order', 'OrderResolution')
+                    OrderResolution.objects.update_or_create(
                         order=order, defaults={"status": result, "by": by}
                     )
 

@@ -1,5 +1,6 @@
 import pytest
 from django.contrib.auth import get_user_model
+from django.apps import apps
 from game import models
 from rest_framework.test import APIClient
 from unittest.mock import MagicMock, patch
@@ -7,21 +8,6 @@ from unittest.mock import MagicMock, patch
 User = get_user_model()
 
 
-@pytest.fixture(scope="session")
-def secondary_user(django_db_setup, django_db_blocker):
-    """
-    Create another test user.
-    """
-    with django_db_blocker.unblock():
-        secondary_user = User.objects.create_user(
-            username="secondaryuser",
-            email="secondary@example.com",
-            password="testpass123",
-        )
-        models.UserProfile.objects.create(
-            user=secondary_user, name="Secondary User", picture=""
-        )
-        return secondary_user
 
 
 @pytest.fixture(scope="session")
@@ -61,12 +47,6 @@ def authenticated_client_for_tertiary_user(tertiary_user):
     return client
 
 
-@pytest.fixture(scope="session")
-def unauthenticated_client():
-    """
-    Create an unauthenticated client.
-    """
-    return APIClient()
 
 
 @pytest.fixture(scope="session")
@@ -380,7 +360,8 @@ def active_game_with_orders(db, active_game_with_phase_state):
     Creates an active game with orders for the primary user.
     """
     phase_state = active_game_with_phase_state.current_phase.phase_states.first()
-    order = models.Order.objects.create(
+    Order = apps.get_model('order', 'Order')
+    order = Order.objects.create(
         phase_state=phase_state, order_type="Move", source="lon", target="eng"
     )
     return active_game_with_phase_state
@@ -392,10 +373,11 @@ def active_game_with_multiple_orders(db, active_game_with_phase_state):
     Creates an active game with multiple orders for the primary user.
     """
     phase_state = active_game_with_phase_state.current_phase.phase_states.first()
-    models.Order.objects.create(
+    Order = apps.get_model('order', 'Order')
+    Order.objects.create(
         phase_state=phase_state, order_type="Move", source="lon", target="eng"
     )
-    models.Order.objects.create(
+    Order.objects.create(
         phase_state=phase_state,
         order_type="Support",
         source="lvp",
@@ -419,7 +401,8 @@ def active_game_with_completed_phase_and_resolutions(
 
     # Create resolutions for orders
     for order in phase.phase_states.first().orders.all():
-        models.OrderResolution.objects.create(
+        OrderResolution = apps.get_model('order', 'OrderResolution')
+        OrderResolution.objects.create(
             order=order,
             status="OK" if order.order_type == "Move" else "ErrInvalidSupporteeOrder",
             by=None,

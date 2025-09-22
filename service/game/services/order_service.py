@@ -1,6 +1,7 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import exceptions
 
+from django.apps import apps
 from .. import models
 from .base_service import BaseService
 
@@ -63,7 +64,8 @@ class OrderService(BaseService):
             existing_order.save()
             return existing_order
 
-        order = models.Order.objects.create(
+        Order = apps.get_model('order', 'Order')
+        order = Order.objects.create(
             phase_state=current_phase_state,
             order_type=data["order_type"],
             source=data["source"],
@@ -80,57 +82,6 @@ class OrderService(BaseService):
         order.save()
         return order
 
-    def list(self, game_id, phase_id):
-        game = get_object_or_404(models.Game, id=game_id)
-        phase = game.phases.filter(id=phase_id).first()
-        if not phase:
-            raise exceptions.NotFound("Phase not found.")
-
-        if phase.status == phase.COMPLETED:
-            phase_states = phase.phase_states.all()
-        else:
-            phase_states = phase.phase_states.filter(member__user=self.user)
-
-        orders = []
-        for phase_state in phase_states:
-            orders.extend(phase_state.orders.select_related('resolution').all())
-
-        grouped_orders = {}
-        for order in orders:
-            nation = order.phase_state.member.nation
-            if nation not in grouped_orders:
-                grouped_orders[nation] = []
-            grouped_orders[nation].append(order)
-
-        # Enhance orders with province data for target and aux
-        province_lookup = {
-            p["id"]: p for p in game.variant.provinces
-        }
-        
-        enhanced_grouped_orders = {}
-        for nation, nation_orders in grouped_orders.items():
-            enhanced_orders = []
-            for order in nation_orders:
-                # Safely get resolution (might not exist)
-                resolution = None
-                try:
-                    resolution = order.resolution
-                except:
-                    resolution = None
-                    
-                enhanced_order = {
-                    "id": order.id,
-                    "order_type": order.order_type,
-                    "unit_type": order.unit_type,
-                    "source": province_lookup.get(order.source),
-                    "target": province_lookup.get(order.target) if order.target else None,
-                    "aux": province_lookup.get(order.aux) if order.aux else None,
-                    "resolution": resolution
-                }
-                enhanced_orders.append(enhanced_order)
-            enhanced_grouped_orders[nation] = enhanced_orders
-
-        return enhanced_grouped_orders
 
     def list_orderable_provinces(self, game_id):
         """
@@ -231,103 +182,3 @@ class OrderService(BaseService):
 
         return result
 
-    def create_interactive(self, game_id, selected_array):
-        """
-        Interactive order creation - returns next available options based on current selection.
-        
-        Args:
-            game_id: The game ID
-            selected_array: List of strings representing the current selection path
-        
-        Returns:
-            Dict with options, step, title, completed, can_go_back
-        """
-        game = get_object_or_404(models.Game, id=game_id)
-        member = game.members.filter(user=self.user).first()
-
-        province_lookup = {
-            p["id"]: p for p in game.variant.provinces
-        }
-        
-        if not member:
-            raise exceptions.PermissionDenied(
-                detail="User is not a member of the game."
-            )
-
-        if member.eliminated:
-            raise exceptions.PermissionDenied(
-                detail="Cannot create orders for eliminated players."
-            )
-
-        if member.kicked:
-            raise exceptions.PermissionDenied(
-                detail="Cannot create orders for kicked players."
-            )
-
-        if game.status != models.Game.ACTIVE:
-            raise exceptions.ValidationError(
-                detail="Orders can only be created for active games."
-            )
-
-        # Get the current phase
-        current_phase = game.current_phase
-        if not current_phase:
-            raise exceptions.ValidationError(
-                detail="No current phase found for the game."
-            )
-
-        # Get the user's current phase state
-        current_phase_state = current_phase.phase_states.filter(
-            member__user=self.user
-        ).first()
-        
-        if not current_phase_state:
-            raise exceptions.ValidationError(
-                detail="No phase state found for user."
-            )
-
-        if current_phase_state.eliminated:
-            raise exceptions.PermissionDenied(
-                detail="Cannot create orders for eliminated players."
-            )
-
-        # Use OptionsService to get next options
-        from .options_service import OptionsService
-        options_service = OptionsService(current_phase.options_dict, game.variant)
-        
-        try:
-            result = options_service.list_options_for_selected(member.nation, selected_array)
-            result["selected"] = selected_array
-            
-            # If the order is complete, create the actual order
-            if result["completed"]:
-                # Convert the selected path to order data
-                order_data = options_service.convert_to_order_data(member.nation, selected_array)
-                
-                # Create the order using the existing create method
-                created_order = self.create(game_id, order_data)
-
-                # Safely get resolution (might not exist)
-                resolution = None
-                try:
-                    resolution = created_order.resolution
-                except:
-                    resolution = None
-
-                enhanced_order = {
-                    "id": created_order.id,
-                    "order_type": created_order.order_type,
-                    "source": province_lookup.get(created_order.source),
-                    "target": province_lookup.get(created_order.target) if created_order.target else None,
-                    "aux": province_lookup.get(created_order.aux) if created_order.aux else None,
-                    "resolution": resolution
-                }
-                
-                # Add the created order to the result
-                result["created_order"] = enhanced_order
-            
-            return result
-        except Exception as e:
-            raise exceptions.ValidationError(
-                detail=f"Error getting order options: {str(e)}"
-            )

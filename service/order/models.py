@@ -24,7 +24,7 @@ class OrderQuerySet(models.QuerySet):
             "phase_state__phase",
             "phase_state__member",
             "phase_state__phase__game__variant",
-            "resolution"
+            "resolution",
         ).prefetch_related("phase_state__member__user__profile")
 
 
@@ -42,12 +42,11 @@ class OrderManager(models.Manager):
         return self.get_queryset().with_related_data()
 
     def create_from_selected(self, user, phase, selected):
-        phase_state = phase.phase_states.select_related(
-            "member__user",
-            "phase",
-            "member",
-            "phase__game__variant"
-        ).filter(member__user=user).first()
+        phase_state = (
+            phase.phase_states.select_related("member__user", "phase", "member", "phase__game__variant")
+            .filter(member__user=user)
+            .first()
+        )
         order = Order(phase_state=phase_state, source=selected[0])
 
         if len(selected) <= 1:
@@ -73,7 +72,7 @@ class Order(BaseModel, ProvinceDisplayMixin):
 
     objects = OrderManager()
 
-    phase_state = models.ForeignKey("game.PhaseState", on_delete=models.CASCADE, related_name="ordersreverse")
+    phase_state = models.ForeignKey("game.PhaseState", on_delete=models.CASCADE, related_name="orders")
     order_type = models.CharField(max_length=50, choices=OrderType.ORDER_TYPE_CHOICES, null=True, blank=True)
     source = models.CharField(max_length=50)
     target = models.CharField(max_length=50, null=True, blank=True)
@@ -119,33 +118,21 @@ class Order(BaseModel, ProvinceDisplayMixin):
 
     @property
     def selected(self):
-        selected = []
-        if self.source:
-            selected.append(self.source)
-        if self.order_type:
-            selected.append(self.order_type)
-        if self.unit_type:
-            selected.append(self.unit_type)
-        if self.aux:
-            selected.append(self.aux)
-        if self.target:
-            selected.append(self.target)
-        return selected
+        return [value for value in [self.source, self.order_type, self.unit_type, self.aux, self.target] if value]
 
     @property
     def complete(self):
         if not self.order_type:
             return False
-        if self.order_type == OrderType.HOLD:
+        if self.order_type in [OrderType.HOLD, OrderType.DISBAND]:
             return True
-        elif self.order_type == OrderType.DISBAND:
-            return True
-        elif self.order_type == OrderType.MOVE:
+        if self.order_type == OrderType.MOVE:
             return self.target is not None
-        elif self.order_type == OrderType.BUILD:
+        if self.order_type == OrderType.BUILD:
             return self.unit_type is not None
-        elif self.order_type in [OrderType.SUPPORT, OrderType.CONVOY]:
+        if self.order_type in [OrderType.SUPPORT, OrderType.CONVOY]:
             return self.target is not None and self.aux is not None
+        return False
 
     @property
     def step(self):
@@ -168,6 +155,7 @@ class Order(BaseModel, ProvinceDisplayMixin):
     def title(self):
         if not self.order_type:
             return f"Select order type for {self.source_display['name']}"
+
         if self.order_type == OrderType.HOLD:
             return f"{self.source_display['name']} will hold"
         if self.order_type == OrderType.DISBAND:
@@ -189,7 +177,6 @@ class Order(BaseModel, ProvinceDisplayMixin):
                 return f"Select destination for {self.source_display['name']} to {self.order_type.lower()} {self.aux_display['name']} to"
             else:
                 return f"{self.source_display['name']} will {self.order_type.lower()} {self.aux_display['name']} to {self.target_display['name']}"
-
         return None
 
     def clean(self):

@@ -9,6 +9,7 @@ class PhaseResolveView(views.APIView):
     permission_classes = []
 
     @extend_schema(
+        request=serializers.PhaseResolveRequestSerializer,
         responses={200: serializers.PhaseResolveResponseSerializer},
     )
     def post(self, request, *args, **kwargs):

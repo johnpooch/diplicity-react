@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "game",
     "order",
+    "version",
     "drf_spectacular",
 ]
 

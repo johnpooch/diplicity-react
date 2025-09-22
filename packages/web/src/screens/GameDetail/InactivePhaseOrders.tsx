@@ -8,7 +8,7 @@ import {
     Stack,
     Typography,
 } from "@mui/material";
-import { OrderListResponse, Phase, Province } from "../../store";
+import { GameOrdersListApiResponse, Phase, Province } from "../../store";
 import { OrderSummary } from "../../components/OrderSummary";
 import { Panel } from "../../components/Panel";
 import { createUseStyles } from "../../components/utils/styles";
@@ -30,7 +30,7 @@ type Orderable = {
 
 const generateOrderables = (
     phase: Phase,
-    nationOrders: OrderListResponse[],
+    orders: GameOrdersListApiResponse,
     provinces: Province[]
 ) => {
     const { options } = phase;
@@ -38,6 +38,12 @@ const generateOrderables = (
 
     // For inactive phases, show all nations
     const nations = Object.keys(options);
+
+    // Convert orders to a dictionary by nation
+    const ordersByNation = orders.reduce((acc, order) => {
+        acc[order.nation] = [...(acc[order.nation] || []), order];
+        return acc;
+    }, {} as Record<string, GameOrdersListApiResponse[]>);
 
     nations.forEach(nation => {
         const sources = Object.keys(options[nation]);

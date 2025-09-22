@@ -38,20 +38,25 @@ def test_list_orderable_provinces_with_existing_orders(authenticated_client, act
     """
     Test listing orderable provinces when orders already exist.
     """
-    # First create some orders using the interactive endpoint
-    create_url = reverse("interactive-order-create", args=[active_game_with_phase_options.id])
+    # Create orders directly in the database
+    from django.apps import apps
+    Order = apps.get_model('order', 'Order')
+    phase_state = active_game_with_phase_options.current_phase.phase_states.first()
 
-    # Create a hold order: [province, order_type]
-    order_data = {"selected": ["bud", "Hold"]}
-    create_response = authenticated_client.post(create_url, order_data, format="json")
-    assert create_response.status_code == status.HTTP_200_OK
-    assert create_response.data["completed"] is True
+    # Create a hold order
+    Order.objects.create(
+        phase_state=phase_state,
+        order_type="Hold",
+        source="bud"
+    )
 
-    # Create a move order: [province, order_type, target]
-    order_data = {"selected": ["vie", "Move", "tri"]}
-    create_response = authenticated_client.post(create_url, order_data, format="json")
-    assert create_response.status_code == status.HTTP_200_OK
-    assert create_response.data["completed"] is True
+    # Create a move order
+    Order.objects.create(
+        phase_state=phase_state,
+        order_type="Move",
+        source="vie",
+        target="tri"
+    )
     
     # Now test listing orderable provinces
     url = reverse(viewname, args=[active_game_with_phase_options.id])
@@ -229,12 +234,16 @@ def test_list_orderable_provinces_after_creating_order(authenticated_client, act
     """
     Test listing orderable provinces after creating an order.
     """
-    # First create an order using interactive endpoint
-    create_url = reverse("interactive-order-create", args=[active_game_with_phase_options.id])
-    order_data = {"selected": ["bud", "Hold"]}
-    create_response = authenticated_client.post(create_url, order_data, format="json")
-    assert create_response.status_code == status.HTTP_200_OK
-    assert create_response.data["completed"] is True
+    # Create an order directly in the database
+    from django.apps import apps
+    Order = apps.get_model('order', 'Order')
+    phase_state = active_game_with_phase_options.current_phase.phase_states.first()
+
+    Order.objects.create(
+        phase_state=phase_state,
+        order_type="Hold",
+        source="bud"
+    )
     
     # Then list orderable provinces
     list_url = reverse(viewname, args=[active_game_with_phase_options.id])
@@ -257,20 +266,23 @@ def test_list_orderable_provinces_after_updating_order(authenticated_client, act
     """
     Test listing orderable provinces after updating an existing order.
     """
-    create_url = reverse("interactive-order-create", args=[active_game_with_phase_options.id])
+    # Create and update an order directly in the database
+    from django.apps import apps
+    Order = apps.get_model('order', 'Order')
+    phase_state = active_game_with_phase_options.current_phase.phase_states.first()
 
     # First create a hold order
-    order_data = {"selected": ["bud", "Hold"]}
-    create_response = authenticated_client.post(create_url, order_data, format="json")
-    assert create_response.status_code == status.HTTP_200_OK
-    assert create_response.data["completed"] is True
-    original_order_id = create_response.data["created_order"]["id"]
+    order = Order.objects.create(
+        phase_state=phase_state,
+        order_type="Hold",
+        source="bud"
+    )
+    original_order_id = order.id
 
     # Then update it to a move order
-    order_data = {"selected": ["bud", "Move", "tri"]}
-    update_response = authenticated_client.post(create_url, order_data, format="json")
-    assert update_response.status_code == status.HTTP_200_OK
-    assert update_response.data["completed"] is True
+    order.order_type = "Move"
+    order.target = "tri"
+    order.save()
     
     # List orderable provinces
     list_url = reverse(viewname, args=[active_game_with_phase_options.id])

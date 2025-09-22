@@ -3,8 +3,6 @@ from .game import Game
 from .member import Member
 from .channel_member import ChannelMember
 from .channel_message import ChannelMessage
-from .order import Order
-from .order_resolution import OrderResolution
 from .phase import Phase
 from .phase_state import PhaseState
 from .unit import Unit
@@ -18,8 +16,6 @@ __all__ = [
     "Member",
     "ChannelMember",
     "ChannelMessage",
-    "Order",
-    "OrderResolution",
     "Phase",
     "PhaseState",
     "Unit",

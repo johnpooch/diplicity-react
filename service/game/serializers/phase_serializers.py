@@ -59,3 +59,7 @@ class PhaseSerializer(serializers.Serializer):
 class PhaseResolveResponseSerializer(serializers.Serializer):
     resolved = serializers.IntegerField()
     failed = serializers.IntegerField()
+
+
+class PhaseResolveRequestSerializer(serializers.Serializer):
+    pass

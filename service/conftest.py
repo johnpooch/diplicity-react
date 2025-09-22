@@ -118,7 +118,35 @@ def sample_options():
 
 
 @pytest.fixture
-def game_with_options(active_game, primary_user, sample_options):
+def active_game(db, primary_user, secondary_user, classical_variant):
+    game = models.Game.objects.create(
+        name="Test Active Game",
+        variant=classical_variant,
+        status=models.Game.ACTIVE,
+    )
+
+    # Create phase
+    phase = game.phases.create(
+        season="Spring",
+        year=1901,
+        type="Movement",
+        status=models.Phase.ACTIVE,
+    )
+
+    # Create units and supply centers
+    phase.units.create(type="Fleet", nation="England", province="edi")
+    phase.supply_centers.create(nation="England", province="edi")
+
+    # Create members and phase states
+    primary_member = game.members.create(user=primary_user, nation="England")
+    secondary_member = game.members.create(user=secondary_user, nation="France")
+    phase.phase_states.create(member=primary_member)
+    phase.phase_states.create(member=secondary_member)
+
+    return game
+
+@pytest.fixture
+def game_with_options(active_game, sample_options):
     game = active_game
     phase = game.current_phase
     phase.options = json.dumps(sample_options)

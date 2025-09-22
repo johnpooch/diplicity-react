@@ -7,8 +7,6 @@ from .models import (
     ChannelMessage,
     Game,
     Member,
-    OrderResolution,
-    Order,
     PhaseState,
     Phase,
     SupplyCenter,
@@ -89,16 +87,6 @@ class MemberAdmin(admin.ModelAdmin):
     list_filter = ('game', 'won', 'drew', 'eliminated', 'kicked')
     search_fields = ('user__username', 'nation')
 
-@admin.register(OrderResolution)
-class OrderResolutionAdmin(admin.ModelAdmin):
-    list_display = ('order', 'status', 'by', 'created_at')
-    list_filter = ('status',)
-
-@admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
-    list_display = ('phase_state', 'order_type', 'source', 'target', 'aux')
-    list_filter = ('order_type',)
-    search_fields = ('source', 'target', 'aux')
 
 @admin.register(PhaseState)
 class PhaseStateAdmin(admin.ModelAdmin):

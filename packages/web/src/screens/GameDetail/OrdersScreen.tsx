@@ -17,7 +17,7 @@ const OrdersScreen: React.FC = () => {
     const navigate = useNavigate();
     const { selectedPhase } = useSelectedPhaseContext();
 
-    const ordersListQuery = service.endpoints.gamePhaseOrdersList.useQuery({
+    const ordersListQuery = service.endpoints.gameOrdersList.useQuery({
         gameId,
         phaseId: selectedPhase,
     });

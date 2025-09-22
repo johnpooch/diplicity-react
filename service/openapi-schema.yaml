@@ -443,6 +443,59 @@ paths:
                 items:
                   $ref: '#/components/schemas/OrderableProvinceListResponse'
           description: ''
+  /game/{gameId}/orders/:
+    post:
+      operationId: gameOrdersCreate
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Order'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+  /game/{gameId}/orders/{phaseId}:
+    get:
+      operationId: gameOrdersList
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: phaseId
+        schema:
+          type: integer
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+          description: ''
   /game/{gameId}/orders/create-interactive/:
     post:
       operationId: gameOrdersCreateInteractiveCreate
@@ -502,33 +555,6 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Option'
-          description: ''
-  /game/{gameId}/phase/{phaseId}/orders/:
-    get:
-      operationId: gamePhaseOrdersList
-      parameters:
-      - in: path
-        name: gameId
-        schema:
-          type: string
-        required: true
-      - in: path
-        name: phaseId
-        schema:
-          type: integer
-        required: true
-      tags:
-      - game
-      security:
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/OrderListResponse'
           description: ''
   /games/:
     get:
@@ -917,18 +943,6 @@ components:
       - source
       - target
       - unitType
-    OrderListResponse:
-      type: object
-      properties:
-        nation:
-          type: string
-        orders:
-          type: array
-          items:
-            $ref: '#/components/schemas/Order'
-      required:
-      - nation
-      - orders
     OrderOption:
       type: object
       description: Serializer for individual order options in interactive creation

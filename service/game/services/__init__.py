@@ -6,7 +6,6 @@ from .order_service import OrderService
 from .variant_service import VariantService
 from .auth_service import AuthService
 from .user_profile_service import UserProfileService
-from .version_service import VersionService
 from .option_service import OptionService
 from .phase_service import PhaseService
 
@@ -19,7 +18,6 @@ __all__ = [
     "VariantService",
     "AuthService",
     "UserProfileService",
-    "VersionService",
     "OptionService",
     "PhaseService",
 ]

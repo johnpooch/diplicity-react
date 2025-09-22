@@ -54,11 +54,5 @@ urlpatterns = [
         views.OrderableProvincesListView.as_view(),
         name="orderable-provinces-list",
     ),
-    path(
-        "game/<str:game_id>/orders/create-interactive/",
-        views.InteractiveOrderCreateView.as_view(),
-        name="interactive-order-create",
-    ),
-    path("version/", views.VersionRetrieveView.as_view(), name="version-retrieve"),
     path("phase/resolve/", views.PhaseResolveView.as_view(), name="phase-resolve"),
 ]
