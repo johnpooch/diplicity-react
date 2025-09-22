@@ -555,6 +555,20 @@ paths:
                 items:
                   $ref: '#/components/schemas/Game'
           description: ''
+  /phase/resolve/:
+    post:
+      operationId: phaseResolveCreate
+      tags:
+      - phase
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhaseResolveResponse'
+          description: ''
   /user/:
     get:
       operationId: userRetrieve
@@ -1030,6 +1044,16 @@ components:
           type: string
       required:
       - name
+    PhaseResolveResponse:
+      type: object
+      properties:
+        resolved:
+          type: integer
+        failed:
+          type: integer
+      required:
+      - failed
+      - resolved
     Province:
       type: object
       properties:

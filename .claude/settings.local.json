@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(python3 -m pytest game/tests/test_orderable_provinces_list.py::test_list_orderable_provinces_after_creating_order game/tests/test_orderable_provinces_list.py::test_list_orderable_provinces_after_updating_order -v)",
-      "Bash(python3 -m pytest game/tests/test_orderable_provinces_list.py game/tests/test_interactive_order_create.py game/tests/test_order_list.py -v)"
+      "Bash(python3 -m pytest game/tests/test_orderable_provinces_list.py game/tests/test_interactive_order_create.py game/tests/test_order_list.py -v)",
+      "Bash(docker compose run:*)"
     ],
     "deny": [],
     "ask": []

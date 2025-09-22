@@ -164,6 +164,12 @@ const injectedRtkApi = api.injectEndpoints({
         },
       }),
     }),
+    phaseResolveCreate: build.mutation<
+      PhaseResolveCreateApiResponse,
+      PhaseResolveCreateApiArg
+    >({
+      query: () => ({ url: `/phase/resolve/`, method: "POST" }),
+    }),
     userRetrieve: build.query<UserRetrieveApiResponse, UserRetrieveApiArg>({
       query: () => ({ url: `/user/` }),
     }),
@@ -367,6 +373,9 @@ export type GamesListApiArg = {
   canJoin?: boolean;
   mine?: boolean;
 };
+export type PhaseResolveCreateApiResponse =
+  /** status 200  */ PhaseResolveResponse;
+export type PhaseResolveCreateApiArg = void;
 export type UserRetrieveApiResponse = /** status 200  */ UserProfile;
 export type UserRetrieveApiArg = void;
 export type VariantsListApiResponse = /** status 200  */ VariantRead[];
@@ -617,6 +626,10 @@ export type OrderListResponse = {
   nation: string;
   orders: Order[];
 };
+export type PhaseResolveResponse = {
+  resolved: number;
+  failed: number;
+};
 export type UserProfile = {
   id: number;
   name: string;
@@ -648,6 +661,7 @@ export const {
   useGamePhaseOptionsCreateMutation,
   useGamePhaseOrdersListQuery,
   useGamesListQuery,
+  usePhaseResolveCreateMutation,
   useUserRetrieveQuery,
   useVariantsListQuery,
   useVersionRetrieveQuery,

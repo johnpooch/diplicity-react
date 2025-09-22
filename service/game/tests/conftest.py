@@ -8,21 +8,6 @@ User = get_user_model()
 
 
 @pytest.fixture(scope="session")
-def primary_user(django_db_setup, django_db_blocker):
-    """
-    Create the primary test user.
-    """
-    with django_db_blocker.unblock():
-        primary_user = User.objects.create_user(
-            username="primaryuser", email="primary@example.com", password="testpass123"
-        )
-        models.UserProfile.objects.create(
-            user=primary_user, name="Primary User", picture=""
-        )
-        return primary_user
-
-
-@pytest.fixture(scope="session")
 def secondary_user(django_db_setup, django_db_blocker):
     """
     Create another test user.
@@ -54,16 +39,6 @@ def tertiary_user(django_db_setup, django_db_blocker):
             user=tertiary_user, name="Tertiary User", picture=""
         )
         return tertiary_user
-
-
-@pytest.fixture(scope="session")
-def authenticated_client(primary_user):
-    """
-    Create an authenticated client.
-    """
-    client = APIClient()
-    client.force_authenticate(user=primary_user)
-    return client
 
 
 @pytest.fixture(scope="session")
@@ -103,13 +78,6 @@ def italy_vs_germany_variant(django_db_setup, django_db_blocker):
         return models.Variant.objects.get(id="italy-vs-germany")
 
 
-@pytest.fixture(scope="session")
-def classical_variant(django_db_setup, django_db_blocker):
-    """
-    Create a test variant.
-    """
-    with django_db_blocker.unblock():
-        return models.Variant.objects.get(id="classical")
 
 
 @pytest.fixture

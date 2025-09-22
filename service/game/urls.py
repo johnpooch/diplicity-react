@@ -39,11 +39,11 @@ urlpatterns = [
     ),
     path("user/", views.UserProfileRetrieveView.as_view(), name="user-profile"),
     path("variants/", views.VariantListView.as_view(), name="variant-list"),
-    path(
-        "game/<str:game_id>/phase/<int:phase_id>/orders/",
-        views.OrderListView.as_view(),
-        name="order-list",
-    ),
+    # path(
+    #     "game/<str:game_id>/phase/<int:phase_id>/orders/",
+    #     views.OrderListView.as_view(),
+    #     name="order-list",
+    # ),
     path(
         "game/<str:game_id>/phase/<int:phase_id>/options/",
         views.OptionsListView.as_view(),

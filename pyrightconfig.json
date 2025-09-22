@@ -1,0 +1,20 @@
+{
+    "include": [
+        "service"
+    ],
+    "exclude": [
+        "**/node_modules",
+        "**/__pycache__",
+        "**/.venv",
+        "**/dist",
+        "**/build"
+    ],
+    "pythonVersion": "3.9",
+    "pythonPlatform": "Darwin",
+    "typeCheckingMode": "basic",
+    "useLibraryCodeForTypes": true,
+    "autoImportCompletions": true,
+    "extraPaths": [
+        "./service"
+    ]
+}

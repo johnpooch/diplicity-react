@@ -1,6 +1,6 @@
 [tool.black]
-line-length = 88
+line-length = 120
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "project.settings"
-python_files = ["test_*.py"]
+python_files = ["test*.py"]
