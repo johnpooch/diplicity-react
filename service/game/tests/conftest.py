@@ -2,6 +2,7 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.apps import apps
 from game import models
+from user_profile.models import UserProfile
 from rest_framework.test import APIClient
 from unittest.mock import MagicMock, patch
 
@@ -21,7 +22,7 @@ def tertiary_user(django_db_setup, django_db_blocker):
             email="tertiary@example.com",
             password="testpass123",
         )
-        models.UserProfile.objects.create(
+        UserProfile.objects.create(
             user=tertiary_user, name="Tertiary User", picture=""
         )
         return tertiary_user
@@ -479,38 +480,6 @@ def active_game_with_channels(db, active_game_with_phase_state, secondary_user):
     return active_game_with_phase_state
 
 
-@pytest.fixture
-def mock_google_auth():
-    """
-    Create a mock for Google ID token verification.
-    """
-    with patch(
-        "game.services.auth_service.google_id_token.verify_oauth2_token"
-    ) as mock:
-        mock.return_value = {
-            "iss": "accounts.google.com",
-            "email": "test@example.com",
-            "name": "Test User",
-            "picture": "http://example.com/picture.jpg",
-        }
-        yield mock
-
-
-@pytest.fixture
-def mock_refresh_token():
-    """
-    Create a mock for refresh token generation.
-    """
-    with patch("game.services.auth_service.RefreshToken.for_user") as mock:
-        mock.return_value = type(
-            "MockRefreshToken",
-            (object,),
-            {
-                "access_token": "access_token",
-                "__str__": lambda self: "refresh_token",
-            },
-        )()
-        yield mock
 
 
 @pytest.fixture

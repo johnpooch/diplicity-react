@@ -2,6 +2,7 @@ import pytest
 import json
 from django.contrib.auth import get_user_model
 from game import models
+from user_profile.models import UserProfile
 from rest_framework.test import APIClient
 
 User = get_user_model()
@@ -13,7 +14,7 @@ def primary_user(django_db_setup, django_db_blocker):
         primary_user = User.objects.create_user(
             username="primaryuser", email="primary@example.com", password="testpass123"
         )
-        models.UserProfile.objects.create(
+        UserProfile.objects.create(
             user=primary_user, name="Primary User", picture=""
         )
         return primary_user
@@ -25,7 +26,7 @@ def secondary_user(django_db_setup, django_db_blocker):
         secondary_user = User.objects.create_user(
             username="secondaryuser", email="secondary@example.com", password="testpass123"
         )
-        models.UserProfile.objects.create(
+        UserProfile.objects.create(
             user=secondary_user, name="Secondary User", picture=""
         )
         return secondary_user

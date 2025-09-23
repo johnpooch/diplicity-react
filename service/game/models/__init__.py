@@ -6,7 +6,6 @@ from .channel_message import ChannelMessage
 from .phase import Phase
 from .phase_state import PhaseState
 from .unit import Unit
-from .user_profile import UserProfile
 from .variant import Variant
 from .supply_center import SupplyCenter
 
@@ -19,7 +18,6 @@ __all__ = [
     "Phase",
     "PhaseState",
     "Unit",
-    "UserProfile",
     "Variant",
     "SupplyCenter",
 ]

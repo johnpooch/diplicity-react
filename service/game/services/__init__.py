@@ -4,8 +4,6 @@ from .game_service import GameService
 from .notification_service import NotificationService
 from .order_service import OrderService
 from .variant_service import VariantService
-from .auth_service import AuthService
-from .user_profile_service import UserProfileService
 from .option_service import OptionService
 from .phase_service import PhaseService
 
@@ -16,8 +14,6 @@ __all__ = [
     "NotificationService",
     "OrderService",
     "VariantService",
-    "AuthService",
-    "UserProfileService",
     "OptionService",
     "PhaseService",
 ]

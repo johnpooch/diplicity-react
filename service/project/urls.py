@@ -36,6 +36,8 @@ urlpatterns = [
     path("", include("game.urls")),
     path("", include("order.urls")),
     path("", include("version.urls")),
+    path("", include("user_profile.urls")),
+    path("", include("login.urls")),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(
         "api/docs/",

@@ -2,6 +2,7 @@ import pytest
 from game import models
 from django.db import connection
 from django.contrib.auth import get_user_model
+from user_profile.models import UserProfile
 
 User = get_user_model()
 
@@ -89,13 +90,13 @@ def test_game_queryset_with_members(django_assert_num_queries):
     user_2 = User.objects.create_user(username="user2", email="user2@example.com")
     user_3 = User.objects.create_user(username="user3", email="user3@example.com")
 
-    profile_1 = models.UserProfile.objects.create(
+    profile_1 = UserProfile.objects.create(
         user=user_1, name="User One", picture="http://example.com/1.jpg"
     )
-    profile_2 = models.UserProfile.objects.create(
+    profile_2 = UserProfile.objects.create(
         user=user_2, name="User Two", picture="http://example.com/2.jpg"
     )
-    profile_3 = models.UserProfile.objects.create(
+    profile_3 = UserProfile.objects.create(
         user=user_3, name="User Three", picture="http://example.com/3.jpg"
     )
 

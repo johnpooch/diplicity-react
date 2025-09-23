@@ -14,8 +14,6 @@ from .channel_view import (
 from .variant_view import VariantListView
 from .order_view import OrderableProvincesListView
 from .options_view import OptionsListView
-from .auth_view import AuthLoginView
-from .user_profile_view import UserProfileRetrieveView
 from .phase_view import PhaseResolveView
 
 __all__ = [
@@ -31,7 +29,5 @@ __all__ = [
     "VariantListView",
     "OptionsListView",
     "OrderableProvincesListView",
-    "AuthLoginView",
-    "UserProfileRetrieveView",
     "PhaseResolveView",
 ]

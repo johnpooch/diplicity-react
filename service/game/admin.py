@@ -11,7 +11,6 @@ from .models import (
     Phase,
     SupplyCenter,
     Unit,
-    UserProfile,
 )
 from .services.game_service import GameService
 from .services.adjudication_service import AdjudicationService
@@ -111,10 +110,6 @@ class UnitAdmin(admin.ModelAdmin):
     list_filter = ('type', 'nation', 'dislodged')
     search_fields = ('province',)
 
-@admin.register(UserProfile)
-class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'name', 'email')
-    search_fields = ('name', 'user__email', 'user__username')
 
 @admin.register(Variant)
 class VariantAdmin(admin.ModelAdmin):

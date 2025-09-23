@@ -3,7 +3,6 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path("auth/login/", views.AuthLoginView.as_view(), name="auth-login"),
     path("game/", views.GameCreateView.as_view(), name="game-create"),
     path("game/<str:game_id>/join/", views.GameJoinView.as_view(), name="game-join"),
     path(
@@ -37,7 +36,6 @@ urlpatterns = [
         views.ChannelListView.as_view(),
         name="channel-list",
     ),
-    path("user/", views.UserProfileRetrieveView.as_view(), name="user-profile"),
     path("variants/", views.VariantListView.as_view(), name="variant-list"),
     # path(
     #     "game/<str:game_id>/phase/<int:phase_id>/orders/",

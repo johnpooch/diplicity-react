@@ -60,6 +60,8 @@ INSTALLED_APPS = [
     "game",
     "order",
     "version",
+    "user_profile",
+    "login",
     "drf_spectacular",
 ]
 
