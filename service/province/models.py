@@ -7,7 +7,7 @@ class Province(models.Model):
     name = models.CharField(max_length=100)
     type = models.CharField(max_length=20, choices=ProvinceType.TYPE_CHOICES)
     supply_center = models.BooleanField(default=False)
-    variant = models.ForeignKey("variant.Variant", on_delete=models.CASCADE, related_name="province_set")
+    variant = models.ForeignKey("variant.Variant", on_delete=models.CASCADE, related_name="provinces")
 
     class Meta:
         ordering = ["name"]

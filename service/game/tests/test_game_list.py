@@ -9,6 +9,7 @@ User = get_user_model()
 
 url = reverse("game-list")
 
+
 @pytest.mark.django_db
 def test_game_list_unauthenticated(unauthenticated_client):
     """
@@ -16,6 +17,7 @@ def test_game_list_unauthenticated(unauthenticated_client):
     """
     response = unauthenticated_client.get(url)
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
 
 @pytest.mark.django_db
 def test_game_list_invalid_filter(authenticated_client, pending_game_created_by_primary_user):
@@ -26,8 +28,11 @@ def test_game_list_invalid_filter(authenticated_client, pending_game_created_by_
     assert response.status_code == status.HTTP_200_OK
     assert len(response.data) == 1
 
+
 @pytest.mark.django_db
-def test_game_list_all_games(authenticated_client, pending_game_created_by_primary_user, pending_game_created_by_secondary_user):
+def test_game_list_all_games(
+    authenticated_client, pending_game_created_by_primary_user, pending_game_created_by_secondary_user
+):
     """
     Test that all games are returned when no filter is applied.
     """
@@ -35,8 +40,11 @@ def test_game_list_all_games(authenticated_client, pending_game_created_by_prima
     assert response.status_code == status.HTTP_200_OK
     assert len(response.data) == 2
 
+
 @pytest.mark.django_db
-def test_game_list_my_games(authenticated_client, pending_game_created_by_primary_user, pending_game_created_by_secondary_user):
+def test_game_list_my_games(
+    authenticated_client, pending_game_created_by_primary_user, pending_game_created_by_secondary_user
+):
     """
     Test that only games the user is a member of are returned with mine filter.
     """
@@ -45,8 +53,11 @@ def test_game_list_my_games(authenticated_client, pending_game_created_by_primar
     assert len(response.data) == 1
     assert response.data[0]["name"] == pending_game_created_by_primary_user.name
 
+
 @pytest.mark.django_db
-def test_game_list_can_join(authenticated_client, pending_game_created_by_primary_user, pending_game_created_by_secondary_user):
+def test_game_list_can_join(
+    authenticated_client, pending_game_created_by_primary_user, pending_game_created_by_secondary_user
+):
     """
     Test that only games the user can join are returned with can_join filter.
     """
@@ -55,8 +66,11 @@ def test_game_list_can_join(authenticated_client, pending_game_created_by_primar
     assert len(response.data) == 1
     assert response.data[0]["name"] == pending_game_created_by_secondary_user.name
 
+
 @pytest.mark.django_db
-def test_game_list_can_join_can_leave_flags_for_non_member(authenticated_client, pending_game_created_by_secondary_user):
+def test_game_list_can_join_can_leave_flags_for_non_member(
+    authenticated_client, pending_game_created_by_secondary_user
+):
     """
     Test that canJoin is true and canLeave is false for games the user hasn't joined.
     """
@@ -69,6 +83,7 @@ def test_game_list_can_join_can_leave_flags_for_non_member(authenticated_client,
     # User should be able to join but not leave
     assert game_data["can_join"] is True
     assert game_data["can_leave"] is False
+
 
 @pytest.mark.django_db
 def test_game_list_can_join_can_leave_flags_for_member(authenticated_client, pending_game_created_by_primary_user):
@@ -85,8 +100,11 @@ def test_game_list_can_join_can_leave_flags_for_member(authenticated_client, pen
     assert game_data["can_join"] is False
     assert game_data["can_leave"] is True
 
+
 @pytest.mark.django_db
-def test_game_list_can_join_can_leave_flags_for_active_games(authenticated_client, active_game_created_by_primary_user, active_game_created_by_secondary_user):
+def test_game_list_can_join_can_leave_flags_for_active_games(
+    authenticated_client, active_game_created_by_primary_user, active_game_created_by_secondary_user
+):
     """
     Test that both canJoin and canLeave are false for active games.
     """
@@ -103,8 +121,11 @@ def test_game_list_can_join_can_leave_flags_for_active_games(authenticated_clien
     assert secondary_game_data["can_join"] is False
     assert secondary_game_data["can_leave"] is False
 
+
 @pytest.mark.django_db
-def test_game_list_can_join_can_leave_flags_for_full_pending_game(authenticated_client, classical_variant, primary_user, secondary_user, tertiary_user, base_pending_phase):
+def test_game_list_can_join_can_leave_flags_for_full_pending_game(
+    authenticated_client, classical_variant, primary_user, secondary_user, tertiary_user, base_pending_phase
+):
     """
     Test that canJoin is false for a full pending game (all slots taken).
     """
@@ -130,5 +151,4 @@ def test_game_list_can_join_can_leave_flags_for_full_pending_game(authenticated_
     # Find the full game - primary user is a member so can_join should be False, can_leave should be True
     game_data = next(g for g in response.data if g["name"] == "Full Game")
     assert game_data["can_join"] is False  # User is already a member
-    assert game_data["can_leave"] is True   # User can leave pending game
-
+    assert game_data["can_leave"] is True  # User can leave pending game

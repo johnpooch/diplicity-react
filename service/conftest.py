@@ -4,8 +4,10 @@ from django.contrib.auth import get_user_model
 from game import models
 from user_profile.models import UserProfile
 from variant.models import Variant
+from nation.models import Nation
+from province.models import Province
 from rest_framework.test import APIClient
-from common.constants import PhaseStatus
+from common.constants import PhaseStatus, UnitType
 
 User = get_user_model()
 
@@ -46,6 +48,114 @@ def authenticated_client(primary_user):
 @pytest.fixture(scope="session")
 def unauthenticated_client():
     return APIClient()
+
+
+@pytest.fixture(scope="session")
+def classical_england_nation(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Nation.objects.get(name="England", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_france_nation(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Nation.objects.get(name="France", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_edinburgh_province(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="edi", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_irish_sea_province(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="iri", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_liverpool_province(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="lvp", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_london_province(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="lon", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_wales_province(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="wal", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_english_channel_province(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="eng", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_paris_province(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="par", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_burgundy_province(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="bur", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_budapest_province(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="bud", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_galicia_province(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="gal", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_rumania_province(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="rum", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_serbia_province(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="ser", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_trieste_province(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="tri", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_vienna_province(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="vie", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_sevastopol_province(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="sev", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_spain_province(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="spa", variant=classical_variant)
 
 
 @pytest.fixture
@@ -117,7 +227,15 @@ def sample_options():
 
 
 @pytest.fixture
-def active_game(db, primary_user, secondary_user, classical_variant):
+def active_game(
+    db,
+    primary_user,
+    secondary_user,
+    classical_variant,
+    classical_england_nation,
+    classical_france_nation,
+    classical_edinburgh_province,
+):
     game = models.Game.objects.create(
         name="Test Active Game",
         variant=classical_variant,
@@ -134,12 +252,12 @@ def active_game(db, primary_user, secondary_user, classical_variant):
     )
 
     # Create units and supply centers
-    phase.units.create(type="Fleet", nation="England", province="edi")
-    phase.supply_centers.create(nation="England", province="edi")
+    phase.units.create(type=UnitType.FLEET, nation=classical_england_nation, province=classical_edinburgh_province)
+    phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
 
     # Create members and phase states
-    primary_member = game.members.create(user=primary_user, nation="England")
-    secondary_member = game.members.create(user=secondary_user, nation="France")
+    primary_member = game.members.create(user=primary_user, nation=classical_england_nation)
+    secondary_member = game.members.create(user=secondary_user, nation=classical_france_nation)
     phase.phase_states.create(member=primary_member)
     phase.phase_states.create(member=secondary_member)
 

@@ -7,7 +7,6 @@ class UnitSerializer(serializers.Serializer):
     type = serializers.CharField()
     nation = NationSerializer()
     province = ProvinceSerializer()
-    dislodged = serializers.BooleanField()
     dislodged_by = serializers.SerializerMethodField()
 
     def get_dislodged_by(self, obj):

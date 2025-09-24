@@ -11,144 +11,236 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('variant', '0001_initial'),
+        ("variant", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Channel',
+            name="Channel",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('name', models.CharField(max_length=250)),
-                ('private', models.BooleanField(default=False)),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("name", models.CharField(max_length=250)),
+                ("private", models.BooleanField(default=False)),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
         migrations.CreateModel(
-            name='Game',
+            name="Game",
             fields=[
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('id', models.CharField(max_length=150, primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=100)),
-                ('status', models.CharField(choices=[('pending', 'Pending'), ('active', 'Active'), ('completed', 'Completed')], default='pending', max_length=20)),
-                ('private', models.BooleanField(default=False)),
-                ('movement_phase_duration', models.CharField(choices=[('24 hours', '24 hours')], default='24 hours', max_length=20)),
-                ('nation_assignment', models.CharField(choices=[('random', 'Random'), ('ordered', 'Ordered')], default='random', max_length=20)),
-                ('variant', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='games', to='variant.variant')),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("id", models.CharField(max_length=150, primary_key=True, serialize=False)),
+                ("name", models.CharField(max_length=100)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[("pending", "Pending"), ("active", "Active"), ("completed", "Completed")],
+                        default="pending",
+                        max_length=20,
+                    ),
+                ),
+                ("private", models.BooleanField(default=False)),
+                (
+                    "movement_phase_duration",
+                    models.CharField(choices=[("24 hours", "24 hours")], default="24 hours", max_length=20),
+                ),
+                (
+                    "nation_assignment",
+                    models.CharField(
+                        choices=[("random", "Random"), ("ordered", "Ordered")], default="random", max_length=20
+                    ),
+                ),
+                (
+                    "variant",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, related_name="games", to="variant.variant"
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Member',
+            name="Member",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('nation', models.CharField(blank=True, max_length=100, null=True)),
-                ('won', models.BooleanField(default=False)),
-                ('drew', models.BooleanField(default=False)),
-                ('eliminated', models.BooleanField(default=False)),
-                ('kicked', models.BooleanField(default=False)),
-                ('game', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='members', to='game.game')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='members', to=settings.AUTH_USER_MODEL)),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("nation", models.CharField(blank=True, max_length=100, null=True)),
+                ("won", models.BooleanField(default=False)),
+                ("drew", models.BooleanField(default=False)),
+                ("eliminated", models.BooleanField(default=False)),
+                ("kicked", models.BooleanField(default=False)),
+                (
+                    "game",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, related_name="members", to="game.game"
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, related_name="members", to=settings.AUTH_USER_MODEL
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Phase',
+            name="Phase",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('ordinal', models.PositiveIntegerField(editable=False)),
-                ('status', models.CharField(choices=[('pending', 'Pending'), ('active', 'Active'), ('completed', 'Completed'), ('template', 'Template')], default='pending', max_length=20)),
-                ('started_at', models.DateTimeField(blank=True, null=True)),
-                ('completed_at', models.DateTimeField(blank=True, null=True)),
-                ('season', models.CharField(max_length=10)),
-                ('year', models.IntegerField()),
-                ('type', models.CharField(max_length=10)),
-                ('scheduled_resolution', models.DateTimeField(blank=True, null=True)),
-                ('options', models.TextField(blank=True, null=True)),
-                ('game', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='phases', to='game.game')),
-                ('variant', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='phases', to='variant.variant')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("ordinal", models.PositiveIntegerField(editable=False)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("pending", "Pending"),
+                            ("active", "Active"),
+                            ("completed", "Completed"),
+                            ("template", "Template"),
+                        ],
+                        default="pending",
+                        max_length=20,
+                    ),
+                ),
+                ("started_at", models.DateTimeField(blank=True, null=True)),
+                ("completed_at", models.DateTimeField(blank=True, null=True)),
+                ("season", models.CharField(max_length=10)),
+                ("year", models.IntegerField()),
+                ("type", models.CharField(max_length=10)),
+                ("scheduled_resolution", models.DateTimeField(blank=True, null=True)),
+                ("options", models.TextField(blank=True, null=True)),
+                (
+                    "game",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="phases",
+                        to="game.game",
+                    ),
+                ),
+                (
+                    "variant",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="phases",
+                        to="variant.variant",
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
         migrations.CreateModel(
-            name='PhaseState',
+            name="PhaseState",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('orders_confirmed', models.BooleanField(default=False)),
-                ('eliminated', models.BooleanField(default=False)),
-                ('member', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='phase_states', to='game.member')),
-                ('phase', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='phase_states', to='game.phase')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("orders_confirmed", models.BooleanField(default=False)),
+                ("eliminated", models.BooleanField(default=False)),
+                (
+                    "member",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, related_name="phase_states", to="game.member"
+                    ),
+                ),
+                (
+                    "phase",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, related_name="phase_states", to="game.phase"
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
         migrations.CreateModel(
-            name='ChannelMessage',
+            name="ChannelMessage",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('body', models.TextField()),
-                ('channel', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='messages', to='game.channel')),
-                ('sender', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='sent_messages', to='game.member')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("body", models.TextField()),
+                (
+                    "channel",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, related_name="messages", to="game.channel"
+                    ),
+                ),
+                (
+                    "sender",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, related_name="sent_messages", to="game.member"
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
         migrations.CreateModel(
-            name='ChannelMember',
+            name="ChannelMember",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('channel', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='member_channels', to='game.channel')),
-                ('member', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='member_channels', to='game.member')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "channel",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, related_name="member_channels", to="game.channel"
+                    ),
+                ),
+                (
+                    "member",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, related_name="member_channels", to="game.member"
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
         migrations.AddField(
-            model_name='channel',
-            name='game',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='channels', to='game.game'),
+            model_name="channel",
+            name="game",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, related_name="channels", to="game.game"
+            ),
         ),
         migrations.AddField(
-            model_name='channel',
-            name='members',
-            field=models.ManyToManyField(related_name='channels', through='game.ChannelMember', to='game.member'),
+            model_name="channel",
+            name="members",
+            field=models.ManyToManyField(related_name="channels", through="game.ChannelMember", to="game.member"),
         ),
         migrations.AddIndex(
-            model_name='member',
-            index=models.Index(fields=['game', 'user'], name='game_member_game_id_1d3341_idx'),
+            model_name="member",
+            index=models.Index(fields=["game", "user"], name="game_member_game_id_1d3341_idx"),
         ),
         migrations.AddIndex(
-            model_name='member',
-            index=models.Index(fields=['user'], name='game_member_user_id_5c13f1_idx'),
+            model_name="member",
+            index=models.Index(fields=["user"], name="game_member_user_id_5c13f1_idx"),
         ),
         migrations.AddIndex(
-            model_name='member',
-            index=models.Index(fields=['game'], name='game_member_game_id_5157f3_idx'),
+            model_name="member",
+            index=models.Index(fields=["game"], name="game_member_game_id_5157f3_idx"),
         ),
         migrations.AddIndex(
-            model_name='game',
-            index=models.Index(fields=['status'], name='game_game_status_295efa_idx'),
+            model_name="game",
+            index=models.Index(fields=["status"], name="game_game_status_295efa_idx"),
         ),
         migrations.AddIndex(
-            model_name='game',
-            index=models.Index(fields=['variant'], name='game_game_variant_24352b_idx'),
+            model_name="game",
+            index=models.Index(fields=["variant"], name="game_game_variant_24352b_idx"),
         ),
     ]

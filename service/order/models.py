@@ -1,9 +1,9 @@
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, ObjectDoesNotExist
 from django.core import exceptions
 
 from common.constants import UnitType, OrderType, PhaseStatus, OrderResolutionStatus, OrderCreationStep
-from common.models import BaseModel, ProvinceDisplayMixin
+from common.models import BaseModel
 
 from .utils import get_options_for_order
 
@@ -42,41 +42,76 @@ class OrderManager(models.Manager):
         return self.get_queryset().with_related_data()
 
     def create_from_selected(self, user, phase, selected):
+        print(selected)
         phase_state = (
             phase.phase_states.select_related("member__user", "phase", "member", "phase__game__variant")
             .filter(member__user=user)
             .first()
         )
-        order = Order(phase_state=phase_state, source=selected[0])
+
+        try:
+            source = phase.variant.provinces.get(province_id=selected[0])
+        except ObjectDoesNotExist:
+            raise exceptions.ValidationError(f"Source province {selected[0]} not found")
+
+        order = Order(phase_state=phase_state, source=source)
 
         if len(selected) <= 1:
             return order
 
         order.order_type = selected[1]
 
-        field_mappings = {
-            OrderType.BUILD: [("unit_type", 2)],
-            OrderType.MOVE: [("target", 2)],
-            OrderType.SUPPORT: [("aux", 2), ("target", 3)],
-            OrderType.CONVOY: [("aux", 2), ("target", 3)],
-        }
+        if order.order_type == OrderType.BUILD:
+            if len(selected) >= 3:
+                order.unit_type = selected[2]
+        elif order.order_type == OrderType.MOVE:
+            if len(selected) >= 3:
+                try:
+                    order.target = phase.variant.provinces.get(province_id=selected[2])
+                except ObjectDoesNotExist:
+                    raise exceptions.ValidationError(f"Target province {selected[2]} not found")
+        elif order.order_type == OrderType.SUPPORT:
+            if len(selected) >= 3:
+                try:
+                    order.aux = phase.variant.provinces.get(province_id=selected[2])
+                except ObjectDoesNotExist:
+                    raise exceptions.ValidationError(f"Auxiliary province {selected[2]} not found")
+            if len(selected) >= 4:
+                try:
+                    order.target = phase.variant.provinces.get(province_id=selected[3])
+                except ObjectDoesNotExist:
+                    raise exceptions.ValidationError(f"Target province {selected[3]} not found")
+        elif order.order_type == OrderType.CONVOY:
+            if len(selected) >= 3:
+                try:
+                    order.aux = phase.variant.provinces.get(province_id=selected[2])
+                except ObjectDoesNotExist:
+                    raise exceptions.ValidationError(f"Auxiliary province {selected[2]} not found")
+            if len(selected) >= 4:
+                try:
+                    order.target = phase.variant.provinces.get(province_id=selected[3])
+                except ObjectDoesNotExist:
+                    raise exceptions.ValidationError(f"Target province {selected[3]} not found")
 
-        for field_name, index in field_mappings.get(order.order_type, []):
-            if len(selected) > index:
-                setattr(order, field_name, selected[index])
-
+        print(order)
         return order
 
 
-class Order(BaseModel, ProvinceDisplayMixin):
+class Order(BaseModel):
 
     objects = OrderManager()
 
     phase_state = models.ForeignKey("game.PhaseState", on_delete=models.CASCADE, related_name="orders")
     order_type = models.CharField(max_length=50, choices=OrderType.ORDER_TYPE_CHOICES, null=True, blank=True)
-    source = models.CharField(max_length=50)
-    target = models.CharField(max_length=50, null=True, blank=True)
-    aux = models.CharField(max_length=50, null=True, blank=True)
+    source = models.ForeignKey(
+        "province.Province", on_delete=models.CASCADE, related_name="source_orders", null=True, blank=True
+    )
+    target = models.ForeignKey(
+        "province.Province", on_delete=models.CASCADE, related_name="target_orders", null=True, blank=True
+    )
+    aux = models.ForeignKey(
+        "province.Province", on_delete=models.CASCADE, related_name="aux_orders", null=True, blank=True
+    )
     unit_type = models.CharField(max_length=50, choices=UnitType.UNIT_TYPE_CHOICES, null=True, blank=True)
 
     @property
@@ -88,18 +123,6 @@ class Order(BaseModel, ProvinceDisplayMixin):
         return self.phase_state.member.nation
 
     @property
-    def source_display(self):
-        return self._get_province_display(self.source, self.variant)
-
-    @property
-    def target_display(self):
-        return self._get_province_display(self.target, self.variant)
-
-    @property
-    def aux_display(self):
-        return self._get_province_display(self.aux, self.variant)
-
-    @property
     def options(self):
         phase = self.phase_state.phase
         return get_options_for_order(phase.options_dict, self)
@@ -109,16 +132,29 @@ class Order(BaseModel, ProvinceDisplayMixin):
         self.options
         display_options = []
         for option in self.options:
-            province = self._get_province_display(option, self.variant)
+            try:
+                province = self.variant.provinces.get(province_id=option)
+            except ObjectDoesNotExist:
+                province = None
             if province is not None:
-                display_options.append({"value": option, "label": province["name"]})
+                display_options.append({"value": option, "label": province.name})
             else:
                 display_options.append({"value": option, "label": option})
         return display_options
 
     @property
     def selected(self):
-        return [value for value in [self.source, self.order_type, self.unit_type, self.aux, self.target] if value]
+        return [
+            value
+            for value in [
+                self.source.province_id if self.source else None,
+                self.order_type,
+                self.unit_type,
+                self.aux.province_id if self.aux else None,
+                self.target.province_id if self.target else None,
+            ]
+            if value
+        ]
 
     @property
     def complete(self):
@@ -154,29 +190,29 @@ class Order(BaseModel, ProvinceDisplayMixin):
     @property
     def title(self):
         if not self.order_type:
-            return f"Select order type for {self.source_display['name']}"
+            return f"Select order type for {self.source.name}"
 
         if self.order_type == OrderType.HOLD:
-            return f"{self.source_display['name']} will hold"
+            return f"{self.source.name} will hold"
         if self.order_type == OrderType.DISBAND:
-            return f"{self.source_display['name']} will be disbanded"
+            return f"{self.source.name} will be disbanded"
         if self.order_type == OrderType.BUILD:
             if not self.unit_type:
-                return f"Select unit type to build in {self.source_display['name']}"
+                return f"Select unit type to build in {self.source.name}"
             else:
-                return f"{self.unit_type} will be built in {self.source_display['name']}"
+                return f"{self.unit_type} will be built in {self.source.name}"
         if self.order_type == OrderType.MOVE:
             if not self.target:
-                return f"Select province to move {self.source_display['name']} to"
+                return f"Select province to move {self.source.name} to"
             else:
-                return f"{self.source_display['name']} will move to {self.target_display['name']}"
+                return f"{self.source.name} will move to {self.target.name}"
         if self.order_type in [OrderType.SUPPORT, OrderType.CONVOY]:
             if not self.aux:
-                return f"Select province for {self.source_display['name']} to {self.order_type.lower()}"
+                return f"Select province for {self.source.name} to {self.order_type.lower()}"
             elif not self.target:
-                return f"Select destination for {self.source_display['name']} to {self.order_type.lower()} {self.aux_display['name']} to"
+                return f"Select destination for {self.source.name} to {self.order_type.lower()} {self.aux.name} to"
             else:
-                return f"{self.source_display['name']} will {self.order_type.lower()} {self.aux_display['name']} to {self.target_display['name']}"
+                return f"{self.source.name} will {self.order_type.lower()} {self.aux.name} to {self.target.name}"
         return None
 
     def clean(self):
@@ -189,9 +225,6 @@ class Order(BaseModel, ProvinceDisplayMixin):
 class OrderResolution(BaseModel):
     order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name="resolution")
     status = models.CharField(max_length=30, choices=OrderResolutionStatus.STATUS_CHOICES)
-    by = models.CharField(
-        max_length=50,
-        null=True,
-        blank=True,
-        help_text="Province that caused the resolution status (e.g. province that caused a bounce)",
+    by = models.ForeignKey(
+        "province.Province", on_delete=models.CASCADE, related_name="order_resolutions", null=True, blank=True
     )

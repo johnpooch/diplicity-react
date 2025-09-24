@@ -9,23 +9,31 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('variant', '0001_initial'),
+        ("variant", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Province',
+            name="Province",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('province_id', models.CharField(max_length=10)),
-                ('name', models.CharField(max_length=100)),
-                ('type', models.CharField(choices=[('land', 'Land'), ('sea', 'Sea'), ('coastal', 'Coastal')], max_length=20)),
-                ('supply_center', models.BooleanField(default=False)),
-                ('variant', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='province_set', to='variant.variant')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("province_id", models.CharField(max_length=10)),
+                ("name", models.CharField(max_length=100)),
+                (
+                    "type",
+                    models.CharField(choices=[("land", "Land"), ("sea", "Sea"), ("coastal", "Coastal")], max_length=20),
+                ),
+                ("supply_center", models.BooleanField(default=False)),
+                (
+                    "variant",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, related_name="provinces", to="variant.variant"
+                    ),
+                ),
             ],
             options={
-                'ordering': ['name'],
-                'unique_together': {('province_id', 'variant')},
+                "ordering": ["name"],
+                "unique_together": {("province_id", "variant")},
             },
         ),
     ]

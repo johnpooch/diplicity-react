@@ -7,12 +7,3 @@ class BaseModel(models.Model):
 
     class Meta:
         abstract = True
-
-
-class ProvinceDisplayMixin:
-    def _get_province_display(self, province_id, variant):
-
-        if not hasattr(self, "_province_cache"):
-            self._province_cache = {p["id"]: p for p in variant.provinces}
-
-        return self._province_cache.get(province_id, None)

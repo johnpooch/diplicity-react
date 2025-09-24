@@ -2,6 +2,8 @@ import pytest
 from .models import Order
 from django.apps import apps
 from common.constants import PhaseStatus
+from nation.models import Nation
+from province.models import Province
 
 
 Game = apps.get_model("game", "Game")
@@ -27,8 +29,12 @@ def base_active_phase(db):
             type="Movement",
             status=PhaseStatus.ACTIVE,
         )
-        phase.units.create(type="Fleet", nation="England", province="edi")
-        phase.supply_centers.create(nation="England", province="edi")
+        # Get the actual model instances
+        england_nation = Nation.objects.get(name="England", variant=game.variant)
+        edi_province = Province.objects.get(province_id="edi", variant=game.variant)
+
+        phase.units.create(type="Fleet", nation=england_nation, province=edi_province)
+        phase.supply_centers.create(nation=england_nation, province=edi_province)
         return phase
 
     return _create_phase
@@ -37,10 +43,13 @@ def base_active_phase(db):
 @pytest.fixture
 def order_active_game(db, primary_user, secondary_user, base_active_game_for_primary_user, base_active_phase):
     phase = base_active_phase(base_active_game_for_primary_user)
-    primary_member = base_active_game_for_primary_user.members.create(user=primary_user, nation="England")
-    secondary_member = base_active_game_for_primary_user.members.create(user=secondary_user, nation="France")
-    print("PHASE VARIANT")
-    print(phase.variant)
+
+    # Get the actual nation instances
+    england_nation = Nation.objects.get(name="England", variant=base_active_game_for_primary_user.variant)
+    france_nation = Nation.objects.get(name="France", variant=base_active_game_for_primary_user.variant)
+
+    primary_member = base_active_game_for_primary_user.members.create(user=primary_user, nation=england_nation)
+    secondary_member = base_active_game_for_primary_user.members.create(user=secondary_user, nation=france_nation)
     phase.phase_states.create(member=primary_member)
     phase.phase_states.create(member=secondary_member)
     return base_active_game_for_primary_user

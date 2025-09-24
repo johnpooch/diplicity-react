@@ -9,19 +9,15 @@ User = get_user_model()
 class Member(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="members")
     game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name="members")
-    nation = models.CharField(max_length=100, blank=True, null=True)
+    nation = models.ForeignKey("nation.Nation", on_delete=models.CASCADE, related_name="members")
     won = models.BooleanField(default=False)
     drew = models.BooleanField(default=False)
     eliminated = models.BooleanField(default=False)
     kicked = models.BooleanField(default=False)
 
-    def nation_data(self):
-        variant = self.game.variant
-        return next((n for n in variant.nations if n["name"] == self.nation), None)
-
     class Meta:
         indexes = [
-            models.Index(fields=['game', 'user']),
-            models.Index(fields=['user']),
-            models.Index(fields=['game']),
+            models.Index(fields=["game", "user"]),
+            models.Index(fields=["user"]),
+            models.Index(fields=["game"]),
         ]

@@ -1,21 +1,23 @@
 from rest_framework import serializers
+from province.serializers import ProvinceSerializer
+from nation.serializers import NationSerializer
 from .models import Order, OrderResolution
 
 
 class OrderResolutionSerializer(serializers.Serializer):
     status = serializers.CharField(source="get_status_display")
-    by = serializers.CharField(allow_null=True)
+    by = ProvinceSerializer(allow_null=True)
 
 
 class OrderSerializer(serializers.Serializer):
-    source = serializers.ReadOnlyField(source="source_display")
-    target = serializers.ReadOnlyField(source="target_display")
-    aux = serializers.ReadOnlyField(source="aux_display")
+    source = ProvinceSerializer(read_only=True)
+    target = ProvinceSerializer(read_only=True)
+    aux = ProvinceSerializer(read_only=True)
     resolution = OrderResolutionSerializer(read_only=True)
     options = serializers.ReadOnlyField(source="options_display")
     order_type = serializers.ReadOnlyField()
     unit_type = serializers.ReadOnlyField()
-    nation = serializers.ReadOnlyField()
+    nation = NationSerializer(read_only=True)
     complete = serializers.ReadOnlyField(allow_null=True)
     step = serializers.ReadOnlyField(allow_null=True)
     title = serializers.ReadOnlyField(allow_null=True)

@@ -9,21 +9,26 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('variant', '0001_initial'),
+        ("variant", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Nation',
+            name="Nation",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=50)),
-                ('color', models.CharField(max_length=7)),
-                ('variant', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='nation_set', to='variant.variant')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("name", models.CharField(max_length=50)),
+                ("color", models.CharField(max_length=7)),
+                (
+                    "variant",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, related_name="nations", to="variant.variant"
+                    ),
+                ),
             ],
             options={
-                'ordering': ['name'],
-                'unique_together': {('name', 'variant')},
+                "ordering": ["name"],
+                "unique_together": {("name", "variant")},
             },
         ),
     ]

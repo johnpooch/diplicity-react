@@ -4,9 +4,9 @@ from .models import Order, OrderResolution
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    pass
+    list_display = ["phase_state", "order_type", "source", "target", "aux"]
 
 
 @admin.register(OrderResolution)
 class OrderResolutionAdmin(admin.ModelAdmin):
-    pass
+    list_display = ["order", "status", "by"]
