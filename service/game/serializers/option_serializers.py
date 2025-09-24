@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .phase_serializers import ProvinceSerializer, UnitSerializer
+from province.serializers import ProvinceSerializer
+from unit.serializers import UnitSerializer
 
 
 class PartialOrderSerializer(serializers.Serializer):

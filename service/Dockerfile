@@ -51,4 +51,4 @@ COPY --chmod=755 entrypoint.sh /entrypoint.sh
 # Switch to non-root user
 USER appuser
 
-# ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]

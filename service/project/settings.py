@@ -25,19 +25,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-gdnbe1&siif)1gsuv+fkl79nd)z_w+ng5kl@(==nka&bofqg*n')
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-gdnbe1&siif)1gsuv+fkl79nd)z_w+ng5kl@(==nka&bofqg*n")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
+DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,service').split(',')
+ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,service").split(",")
 
 # CSRF Settings
-CSRF_TRUSTED_ORIGINS = [
-    'https://diplicity-service.azurewebsites.net',
-    'http://localhost:8000',
-    'http://localhost:5173'
-]
+CSRF_TRUSTED_ORIGINS = ["https://diplicity-service.azurewebsites.net", "http://localhost:8000", "http://localhost:5173"]
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
 
@@ -65,6 +61,8 @@ INSTALLED_APPS = [
     "variant",
     "province",
     "nation",
+    "unit",
+    "supply_center",
     "drf_spectacular",
 ]
 
@@ -80,16 +78,16 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-CORS_ALLOWED_ORIGINS = os.getenv('DJANGO_CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:5173,http://diplicity-web:5173').split(',')
+CORS_ALLOWED_ORIGINS = os.getenv(
+    "DJANGO_CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173,http://diplicity-web:5173"
+).split(",")
 
 ROOT_URLCONF = "project.urls"
 
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [
-            BASE_DIR / "templates"
-        ],  # Add this line to include the templates directory
+        "DIRS": [BASE_DIR / "templates"],  # Add this line to include the templates directory
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -165,7 +163,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = "/static/"
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 # Storage configuration (replaces deprecated STATICFILES_STORAGE)
 STORAGES = {
@@ -232,8 +230,8 @@ SPECTACULAR_SETTINGS = {
     ],
 }
 
-ENVIRONMENT = os.getenv("ENVIRONMENT", "development");
-VERSION = os.getenv("GIT_SHA", "0.0.0");
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+VERSION = os.getenv("GIT_SHA", "0.0.0")
 
 if DEBUG:
     ROOT_LOG_LEVEL = "INFO"
@@ -247,54 +245,54 @@ else:
     GAME_LOG_LEVEL = "INFO"
 
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '[{levelname}] {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "[{levelname}] {asctime} {module} {process:d} {thread:d} {message}",
+            "style": "{",
         },
-        'simple': {
-            'format': '[{levelname}] {message}',
-            'style': '{',
-        },
-    },
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
-            'level': ROOT_LOG_LEVEL,
+        "simple": {
+            "format": "[{levelname}] {message}",
+            "style": "{",
         },
     },
-    'root': {
-        'handlers': ['console'],
-        'level': ROOT_LOG_LEVEL,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+            "level": ROOT_LOG_LEVEL,
+        },
     },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': DJANGO_LOG_LEVEL,
-            'propagate': False,
+    "root": {
+        "handlers": ["console"],
+        "level": ROOT_LOG_LEVEL,
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": DJANGO_LOG_LEVEL,
+            "propagate": False,
         },
-        'django.request': {
-            'handlers': ['console'],
-            'level': 'WARNING',  # Only log warnings and errors for requests
-            'propagate': False,
+        "django.request": {
+            "handlers": ["console"],
+            "level": "WARNING",  # Only log warnings and errors for requests
+            "propagate": False,
         },
-        'django.db.backends': {
-            'handlers': ['console'],
-            'level': DB_LOG_LEVEL,
-            'propagate': False,
+        "django.db.backends": {
+            "handlers": ["console"],
+            "level": DB_LOG_LEVEL,
+            "propagate": False,
         },
-        'django.security': {
-            'handlers': ['console'],
-            'level': 'WARNING',
-            'propagate': False,
+        "django.security": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
         },
-        'game': {
-            'handlers': ['console'],
-            'level': GAME_LOG_LEVEL,
-            'propagate': False,
+        "game": {
+            "handlers": ["console"],
+            "level": GAME_LOG_LEVEL,
+            "propagate": False,
         },
     },
 }

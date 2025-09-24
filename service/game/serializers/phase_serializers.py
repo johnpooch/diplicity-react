@@ -2,29 +2,12 @@ from rest_framework import serializers
 
 from game.models import Phase
 from common.constants import PhaseStatus
+from unit.serializers import UnitSerializer
+from supply_center.serializers import SupplyCenterSerializer
 
 
 class PhaseNationSerializer(serializers.Serializer):
     name = serializers.CharField()
-
-
-class ProvinceSerializer(serializers.Serializer):
-    id = serializers.CharField()
-    name = serializers.CharField()
-    type = serializers.CharField()
-    supply_center = serializers.BooleanField()
-
-
-class UnitSerializer(serializers.Serializer):
-    type = serializers.CharField()
-    nation = PhaseNationSerializer()
-    province = ProvinceSerializer()
-    dislodged = serializers.BooleanField()
-
-
-class SupplyCenterSerializer(serializers.Serializer):
-    province = ProvinceSerializer()
-    nation = PhaseNationSerializer()
 
 
 class PhaseSerializer(serializers.Serializer):
