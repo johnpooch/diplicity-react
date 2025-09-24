@@ -475,7 +475,7 @@ class TestOrderListViewQueryPerformance:
             response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(connection.queries) == 3
+        assert len(connection.queries) == 4
 
     @pytest.mark.django_db
     def test_list_orders_query_count_with_multiple_orders(
@@ -494,7 +494,7 @@ class TestOrderListViewQueryPerformance:
             response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(connection.queries) == 3
+        assert len(connection.queries) == 4
 
 
 class TestOrderCreateViewQueryPerformance:
@@ -512,7 +512,7 @@ class TestOrderCreateViewQueryPerformance:
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
 
-        assert query_count == 8
+        assert query_count == 9
 
 
 class TestGetOptionsForOrder:

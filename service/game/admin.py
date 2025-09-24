@@ -1,7 +1,6 @@
 from django.contrib import admin
 from django.contrib import messages
 from .models import (
-    Variant,
     Channel,
     ChannelMember,
     ChannelMessage,
@@ -14,6 +13,7 @@ from .models import (
 )
 from .services.game_service import GameService
 from .services.adjudication_service import AdjudicationService
+from common.constants import PhaseStatus
 
 @admin.register(Channel)
 class ChannelAdmin(admin.ModelAdmin):
@@ -66,7 +66,7 @@ class GameAdmin(admin.ModelAdmin):
                 messages.error(request, f'Game {game.name} has no current phase')
                 continue
                 
-            if current_phase.status != Phase.ACTIVE:
+            if current_phase.status != PhaseStatus.ACTIVE:
                 messages.error(request, f'Game {game.name} current phase is not active')
                 continue
             
@@ -111,7 +111,3 @@ class UnitAdmin(admin.ModelAdmin):
     search_fields = ('province',)
 
 
-@admin.register(Variant)
-class VariantAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name')
-    search_fields = ('name',)

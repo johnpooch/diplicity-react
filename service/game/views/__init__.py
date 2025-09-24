@@ -11,7 +11,6 @@ from .channel_view import (
     ChannelMessageCreateView,
     ChannelListView,
 )
-from .variant_view import VariantListView
 from .order_view import OrderableProvincesListView
 from .options_view import OptionsListView
 from .phase_view import PhaseResolveView
@@ -26,7 +25,6 @@ __all__ = [
     "GameListView",
     "GameRetrieveView",
     "GameConfirmPhaseView",
-    "VariantListView",
     "OptionsListView",
     "OrderableProvincesListView",
     "PhaseResolveView",

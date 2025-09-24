@@ -3,6 +3,7 @@ from game import models
 from django.db import connection
 from django.contrib.auth import get_user_model
 from user_profile.models import UserProfile
+from variant.models import Variant
 
 User = get_user_model()
 
@@ -14,8 +15,8 @@ def test_game_queryset_with_variant(django_assert_num_queries):
     variant selected. Accessing iterating over the queryset and accessing the
     variant should not result in additional queries.
     """
-    variant_a = models.Variant.objects.get(id="classical")
-    variant_b = models.Variant.objects.get(id="italy-vs-germany")
+    variant_a = Variant.objects.get(id="classical")
+    variant_b = Variant.objects.get(id="italy-vs-germany")
     game_a = models.Game.objects.create(name="Game A", variant=variant_a)
     game_b = models.Game.objects.create(name="Game B", variant=variant_b)
 
@@ -36,8 +37,8 @@ def test_game_queryset_with_phases(django_assert_num_queries):
     phases and supply centers selected. Iterating over the queryset and accessing the
     supply centers should not result in additional queries.
     """
-    variant_a = models.Variant.objects.get(id="classical")
-    variant_b = models.Variant.objects.get(id="italy-vs-germany")
+    variant_a = Variant.objects.get(id="classical")
+    variant_b = Variant.objects.get(id="italy-vs-germany")
 
     game_a = models.Game.objects.create(name="Game A", variant=variant_a)
     game_b = models.Game.objects.create(name="Game B", variant=variant_b)
@@ -80,8 +81,8 @@ def test_game_queryset_with_members(django_assert_num_queries):
     members and their user profiles selected. Iterating over the queryset and accessing the
     members and their user profiles should not result in additional queries.
     """
-    variant_a = models.Variant.objects.get(id="classical")
-    variant_b = models.Variant.objects.get(id="italy-vs-germany")
+    variant_a = Variant.objects.get(id="classical")
+    variant_b = Variant.objects.get(id="italy-vs-germany")
 
     game_a = models.Game.objects.create(name="Game A", variant=variant_a)
     game_b = models.Game.objects.create(name="Game B", variant=variant_b)
@@ -121,8 +122,8 @@ def test_game_queryset_includes_user(django_assert_num_queries):
     Test that the GameQuerySet.includes_user() method returns only games that
     include the specified user as a member.
     """
-    variant_a = models.Variant.objects.get(id="classical")
-    variant_b = models.Variant.objects.get(id="italy-vs-germany")
+    variant_a = Variant.objects.get(id="classical")
+    variant_b = Variant.objects.get(id="italy-vs-germany")
 
     game_a = models.Game.objects.create(name="Game A", variant=variant_a)
     game_b = models.Game.objects.create(name="Game B", variant=variant_b)

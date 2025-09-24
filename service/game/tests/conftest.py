@@ -5,6 +5,8 @@ from game import models
 from user_profile.models import UserProfile
 from rest_framework.test import APIClient
 from unittest.mock import MagicMock, patch
+from variant.models import Variant
+from common.constants import PhaseStatus
 
 User = get_user_model()
 
@@ -56,7 +58,7 @@ def italy_vs_germany_variant(django_db_setup, django_db_blocker):
     Create a test variant.
     """
     with django_db_blocker.unblock():
-        return models.Variant.objects.get(id="italy-vs-germany")
+        return Variant.objects.get(id="italy-vs-germany")
 
 
 
@@ -117,7 +119,12 @@ def base_pending_phase(db):
 
     def _create_phase(game):
         phase = game.phases.create(
-            season="Spring", year=1901, type="Movement", status=models.Phase.PENDING
+            game=game,
+            variant=game.variant,
+            season="Spring",
+            year=1901,
+            type="Movement",
+            status=PhaseStatus.PENDING
         )
 
         phase.units.create(type="Fleet", nation="England", province="edi")
@@ -137,7 +144,12 @@ def base_active_phase(db):
 
     def _create_phase(game):
         phase = game.phases.create(
-            season="Spring", year=1901, type="Movement", status=models.Phase.ACTIVE
+            game=game,
+            variant=game.variant,
+            season="Spring",
+            year=1901,
+            type="Movement",
+            status=PhaseStatus.ACTIVE
         )
 
         phase.units.create(type="Fleet", nation="England", province="edi")
@@ -397,7 +409,7 @@ def active_game_with_completed_phase_and_resolutions(
     """
     game = active_game_with_multiple_orders
     phase = game.current_phase
-    phase.status = models.Phase.COMPLETED
+    phase.status = PhaseStatus.COMPLETED
     phase.save()
 
     # Create resolutions for orders

@@ -36,7 +36,6 @@ urlpatterns = [
         views.ChannelListView.as_view(),
         name="channel-list",
     ),
-    path("variants/", views.VariantListView.as_view(), name="variant-list"),
     # path(
     #     "game/<str:game_id>/phase/<int:phase_id>/orders/",
     #     views.OrderListView.as_view(),

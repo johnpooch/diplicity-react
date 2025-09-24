@@ -1,0 +1,26 @@
+# Expo generated files
+expo-env.d.ts
+
+# Build outputs
+ios/
+android/
+.expo/
+dist/
+build/
+
+# Node modules
+node_modules/
+
+# Package manager files
+package-lock.json
+yarn.lock
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -149,35 +149,16 @@ class OrderService(BaseService):
         for province_id in orderable_provinces:
             # Get province data from variant
             province_data = province_lookup.get(province_id)
-            
+
             if not province_data:
                 continue
-            
+
             # Check for existing order
             existing_order = current_phase_state.orders.filter(source=province_id).first()
-            
-            # Enhance order with province data for target and aux
-            order_data = existing_order
-            if existing_order:
-                # Safely get resolution (might not exist)
-                resolution = None
-                try:
-                    resolution = existing_order.resolution
-                except:
-                    resolution = None
-                    
-                order_data = {
-                    "id": existing_order.id,
-                    "order_type": existing_order.order_type,
-                    "source": province_lookup.get(existing_order.source),
-                    "target": province_lookup.get(existing_order.target) if existing_order.target else None,
-                    "aux": province_lookup.get(existing_order.aux) if existing_order.aux else None,
-                    "resolution": resolution
-                }
-            
+
             result.append({
                 "province": province_data,
-                "order": order_data
+                "order": existing_order  # Use the Order model instance directly
             })
 
         return result

@@ -59,7 +59,7 @@ class Game(BaseModel):
 
     id = models.CharField(max_length=150, primary_key=True)
     variant = models.ForeignKey(
-        "Variant", on_delete=models.CASCADE, related_name="games"
+        "variant.Variant", on_delete=models.CASCADE, related_name="games"
     )
     name = models.CharField(max_length=100)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)

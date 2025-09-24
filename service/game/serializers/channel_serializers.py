@@ -1,5 +1,9 @@
 from rest_framework import serializers
-from .variant_serializers import NationSerializer
+
+
+class NationSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    color = serializers.CharField()
 
 
 class SenderSerializer(serializers.Serializer):

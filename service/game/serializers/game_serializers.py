@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from .phase_serializers import PhaseSerializer
-from .variant_serializers import VariantSerializer
+from variant.serializers import VariantSerializer
 
 
 class MemberSerializer(serializers.Serializer):

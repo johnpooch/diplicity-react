@@ -2,6 +2,7 @@ import pytest
 from django.urls import reverse
 from rest_framework import status
 from game import models
+from common.constants import PhaseStatus
 
 viewname = "game-retrieve"
 
@@ -123,7 +124,7 @@ def test_can_confirm_phase_false_inactive_phase(
     """
     # Change phase to inactive
     phase = active_game_with_phase_state.current_phase
-    phase.status = models.Phase.COMPLETED
+    phase.status = PhaseStatus.COMPLETED
     phase.save()
 
     url = reverse(viewname, args=[active_game_with_phase_state.id])

@@ -1,6 +1,7 @@
 import pytest
 from .models import Order
 from django.apps import apps
+from common.constants import PhaseStatus
 
 
 Game = apps.get_model("game", "Game")
@@ -20,10 +21,11 @@ def base_active_game_for_primary_user(db, classical_variant):
 def base_active_phase(db):
     def _create_phase(game):
         phase = game.phases.create(
+            variant=game.variant,
             season="Spring",
             year=1901,
             type="Movement",
-            status=Phase.ACTIVE,
+            status=PhaseStatus.ACTIVE,
         )
         phase.units.create(type="Fleet", nation="England", province="edi")
         phase.supply_centers.create(nation="England", province="edi")
@@ -37,6 +39,8 @@ def order_active_game(db, primary_user, secondary_user, base_active_game_for_pri
     phase = base_active_phase(base_active_game_for_primary_user)
     primary_member = base_active_game_for_primary_user.members.create(user=primary_user, nation="England")
     secondary_member = base_active_game_for_primary_user.members.create(user=secondary_user, nation="France")
+    print("PHASE VARIANT")
+    print(phase.variant)
     phase.phase_states.create(member=primary_member)
     phase.phase_states.create(member=secondary_member)
     return base_active_game_for_primary_user

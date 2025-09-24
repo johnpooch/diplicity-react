@@ -2,6 +2,7 @@ import pytest
 from rest_framework import status
 from game import models
 import json
+from common.constants import PhaseStatus
 
 @pytest.mark.django_db
 def test_start_game_updates_status(game_service, pending_game_created_by_primary_user, mock_notify_task, mock_resolve_task):
@@ -10,7 +11,7 @@ def test_start_game_updates_status(game_service, pending_game_created_by_primary
     """
     game = game_service.start(pending_game_created_by_primary_user.id)
     assert game.status == models.Game.ACTIVE
-    assert game.current_phase.status == models.Phase.ACTIVE
+    assert game.current_phase.status == PhaseStatus.ACTIVE
 
 @pytest.mark.django_db
 def test_start_game_assigns_nations(game_service, pending_game_created_by_primary_user, mock_notify_task, mock_resolve_task):

@@ -4,6 +4,7 @@ from ..models import Game, Phase
 from .game_service import GameService
 from .adjudication_service import AdjudicationService
 from .base_service import BaseService
+from common.constants import PhaseStatus
 
 logger = logging.getLogger("game.services.phase")
 
@@ -17,7 +18,7 @@ class PhaseService(BaseService):
         now = timezone.now()
         due_phases = Phase.objects.filter(
             scheduled_resolution__lte=now,
-            status=Phase.ACTIVE,
+            status=PhaseStatus.ACTIVE,
         )
 
         resolved_count = 0

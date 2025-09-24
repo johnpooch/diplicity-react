@@ -33,8 +33,6 @@ USER root
 
 EXPOSE 8000
 
-CMD ["/app/worker_entrypoint.sh"]
-
 # Production stage: Use gunicorn
 FROM base AS production
 
@@ -53,4 +51,4 @@ COPY --chmod=755 entrypoint.sh /entrypoint.sh
 # Switch to non-root user
 USER appuser
 
-ENTRYPOINT ["/entrypoint.sh"]
+# ENTRYPOINT ["/entrypoint.sh"]

@@ -14,6 +14,8 @@ from rest_framework import exceptions
 from django.apps import apps
 from .. import models
 from .base_service import BaseService
+from variant.models import Variant
+from common.constants import PhaseStatus
 
 logger = logging.getLogger("game")
 
@@ -122,7 +124,7 @@ class GameService(BaseService):
         can_confirm_phase = (
             game.status == models.Game.ACTIVE
             and current_phase is not None
-            and current_phase.status == models.Phase.ACTIVE
+            and current_phase.status == PhaseStatus.ACTIVE
             and user_member is not None
             and not user_member.eliminated
             and not user_member.kicked
@@ -242,7 +244,7 @@ class GameService(BaseService):
     def create(self, data):
         logger.info("GameService.create() called with data: %s", data)
 
-        variant = models.Variant.objects.filter(id=data["variant"]).first()
+        variant = Variant.objects.filter(id=data["variant"]).first()
         if not variant:
             logger.error("GameService.create() variant not found: %s", data["variant"])
             raise exceptions.ValidationError(
@@ -257,31 +259,33 @@ class GameService(BaseService):
             )
             game.members.create(user=self.user)
 
-            # Create a pending phase for the game
+            # Create a pending phase for the game by copying from template phase
+            template_phase = variant.template_phase
             phase = game.phases.create(
                 game=game,
-                season=variant.start["season"],
-                year=variant.start["year"],
-                type=variant.start["type"],
-                status=models.Phase.PENDING,
+                variant=variant,
+                season=template_phase.season,
+                year=template_phase.year,
+                type=template_phase.type,
+                status=PhaseStatus.PENDING,
             )
 
-            # Create Unit instances for the phase
-            for unit_data in variant.start["units"]:
+            # Create Unit instances by copying from template phase
+            for template_unit in template_phase.units.all():
                 models.Unit.objects.create(
                     phase=phase,
-                    type=unit_data["type"],
-                    nation=unit_data["nation"],
-                    province=unit_data["province"],
-                    dislodged=unit_data.get("dislodged", False),
+                    type=template_unit.type,
+                    nation=template_unit.nation,
+                    province=template_unit.province,
+                    dislodged=template_unit.dislodged,
                 )
 
-            # Create SupplyCenter instances for the phase
-            for sc_data in variant.start["supply_centers"]:
+            # Create SupplyCenter instances by copying from template phase
+            for template_sc in template_phase.supply_centers.all():
                 models.SupplyCenter.objects.create(
                     phase=phase,
-                    nation=sc_data["nation"],
-                    province=sc_data["province"],
+                    nation=template_sc.nation,
+                    province=template_sc.province,
                 )
 
             # Create a public channel for the game
@@ -375,7 +379,7 @@ class GameService(BaseService):
             options_data = adjudication_response["options"]
 
             current_phase = game.phases.last()
-            current_phase.status = models.Phase.ACTIVE
+            current_phase.status = PhaseStatus.ACTIVE
             current_phase.options = json.dumps(options_data)
             current_phase.save()
 
@@ -428,7 +432,7 @@ class GameService(BaseService):
         with transaction.atomic():
             # Set the status of the current phase to completed
             current_phase = game.phases.last()
-            current_phase.status = models.Phase.COMPLETED
+            current_phase.status = PhaseStatus.COMPLETED
             current_phase.save()
 
             # Create resolutions for each order
@@ -480,7 +484,7 @@ class GameService(BaseService):
             year=phase_data["year"],
             type=phase_data["type"],
             options=json.dumps(options_data),
-            status=models.Phase.ACTIVE,
+            status=PhaseStatus.ACTIVE,
         )
         
         # Check if this phase has no valid moves for any nation
@@ -571,7 +575,7 @@ class GameService(BaseService):
         Check if all active members (not eliminated or kicked) have confirmed their orders.
         """
         current_phase = game.current_phase
-        if not current_phase or current_phase.status != models.Phase.ACTIVE:
+        if not current_phase or current_phase.status != PhaseStatus.ACTIVE:
             return False
 
         # Get all active members (not eliminated or kicked)

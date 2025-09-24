@@ -81,7 +81,7 @@ class Order(BaseModel, ProvinceDisplayMixin):
 
     @property
     def variant(self):
-        return self.phase_state.phase.game.variant
+        return self.phase_state.phase.variant
 
     @property
     def nation(self):

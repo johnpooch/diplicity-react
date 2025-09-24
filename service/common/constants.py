@@ -2,11 +2,13 @@ class PhaseStatus:
     PENDING = "pending"
     ACTIVE = "active"
     COMPLETED = "completed"
+    TEMPLATE = "template"
 
     STATUS_CHOICES = (
         (PENDING, "Pending"),
         (ACTIVE, "Active"),
         (COMPLETED, "Completed"),
+        (TEMPLATE, "Template"),
     )
 
 
@@ -43,6 +45,18 @@ class UnitType:
     UNIT_TYPE_CHOICES = (
         (ARMY, "Army"),
         (FLEET, "Fleet"),
+    )
+
+
+class ProvinceType:
+    LAND = "land"
+    SEA = "sea"
+    COASTAL = "coastal"
+
+    TYPE_CHOICES = (
+        (LAND, "Land"),
+        (SEA, "Sea"),
+        (COASTAL, "Coastal"),
     )
 
 

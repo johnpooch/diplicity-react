@@ -62,6 +62,9 @@ INSTALLED_APPS = [
     "version",
     "user_profile",
     "login",
+    "variant",
+    "province",
+    "nation",
     "drf_spectacular",
 ]
 

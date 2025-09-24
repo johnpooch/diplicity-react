@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from game.models import Phase
+from common.constants import PhaseStatus
 
 
 class PhaseNationSerializer(serializers.Serializer):
@@ -37,7 +38,7 @@ class PhaseSerializer(serializers.Serializer):
     units = UnitSerializer(many=True)
     supply_centers = SupplyCenterSerializer(many=True)
     options = serializers.DictField()
-    status = serializers.ChoiceField(choices=Phase.STATUS_CHOICES)
+    status = serializers.ChoiceField(choices=PhaseStatus.STATUS_CHOICES)
 
     def get_remaining_time(self, obj):
         if isinstance(obj, dict):

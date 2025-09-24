@@ -3,7 +3,6 @@ from .channel_service import ChannelService
 from .game_service import GameService
 from .notification_service import NotificationService
 from .order_service import OrderService
-from .variant_service import VariantService
 from .option_service import OptionService
 from .phase_service import PhaseService
 
@@ -13,7 +12,6 @@ __all__ = [
     "GameService",
     "NotificationService",
     "OrderService",
-    "VariantService",
     "OptionService",
     "PhaseService",
 ]

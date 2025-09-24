@@ -3,7 +3,9 @@ import json
 from django.contrib.auth import get_user_model
 from game import models
 from user_profile.models import UserProfile
+from variant.models import Variant
 from rest_framework.test import APIClient
+from common.constants import PhaseStatus
 
 User = get_user_model()
 
@@ -14,9 +16,7 @@ def primary_user(django_db_setup, django_db_blocker):
         primary_user = User.objects.create_user(
             username="primaryuser", email="primary@example.com", password="testpass123"
         )
-        UserProfile.objects.create(
-            user=primary_user, name="Primary User", picture=""
-        )
+        UserProfile.objects.create(user=primary_user, name="Primary User", picture="")
         return primary_user
 
 
@@ -26,17 +26,14 @@ def secondary_user(django_db_setup, django_db_blocker):
         secondary_user = User.objects.create_user(
             username="secondaryuser", email="secondary@example.com", password="testpass123"
         )
-        UserProfile.objects.create(
-            user=secondary_user, name="Secondary User", picture=""
-        )
+        UserProfile.objects.create(user=secondary_user, name="Secondary User", picture="")
         return secondary_user
-
 
 
 @pytest.fixture(scope="session")
 def classical_variant(django_db_setup, django_db_blocker):
     with django_db_blocker.unblock():
-        return models.Variant.objects.get(id="classical")
+        return Variant.objects.get(id="classical")
 
 
 @pytest.fixture(scope="session")
@@ -44,6 +41,7 @@ def authenticated_client(primary_user):
     client = APIClient()
     client.force_authenticate(user=primary_user)
     return client
+
 
 @pytest.fixture(scope="session")
 def unauthenticated_client():
@@ -128,10 +126,11 @@ def active_game(db, primary_user, secondary_user, classical_variant):
 
     # Create phase
     phase = game.phases.create(
+        variant=classical_variant,
         season="Spring",
         year=1901,
         type="Movement",
-        status=models.Phase.ACTIVE,
+        status=PhaseStatus.ACTIVE,
     )
 
     # Create units and supply centers
@@ -146,6 +145,7 @@ def active_game(db, primary_user, secondary_user, classical_variant):
 
     return game
 
+
 @pytest.fixture
 def game_with_options(active_game, sample_options):
     game = active_game
@@ -153,4 +153,3 @@ def game_with_options(active_game, sample_options):
     phase.options = json.dumps(sample_options)
     phase.save()
     return game
-

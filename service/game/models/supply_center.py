@@ -10,9 +10,9 @@ class SupplyCenter(BaseModel):
     )
 
     def province_data(self):
-        variant = self.phase.game.variant
+        variant = self.phase.variant
         return next((p for p in variant.provinces if p["id"] == self.province), None)
 
     def nation_data(self):
-        variant = self.phase.game.variant
+        variant = self.phase.variant
         return next((n for n in variant.nations if n["name"] == self.nation), None)
