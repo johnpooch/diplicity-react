@@ -1,6 +1,7 @@
 from rest_framework.permissions import BasePermission
 from django.shortcuts import get_object_or_404
 from django.apps import apps
+from common.constants import GameStatus
 
 Game = apps.get_model("game", "Game")
 Channel = apps.get_model("channel", "Channel")
@@ -13,7 +14,7 @@ class IsActiveGame(BasePermission):
     def has_permission(self, request, view):
         game_id = view.kwargs.get("game_id")
         game = get_object_or_404(Game, id=game_id)
-        return game.status == Game.ACTIVE
+        return game.status == GameStatus.ACTIVE
 
 
 class IsGameMember(BasePermission):
@@ -66,7 +67,7 @@ class IsPendingGame(BasePermission):
     def has_permission(self, request, view):
         game_id = view.kwargs.get("game_id")
         game = get_object_or_404(Game, id=game_id)
-        return game.status == Game.PENDING
+        return game.status == GameStatus.PENDING
 
 
 class IsNotGameMember(BasePermission):
@@ -92,6 +93,7 @@ class IsCurrentPhaseActive(BasePermission):
 
     def has_permission(self, request, view):
         from common.constants import PhaseStatus
+
         game_id = view.kwargs.get("game_id")
         game = get_object_or_404(Game, id=game_id)
         current_phase = game.phases.last()

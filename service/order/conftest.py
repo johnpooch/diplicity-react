@@ -1,7 +1,6 @@
 import pytest
-from .models import Order
 from django.apps import apps
-from common.constants import PhaseStatus
+from common.constants import PhaseStatus, GameStatus
 from nation.models import Nation
 from province.models import Province
 
@@ -15,7 +14,7 @@ def base_active_game_for_primary_user(db, classical_variant):
     return Game.objects.create(
         name="Primary User's Active Game",
         variant=classical_variant,
-        status=Game.ACTIVE,
+        status=GameStatus.ACTIVE,
     )
 
 

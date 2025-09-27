@@ -70,7 +70,7 @@ class Migration(migrations.Migration):
         ("variant", "0002_add_classical_variant"),
         ("nation", "0002_add_classical_nations"),
         ("province", "0002_add_classical_provinces"),
-        ("game", "0002_add_classical_template_phase"),
+        ("phase", "0002_add_classical_template_phase"),
     ]
 
     operations = [

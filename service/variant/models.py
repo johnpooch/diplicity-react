@@ -1,6 +1,6 @@
 from django.db import models
 
-from game.models.base import BaseModel
+from common.models import BaseModel
 from common.constants import PhaseStatus
 
 
@@ -12,4 +12,12 @@ class Variant(BaseModel):
 
     @property
     def template_phase(self):
-        return self.phases.get(game=None, status=PhaseStatus.TEMPLATE)
+        # Use prefetched template_phases if available (from Prefetch object)
+        if hasattr(self, 'template_phases'):
+            return self.template_phases[0] if self.template_phases else None
+
+        # Fall back to database query if not prefetched
+        for phase in self.phases.all():
+            if phase.game is None and phase.status == PhaseStatus.TEMPLATE:
+                return phase
+        return None

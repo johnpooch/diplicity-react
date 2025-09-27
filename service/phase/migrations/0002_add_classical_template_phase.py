@@ -33,9 +33,8 @@ def remove_classical_template_phase(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("game", "0001_initial"),
-        ("variant", "0002_add_classical_variant"),
         ("phase", "0001_initial"),
+        ("variant", "0002_add_classical_variant"),
     ]
 
     operations = [

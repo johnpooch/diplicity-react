@@ -47,9 +47,3 @@ def game_with_two_members(
     game.members.first().save()
     game.members.create(user=secondary_user, nation=classical_france_nation)
     return game
-
-
-@pytest.fixture
-def mock_notify_task():
-    with patch("notification.signals.FCMDevice") as mock_fcm:
-        yield mock_fcm.objects.filter().send_message

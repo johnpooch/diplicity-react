@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch
 import json
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -8,7 +9,7 @@ from variant.models import Variant
 from nation.models import Nation
 from province.models import Province
 from rest_framework.test import APIClient
-from common.constants import PhaseStatus, UnitType
+from common.constants import PhaseStatus, UnitType, GameStatus
 
 User = get_user_model()
 
@@ -50,8 +51,18 @@ def base_active_game_for_primary_user(db, classical_variant):
     return models.Game.objects.create(
         name="Primary User's Active Game",
         variant=classical_variant,
-        status=models.Game.ACTIVE,
+        status=GameStatus.ACTIVE,
     )
+
+
+@pytest.fixture
+def active_game_created_by_primary_user(db, primary_user, base_active_game_for_primary_user, base_active_phase):
+    """
+    Creates an active game created by the primary user.
+    """
+    base_active_phase(base_active_game_for_primary_user)
+    base_active_game_for_primary_user.members.create(user=primary_user)
+    return base_active_game_for_primary_user
 
 
 @pytest.fixture
@@ -79,7 +90,7 @@ def base_active_game_for_secondary_user(db, classical_variant):
     return models.Game.objects.create(
         name="Secondary User's Active Game",
         variant=classical_variant,
-        status=models.Game.ACTIVE,
+        status=GameStatus.ACTIVE,
     )
 
 
@@ -155,7 +166,7 @@ def base_pending_game_for_primary_user(db, classical_variant):
     return models.Game.objects.create(
         name="Primary User's Pending Game",
         variant=classical_variant,
-        status=models.Game.PENDING,
+        status=GameStatus.PENDING,
     )
 
 
@@ -164,7 +175,7 @@ def base_pending_game_for_secondary_user(db, classical_variant):
     return models.Game.objects.create(
         name="Secondary User's Pending Game",
         variant=classical_variant,
-        status=models.Game.PENDING,
+        status=GameStatus.PENDING,
     )
 
 
@@ -191,12 +202,9 @@ def pending_game_created_by_primary_user(db, primary_user, base_pending_game_for
 
 
 @pytest.fixture
-def active_game_with_phase_options(db, active_game_with_phase_state):
-
+def active_game_with_phase_options(db, active_game_with_phase_state, sample_options):
     phase = active_game_with_phase_state.current_phase
-    with open(f"{settings.BASE_DIR}/game/tests/data/options.json") as f:
-        json_string = f.read()
-    phase.options = json.loads(json_string)
+    phase.options = sample_options
     phase.save()
     return active_game_with_phase_state
 
@@ -249,6 +257,12 @@ def classical_england_nation(django_db_setup, django_db_blocker, classical_varia
 def classical_france_nation(django_db_setup, django_db_blocker, classical_variant):
     with django_db_blocker.unblock():
         return Nation.objects.get(name="France", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_germany_nation(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Nation.objects.get(name="Germany", variant=classical_variant)
 
 
 @pytest.fixture(scope="session")
@@ -428,7 +442,7 @@ def active_game(
     game = models.Game.objects.create(
         name="Test Active Game",
         variant=classical_variant,
-        status=models.Game.ACTIVE,
+        status=GameStatus.ACTIVE,
     )
 
     phase = game.phases.create(
@@ -460,3 +474,18 @@ def game_with_options(active_game, sample_options):
     phase.options = sample_options
     phase.save()
     return game
+
+
+@pytest.fixture
+def mock_send_notification_to_users():
+    with patch("notification.signals.send_notification_to_users") as mock_send_notification_to_users:
+        yield mock_send_notification_to_users
+
+
+@pytest.fixture
+def mock_immediate_on_commit():
+    def immediate_on_commit(func):
+        func()  # Execute immediately instead of deferring
+
+    with patch("django.db.transaction.on_commit", side_effect=immediate_on_commit):
+        yield

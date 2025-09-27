@@ -4,7 +4,7 @@ from game.models import Game
 from member.models import Member
 import adjudication.service as adjudication_service
 from adjudication.serializers import AdjudicationSerializer
-from common.constants import OrderType, UnitType
+from common.constants import GameStatus, OrderType, UnitType
 
 
 def sort_by_province(supply_centers):
@@ -37,7 +37,7 @@ def create_supply_center(phase_state, province):
 class TestAdjudicationService:
     @pytest.mark.django_db
     def test_start_classical(self, classical_variant, classical_england_nation, classical_edinburgh_province):
-        game = Game.objects.create(variant=classical_variant, name="Test Game", status=Game.ACTIVE)
+        game = Game.objects.create(variant=classical_variant, name="Test Game", status=GameStatus.ACTIVE)
         phase = Phase.objects.create(
             variant=classical_variant, game=game, year=1901, season="Spring", type="Movement", ordinal=1
         )

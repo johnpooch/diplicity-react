@@ -1,6 +1,6 @@
 import pytest
 from game import models
-from common.constants import PhaseStatus
+from common.constants import PhaseStatus, GameStatus
 
 
 @pytest.fixture
@@ -27,5 +27,5 @@ def base_pending_game_for_secondary_user(db, classical_variant):
     return models.Game.objects.create(
         name="Secondary User's Pending Game",
         variant=classical_variant,
-        status=models.Game.PENDING,
+        status=GameStatus.PENDING,
     )

@@ -56,7 +56,7 @@ class Migration(migrations.Migration):
         ("variant", "0003_add_italy_vs_germany_variant"),
         ("nation", "0003_add_italy_vs_germany_nations"),
         ("province", "0003_add_italy_vs_germany_provinces"),
-        ("game", "0003_add_italy_vs_germany_template_phase"),
+        ("phase", "0003_add_italy_vs_germany_template_phase"),
     ]
 
     operations = [

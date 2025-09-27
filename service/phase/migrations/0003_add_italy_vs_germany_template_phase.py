@@ -33,9 +33,8 @@ def remove_italy_vs_germany_template_phase(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("game", "0002_add_classical_template_phase"),
+        ("phase", "0002_add_classical_template_phase"),
         ("variant", "0003_add_italy_vs_germany_variant"),
-        ("phase", "0001_initial"),
     ]
 
     operations = [

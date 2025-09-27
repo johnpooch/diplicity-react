@@ -1,7 +1,11 @@
 import pytest
+from unittest.mock import patch
+from django.apps import apps
 from django.urls import reverse
 from rest_framework import status
 from channel.models import Channel
+
+from common.constants import GameStatus
 
 
 class TestChannelCreateView:
@@ -51,14 +55,12 @@ class TestChannelCreateView:
     def test_create_channel_inactive_game(
         self, authenticated_client, classical_variant, primary_user, classical_england_nation
     ):
-        from django.apps import apps
-
         Game = apps.get_model("game", "Game")
 
         inactive_game = Game.objects.create(
             name="Inactive Game",
             variant=classical_variant,
-            status=Game.PENDING,
+            status=GameStatus.PENDING,
         )
         inactive_game.members.create(user=primary_user, nation=classical_england_nation)
 
@@ -126,7 +128,11 @@ class TestChannelMessageCreateView:
 
     @pytest.mark.django_db
     def test_create_message_in_private_channel_success(
-        self, authenticated_client, active_game_with_private_channel, mock_notify_task
+        self,
+        authenticated_client,
+        active_game_with_private_channel,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
     ):
         private_channel = Channel.objects.get(game=active_game_with_private_channel, private=True)
         url = reverse("channel-message-create", args=[active_game_with_private_channel.id, private_channel.id])
@@ -136,11 +142,15 @@ class TestChannelMessageCreateView:
         print(response.data)
 
         assert response.status_code == status.HTTP_201_CREATED
-        mock_notify_task.assert_called_once()
+        mock_send_notification_to_users.assert_called_once()
 
     @pytest.mark.django_db
     def test_create_message_in_public_channel_as_member_success(
-        self, authenticated_client, active_game_with_public_channel, mock_notify_task
+        self,
+        authenticated_client,
+        active_game_with_public_channel,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
     ):
         public_channel = Channel.objects.get(game=active_game_with_public_channel, private=False)
         public_channel.members.add(active_game_with_public_channel.members.first())
@@ -150,11 +160,11 @@ class TestChannelMessageCreateView:
         response = authenticated_client.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        mock_notify_task.assert_called_once()
+        mock_send_notification_to_users.assert_called_once()
 
     @pytest.mark.django_db
     def test_create_message_in_public_channel_without_explicit_members(
-        self, authenticated_client, game_with_two_members, mock_notify_task
+        self, authenticated_client, game_with_two_members, mock_send_notification_to_users, mock_immediate_on_commit
     ):
         public_channel = Channel.objects.create(game=game_with_two_members, name="Public Press", private=False)
 
@@ -163,11 +173,16 @@ class TestChannelMessageCreateView:
         response = authenticated_client.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        mock_notify_task.assert_called_once()
+        mock_send_notification_to_users.assert_called_once()
 
     @pytest.mark.django_db
     def test_create_message_in_private_channel_notifies_only_channel_members(
-        self, authenticated_client, game_with_two_members, mock_notify_task, classical_england_nation
+        self,
+        authenticated_client,
+        game_with_two_members,
+        mock_send_notification_to_users,
+        classical_england_nation,
+        mock_immediate_on_commit,
     ):
         private_channel = Channel.objects.create(game=game_with_two_members, name="Private Channel", private=True)
         primary_member = game_with_two_members.members.get(nation=classical_england_nation)
@@ -178,14 +193,15 @@ class TestChannelMessageCreateView:
         response = authenticated_client.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        mock_notify_task.assert_called_once()
+        mock_send_notification_to_users.assert_called_once()
 
     @pytest.mark.django_db
     def test_create_message_in_private_channel_with_multiple_members(
         self,
         authenticated_client,
         game_with_two_members,
-        mock_notify_task,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
         classical_england_nation,
         classical_france_nation,
     ):
@@ -199,14 +215,15 @@ class TestChannelMessageCreateView:
         response = authenticated_client.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        mock_notify_task.assert_called_once()
+        mock_send_notification_to_users.assert_called_once()
 
     @pytest.mark.django_db
     def test_create_message_in_public_channel_with_explicit_members_still_notifies_all(
         self,
         authenticated_client,
         game_with_two_members,
-        mock_notify_task,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
         classical_england_nation,
         classical_france_nation,
     ):
@@ -220,7 +237,7 @@ class TestChannelMessageCreateView:
         response = authenticated_client.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        mock_notify_task.assert_called_once()
+        mock_send_notification_to_users.assert_called_once()
 
     @pytest.mark.django_db
     def test_create_message_in_private_channel_as_non_member_fails(
@@ -302,3 +319,12 @@ class TestChannelModels:
         for channel in channels:
             for message in channel.messages.all():
                 assert message.sender is not None
+
+
+@pytest.fixture
+def mock_immediate_on_commit():
+    def immediate_on_commit(func):
+        func()  # Execute immediately instead of deferring
+
+    with patch("django.db.transaction.on_commit", side_effect=immediate_on_commit):
+        yield

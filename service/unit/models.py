@@ -1,5 +1,5 @@
 from django.db import models
-from game.models.base import BaseModel
+from common.models import BaseModel
 from common.constants import UnitType
 
 

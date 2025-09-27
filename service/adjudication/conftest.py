@@ -1,5 +1,5 @@
-from game.models.game import Game
 import pytest
+from game.models import Game
 from django.apps import apps
 from variant.models import Variant
 from nation.models import Nation
@@ -7,7 +7,7 @@ from province.models import Province
 from unit.models import Unit
 from supply_center.models import SupplyCenter
 from order.models import Order
-from common.constants import OrderType, UnitType
+from common.constants import GameStatus, OrderType, UnitType
 from member.models import Member
 from phase.models import Phase
 
@@ -108,63 +108,41 @@ def italy_vs_germany_ruhr_province(django_db_setup, django_db_blocker, italy_vs_
         return Province.objects.get(province_id="ruh", variant=italy_vs_germany_variant)
 
 
-@pytest.fixture(scope="session")
-def game(django_db_setup, django_db_blocker, italy_vs_germany_variant):
-    with django_db_blocker.unblock():
-        return Game.objects.create(variant=italy_vs_germany_variant, name="Test Game", status=Game.ACTIVE)
+@pytest.fixture
+def game(italy_vs_germany_variant):
+    return Game.objects.create(variant=italy_vs_germany_variant, name="Test Game", status=GameStatus.ACTIVE)
 
 
-@pytest.fixture(scope="session")
-def member_italy(
-    django_db_setup, django_db_blocker, italy_vs_germany_variant, italy_vs_germany_italy_nation, primary_user, game
-):
-    with django_db_blocker.unblock():
-        return Member.objects.create(nation=italy_vs_germany_italy_nation, user=primary_user, game=game)
+@pytest.fixture
+def member_italy(italy_vs_germany_variant, italy_vs_germany_italy_nation, primary_user, game):
+    return Member.objects.create(nation=italy_vs_germany_italy_nation, user=primary_user, game=game)
 
 
-@pytest.fixture(scope="session")
-def member_germany(
-    django_db_setup, django_db_blocker, italy_vs_germany_variant, italy_vs_germany_germany_nation, secondary_user, game
-):
-    with django_db_blocker.unblock():
-        return Member.objects.create(nation=italy_vs_germany_germany_nation, user=secondary_user, game=game)
+@pytest.fixture
+def member_germany(italy_vs_germany_variant, italy_vs_germany_germany_nation, secondary_user, game):
+    return Member.objects.create(nation=italy_vs_germany_germany_nation, user=secondary_user, game=game)
 
 
-@pytest.fixture(scope="function")
-def phase_spring_1901_movement(django_db_setup, django_db_blocker, game):
-    with django_db_blocker.unblock():
-        return Phase.objects.create(
-            game=game, variant=game.variant, season="Spring", year=1901, type="Movement", ordinal=1
-        )
+@pytest.fixture
+def phase_spring_1901_movement(game):
+    return Phase.objects.create(game=game, variant=game.variant, season="Spring", year=1901, type="Movement", ordinal=1)
 
 
-@pytest.fixture(scope="function")
-def phase_spring_1901_retreat(django_db_setup, django_db_blocker, game):
-    with django_db_blocker.unblock():
-        return Phase.objects.create(
-            game=game, variant=game.variant, season="Spring", year=1901, type="Retreat", ordinal=2
-        )
+@pytest.fixture
+def phase_spring_1901_retreat(game):
+    return Phase.objects.create(game=game, variant=game.variant, season="Spring", year=1901, type="Retreat", ordinal=2)
 
 
-@pytest.fixture(scope="function")
-def phase_fall_1901_movement(django_db_setup, django_db_blocker, game):
-    with django_db_blocker.unblock():
-        return Phase.objects.create(
-            game=game, variant=game.variant, season="Fall", year=1901, type="Movement", ordinal=3
-        )
+@pytest.fixture
+def phase_fall_1901_movement(game):
+    return Phase.objects.create(game=game, variant=game.variant, season="Fall", year=1901, type="Movement", ordinal=3)
 
 
-@pytest.fixture(scope="function")
-def phase_fall_1901_retreat(django_db_setup, django_db_blocker, game):
-    with django_db_blocker.unblock():
-        return Phase.objects.create(
-            game=game, variant=game.variant, season="Fall", year=1901, type="Retreat", ordinal=4
-        )
+@pytest.fixture
+def phase_fall_1901_retreat(game):
+    return Phase.objects.create(game=game, variant=game.variant, season="Fall", year=1901, type="Retreat", ordinal=4)
 
 
-@pytest.fixture(scope="function")
-def phase_fall_1901_adjustment(django_db_setup, django_db_blocker, game):
-    with django_db_blocker.unblock():
-        return Phase.objects.create(
-            game=game, variant=game.variant, season="Fall", year=1901, type="Adjustment", ordinal=5
-        )
+@pytest.fixture
+def phase_fall_1901_adjustment(game):
+    return Phase.objects.create(game=game, variant=game.variant, season="Fall", year=1901, type="Adjustment", ordinal=5)

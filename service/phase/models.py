@@ -2,10 +2,11 @@ import json
 
 from django.db import models
 from django.utils import timezone
-from game.models.base import BaseModel
+from common.models import BaseModel
 from datetime import timedelta
 from common.constants import PhaseStatus
 from adjudication.service import resolve
+from order.models import OrderResolution
 
 
 class PhaseManager(models.Manager):
@@ -19,8 +20,7 @@ class PhaseManager(models.Manager):
         failed_count = 0
         for phase in phases:
             try:
-                adjudication_data = resolve(phase)
-                self.create_from_adjudication_data(phase, adjudication_data)
+                phase.resolve()
                 resolved_count += 1
             except Exception as e:
                 failed_count += 1
@@ -29,13 +29,18 @@ class PhaseManager(models.Manager):
             "failed": failed_count,
         }
 
+    def resolve(self, phase):
+        adjudication_data = resolve(phase)
+        self.create_from_adjudication_data(phase, adjudication_data)
+
     def create_from_adjudication_data(self, previous_phase, adjudication_data):
 
         for order in previous_phase.all_orders:
             resolution = next(
                 (r for r in adjudication_data["resolutions"] if r["province"] == order.source.province_id), None
             )
-            order.resolution.create(
+            OrderResolution.objects.create(
+                order=order,
                 status=resolution["result"],
                 by=resolution["by"],
             )
@@ -76,6 +81,11 @@ class PhaseManager(models.Manager):
                 member=member,
             )
 
+        previous_phase.status = PhaseStatus.COMPLETED
+        previous_phase.save()
+
+        return new_phase
+
     def _has_no_valid_moves(self, options_data):
         if not options_data or not isinstance(options_data, dict):
             return True
@@ -113,6 +123,12 @@ class Phase(BaseModel):
         if self.scheduled_resolution and self.status == PhaseStatus.ACTIVE:
             delta = self.scheduled_resolution - timezone.now()
             return max(delta, timedelta(seconds=0))
+        return None
+
+    @property
+    def remaining_time_seconds(self):
+        if self.remaining_time:
+            return self.remaining_time.total_seconds()
         return None
 
     @property

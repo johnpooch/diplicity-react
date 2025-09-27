@@ -1,6 +1,34 @@
 ADJUDICATION_BASE_URL = "https://godip-adjudication.appspot.com"
 
 
+class GameStatus:
+    PENDING = "pending"
+    ACTIVE = "active"
+    COMPLETED = "completed"
+
+    STATUS_CHOICES = (
+        (PENDING, "Pending"),
+        (ACTIVE, "Active"),
+        (COMPLETED, "Completed"),
+    )
+
+
+class MovementPhaseDuration:
+    TWENTY_FOUR_HOURS = "24 hours"
+
+    MOVEMENT_PHASE_DURATION_CHOICES = ((TWENTY_FOUR_HOURS, "24 hours"),)
+
+
+class NationAssignment:
+    RANDOM = "random"
+    ORDERED = "ordered"
+
+    NATION_ASSIGNMENT_CHOICES = (
+        (RANDOM, "Random"),
+        (ORDERED, "Ordered"),
+    )
+
+
 class PhaseStatus:
     PENDING = "pending"
     ACTIVE = "active"

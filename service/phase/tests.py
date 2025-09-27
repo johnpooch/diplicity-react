@@ -1,6 +1,7 @@
 import pytest
 from django.urls import reverse
 from rest_framework import status
+from common.constants import PhaseStatus
 
 
 @pytest.mark.django_db
@@ -11,7 +12,9 @@ def test_confirm_phase_success(
     Test that an authenticated user can successfully confirm their phase.
     """
     # Add secondary user so that phase doesn't resolve
-    active_game_with_phase_state.members.create(user=secondary_user, nation=classical_france_nation)
+    secondary_member = active_game_with_phase_state.members.create(user=secondary_user, nation=classical_france_nation)
+    active_game_with_phase_state.current_phase.phase_states.create(member=secondary_member)
+
     url = reverse("game-confirm-phase", args=[active_game_with_phase_state.id])
     response = authenticated_client.put(url)
     assert response.status_code == status.HTTP_200_OK

@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     "channel",
     "adjudication",
     "notification",
+    "integration",
     "drf_spectacular",
 ]
 

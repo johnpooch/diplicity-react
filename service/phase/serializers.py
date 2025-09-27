@@ -1,6 +1,9 @@
 from rest_framework import serializers
+from common.constants import PhaseStatus
 from province.serializers import ProvinceSerializer
-from .models import Phase, PhaseState
+from supply_center.serializers import SupplyCenterSerializer
+from unit.serializers import UnitSerializer
+from .models import Phase
 
 
 class PhaseStateSerializer(serializers.Serializer):
@@ -12,4 +15,22 @@ class PhaseStateSerializer(serializers.Serializer):
     def update(self, instance, validated_data):
         instance.orders_confirmed = not instance.orders_confirmed
         instance.save()
+
+        # If all players have confirmed their orders, resolve the phase
+        if all(phase_state.orders_confirmed for phase_state in instance.phase.phase_states.all()):
+            Phase.objects.resolve(instance.phase)
+
         return instance
+
+
+class PhaseSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    ordinal = serializers.IntegerField()
+    season = serializers.CharField()
+    year = serializers.IntegerField()
+    name = serializers.CharField()
+    type = serializers.CharField()
+    remaining_time = serializers.IntegerField(source="remaining_time_seconds")
+    status = serializers.ChoiceField(choices=PhaseStatus.STATUS_CHOICES)
+    units = UnitSerializer(many=True)
+    supply_centers = SupplyCenterSerializer(many=True)

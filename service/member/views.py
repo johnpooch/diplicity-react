@@ -5,7 +5,6 @@ from .models import Member
 from .serializers import MemberSerializer
 from common.permissions import IsPendingGame, IsNotGameMember, IsSpaceAvailable, IsGameMember
 from common.views import SelectedGameMixin
-from game import services
 
 
 class MemberCreateView(SelectedGameMixin, generics.CreateAPIView):
@@ -15,11 +14,8 @@ class MemberCreateView(SelectedGameMixin, generics.CreateAPIView):
     def perform_create(self, serializer):
         member = serializer.save()
 
-        # Auto-start game logic if at capacity
         if member.game.variant.nations.count() == member.game.members.count():
-            adjudication_service = services.AdjudicationService(self.request.user)
-            game_service = services.GameService(self.request.user, adjudication_service)
-            game_service.start(member.game.id)
+            member.game.start()
 
 
 class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):

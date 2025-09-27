@@ -1,7 +1,8 @@
 import pytest
 from django.urls import reverse
 from rest_framework import status
-from game import models
+from game.models import Game
+from common.constants import GameStatus
 
 join_viewname = "game-join"
 
@@ -46,7 +47,7 @@ def test_join_game_non_pending(authenticated_client, pending_game_created_by_sec
     Test that a user cannot join a game that is not in pending status.
     """
     game = pending_game_created_by_secondary_user
-    game.status = models.Game.ACTIVE
+    game.status = GameStatus.ACTIVE
     game.save()
 
     url = reverse(join_viewname, args=[game.id])
@@ -127,7 +128,7 @@ def test_leave_game_non_pending(authenticated_client, pending_game_created_by_se
     Test that a user cannot leave a game that is not in pending status.
     """
     game = pending_game_created_by_secondary_user_joined_by_primary
-    game.status = models.Game.ACTIVE
+    game.status = GameStatus.ACTIVE
     game.save()
 
     url = reverse(leave_viewname, args=[game.id])

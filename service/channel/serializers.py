@@ -1,5 +1,4 @@
 from rest_framework import serializers
-from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.apps import apps
 from .models import Channel, ChannelMessage
