@@ -18,6 +18,7 @@ from variant.models import Variant
 from common.constants import PhaseStatus
 from unit.models import Unit
 from supply_center.models import SupplyCenter
+from channel.models import Channel
 from .notification_service import NotificationService
 from .adjudication_service import AdjudicationService
 
@@ -267,7 +268,7 @@ class GameService(BaseService):
                 )
 
             # Create a public channel for the game
-            models.Channel.objects.create(
+            Channel.objects.create(
                 game=game,
                 name=f"Public Press",
                 private=False,
@@ -276,49 +277,6 @@ class GameService(BaseService):
         logger.info("GameService.create() returning game: %s", game)
         return game
 
-    def join(self, game_id):
-        logger.info("GameService.join() called with game_id: %s", game_id)
-
-        game = get_object_or_404(models.Game, id=game_id)
-
-        if game.status != models.Game.PENDING:
-            logger.warning(f"GameService.join() called when game is not pending. This shouldn't happen.")
-            raise exceptions.PermissionDenied(detail="Cannot join a non-pending game.")
-
-        if game.members.filter(user=self.user).exists():
-            logger.warning(
-                f"GameService.join() called when user is already a member of the game. This shouldn't happen."
-            )
-            raise exceptions.ValidationError(detail="User is already a member of the game.")
-
-        if game.members.count() >= len(game.variant.nations):
-            logger.warning(
-                f"GameService.join() called when game already has the maximum number of players. This shouldn't happen."
-            )
-            raise exceptions.ValidationError(detail="Game already has the maximum number of players.")
-
-        game.members.create(user=self.user)
-
-        logger.info("GameService.join() returning game: %s", game)
-        return game
-
-    def leave(self, game_id):
-        logger.info("GameService.leave() called with game_id: %s", game_id)
-        game = get_object_or_404(models.Game, id=game_id)
-
-        if game.status != models.Game.PENDING:
-            logger.warning(f"GameService.leave() called when game is not pending. This shouldn't happen.")
-            raise exceptions.PermissionDenied(detail="Cannot leave a non-pending game.")
-
-        member = game.members.filter(user=self.user).first()
-        if not member:
-            logger.warning(f"GameService.leave() called when user is not a member of the game. This shouldn't happen.")
-            raise exceptions.ValidationError(detail="User is not a member of the game.")
-
-        member.delete()
-
-        logger.info("GameService.leave() returning game: %s", game)
-        return game
 
     def start(self, game_id):
         logger.info("GameService.start() called with game_id: %s", game_id)
@@ -390,10 +348,7 @@ class GameService(BaseService):
         with transaction.atomic():
             # Set the status of the current phase to completed
             current_phase = game.phases.last()
-            current_phase.status = PhaseStatus.COMPLETED
-            current_phase.save()
 
-            # Create resolutions for each order
             for resolution in phase_data["resolutions"]:
                 province = resolution["province"]
                 result = resolution["result"]
@@ -401,10 +356,13 @@ class GameService(BaseService):
 
                 # Find the order for this province
                 Order = apps.get_model("order", "Order")
-                order = Order.objects.filter(phase_state__phase=current_phase, source=province).first()
+                source = current_phase.variant.provinces.get(province_id=province)
+
+                order = Order.objects.filter(phase_state__phase=current_phase, source=source).first()
 
                 if order:
                     # Create or update resolution
+                    by = next((p for p in current_phase.variant.provinces.all() if p.province_id == by), None)
                     OrderResolution = apps.get_model("order", "OrderResolution")
                     OrderResolution.objects.update_or_create(order=order, defaults={"status": result, "by": by})
 
@@ -449,19 +407,23 @@ class GameService(BaseService):
             phase.save()
 
         for unit_data in phase_data["units"]:
-            models.Unit.objects.create(
+            province = next((p for p in variant.provinces.all() if p.name == unit_data["province"]), None)
+            nation = next((n for n in variant.nations.all() if n.name == unit_data["nation"]), None)
+            Unit.objects.create(
                 phase=phase,
                 type=unit_data["type"],
-                nation=unit_data["nation"],
-                province=unit_data["province"],
-                dislodged=unit_data.get("dislodged", False),
+                nation=nation,
+                province=province,
+                dislodged_by=unit_data.get("dislodged_by", False),
             )
 
         for sc_data in phase_data["supply_centers"]:
-            models.SupplyCenter.objects.create(
+            province = next((p for p in variant.provinces.all() if p.name == sc_data["province"]), None)
+            nation = next((n for n in variant.nations.all() if n.name == unit_data["nation"]), None)
+            SupplyCenter.objects.create(
                 phase=phase,
-                nation=sc_data["nation"],
-                province=sc_data["province"],
+                nation=nation,
+                province=province,
             )
 
         return phase
@@ -490,7 +452,7 @@ class GameService(BaseService):
         return True
 
     def _set_nations(self, game):
-        nations = game.variant.nations
+        nations = game.variant.nations.all()
         members = game.members.all().order_by("created_at")
 
         if game.nation_assignment == models.Game.RANDOM:
@@ -500,7 +462,7 @@ class GameService(BaseService):
 
         # Assign nations to members in either random or ordered fashion
         for member, nation in zip(members, nations):
-            member.nation = nation["name"]
+            member.nation = nation
             member.save()
 
     def _create_phase_states(self, game):

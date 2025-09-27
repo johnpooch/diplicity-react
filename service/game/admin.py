@@ -1,37 +1,9 @@
 from django.contrib import admin
 from django.contrib import messages
-from .models import (
-    Channel,
-    ChannelMember,
-    ChannelMessage,
-    Game,
-    Member,
-    PhaseState,
-    Phase,
-)
+from .models import Game
 from .services.game_service import GameService
 from .services.adjudication_service import AdjudicationService
 from common.constants import PhaseStatus
-
-
-@admin.register(Channel)
-class ChannelAdmin(admin.ModelAdmin):
-    list_display = ("name", "game", "private", "created_at")
-    list_filter = ("private", "game")
-    search_fields = ("name",)
-
-
-@admin.register(ChannelMember)
-class ChannelMemberAdmin(admin.ModelAdmin):
-    list_display = ("member", "channel", "created_at")
-    list_filter = ("channel",)
-
-
-@admin.register(ChannelMessage)
-class ChannelMessageAdmin(admin.ModelAdmin):
-    list_display = ("sender", "channel", "created_at")
-    list_filter = ("channel",)
-    search_fields = ("body",)
 
 
 @admin.register(Game)
@@ -83,21 +55,4 @@ class GameAdmin(admin.ModelAdmin):
     resolve_game.short_description = "Resolve selected games"
 
 
-@admin.register(Member)
-class MemberAdmin(admin.ModelAdmin):
-    list_display = ("user", "game", "nation", "won", "drew", "eliminated", "kicked")
-    list_filter = ("game", "won", "drew", "eliminated", "kicked")
-    search_fields = ("user__username", "nation")
 
-
-@admin.register(PhaseState)
-class PhaseStateAdmin(admin.ModelAdmin):
-    list_display = ("member", "phase", "orders_confirmed", "eliminated")
-    list_filter = ("orders_confirmed", "eliminated")
-
-
-@admin.register(Phase)
-class PhaseAdmin(admin.ModelAdmin):
-    list_display = ("game", "ordinal", "status", "season", "year", "type")
-    list_filter = ("status", "season", "type")
-    search_fields = ("game__name",)

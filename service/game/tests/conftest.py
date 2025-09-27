@@ -11,138 +11,6 @@ from common.constants import PhaseStatus, OrderType, UnitType
 User = get_user_model()
 
 
-@pytest.fixture(scope="session")
-def tertiary_user(django_db_setup, django_db_blocker):
-    """
-    Create a test user.
-    """
-    with django_db_blocker.unblock():
-        tertiary_user = User.objects.create_user(
-            username="tertiaryuser",
-            email="tertiary@example.com",
-            password="testpass123",
-        )
-        UserProfile.objects.create(user=tertiary_user, name="Tertiary User", picture="")
-        return tertiary_user
-
-
-@pytest.fixture(scope="session")
-def authenticated_client_for_secondary_user(secondary_user):
-    """
-    Create an authenticated client for the secondary user.
-    """
-    client = APIClient()
-    client.force_authenticate(user=secondary_user)
-    return client
-
-
-@pytest.fixture(scope="session")
-def authenticated_client_for_tertiary_user(tertiary_user):
-    """
-    Create an authenticated client for the tertiary user.
-    """
-    client = APIClient()
-    client.force_authenticate(user=tertiary_user)
-    return client
-
-
-@pytest.fixture(scope="session")
-def italy_vs_germany_variant(django_db_setup, django_db_blocker):
-    """
-    Create a test variant.
-    """
-    with django_db_blocker.unblock():
-        return Variant.objects.get(id="italy-vs-germany")
-
-
-@pytest.fixture
-def base_pending_game_for_primary_user(db, classical_variant):
-    """
-    Create a base pending game for the primary user.
-    """
-    return models.Game.objects.create(
-        name="Primary User's Pending Game",
-        variant=classical_variant,
-        status=models.Game.PENDING,
-    )
-
-
-@pytest.fixture
-def base_pending_game_for_secondary_user(db, classical_variant):
-    """
-    Create a base pending game for the secondary user.
-    """
-    return models.Game.objects.create(
-        name="Secondary User's Pending Game",
-        variant=classical_variant,
-        status=models.Game.PENDING,
-    )
-
-
-@pytest.fixture
-def base_active_game_for_primary_user(db, classical_variant):
-    """
-    Create a base active game for the primary user.
-    """
-    return models.Game.objects.create(
-        name="Primary User's Active Game",
-        variant=classical_variant,
-        status=models.Game.ACTIVE,
-    )
-
-
-@pytest.fixture
-def base_active_game_for_secondary_user(db, classical_variant):
-    """
-    Create a base active game for the secondary user.
-    """
-    return models.Game.objects.create(
-        name="Secondary User's Active Game",
-        variant=classical_variant,
-        status=models.Game.ACTIVE,
-    )
-
-
-@pytest.fixture
-def base_pending_phase(db, classical_england_nation, classical_edinburgh_province):
-    """
-    Create a basic phase with units and supply centers.
-    """
-
-    def _create_phase(game):
-        phase = game.phases.create(
-            game=game, variant=game.variant, season="Spring", year=1901, type="Movement", status=PhaseStatus.PENDING
-        )
-
-        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_edinburgh_province)
-
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
-
-        return phase
-
-    return _create_phase
-
-
-@pytest.fixture
-def base_active_phase(db, classical_england_nation, classical_edinburgh_province):
-    """
-    Create a basic phase with units and supply centers.
-    """
-
-    def _create_phase(game):
-        phase = game.phases.create(
-            game=game, variant=game.variant, season="Spring", year=1901, type="Movement", status=PhaseStatus.ACTIVE
-        )
-
-        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_edinburgh_province)
-
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
-
-        return phase
-
-    return _create_phase
-
-
 @pytest.fixture
 def pending_game_created_by_primary_user(db, primary_user, base_pending_game_for_primary_user, base_pending_phase):
     """
@@ -286,67 +154,22 @@ def adjudication_service(primary_user):
 
 
 @pytest.fixture
-def active_game_with_phase_state(
+def active_game_with_orders(
     db,
-    primary_user,
-    base_active_game_for_primary_user,
-    base_active_phase,
-    classical_england_nation,
-    classical_edinburgh_province,
+    active_game_with_phase_state,
+    classical_london_province,
+    classical_english_channel_province,
 ):
-    """
-    Creates an active game with a phase state for the primary user.
-    """
-    phase = base_active_phase(base_active_game_for_primary_user)
-    member = base_active_game_for_primary_user.members.create(user=primary_user, nation=classical_england_nation)
-    phase_state = phase.phase_states.create(member=member)
-    return base_active_game_for_primary_user
-
-
-@pytest.fixture
-def active_game_with_confirmed_phase_state(db, active_game_with_phase_state, classical_england_nation):
-    """
-    Creates an active game with a confirmed phase state.
-    """
-    phase_state = active_game_with_phase_state.current_phase.phase_states.first()
-    phase_state.orders_confirmed = True
-    phase_state.save()
-    return active_game_with_phase_state
-
-
-@pytest.fixture
-def active_game_with_eliminated_member(db, active_game_with_phase_state, secondary_user, classical_england_nation):
-    """
-    Creates an active game with an eliminated member.
-    """
-    member = active_game_with_phase_state.members.create(
-        user=secondary_user, eliminated=True, nation=classical_england_nation
-    )
-    active_game_with_phase_state.current_phase.phase_states.create(member=member)
-    return active_game_with_phase_state
-
-
-@pytest.fixture
-def active_game_with_kicked_member(db, active_game_with_phase_state, secondary_user, classical_england_nation):
-    """
-    Creates an active game with a kicked member.
-    """
-    member = active_game_with_phase_state.members.create(
-        user=secondary_user, kicked=True, nation=classical_england_nation
-    )
-    active_game_with_phase_state.current_phase.phase_states.create(member=member)
-    return active_game_with_phase_state
-
-
-@pytest.fixture
-def active_game_with_orders(db, active_game_with_phase_state, classical_england_nation, classical_edinburgh_province):
     """
     Creates an active game with orders for the primary user.
     """
     phase_state = active_game_with_phase_state.current_phase.phase_states.first()
     Order = apps.get_model("order", "Order")
     order = Order.objects.create(
-        phase_state=phase_state, order_type="Move", source=classical_edinburgh_province, target=classical_england_nation
+        phase_state=phase_state,
+        order_type="Move",
+        source=classical_london_province,
+        target=classical_english_channel_province,
     )
     return active_game_with_phase_state
 
@@ -355,10 +178,9 @@ def active_game_with_orders(db, active_game_with_phase_state, classical_england_
 def active_game_with_multiple_orders(
     db,
     active_game_with_phase_state,
-    classical_england_nation,
+    classical_english_channel_province,
     classical_liverpool_province,
     classical_london_province,
-    classical_english_channel_province,
 ):
     """
     Creates an active game with multiple orders for the primary user.
@@ -366,7 +188,10 @@ def active_game_with_multiple_orders(
     phase_state = active_game_with_phase_state.current_phase.phase_states.first()
     Order = apps.get_model("order", "Order")
     Order.objects.create(
-        phase_state=phase_state, order_type="Move", source=classical_london_province, target=classical_england_nation
+        phase_state=phase_state,
+        order_type="Move",
+        source=classical_london_province,
+        target=classical_english_channel_province,
     )
     Order.objects.create(
         phase_state=phase_state,
@@ -398,22 +223,6 @@ def active_game_with_completed_phase_and_resolutions(db, active_game_with_multip
         )
 
     return game
-
-
-@pytest.fixture
-def active_game_with_phase_options(db, active_game_with_phase_state):
-    """
-    Creates an active game with phase options loaded from options.json.
-    """
-    import json
-    from django.conf import settings
-
-    phase = active_game_with_phase_state.current_phase
-    with open(f"{settings.BASE_DIR}/game/tests/data/options.json") as f:
-        json_string = f.read()
-    phase.options = json.dumps(json.loads(json_string))
-    phase.save()
-    return active_game_with_phase_state
 
 
 @pytest.fixture

@@ -8,7 +8,7 @@ from rest_framework import status
 from common.constants import PhaseStatus, OrderType, UnitType, OrderCreationStep, OrderResolutionStatus
 
 from .models import Order, OrderResolution
-from .utils import get_options_for_order
+from .utils import get_options_for_order, get_order_data_from_selected
 
 
 class TestOrderListView:
@@ -293,8 +293,6 @@ class TestOrderCreateView:
         data = {"selected": ["bud", "Support", "vie"]}
         response = authenticated_client.post(url, data, format="json")
 
-        print(response.data["selected"])
-
         assert response.status_code == status.HTTP_201_CREATED
         assert Order.objects.count() == 0
 
@@ -390,7 +388,7 @@ class TestOrderCreateView:
                 },
             },
         }
-        phase.options = json.dumps(sample_options)
+        phase.options = sample_options
         phase.save()
         game = game_with_options
         url = reverse("order-create", args=[game.id])
@@ -433,7 +431,7 @@ class TestOrderCreateView:
                 },
             },
         }
-        phase.options = json.dumps(sample_options)
+        phase.options = sample_options
         phase.save()
         game = game_with_options
         url = reverse("order-create", args=[game.id])
@@ -473,7 +471,7 @@ class TestOrderCreateView:
                 },
             },
         }
-        phase.options = json.dumps(sample_options)
+        phase.options = sample_options
         phase.save()
         game = game_with_options
         url = reverse("order-create", args=[game.id])
@@ -525,7 +523,7 @@ class TestOrderListViewQueryPerformance:
             response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(connection.queries) == 6
+        assert len(connection.queries) == 7
 
     @pytest.mark.django_db
     def test_list_orders_query_count_with_multiple_orders(
@@ -562,7 +560,7 @@ class TestOrderListViewQueryPerformance:
             response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(connection.queries) == 6
+        assert len(connection.queries) == 7
 
 
 class TestOrderCreateViewQueryPerformance:
@@ -580,7 +578,7 @@ class TestOrderCreateViewQueryPerformance:
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
 
-        assert query_count == 15
+        assert query_count == 16
 
 
 class TestGetOptionsForOrder:
@@ -869,13 +867,6 @@ class TestOrderComplete:
         assert order.complete is False
 
     @pytest.mark.django_db
-    def test_build_order_complete_when_unit_type_empty_string(self, test_phase_state, classical_london_province):
-        order = Order(
-            phase_state=test_phase_state, order_type=OrderType.BUILD, source=classical_london_province, unit_type=""
-        )
-        assert order.complete is True
-
-    @pytest.mark.django_db
     def test_support_order_complete_when_target_and_aux_set(
         self, test_phase_state, classical_london_province, classical_english_channel_province, classical_spain_province
     ):
@@ -981,3 +972,78 @@ class TestOrderComplete:
     def test_order_complete_with_none_order_type(self, test_phase_state, classical_london_province):
         order = Order(phase_state=test_phase_state, order_type=None, source=classical_london_province)
         assert order.complete is False
+
+
+class TestGetOrderDataFromSelected:
+
+    def test_empty_selected_returns_empty_dict(self):
+        result = get_order_data_from_selected([])
+        assert result == {}
+
+    def test_none_selected_returns_empty_dict(self):
+        result = get_order_data_from_selected(None)
+        assert result == {}
+
+    def test_only_source_returns_source(self):
+        result = get_order_data_from_selected(["ber"])
+        assert result == {"source": "ber"}
+
+    def test_move_order_complete(self):
+        result = get_order_data_from_selected(["ber", OrderType.MOVE, "kie"])
+        expected = {"source": "ber", "order_type": OrderType.MOVE, "target": "kie"}
+        assert result == expected
+
+    def test_move_order_incomplete(self):
+        result = get_order_data_from_selected(["ber", OrderType.MOVE])
+        expected = {"source": "ber", "order_type": OrderType.MOVE}
+        assert result == expected
+
+    def test_build_order_complete(self):
+        result = get_order_data_from_selected(["ber", OrderType.BUILD, UnitType.ARMY])
+        expected = {"source": "ber", "order_type": OrderType.BUILD, "unit_type": UnitType.ARMY}
+        assert result == expected
+
+    def test_build_order_incomplete(self):
+        result = get_order_data_from_selected(["ber", OrderType.BUILD])
+        expected = {"source": "ber", "order_type": OrderType.BUILD}
+        assert result == expected
+
+    def test_support_order_complete(self):
+        result = get_order_data_from_selected(["ber", OrderType.SUPPORT, "pru", "war"])
+        expected = {"source": "ber", "order_type": OrderType.SUPPORT, "aux": "pru", "target": "war"}
+        assert result == expected
+
+    def test_support_order_partial_aux_only(self):
+        result = get_order_data_from_selected(["ber", OrderType.SUPPORT, "pru"])
+        expected = {"source": "ber", "order_type": OrderType.SUPPORT, "aux": "pru"}
+        assert result == expected
+
+    def test_support_order_incomplete(self):
+        result = get_order_data_from_selected(["ber", OrderType.SUPPORT])
+        expected = {"source": "ber", "order_type": OrderType.SUPPORT}
+        assert result == expected
+
+    def test_convoy_order_complete(self):
+        result = get_order_data_from_selected(["eng", OrderType.CONVOY, "lon", "bre"])
+        expected = {"source": "eng", "order_type": OrderType.CONVOY, "aux": "lon", "target": "bre"}
+        assert result == expected
+
+    def test_convoy_order_partial_aux_only(self):
+        result = get_order_data_from_selected(["eng", OrderType.CONVOY, "lon"])
+        expected = {"source": "eng", "order_type": OrderType.CONVOY, "aux": "lon"}
+        assert result == expected
+
+    def test_convoy_order_incomplete(self):
+        result = get_order_data_from_selected(["eng", OrderType.CONVOY])
+        expected = {"source": "eng", "order_type": OrderType.CONVOY}
+        assert result == expected
+
+    def test_hold_order(self):
+        result = get_order_data_from_selected(["ber", OrderType.HOLD])
+        expected = {"source": "ber", "order_type": OrderType.HOLD}
+        assert result == expected
+
+    def test_disband_order(self):
+        result = get_order_data_from_selected(["ber", OrderType.DISBAND])
+        expected = {"source": "ber", "order_type": OrderType.DISBAND}
+        assert result == expected

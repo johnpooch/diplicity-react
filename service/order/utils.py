@@ -1,6 +1,38 @@
 from common.constants import OrderType
 
 
+def get_order_data_from_selected(selected):
+    if not selected:
+        return {}
+
+    result = {}
+    result["source"] = selected[0]
+
+    if len(selected) <= 1:
+        return result
+
+    result["order_type"] = selected[1]
+
+    if result["order_type"] == OrderType.BUILD:
+        if len(selected) >= 3:
+            result["unit_type"] = selected[2]
+    elif result["order_type"] == OrderType.MOVE:
+        if len(selected) >= 3:
+            result["target"] = selected[2]
+    elif result["order_type"] == OrderType.SUPPORT:
+        if len(selected) >= 3:
+            result["aux"] = selected[2]
+        if len(selected) >= 4:
+            result["target"] = selected[3]
+    elif result["order_type"] == OrderType.CONVOY:
+        if len(selected) >= 3:
+            result["aux"] = selected[2]
+        if len(selected) >= 4:
+            result["target"] = selected[3]
+
+    return result
+
+
 def _navigate_options(current_options, key, error_message):
     if key not in current_options:
         raise ValueError(error_message)

@@ -5,7 +5,7 @@ from django.core import exceptions
 from common.constants import UnitType, OrderType, PhaseStatus, OrderResolutionStatus, OrderCreationStep
 from common.models import BaseModel
 
-from .utils import get_options_for_order
+from .utils import get_options_for_order, get_order_data_from_selected
 
 
 class OrderQuerySet(models.QuerySet):
@@ -41,59 +41,32 @@ class OrderManager(models.Manager):
     def with_related_data(self):
         return self.get_queryset().with_related_data()
 
+    def try_get_province(self, phase, province_id):
+        try:
+            return phase.variant.provinces.get(province_id=province_id)
+        except ObjectDoesNotExist:
+            raise exceptions.ValidationError(f"Province {province_id} not found")
+
     def create_from_selected(self, user, phase, selected):
-        print(selected)
         phase_state = (
             phase.phase_states.select_related("member__user", "phase", "member", "phase__game__variant")
             .filter(member__user=user)
             .first()
         )
 
-        try:
-            source = phase.variant.provinces.get(province_id=selected[0])
-        except ObjectDoesNotExist:
-            raise exceptions.ValidationError(f"Source province {selected[0]} not found")
-
+        order_data = get_order_data_from_selected(selected)
+        source = self.try_get_province(phase, order_data["source"])
         order = Order(phase_state=phase_state, source=source)
 
-        if len(selected) <= 1:
-            return order
+        if "order_type" in order_data:
+            order.order_type = order_data["order_type"]
+        if "unit_type" in order_data:
+            order.unit_type = order_data["unit_type"]
+        if "target" in order_data:
+            order.target = self.try_get_province(phase, order_data["target"])
+        if "aux" in order_data:
+            order.aux = self.try_get_province(phase, order_data["aux"])
 
-        order.order_type = selected[1]
-
-        if order.order_type == OrderType.BUILD:
-            if len(selected) >= 3:
-                order.unit_type = selected[2]
-        elif order.order_type == OrderType.MOVE:
-            if len(selected) >= 3:
-                try:
-                    order.target = phase.variant.provinces.get(province_id=selected[2])
-                except ObjectDoesNotExist:
-                    raise exceptions.ValidationError(f"Target province {selected[2]} not found")
-        elif order.order_type == OrderType.SUPPORT:
-            if len(selected) >= 3:
-                try:
-                    order.aux = phase.variant.provinces.get(province_id=selected[2])
-                except ObjectDoesNotExist:
-                    raise exceptions.ValidationError(f"Auxiliary province {selected[2]} not found")
-            if len(selected) >= 4:
-                try:
-                    order.target = phase.variant.provinces.get(province_id=selected[3])
-                except ObjectDoesNotExist:
-                    raise exceptions.ValidationError(f"Target province {selected[3]} not found")
-        elif order.order_type == OrderType.CONVOY:
-            if len(selected) >= 3:
-                try:
-                    order.aux = phase.variant.provinces.get(province_id=selected[2])
-                except ObjectDoesNotExist:
-                    raise exceptions.ValidationError(f"Auxiliary province {selected[2]} not found")
-            if len(selected) >= 4:
-                try:
-                    order.target = phase.variant.provinces.get(province_id=selected[3])
-                except ObjectDoesNotExist:
-                    raise exceptions.ValidationError(f"Target province {selected[3]} not found")
-
-        print(order)
         return order
 
 
@@ -101,7 +74,7 @@ class Order(BaseModel):
 
     objects = OrderManager()
 
-    phase_state = models.ForeignKey("game.PhaseState", on_delete=models.CASCADE, related_name="orders")
+    phase_state = models.ForeignKey("phase.PhaseState", on_delete=models.CASCADE, related_name="orders")
     order_type = models.CharField(max_length=50, choices=OrderType.ORDER_TYPE_CHOICES, null=True, blank=True)
     source = models.ForeignKey(
         "province.Province", on_delete=models.CASCADE, related_name="source_orders", null=True, blank=True
@@ -123,9 +96,12 @@ class Order(BaseModel):
         return self.phase_state.member.nation
 
     @property
+    def phase(self):
+        return self.phase_state.phase
+
+    @property
     def options(self):
-        phase = self.phase_state.phase
-        return get_options_for_order(phase.options_dict, self)
+        return get_options_for_order(self.phase.options, self)
 
     @property
     def options_display(self):
@@ -144,80 +120,78 @@ class Order(BaseModel):
 
     @property
     def selected(self):
-        return [
-            value
-            for value in [
-                self.source.province_id if self.source else None,
-                self.order_type,
-                self.unit_type,
-                self.aux.province_id if self.aux else None,
-                self.target.province_id if self.target else None,
-            ]
-            if value
-        ]
-
-    @property
-    def complete(self):
-        if not self.order_type:
-            return False
-        if self.order_type in [OrderType.HOLD, OrderType.DISBAND]:
-            return True
-        if self.order_type == OrderType.MOVE:
-            return self.target is not None
-        if self.order_type == OrderType.BUILD:
-            return self.unit_type is not None
-        if self.order_type in [OrderType.SUPPORT, OrderType.CONVOY]:
-            return self.target is not None and self.aux is not None
-        return False
+        result = []
+        if self.source:
+            result.append(self.source.province_id)
+        if self.order_type:
+            result.append(self.order_type)
+        if self.unit_type:
+            result.append(self.unit_type)
+        if self.aux:
+            result.append(self.aux.province_id)
+        if self.target:
+            result.append(self.target.province_id)
+        return result
 
     @property
     def step(self):
-        if self.complete:
-            return OrderCreationStep.COMPLETED
         if not self.order_type:
             return OrderCreationStep.SELECT_ORDER_TYPE
-        if self.order_type == OrderType.BUILD:
+
+        if self.order_type == OrderType.BUILD and not self.unit_type:
             return OrderCreationStep.SELECT_UNIT_TYPE
-        if self.order_type == OrderType.MOVE:
+
+        if self.order_type == OrderType.MOVE and not self.target:
             return OrderCreationStep.SELECT_TARGET
+
         if self.order_type in [OrderType.SUPPORT, OrderType.CONVOY]:
             if not self.aux:
                 return OrderCreationStep.SELECT_AUX
             if not self.target:
                 return OrderCreationStep.SELECT_TARGET
-        return None
+
+        return OrderCreationStep.COMPLETED
+
+    @property
+    def complete(self):
+        return self.step == OrderCreationStep.COMPLETED
 
     @property
     def title(self):
-        if not self.order_type:
-            return f"Select order type for {self.source.name}"
+        step = self.step
 
-        if self.order_type == OrderType.HOLD:
+        if step == OrderCreationStep.SELECT_ORDER_TYPE:
+            return f"Select order type for {self.source.name}"
+        elif step == OrderCreationStep.SELECT_UNIT_TYPE and self.order_type == OrderType.BUILD:
+            return f"Select unit type to build in {self.source.name}"
+        elif step == OrderCreationStep.SELECT_TARGET and self.order_type == OrderType.MOVE:
+            return f"Select province to move {self.source.name} to"
+        elif step == OrderCreationStep.SELECT_AUX and self.order_type == OrderType.SUPPORT:
+            return f"Select province for {self.source.name} to support"
+        elif step == OrderCreationStep.SELECT_AUX and self.order_type == OrderType.CONVOY:
+            return f"Select province for {self.source.name} to convoy"
+        elif step == OrderCreationStep.SELECT_TARGET and self.order_type == OrderType.SUPPORT:
+            return f"Select destination for {self.source.name} to support {self.aux.name} to"
+        elif step == OrderCreationStep.SELECT_TARGET and self.order_type == OrderType.CONVOY:
+            return f"Select destination for {self.source.name} to convoy {self.aux.name} to"
+        elif step == OrderCreationStep.COMPLETED and self.order_type == OrderType.HOLD:
             return f"{self.source.name} will hold"
-        if self.order_type == OrderType.DISBAND:
+        elif step == OrderCreationStep.COMPLETED and self.order_type == OrderType.DISBAND:
             return f"{self.source.name} will be disbanded"
-        if self.order_type == OrderType.BUILD:
-            if not self.unit_type:
-                return f"Select unit type to build in {self.source.name}"
-            else:
-                return f"{self.unit_type} will be built in {self.source.name}"
-        if self.order_type == OrderType.MOVE:
-            if not self.target:
-                return f"Select province to move {self.source.name} to"
-            else:
-                return f"{self.source.name} will move to {self.target.name}"
-        if self.order_type in [OrderType.SUPPORT, OrderType.CONVOY]:
-            if not self.aux:
-                return f"Select province for {self.source.name} to {self.order_type.lower()}"
-            elif not self.target:
-                return f"Select destination for {self.source.name} to {self.order_type.lower()} {self.aux.name} to"
-            else:
-                return f"{self.source.name} will {self.order_type.lower()} {self.aux.name} to {self.target.name}"
+        elif step == OrderCreationStep.COMPLETED and self.order_type == OrderType.BUILD:
+            return f"{self.unit_type} will be built in {self.source.name}"
+        elif step == OrderCreationStep.COMPLETED and self.order_type == OrderType.MOVE:
+            return f"{self.source.name} will move to {self.target.name}"
+        elif step == OrderCreationStep.COMPLETED and self.order_type == OrderType.SUPPORT:
+            return f"{self.source.name} will support {self.aux.name} to {self.target.name}"
+        elif step == OrderCreationStep.COMPLETED and self.order_type == OrderType.CONVOY:
+            return f"{self.source.name} will convoy {self.aux.name} to {self.target.name}"
+
         return None
 
     def clean(self):
         try:
-            get_options_for_order(self.phase_state.phase.options_dict, self)
+            get_options_for_order(self.phase.options, self)
         except Exception as e:
             raise exceptions.ValidationError(e)
 

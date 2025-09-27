@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from game.models import Phase
+from phase.models import Phase
 from common.constants import PhaseStatus
 from unit.serializers import UnitSerializer
 from supply_center.serializers import SupplyCenterSerializer

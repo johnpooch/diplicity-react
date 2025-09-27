@@ -54,7 +54,9 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "rest_framework.authtoken",
     "game",
+    "member",
     "order",
+    "phase",
     "version",
     "user_profile",
     "login",
@@ -63,6 +65,9 @@ INSTALLED_APPS = [
     "nation",
     "unit",
     "supply_center",
+    "channel",
+    "adjudication",
+    "notification",
     "drf_spectacular",
 ]
 

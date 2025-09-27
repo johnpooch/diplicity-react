@@ -7,7 +7,7 @@ def add_italy_vs_germany_units(apps, schema_editor):
     Variant = apps.get_model("variant", "Variant")
     Nation = apps.get_model("nation", "Nation")
     Province = apps.get_model("province", "Province")
-    Phase = apps.get_model("game", "Phase")
+    Phase = apps.get_model("phase", "Phase")
     Unit = apps.get_model("unit", "Unit")
 
     # Get the Italy vs Germany variant and template phase
@@ -41,7 +41,7 @@ def add_italy_vs_germany_units(apps, schema_editor):
 
 def remove_italy_vs_germany_units(apps, schema_editor):
     Variant = apps.get_model("variant", "Variant")
-    Phase = apps.get_model("game", "Phase")
+    Phase = apps.get_model("phase", "Phase")
     Unit = apps.get_model("unit", "Unit")
 
     italy_germany_variant = Variant.objects.get(id="italy-vs-germany")

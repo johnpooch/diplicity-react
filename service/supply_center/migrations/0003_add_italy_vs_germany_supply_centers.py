@@ -7,7 +7,7 @@ def add_italy_vs_germany_supply_centers(apps, schema_editor):
     Variant = apps.get_model("variant", "Variant")
     Nation = apps.get_model("nation", "Nation")
     Province = apps.get_model("province", "Province")
-    Phase = apps.get_model("game", "Phase")
+    Phase = apps.get_model("phase", "Phase")
     SupplyCenter = apps.get_model("supply_center", "SupplyCenter")
 
     # Get the Italy vs Germany variant and template phase
@@ -39,7 +39,7 @@ def add_italy_vs_germany_supply_centers(apps, schema_editor):
 
 def remove_italy_vs_germany_supply_centers(apps, schema_editor):
     Variant = apps.get_model("variant", "Variant")
-    Phase = apps.get_model("game", "Phase")
+    Phase = apps.get_model("phase", "Phase")
     SupplyCenter = apps.get_model("supply_center", "SupplyCenter")
 
     italy_germany_variant = Variant.objects.get(id="italy-vs-germany")

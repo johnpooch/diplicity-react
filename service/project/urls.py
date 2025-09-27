@@ -26,15 +26,16 @@ from rest_framework.routers import DefaultRouter
 urlpatterns = [
     path(
         "devices/",
-        FCMDeviceAuthorizedViewSet.as_view(
-            {"get": "list", "post": "create", "put": "update"}
-        ),
+        FCMDeviceAuthorizedViewSet.as_view({"get": "list", "post": "create", "put": "update"}),
         name="devices",
     ),
     path("admin/", admin.site.urls),
     path("api-auth/", include("rest_framework.urls")),
     path("", include("game.urls")),
+    path("", include("member.urls")),
+    path("", include("channel.urls")),
     path("", include("order.urls")),
+    path("", include("phase.urls")),
     path("", include("version.urls")),
     path("", include("user_profile.urls")),
     path("", include("login.urls")),

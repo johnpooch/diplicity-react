@@ -7,7 +7,7 @@ from province.models import Province
 
 
 Game = apps.get_model("game", "Game")
-Phase = apps.get_model("game", "Phase")
+Phase = apps.get_model("phase", "Phase")
 
 
 @pytest.fixture
@@ -28,6 +28,7 @@ def base_active_phase(db):
             year=1901,
             type="Movement",
             status=PhaseStatus.ACTIVE,
+            ordinal=1,
         )
         # Get the actual model instances
         england_nation = Nation.objects.get(name="England", variant=game.variant)

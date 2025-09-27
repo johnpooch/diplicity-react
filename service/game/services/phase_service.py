@@ -1,6 +1,7 @@
 import logging
 from django.utils import timezone
-from ..models import Game, Phase
+from ..models import Game
+from phase.models import Phase
 from .game_service import GameService
 from .adjudication_service import AdjudicationService
 from .base_service import BaseService

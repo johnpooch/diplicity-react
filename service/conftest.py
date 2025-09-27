@@ -1,5 +1,6 @@
 import pytest
 import json
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from game import models
 from user_profile.models import UserProfile
@@ -33,6 +34,174 @@ def secondary_user(django_db_setup, django_db_blocker):
 
 
 @pytest.fixture(scope="session")
+def tertiary_user(django_db_setup, django_db_blocker):
+    with django_db_blocker.unblock():
+        tertiary_user = User.objects.create_user(
+            username="tertiaryuser",
+            email="tertiary@example.com",
+            password="testpass123",
+        )
+        UserProfile.objects.create(user=tertiary_user, name="Tertiary User", picture="")
+        return tertiary_user
+
+
+@pytest.fixture
+def base_active_game_for_primary_user(db, classical_variant):
+    return models.Game.objects.create(
+        name="Primary User's Active Game",
+        variant=classical_variant,
+        status=models.Game.ACTIVE,
+    )
+
+
+@pytest.fixture
+def base_active_phase(db, classical_england_nation, classical_edinburgh_province):
+
+    def _create_phase(game):
+        phase = game.phases.create(
+            game=game,
+            variant=game.variant,
+            season="Spring",
+            year=1901,
+            type="Movement",
+            status=PhaseStatus.ACTIVE,
+            ordinal=1,
+        )
+        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_edinburgh_province)
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+        return phase
+
+    return _create_phase
+
+
+@pytest.fixture
+def base_active_game_for_secondary_user(db, classical_variant):
+    return models.Game.objects.create(
+        name="Secondary User's Active Game",
+        variant=classical_variant,
+        status=models.Game.ACTIVE,
+    )
+
+
+@pytest.fixture
+def active_game_created_by_secondary_user(db, secondary_user, base_active_game_for_secondary_user, base_active_phase):
+    base_active_phase(base_active_game_for_secondary_user)
+    base_active_game_for_secondary_user.members.create(user=secondary_user)
+    return base_active_game_for_secondary_user
+
+
+@pytest.fixture
+def active_game_with_phase_state(
+    db,
+    primary_user,
+    base_active_game_for_primary_user,
+    base_active_phase,
+    classical_england_nation,
+    classical_edinburgh_province,
+):
+    phase = base_active_phase(base_active_game_for_primary_user)
+    member = base_active_game_for_primary_user.members.create(user=primary_user, nation=classical_england_nation)
+    phase_state = phase.phase_states.create(member=member)
+    return base_active_game_for_primary_user
+
+
+@pytest.fixture
+def active_game_with_confirmed_phase_state(db, active_game_with_phase_state, classical_england_nation):
+    phase_state = active_game_with_phase_state.current_phase.phase_states.first()
+    phase_state.orders_confirmed = True
+    phase_state.save()
+    return active_game_with_phase_state
+
+
+@pytest.fixture
+def active_game_with_eliminated_member(db, active_game_with_phase_state, secondary_user, classical_england_nation):
+    member = active_game_with_phase_state.members.create(
+        user=secondary_user, eliminated=True, nation=classical_england_nation
+    )
+    active_game_with_phase_state.current_phase.phase_states.create(member=member)
+    return active_game_with_phase_state
+
+
+@pytest.fixture
+def active_game_with_kicked_member(db, active_game_with_phase_state, secondary_user, classical_england_nation):
+    member = active_game_with_phase_state.members.create(
+        user=secondary_user, kicked=True, nation=classical_england_nation
+    )
+    active_game_with_phase_state.current_phase.phase_states.create(member=member)
+    return active_game_with_phase_state
+
+
+@pytest.fixture
+def base_pending_phase(db, classical_england_nation, classical_edinburgh_province):
+    def _create_phase(game):
+        phase = game.phases.create(
+            game=game,
+            variant=game.variant,
+            season="Spring",
+            year=1901,
+            type="Movement",
+            status=PhaseStatus.PENDING,
+            ordinal=0,
+        )
+        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_edinburgh_province)
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+        return phase
+
+    return _create_phase
+
+
+@pytest.fixture
+def base_pending_game_for_primary_user(db, classical_variant):
+    return models.Game.objects.create(
+        name="Primary User's Pending Game",
+        variant=classical_variant,
+        status=models.Game.PENDING,
+    )
+
+
+@pytest.fixture
+def base_pending_game_for_secondary_user(db, classical_variant):
+    return models.Game.objects.create(
+        name="Secondary User's Pending Game",
+        variant=classical_variant,
+        status=models.Game.PENDING,
+    )
+
+
+@pytest.fixture
+def pending_game_created_by_secondary_user(
+    db, secondary_user, base_pending_game_for_secondary_user, base_pending_phase
+):
+    base_pending_phase(base_pending_game_for_secondary_user)
+    base_pending_game_for_secondary_user.members.create(user=secondary_user)
+    return base_pending_game_for_secondary_user
+
+
+@pytest.fixture
+def pending_game_created_by_secondary_user_joined_by_primary(db, primary_user, pending_game_created_by_secondary_user):
+    pending_game_created_by_secondary_user.members.create(user=primary_user)
+    return pending_game_created_by_secondary_user
+
+
+@pytest.fixture
+def pending_game_created_by_primary_user(db, primary_user, base_pending_game_for_primary_user, base_pending_phase):
+    base_pending_phase(base_pending_game_for_primary_user)
+    base_pending_game_for_primary_user.members.create(user=primary_user)
+    return base_pending_game_for_primary_user
+
+
+@pytest.fixture
+def active_game_with_phase_options(db, active_game_with_phase_state):
+
+    phase = active_game_with_phase_state.current_phase
+    with open(f"{settings.BASE_DIR}/game/tests/data/options.json") as f:
+        json_string = f.read()
+    phase.options = json.loads(json_string)
+    phase.save()
+    return active_game_with_phase_state
+
+
+@pytest.fixture(scope="session")
 def classical_variant(django_db_setup, django_db_blocker):
     with django_db_blocker.unblock():
         return Variant.objects.get(id="classical")
@@ -46,8 +215,28 @@ def authenticated_client(primary_user):
 
 
 @pytest.fixture(scope="session")
+def authenticated_client_for_secondary_user(secondary_user):
+    client = APIClient()
+    client.force_authenticate(user=secondary_user)
+    return client
+
+
+@pytest.fixture(scope="session")
+def authenticated_client_for_tertiary_user(tertiary_user):
+    client = APIClient()
+    client.force_authenticate(user=tertiary_user)
+    return client
+
+
+@pytest.fixture(scope="session")
 def unauthenticated_client():
     return APIClient()
+
+
+@pytest.fixture(scope="session")
+def italy_vs_germany_variant(django_db_setup, django_db_blocker):
+    with django_db_blocker.unblock():
+        return Variant.objects.get(id="italy-vs-germany")
 
 
 @pytest.fixture(scope="session")
@@ -242,13 +431,13 @@ def active_game(
         status=models.Game.ACTIVE,
     )
 
-    # Create phase
     phase = game.phases.create(
         variant=classical_variant,
         season="Spring",
         year=1901,
         type="Movement",
         status=PhaseStatus.ACTIVE,
+        ordinal=1,
     )
 
     # Create units and supply centers
@@ -268,6 +457,6 @@ def active_game(
 def game_with_options(active_game, sample_options):
     game = active_game
     phase = game.current_phase
-    phase.options = json.dumps(sample_options)
+    phase.options = sample_options
     phase.save()
     return game

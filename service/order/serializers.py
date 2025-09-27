@@ -29,17 +29,14 @@ class OrderSerializer(serializers.Serializer):
     )
 
     def validate_selected(self, value):
-        user = self.context["request"].user
-        phase = self.context["phase"]
-        order = Order.objects.create_from_selected(user, phase, value)
+        order = Order.objects.create_from_selected(self.context["request"].user, self.context["phase"], value)
         order.clean()
         return order.selected
 
     def create(self, validated_data):
-        selected = validated_data["selected"]
-        user = self.context["request"].user
-        phase = self.context["phase"]
-        order = Order.objects.create_from_selected(user, phase, selected)
+        order = Order.objects.create_from_selected(
+            self.context["request"].user, self.context["phase"], validated_data["selected"]
+        )
         if order.complete:
             order.save()
         return order

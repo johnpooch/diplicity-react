@@ -4,52 +4,10 @@ from . import views
 
 urlpatterns = [
     path("game/", views.GameCreateView.as_view(), name="game-create"),
-    path("game/<str:game_id>/join/", views.GameJoinView.as_view(), name="game-join"),
-    path(
-        "game/<str:game_id>/leave/",
-        views.GameLeaveView.as_view(),
-        name="game-leave",
-    ),
-    path(
-        "game/<str:game_id>/confirm/",
-        views.GameConfirmPhaseView.as_view(),
-        name="game-confirm-phase",
-    ),
     path(
         "game/<str:game_id>/",
         views.GameRetrieveView.as_view(),
         name="game-retrieve",
     ),
     path("games/", views.GameListView.as_view(), name="game-list"),
-    path(
-        "game/<str:game_id>/channel/",
-        views.ChannelCreateView.as_view(),
-        name="channel-create",
-    ),
-    path(
-        "game/<str:game_id>/channel/<int:channel_id>/",
-        views.ChannelMessageCreateView.as_view(),
-        name="channel-message-create",
-    ),
-    path(
-        "game/<str:game_id>/channels/",
-        views.ChannelListView.as_view(),
-        name="channel-list",
-    ),
-    # path(
-    #     "game/<str:game_id>/phase/<int:phase_id>/orders/",
-    #     views.OrderListView.as_view(),
-    #     name="order-list",
-    # ),
-    path(
-        "game/<str:game_id>/phase/<int:phase_id>/options/",
-        views.OptionsListView.as_view(),
-        name="options-list",
-    ),
-    path(
-        "game/<str:game_id>/orderable-provinces/",
-        views.OrderableProvincesListView.as_view(),
-        name="orderable-provinces-list",
-    ),
-    path("phase/resolve/", views.PhaseResolveView.as_view(), name="phase-resolve"),
 ]

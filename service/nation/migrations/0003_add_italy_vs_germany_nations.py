@@ -17,11 +17,7 @@ def add_italy_vs_germany_nations(apps, schema_editor):
     ]
 
     for nation_data in nations_data:
-        Nation.objects.create(
-            name=nation_data["name"],
-            color=nation_data["color"],
-            variant=italy_germany_variant,
-        )
+        Nation.objects.create(name=nation_data["name"], color=nation_data["color"], variant=italy_germany_variant)
 
 
 def remove_italy_vs_germany_nations(apps, schema_editor):

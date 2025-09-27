@@ -4,6 +4,7 @@ from django.apps import apps
 from game import models
 import json
 
+
 @pytest.mark.django_db
 def test_resolve_successful_move(game_service, active_game_with_orders, mock_notify_task):
     """
@@ -11,12 +12,14 @@ def test_resolve_successful_move(game_service, active_game_with_orders, mock_not
     """
     game = game_service.resolve(active_game_with_orders.id)
     original_phase = game.phases.get(ordinal=1)
-    
+
     # Verify resolution was created
     order = original_phase.phase_states.first().orders.first()
-    resolution = apps.get_model('order', 'OrderResolution').objects.get(order=order)
+    print(order)
+    resolution = apps.get_model("order", "OrderResolution").objects.get(order=order)
     assert resolution.status == "OK"
     assert resolution.by is None
+
 
 @pytest.mark.django_db
 def test_resolve_bounce(game_service, active_game_with_orders, mock_notify_task):
@@ -46,12 +49,13 @@ def test_resolve_bounce(game_service, active_game_with_orders, mock_notify_task)
 
     game = game_service.resolve(active_game_with_orders.id)
     original_phase = game.phases.get(ordinal=1)
-    
+
     # Verify resolution was created
     order = original_phase.phase_states.first().orders.first()
-    resolution = apps.get_model('order', 'OrderResolution').objects.get(order=order)
+    resolution = apps.get_model("order", "OrderResolution").objects.get(order=order)
     assert resolution.status == "ErrBounce"
-    assert resolution.by == "lvp"
+    assert resolution.by.province_id == "lvp"
+
 
 @pytest.mark.django_db
 def test_resolve_invalid_support_order(game_service, active_game_with_orders, mock_notify_task):
@@ -81,12 +85,13 @@ def test_resolve_invalid_support_order(game_service, active_game_with_orders, mo
 
     game = game_service.resolve(active_game_with_orders.id)
     original_phase = game.phases.get(ordinal=1)
-    
+
     # Verify resolution was created
     order = original_phase.phase_states.first().orders.first()
-    resolution = apps.get_model('order', 'OrderResolution').objects.get(order=order)
+    resolution = apps.get_model("order", "OrderResolution").objects.get(order=order)
     assert resolution.status == "ErrInvalidSupporteeOrder"
     assert resolution.by is None
+
 
 @pytest.mark.django_db
 def test_resolve_multiple_orders(game_service, active_game_with_multiple_orders, mock_notify_task):
@@ -122,11 +127,12 @@ def test_resolve_multiple_orders(game_service, active_game_with_multiple_orders,
 
     orders = original_phase.phase_states.first().orders.all()
     assert len(orders) == 2
-    
+
     for order in orders:
-        resolution = apps.get_model('order', 'OrderResolution').objects.get(order=order)
+        resolution = apps.get_model("order", "OrderResolution").objects.get(order=order)
         assert resolution.status == "OK"
         assert resolution.by is None
+
 
 @pytest.mark.django_db
 def test_resolve_adjudication_failure(game_service, active_game_with_orders):
@@ -141,4 +147,4 @@ def test_resolve_adjudication_failure(game_service, active_game_with_orders):
     assert "Adjudication service failed" in str(exc_info.value)
 
     # Verify no resolutions were created
-    assert apps.get_model('order', 'OrderResolution').objects.count() == 0
+    assert apps.get_model("order", "OrderResolution").objects.count() == 0

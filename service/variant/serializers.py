@@ -5,7 +5,7 @@ from unit.serializers import UnitSerializer
 from supply_center.serializers import SupplyCenterSerializer
 
 
-class TemplatePhaseSerializer(serializers.Serializer):
+class PhaseSerializer(serializers.Serializer):
     season = serializers.CharField()
     year = serializers.IntegerField()
     type = serializers.CharField()
@@ -20,4 +20,4 @@ class VariantSerializer(serializers.Serializer):
     author = serializers.CharField(required=False)
     nations = NationSerializer(many=True)
     provinces = ProvinceSerializer(many=True)
-    template_phase = TemplatePhaseSerializer()
+    template_phase = PhaseSerializer()

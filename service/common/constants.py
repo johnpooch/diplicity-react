@@ -1,3 +1,6 @@
+ADJUDICATION_BASE_URL = "https://godip-adjudication.appspot.com"
+
+
 class PhaseStatus:
     PENDING = "pending"
     ACTIVE = "active"
