@@ -6,6 +6,11 @@ from unit.serializers import UnitSerializer
 from .models import Phase
 
 
+class PhaseResolveResponseSerializer(serializers.Serializer):
+    resolved = serializers.IntegerField()
+    failed = serializers.IntegerField()
+
+
 class PhaseStateSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
     orders_confirmed = serializers.BooleanField(read_only=True)

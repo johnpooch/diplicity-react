@@ -3,6 +3,7 @@ from django.shortcuts import get_object_or_404
 
 from .models import Member
 from .serializers import MemberSerializer
+from common.serializers import EmptySerializer
 from common.permissions import IsPendingGame, IsNotGameMember, IsSpaceAvailable, IsGameMember
 from common.views import SelectedGameMixin
 
@@ -19,6 +20,7 @@ class MemberCreateView(SelectedGameMixin, generics.CreateAPIView):
 
 
 class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):
+    serializer_class = EmptySerializer
     permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsGameMember]
 
     def get_object(self):

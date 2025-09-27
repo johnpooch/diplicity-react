@@ -68,6 +68,14 @@ class OrderCreationStep:
     SELECT_AUX = "select-aux"
     COMPLETED = "completed"
 
+    ORDER_CREATION_STEP_CHOICES = (
+        (SELECT_ORDER_TYPE, "select-order-type"),
+        (SELECT_UNIT_TYPE, "select-unit-type"),
+        (SELECT_TARGET, "select-target"),
+        (SELECT_AUX, "select-aux"),
+        (COMPLETED, "completed"),
+    )
+
 
 class UnitType:
     ARMY = "Army"

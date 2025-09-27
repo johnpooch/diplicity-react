@@ -1,16 +1,7 @@
 from rest_framework import serializers
 from province.serializers import ProvinceSerializer
 from nation.serializers import NationSerializer
-from unit.serializers import UnitSerializer
-from supply_center.serializers import SupplyCenterSerializer
-
-
-class PhaseSerializer(serializers.Serializer):
-    season = serializers.CharField()
-    year = serializers.IntegerField()
-    type = serializers.CharField()
-    units = UnitSerializer(many=True)
-    supply_centers = SupplyCenterSerializer(many=True)
+from phase.serializers import PhaseSerializer
 
 
 class VariantSerializer(serializers.Serializer):

@@ -1,7 +1,13 @@
 from rest_framework import serializers
 from province.serializers import ProvinceSerializer
 from nation.serializers import NationSerializer
-from .models import Order, OrderResolution
+from .models import Order
+from common.constants import OrderType, UnitType, OrderCreationStep
+
+
+class OrderOptionSerializer(serializers.Serializer):
+    value = serializers.CharField()
+    label = serializers.CharField()
 
 
 class OrderResolutionSerializer(serializers.Serializer):
@@ -14,13 +20,15 @@ class OrderSerializer(serializers.Serializer):
     target = ProvinceSerializer(read_only=True)
     aux = ProvinceSerializer(read_only=True)
     resolution = OrderResolutionSerializer(read_only=True)
-    options = serializers.ReadOnlyField(source="options_display")
-    order_type = serializers.ReadOnlyField()
-    unit_type = serializers.ReadOnlyField()
+    options = OrderOptionSerializer(source="options_display", read_only=True, many=True)
+    order_type = serializers.ChoiceField(choices=OrderType.ORDER_TYPE_CHOICES, read_only=True)
+    unit_type = serializers.ChoiceField(choices=UnitType.UNIT_TYPE_CHOICES, read_only=True)
     nation = NationSerializer(read_only=True)
-    complete = serializers.ReadOnlyField(allow_null=True)
-    step = serializers.ReadOnlyField(allow_null=True)
-    title = serializers.ReadOnlyField(allow_null=True)
+    complete = serializers.BooleanField(allow_null=True, read_only=True)
+    step = serializers.ChoiceField(
+        choices=OrderCreationStep.ORDER_CREATION_STEP_CHOICES, allow_null=True, read_only=True
+    )
+    title = serializers.CharField(allow_null=True, read_only=True)
 
     selected = serializers.ListField(
         child=serializers.CharField(),

@@ -3,7 +3,7 @@ from common.permissions import IsActiveGame, IsActiveGameMember, IsCurrentPhaseA
 from common.views import SelectedGameMixin, CurrentGameMemberMixin
 from rest_framework.response import Response
 from .models import Phase
-from .serializers import PhaseStateSerializer
+from .serializers import PhaseStateSerializer, PhaseResolveResponseSerializer
 
 
 class PhaseStateUpdateView(SelectedGameMixin, CurrentGameMemberMixin, generics.UpdateAPIView):
@@ -40,6 +40,7 @@ class PhaseStateRetrieveView(SelectedGameMixin, CurrentGameMemberMixin, generics
 
 class PhaseResolveView(views.APIView):
     permission_classes = []
+    serializer_class = PhaseResolveResponseSerializer
 
     def post(self, request, *args, **kwargs):
         result = Phase.objects.resolve_due_phases()

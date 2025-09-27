@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.shortcuts import get_object_or_404
 from django.apps import apps
+from drf_spectacular.utils import extend_schema_field
 from .models import Channel, ChannelMessage
 from nation.serializers import NationSerializer
 
@@ -16,6 +17,7 @@ class ChannelMemberSerializer(serializers.Serializer):
     nation = NationSerializer()
     is_current_user = serializers.SerializerMethodField()
 
+    @extend_schema_field(serializers.BooleanField)
     def get_is_current_user(self, obj):
         request = self.context.get("request")
         if request and hasattr(request, "user"):

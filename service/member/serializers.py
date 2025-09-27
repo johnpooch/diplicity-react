@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
 
 
 class GameSummarySerializer(serializers.Serializer):
@@ -15,6 +16,7 @@ class MemberSerializer(serializers.Serializer):
     is_current_user = serializers.SerializerMethodField()
     game = GameSummarySerializer(read_only=True)
 
+    @extend_schema_field(serializers.BooleanField)
     def get_is_current_user(self, obj):
         return obj.user == self.context["request"].user
 

@@ -177,13 +177,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AuthLoginRequest'
+              $ref: '#/components/schemas/Auth'
         required: true
       security:
       - jwtAuth: []
       - {}
       responses:
-        '200':
+        '201':
           content:
             application/json:
               schema:
@@ -252,7 +252,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/GameCreateRequest'
+              $ref: '#/components/schemas/Game'
         required: true
       security:
       - jwtAuth: []
@@ -283,9 +283,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Game'
           description: ''
-  /game/{gameId}/channel/:
-    post:
-      operationId: gameChannelCreate
+  /game/{gameId}/confirm-phase/:
+    put:
+      operationId: gameConfirmPhaseUpdate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
       parameters:
       - in: path
         name: gameId
@@ -298,26 +301,22 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ChannelCreateRequest'
-        required: true
+              $ref: '#/components/schemas/PhaseState'
       security:
       - jwtAuth: []
       responses:
-        '201':
+        '200':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Channel'
+                $ref: '#/components/schemas/PhaseState'
           description: ''
-  /game/{gameId}/channel/{channelId}/:
-    post:
-      operationId: gameChannelCreate2
+    patch:
+      operationId: gameConfirmPhasePartialUpdate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
       parameters:
-      - in: path
-        name: channelId
-        schema:
-          type: integer
-        required: true
       - in: path
         name: gameId
         schema:
@@ -329,28 +328,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ChannelMessageCreateRequest'
-        required: true
-      security:
-      - jwtAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Channel'
-          description: ''
-  /game/{gameId}/channels/:
-    get:
-      operationId: gameChannelsList
-      parameters:
-      - in: path
-        name: gameId
-        schema:
-          type: string
-        required: true
-      tags:
-      - game
+              $ref: '#/components/schemas/PatchedPhaseState'
       security:
       - jwtAuth: []
       responses:
@@ -358,33 +336,14 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Channel'
-          description: ''
-  /game/{gameId}/confirm/:
-    post:
-      operationId: gameConfirmCreate
-      parameters:
-      - in: path
-        name: gameId
-        schema:
-          type: string
-        required: true
-      tags:
-      - game
-      security:
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Game'
+                $ref: '#/components/schemas/PhaseState'
           description: ''
   /game/{gameId}/join/:
     post:
       operationId: gameJoinCreate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
       parameters:
       - in: path
         name: gameId
@@ -393,18 +352,26 @@ paths:
         required: true
       tags:
       - game
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Member'
       security:
       - jwtAuth: []
       responses:
-        '200':
+        '201':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Game'
+                $ref: '#/components/schemas/Member'
           description: ''
   /game/{gameId}/leave/:
     delete:
       operationId: gameLeaveDestroy
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
       parameters:
       - in: path
         name: gameId
@@ -418,34 +385,12 @@ paths:
       responses:
         '204':
           description: No response body
-  /game/{gameId}/orderable-provinces/:
-    get:
-      operationId: gameOrderableProvincesList
-      description: |-
-        Lists the provinces that the user can order for the current phase,
-        along with any existing orders for those provinces.
-      parameters:
-      - in: path
-        name: gameId
-        schema:
-          type: string
-        required: true
-      tags:
-      - game
-      security:
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/OrderableProvinceListResponse'
-          description: ''
   /game/{gameId}/orders/:
     post:
       operationId: gameOrdersCreate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_phase
+        method that returns the current phase for the game. Also adds phase to the serializer context.
       parameters:
       - in: path
         name: gameId
@@ -459,7 +404,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Order'
-        required: true
       security:
       - jwtAuth: []
       responses:
@@ -472,6 +416,9 @@ paths:
   /game/{gameId}/orders/{phaseId}:
     get:
       operationId: gameOrdersList
+      description: |-
+        Used by views that have a phase parameter in the URL. Provides a get_phase
+        method that returns the phase object. Also adds phase to the serializer context.
       parameters:
       - in: path
         name: gameId
@@ -496,10 +443,12 @@ paths:
                 items:
                   $ref: '#/components/schemas/Order'
           description: ''
-  /game/{gameId}/orders/create-interactive/:
-    post:
-      operationId: gameOrdersCreateInteractiveCreate
-      description: Interactive order creation endpoint for progressive order building.
+  /game/{gameId}/phase-state/:
+    get:
+      operationId: gamePhaseStateRetrieve
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
       parameters:
       - in: path
         name: gameId
@@ -508,12 +457,6 @@ paths:
         required: true
       tags:
       - game
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/InteractiveOrderCreateRequest'
-        required: true
       security:
       - jwtAuth: []
       responses:
@@ -521,40 +464,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InteractiveOrderCreateResponse'
-          description: ''
-  /game/{gameId}/phase/{phaseId}/options/:
-    post:
-      operationId: gamePhaseOptionsCreate
-      parameters:
-      - in: path
-        name: gameId
-        schema:
-          type: string
-        required: true
-      - in: path
-        name: phaseId
-        schema:
-          type: integer
-        required: true
-      tags:
-      - game
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ListOptionsRequest'
-        required: true
-      security:
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Option'
+                $ref: '#/components/schemas/PhaseState'
           description: ''
   /games/:
     get:
@@ -581,11 +491,105 @@ paths:
                 items:
                   $ref: '#/components/schemas/Game'
           description: ''
+  /games/{gameId}/channels/:
+    get:
+      operationId: gamesChannelsList
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - games
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Channel'
+          description: ''
+  /games/{gameId}/channels/{channelId}/messages/create/:
+    post:
+      operationId: gamesChannelsMessagesCreateCreate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: channelId
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - games
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChannelMessage'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChannelMessage'
+          description: ''
+  /games/{gameId}/channels/create/:
+    post:
+      operationId: gamesChannelsCreateCreate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - games
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Channel'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Channel'
+          description: ''
   /phase/resolve/:
     post:
       operationId: phaseResolveCreate
       tags:
       - phase
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PhaseResolveResponse'
+        required: true
       security:
       - jwtAuth: []
       responses:
@@ -632,7 +636,6 @@ paths:
       - version
       security:
       - jwtAuth: []
-      - {}
       responses:
         '200':
           content:
@@ -645,64 +648,104 @@ components:
     Auth:
       type: object
       properties:
+        idToken:
+          type: string
+          writeOnly: true
         id:
           type: integer
+          readOnly: true
         email:
           type: string
+          readOnly: true
         username:
           type: string
+          readOnly: true
         accessToken:
           type: string
+          readOnly: true
         refreshToken:
           type: string
+          readOnly: true
       required:
       - accessToken
       - email
       - id
+      - idToken
       - refreshToken
       - username
-    AuthLoginRequest:
-      type: object
-      properties:
-        idToken:
-          type: string
-      required:
-      - idToken
     Channel:
       type: object
       properties:
         id:
           type: integer
+          readOnly: true
         name:
           type: string
+          readOnly: true
         private:
           type: boolean
+          readOnly: true
         messages:
           type: array
           items:
-            $ref: '#/components/schemas/Message'
-      required:
-      - id
-      - messages
-      - name
-      - private
-    ChannelCreateRequest:
-      type: object
-      properties:
-        members:
+            $ref: '#/components/schemas/ChannelMessage'
+          readOnly: true
+        memberIds:
           type: array
           items:
             type: integer
+          writeOnly: true
       required:
-      - members
-    ChannelMessageCreateRequest:
+      - id
+      - memberIds
+      - messages
+      - name
+      - private
+    ChannelMember:
       type: object
       properties:
+        id:
+          type: integer
+        username:
+          type: string
+        name:
+          type: string
+        picture:
+          type: string
+        nation:
+          $ref: '#/components/schemas/Nation'
+        isCurrentUser:
+          type: boolean
+          readOnly: true
+      required:
+      - id
+      - isCurrentUser
+      - name
+      - nation
+      - picture
+      - username
+    ChannelMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
         body:
           type: string
           maxLength: 1000
+        sender:
+          allOf:
+          - $ref: '#/components/schemas/ChannelMember'
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
       required:
       - body
+      - createdAt
+      - id
+      - sender
     FCMDevice:
       type: object
       properties:
@@ -744,34 +787,44 @@ components:
       properties:
         id:
           type: string
-        name:
-          type: string
+          readOnly: true
         status:
           type: string
+          readOnly: true
         movementPhaseDuration:
           type: string
-        nationAssignment:
-          type: string
+          readOnly: true
         canJoin:
           type: boolean
+          readOnly: true
         canLeave:
           type: boolean
+          readOnly: true
         phases:
           type: array
           items:
             $ref: '#/components/schemas/Phase'
+          readOnly: true
+        variant:
+          allOf:
+          - $ref: '#/components/schemas/Variant'
+          readOnly: true
         members:
           type: array
           items:
             $ref: '#/components/schemas/Member'
-        variant:
-          $ref: '#/components/schemas/Variant'
+          readOnly: true
         phaseConfirmed:
           type: boolean
-        canConfirmPhase:
-          type: boolean
+          readOnly: true
+        name:
+          type: string
+        variantId:
+          type: string
+          writeOnly: true
+        nationAssignment:
+          $ref: '#/components/schemas/NationAssignmentEnum'
       required:
-      - canConfirmPhase
       - canJoin
       - canLeave
       - id
@@ -783,105 +836,51 @@ components:
       - phases
       - status
       - variant
-    GameCreateRequest:
+      - variantId
+    GameSummary:
       type: object
       properties:
         name:
           type: string
-        variant:
+        status:
           type: string
-        nationAssignment:
-          allOf:
-          - $ref: '#/components/schemas/NationAssignmentEnum'
-          default: random
       required:
       - name
-      - variant
-    InteractiveOrderCreateRequest:
-      type: object
-      description: Request serializer for interactive order creation
-      properties:
-        selected:
-          type: array
-          items:
-            type: string
-          description: Array of selected options representing the current order path
-      required:
-      - selected
-    InteractiveOrderCreateResponse:
-      type: object
-      description: Response serializer for interactive order creation
-      properties:
-        options:
-          type: array
-          items:
-            $ref: '#/components/schemas/OrderOption'
-        step:
-          type: string
-        title:
-          type: string
-        completed:
-          type: boolean
-        selected:
-          type: array
-          items:
-            type: string
-        createdOrder:
-          allOf:
-          - $ref: '#/components/schemas/Order'
-          nullable: true
-      required:
-      - completed
-      - options
-      - selected
-      - step
-      - title
-    ListOptionsRequest:
-      type: object
-      properties:
-        order:
-          $ref: '#/components/schemas/PartialOrder'
-      required:
-      - order
+      - status
     Member:
       type: object
       properties:
         id:
           type: integer
+          readOnly: true
         username:
           type: string
+          readOnly: true
         name:
           type: string
+          readOnly: true
         picture:
           type: string
+          readOnly: true
         nation:
           type: string
+          readOnly: true
+          nullable: true
         isCurrentUser:
           type: boolean
+          readOnly: true
+        game:
+          allOf:
+          - $ref: '#/components/schemas/GameSummary'
+          readOnly: true
       required:
+      - game
       - id
       - isCurrentUser
       - name
       - nation
       - picture
       - username
-    Message:
-      type: object
-      properties:
-        id:
-          type: integer
-        body:
-          type: string
-        sender:
-          $ref: '#/components/schemas/Sender'
-        createdAt:
-          type: string
-          format: date-time
-      required:
-      - body
-      - createdAt
-      - id
-      - sender
     Nation:
       type: object
       properties:
@@ -900,114 +899,95 @@ components:
       description: |-
         * `random` - Random
         * `ordered` - Ordered
-    Option:
-      type: object
-      properties:
-        province:
-          $ref: '#/components/schemas/Province'
-        unit:
-          allOf:
-          - $ref: '#/components/schemas/Unit'
-          nullable: true
-      required:
-      - province
     Order:
       type: object
       properties:
-        id:
-          type: integer
-        orderType:
-          type: string
         source:
-          $ref: '#/components/schemas/OrderProvince'
+          allOf:
+          - $ref: '#/components/schemas/Province'
+          readOnly: true
         target:
           allOf:
-          - $ref: '#/components/schemas/OrderProvince'
-          nullable: true
+          - $ref: '#/components/schemas/Province'
+          readOnly: true
         aux:
           allOf:
-          - $ref: '#/components/schemas/OrderProvince'
-          nullable: true
-        unitType:
-          type: string
-          nullable: true
+          - $ref: '#/components/schemas/Province'
+          readOnly: true
         resolution:
           allOf:
           - $ref: '#/components/schemas/OrderResolution'
+          readOnly: true
+        options:
+          type: string
+          readOnly: true
+        orderType:
+          type: string
+          readOnly: true
+        unitType:
+          type: string
+          readOnly: true
+        nation:
+          allOf:
+          - $ref: '#/components/schemas/Nation'
+          readOnly: true
+        complete:
+          type: boolean
+          readOnly: true
           nullable: true
+        step:
+          type: integer
+          readOnly: true
+          nullable: true
+        title:
+          type: string
+          readOnly: true
+          nullable: true
+        selected:
+          type: array
+          items:
+            type: string
       required:
       - aux
-      - id
+      - complete
+      - nation
+      - options
       - orderType
       - resolution
       - source
+      - step
       - target
+      - title
       - unitType
-    OrderOption:
-      type: object
-      description: Serializer for individual order options in interactive creation
-      properties:
-        value:
-          type: string
-        label:
-          type: string
-      required:
-      - label
-      - value
-    OrderProvince:
-      type: object
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        type:
-          type: string
-        supplyCenter:
-          type: boolean
-      required:
-      - id
-      - name
-      - supplyCenter
-      - type
     OrderResolution:
       type: object
       properties:
         status:
           type: string
         by:
-          type: string
+          allOf:
+          - $ref: '#/components/schemas/Province'
           nullable: true
       required:
       - by
       - status
-    OrderableProvinceListResponse:
+    PatchedPhaseState:
       type: object
       properties:
-        province:
-          $ref: '#/components/schemas/OrderProvince'
-        order:
-          allOf:
-          - $ref: '#/components/schemas/Order'
-          nullable: true
-      required:
-      - order
-      - province
-    PartialOrder:
-      type: object
-      properties:
-        source:
+        id:
           type: string
-          nullable: true
-        target:
-          type: string
-          nullable: true
-        aux:
-          type: string
-          nullable: true
-        orderType:
-          type: string
-          nullable: true
+          readOnly: true
+        ordersConfirmed:
+          type: boolean
+          readOnly: true
+        eliminated:
+          type: boolean
+          readOnly: true
+        orderableProvinces:
+          type: array
+          items:
+            $ref: '#/components/schemas/Province'
+          readOnly: true
     Phase:
       type: object
       properties:
@@ -1024,8 +1004,9 @@ components:
         type:
           type: string
         remainingTime:
-          type: string
-          readOnly: true
+          type: integer
+        status:
+          $ref: '#/components/schemas/StatusEnum'
         units:
           type: array
           items:
@@ -1034,15 +1015,9 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SupplyCenter'
-        options:
-          type: object
-          additionalProperties: {}
-        status:
-          $ref: '#/components/schemas/StatusEnum'
       required:
       - id
       - name
-      - options
       - ordinal
       - remainingTime
       - season
@@ -1051,13 +1026,6 @@ components:
       - type
       - units
       - year
-    PhaseNation:
-      type: object
-      properties:
-        name:
-          type: string
-      required:
-      - name
     PhaseResolveResponse:
       type: object
       properties:
@@ -1068,6 +1036,28 @@ components:
       required:
       - failed
       - resolved
+    PhaseState:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        ordersConfirmed:
+          type: boolean
+          readOnly: true
+        eliminated:
+          type: boolean
+          readOnly: true
+        orderableProvinces:
+          type: array
+          items:
+            $ref: '#/components/schemas/Province'
+          readOnly: true
+      required:
+      - eliminated
+      - id
+      - orderableProvinces
+      - ordersConfirmed
     Province:
       type: object
       properties:
@@ -1084,64 +1074,25 @@ components:
       - name
       - supplyCenter
       - type
-    Sender:
-      type: object
-      properties:
-        id:
-          type: integer
-        username:
-          type: string
-        nation:
-          $ref: '#/components/schemas/Nation'
-        isCurrentUser:
-          type: boolean
-      required:
-      - id
-      - isCurrentUser
-      - nation
-      - username
-    Start:
-      type: object
-      properties:
-        season:
-          type: string
-        year:
-          type: string
-        type:
-          type: string
-        units:
-          type: array
-          items:
-            type: object
-            additionalProperties: {}
-        supplyCenters:
-          type: array
-          items:
-            type: object
-            additionalProperties: {}
-      required:
-      - season
-      - supplyCenters
-      - type
-      - units
-      - year
     StatusEnum:
       enum:
       - pending
       - active
       - completed
+      - template
       type: string
       description: |-
         * `pending` - Pending
         * `active` - Active
         * `completed` - Completed
+        * `template` - Template
     SupplyCenter:
       type: object
       properties:
         province:
           $ref: '#/components/schemas/Province'
         nation:
-          $ref: '#/components/schemas/PhaseNation'
+          $ref: '#/components/schemas/Nation'
       required:
       - nation
       - province
@@ -1173,13 +1124,16 @@ components:
         type:
           type: string
         nation:
-          $ref: '#/components/schemas/PhaseNation'
+          $ref: '#/components/schemas/Nation'
         province:
           $ref: '#/components/schemas/Province'
-        dislodged:
-          type: boolean
+        dislodgedBy:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          readOnly: true
       required:
-      - dislodged
+      - dislodgedBy
       - nation
       - province
       - type
@@ -1217,22 +1171,19 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Nation'
-        start:
-          $ref: '#/components/schemas/Start'
         provinces:
           type: array
           items:
             $ref: '#/components/schemas/Province'
-        initialPhase:
+        templatePhase:
           $ref: '#/components/schemas/Phase'
       required:
       - description
       - id
-      - initialPhase
       - name
       - nations
       - provinces
-      - start
+      - templatePhase
     Version:
       type: object
       properties:

@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.db import transaction
+from drf_spectacular.utils import extend_schema_field
 from common.constants import NationAssignment
 from variant.serializers import VariantSerializer
 from phase.serializers import PhaseSerializer
@@ -23,12 +24,15 @@ class GameSerializer(serializers.Serializer):
     variant_id = serializers.CharField(write_only=True)
     nation_assignment = serializers.ChoiceField(choices=NationAssignment.NATION_ASSIGNMENT_CHOICES)
 
+    @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):
         return obj.can_join(self.context["request"].user)
 
+    @extend_schema_field(serializers.BooleanField)
     def get_can_leave(self, obj):
         return obj.can_leave(self.context["request"].user)
 
+    @extend_schema_field(serializers.BooleanField)
     def get_phase_confirmed(self, obj):
         return obj.phase_confirmed(self.context["request"].user)
 
