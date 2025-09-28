@@ -91,11 +91,13 @@ class ProvinceType:
     LAND = "land"
     SEA = "sea"
     COASTAL = "coastal"
+    NAMED_COAST = "named_coast"
 
     TYPE_CHOICES = (
         (LAND, "Land"),
         (SEA, "Sea"),
         (COASTAL, "Coastal"),
+        (NAMED_COAST, "Named coast"),
     )
 
 
