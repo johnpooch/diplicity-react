@@ -145,7 +145,7 @@ const GameInfo: React.FC = () => {
                   {
                     label: "Start year",
                     value: query.data ? (
-                      query.data.variant.start?.year?.toString() || "TODO"
+                      query.data.variant.templatePhase.year?.toString()
                     ) : (
                       <Skeleton variant="text" width={50} />
                     ),

@@ -10,7 +10,7 @@ import {
   Skeleton,
 } from "@mui/material";
 import { HomeLayout } from "./Layout";
-import { service } from "../../store";
+import { NationAssignmentEnum, service } from "../../store";
 import { HomeAppBar } from "./AppBar";
 import { IconName } from "../../components/Icon";
 import { useNavigate } from "react-router";
@@ -22,7 +22,8 @@ import { Panel } from "../../components/Panel";
 
 const initialValues = {
   name: randomGameName(),
-  variant: "classical",
+  variantId: "classical",
+  nationAssignment: "random" as NationAssignmentEnum,
 };
 
 const CreateGame: React.FC = () => {
@@ -32,20 +33,20 @@ const CreateGame: React.FC = () => {
     service.endpoints.gameCreate.useMutation();
 
   const handleSubmit = async (
-    values: Parameters<typeof createGameMutationTrigger>[0]["gameCreateRequest"]
+    values: Parameters<typeof createGameMutationTrigger>[0]["game"]
   ) => {
-    await createGameMutationTrigger({ gameCreateRequest: values }).unwrap();
+    await createGameMutationTrigger({ game: values }).unwrap();
     navigate("/");
   };
 
   const formik = useFormik<
-    Parameters<typeof createGameMutationTrigger>[0]["gameCreateRequest"]
+    Parameters<typeof createGameMutationTrigger>[0]["game"]
   >({
     initialValues,
     onSubmit: handleSubmit,
   });
 
-  const selectedVariant = query.data?.find(v => v.id === formik.values.variant);
+  const selectedVariant = query.data?.find(v => v.id === formik.values.variantId);
 
   return (
     <HomeLayout
@@ -81,9 +82,9 @@ const CreateGame: React.FC = () => {
                     select
                     label="Variant"
                     variant="standard"
-                    name="variant"
-                    value={formik.values.variant}
-                    onChange={e => formik.setFieldValue("variant", e.target.value)}
+                    name="variantId"
+                    value={formik.values.variantId}
+                    onChange={e => formik.setFieldValue("variantId", e.target.value)}
                     disabled={createGameQuery.isLoading}
                   >
                     {query.data?.map(variant => (
@@ -95,10 +96,10 @@ const CreateGame: React.FC = () => {
                 )}
                 {query.isLoading ? (
                   <Skeleton variant="rectangular" width="100%" height={400} />
-                ) : selectedVariant?.initialPhase ? (
+                ) : selectedVariant?.templatePhase ? (
                   <InteractiveMap
                     variant={selectedVariant}
-                    phase={selectedVariant.initialPhase}
+                    phase={selectedVariant.templatePhase}
                     interactive={false}
                     selected={[]}
                     orders={undefined}
@@ -120,7 +121,7 @@ const CreateGame: React.FC = () => {
                       value: query.isLoading ? (
                         <Skeleton variant="text" width={100} />
                       ) : (
-                        selectedVariant?.initialPhase?.year.toString()
+                        selectedVariant?.templatePhase.year.toString()
                       ),
                       icon: IconName.StartYear,
                     },

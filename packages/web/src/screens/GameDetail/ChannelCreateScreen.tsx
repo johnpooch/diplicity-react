@@ -39,7 +39,7 @@ const ChannelCreateScreen: React.FC = props => {
 
     const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
 
-    const [createChannel, createChannelMutation] = service.endpoints.gameChannelCreate.useMutation();
+    const [createChannel, createChannelMutation] = service.endpoints.gamesChannelsCreateCreate.useMutation();
 
     const handleToggle = (memberId: number) => {
         setSelectedMembers((prevSelected) =>
@@ -52,8 +52,8 @@ const ChannelCreateScreen: React.FC = props => {
     const handleCreateChannel = async () => {
         const response = await createChannel({
             gameId: gameId,
-            channelCreateRequest: {
-                members: selectedMembers,
+            channel: {
+                memberIds: selectedMembers,
             },
         });
         if (response.data) {
@@ -107,7 +107,7 @@ const ChannelCreateScreen: React.FC = props => {
                                                 >
                                                     <ListItemAvatar>
                                                         <Avatar src={member.picture}>
-                                                            {member.nation[0]}
+                                                            {member.nation?.[0]}
                                                         </Avatar>
                                                     </ListItemAvatar>
                                                     <ListItemText

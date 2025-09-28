@@ -8,72 +8,12 @@ import {
     Stack,
     Typography,
 } from "@mui/material";
-import { GameOrdersListApiResponse, Phase, Province } from "../../store";
+import { OrderRead, service } from "../../store";
 import { OrderSummary } from "../../components/OrderSummary";
 import { Panel } from "../../components/Panel";
 import { createUseStyles } from "../../components/utils/styles";
+import { useSelectedGameContext, useSelectedPhaseContext } from "../../context";
 
-type Orderable = {
-    province?: Province;
-    provinceId: string;
-    unitType?: string;
-    order?: {
-        target?: Province;
-        aux?: Province;
-        orderType?: string;
-        resolution?: {
-            status?: string;
-            by?: string;
-        };
-    };
-};
-
-const generateOrderables = (
-    phase: Phase,
-    orders: GameOrdersListApiResponse,
-    provinces: Province[]
-) => {
-    const { options } = phase;
-    const orderables: Record<string, Orderable[]> = {};
-
-    // For inactive phases, show all nations
-    const nations = Object.keys(options);
-
-    // Convert orders to a dictionary by nation
-    const ordersByNation = orders.reduce((acc, order) => {
-        acc[order.nation] = [...(acc[order.nation] || []), order];
-        return acc;
-    }, {} as Record<string, GameOrdersListApiResponse[]>);
-
-    nations.forEach(nation => {
-        const sources = Object.keys(options[nation]);
-        const orders = nationOrders.find(o => o.nation === nation)?.orders ?? [];
-
-        orderables[nation] = sources.map(source => {
-            const order = orders.find(o => o.source.id === source);
-            return {
-                province: provinces.find(p => p.id === source),
-                provinceId: source,
-                unitType: phase.units.find(u => u.province.id === source)?.type,
-                order: order
-                    ? {
-                        target: provinces.find(p => p.id === order.target?.id),
-                        aux: provinces.find(p => p.id === order.aux?.id),
-                        orderType: order.orderType,
-                        resolution: order.resolution
-                            ? {
-                                status: order.resolution.status,
-                                by: order.resolution.by ?? undefined,
-                            }
-                            : undefined,
-                    }
-                    : undefined,
-            };
-        });
-    });
-
-    return orderables;
-};
 
 const useStyles = createUseStyles(() => ({
     orderListItemTextSucceeded: {
@@ -87,60 +27,58 @@ const useStyles = createUseStyles(() => ({
     },
 }));
 
-interface InactivePhaseOrdersProps {
-    phase: Phase;
-    nationOrders: OrderListResponse[];
-    provinces: Province[];
-}
+export const InactivePhaseOrders: React.FC = () => {
+    const styles = useStyles({});
+    const { gameId } = useSelectedGameContext();
+    const { selectedPhase } = useSelectedPhaseContext();
 
-export const InactivePhaseOrders: React.FC<InactivePhaseOrdersProps> = (props) => {
-    const styles = useStyles(props);
-    const { phase, nationOrders, provinces } = props;
+    const ordersListQuery = service.endpoints.gameOrdersList.useQuery({
+        gameId,
+        phaseId: selectedPhase,
+    });
 
-    const orderables = generateOrderables(phase, nationOrders, provinces);
+    if (!ordersListQuery.data) return null;
+
+    const ordersByNation = ordersListQuery.data.reduce((acc, order) => {
+        acc[order.nation.name] = [...(acc[order.nation.name] || []), order];
+        return acc;
+    }, {} as Record<string, OrderRead[]>);
 
     return (
         <Panel>
             <Panel.Content>
-                {Object.entries(orderables).map(([nation, orderables]) => (
+                {Object.entries(ordersByNation).map(([nation, orders]) => (
                     <Stack key={nation}>
                         <ListSubheader key={nation}>{nation}</ListSubheader>
                         <Divider />
                         <List disablePadding>
-                            {orderables.map((orderable, index) => (
+                            {orders.map((order, index) => (
                                 <ListItem
                                     divider
-                                    key={`${orderable.provinceId}-${index}`}
+                                    key={`${order.source.id}-${index}`}
                                 >
                                     <ListItemText
                                         primary={
-                                            orderable.order ? (
-                                                <OrderSummary
-                                                    source={orderable.province?.name ?? ""}
-                                                    destination={orderable.order.target?.name}
-                                                    aux={orderable.order.aux?.name}
-                                                    type={orderable.order.orderType}
-                                                />
-                                            ) : (
-                                                <Typography variant="body1">
-                                                    {orderable.unitType
-                                                        ? `${orderable.unitType.charAt(0).toUpperCase()}${orderable.unitType.slice(1)} ${orderable.province}`
-                                                        : orderable.province?.name}
-                                                </Typography>
-                                            )
+                                            <OrderSummary
+                                                source={order.source.name ?? ""}
+                                                destination={order.target?.name}
+                                                aux={order.aux?.name}
+                                                type={order.orderType}
+                                                unitType={order.unitType}
+                                            />
                                         }
                                         secondary={
-                                            orderable.order && orderable.order.resolution ? (
+                                            order.resolution ? (
                                                 <Typography
                                                     variant="body2"
                                                     sx={
-                                                        orderable.order.resolution.status ===
+                                                        order.resolution.status ===
                                                             "Succeeded"
                                                             ? styles.orderListItemTextSucceeded
                                                             : styles.orderListItemTextFailed
                                                     }
                                                 >
-                                                    {orderable.order.resolution.status}
+                                                    {order.resolution.status}
                                                 </Typography>
                                             ) : (
                                                 <Typography variant="body2" sx={styles.noOrderText}>

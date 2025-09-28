@@ -55,8 +55,8 @@ const ChannelScreen: React.FC = props => {
     const navigate = useNavigate();
     const [message, setMessage] = useState("");
 
-    const channelsQuery = service.endpoints.gameChannelsList.useQuery({ gameId });
-    const [createMessage, createMessageMutation] = service.endpoints.gameChannelCreate2.useMutation();
+    const channelsQuery = service.endpoints.gamesChannelsList.useQuery({ gameId });
+    const [createMessage, createMessageMutation] = service.endpoints.gamesChannelsMessagesCreateCreate.useMutation();
 
     // Scroll to the bottom of the list when data is fetched
     const listRef = useRef<HTMLDivElement>(null);
@@ -70,7 +70,7 @@ const ChannelScreen: React.FC = props => {
         const result = await createMessage({
             gameId,
             channelId: parseInt(channelId),
-            channelMessageCreateRequest: {
+            channelMessage: {
                 body: message,
             },
         });

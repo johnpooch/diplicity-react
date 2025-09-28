@@ -899,6 +899,9 @@ components:
       description: |-
         * `random` - Random
         * `ordered` - Ordered
+    NullEnum:
+      enum:
+      - null
     Order:
       type: object
       properties:
@@ -919,13 +922,17 @@ components:
           - $ref: '#/components/schemas/OrderResolution'
           readOnly: true
         options:
-          type: string
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderOption'
           readOnly: true
         orderType:
-          type: string
+          allOf:
+          - $ref: '#/components/schemas/OrderTypeEnum'
           readOnly: true
         unitType:
-          type: string
+          allOf:
+          - $ref: '#/components/schemas/UnitTypeEnum'
           readOnly: true
         nation:
           allOf:
@@ -936,9 +943,11 @@ components:
           readOnly: true
           nullable: true
         step:
-          type: integer
           readOnly: true
           nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/StepEnum'
+          - $ref: '#/components/schemas/NullEnum'
         title:
           type: string
           readOnly: true
@@ -959,6 +968,16 @@ components:
       - target
       - title
       - unitType
+    OrderOption:
+      type: object
+      properties:
+        value:
+          type: string
+        label:
+          type: string
+      required:
+      - label
+      - value
     OrderResolution:
       type: object
       properties:
@@ -971,6 +990,22 @@ components:
       required:
       - by
       - status
+    OrderTypeEnum:
+      enum:
+      - Move
+      - Hold
+      - Support
+      - Convoy
+      - Build
+      - Disband
+      type: string
+      description: |-
+        * `Move` - Move
+        * `Hold` - Hold
+        * `Support` - Support
+        * `Convoy` - Convoy
+        * `Build` - Build
+        * `Disband` - Disband
     PatchedPhaseState:
       type: object
       properties:
@@ -1015,9 +1050,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SupplyCenter'
+        options: {}
       required:
       - id
       - name
+      - options
       - ordinal
       - remainingTime
       - season
@@ -1086,6 +1123,20 @@ components:
         * `active` - Active
         * `completed` - Completed
         * `template` - Template
+    StepEnum:
+      enum:
+      - select-order-type
+      - select-unit-type
+      - select-target
+      - select-aux
+      - completed
+      type: string
+      description: |-
+        * `select-order-type` - select-order-type
+        * `select-unit-type` - select-unit-type
+        * `select-target` - select-target
+        * `select-aux` - select-aux
+        * `completed` - completed
     SupplyCenter:
       type: object
       properties:
@@ -1137,6 +1188,14 @@ components:
       - nation
       - province
       - type
+    UnitTypeEnum:
+      enum:
+      - Army
+      - Fleet
+      type: string
+      description: |-
+        * `Army` - Army
+        * `Fleet` - Fleet
     UserProfile:
       type: object
       properties:

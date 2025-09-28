@@ -32,10 +32,10 @@ const GameMenu: React.FC<GameMenuProps> = (props) => {
   const location = useLocation();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
-  const [joinGame, joinGameMutation] =
+  const [joinGame, joinGameQuery] =
     service.endpoints.gameJoinCreate.useMutation();
 
-  const [leaveGame, leaveGameMutation] =
+  const [leaveGame, leaveGameQuery] =
     service.endpoints.gameLeaveDestroy.useMutation();
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -70,7 +70,7 @@ const GameMenu: React.FC<GameMenuProps> = (props) => {
   };
 
   const handleClickJoinGame = async () => {
-    await joinGame({ gameId: props.game.id });
+    await joinGame({ gameId: props.game.id, member: {} });
     handleMenuClose();
   };
 
@@ -92,7 +92,7 @@ const GameMenu: React.FC<GameMenuProps> = (props) => {
         {props.game.canJoin && (
           <MenuItem
             onClick={handleClickJoinGame}
-            disabled={joinGameMutation.isLoading}
+            disabled={joinGameQuery.isLoading}
           >
             <ListItem disablePadding>
               <ListItemIcon>
@@ -105,7 +105,7 @@ const GameMenu: React.FC<GameMenuProps> = (props) => {
         {props.game.canLeave && (
           <MenuItem
             onClick={handleClickLeaveGame}
-            disabled={leaveGameMutation.isLoading}
+            disabled={leaveGameQuery.isLoading}
           >
             <ListItem disablePadding>
               <ListItemIcon>

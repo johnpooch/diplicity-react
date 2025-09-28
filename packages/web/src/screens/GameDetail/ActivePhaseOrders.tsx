@@ -28,18 +28,27 @@ export const ActivePhaseOrders: React.FC<ActivePhaseOrdersProps> = (props) => {
     const { onConfirmOrders, isPhaseConfirmed, isConfirming } = props;
 
 
-    const orderableProvincesQuery = service.endpoints.gameOrderableProvincesList.useQuery({
+    // const orderableProvincesQuery = service.endpoints.gamePhaseOrderableProvincesList.useQuery({
+    //     gameId: gameId,
+    // });
+
+    const phaseStateRetrieveQuery = service.endpoints.gamePhaseStateRetrieve.useQuery({
         gameId: gameId,
     });
 
-    if (!orderableProvincesQuery.data) return null;
+    const ordersListQuery = service.endpoints.gameOrdersList.useQuery({
+        gameId,
+        phaseId: props.phase.id,
+    });
+
+    if (!phaseStateRetrieveQuery.data) return null;
 
     return (
         <Panel>
             <Panel.Content>
                 <List disablePadding>
-                    {orderableProvincesQuery.data?.map((orderableProvince) => {
-                        const { province, order } = orderableProvince;
+                    {phaseStateRetrieveQuery.data?.orderableProvinces.map((province) => {
+                        const order = ordersListQuery.data?.find(o => o.source.id === province.id);
                         return (
                             <ListItem
                                 key={province.id}

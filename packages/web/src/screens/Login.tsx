@@ -47,7 +47,7 @@ const Login: React.FC = () => {
       return;
     }
     trigger({
-      authLoginRequest: {
+      auth: {
         idToken: credentialResponse.credential,
       },
     });

@@ -3,7 +3,7 @@ import { Arrow } from "./shapes/arrow";
 import { Cross } from "./shapes/cross";
 import { CurvedArrow } from "./shapes/curved-arrow";
 import { Octagon } from "./shapes/octagon";
-import { OrderListResponse, Phase, Variant } from "../../store";
+import { OrderRead, PhaseRead, Variant, VariantRead } from "../../store";
 
 import classical from "../../maps/classical.json";
 
@@ -17,11 +17,11 @@ const getMap = (variant: Variant) => {
 
 type InteractiveMapProps = {
   interactive?: boolean;
-  variant: Variant;
-  phase: Phase;
+  variant: VariantRead;
+  phase: PhaseRead;
   selected: string[];
   highlighted?: string[];
-  orders: OrderListResponse[] | undefined;
+  orders: OrderRead[] | undefined;
   onClickProvince?: (province: string, event: React.MouseEvent<SVGPathElement>) => void;
 };
 
@@ -276,8 +276,8 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
       {[...props.phase.units]
         .sort((a, b) => {
           // Sort so dislodged units are rendered last (on top)
-          if (a.dislodged && !b.dislodged) return 1;
-          if (!a.dislodged && b.dislodged) return -1;
+          if (a.dislodgedBy && !b.dislodgedBy) return 1;
+          if (!a.dislodgedBy && b.dislodgedBy) return -1;
           return 0;
         })
         .map((unit, index) => {
@@ -290,8 +290,8 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
           if (!color) throw new Error("Color not found");
 
           // Offset dislodged units by a few pixels
-          const offsetX = unit.dislodged ? 8 : 0;
-          const offsetY = unit.dislodged ? 8 : 0;
+          const offsetX = unit.dislodgedBy ? 8 : 0;
+          const offsetY = unit.dislodgedBy ? 8 : 0;
 
           return (
             <g key={`${unit.province.id}-${index}`}>
@@ -316,138 +316,122 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
             </g>
           );
         })}
-      {props.orders?.map(({ orders }) => {
-        return orders
-          .filter(o => o.orderType === "Hold")
-          .map(o => {
-            const source = map.provinces.find(p => p.id === o.source.id);
-            if (!source) return null;
-            return (
-              <Octagon
-                key={o.source.id}
-                x={source.center.x - UNIT_OFFSET_X}
-                y={source.center.y - UNIT_OFFSET_Y}
-                strokeWidth={ORDER_LINE_WIDTH}
-                size={24}
-                stroke={"#000000"}
-                fill={"transparent"}
-                onRenderBottomCenter={
-                  o.resolution && o.resolution.status !== "Succeeded"
-                    ? (x, y) => (
-                      <Cross
-                        x={x}
-                        y={y}
-                        width={ORDER_FAILED_CROSS_WIDTH}
-                        length={ORDER_FAILED_CROSS_LENGTH}
-                        angle={45}
-                        fill={ORDER_FAILED_CROSS_FILL}
-                        stroke={ORDER_FAILED_CROSS_STROKE}
-                        strokeWidth={ORDER_FAILED_CROSS_STROKE_WIDTH}
-                      />
-                    )
-                    : undefined
-                }
-              />
-            );
-          });
+      {props.orders?.filter(o => o.orderType === "Hold").map((o) => {
+        const source = map.provinces.find(p => p.id === o.source.id);
+        if (!source) return null;
+        return (
+          <Octagon
+            key={o.source.id}
+            x={source.center.x - UNIT_OFFSET_X}
+            y={source.center.y - UNIT_OFFSET_Y}
+            strokeWidth={ORDER_LINE_WIDTH}
+            size={24}
+            stroke={"#000000"}
+            fill={"transparent"}
+            onRenderBottomCenter={
+              o.resolution && o.resolution.status !== "Succeeded"
+                ? (x, y) => (
+                  <Cross
+                    x={x}
+                    y={y}
+                    width={ORDER_FAILED_CROSS_WIDTH}
+                    length={ORDER_FAILED_CROSS_LENGTH}
+                    angle={45}
+                    fill={ORDER_FAILED_CROSS_FILL}
+                    stroke={ORDER_FAILED_CROSS_STROKE}
+                    strokeWidth={ORDER_FAILED_CROSS_STROKE_WIDTH}
+                  />
+                )
+                : undefined
+            }
+          />
+        );
       })}
-      {props.orders?.map(({ nation, orders }) => {
-        const color = props.variant.nations.find(n => n.name === nation)
+      {props.orders?.filter(o => o.orderType === "Support").map((o) => {
+        const color = props.variant.nations.find(n => n.name === o.nation.name)
           ?.color as string;
-        return orders
-          .filter(o => o.orderType === "Support")
-          .map(o => {
-            const source = map.provinces.find(p => p.id === o.source.id);
-            const target = map.provinces.find(p => p.id === o.target?.id);
-            const aux = map.provinces.find(p => p.id === o.aux?.id);
-            if (!source) return null;
-            if (!target) return null;
-            if (!aux) return null;
-            return (
-              <CurvedArrow
-                key={o.source.id}
-                x1={source.center.x - UNIT_OFFSET_X}
-                y1={source.center.y - UNIT_OFFSET_Y}
-                x2={target.center.x - UNIT_OFFSET_X}
-                y2={target.center.y - UNIT_OFFSET_Y}
-                x3={aux.center.x - UNIT_OFFSET_X}
-                y3={aux.center.y - UNIT_OFFSET_Y}
-                lineWidth={ORDER_LINE_WIDTH}
-                arrowWidth={ORDER_ARROW_WIDTH}
-                arrowLength={ORDER_ARROW_LENGTH}
-                strokeWidth={ORDER_STROKE_WIDTH}
-                offset={UNIT_RADIUS}
-                stroke={"#000000"}
-                fill={color}
-                dash={{
-                  length: ORDER_DASH_LENGTH,
-                  spacing: ORDER_DASH_SPACING,
-                }}
-              />
-            );
-          });
+        const source = map.provinces.find(p => p.id === o.source.id);
+        const target = map.provinces.find(p => p.id === o.target?.id);
+        const aux = map.provinces.find(p => p.id === o.aux?.id);
+        if (!source) return null;
+        if (!target) return null;
+        if (!aux) return null;
+        return (
+          <CurvedArrow
+            key={o.source.id}
+            x1={source.center.x - UNIT_OFFSET_X}
+            y1={source.center.y - UNIT_OFFSET_Y}
+            x2={target.center.x - UNIT_OFFSET_X}
+            y2={target.center.y - UNIT_OFFSET_Y}
+            x3={aux.center.x - UNIT_OFFSET_X}
+            y3={aux.center.y - UNIT_OFFSET_Y}
+            lineWidth={ORDER_LINE_WIDTH}
+            arrowWidth={ORDER_ARROW_WIDTH}
+            arrowLength={ORDER_ARROW_LENGTH}
+            strokeWidth={ORDER_STROKE_WIDTH}
+            offset={UNIT_RADIUS}
+            stroke={"#000000"}
+            fill={color}
+            dash={{
+              length: ORDER_DASH_LENGTH,
+              spacing: ORDER_DASH_SPACING,
+            }}
+          />
+        );
       })}
-      {props.orders?.map(({ orders }) => {
-        return orders
-          .filter(o => o.orderType === "Move")
-          .map(o => {
-            const source = map.provinces.find(p => p.id === o.source.id);
-            const target = map.provinces.find(p => p.id === o.target?.id);
-            if (!source) return null;
-            if (!target) return null;
-            return (
-              <Arrow
-                key={o.source.id}
-                x1={source.center.x - UNIT_OFFSET_X}
-                y1={source.center.y - UNIT_OFFSET_Y}
-                x2={target.center.x - UNIT_OFFSET_X}
-                y2={target.center.y - UNIT_OFFSET_Y}
-                lineWidth={ORDER_LINE_WIDTH}
-                arrowWidth={ORDER_ARROW_WIDTH}
-                arrowLength={ORDER_ARROW_LENGTH}
-                strokeWidth={ORDER_STROKE_WIDTH}
-                offset={UNIT_RADIUS}
-                stroke={"#000000"}
-                fill={"green"}
-              />
-            );
-          });
+      {props.orders?.filter(o => o.orderType === "Move").map((o) => {
+        const source = map.provinces.find(p => p.id === o.source.id);
+        const target = map.provinces.find(p => p.id === o.target?.id);
+        if (!source) return null;
+        if (!target) return null;
+        return (
+          <Arrow
+            key={o.source.id}
+            x1={source.center.x - UNIT_OFFSET_X}
+            y1={source.center.y - UNIT_OFFSET_Y}
+            x2={target.center.x - UNIT_OFFSET_X}
+            y2={target.center.y - UNIT_OFFSET_Y}
+            lineWidth={ORDER_LINE_WIDTH}
+            arrowWidth={ORDER_ARROW_WIDTH}
+            arrowLength={ORDER_ARROW_LENGTH}
+            strokeWidth={ORDER_STROKE_WIDTH}
+            offset={UNIT_RADIUS}
+            stroke={"#000000"}
+            fill={"green"}
+          />
+        );
       })}
-      {props.orders?.map(({ nation, orders }) => {
-        const color = props.variant.nations.find(n => n.name === nation)
+      {props.orders?.filter(o => o.orderType === "Build").map((o) => {
+        const color = props.variant.nations.find(n => n.name === o.nation.name)
           ?.color as string;
-        return orders
-          .filter(o => o.orderType === "Build")
-          .map(o => {
-            const source = map.provinces.find(p => p.id === o.source.id);
-            if (!source) return null;
-            const { x, y } = source.center;
+        const source = map.provinces.find(p => p.id === o.source.id);
+        if (!source) return null;
+        const { x, y } = source.center;
 
-            return (
-              <g key={`build-${o.source.id}`}>
-                <circle
-                  cx={x - 10}
-                  cy={y - 10}
-                  r={UNIT_RADIUS}
-                  fill={color}
-                  stroke="black"
-                  strokeWidth={2}
-                  opacity={0.6}
-                />
-                <text
-                  x={x - 10}
-                  y={y - 5}
-                  fontSize="15"
-                  fontWeight="bold"
-                  fill="black"
-                  textAnchor="middle"
-                  opacity={0.6}
-                >
-                  {o.unitType === "Army" ? "A" : "F"}
-                </text>
-              </g>
-            );
-          });
+        return (
+          <g key={`build-${o.source.id}`}>
+            <circle
+              cx={x - 10}
+              cy={y - 10}
+              r={UNIT_RADIUS}
+              fill={color}
+              stroke="black"
+              strokeWidth={2}
+              opacity={0.6}
+            />
+            <text
+              x={x - 10}
+              y={y - 5}
+              fontSize="15"
+              fontWeight="bold"
+              fill="black"
+              textAnchor="middle"
+              opacity={0.6}
+            >
+              {o.unitType === "Army" ? "A" : "F"}
+            </text>
+          </g>
+        );
       })}
       {map.provinces.map(province => {
         return (

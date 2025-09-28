@@ -37,7 +37,7 @@ const ChannelListScreen: React.FC = props => {
 
     const styles = useStyles(props);
 
-    const query = service.endpoints.gameChannelsList.useQuery({ gameId });
+    const query = service.endpoints.gamesChannelsList.useQuery({ gameId });
     const navigate = useNavigate();
 
     const handleChannelClick = (id: string) => {

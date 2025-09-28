@@ -39,3 +39,4 @@ class PhaseSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=PhaseStatus.STATUS_CHOICES)
     units = UnitSerializer(many=True)
     supply_centers = SupplyCenterSerializer(many=True)
+    options = serializers.JSONField()

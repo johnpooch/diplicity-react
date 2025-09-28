@@ -23,10 +23,10 @@ const OrdersScreen: React.FC = () => {
     });
 
     const [confirmOrders, confirmOrdersMutation] =
-        service.endpoints.gameConfirmCreate.useMutation();
+        service.endpoints.gameConfirmPhasePartialUpdate.useMutation();
 
     const handleConfirmOrders = async () => {
-        await confirmOrders({ gameId }).unwrap();
+        await confirmOrders({ gameId, patchedPhaseState: { ordersConfirmed: true } }).unwrap();
     };
 
     if (
@@ -39,9 +39,8 @@ const OrdersScreen: React.FC = () => {
     }
 
     const game = gameRetrieveQuery.data;
-    const orders = ordersListQuery.data;
     const currentPhase = game.phases.find(p => p.id === selectedPhase)!;
-    const userNation = game.members.find(m => m.isCurrentUser)!.nation;
+    const userNation = game.members.find(m => m.isCurrentUser)!.nation ?? "";
 
     return (
         <GameDetailLayout
@@ -57,11 +56,7 @@ const OrdersScreen: React.FC = () => {
                         isConfirming={confirmOrdersMutation.isLoading}
                     />
                 ) : (
-                    <InactivePhaseOrders
-                        phase={currentPhase}
-                        nationOrders={orders}
-                        provinces={game.variant.provinces}
-                    />
+                    <InactivePhaseOrders />
                 )
             }
         />

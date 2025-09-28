@@ -24,23 +24,23 @@ const GameMap: React.FC = () => {
   const [menuPosition, setMenuPosition] = useState<{ x: number, y: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const [createInteractive, createInteractiveQuery] =
-    service.endpoints.gameOrdersCreateInteractiveCreate.useMutation({ fixedCacheKey: "create-interactive" });
+  const [createOrder, createOrderQuery] =
+    service.endpoints.gameOrdersCreate.useMutation({ fixedCacheKey: "create-interactive" });
 
-  const orderableProvincesQuery = service.endpoints.gameOrderableProvincesList.useQuery({
+  const phaseStateRetrieveQuery = service.endpoints.gamePhaseStateRetrieve.useQuery({
     gameId: gameId,
   });
 
-  const ordersListQuery = service.endpoints.gamePhaseOrdersList.useQuery({
+  const ordersListQuery = service.endpoints.gameOrdersList.useQuery({
     gameId,
     phaseId: selectedPhase,
   });
 
   useEffect(() => {
-    if (createInteractiveQuery.data?.completed) {
-      createInteractiveQuery.reset();
+    if (createOrderQuery.data?.complete) {
+      createOrderQuery.reset();
     }
-  }, [createInteractiveQuery.data]);
+  }, [createOrderQuery.data]);
 
   const handleProvinceClick = (province: string, event: React.MouseEvent<SVGPathElement>) => {
     // Always calculate and store the click position first, regardless of order state
@@ -51,16 +51,16 @@ const GameMap: React.FC = () => {
       y = event.clientY - containerRect.top;
     }
 
-    const orderableProvince = orderableProvincesQuery.data?.find(p => p.province.id === province);
-    const options = createInteractiveQuery.data?.options;
+    const orderableProvince = phaseStateRetrieveQuery.data?.orderableProvinces.find(p => p.id === province);
+    const options = createOrderQuery.data?.options;
 
     // If the createInteractive query has data, only allow options to be selected. If not, allow orderable provinces to be selected.
-    if (createInteractiveQuery.data) {
+    if (createOrderQuery.data) {
       if (options?.some(o => o.value === province)) {
-        createInteractive({
+        createOrder({
           gameId,
-          interactiveOrderCreateRequest: {
-            selected: [...createInteractiveQuery.data?.selected, province],
+          order: {
+            selected: [...createOrderQuery.data?.selected ?? [], province],
           },
         });
       }
@@ -71,9 +71,9 @@ const GameMap: React.FC = () => {
         if (x > 0 && y > 0) {
           setMenuPosition({ x, y });
         }
-        createInteractive({
+        createOrder({
           gameId,
-          interactiveOrderCreateRequest: {
+          order: {
             selected: [province],
           },
         });
@@ -82,11 +82,11 @@ const GameMap: React.FC = () => {
   };
 
   const handleSelectOrderOption = (option: string) => {
-    if (createInteractiveQuery.data) {
-      createInteractive({
+    if (createOrderQuery.data) {
+      createOrder({
         gameId,
-        interactiveOrderCreateRequest: {
-          selected: [...createInteractiveQuery.data.selected, option],
+        order: {
+          selected: [...createOrderQuery.data.selected ?? [], option],
         },
       });
     }
@@ -102,21 +102,21 @@ const GameMap: React.FC = () => {
               variant={gameRetrieveQuery.data.variant}
               phase={gameRetrieveQuery.data.phases.find(p => p.id === selectedPhase)!}
               orders={ordersListQuery.data}
-              selected={createInteractiveQuery.data?.selected ?? []}
-              highlighted={createInteractiveQuery.data?.options?.map(o => o.value) ?? []}
+              selected={createOrderQuery.data?.selected ?? []}
+              highlighted={createOrderQuery.data?.options?.map(o => o.value) ?? []}
               onClickProvince={handleProvinceClick}
             />
             <FloatingMenu
-              open={(createInteractiveQuery.data?.step === "select-order-type" || createInteractiveQuery.data?.step === "select-unit-type") && menuPosition !== null}
+              open={(createOrderQuery.data?.step === "select-order-type" || createOrderQuery.data?.step === "select-unit-type") && menuPosition !== null}
               onClose={() => {
-                createInteractiveQuery.reset();
+                createOrderQuery.reset();
                 setMenuPosition(null);
               }}
               x={menuPosition?.x ?? 0}
               y={menuPosition?.y ?? 0}
               container={containerRef.current}
             >
-              {createInteractiveQuery.data?.options.map(o => (
+              {createOrderQuery.data?.options.map(o => (
                 <MenuItem key={o.value} onClick={() => handleSelectOrderOption(o.value)}>
                   {o.label}
                 </MenuItem>
