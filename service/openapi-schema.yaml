@@ -1023,9 +1023,6 @@ components:
           items:
             $ref: '#/components/schemas/Province'
           readOnly: true
-        hasPossibleOrders:
-          type: boolean
-          readOnly: true
     Phase:
       type: object
       properties:
@@ -1093,12 +1090,8 @@ components:
           items:
             $ref: '#/components/schemas/Province'
           readOnly: true
-        hasPossibleOrders:
-          type: boolean
-          readOnly: true
       required:
       - eliminated
-      - hasPossibleOrders
       - id
       - orderableProvinces
       - ordersConfirmed
@@ -1113,9 +1106,19 @@ components:
           type: string
         supplyCenter:
           type: boolean
+        parentId:
+          type: string
+          nullable: true
+        namedCoastIds:
+          type: array
+          items:
+            type: string
+          readOnly: true
       required:
       - id
       - name
+      - namedCoastIds
+      - parentId
       - supplyCenter
       - type
     StatusEnum:

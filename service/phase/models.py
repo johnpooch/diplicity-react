@@ -154,4 +154,4 @@ class PhaseState(BaseModel):
         options = self.phase.options
         nation = self.member.nation
         orderable_provinces = list(options[nation.name].keys())
-        return self.phase.variant.provinces.filter(province_id__in=orderable_provinces)
+        return self.phase.variant.provinces.select_related('parent').prefetch_related('named_coasts').filter(province_id__in=orderable_provinces)

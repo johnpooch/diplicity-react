@@ -19,10 +19,12 @@ class GameQuerySet(models.QuerySet):
             "variant__phases",
             queryset=Phase.objects.filter(game=None, status=PhaseStatus.TEMPLATE).prefetch_related(
                 "units__nation",
-                "units__province",
+                "units__province__parent",
+                "units__province__named_coasts",
                 "units__dislodged_by",
                 "supply_centers__nation",
-                "supply_centers__province",
+                "supply_centers__province__parent",
+                "supply_centers__province__named_coasts",
                 "phase_states",
             ),
             to_attr="template_phases",
@@ -30,15 +32,18 @@ class GameQuerySet(models.QuerySet):
 
         return self.prefetch_related(
             # Variant data with optimized template phase
-            "variant__provinces",
+            "variant__provinces__parent",
+            "variant__provinces__named_coasts",
             "variant__nations",
             template_phase_prefetch,
             # Game phases data
             "phases__units__nation",
-            "phases__units__province",
+            "phases__units__province__parent",
+            "phases__units__province__named_coasts",
             "phases__units__dislodged_by",
             "phases__supply_centers__nation",
-            "phases__supply_centers__province",
+            "phases__supply_centers__province__parent",
+            "phases__supply_centers__province__named_coasts",
             "phases__phase_states",
             # Members data
             "members__user__profile",
