@@ -6,70 +6,64 @@ import { service } from "./service";
 import { api } from "./api";
 
 const enhancedApi = api.enhanceEndpoints({
-    addTagTypes: ['Device', 'Game', 'Channel', 'Order'],
-    endpoints: {
-        devicesList: {
-            providesTags: ['Device'],
-        },
-        devicesCreate: {
-            invalidatesTags: ['Device'],
-        },
-        gamesList: {
-            providesTags: ['Game'],
-        },
-        gameRetrieve: {
-            providesTags: ['Game'],
-        },
-        gameCreate: {
-            invalidatesTags: ['Game'],
-        },
-        gameConfirmCreate: {
-            invalidatesTags: ['Game'],
-        },
-        gameOrderableProvincesList: {
-            providesTags: ['Order'],
-        },
-        gameJoinCreate: {
-            invalidatesTags: ['Game'],
-        },
-        gameLeaveDestroy: {
-            invalidatesTags: ['Game'],
-        },
-        gameChannelsList: {
-            providesTags: ['Channel'],
-        },
-        gameChannelCreate: {
-            invalidatesTags: ['Channel'],
-        },
-        gameChannelCreate2: {
-            invalidatesTags: ['Channel'],
-        },
-        gamePhaseOrdersList: {
-            providesTags: ['Order'],
-        },
-        gameOrderCreate: {
-            invalidatesTags: ['Order'],
-        },
-        gameOrdersCreateInteractiveCreate: {
-            invalidatesTags: ['Order'],
-        },
+  addTagTypes: ["Device", "Game", "Channel", "Order", "PhaseState"],
+  endpoints: {
+    devicesList: {
+      providesTags: ["Device"],
     },
-})
-
-const store = configureStore({
-    reducer: combineReducers({
-        auth: authSlice.reducer,
-        feedback: feedbackSlice.reducer,
-        [enhancedApi.reducerPath]: enhancedApi.reducer
-    }),
-    middleware: getDefaultMiddleware =>
-        getDefaultMiddleware()
-            .concat(
-                service.middleware,
-            )
+    devicesCreate: {
+      invalidatesTags: ["Device"],
+    },
+    gamesList: {
+      providesTags: ["Game"],
+    },
+    gameRetrieve: {
+      providesTags: ["Game"],
+    },
+    gameCreate: {
+      invalidatesTags: ["Game"],
+    },
+    gamePhaseStateRetrieve: {
+      providesTags: ["PhaseState"],
+    },
+    gameConfirmPhasePartialUpdate: {
+      invalidatesTags: ["Game", "PhaseState"],
+    },
+    gameJoinCreate: {
+      invalidatesTags: ["Game"],
+    },
+    gameLeaveDestroy: {
+      invalidatesTags: ["Game"],
+    },
+    gamesChannelsList: {
+      providesTags: ["Channel"],
+    },
+    gamesChannelsCreateCreate: {
+      invalidatesTags: ["Channel"],
+    },
+    gamesChannelsMessagesCreateCreate: {
+      invalidatesTags: ["Channel"],
+    },
+    gameOrdersList: {
+      providesTags: ["Order"],
+    },
+    gameOrdersCreate: {
+      invalidatesTags: ["Order"],
+    },
+  },
 });
 
-type RootState = ReturnType<typeof store["getState"]>;
+const store = configureStore({
+  reducer: combineReducers({
+    auth: authSlice.reducer,
+    feedback: feedbackSlice.reducer,
+    [enhancedApi.reducerPath]: enhancedApi.reducer,
+  }),
+  middleware: getDefaultMiddleware =>
+    getDefaultMiddleware().concat(service.middleware),
+});
 
-export type { RootState }
+type RootState = ReturnType<(typeof store)["getState"]>;
+
+export type { RootState };
 export { store };
