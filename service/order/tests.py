@@ -494,6 +494,113 @@ class TestOrderCreateView:
         assert response.data["step"] == OrderCreationStep.COMPLETED
         assert response.data["title"] == "Budapest will be disbanded"
 
+    def test_order_create_replaces_existing_order_for_same_province(
+        self, authenticated_client, game_with_options, primary_user
+    ):
+        game = game_with_options
+        url = reverse("order-create", args=[game.id])
+
+        # Create first order for Budapest
+        data = {"selected": ["bud", "Hold"]}
+        response = authenticated_client.post(url, data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert Order.objects.count() == 1
+        first_order = Order.objects.first()
+        assert first_order.order_type == "Hold"
+
+        # Create second order for Budapest - should replace the first
+        data = {"selected": ["bud", "Move", "gal"]}
+        response = authenticated_client.post(url, data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert Order.objects.count() == 1  # Still only one order
+
+        # Verify the order was replaced
+        second_order = Order.objects.first()
+        assert second_order.order_type == "Move"
+        assert second_order.target.province_id == "gal"
+        assert second_order.id != first_order.id  # Different order instance
+
+    def test_order_create_partial_order_does_not_replace_existing_complete_order(
+        self, authenticated_client, game_with_options, primary_user
+    ):
+        game = game_with_options
+        url = reverse("order-create", args=[game.id])
+
+        # Create complete order for Budapest
+        data = {"selected": ["bud", "Move", "gal"]}
+        response = authenticated_client.post(url, data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert Order.objects.count() == 1
+        first_order = Order.objects.first()
+        assert first_order.complete is True
+
+        # Start new order for same province - should NOT delete the complete order
+        data = {"selected": ["bud"]}
+        response = authenticated_client.post(url, data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert Order.objects.count() == 1  # Original order still exists since partial orders are not saved
+
+        # Complete the new order - this should replace the existing order
+        data = {"selected": ["bud", "Hold"]}
+        response = authenticated_client.post(url, data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert Order.objects.count() == 1
+
+        second_order = Order.objects.first()
+        assert second_order.order_type == "Hold"
+        assert second_order.id != first_order.id
+
+
+class TestOrderDeleteView:
+    @pytest.mark.django_db
+    def test_delete_order_success(
+        self,
+        authenticated_client,
+        order_active_game,
+        primary_user,
+        classical_london_province,
+    ):
+        game = order_active_game
+        phase = game.current_phase
+        phase_state = phase.phase_states.get(member__user=primary_user)
+
+        # Create an order to delete
+        Order.objects.create(
+            phase_state=phase_state,
+            order_type=OrderType.HOLD,
+            source=classical_london_province,
+        )
+
+        assert Order.objects.count() == 1
+
+        url = reverse("order-delete", args=[game.id, "lon"])
+        response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert Order.objects.count() == 0
+
+    @pytest.mark.django_db
+    def test_delete_order_not_found(
+        self,
+        authenticated_client,
+        order_active_game,
+    ):
+        game = order_active_game
+
+        url = reverse("order-delete", args=[game.id, "lon"])
+        response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
+    def test_delete_order_unauthenticated(self, client, order_active_game):
+        game = order_active_game
+
+        url = reverse("order-delete", args=[game.id, "lon"])
+        response = client.delete(url)
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
 
 class TestOrderListViewQueryPerformance:
 
@@ -578,7 +685,7 @@ class TestOrderCreateViewQueryPerformance:
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
 
-        assert query_count == 18
+        assert query_count == 19
 
 
 class TestGetOptionsForOrder:
@@ -808,6 +915,48 @@ class TestGetOptionsForOrder:
         )
         options = get_options_for_order(sample_options, order)
         assert options == []
+
+
+class TestOrderManagerMethods:
+
+    @pytest.mark.django_db
+    def test_for_source_in_phase_returns_correct_orders(
+        self, test_phase_state, classical_budapest_province, classical_trieste_province
+    ):
+        order1 = Order.objects.create(
+            phase_state=test_phase_state, source=classical_budapest_province, order_type="Hold"
+        )
+        order2 = Order.objects.create(
+            phase_state=test_phase_state, source=classical_trieste_province, order_type="Hold"
+        )
+
+        budapest_orders = Order.objects.for_source_in_phase(test_phase_state, classical_budapest_province)
+        assert budapest_orders.count() == 1
+        assert budapest_orders.first() == order1
+
+        trieste_orders = Order.objects.for_source_in_phase(test_phase_state, classical_trieste_province)
+        assert trieste_orders.count() == 1
+        assert trieste_orders.first() == order2
+
+    @pytest.mark.django_db
+    def test_delete_existing_for_source_removes_correct_orders(
+        self, test_phase_state, classical_budapest_province, classical_trieste_province
+    ):
+        order1 = Order.objects.create(
+            phase_state=test_phase_state, source=classical_budapest_province, order_type="Hold"
+        )
+        order2 = Order.objects.create(
+            phase_state=test_phase_state, source=classical_trieste_province, order_type="Hold"
+        )
+
+        assert Order.objects.count() == 2
+
+        Order.objects.delete_existing_for_source(test_phase_state, classical_budapest_province)
+
+        assert Order.objects.count() == 1
+        remaining_order = Order.objects.first()
+        assert remaining_order == order2
+        assert remaining_order.source == classical_trieste_province
 
 
 class TestOrderComplete:

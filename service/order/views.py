@@ -1,11 +1,11 @@
-from rest_framework import permissions, generics, exceptions
 from django.shortcuts import get_object_or_404
-from django.apps import apps
+from rest_framework import permissions, generics
 
 from .models import Order
 from .serializers import OrderSerializer
 from common.permissions import IsActiveGame, IsActiveGameMember
 from common.views import SelectedPhaseMixin, CurrentPhaseMixin
+from common.serializers import EmptySerializer
 
 
 class OrderListView(SelectedPhaseMixin, generics.ListAPIView):
@@ -20,3 +20,13 @@ class OrderCreateView(CurrentPhaseMixin, generics.CreateAPIView):
 
     permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsActiveGameMember]
     serializer_class = OrderSerializer
+
+
+class OrderDeleteView(CurrentPhaseMixin, generics.DestroyAPIView):
+    permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsActiveGameMember]
+    serializer_class = EmptySerializer
+
+    def get_object(self):
+        return get_object_or_404(
+            Order, source__province_id=self.kwargs["source_id"], phase_state__member__user=self.request.user
+        )

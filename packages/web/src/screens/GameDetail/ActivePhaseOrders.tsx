@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import { Phase, service } from "../../store";
 import { Icon, IconName } from "../../components/Icon";
+import { IconButton } from "../../components/Button";
 import { OrderSummary } from "../../components/OrderSummary";
 import { Panel } from "../../components/Panel";
 import { Notice } from "../../components/Notice";
@@ -36,6 +37,12 @@ export const ActivePhaseOrders: React.FC<ActivePhaseOrdersProps> = (props) => {
         gameId,
         phaseId: props.phase.id,
     });
+
+    const [deleteOrder, deleteOrderMutation] = service.endpoints.gameOrdersDeleteDestroy.useMutation();
+
+    const handleDeleteOrder = (sourceId: string) => {
+        deleteOrder({ gameId, sourceId });
+    };
 
     if (!phaseStateRetrieveQuery.data) return (
         <Panel>
@@ -67,6 +74,15 @@ export const ActivePhaseOrders: React.FC<ActivePhaseOrdersProps> = (props) => {
                                 <ListItem
                                     key={province.id}
                                     divider
+                                    secondaryAction={
+                                        order ? (
+                                            <IconButton
+                                                icon={IconName.Delete}
+                                                onClick={() => handleDeleteOrder(province.id)}
+                                                disabled={deleteOrderMutation.isLoading}
+                                            />
+                                        ) : null
+                                    }
                                 >
                                     <ListItemText
                                         primary={

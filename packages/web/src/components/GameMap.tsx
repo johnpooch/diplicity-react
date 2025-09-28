@@ -4,7 +4,8 @@ import { InteractiveMap } from "./InteractiveMap/InteractiveMap";
 import { MenuItem, Stack } from "@mui/material";
 import { createUseStyles } from "./utils/styles";
 import { FloatingMenu } from "./FloatingMenu";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
+import { determineRenderableProvinces } from "../utils/provinces";
 
 const useStyles = createUseStyles(() => ({
   mapContainer: {
@@ -42,7 +43,21 @@ const GameMap: React.FC = () => {
     }
   }, [createOrderQuery.data]);
 
+  // Calculate which provinces should be rendered based on highlighted options
+  const renderableProvinces = useMemo(() => {
+    if (!gameRetrieveQuery.data) return [];
+
+    const allProvinces = gameRetrieveQuery.data.variant.provinces;
+    const highlightedProvinceIds = createOrderQuery.data?.options?.map(o => o.value) ?? [];
+
+    return determineRenderableProvinces(allProvinces, highlightedProvinceIds);
+  }, [gameRetrieveQuery.data?.variant.provinces, createOrderQuery.data?.options]);
+
   const handleProvinceClick = (province: string, event: React.MouseEvent<SVGPathElement>) => {
+    // Only process clicks for renderable provinces
+    if (!renderableProvinces.includes(province)) {
+      return;
+    }
     // Always calculate and store the click position first, regardless of order state
     let x = 0, y = 0;
     if (containerRef.current) {
@@ -104,6 +119,7 @@ const GameMap: React.FC = () => {
               orders={ordersListQuery.data}
               selected={createOrderQuery.data?.selected ?? []}
               highlighted={createOrderQuery.data?.options?.map(o => o.value) ?? []}
+              renderableProvinces={renderableProvinces}
               onClickProvince={handleProvinceClick}
             />
             <FloatingMenu

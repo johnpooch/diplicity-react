@@ -18,6 +18,9 @@ class OrderQuerySet(models.QuerySet):
             & (Q(phase_state__phase__status=PhaseStatus.COMPLETED) | Q(phase_state__member__user=user))
         )
 
+    def for_source_in_phase(self, phase_state, source):
+        return self.filter(phase_state=phase_state, source=source)
+
     def with_related_data(self):
         return self.select_related(
             "phase_state__member__user",
@@ -38,8 +41,15 @@ class OrderManager(models.Manager):
     def visible_to_user_in_phase(self, user, phase):
         return self.get_queryset().visible_to_user_in_phase(user, phase)
 
+    def for_source_in_phase(self, phase_state, source):
+        return self.get_queryset().for_source_in_phase(phase_state, source)
+
     def with_related_data(self):
         return self.get_queryset().with_related_data()
+
+    def delete_existing_for_source(self, phase_state, source):
+        existing_orders = self.for_source_in_phase(phase_state, source)
+        existing_orders.delete()
 
     def try_get_province(self, phase, province_id):
         try:
@@ -86,6 +96,11 @@ class Order(BaseModel):
         "province.Province", on_delete=models.CASCADE, related_name="aux_orders", null=True, blank=True
     )
     unit_type = models.CharField(max_length=50, choices=UnitType.UNIT_TYPE_CHOICES, null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['phase_state', 'source'], name='unique_order_per_province_per_phase')
+        ]
 
     @property
     def variant(self):

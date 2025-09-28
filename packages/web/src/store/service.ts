@@ -123,6 +123,15 @@ const injectedRtkApi = api.injectEndpoints({
         url: `/game/${queryArg.gameId}/orders/${queryArg.phaseId}`,
       }),
     }),
+    gameOrdersDeleteDestroy: build.mutation<
+      GameOrdersDeleteDestroyApiResponse,
+      GameOrdersDeleteDestroyApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/game/${queryArg.gameId}/orders/delete/${queryArg.sourceId}`,
+        method: "DELETE",
+      }),
+    }),
     gamePhaseStateRetrieve: build.query<
       GamePhaseStateRetrieveApiResponse,
       GamePhaseStateRetrieveApiArg
@@ -353,6 +362,11 @@ export type GameOrdersListApiArg = {
   gameId: string;
   phaseId: number;
 };
+export type GameOrdersDeleteDestroyApiResponse = unknown;
+export type GameOrdersDeleteDestroyApiArg = {
+  gameId: string;
+  sourceId: string;
+};
 export type GamePhaseStateRetrieveApiResponse =
   /** status 200  */ PhaseStateRead;
 export type GamePhaseStateRetrieveApiArg = {
@@ -445,6 +459,15 @@ export type Province = {
   name: string;
   type: string;
   supplyCenter: boolean;
+  parentId: string | null;
+};
+export type ProvinceRead = {
+  id: string;
+  name: string;
+  type: string;
+  supplyCenter: boolean;
+  parentId: string | null;
+  namedCoastIds: string[];
 };
 export type Unit = {
   type: string;
@@ -454,13 +477,17 @@ export type Unit = {
 export type UnitRead = {
   type: string;
   nation: Nation;
-  province: Province;
+  province: ProvinceRead;
   dislodgedBy: {
     [key: string]: any;
   } | null;
 };
 export type SupplyCenter = {
   province: Province;
+  nation: Nation;
+};
+export type SupplyCenterRead = {
+  province: ProvinceRead;
   nation: Nation;
 };
 export type Phase = {
@@ -486,7 +513,7 @@ export type PhaseRead = {
   remainingTime: number;
   status: StatusEnum;
   units: UnitRead[];
-  supplyCenters: SupplyCenter[];
+  supplyCenters: SupplyCenterRead[];
   options: any;
 };
 export type Variant = {
@@ -504,7 +531,7 @@ export type VariantRead = {
   description: string;
   author?: string;
   nations: Nation[];
-  provinces: Province[];
+  provinces: ProvinceRead[];
   templatePhase: PhaseRead;
 };
 export type Member = {};
@@ -544,16 +571,14 @@ export type PhaseStateRead = {
   id: string;
   ordersConfirmed: boolean;
   eliminated: boolean;
-  orderableProvinces: Province[];
-  hasPossibleOrders: boolean;
+  orderableProvinces: ProvinceRead[];
 };
 export type PatchedPhaseState = {};
 export type PatchedPhaseStateRead = {
   id?: string;
   ordersConfirmed?: boolean;
   eliminated?: boolean;
-  orderableProvinces?: Province[];
-  hasPossibleOrders?: boolean;
+  orderableProvinces?: ProvinceRead[];
 };
 export type Order = {
   selected?: string[];
@@ -561,6 +586,10 @@ export type Order = {
 export type OrderResolution = {
   status: string;
   by: Province | null;
+};
+export type OrderResolutionRead = {
+  status: string;
+  by: ProvinceRead | null;
 };
 export type OrderOption = {
   value: string;
@@ -582,10 +611,10 @@ export type StepEnum =
   | "completed";
 export type NullEnum = null;
 export type OrderRead = {
-  source: Province;
-  target: Province;
-  aux: Province;
-  resolution: OrderResolution;
+  source: ProvinceRead;
+  target: ProvinceRead;
+  aux: ProvinceRead;
+  resolution: OrderResolutionRead;
   options: OrderOption[];
   orderType: OrderTypeEnum;
   unitType: UnitTypeEnum;
@@ -659,6 +688,7 @@ export const {
   useGameLeaveDestroyMutation,
   useGameOrdersCreateMutation,
   useGameOrdersListQuery,
+  useGameOrdersDeleteDestroyMutation,
   useGamePhaseStateRetrieveQuery,
   useGamesListQuery,
   useGamesChannelsListQuery,

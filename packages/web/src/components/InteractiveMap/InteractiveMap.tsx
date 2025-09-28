@@ -22,6 +22,7 @@ type InteractiveMapProps = {
   selected: string[];
   highlighted?: string[];
   orders: OrderRead[] | undefined;
+  renderableProvinces?: string[];
   onClickProvince?: (province: string, event: React.MouseEvent<SVGPathElement>) => void;
 };
 
@@ -60,6 +61,12 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
   const [hoveredProvince, setHoveredProvince] = useState<string | null>(null);
 
   const map = getMap(props.variant);
+
+  // Determine which provinces should be rendered
+  const renderableProvinces = props.renderableProvinces || map.provinces.map(p => p.id);
+  const provincesToRender = map.provinces.filter(province =>
+    renderableProvinces.includes(province.id)
+  );
 
   const getFill = (provinceId: string) => {
     const isSelected = props.selected.includes(provinceId);
@@ -176,7 +183,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
           />
         </g>
       ))}
-      {map.provinces.map(province => {
+      {provincesToRender.map(province => {
         const isHighlighted = props.highlighted?.includes(province.id);
         const isHovered = hoveredProvince === province.id;
         const isSelected = props.selected.includes(province.id);
@@ -239,7 +246,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
           </g>
         );
       })}
-      {map.provinces.map(
+      {provincesToRender.map(
         province =>
           province.text &&
           province.text.map((text, index) => (
@@ -433,7 +440,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
           </g>
         );
       })}
-      {map.provinces.map(province => {
+      {provincesToRender.map(province => {
         return (
           <g key={province.id}>
             <path

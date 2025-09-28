@@ -46,5 +46,6 @@ class OrderSerializer(serializers.Serializer):
             self.context["request"].user, self.context["phase"], validated_data["selected"]
         )
         if order.complete:
+            Order.objects.delete_existing_for_source(order.phase_state, order.source)
             order.save()
         return order

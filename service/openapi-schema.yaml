@@ -443,6 +443,30 @@ paths:
                 items:
                   $ref: '#/components/schemas/Order'
           description: ''
+  /game/{gameId}/orders/delete/{sourceId}:
+    delete:
+      operationId: gameOrdersDeleteDestroy
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_phase
+        method that returns the current phase for the game. Also adds phase to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: sourceId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
   /game/{gameId}/phase-state/:
     get:
       operationId: gamePhaseStateRetrieve

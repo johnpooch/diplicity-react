@@ -20,6 +20,7 @@ import GroupAdd from "@mui/icons-material/GroupAdd";
 import NoChannels from "@mui/icons-material/Forum";
 import Cancel from "@mui/icons-material/Cancel";
 import Close from "@mui/icons-material/Close";
+import Delete from "@mui/icons-material/Delete";
 
 import { SxProps, Theme } from "@mui/material";
 
@@ -46,6 +47,7 @@ enum IconName {
   NoChannels = "no-channels",
   Cancel = "cancel",
   Close = "close",
+  Delete = "delete",
 }
 
 const IconMap = {
@@ -71,6 +73,7 @@ const IconMap = {
   [IconName.NoChannels]: NoChannels,
   [IconName.Cancel]: Cancel,
   [IconName.Close]: Close,
+  [IconName.Delete]: Delete,
 };
 
 interface IconProps {

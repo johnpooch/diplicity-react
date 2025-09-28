@@ -54,8 +54,11 @@ def get_options_for_order(options, order):
             current_options, order.order_type, f"Order type {order.order_type} not found in options"
         )
 
-        if order.source.province_id in current_options:
-            current_options = current_options[order.source.province_id].get("Next", {})
+        # TODO Add explainer
+        if len(current_options) == 1:
+            key = list(current_options.keys())[0]
+            if current_options[key].get("Type") == "SrcProvince":
+                current_options = current_options[key].get("Next", {})
 
     if order.order_type in [OrderType.SUPPORT, OrderType.CONVOY]:
         if order.aux:

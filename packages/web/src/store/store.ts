@@ -50,6 +50,9 @@ const enhancedApi = api.enhanceEndpoints({
     gameOrdersCreate: {
       invalidatesTags: ["Order"],
     },
+    gameOrdersDeleteDestroy: {
+      invalidatesTags: ["Order"],
+    },
   },
 });
 
