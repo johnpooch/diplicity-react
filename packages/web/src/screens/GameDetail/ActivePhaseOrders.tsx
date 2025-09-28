@@ -12,6 +12,7 @@ import { Phase, service } from "../../store";
 import { Icon, IconName } from "../../components/Icon";
 import { OrderSummary } from "../../components/OrderSummary";
 import { Panel } from "../../components/Panel";
+import { Notice } from "../../components/Notice";
 import { useSelectedGameContext } from "../../context";
 
 interface ActivePhaseOrdersProps {
@@ -27,11 +28,6 @@ export const ActivePhaseOrders: React.FC<ActivePhaseOrdersProps> = (props) => {
 
     const { onConfirmOrders, isPhaseConfirmed, isConfirming } = props;
 
-
-    // const orderableProvincesQuery = service.endpoints.gamePhaseOrderableProvincesList.useQuery({
-    //     gameId: gameId,
-    // });
-
     const phaseStateRetrieveQuery = service.endpoints.gamePhaseStateRetrieve.useQuery({
         gameId: gameId,
     });
@@ -41,39 +37,58 @@ export const ActivePhaseOrders: React.FC<ActivePhaseOrdersProps> = (props) => {
         phaseId: props.phase.id,
     });
 
-    if (!phaseStateRetrieveQuery.data) return null;
+    if (!phaseStateRetrieveQuery.data) return (
+        <Panel>
+            <Panel.Content>
+                <Stack alignItems="center" justifyContent="center" height="100%" sx={{ paddingBottom: "56px" }}>
+                </Stack>
+            </Panel.Content>
+        </Panel>
+    );
+
+    const hasOrderableProvinces = phaseStateRetrieveQuery.data?.orderableProvinces.length > 0;
 
     return (
         <Panel>
             <Panel.Content>
-                <List disablePadding>
-                    {phaseStateRetrieveQuery.data?.orderableProvinces.map((province) => {
-                        const order = ordersListQuery.data?.find(o => o.source.id === province.id);
-                        return (
-                            <ListItem
-                                key={province.id}
-                                divider
-                            >
-                                <ListItemText
-                                    primary={
-                                        order ? (
-                                            <OrderSummary
-                                                source={province.name}
-                                                destination={order.target?.name || null}
-                                                aux={order.aux?.name || null}
-                                                type={order.orderType}
-                                            />
-                                        ) : (
-                                            <Typography variant="body1">
-                                                {province.name}
-                                            </Typography>
-                                        )
-                                    }
-                                />
-                            </ListItem>
-                        )
-                    })}
-                </List>
+                {!hasOrderableProvinces ? (
+                    <Stack alignItems="center" justifyContent="center" height="100%" sx={{ paddingBottom: "56px" }}>
+                        <Notice
+                            title="No orders required"
+                            message="You do not need to submit any orders during this phase"
+                            icon={IconName.Empty}
+                        />
+                    </Stack>
+                ) : (
+                    <List disablePadding>
+                        {phaseStateRetrieveQuery.data?.orderableProvinces.map((province) => {
+                            const order = ordersListQuery.data?.find(o => o.source.id === province.id);
+                            return (
+                                <ListItem
+                                    key={province.id}
+                                    divider
+                                >
+                                    <ListItemText
+                                        primary={
+                                            order ? (
+                                                <OrderSummary
+                                                    source={province.name}
+                                                    destination={order.target?.name || null}
+                                                    aux={order.aux?.name || null}
+                                                    type={order.orderType}
+                                                />
+                                            ) : (
+                                                <Typography variant="body1">
+                                                    {province.name}
+                                                </Typography>
+                                            )
+                                        }
+                                    />
+                                </ListItem>
+                            )
+                        })}
+                    </List>
+                )}
             </Panel.Content>
             <Divider />
             <Panel.Footer>
@@ -83,21 +98,34 @@ export const ActivePhaseOrders: React.FC<ActivePhaseOrdersProps> = (props) => {
                     alignItems={"center"}
                     justifyContent={"flex-end"}
                 >
-                    <Button
-                        variant="contained"
-                        size="medium"
-                        disabled={isConfirming}
-                        onClick={onConfirmOrders}
-                        startIcon={
-                            isPhaseConfirmed ? (
+                    {hasOrderableProvinces ? (
+                        <Button
+                            variant="contained"
+                            size="medium"
+                            disabled={isConfirming}
+                            onClick={onConfirmOrders}
+                            startIcon={
+                                isPhaseConfirmed ? (
+                                    <Icon name={IconName.OrdersConfirmed} />
+                                ) : (
+                                    <Icon name={IconName.OrdersNotConfirmed} />
+                                )
+                            }
+                        >
+                            {isPhaseConfirmed ? "Orders confirmed" : "Confirm orders"}
+                        </Button>
+                    ) : (
+                        <Button
+                            variant="contained"
+                            size="medium"
+                            disabled={true}
+                            startIcon={
                                 <Icon name={IconName.OrdersConfirmed} />
-                            ) : (
-                                <Icon name={IconName.OrdersNotConfirmed} />
-                            )
-                        }
-                    >
-                        {isPhaseConfirmed ? "Orders confirmed" : "Confirm orders"}
-                    </Button>
+                            }
+                        >
+                            Orders confirmed
+                        </Button>
+                    )}
                 </Stack>
             </Panel.Footer>
         </Panel>

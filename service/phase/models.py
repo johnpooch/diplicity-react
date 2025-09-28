@@ -12,18 +12,20 @@ from order.models import OrderResolution
 class PhaseManager(models.Manager):
 
     def resolve_due_phases(self):
-        phases = self.get_queryset().filter(
-            scheduled_resolution__lte=timezone.now(),
-            status=PhaseStatus.ACTIVE,
-        )
+        phases = self.get_queryset().filter(status=PhaseStatus.ACTIVE)
         resolved_count = 0
         failed_count = 0
         for phase in phases:
-            try:
-                phase.resolve()
-                resolved_count += 1
-            except Exception as e:
-                failed_count += 1
+            should_resolve = (
+                phase.scheduled_resolution and phase.scheduled_resolution <= timezone.now()
+            ) or phase.should_resolve_immediately
+
+            if should_resolve:
+                try:
+                    self.resolve(phase)
+                    resolved_count += 1
+                except Exception as e:
+                    failed_count += 1
         return {
             "resolved": resolved_count,
             "failed": failed_count,
@@ -45,11 +47,8 @@ class PhaseManager(models.Manager):
                 by=resolution["by"],
             )
 
-        if self._has_no_valid_moves(adjudication_data["options"]):
-            scheduled_resolution = timezone.now()
-        else:
-            phase_duration_seconds = previous_phase.game.get_phase_duration_seconds()
-            scheduled_resolution = timezone.now() + timedelta(seconds=phase_duration_seconds)
+        phase_duration_seconds = previous_phase.game.movement_phase_duration_seconds
+        scheduled_resolution = timezone.now() + timedelta(seconds=phase_duration_seconds)
 
         new_phase = self.create(
             game=previous_phase.game,
@@ -58,7 +57,7 @@ class PhaseManager(models.Manager):
             season=adjudication_data["season"],
             year=adjudication_data["year"],
             type=adjudication_data["type"],
-            options=json.dumps(adjudication_data["options"]),
+            options=adjudication_data["options"],
             status=PhaseStatus.ACTIVE,
             scheduled_resolution=scheduled_resolution,
         )
@@ -85,15 +84,6 @@ class PhaseManager(models.Manager):
         previous_phase.save()
 
         return new_phase
-
-    def _has_no_valid_moves(self, options_data):
-        if not options_data or not isinstance(options_data, dict):
-            return True
-        for nation, nation_options in options_data.items():
-            if nation_options and isinstance(nation_options, dict):
-                if any(province_data for province_data in nation_options.values()):
-                    return False
-        return True
 
 
 class Phase(BaseModel):
@@ -134,6 +124,23 @@ class Phase(BaseModel):
     @property
     def all_orders(self):
         return [order for phase_state in self.phase_states.all() for order in phase_state.orders.all()]
+
+    @property
+    def nations_with_possible_orders(self):
+        nations = set()
+        for nation, options in (self.options or {}).items():
+            if any(province_data for province_data in options.values()):
+                nations.add(nation)
+        return nations
+
+    @property
+    def phase_states_with_possible_orders(self):
+        nations = self.nations_with_possible_orders
+        return [phase_state for phase_state in self.phase_states.all() if phase_state.member.nation.name in nations]
+
+    @property
+    def should_resolve_immediately(self):
+        return all(phase_state.orders_confirmed for phase_state in self.phase_states_with_possible_orders)
 
 
 class PhaseState(BaseModel):

@@ -1,6 +1,9 @@
 from re import I
 import pytest
 from django.urls import reverse
+from django.utils import timezone
+from datetime import timedelta
+from unittest.mock import patch
 from rest_framework import status
 from game.models import Game
 from member.models import Member
@@ -212,6 +215,9 @@ def test_active_game_create_orders_and_confirm(
     create_order_url = reverse("order-create", args=[active_game.id])
     first_phase = active_game.current_phase
 
+    italy_member = active_game.members.filter(nation__name="Italy").first()
+    germany_member = active_game.members.filter(nation__name="Germany").first()
+
     # Primary user creates an order
 
     create_order_payload = {"selected": ["kie"]}
@@ -289,19 +295,11 @@ def test_active_game_create_orders_and_confirm(
     confirm_order_response = authenticated_client_for_secondary_user.put(confirm_order_url)
     assert confirm_order_response.status_code == status.HTTP_200_OK
 
-    # Second phase has been created
-    second_phase = active_game.current_phase
-    assert second_phase.status == PhaseStatus.ACTIVE
-    assert second_phase.season == "Spring"
-    assert second_phase.year == 1901
-    assert second_phase.type == "Retreat"
-
-    # First phase has resolved
-    first_phase.refresh_from_db()
-    assert first_phase.status == PhaseStatus.COMPLETED
-
-    italy_member = active_game.members.filter(nation__name="Italy").first()
-    germany_member = active_game.members.filter(nation__name="Germany").first()
+    # Simulate the scheduled resolver task running
+    resolve_url = reverse("phase-resolve")
+    resolve_response = authenticated_client.post(resolve_url)
+    assert resolve_response.status_code == status.HTTP_200_OK
+    assert resolve_response.data["resolved"] >= 1
 
     # Notification is sent to both users
     mock_send_notification_to_users.assert_called_with(
@@ -311,3 +309,82 @@ def test_active_game_create_orders_and_confirm(
         notification_type="phase_resolved",
         data={"game_id": str(active_game.id)},
     )
+
+    # Second phase has been created
+    second_phase = active_game.current_phase
+    assert second_phase.status == PhaseStatus.ACTIVE
+    assert second_phase.season == "Spring"
+    assert second_phase.year == 1901
+    assert second_phase.type == "Retreat"
+
+    # Test auto-resolution behavior: Retreat phase should resolve immediately
+    # since typically no retreat moves are possible in small variants
+    assert second_phase.should_resolve_immediately
+
+    # Simulate the scheduled resolver task running
+    resolve_response = authenticated_client.post(resolve_url)
+    assert resolve_response.status_code == status.HTTP_200_OK
+    assert resolve_response.data["resolved"] >= 1  # At least the retreat phase resolved
+
+    # First phase has resolved
+    first_phase.refresh_from_db()
+    assert first_phase.status == PhaseStatus.COMPLETED
+
+    # Notification is sent to both users
+    mock_send_notification_to_users.assert_called_with(
+        user_ids=[germany_member.user.id, italy_member.user.id],
+        title="Phase Resolved",
+        body=f"Phase '{second_phase.name}' has been resolved!",
+        notification_type="phase_resolved",
+        data={"game_id": str(active_game.id)},
+    )
+
+
+@pytest.mark.django_db
+def test_scheduled_phase_resolution_after_time_elapsed(
+    authenticated_client,
+    authenticated_client_for_secondary_user,
+    italy_vs_germany_variant,
+    mock_send_notification_to_users,
+    mock_immediate_on_commit,
+):
+    """
+    - Primary user creates an order (interactive)
+    - Primary user confirms their order
+    - Time advances past the phase duration
+    - Game resolves
+    """
+    active_game = create_active_game(
+        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+    )
+    current_phase = active_game.current_phase
+
+    # Only primary user creates and confirmdds an order (secondary user does nothing)
+    create_order_url = reverse("order-create", args=[active_game.id])
+    create_order_payload = {"selected": ["kie", "Move", "den"]}
+    authenticated_client.post(create_order_url, create_order_payload, format="json")
+
+    confirm_order_url = reverse("game-confirm-phase", args=[active_game.id])
+    authenticated_client.put(confirm_order_url)
+
+    # Phase should not resolve immediately since not all users with orders confirmed
+    current_phase.refresh_from_db()
+    assert not current_phase.should_resolve_immediately
+
+    # Simulate time advancing by 25 hours (past the 24-hour phase duration)
+    future_time = timezone.now() + timedelta(hours=25)
+
+    with patch("django.utils.timezone.now", return_value=future_time):
+        # Simulate the scheduled resolver task running
+        resolve_url = reverse("phase-resolve")
+        resolve_response = authenticated_client.post(resolve_url)
+        assert resolve_response.status_code == status.HTTP_200_OK
+        assert resolve_response.data["resolved"] >= 1  # Phase resolved due to time elapsed
+
+    # Verify the phase was resolved and a new phase created
+    current_phase.refresh_from_db()
+    assert current_phase.status == PhaseStatus.COMPLETED
+
+    new_phase = active_game.current_phase
+    assert new_phase.id != current_phase.id
+    assert new_phase.status == PhaseStatus.ACTIVE

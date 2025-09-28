@@ -3,7 +3,6 @@ from common.constants import PhaseStatus
 from province.serializers import ProvinceSerializer
 from supply_center.serializers import SupplyCenterSerializer
 from unit.serializers import UnitSerializer
-from .models import Phase
 
 
 class PhaseResolveResponseSerializer(serializers.Serializer):
@@ -20,11 +19,6 @@ class PhaseStateSerializer(serializers.Serializer):
     def update(self, instance, validated_data):
         instance.orders_confirmed = not instance.orders_confirmed
         instance.save()
-
-        # If all players have confirmed their orders, resolve the phase
-        if all(phase_state.orders_confirmed for phase_state in instance.phase.phase_states.all()):
-            Phase.objects.resolve(instance.phase)
-
         return instance
 
 

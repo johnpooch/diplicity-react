@@ -1023,6 +1023,9 @@ components:
           items:
             $ref: '#/components/schemas/Province'
           readOnly: true
+        hasPossibleOrders:
+          type: boolean
+          readOnly: true
     Phase:
       type: object
       properties:
@@ -1090,8 +1093,12 @@ components:
           items:
             $ref: '#/components/schemas/Province'
           readOnly: true
+        hasPossibleOrders:
+          type: boolean
+          readOnly: true
       required:
       - eliminated
+      - hasPossibleOrders
       - id
       - orderableProvinces
       - ordersConfirmed
