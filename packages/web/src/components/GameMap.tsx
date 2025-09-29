@@ -23,8 +23,6 @@ const GameMap: React.FC = () => {
   const { gameId, gameRetrieveQuery } = useSelectedGameContext();
   const { selectedPhase } = useSelectedPhaseContext();
 
-  const { device } = useResponsiveness()
-
   const [menuPosition, setMenuPosition] = useState<{ x: number, y: number } | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(true);
 
