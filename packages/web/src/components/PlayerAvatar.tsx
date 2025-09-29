@@ -43,7 +43,7 @@ const PlayerAvatar: React.FC<PlayerAvatarProps> = ({ variant, member, size, ...r
         return mainAvatar;
     }
 
-    const nationFlag = Flags[variant][member.nation.toLowerCase()];
+    const nationFlag = Flags[variant as keyof typeof Flags]?.[member.nation.toLowerCase() as keyof typeof Flags[keyof typeof Flags]];
 
     // Otherwise, wrap it with the Badge
     return (

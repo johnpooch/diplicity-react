@@ -1,21 +1,15 @@
 import React from "react";
 import {
-    AvatarGroup,
-    Button,
-    Divider,
     List,
     ListItem,
     ListItemAvatar,
     ListItemText,
-    ListSubheader,
     Skeleton,
     Stack,
 } from "@mui/material";
 import { GameDetailLayout } from "./Layout";
 import { GameDetailAppBar } from "./AppBar";
-import { IconName } from "../../components/Icon";
 import { useNavigate } from "react-router";
-import { Table } from "../../components/Table";
 import { PlayerAvatar } from "../../components/PlayerAvatar";
 import { useSelectedGameContext } from "../../context";
 import { GameMap, Panel } from "../../components";
@@ -23,10 +17,6 @@ import { GameMap, Panel } from "../../components";
 const PlayerInfoScreen: React.FC = () => {
     const { gameId, gameRetrieveQuery: query } = useSelectedGameContext();
     const navigate = useNavigate();
-
-    const handlePlayerInfo = () => {
-        navigate(`/game/${gameId}/player-info`);
-    };
 
     if (query.isError) {
         return <div>Error</div>;

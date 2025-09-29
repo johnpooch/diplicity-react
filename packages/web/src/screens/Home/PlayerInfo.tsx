@@ -1,7 +1,6 @@
 import React from "react";
 import {
   Alert,
-  Avatar,
   List,
   ListItem,
   ListItemAvatar,
