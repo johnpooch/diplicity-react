@@ -104,6 +104,9 @@ class Phase(BaseModel):
     scheduled_resolution = models.DateTimeField(null=True, blank=True)
     options = models.JSONField(default=dict)
 
+    class Meta:
+        ordering = ["ordinal"]
+
     @property
     def name(self):
         return f"{self.season} {self.year}, {self.type}"

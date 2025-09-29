@@ -99,7 +99,7 @@ class Order(BaseModel):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['phase_state', 'source'], name='unique_order_per_province_per_phase')
+            models.UniqueConstraint(fields=["phase_state", "source"], name="unique_order_per_province_per_phase")
         ]
 
     @property

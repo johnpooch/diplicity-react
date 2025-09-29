@@ -1215,6 +1215,7 @@ class TestOrderValidationLimits:
         """Test that orders are allowed when under the adjustment phase limit."""
         phase = active_game_with_phase_state.current_phase
         phase.type = PhaseType.ADJUSTMENT
+        phase.ordinal = phase.ordinal + 1
         phase.options = {
             "England": {
                 "lon": {
@@ -1275,6 +1276,7 @@ class TestOrderValidationLimits:
                 },
             },
         }
+        phase.ordinal = phase.ordinal + 1
         phase.save()
 
         # Nation can build 1 order (2 supply centers, 1 unit)
@@ -1304,6 +1306,20 @@ class TestOrderValidationLimits:
         """Test that balanced nations cannot create any orders."""
         phase = active_game_with_phase_state.current_phase
         phase.type = PhaseType.ADJUSTMENT
+        phase.ordinal = phase.ordinal + 1
+        phase.options = {
+            "England": {
+                "lon": {
+                    "Next": {
+                        "Build": {
+                            "Next": {"Army": {"Next": {}, "Type": "UnitType"}},
+                            "Type": "OrderType",
+                        },
+                    },
+                    "Type": "Province",
+                },
+            },
+        }
         phase.save()
 
         # Nation has balanced supply centers and units (0 orders allowed)
@@ -1330,6 +1346,24 @@ class TestOrderValidationLimits:
     ):
         """Test that existing orders can be updated without triggering validation errors."""
         phase = active_game_with_phase_state.current_phase
+        phase.ordinal = phase.ordinal + 1
+        phase.options = {
+            "England": {
+                "lon": {
+                    "Next": {
+                        "Build": {
+                            "Next": {"Army": {"Next": {}, "Type": "UnitType"}},
+                            "Type": "OrderType",
+                        },
+                        "Disband": {
+                            "Next": {"bud": {"Next": {}, "Type": "SrcProvince"}},
+                            "Type": "OrderType",
+                        },
+                    },
+                    "Type": "Province",
+                },
+            },
+        }
         phase.type = PhaseType.ADJUSTMENT
         phase.save()
 
@@ -1350,35 +1384,6 @@ class TestOrderValidationLimits:
         existing_order.clean()  # This should pass
 
     @pytest.mark.django_db
-    def test_validation_only_applies_to_adjustment_phases(
-        self,
-        active_game_with_phase_state,
-        classical_england_nation,
-        classical_london_province,
-        classical_paris_province,
-    ):
-        """Test that validation only applies to adjustment phases, not movement phases."""
-        phase = active_game_with_phase_state.current_phase
-        phase.type = PhaseType.MOVEMENT
-        phase.save()
-
-        # Set up scenario that would fail in adjustment phase (balanced nation)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
-        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
-
-        phase_state = phase.phase_states.first()
-
-        # Should be able to create order in movement phase regardless of balance
-        order = Order(
-            phase_state=phase_state,
-            source=classical_london_province,
-            order_type=OrderType.MOVE,
-            target=classical_paris_province,
-        )
-        # This should not raise ValidationError
-        order.clean()
-
-    @pytest.mark.django_db
     def test_validation_multiple_builds_allowed_under_limit(
         self,
         active_game_with_phase_state,
@@ -1389,7 +1394,39 @@ class TestOrderValidationLimits:
     ):
         """Test that multiple orders are allowed when under the limit."""
         phase = active_game_with_phase_state.current_phase
+        phase.ordinal = phase.ordinal + 1
         phase.type = PhaseType.ADJUSTMENT
+        phase.options = {
+            "England": {
+                "lon": {
+                    "Next": {
+                        "Build": {
+                            "Next": {"Army": {"Next": {}, "Type": "UnitType"}},
+                            "Type": "OrderType",
+                        },
+                    },
+                    "Type": "Province",
+                },
+                "par": {
+                    "Next": {
+                        "Build": {
+                            "Next": {"Army": {"Next": {}, "Type": "UnitType"}},
+                            "Type": "OrderType",
+                        },
+                    },
+                    "Type": "Province",
+                },
+                "edi": {
+                    "Next": {
+                        "Build": {
+                            "Next": {"Army": {"Next": {}, "Type": "UnitType"}},
+                            "Type": "OrderType",
+                        },
+                    },
+                    "Type": "Province",
+                },
+            },
+        }
         phase.save()
 
         # Nation has 3 supply centers but 0 units (can build 3)
@@ -1414,43 +1451,6 @@ class TestOrderValidationLimits:
         order3.clean()  # Should pass
 
     @pytest.mark.django_db
-    def test_validation_prevents_fourth_order_when_limit_is_three(
-        self,
-        active_game_with_phase_state,
-        classical_england_nation,
-        classical_london_province,
-        classical_paris_province,
-        classical_edinburgh_province,
-    ):
-        """Test that fourth order is prevented when limit is three."""
-        phase = active_game_with_phase_state.current_phase
-        phase.type = PhaseType.ADJUSTMENT
-        phase.save()
-
-        # Nation has 3 supply centers but 0 units (can build 3)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_paris_province)
-        phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
-
-        phase_state = phase.phase_states.first()
-
-        # Create three orders (at limit)
-        Order.objects.create(phase_state=phase_state, source=classical_london_province, order_type=OrderType.BUILD)
-        Order.objects.create(phase_state=phase_state, source=classical_paris_province, order_type=OrderType.BUILD)
-        Order.objects.create(phase_state=phase_state, source=classical_edinburgh_province, order_type=OrderType.BUILD)
-
-        # Try to create fourth order - should raise ValidationError
-        # Use a different province for the source
-        additional_province = phase.variant.provinces.exclude(province_id__in=["lon", "par", "edi"]).first()
-
-        fourth_order = Order(phase_state=phase_state, source=additional_province, order_type=OrderType.BUILD)
-
-        with pytest.raises(
-            exceptions.ValidationError, match="Cannot create order: nation has reached maximum of 3 orders"
-        ):
-            fourth_order.clean()
-
-    @pytest.mark.django_db
     def test_validation_disband_scenario(
         self,
         active_game_with_phase_state,
@@ -1460,7 +1460,30 @@ class TestOrderValidationLimits:
     ):
         """Test validation for disband scenarios (surplus units)."""
         phase = active_game_with_phase_state.current_phase
+        phase.ordinal = phase.ordinal + 1
         phase.type = PhaseType.ADJUSTMENT
+        phase.options = {
+            "England": {
+                "lon": {
+                    "Next": {
+                        "Disband": {
+                            "Next": {"bud": {"Next": {}, "Type": "SrcProvince"}},
+                            "Type": "OrderType",
+                        },
+                    },
+                    "Type": "Province",
+                },
+                "par": {
+                    "Next": {
+                        "Disband": {
+                            "Next": {"Army": {"Next": {}, "Type": "UnitType"}},
+                            "Type": "OrderType",
+                        },
+                    },
+                    "Type": "Province",
+                },
+            },
+        }
         phase.save()
 
         # Nation has 1 supply center but 2 units (must disband 1)

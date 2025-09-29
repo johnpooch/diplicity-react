@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from django.core import exceptions
+from order.utils import get_options_for_order
 from province.serializers import ProvinceSerializer
 from nation.serializers import NationSerializer
 from .models import Order
@@ -38,7 +40,10 @@ class OrderSerializer(serializers.Serializer):
 
     def validate_selected(self, value):
         order = Order.objects.create_from_selected(self.context["request"].user, self.context["phase"], value)
-        order.clean()
+        try:
+            get_options_for_order(order.phase.options, order)
+        except Exception as e:
+            raise exceptions.ValidationError(e)
         return order.selected
 
     def create(self, validated_data):

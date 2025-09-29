@@ -48,10 +48,10 @@ const enhancedApi = api.enhanceEndpoints({
       providesTags: ["Order"],
     },
     gameOrdersCreate: {
-      invalidatesTags: ["Order"],
+      invalidatesTags: ["Order", "PhaseState"],
     },
     gameOrdersDeleteDestroy: {
-      invalidatesTags: ["Order"],
+      invalidatesTags: ["Order", "PhaseState"],
     },
   },
 });

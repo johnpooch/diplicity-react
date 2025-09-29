@@ -27,6 +27,10 @@ class OrderDeleteView(CurrentPhaseMixin, generics.DestroyAPIView):
     serializer_class = EmptySerializer
 
     def get_object(self):
+        phase = self.get_phase()
         return get_object_or_404(
-            Order, source__province_id=self.kwargs["source_id"], phase_state__member__user=self.request.user
+            Order,
+            source__province_id=self.kwargs["source_id"],
+            phase_state__member__user=self.request.user,
+            phase_state__phase=phase,
         )
