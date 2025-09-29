@@ -448,6 +448,7 @@ export type NationAssignmentEnum = "random" | "ordered";
 export type Game = {
   name: string;
   nationAssignment: NationAssignmentEnum;
+  private: boolean;
 };
 export type StatusEnum = "pending" | "active" | "completed" | "template";
 export type Nation = {
@@ -560,11 +561,13 @@ export type GameRead = {
   phaseConfirmed: boolean;
   name: string;
   nationAssignment: NationAssignmentEnum;
+  private: boolean;
 };
 export type GameWrite = {
   name: string;
   variantId: string;
   nationAssignment: NationAssignmentEnum;
+  private: boolean;
 };
 export type PhaseState = {};
 export type PhaseStateRead = {

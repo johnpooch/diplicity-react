@@ -16,6 +16,7 @@ import { InteractiveMap } from "./InteractiveMap/InteractiveMap";
 import { getCurrentPhase } from "../util";
 import { createUseStyles } from "./utils/styles";
 import { PlayerAvatar } from "./PlayerAvatar";
+import { Icon, IconName } from "./Icon";
 
 const MAX_AVATARS = 10;
 
@@ -52,6 +53,10 @@ const useStyles = createUseStyles<GameCardProps>(() => ({
   },
   extraMembersText: {
     marginLeft: "4px",
+  },
+  privateIcon: {
+    fontSize: 14,
+    opacity: 0.6,
   },
 }));
 
@@ -100,9 +105,17 @@ const GameCard: React.FC<GameCardProps> = (game) => {
       <Stack>
         <ListItemText
           primary={
-            <Link underline="hover" onClick={handleClickGame}>
-              {game.name}
-            </Link>
+            <Stack direction="row" alignItems="center" gap={1}>
+              {game.private && (
+                <Icon
+                  name={IconName.Lock}
+                  sx={styles.privateIcon}
+                />
+              )}
+              <Link underline="hover" onClick={handleClickGame}>
+                {game.name}
+              </Link>
+            </Stack>
           }
         />
         <Stack sx={styles.secondaryContainer}>
@@ -121,7 +134,7 @@ const GameCard: React.FC<GameCardProps> = (game) => {
           </Button>
         </Stack>
       </Stack>
-    </ListItem>
+    </ListItem >
   );
 };
 
