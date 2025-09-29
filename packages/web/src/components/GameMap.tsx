@@ -1,7 +1,8 @@
 import { useSelectedGameContext, useSelectedPhaseContext } from "../context";
 import { service } from "../store";
 import { InteractiveMap } from "./InteractiveMap/InteractiveMap";
-import { MenuItem, Stack } from "@mui/material";
+import { MenuItem, Stack, Fab } from "@mui/material";
+import { Icon, IconName } from "./Icon";
 import { createUseStyles } from "./utils/styles";
 import { FloatingMenu } from "./FloatingMenu";
 import { useState, useRef, useEffect, useMemo } from "react";
@@ -9,20 +10,21 @@ import { determineRenderableProvinces } from "../utils/provinces";
 
 const useStyles = createUseStyles(() => ({
   mapContainer: {
+    position: "relative",
     width: "100%",
     height: "100%",
-    overflow: "auto",
-    minHeight: 0, // This is important for flexbox overflow to work
   },
 }));
 
 const GameMap: React.FC = () => {
-  const { gameId, gameRetrieveQuery } = useSelectedGameContext();
-
   const styles = useStyles({});
+
+  const { gameId, gameRetrieveQuery } = useSelectedGameContext();
   const { selectedPhase } = useSelectedPhaseContext();
 
   const [menuPosition, setMenuPosition] = useState<{ x: number, y: number } | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(true);
+
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [createOrder, createOrderQuery] =
@@ -107,21 +109,31 @@ const GameMap: React.FC = () => {
     }
   };
 
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+  };
+
   return (
     <Stack ref={containerRef} sx={styles.mapContainer}>
       {
         gameRetrieveQuery.data && ordersListQuery.data && (
           <>
-            <InteractiveMap
-              interactive
-              variant={gameRetrieveQuery.data.variant}
-              phase={gameRetrieveQuery.data.phases.find(p => p.id === selectedPhase)!}
-              orders={ordersListQuery.data}
-              selected={createOrderQuery.data?.selected ?? []}
-              highlighted={createOrderQuery.data?.options?.map(o => o.value) ?? []}
-              renderableProvinces={renderableProvinces}
-              onClickProvince={handleProvinceClick}
-            />
+            <div style={{
+              width: "100%", height: "100%",
+              overflow: isFullscreen ? "auto" : "hidden",
+            }}>
+              <InteractiveMap
+                interactive
+                variant={gameRetrieveQuery.data.variant}
+                phase={gameRetrieveQuery.data.phases.find(p => p.id === selectedPhase)!}
+                orders={ordersListQuery.data}
+                selected={createOrderQuery.data?.selected ?? []}
+                highlighted={createOrderQuery.data?.options?.map(o => o.value) ?? []}
+                renderableProvinces={renderableProvinces}
+                onClickProvince={handleProvinceClick}
+                fullscreen={isFullscreen}
+              />
+            </div>
             <FloatingMenu
               open={(createOrderQuery.data?.step === "select-order-type" || createOrderQuery.data?.step === "select-unit-type") && menuPosition !== null}
               onClose={() => {
@@ -138,6 +150,9 @@ const GameMap: React.FC = () => {
                 </MenuItem>
               ))}
             </FloatingMenu>
+            <Fab onClick={toggleFullscreen} sx={{ position: "absolute", bottom: 20, right: 20 }}>
+              <Icon name={isFullscreen ? IconName.FullscreenExit : IconName.Fullscreen} />
+            </Fab>
           </>
         )
       }

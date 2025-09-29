@@ -24,6 +24,7 @@ type InteractiveMapProps = {
   orders: OrderRead[] | undefined;
   renderableProvinces?: string[];
   onClickProvince?: (province: string, event: React.MouseEvent<SVGPathElement>) => void;
+  fullscreen?: boolean;
 };
 
 
@@ -120,10 +121,21 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
     return 1;
   };
 
+  const svgStyle = props.fullscreen ? {
+    minWidth: "100%",
+    minHeight: "100%",
+    width: "auto",
+    height: "auto",
+    display: "block",
+  } : {
+    width: "100%",
+    height: "100%",
+    display: "block",
+  };
+
   return (
     <svg
-      width="100%"
-      height="100%"
+      style={svgStyle}
       viewBox={`0 0 ${map.width} ${map.height}`}
       preserveAspectRatio="xMidYMid meet"
     >

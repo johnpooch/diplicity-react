@@ -21,6 +21,8 @@ import NoChannels from "@mui/icons-material/Forum";
 import Cancel from "@mui/icons-material/Cancel";
 import Close from "@mui/icons-material/Close";
 import Delete from "@mui/icons-material/Delete";
+import Fullscreen from "@mui/icons-material/Fullscreen";
+import FullscreenExit from "@mui/icons-material/FullscreenExit";
 
 import { SxProps, Theme } from "@mui/material";
 
@@ -48,6 +50,8 @@ enum IconName {
   Cancel = "cancel",
   Close = "close",
   Delete = "delete",
+  Fullscreen = "fullscreen",
+  FullscreenExit = "fullscreen-exit",
 }
 
 const IconMap = {
@@ -74,6 +78,8 @@ const IconMap = {
   [IconName.Cancel]: Cancel,
   [IconName.Close]: Close,
   [IconName.Delete]: Delete,
+  [IconName.Fullscreen]: Fullscreen,
+  [IconName.FullscreenExit]: FullscreenExit,
 };
 
 interface IconProps {
