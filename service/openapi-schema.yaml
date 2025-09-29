@@ -848,6 +848,8 @@ components:
           writeOnly: true
         nationAssignment:
           $ref: '#/components/schemas/NationAssignmentEnum'
+        private:
+          type: boolean
       required:
       - canJoin
       - canLeave
@@ -858,6 +860,7 @@ components:
       - nationAssignment
       - phaseConfirmed
       - phases
+      - private
       - status
       - variant
       - variantId

@@ -445,6 +445,7 @@ class TestGameCreateView:
             "name": "New Test Game",
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
@@ -475,6 +476,7 @@ class TestGameCreateView:
             "name": "New Test Game",
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
         }
         response = unauthenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -486,6 +488,7 @@ class TestGameCreateView:
             "name": "Ordered Game",
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.ORDERED,
+            "private": False,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
@@ -499,6 +502,7 @@ class TestGameCreateView:
         payload = {
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -510,6 +514,7 @@ class TestGameCreateView:
         payload = {
             "name": "Test Game",
             "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -521,6 +526,7 @@ class TestGameCreateView:
         payload = {
             "name": "Test Game",
             "variant_id": classical_variant.id,
+            "private": False,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -533,6 +539,7 @@ class TestGameCreateView:
             "name": "Test Game",
             "variant_id": "non-existent-variant",
             "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -545,6 +552,7 @@ class TestGameCreateView:
             "name": "Test Game",
             "variant_id": classical_variant.id,
             "nation_assignment": "invalid-assignment",
+            "private": False,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -556,6 +564,7 @@ class TestGameCreateView:
             "name": "",
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -567,6 +576,7 @@ class TestGameCreateView:
             "name": "Membership Test Game",
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
@@ -582,6 +592,7 @@ class TestGameCreateView:
             "name": "Channel Test Game",
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
@@ -598,6 +609,7 @@ class TestGameCreateView:
             "name": "Phase Test Game",
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
@@ -616,6 +628,7 @@ class TestGameCreateView:
             "name": "Unique ID Test",
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
         }
 
         response1 = authenticated_client.post(url, payload, format="json")
@@ -632,6 +645,7 @@ class TestGameCreateView:
             "name": "Test Game! @#$%^&*()",
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
@@ -644,6 +658,7 @@ class TestGameCreateView:
             "name": "Тест Игра 测试游戏 🎮",
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
@@ -657,11 +672,13 @@ class TestGameCreateView:
             "name": "Game 1",
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
         }
         payload2 = {
             "name": "Game 2",
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
         }
 
         response1 = authenticated_client.post(url, payload1, format="json")
@@ -687,6 +704,7 @@ class TestGameCreateView:
             "name": "Join Leave Test Game",
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
@@ -697,3 +715,102 @@ class TestGameCreateView:
         assert response.data["can_join"] is False
         assert response.data["can_leave"] is True
         assert response.data["phase_confirmed"] is False
+
+    @pytest.mark.django_db
+    def test_create_private_game_success(self, authenticated_client, classical_variant):
+        url = reverse(create_viewname)
+        payload = {
+            "name": "Private Test Game",
+            "variant_id": classical_variant.id,
+            "nation_assignment": NationAssignment.RANDOM,
+            "private": True,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["private"] is True
+
+        # Verify game is created as private in database
+        game = Game.objects.get(id=response.data["id"])
+        assert game.private is True
+
+    @pytest.mark.django_db
+    def test_create_public_game_default(self, authenticated_client, classical_variant):
+        url = reverse(create_viewname)
+        payload = {
+            "name": "Public Test Game",
+            "variant_id": classical_variant.id,
+            "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["private"] is False
+
+
+class TestGamePrivateFiltering:
+
+    @pytest.mark.django_db
+    def test_private_games_excluded_from_can_join_filter(self, authenticated_client, secondary_user, classical_variant):
+        # Create a private game by secondary user
+        private_game = Game.objects.create_from_template(
+            classical_variant,
+            secondary_user,
+            name="Private Game",
+            nation_assignment=NationAssignment.RANDOM,
+            private=True,
+        )
+
+        # Create a public game by secondary user
+        public_game = Game.objects.create_from_template(
+            classical_variant,
+            secondary_user,
+            name="Public Game",
+            nation_assignment=NationAssignment.RANDOM,
+            private=False,
+        )
+
+        # Request games with can_join=true (should exclude private games)
+        url = reverse(list_viewname)
+        response = authenticated_client.get(url, {"can_join": "true"})
+        assert response.status_code == status.HTTP_200_OK
+
+        game_ids = [game["id"] for game in response.data]
+        assert public_game.id in game_ids
+        assert private_game.id not in game_ids
+
+    @pytest.mark.django_db
+    def test_private_games_visible_in_mine_filter(self, authenticated_client, primary_user, classical_variant):
+        # Create a private game by primary user
+        private_game = Game.objects.create_from_template(
+            classical_variant,
+            primary_user,
+            name="My Private Game",
+            nation_assignment=NationAssignment.RANDOM,
+            private=True,
+        )
+
+        # Request games with mine=true (should include private games for user)
+        url = reverse(list_viewname)
+        response = authenticated_client.get(url, {"mine": "true"})
+        assert response.status_code == status.HTTP_200_OK
+
+        game_ids = [game["id"] for game in response.data]
+        assert private_game.id in game_ids
+
+    @pytest.mark.django_db
+    def test_private_game_accessible_via_direct_link(self, authenticated_client, secondary_user, classical_variant):
+        # Create a private game by secondary user
+        private_game = Game.objects.create_from_template(
+            classical_variant,
+            secondary_user,
+            name="Private Game",
+            nation_assignment=NationAssignment.RANDOM,
+            private=True,
+        )
+
+        # Authenticated user should be able to access private game via direct link
+        url = reverse(retrieve_viewname, args=[private_game.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["id"] == private_game.id
+        assert response.data["private"] is True

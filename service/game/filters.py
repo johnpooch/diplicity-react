@@ -19,5 +19,8 @@ class GameFilter(django_filters.FilterSet):
 
     def filter_can_join(self, queryset, name, value):
         if value:
-            return queryset.filter(status=GameStatus.PENDING).exclude(members__user=self.request.user)
+            return queryset.filter(
+                status=GameStatus.PENDING,
+                private=False
+            ).exclude(members__user=self.request.user)
         return queryset

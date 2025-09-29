@@ -16,6 +16,7 @@ def create_active_game(authenticated_client, authenticated_client_for_secondary_
         "name": "Italy vs Germany Test",
         "variant_id": italy_vs_germany_variant.id,
         "nation_assignment": NationAssignment.ORDERED,
+        "private": False,
     }
     create_response = authenticated_client.post(create_url, create_payload, format="json")
     game_id = create_response.data["id"]
@@ -45,6 +46,7 @@ def test_create_game_with_classical_variant_one_user_joins(
         "name": "Integration Test Game",
         "variant_id": classical_variant.id,
         "nation_assignment": NationAssignment.RANDOM,
+        "private": False,
     }
     create_response = authenticated_client.post(create_url, create_payload, format="json")
     assert create_response.status_code == status.HTTP_201_CREATED
@@ -117,6 +119,7 @@ def test_create_game_with_italy_vs_germany_variant_one_user_joins(
         "name": "Italy vs Germany Test",
         "variant_id": italy_vs_germany_variant.id,
         "nation_assignment": NationAssignment.RANDOM,
+        "private": False,
     }
     create_response = authenticated_client.post(create_url, create_payload, format="json")
     assert create_response.status_code == status.HTTP_201_CREATED
@@ -169,6 +172,7 @@ def test_create_game_with_classical_variant_one_user_leaves_and_rejoins(
         "name": "Leave/Rejoin Test",
         "variant_id": classical_variant.id,
         "nation_assignment": NationAssignment.RANDOM,
+        "private": False,
     }
     create_response = authenticated_client.post(create_url, create_payload, format="json")
     game_id = create_response.data["id"]

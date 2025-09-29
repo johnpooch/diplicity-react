@@ -70,6 +70,17 @@ const GameInfoScreen: React.FC = () => {
                                             ),
                                             icon: IconName.StartYear,
                                         },
+                                        {
+                                            label: "Visibility",
+                                            value: query.data ? (
+                                                query.data.private ? "Private" : "Public"
+                                            ) : (
+                                                <Stack alignItems="flex-end">
+                                                    <Skeleton variant="text" width={60} />
+                                                </Stack>
+                                            ),
+                                            icon: IconName.Lock,
+                                        },
                                     ]}
                                 />
                                 <Divider />
