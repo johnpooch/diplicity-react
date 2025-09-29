@@ -123,6 +123,30 @@ class TestChannelListView:
         assert private_channel["messages"][0]["body"] == "Test message"
         assert private_channel["messages"][0]["sender"]["is_current_user"] == True
 
+    @pytest.mark.django_db
+    def test_list_channels_excludes_other_games_channels(
+        self, authenticated_client, active_game_with_channels, classical_variant, primary_user, classical_england_nation
+    ):
+        Game = apps.get_model("game", "Game")
+
+        other_game = Game.objects.create(
+            name="Other Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        other_game.members.create(user=primary_user, nation=classical_england_nation)
+
+        Channel.objects.create(game=other_game, name="Other Game Channel", private=False)
+
+        url = reverse("channel-list", args=[active_game_with_channels.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+
+        channel_names = [channel["name"] for channel in response.data]
+        assert "Other Game Channel" not in channel_names
+        assert "Private Member" in channel_names
+        assert "Public Channel" in channel_names
+
 
 class TestChannelMessageCreateView:
 
@@ -319,6 +343,31 @@ class TestChannelModels:
         for channel in channels:
             for message in channel.messages.all():
                 assert message.sender is not None
+
+    @pytest.mark.django_db
+    def test_channel_queryset_accessible_to_user_excludes_other_games(
+        self, active_game_with_channels, primary_user, classical_variant, classical_england_nation
+    ):
+        Game = apps.get_model("game", "Game")
+
+        other_game = Game.objects.create(
+            name="Other Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        other_game.members.create(user=primary_user, nation=classical_england_nation)
+
+        other_game_public_channel = Channel.objects.create(game=other_game, name="Other Game Public", private=False)
+        other_game_private_channel = Channel.objects.create(game=other_game, name="Other Game Private", private=True)
+        other_game_private_channel.members.add(other_game.members.first())
+
+        channels = Channel.objects.accessible_to_user(primary_user, active_game_with_channels)
+
+        channel_names = [ch.name for ch in channels]
+        assert "Other Game Public" not in channel_names
+        assert "Other Game Private" not in channel_names
+        assert "Private Member" in channel_names
+        assert "Public Channel" in channel_names
 
 
 @pytest.fixture

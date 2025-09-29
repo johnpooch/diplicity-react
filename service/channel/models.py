@@ -8,11 +8,12 @@ User = get_user_model()
 
 class ChannelQuerySet(models.QuerySet):
     def accessible_to_user(self, user, game):
+        queryset = self.filter(game=game)
         try:
             member = game.members.get(user=user)
-            return self.filter(Q(private=False) | Q(members=member)).distinct()
+            return queryset.filter(Q(private=False) | Q(members=member)).distinct()
         except:
-            return self.filter(private=False)
+            return queryset.filter(private=False)
 
     def for_game(self, game):
         return self.filter(game=game)
