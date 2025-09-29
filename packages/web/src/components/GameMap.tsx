@@ -7,7 +7,6 @@ import { createUseStyles } from "./utils/styles";
 import { FloatingMenu } from "./FloatingMenu";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { determineRenderableProvinces } from "../utils/provinces";
-import { useResponsiveness } from "./utils/responsive";
 
 const useStyles = createUseStyles(() => ({
   mapContainer: {
