@@ -1,7 +1,6 @@
 import React from "react";
 import {
   Alert,
-  Avatar,
   AvatarGroup,
   Button,
   Divider,
@@ -21,6 +20,7 @@ import { InteractiveMap } from "../../components/InteractiveMap/InteractiveMap";
 import { MapSkeleton } from "../../components/MapSkeleton";
 import { getCurrentPhase } from "../../util";
 import { GameMenu } from "../../components/GameMenu";
+import { PlayerAvatar } from "../../components/PlayerAvatar";
 
 const GameInfo: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -102,10 +102,9 @@ const GameInfo: React.FC = () => {
                       <Button onClick={handlePlayerInfo}>
                         <AvatarGroup total={query.data.members.length} max={7}>
                           {query.data.members.map(member => (
-                            <Avatar
+                            <PlayerAvatar member={member} variant={query.data.variant.id}
                               key={member.username}
-                              src={member.picture}
-                              sx={{ width: 24, height: 24 }}
+                              size="small"
                             />
                           ))}
                         </AvatarGroup>

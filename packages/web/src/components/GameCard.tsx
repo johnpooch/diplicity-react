@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  Avatar,
   AvatarGroup,
   Button,
   Link,
@@ -16,6 +15,7 @@ import { GameMenu } from "./GameMenu";
 import { InteractiveMap } from "./InteractiveMap/InteractiveMap";
 import { getCurrentPhase } from "../util";
 import { createUseStyles } from "./utils/styles";
+import { PlayerAvatar } from "./PlayerAvatar";
 
 const MAX_AVATARS = 10;
 
@@ -115,7 +115,7 @@ const GameCard: React.FC<GameCardProps> = (game) => {
           <Button sx={styles.avatarStackButton} onClick={handleClickPlayerInfo}>
             <AvatarGroup total={game.members.length}>
               {game.members.slice(0, MAX_AVATARS).map((member, index) => (
-                <Avatar sx={styles.avatar} key={index} src={member.picture} />
+                <PlayerAvatar member={member} variant={game.variant.id} size="small" key={index} />
               ))}
             </AvatarGroup>
           </Button>

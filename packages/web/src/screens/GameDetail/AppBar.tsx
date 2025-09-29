@@ -4,6 +4,8 @@ import { IconButton } from "../../components/Button";
 import { IconName } from "../../components/Icon";
 import { useResponsiveness } from "../../components/utils/responsive";
 import { Divider } from "@mui/material";
+import { GameMenu } from "../../components";
+import { useSelectedGameContext } from "../../context";
 
 interface GameDetailAppBarProps {
   title?: string | React.ReactNode;
@@ -15,6 +17,9 @@ interface GameDetailAppBarProps {
 const GameDetailAppBar: React.FC<GameDetailAppBarProps> = props => {
   const navigate = useNavigate();
   const responsiveness = useResponsiveness();
+
+  const { gameRetrieveQuery } = useSelectedGameContext();
+
   const { variant = "primary" } = props;
 
   const onClickBack = () => {
@@ -23,6 +28,16 @@ const GameDetailAppBar: React.FC<GameDetailAppBarProps> = props => {
     } else {
       navigate(-1);
     }
+  };
+
+  const showCloseButton = variant === "secondary" && responsiveness.device !== "mobile";
+
+  const handleClickGameInfo = () => {
+    navigate(`/game/${gameRetrieveQuery.data?.id}/game-info`);
+  };
+
+  const handleClickPlayerInfo = () => {
+    navigate(`/game/${gameRetrieveQuery.data?.id}/player-info`);
   };
 
   return (
@@ -35,8 +50,16 @@ const GameDetailAppBar: React.FC<GameDetailAppBarProps> = props => {
           )
         }
         rightButton={
-          variant === "secondary" && responsiveness.device !== "mobile" && (
+          showCloseButton ? (
             <IconButton icon={IconName.Close} onClick={onClickBack} />
+          ) : (
+            gameRetrieveQuery.data && (
+              <GameMenu
+                game={gameRetrieveQuery.data}
+                onClickGameInfo={handleClickGameInfo}
+                onClickPlayerInfo={handleClickPlayerInfo}
+              />
+            )
           )
         }
       />

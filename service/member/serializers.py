@@ -12,7 +12,7 @@ class MemberSerializer(serializers.Serializer):
     username = serializers.CharField(source="user.username", read_only=True)
     name = serializers.CharField(source="user.profile.name", read_only=True)
     picture = serializers.CharField(source="user.profile.picture", read_only=True)
-    nation = serializers.CharField(allow_null=True, read_only=True)
+    nation = serializers.CharField(allow_null=True, read_only=True, source="nation.name")
     is_current_user = serializers.SerializerMethodField()
     game = GameSummarySerializer(read_only=True)
 
