@@ -7,6 +7,7 @@ import { createUseStyles } from "./utils/styles";
 import { FloatingMenu } from "./FloatingMenu";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { determineRenderableProvinces } from "../utils/provinces";
+import { useResponsiveness } from "./utils/responsive";
 
 const useStyles = createUseStyles(() => ({
   mapContainer: {
@@ -21,6 +22,8 @@ const GameMap: React.FC = () => {
 
   const { gameId, gameRetrieveQuery } = useSelectedGameContext();
   const { selectedPhase } = useSelectedPhaseContext();
+
+  const { device } = useResponsiveness()
 
   const [menuPosition, setMenuPosition] = useState<{ x: number, y: number } | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(true);
@@ -150,7 +153,9 @@ const GameMap: React.FC = () => {
                 </MenuItem>
               ))}
             </FloatingMenu>
-            <Fab onClick={toggleFullscreen} sx={{ position: "absolute", bottom: 20, right: 20 }}>
+            <Fab
+              color="primary"
+              onClick={toggleFullscreen} sx={{ position: "absolute", bottom: 20, right: 20 }}>
               <Icon name={isFullscreen ? IconName.FullscreenExit : IconName.Fullscreen} />
             </Fab>
           </>

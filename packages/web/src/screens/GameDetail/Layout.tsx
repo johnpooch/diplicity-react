@@ -24,10 +24,10 @@ const useStyles = createUseStyles<GameDetailLayoutProps>((_props, theme) => ({
 
   },
   leftPanel: {
-
   },
   centerPanel: {
     flexGrow: 1,
+    minWidth: 250,
     width: 300,
     borderRight: `1px solid ${theme.palette.divider}`,
     borderLeft: `1px solid ${theme.palette.divider}`,
@@ -53,19 +53,19 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = props => {
 
   return (
     <Stack sx={styles.root}>
-      {responsiveness.device !== "mobile" && (
+      {responsiveness.device === "desktop" && (
         <Stack sx={styles.leftPanel}>
           {props.leftPanel ? props.leftPanel : <GameDetailSideNavigation />}
         </Stack>
       )}
-      <Stack sx={responsiveness.device === "mobile" ? styles.centerPanelMobile : styles.centerPanel}>
+      <Stack sx={responsiveness.device !== "desktop" ? styles.centerPanelMobile : styles.centerPanel}>
         {props.appBar}
         {props.content}
-        {responsiveness.device === "mobile" && (
+        {responsiveness.device !== "desktop" && (
           props.bottomNavigation ? props.bottomNavigation : <GameDetailBottomNavigation />
         )}
       </Stack>
-      {responsiveness.device !== "mobile" && (
+      {responsiveness.device === "desktop" && (
         <Stack sx={styles.rightPanel}>
           {props.rightPanel}
         </Stack>

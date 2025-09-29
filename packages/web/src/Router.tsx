@@ -28,7 +28,7 @@ const Router: React.FC = () => {
       }>
         <Route
           path=""
-          element={responsiveness.device === "mobile" ? <GameDetail.MapScreen /> : <GameDetail.OrdersScreen />}
+          element={responsiveness.device !== "desktop" ? <GameDetail.MapScreen /> : <GameDetail.OrdersScreen />}
         />
         <Route
           path="game-info"
