@@ -4,7 +4,7 @@ from django.db import models
 from django.utils import timezone
 from common.models import BaseModel
 from datetime import timedelta
-from common.constants import PhaseStatus
+from common.constants import PhaseStatus, PhaseType
 from adjudication.service import resolve
 from order.models import OrderResolution
 
@@ -149,9 +149,37 @@ class PhaseState(BaseModel):
     orders_confirmed = models.BooleanField(default=False)
     eliminated = models.BooleanField(default=False)
 
+    def max_allowed_adjustment_orders(self):
+        if self.phase.type != PhaseType.ADJUSTMENT:
+            return float("inf")
+
+        nation = self.member.nation
+        supply_centers_count = self.phase.supply_centers.filter(nation=nation).count()
+        units_count = self.phase.units.filter(nation=nation).count()
+        return abs(supply_centers_count - units_count)
+
     @property
     def orderable_provinces(self):
         options = self.phase.options
         nation = self.member.nation
-        orderable_provinces = list(options[nation.name].keys())
-        return self.phase.variant.provinces.select_related('parent').prefetch_related('named_coasts').filter(province_id__in=orderable_provinces)
+        print(self.phase.name)
+        print(options)
+        print(nation.name)
+        orderable_ids = list(options[nation.name].keys())
+        print(orderable_ids)
+        base_provinces = (
+            self.phase.variant.provinces.select_related("parent")
+            .prefetch_related("named_coasts")
+            .filter(province_id__in=orderable_ids)
+        )
+
+        if self.phase.type == PhaseType.ADJUSTMENT:
+            max_orders = self.max_allowed_adjustment_orders()
+            current_orders = self.orders.count()
+
+            if current_orders >= max_orders:
+                # At limit: only show provinces with existing orders (for editing)
+                provinces_with_orders = self.orders.values_list("source__province_id", flat=True)
+                return base_provinces.filter(province_id__in=provinces_with_orders)
+
+        return base_provinces

@@ -2,7 +2,7 @@ from django.db import models
 from django.db.models import Q, ObjectDoesNotExist
 from django.core import exceptions
 
-from common.constants import UnitType, OrderType, PhaseStatus, OrderResolutionStatus, OrderCreationStep
+from common.constants import UnitType, OrderType, PhaseStatus, OrderResolutionStatus, OrderCreationStep, PhaseType
 from common.models import BaseModel
 
 from .utils import get_options_for_order, get_order_data_from_selected
@@ -204,11 +204,31 @@ class Order(BaseModel):
 
         return None
 
+    def _count_existing_orders_for_phase_state(self):
+        """Count existing complete orders for this phase state, excluding current order."""
+        queryset = Order.objects.filter(phase_state=self.phase_state)
+
+        # If this order has an ID (being updated), exclude it from count
+        if self.pk:
+            queryset = queryset.exclude(pk=self.pk)
+
+        return queryset.count()
+
     def clean(self):
         try:
             get_options_for_order(self.phase.options, self)
         except Exception as e:
             raise exceptions.ValidationError(e)
+
+        # Add adjustment phase limit validation
+        if self.phase_state.phase.type == PhaseType.ADJUSTMENT:
+            max_orders = self.phase_state.max_allowed_adjustment_orders()
+            existing_orders = self._count_existing_orders_for_phase_state()
+
+            if existing_orders >= max_orders:
+                raise exceptions.ValidationError(
+                    f"Cannot create order: nation has reached maximum of {max_orders} orders for this adjustment phase"
+                )
 
 
 class OrderResolution(BaseModel):

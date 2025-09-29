@@ -4,9 +4,10 @@ from django.utils import timezone
 from datetime import timedelta
 from unittest.mock import patch, Mock
 from rest_framework import status
-from common.constants import PhaseStatus
-from .models import Phase
+from common.constants import PhaseStatus, PhaseType, OrderType
+from .models import Phase, PhaseState
 from .serializers import PhaseStateSerializer
+from order.models import Order
 
 
 @pytest.mark.django_db
@@ -249,3 +250,273 @@ def test_resolve_due_phases_no_resolution_needed(active_game_with_phase_state):
         assert result["resolved"] == 0
         assert result["failed"] == 0
         mock_resolve.assert_not_called()
+
+
+class TestAdjustmentPhaseOrderLimits:
+    """
+    Test adjustment phase order limits based on supply center vs unit counts.
+    """
+
+    @pytest.mark.django_db
+    def test_max_allowed_orders_non_adjustment_phase(self, active_game_with_phase_state):
+        """Test that non-adjustment phases have unlimited orders."""
+        phase = active_game_with_phase_state.current_phase
+        phase.type = PhaseType.MOVEMENT
+        phase.save()
+
+        phase_state = phase.phase_states.first()
+        assert phase_state.max_allowed_adjustment_orders() == float("inf")
+
+    @pytest.mark.django_db
+    def test_max_allowed_orders_can_build_surplus(
+        self,
+        active_game_with_phase_state,
+        classical_england_nation,
+        classical_london_province,
+        classical_paris_province,
+    ):
+        """Test that nations with surplus supply centers can build."""
+        phase = active_game_with_phase_state.current_phase
+        phase.type = PhaseType.ADJUSTMENT
+        phase.save()
+
+        # Nation has 2 supply centers but only 1 unit (can build 1)
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_paris_province)
+        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+
+        phase_state = phase.phase_states.first()
+        assert phase_state.max_allowed_adjustment_orders() == 1
+
+    @pytest.mark.django_db
+    def test_max_allowed_orders_must_disband_surplus(
+        self,
+        active_game_with_phase_state,
+        classical_england_nation,
+        classical_london_province,
+        classical_paris_province,
+    ):
+        """Test that nations with surplus units must disband."""
+        phase = active_game_with_phase_state.current_phase
+        phase.type = PhaseType.ADJUSTMENT
+        phase.save()
+
+        # Nation has 1 supply center but 2 units (must disband 1)
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
+        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+        phase.units.create(type="Army", nation=classical_england_nation, province=classical_paris_province)
+
+        phase_state = phase.phase_states.first()
+        assert phase_state.max_allowed_adjustment_orders() == 1
+
+    @pytest.mark.django_db
+    def test_max_allowed_orders_balanced(
+        self, active_game_with_phase_state, classical_england_nation, classical_london_province
+    ):
+        """Test that nations with balanced supply centers and units have no orders."""
+        phase = active_game_with_phase_state.current_phase
+        phase.type = PhaseType.ADJUSTMENT
+        phase.save()
+
+        # Nation has 1 supply center and 1 unit (balanced)
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
+        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+
+        phase_state = phase.phase_states.first()
+        assert phase_state.max_allowed_adjustment_orders() == 0
+
+    @pytest.mark.django_db
+    def test_max_allowed_orders_no_supply_centers_no_units(self, active_game_with_phase_state):
+        """Test that nations with no supply centers and no units are balanced."""
+        phase = active_game_with_phase_state.current_phase
+        phase.type = PhaseType.ADJUSTMENT
+        phase.save()
+
+        # Nation has 0 supply centers and 0 units (balanced)
+        phase_state = phase.phase_states.first()
+        assert phase_state.max_allowed_adjustment_orders() == 0
+
+    @pytest.mark.django_db
+    def test_orderable_provinces_movement_phase_no_limit(self, active_game_with_phase_state):
+        """Test that movement phases don't apply order limits."""
+        phase = active_game_with_phase_state.current_phase
+        phase.type = PhaseType.MOVEMENT
+        phase.options = {"England": {"lon": {}, "par": {}}}
+        phase.save()
+
+        phase_state = phase.phase_states.first()
+        orderable = phase_state.orderable_provinces
+        assert orderable.count() == 2
+
+    @pytest.mark.django_db
+    def test_orderable_provinces_adjustment_under_limit(
+        self,
+        active_game_with_phase_state,
+        classical_england_nation,
+        classical_london_province,
+        classical_paris_province,
+    ):
+        """Test that adjustment phases show all provinces when under order limit."""
+        phase = active_game_with_phase_state.current_phase
+        phase.type = PhaseType.ADJUSTMENT
+        phase.options = {"England": {"lon": {}, "par": {}}}
+        phase.save()
+
+        # Nation can build 1 order (2 supply centers, 1 unit)
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_paris_province)
+        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+
+        phase_state = phase.phase_states.first()
+        orderable = phase_state.orderable_provinces
+        assert orderable.count() == 2  # Both provinces available
+
+    @pytest.mark.django_db
+    def test_orderable_provinces_adjustment_at_limit_no_orders(
+        self,
+        active_game_with_phase_state,
+        classical_england_nation,
+        classical_london_province,
+        classical_paris_province,
+    ):
+        """Test that adjustment phases show only existing order provinces when at limit with no orders."""
+        phase = active_game_with_phase_state.current_phase
+        phase.type = PhaseType.ADJUSTMENT
+        phase.options = {"England": {"lon": {}, "par": {}}}
+        phase.save()
+
+        # Nation can build 1 order (2 supply centers, 1 unit)
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_paris_province)
+        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+
+        # Create 1 order (at limit)
+        phase_state = phase.phase_states.first()
+        Order.objects.create(phase_state=phase_state, source=classical_london_province, order_type=OrderType.BUILD)
+
+        orderable = phase_state.orderable_provinces
+        assert orderable.count() == 1  # Only province with existing order
+        assert orderable.first().province_id == "lon"
+
+    @pytest.mark.django_db
+    def test_orderable_provinces_adjustment_at_limit_with_order(
+        self,
+        active_game_with_phase_state,
+        classical_england_nation,
+        classical_london_province,
+        classical_paris_province,
+    ):
+        """Test that adjustment phases show only existing order provinces when at limit."""
+        phase = active_game_with_phase_state.current_phase
+        phase.type = PhaseType.ADJUSTMENT
+        phase.options = {"England": {"lon": {}, "par": {}}}
+        phase.save()
+
+        # Nation has balanced supply centers and units (0 orders allowed)
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
+        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+
+        phase_state = phase.phase_states.first()
+        orderable = phase_state.orderable_provinces
+        assert orderable.count() == 0  # No provinces available (at limit with 0 allowed)
+
+    @pytest.mark.django_db
+    def test_orderable_provinces_adjustment_balanced_no_orders_allowed(
+        self, active_game_with_phase_state, classical_england_nation, classical_london_province
+    ):
+        """Test that balanced nations cannot create any orders."""
+        phase = active_game_with_phase_state.current_phase
+        phase.type = PhaseType.ADJUSTMENT
+        phase.options = {"England": {"lon": {}, "par": {}}}
+        phase.save()
+
+        # Nation has balanced supply centers and units (0 orders allowed)
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
+        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+
+        phase_state = phase.phase_states.first()
+        orderable = phase_state.orderable_provinces
+        assert orderable.count() == 0
+
+    @pytest.mark.django_db
+    def test_orderable_provinces_can_edit_existing_orders_at_limit(
+        self,
+        active_game_with_phase_state,
+        classical_england_nation,
+        classical_london_province,
+        classical_paris_province,
+    ):
+        """Test that users can edit existing orders when at the limit."""
+        phase = active_game_with_phase_state.current_phase
+        phase.type = PhaseType.ADJUSTMENT
+        phase.options = {"England": {"lon": {}, "par": {}}}
+        phase.save()
+
+        # Nation can build 1 order
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_paris_province)
+        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+
+        phase_state = phase.phase_states.first()
+
+        # Before creating order: can see all provinces
+        orderable = phase_state.orderable_provinces
+        assert orderable.count() == 2
+
+        # Create order for london
+        Order.objects.create(phase_state=phase_state, source=classical_london_province, order_type=OrderType.BUILD)
+
+        # After creating order (at limit): can only see provinces with existing orders
+        orderable = phase_state.orderable_provinces
+        assert orderable.count() == 1
+        assert orderable.first().province_id == "lon"
+
+        # Delete the order
+        Order.objects.filter(phase_state=phase_state).delete()
+
+        # After deleting: can see all provinces again
+        orderable = phase_state.orderable_provinces
+        assert orderable.count() == 2
+
+    @pytest.mark.django_db
+    def test_large_surplus_multiple_builds_allowed(
+        self,
+        active_game_with_phase_state,
+        classical_england_nation,
+        classical_london_province,
+        classical_paris_province,
+        classical_edinburgh_province,
+    ):
+        """Test that nations with large surpluses can build multiple units."""
+        phase = active_game_with_phase_state.current_phase
+        phase.type = PhaseType.ADJUSTMENT
+        phase.options = {"England": {"lon": {}, "par": {}, "edi": {}}}
+        phase.save()
+
+        # Nation has 3 supply centers but 0 units (can build 3)
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_paris_province)
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+
+        phase_state = phase.phase_states.first()
+        assert phase_state.max_allowed_adjustment_orders() == 3
+
+        # All provinces should be orderable initially
+        orderable = phase_state.orderable_provinces
+        assert orderable.count() == 3
+
+        # Create 2 orders
+        Order.objects.create(phase_state=phase_state, source=classical_london_province, order_type=OrderType.BUILD)
+        Order.objects.create(phase_state=phase_state, source=classical_paris_province, order_type=OrderType.BUILD)
+
+        # Still under limit, should see all provinces
+        orderable = phase_state.orderable_provinces
+        assert orderable.count() == 3
+
+        # Create 3rd order (at limit)
+        Order.objects.create(phase_state=phase_state, source=classical_edinburgh_province, order_type=OrderType.BUILD)
+
+        # At limit, should only see provinces with orders
+        orderable = phase_state.orderable_provinces
+        assert orderable.count() == 3  # All have orders
+        assert set(p.province_id for p in orderable) == {"lon", "par", "edi"}

@@ -43,6 +43,18 @@ class PhaseStatus:
     )
 
 
+class PhaseType:
+    MOVEMENT = "Movement"
+    RETREAT = "Retreat"
+    ADJUSTMENT = "Adjustment"
+
+    TYPE_CHOICES = (
+        (MOVEMENT, "Movement"),
+        (RETREAT, "Retreat"),
+        (ADJUSTMENT, "Adjustment"),
+    )
+
+
 class OrderType:
     MOVE = "Move"
     HOLD = "Hold"
