@@ -1,8 +1,8 @@
-import os
 import random
 from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
+from django.conf import settings
 
 
 class AuthUserManager(models.Manager):
@@ -11,11 +11,7 @@ class AuthUserManager(models.Manager):
         name = id_info.get("name")
 
         user, created = self.get_or_create(
-            email=email,
-            defaults={
-                'username': self.generate_username(name),
-                'password': os.environ.get("SOCIAL_SECRET")
-            }
+            email=email, defaults={"username": self.generate_username(name), "password": settings.SOCIAL_AUTH_PASSWORD}
         )
         return user, created
 
