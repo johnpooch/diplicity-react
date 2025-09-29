@@ -1,13 +1,16 @@
 import React from "react";
 import {
   Button,
+  Checkbox,
   Divider,
   FormControl,
+  FormControlLabel,
   MenuItem,
   Stack,
   TextField,
   Typography,
   Skeleton,
+  FormHelperText,
 } from "@mui/material";
 import { HomeLayout } from "./Layout";
 import { NationAssignmentEnum, service } from "../../store";
@@ -24,6 +27,7 @@ const initialValues = {
   name: randomGameName(),
   variantId: "classical",
   nationAssignment: "random" as NationAssignmentEnum,
+  private: false,
 };
 
 const CreateGame: React.FC = () => {
@@ -72,6 +76,20 @@ const CreateGame: React.FC = () => {
                     onBlur={formik.handleBlur}
                     disabled={createGameQuery.isLoading}
                   />
+                </FormControl>
+                <FormControl>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={formik.values.private}
+                        onChange={e => formik.setFieldValue("private", e.target.checked)}
+                        disabled={createGameQuery.isLoading}
+                        name="private"
+                      />
+                    }
+                    label="Private"
+                  />
+                  <FormHelperText sx={{ margin: 0 }}>Make this game private (only accessible via direct link, not shown in public listings).</FormHelperText>
                 </FormControl>
                 <Divider />
                 <Typography variant="h4">Variant</Typography>

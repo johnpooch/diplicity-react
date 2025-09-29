@@ -23,6 +23,7 @@ class GameSerializer(serializers.Serializer):
     name = serializers.CharField()
     variant_id = serializers.CharField(write_only=True)
     nation_assignment = serializers.ChoiceField(choices=NationAssignment.NATION_ASSIGNMENT_CHOICES)
+    private = serializers.BooleanField()
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):
@@ -51,4 +52,5 @@ class GameSerializer(serializers.Serializer):
                 request.user,
                 name=validated_data["name"],
                 nation_assignment=validated_data["nation_assignment"],
+                private=validated_data["private"],
             )
