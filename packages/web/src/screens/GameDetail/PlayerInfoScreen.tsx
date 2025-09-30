@@ -10,7 +10,7 @@ import {
 import { GameDetailLayout } from "./Layout";
 import { GameDetailAppBar } from "./AppBar";
 import { useNavigate } from "react-router";
-import { PlayerAvatar } from "../../components/PlayerAvatar";
+import { MemberAvatar } from "../../components/MemberAvatar";
 import { useSelectedGameContext } from "../../context";
 import { GameMap, Panel } from "../../components";
 
@@ -42,7 +42,7 @@ const PlayerInfoScreen: React.FC = () => {
                                     ? query.data.members.map(member => (
                                         <ListItem key={member.username}>
                                             <ListItemAvatar>
-                                                <PlayerAvatar member={member} variant={query.data?.variant.id ?? ""} size="medium" />
+                                                <MemberAvatar member={member} variant={query.data?.variant.id ?? ""} size="medium" />
                                             </ListItemAvatar>
                                             <ListItemText primary={member.username} />
                                         </ListItem>
