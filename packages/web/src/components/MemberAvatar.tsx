@@ -18,13 +18,13 @@ const BORDER_SIZE = {
     medium: 2,
 }
 
-type PlayerAvatarProps = Pick<AvatarProps, 'key'> & {
+type MemberAvatarProps = Pick<AvatarProps, 'key'> & {
     size: "small" | "medium";
     variant: string;
     member: MemberRead;
 }
 
-const PlayerAvatar: React.FC<PlayerAvatarProps> = ({ variant, member, size, ...rest }) => {
+const MemberAvatar: React.FC<MemberAvatarProps> = ({ variant, member, size, ...rest }) => {
 
     const avatarSize = AVATAR_SIZE[size];
     const badgeSize = BADGE_SIZE[size];
@@ -66,4 +66,4 @@ const PlayerAvatar: React.FC<PlayerAvatarProps> = ({ variant, member, size, ...r
     );
 }
 
-export { PlayerAvatar };
+export { MemberAvatar };

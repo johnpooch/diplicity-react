@@ -1,7 +1,5 @@
 import React from "react";
 import {
-    AvatarGroup,
-    Button,
     Divider,
     List,
     ListSubheader,
@@ -13,7 +11,7 @@ import { GameDetailAppBar } from "./AppBar";
 import { IconName } from "../../components/Icon";
 import { useNavigate } from "react-router";
 import { Table } from "../../components/Table";
-import { PlayerAvatar } from "../../components/PlayerAvatar";
+import { MemberAvatarGroup } from "../../components/MemberAvatarGroup";
 import { useSelectedGameContext } from "../../context";
 import { GameMap, Panel } from "../../components";
 
@@ -90,16 +88,11 @@ const GameInfoScreen: React.FC = () => {
                                         {
                                             label: "Players",
                                             value: query.data ? (
-                                                <Button onClick={handlePlayerInfo}>
-                                                    <AvatarGroup total={query.data?.members.length} max={7}>
-                                                        {query.data?.members.map(member => (
-                                                            <PlayerAvatar member={member} variant={query.data?.variant.id ?? ""}
-                                                                key={member.username}
-                                                                size="small"
-                                                            />
-                                                        ))}
-                                                    </AvatarGroup>
-                                                </Button>
+                                                <MemberAvatarGroup
+                                                    members={query.data.members}
+                                                    variant={query.data.variant.id}
+                                                    onClick={handlePlayerInfo}
+                                                />
                                             ) : (
                                                 <Skeleton variant="rectangular" width={100} height={40} />
                                             ),

@@ -13,7 +13,7 @@ import { service } from "../../store";
 import { HomeAppBar } from "./AppBar";
 import { useNavigate, useParams } from "react-router";
 import { GameMenu } from "../../components/GameMenu";
-import { PlayerAvatar } from "../../components/PlayerAvatar";
+import { MemberAvatar } from "../../components/MemberAvatar";
 
 const PlayerInfo: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -58,7 +58,7 @@ const PlayerInfo: React.FC = () => {
                 ? query.data.members.map(member => (
                   <ListItem key={member.username}>
                     <ListItemAvatar>
-                      <PlayerAvatar member={member} variant={query.data.variant.id} size="medium" />
+                      <MemberAvatar member={member} variant={query.data.variant.id} size="medium" />
                     </ListItemAvatar>
                     <ListItemText primary={member.username} />
                   </ListItem>

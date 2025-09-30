@@ -1,7 +1,5 @@
 import React from "react";
 import {
-  AvatarGroup,
-  Button,
   Link,
   ListItem,
   ListItemAvatar,
@@ -15,10 +13,8 @@ import { GameMenu } from "./GameMenu";
 import { InteractiveMap } from "./InteractiveMap/InteractiveMap";
 import { getCurrentPhase } from "../util";
 import { createUseStyles } from "./utils/styles";
-import { PlayerAvatar } from "./PlayerAvatar";
+import { MemberAvatarGroup } from "./MemberAvatarGroup";
 import { Icon, IconName } from "./Icon";
-
-const MAX_AVATARS = 10;
 
 type GameCardProps = (typeof service.endpoints.gamesList.Types.ResultType)[number];
 
@@ -38,21 +34,6 @@ const useStyles = createUseStyles<GameCardProps>(() => ({
   rulesContainer: {
     gap: 1,
     flexDirection: "row",
-  },
-  avatarStackButton: {
-    justifyContent: "flex-start",
-    width: "fit-content",
-    padding: "8px 0px 8px 0px",
-  },
-  avatarStackContainer: {
-    alignItems: "center",
-  },
-  avatar: {
-    width: 24,
-    height: 24,
-  },
-  extraMembersText: {
-    marginLeft: "4px",
   },
   privateIcon: {
     fontSize: 14,
@@ -125,13 +106,11 @@ const GameCard: React.FC<GameCardProps> = (game) => {
               {game.movementPhaseDuration}
             </Typography>
           </Stack>
-          <Button sx={styles.avatarStackButton} onClick={handleClickPlayerInfo}>
-            <AvatarGroup total={game.members.length}>
-              {game.members.slice(0, MAX_AVATARS).map((member, index) => (
-                <PlayerAvatar member={member} variant={game.variant.id} size="small" key={index} />
-              ))}
-            </AvatarGroup>
-          </Button>
+          <MemberAvatarGroup
+            members={game.members}
+            variant={game.variant.id}
+            onClick={handleClickPlayerInfo}
+          />
         </Stack>
       </Stack>
     </ListItem >
