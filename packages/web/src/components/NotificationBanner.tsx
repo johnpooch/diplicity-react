@@ -2,10 +2,10 @@ import React from "react";
 import { Alert, Divider, Link } from "@mui/material";
 import { Warning as WarningIcon } from "@mui/icons-material";
 import { useNavigate } from "react-router";
-import { service } from "../store";
+import { useMessaging } from "../context";
 
 const NotificationBanner: React.FC = () => {
-  const query = service.endpoints.devicesList.useQuery(undefined);
+  const { enabled, isLoading } = useMessaging();
   const navigate = useNavigate();
 
   const handleLinkClick = (
@@ -15,7 +15,12 @@ const NotificationBanner: React.FC = () => {
     navigate("/profile");
   };
 
-  if (query.data && !query.data.find((device) => device.type === "web")) {
+  // Don't show banner while loading initial state
+  if (isLoading) {
+    return null;
+  }
+
+  if (!enabled) {
     return (
       <>
         <Alert severity="warning" icon={<WarningIcon />}>

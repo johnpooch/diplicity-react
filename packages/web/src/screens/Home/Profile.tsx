@@ -11,6 +11,7 @@ import {
   Typography,
   Divider,
   Skeleton,
+  Alert,
 } from "@mui/material";
 import { HomeLayout } from "./Layout";
 import { authSlice, service } from "../../store";
@@ -26,7 +27,7 @@ const Profile: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const query = service.endpoints.userRetrieve.useQuery();
-  const { enableMessaging, enabled, disableMessaging } = useMessaging();
+  const { enableMessaging, enabled, disableMessaging, permissionDenied, error } = useMessaging();
 
   const handleLogout = () => {
     dispatch(authSlice.actions.logout());
@@ -92,12 +93,23 @@ const Profile: React.FC = () => {
           <Divider />
           <Stack p={2} gap={2}>
             <Typography variant="h4">Notifications</Typography>
-            <Stack>
+            <Stack gap={2}>
+              {error && (
+                <Alert severity="error">
+                  {error}
+                </Alert>
+              )}
+              {permissionDenied && !error && (
+                <Alert severity="warning">
+                  Notifications are blocked in your browser. To enable them, click the icon in your address bar and allow notifications.
+                </Alert>
+              )}
               <FormControl>
                 <FormControlLabel
                   control={
                     <Switch
                       checked={enabled}
+                      disabled={permissionDenied}
                       onChange={(_, checked) => {
                         if (checked) {
                           enableMessaging();
