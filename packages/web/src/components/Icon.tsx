@@ -24,6 +24,7 @@ import Delete from "@mui/icons-material/Delete";
 import Fullscreen from "@mui/icons-material/Fullscreen";
 import FullscreenExit from "@mui/icons-material/FullscreenExit";
 import Lock from "@mui/icons-material/Lock";
+import Clock from "@mui/icons-material/AccessTime";
 
 import { SxProps, Theme } from "@mui/material";
 
@@ -55,6 +56,7 @@ enum IconName {
   Fullscreen = "fullscreen",
   FullscreenExit = "fullscreen-exit",
   Lock = "lock",
+  Clock = "clock",
 }
 
 const IconMap = {
@@ -85,6 +87,7 @@ const IconMap = {
   [IconName.Fullscreen]: Fullscreen,
   [IconName.FullscreenExit]: FullscreenExit,
   [IconName.Lock]: Lock,
+  [IconName.Clock]: Clock,
 };
 
 interface IconProps {

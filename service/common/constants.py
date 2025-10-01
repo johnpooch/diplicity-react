@@ -15,8 +15,12 @@ class GameStatus:
 
 class MovementPhaseDuration:
     TWENTY_FOUR_HOURS = "24 hours"
+    FORTY_EIGHT_HOURS = "48 hours"
 
-    MOVEMENT_PHASE_DURATION_CHOICES = ((TWENTY_FOUR_HOURS, "24 hours"),)
+    MOVEMENT_PHASE_DURATION_CHOICES = (
+        (TWENTY_FOUR_HOURS, "24 hours"),
+        (FORTY_EIGHT_HOURS, "48 hours"),
+    )
 
 
 class NationAssignment:

@@ -11,7 +11,7 @@ import { useNavigate } from "react-router";
 import { service } from "../store";
 import { GameMenu } from "./GameMenu";
 import { InteractiveMap } from "./InteractiveMap/InteractiveMap";
-import { getCurrentPhase } from "../util";
+import { getCurrentPhase, formatDateTime } from "../util";
 import { createUseStyles } from "./utils/styles";
 import { MemberAvatarGroup } from "./MemberAvatarGroup";
 import { Icon, IconName } from "./Icon";
@@ -29,7 +29,6 @@ const useStyles = createUseStyles<GameCardProps>(() => ({
     width: 80,
   },
   secondaryContainer: {
-    gap: 1,
   },
   rulesContainer: {
     gap: 1,
@@ -106,6 +105,19 @@ const GameCard: React.FC<GameCardProps> = (game) => {
               {game.movementPhaseDuration}
             </Typography>
           </Stack>
+          {game.status === "active" && (
+            <Stack sx={styles.rulesContainer}>
+              <Typography variant="caption">
+                {currentPhase?.season} {currentPhase?.year} - {currentPhase?.type}
+              </Typography>
+              <Stack direction="row" alignItems="center" gap={"4px"}>
+                <Icon name={IconName.Clock} sx={{ fontSize: 14 }} />
+                <Typography variant="caption">
+                  {formatDateTime(currentPhase?.scheduledResolution)}
+                </Typography>
+              </Stack>
+            </Stack>
+          )}
           <MemberAvatarGroup
             members={game.members}
             variant={game.variant.id}
