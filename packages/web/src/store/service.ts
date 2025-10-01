@@ -499,6 +499,7 @@ export type Phase = {
   name: string;
   type: string;
   remainingTime: number;
+  scheduledResolution: string;
   status: StatusEnum;
   units: Unit[];
   supplyCenters: SupplyCenter[];
@@ -512,6 +513,7 @@ export type PhaseRead = {
   name: string;
   type: string;
   remainingTime: number;
+  scheduledResolution: string;
   status: StatusEnum;
   units: UnitRead[];
   supplyCenters: SupplyCenterRead[];

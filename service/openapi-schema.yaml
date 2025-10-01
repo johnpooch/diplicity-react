@@ -1067,6 +1067,9 @@ components:
           type: string
         remainingTime:
           type: integer
+        scheduledResolution:
+          type: string
+          format: date-time
         status:
           $ref: '#/components/schemas/StatusEnum'
         units:
@@ -1084,6 +1087,7 @@ components:
       - options
       - ordinal
       - remainingTime
+      - scheduledResolution
       - season
       - status
       - supplyCenters

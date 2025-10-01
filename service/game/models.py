@@ -130,6 +130,8 @@ class Game(BaseModel):
     def movement_phase_duration_seconds(self):
         if self.movement_phase_duration == MovementPhaseDuration.TWENTY_FOUR_HOURS:
             return 24 * 60 * 60
+        elif self.movement_phase_duration == MovementPhaseDuration.FORTY_EIGHT_HOURS:
+            return 48 * 60 * 60
         return 0
 
     def can_join(self, user):

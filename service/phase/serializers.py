@@ -30,6 +30,7 @@ class PhaseSerializer(serializers.Serializer):
     name = serializers.CharField()
     type = serializers.CharField()
     remaining_time = serializers.IntegerField(source="remaining_time_seconds")
+    scheduled_resolution = serializers.DateTimeField()
     status = serializers.ChoiceField(choices=PhaseStatus.STATUS_CHOICES)
     units = UnitSerializer(many=True)
     supply_centers = SupplyCenterSerializer(many=True)

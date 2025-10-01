@@ -190,4 +190,47 @@ const getOrderSummary = (
   throw new Error(`Unknown order type: ${order.orderType}`);
 };
 
-export { formatOrderText, getOrderSummary, getProvince, getCurrentPhase };
+function formatDateTime(djangoDatetime: string) {
+  const date = new Date(djangoDatetime);
+  const now = new Date();
+
+  // Get dates at midnight for comparison
+  const dateAtMidnight = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate()
+  );
+  const todayAtMidnight = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate()
+  );
+  const tomorrowAtMidnight = new Date(todayAtMidnight);
+  tomorrowAtMidnight.setDate(tomorrowAtMidnight.getDate() + 1);
+
+  // Format time as HH:MM
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  const timeString = `${hours}:${minutes}`;
+
+  // Check if today or tomorrow
+  if (dateAtMidnight.getTime() === todayAtMidnight.getTime()) {
+    return `Today ${timeString}`;
+  } else if (dateAtMidnight.getTime() === tomorrowAtMidnight.getTime()) {
+    return `Tomorrow ${timeString}`;
+  } else {
+    // Format as DD/MM/YY
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const year = date.getFullYear().toString().slice(-2);
+    return `${day}/${month}/${year} ${timeString}`;
+  }
+}
+
+export {
+  formatOrderText,
+  getOrderSummary,
+  getProvince,
+  getCurrentPhase,
+  formatDateTime,
+};

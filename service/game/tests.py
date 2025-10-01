@@ -814,3 +814,46 @@ class TestGamePrivateFiltering:
         assert response.status_code == status.HTTP_200_OK
         assert response.data["id"] == private_game.id
         assert response.data["private"] is True
+
+    @pytest.mark.django_db
+    def test_game_with_48_hour_phase_duration(self, authenticated_client, classical_variant, primary_user):
+        from common.constants import MovementPhaseDuration
+        from datetime import timedelta
+        from django.utils import timezone
+
+        game = Game.objects.create(
+            name="48 Hour Game",
+            variant=classical_variant,
+            movement_phase_duration=MovementPhaseDuration.FORTY_EIGHT_HOURS,
+        )
+        game.members.create(user=primary_user)
+
+        assert game.movement_phase_duration_seconds == 48 * 60 * 60
+
+        game.status = GameStatus.PENDING
+        game.save()
+
+        phase = game.phases.create(
+            game=game,
+            variant=game.variant,
+            season="Spring",
+            year=1901,
+            type="Movement",
+            status=PhaseStatus.PENDING,
+            ordinal=1,
+        )
+
+        game.status = GameStatus.ACTIVE
+        phase.status = PhaseStatus.ACTIVE
+        now = timezone.now()
+        phase.scheduled_resolution = now + timedelta(seconds=game.movement_phase_duration_seconds)
+        phase.save()
+        game.save()
+
+        expected_resolution = now + timedelta(hours=48)
+        assert abs((phase.scheduled_resolution - expected_resolution).total_seconds()) < 1
+
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["movement_phase_duration"] == "48 hours"
