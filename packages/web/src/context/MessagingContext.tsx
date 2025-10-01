@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { onMessageReceived, getToken } from "../messaging";
+import { onMessageReceived, getToken, registerServiceWorker } from "../messaging";
 import { selectAuth, service } from "../store";
 import { useSelector } from "react-redux";
 
@@ -31,6 +31,8 @@ const MessagingContextProvider: React.FC<MessagingContextProviderProps> = (
     skip: !loggedIn,
   });
   const [createDevice] = service.endpoints.devicesCreate.useMutation();
+
+  const isNotificationSupported = "Notification" in window;
 
   const tryGetToken = async () => {
     try {
@@ -66,23 +68,32 @@ const MessagingContextProvider: React.FC<MessagingContextProviderProps> = (
   }, [token, loggedIn]);
 
   useEffect(() => {
-    const checkInitialState = async () => {
-      // If permission is already granted, get the token silently
-      // This allows NotificationBanner to show correctly
-      if (Notification.permission === "granted") {
-        await tryGetToken();
-      }
+    // Register the service worker for Firebase messaging
+    registerServiceWorker();
+
+    // Check if Notification is supported by the browser - some browsers don't support it (e.g. Safari)
+    if (isNotificationSupported) {
+      const checkInitialState = async () => {
+        // If permission is already granted, get the token silently
+        // This allows NotificationBanner to show correctly
+        if (Notification.permission === "granted") {
+          await tryGetToken();
+        }
+        setIsCheckingToken(false);
+      };
+      checkInitialState();
+    } else {
+      // On unsupported browsers, immediately mark as not checking
       setIsCheckingToken(false);
-    };
-    checkInitialState();
-  }, []);
+    }
+  }, [isNotificationSupported]);
 
   const enableMessaging = async (): Promise<void> => {
     try {
       setError(null);
 
       // Check current permission state
-      const currentPermission = Notification.permission;
+      const currentPermission = isNotificationSupported ? Notification.permission : "granted";
 
       if (currentPermission === "denied") {
         setError("Notifications are blocked. Please enable them in your browser settings.");
@@ -135,7 +146,7 @@ const MessagingContextProvider: React.FC<MessagingContextProviderProps> = (
     )
   );
 
-  const permissionDenied = Notification.permission === "denied";
+  const permissionDenied = isNotificationSupported ? Notification.permission === "denied" : false;
 
   // Still loading if checking token OR devices list is loading (when logged in)
   const isLoading = isCheckingToken || (loggedIn && devicesListQuery.isLoading);
