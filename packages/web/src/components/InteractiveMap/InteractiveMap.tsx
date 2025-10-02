@@ -25,6 +25,7 @@ type InteractiveMapProps = {
   renderableProvinces?: string[];
   onClickProvince?: (province: string, event: React.MouseEvent<SVGPathElement>) => void;
   fullscreen?: boolean;
+  style?: React.CSSProperties;
 };
 
 
@@ -127,10 +128,12 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
     width: "auto",
     height: "auto",
     display: "block",
+    ...props.style,
   } : {
     width: "100%",
     height: "100%",
     display: "block",
+    ...props.style,
   };
 
   return (
