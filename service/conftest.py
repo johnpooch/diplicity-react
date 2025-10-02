@@ -489,3 +489,26 @@ def mock_immediate_on_commit():
 
     with patch("django.db.transaction.on_commit", side_effect=immediate_on_commit):
         yield
+
+@pytest.fixture(scope="session")
+def classical_italy_nation(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Nation.objects.get(name="Italy", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_austria_nation(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Nation.objects.get(name="Austria", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_turkey_nation(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Nation.objects.get(name="Turkey", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_russia_nation(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Nation.objects.get(name="Russia", variant=classical_variant)

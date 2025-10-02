@@ -41,11 +41,12 @@ class PhaseManager(models.Manager):
             resolution = next(
                 (r for r in adjudication_data["resolutions"] if r["province"] == order.source.province_id), None
             )
-            OrderResolution.objects.create(
-                order=order,
-                status=resolution["result"],
-                by=resolution["by"],
-            )
+            if resolution:
+                OrderResolution.objects.create(
+                    order=order,
+                    status=resolution["result"],
+                    by=resolution["by"],
+                )
 
         phase_duration_seconds = previous_phase.game.movement_phase_duration_seconds
         scheduled_resolution = timezone.now() + timedelta(seconds=phase_duration_seconds)
@@ -107,6 +108,9 @@ class Phase(BaseModel):
     class Meta:
         ordering = ["ordinal"]
 
+    def __str__(self):
+        return f"{self.name} ({self.game.name if self.game else '-'})"
+
     @property
     def name(self):
         return f"{self.season} {self.year}, {self.type}"
@@ -151,6 +155,9 @@ class PhaseState(BaseModel):
     phase = models.ForeignKey(Phase, on_delete=models.CASCADE, related_name="phase_states")
     orders_confirmed = models.BooleanField(default=False)
     eliminated = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.member.user.username} - {self.phase.name}"
 
     def max_allowed_adjustment_orders(self):
         if self.phase.type != PhaseType.ADJUSTMENT:

@@ -13,3 +13,6 @@ class Province(models.Model):
     class Meta:
         ordering = ["name"]
         unique_together = ["province_id", "variant"]
+
+    def __str__(self):
+        return f"{self.name} ({self.variant.name})"

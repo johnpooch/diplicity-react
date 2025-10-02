@@ -20,3 +20,6 @@ class Member(BaseModel):
             models.Index(fields=["user"]),
             models.Index(fields=["game"]),
         ]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.game.name} - {self.nation.name if self.nation else '-'}"
