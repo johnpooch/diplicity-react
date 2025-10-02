@@ -1,3 +1,4 @@
+import json
 import requests
 
 from .serializers import AdjudicationSerializer

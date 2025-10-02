@@ -9,3 +9,6 @@ class Nation(models.Model):
     class Meta:
         ordering = ["name"]
         unique_together = ["name", "variant"]
+
+    def __str__(self):
+        return f"{self.name} ({self.variant.name})"

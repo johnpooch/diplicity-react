@@ -22,6 +22,7 @@ class AdjudicationSerializer(serializers.Serializer):
     Resolutions = serializers.DictField(source="resolutions_godip", allow_null=True)
     Dislodgeds = serializers.DictField(source="dislodgeds_godip", allow_null=True)
     Dislodgers = serializers.DictField(source="dislodgers_godip", allow_null=True)
+    Bounces = serializers.DictField(source="bounces_godip", default=dict)
 
     supply_centers = serializers.ListField(allow_null=True, write_only=True)
     resolutions = serializers.ListField(allow_null=True, write_only=True)

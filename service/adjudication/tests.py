@@ -34,6 +34,81 @@ def create_supply_center(phase_state, province):
     phase_state.phase.supply_centers.create(province=province, nation=phase_state.member.nation)
 
 
+def setup_classical_opening(phase, members_by_nation):
+    classical_opening = {
+        "England": {
+            "units": [
+                {"province": "edi", "type": "Fleet"},
+                {"province": "lvp", "type": "Army"},
+                {"province": "lon", "type": "Fleet"},
+            ],
+            "supply_centers": ["edi", "lvp", "lon"],
+        },
+        "France": {
+            "units": [
+                {"province": "bre", "type": "Fleet"},
+                {"province": "par", "type": "Army"},
+                {"province": "mar", "type": "Army"},
+            ],
+            "supply_centers": ["bre", "par", "mar"],
+        },
+        "Germany": {
+            "units": [
+                {"province": "kie", "type": "Fleet"},
+                {"province": "ber", "type": "Army"},
+                {"province": "mun", "type": "Army"},
+            ],
+            "supply_centers": ["kie", "ber", "mun"],
+        },
+        "Italy": {
+            "units": [
+                {"province": "ven", "type": "Army"},
+                {"province": "rom", "type": "Army"},
+                {"province": "nap", "type": "Fleet"},
+            ],
+            "supply_centers": ["ven", "rom", "nap"],
+        },
+        "Austria": {
+            "units": [
+                {"province": "tri", "type": "Fleet"},
+                {"province": "vie", "type": "Army"},
+                {"province": "bud", "type": "Army"},
+            ],
+            "supply_centers": ["tri", "vie", "bud"],
+        },
+        "Russia": {
+            "units": [
+                {"province": "stp/sc", "type": "Fleet"},
+                {"province": "mos", "type": "Army"},
+                {"province": "war", "type": "Army"},
+                {"province": "sev", "type": "Fleet"},
+            ],
+            "supply_centers": ["stp", "mos", "war", "sev"],
+        },
+        "Turkey": {
+            "units": [
+                {"province": "con", "type": "Army"},
+                {"province": "smy", "type": "Army"},
+                {"province": "ank", "type": "Fleet"},
+            ],
+            "supply_centers": ["con", "smy", "ank"],
+        },
+    }
+
+    for nation_name, data in classical_opening.items():
+        if nation_name not in members_by_nation:
+            continue
+
+        member = members_by_nation[nation_name]
+        phase_state = phase.phase_states.create(member=member)
+
+        for sc_id in data["supply_centers"]:
+            create_supply_center(phase_state, sc_id)
+
+        for unit_data in data["units"]:
+            create_unit(phase_state, unit_data["province"], unit_data["type"])
+
+
 class TestAdjudicationService:
     @pytest.mark.django_db
     def test_start_classical(self, classical_variant, classical_england_nation, classical_edinburgh_province):
@@ -555,3 +630,64 @@ class TestAdjudicationService:
                 {"province": "kie", "result": "ErrBounce", "by": "ber"},
             ]
         )
+
+    @pytest.mark.django_db
+    def test_resolve_bounce_scenario(
+        self,
+        classical_variant,
+        classical_england_nation,
+        classical_france_nation,
+        classical_germany_nation,
+        classical_italy_nation,
+        classical_austria_nation,
+        classical_russia_nation,
+        classical_turkey_nation,
+        primary_user,
+        secondary_user,
+        tertiary_user,
+    ):
+        game = Game.objects.create(variant=classical_variant, name="Classical Test Game", status=GameStatus.ACTIVE)
+
+        members_by_nation = {
+            "England": Member.objects.create(nation=classical_england_nation, user=primary_user, game=game),
+            "France": Member.objects.create(nation=classical_france_nation, user=secondary_user, game=game),
+            "Germany": Member.objects.create(nation=classical_germany_nation, user=tertiary_user, game=game),
+            "Italy": Member.objects.create(nation=classical_italy_nation, user=primary_user, game=game),
+            "Austria": Member.objects.create(nation=classical_austria_nation, user=secondary_user, game=game),
+            "Russia": Member.objects.create(nation=classical_russia_nation, user=tertiary_user, game=game),
+            "Turkey": Member.objects.create(nation=classical_turkey_nation, user=primary_user, game=game),
+        }
+
+        phase = Phase.objects.create(
+            game=game, variant=classical_variant, season="Spring", year=1901, type="Movement", ordinal=1
+        )
+
+        setup_classical_opening(phase, members_by_nation)
+
+        england_state = phase.phase_states.get(member=members_by_nation["England"])
+        france_state = phase.phase_states.get(member=members_by_nation["France"])
+        germany_state = phase.phase_states.get(member=members_by_nation["Germany"])
+        italy_state = phase.phase_states.get(member=members_by_nation["Italy"])
+        austria_state = phase.phase_states.get(member=members_by_nation["Austria"])
+        russia_state = phase.phase_states.get(member=members_by_nation["Russia"])
+        turkey_state = phase.phase_states.get(member=members_by_nation["Turkey"])
+
+        create_order(germany_state, "mun", OrderType.MOVE, "bur")
+        create_order(france_state, "par", OrderType.MOVE, "bur")
+
+        data = adjudication_service.resolve(phase)
+
+        assert data["year"] == 1901
+        assert data["season"] == "Spring"
+        assert data["type"] == "Retreat"
+
+        print(json.dumps(data, indent=4))
+
+        # Check that order resolutions are correct
+        mun_bounce_result = next((r for r in data["resolutions"] if r["province"] == "mun"), None)
+        assert mun_bounce_result["result"] == "ErrBounce"
+        assert mun_bounce_result["by"] == "par"
+
+        par_bounce_result = next((r for r in data["resolutions"] if r["province"] == "par"), None)
+        assert par_bounce_result["result"] == "ErrBounce"
+        assert par_bounce_result["by"] == "mun"

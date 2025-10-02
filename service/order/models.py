@@ -102,6 +102,9 @@ class Order(BaseModel):
             models.UniqueConstraint(fields=["phase_state", "source"], name="unique_order_per_province_per_phase")
         ]
 
+    def __str__(self):
+        return f"{self.phase_state} - {self.source.name} - {self.order_type}"
+
     @property
     def variant(self):
         return self.phase_state.phase.variant
