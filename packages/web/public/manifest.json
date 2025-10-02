@@ -4,7 +4,7 @@
     "description": "A web version of the classic strategy game Diplomacy",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#ffffff",
+    "background_color": "#291b1b",
     "theme_color": "#ffffff",
     "orientation": "any",
     "icons": [
