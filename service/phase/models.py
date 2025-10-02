@@ -67,10 +67,11 @@ class PhaseManager(models.Manager):
                 if resolution:
                     if hasattr(order, 'resolution'):
                         order.resolution.delete()
+                    by_province = previous_phase.variant.provinces.get(province_id=resolution["by"]) if resolution["by"] else None
                     OrderResolution.objects.create(
                         order=order,
                         status=resolution["result"],
-                        by=previous_phase.variant.provinces.get(province_id=resolution["by"]),
+                        by=by_province,
                     )
                     resolutions_count += 1
                     logger.debug(f"Created resolution for order {order.id}: {resolution['result']}")
@@ -238,11 +239,7 @@ class PhaseState(BaseModel):
     def orderable_provinces(self):
         options = self.phase.options
         nation = self.member.nation
-        print(self.phase.name)
-        print(options)
-        print(nation.name)
         orderable_ids = list(options[nation.name].keys())
-        print(orderable_ids)
         base_provinces = (
             self.phase.variant.provinces.select_related("parent")
             .prefetch_related("named_coasts")
