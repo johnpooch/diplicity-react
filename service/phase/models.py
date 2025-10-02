@@ -65,7 +65,7 @@ class PhaseManager(models.Manager):
                     (r for r in adjudication_data["resolutions"] if r["province"] == order.source.province_id), None
                 )
                 if resolution:
-                    if (order.resolution.exists()):
+                    if hasattr(order, 'resolution'):
                         order.resolution.delete()
                     OrderResolution.objects.create(
                         order=order,
