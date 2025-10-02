@@ -44,7 +44,7 @@ const PlayerInfoScreen: React.FC = () => {
                                             <ListItemAvatar>
                                                 <MemberAvatar member={member} variant={query.data?.variant.id ?? ""} size="medium" />
                                             </ListItemAvatar>
-                                            <ListItemText primary={member.username} />
+                                            <ListItemText primary={member.username} secondary={member.nation} />
                                         </ListItem>
                                     ))
                                     : Array.from({ length: 3 }, (_, index) => (

@@ -1,9 +1,7 @@
 import React from "react";
 import {
+  Button,
   Link,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
   Stack,
   Typography,
 } from "@mui/material";
@@ -19,24 +17,44 @@ import { Icon, IconName } from "./Icon";
 type GameCardProps = (typeof service.endpoints.gamesList.Types.ResultType)[number];
 
 const useStyles = createUseStyles<GameCardProps>(() => ({
-  listItem: (theme) => ({
-    gap: 1,
+  mainContainer: (theme) => ({
     borderBottom: `1px solid ${theme.palette.divider}`,
-    alignItems: "center",
   }),
-  mapContainer: {
-    display: "flex",
-    width: 80,
+  mapWrapper: {
+    maxWidth: 60,
   },
-  secondaryContainer: {
-  },
-  rulesContainer: {
-    gap: 1,
-    flexDirection: "row",
-  },
-  privateIcon: {
-    fontSize: 14,
+  gameName: (theme) => ({
+    fontSize: 15,
+    lineHeight: "1.8",
+    color: theme.palette.text.primary,
+    "&:hover": {
+      color: theme.palette.text.primary,
+    },
+  }),
+  gameNameLink: (theme) => ({
+    color: theme.palette.text.primary,
+    "&:hover": {
+      color: theme.palette.text.primary,
+    },
+    "&:after": {
+      borderBottomColor: theme.palette.text.primary,
+    },
+  }),
+  lockIcon: {
+    fontSize: 12,
     opacity: 0.6,
+  },
+  phaseInfo: (theme) => ({
+    color: theme.palette.text.primary,
+  }),
+  memberButton: {
+    padding: 0,
+    width: "fit-content",
+    justifyContent: "flex-start",
+  },
+  memberContainer: {
+    paddingBottom: "4px",
+    paddingLeft: "6px",
   },
 }));
 
@@ -62,70 +80,53 @@ const GameCard: React.FC<GameCardProps> = (game) => {
   };
 
   return (
-    <ListItem
-      sx={styles.listItem}
-      secondaryAction={
+    <Stack p={1} gap={1} direction="row" sx={styles.mainContainer}>
+      <Stack gap={1} flex={1}>
+        <Stack direction="row" gap={1}>
+          <Stack sx={styles.mapWrapper}>
+            <Link onClick={handleClickGame}>
+              <InteractiveMap
+                style={{ borderRadius: 5 }}
+                variant={game.variant}
+                phase={currentPhase}
+                orders={[]}
+                selected={[]}
+              />
+            </Link>
+          </Stack>
+          <Stack>
+            <Stack direction="row" gap={1} alignItems="center">
+              <Link onClick={handleClickGame} underline="hover" sx={styles.gameNameLink}>
+                <Typography variant="body2" sx={styles.gameName}>{game.name}</Typography>
+              </Link>
+            </Stack>
+            <Stack direction="row" gap={1} alignItems="center">
+              {game.private && (
+                <Icon name={IconName.Lock} sx={styles.lockIcon} />
+              )}
+              <Typography variant="caption" >{game.variant.name} • {game.movementPhaseDuration}</Typography>
+            </Stack>
+          </Stack>
+        </Stack>
+        {game.status === "active" && (
+          <Stack>
+            <Typography variant="caption" sx={styles.phaseInfo}>{currentPhase?.season} {currentPhase?.year} • {currentPhase?.type} • Resolves {formatDateTime(currentPhase?.scheduledResolution)}</Typography>
+          </Stack>
+        )}
+        <Button onClick={handleClickPlayerInfo} sx={styles.memberButton}>
+          <Stack direction="row" gap={1} sx={styles.memberContainer} >
+            <MemberAvatarGroup members={game.members} variant={game.variant.id} />
+          </Stack>
+        </Button>
+      </Stack>
+      <Stack>
         <GameMenu
           game={game}
           onClickGameInfo={handleClickGameInfo}
           onClickPlayerInfo={handleClickPlayerInfo}
         />
-      }
-    >
-      <Link underline="hover" onClick={handleClickGame}>
-        <ListItemAvatar sx={styles.mapContainer}>
-          <InteractiveMap
-            variant={game.variant}
-            phase={currentPhase}
-            orders={[]}
-            selected={[]}
-          />
-        </ListItemAvatar>
-      </Link>
-      <Stack>
-        <ListItemText
-          primary={
-            <Stack direction="row" alignItems="center" gap={1}>
-              {game.private && (
-                <Icon
-                  name={IconName.Lock}
-                  sx={styles.privateIcon}
-                />
-              )}
-              <Link underline="hover" onClick={handleClickGame}>
-                {game.name}
-              </Link>
-            </Stack>
-          }
-        />
-        <Stack sx={styles.secondaryContainer}>
-          <Stack sx={styles.rulesContainer}>
-            <Typography variant="caption">{game.variant.name}</Typography>
-            <Typography variant="caption">
-              {game.movementPhaseDuration}
-            </Typography>
-          </Stack>
-          {game.status === "active" && (
-            <Stack sx={styles.rulesContainer}>
-              <Typography variant="caption">
-                {currentPhase?.season} {currentPhase?.year} - {currentPhase?.type}
-              </Typography>
-              <Stack direction="row" alignItems="center" gap={"4px"}>
-                <Icon name={IconName.Clock} sx={{ fontSize: 14 }} />
-                <Typography variant="caption">
-                  {formatDateTime(currentPhase?.scheduledResolution)}
-                </Typography>
-              </Stack>
-            </Stack>
-          )}
-          <MemberAvatarGroup
-            members={game.members}
-            variant={game.variant.id}
-            onClick={handleClickPlayerInfo}
-          />
-        </Stack>
       </Stack>
-    </ListItem >
+    </Stack>
   );
 };
 
