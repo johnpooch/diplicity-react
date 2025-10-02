@@ -681,8 +681,6 @@ class TestAdjudicationService:
         assert data["season"] == "Spring"
         assert data["type"] == "Retreat"
 
-        print(json.dumps(data, indent=4))
-
         # Check that order resolutions are correct
         mun_bounce_result = next((r for r in data["resolutions"] if r["province"] == "mun"), None)
         assert mun_bounce_result["result"] == "ErrBounce"
