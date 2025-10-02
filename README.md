@@ -57,3 +57,4 @@ To run a specific test function:
 ```bash
 docker compose run --rm service python3 -m pytest game/tests/test_game_create.py::test_create_game_success -v 
 ```
+
