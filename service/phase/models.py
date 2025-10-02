@@ -65,10 +65,12 @@ class PhaseManager(models.Manager):
                     (r for r in adjudication_data["resolutions"] if r["province"] == order.source.province_id), None
                 )
                 if resolution:
+                    if (order.resolution):
+                        order.resolution.delete()
                     OrderResolution.objects.create(
                         order=order,
                         status=resolution["result"],
-                        by=resolution["by"],
+                        by=previous_phase.variant.provinces.get(province_id=resolution["by"]),
                     )
                     resolutions_count += 1
                     logger.debug(f"Created resolution for order {order.id}: {resolution['result']}")
