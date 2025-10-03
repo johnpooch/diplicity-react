@@ -159,7 +159,7 @@ class Order(BaseModel):
         if self.order_type == OrderType.BUILD and not self.unit_type:
             return OrderCreationStep.SELECT_UNIT_TYPE
 
-        if self.order_type == OrderType.MOVE and not self.target:
+        if self.order_type in [OrderType.MOVE, OrderType.MOVE_VIA_CONVOY] and not self.target:
             return OrderCreationStep.SELECT_TARGET
 
         if self.order_type in [OrderType.SUPPORT, OrderType.CONVOY]:
@@ -182,7 +182,7 @@ class Order(BaseModel):
             return f"Select order type for {self.source.name}"
         elif step == OrderCreationStep.SELECT_UNIT_TYPE and self.order_type == OrderType.BUILD:
             return f"Select unit type to build in {self.source.name}"
-        elif step == OrderCreationStep.SELECT_TARGET and self.order_type == OrderType.MOVE:
+        elif step == OrderCreationStep.SELECT_TARGET and self.order_type in [OrderType.MOVE, OrderType.MOVE_VIA_CONVOY]:
             return f"Select province to move {self.source.name} to"
         elif step == OrderCreationStep.SELECT_AUX and self.order_type == OrderType.SUPPORT:
             return f"Select province for {self.source.name} to support"
@@ -198,8 +198,9 @@ class Order(BaseModel):
             return f"{self.source.name} will be disbanded"
         elif step == OrderCreationStep.COMPLETED and self.order_type == OrderType.BUILD:
             return f"{self.unit_type} will be built in {self.source.name}"
-        elif step == OrderCreationStep.COMPLETED and self.order_type == OrderType.MOVE:
-            return f"{self.source.name} will move to {self.target.name}"
+        elif step == OrderCreationStep.COMPLETED and self.order_type in [OrderType.MOVE, OrderType.MOVE_VIA_CONVOY]:
+            action = "move via convoy to" if self.order_type == OrderType.MOVE_VIA_CONVOY else "move to"
+            return f"{self.source.name} will {action} {self.target.name}"
         elif step == OrderCreationStep.COMPLETED and self.order_type == OrderType.SUPPORT:
             return f"{self.source.name} will support {self.aux.name} to {self.target.name}"
         elif step == OrderCreationStep.COMPLETED and self.order_type == OrderType.CONVOY:

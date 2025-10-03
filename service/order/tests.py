@@ -455,6 +455,89 @@ class TestOrderCreateView:
         assert response.data["step"] == OrderCreationStep.COMPLETED
         assert response.data["title"] == "Army will be built in Budapest"
 
+    def test_order_create_move_via_convoy_with_source(self, authenticated_client, game_with_options, primary_user):
+        game = game_with_options
+        
+        # Update options to include MoveViaConvoy
+        phase = game.current_phase
+        sample_options = phase.options.copy()
+        sample_options["England"]["bud"]["Next"]["MoveViaConvoy"] = sample_options["England"]["bud"]["Next"]["Move"]
+        phase.options = sample_options
+        phase.save()
+        
+        url = reverse("order-create", args=[game.id])
+        data = {"selected": ["bud", "MoveViaConvoy"]}
+        response = authenticated_client.post(url, data, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert Order.objects.count() == 0
+
+        assert response.data["selected"] == ["bud", "MoveViaConvoy"]
+        assert response.data["source"]["id"] == "bud"
+        assert response.data["source"]["name"] == "Budapest"
+        assert response.data["nation"] == {"name": "England", "color": "#2196F3"}
+        assert response.data["complete"] is False
+        assert response.data["order_type"] == "MoveViaConvoy"
+        assert response.data["unit_type"] is None
+        assert response.data["target"] is None
+        assert response.data["aux"] is None
+        assert response.data["resolution"] is None
+        assert response.data["options"] == [
+            {"value": "gal", "label": "Galicia"},
+            {"value": "rum", "label": "Rumania"},
+            {"value": "ser", "label": "Serbia"},
+            {"value": "tri", "label": "Trieste"},
+            {"value": "vie", "label": "Vienna"},
+        ]
+        assert response.data["step"] == OrderCreationStep.SELECT_TARGET
+        assert response.data["title"] == "Select province to move Budapest to"
+
+    def test_order_create_move_via_convoy_with_source_and_target(self, authenticated_client, game_with_options, primary_user):
+        game = game_with_options
+        
+        # Update options to include MoveViaConvoy
+        phase = game.current_phase
+        sample_options = phase.options.copy()
+        sample_options["England"]["bud"]["Next"]["MoveViaConvoy"] = sample_options["England"]["bud"]["Next"]["Move"]
+        phase.options = sample_options
+        phase.save()
+        
+        url = reverse("order-create", args=[game.id])
+        data = {"selected": ["bud", "MoveViaConvoy", "gal"]}
+        response = authenticated_client.post(url, data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert Order.objects.count() == 1
+
+        assert response.data["selected"] == ["bud", "MoveViaConvoy", "gal"]
+        assert response.data["source"]["id"] == "bud"
+        assert response.data["source"]["name"] == "Budapest"
+        assert response.data["nation"] == {"name": "England", "color": "#2196F3"}
+        assert response.data["complete"] is True
+        assert response.data["order_type"] == "MoveViaConvoy"
+        assert response.data["unit_type"] is None
+        assert response.data["target"]["id"] == "gal"
+        assert response.data["target"]["name"] == "Galicia"
+        assert response.data["aux"] is None
+        assert response.data["resolution"] is None
+        assert response.data["options"] == []
+        assert response.data["step"] == OrderCreationStep.COMPLETED
+        assert response.data["title"] == "Budapest will move via convoy to Galicia"
+
+    def test_order_create_move_via_convoy_with_invalid_target(self, authenticated_client, game_with_options, primary_user):
+        game = game_with_options
+        
+        # Update options to include MoveViaConvoy
+        phase = game.current_phase
+        sample_options = phase.options.copy()
+        sample_options["England"]["bud"]["Next"]["MoveViaConvoy"] = sample_options["England"]["bud"]["Next"]["Move"]
+        phase.options = sample_options
+        phase.save()
+        
+        url = reverse("order-create", args=[game.id])
+        data = {"selected": ["bud", "MoveViaConvoy", "invalid"]}
+        response = authenticated_client.post(url, data, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
     def test_order_create_disband_with_source(self, authenticated_client, game_with_options, primary_user):
         phase = game_with_options.current_phase
         sample_options = {
@@ -1106,6 +1189,25 @@ class TestOrderComplete:
         assert order.complete is False
 
     @pytest.mark.django_db
+    def test_move_via_convoy_order_complete_when_target_set(
+        self, test_phase_state, classical_london_province, classical_english_channel_province
+    ):
+        order = Order(
+            phase_state=test_phase_state,
+            order_type=OrderType.MOVE_VIA_CONVOY,
+            source=classical_london_province,
+            target=classical_english_channel_province,
+        )
+        assert order.complete is True
+
+    @pytest.mark.django_db
+    def test_move_via_convoy_order_incomplete_when_target_none(self, test_phase_state, classical_london_province):
+        order = Order(
+            phase_state=test_phase_state, order_type=OrderType.MOVE_VIA_CONVOY, source=classical_london_province, target=None
+        )
+        assert order.complete is False
+
+    @pytest.mark.django_db
     def test_convoy_order_incomplete_when_both_target_and_aux_none(
         self, test_phase_state, classical_english_channel_province
     ):
@@ -1191,6 +1293,16 @@ class TestGetOrderDataFromSelected:
     def test_hold_order(self):
         result = get_order_data_from_selected(["ber", OrderType.HOLD])
         expected = {"source": "ber", "order_type": OrderType.HOLD}
+        assert result == expected
+
+    def test_move_via_convoy_order_complete(self):
+        result = get_order_data_from_selected(["ber", OrderType.MOVE_VIA_CONVOY, "kie"])
+        expected = {"source": "ber", "order_type": OrderType.MOVE_VIA_CONVOY, "target": "kie"}
+        assert result == expected
+
+    def test_move_via_convoy_order_incomplete(self):
+        result = get_order_data_from_selected(["ber", OrderType.MOVE_VIA_CONVOY])
+        expected = {"source": "ber", "order_type": OrderType.MOVE_VIA_CONVOY}
         assert result == expected
 
     def test_disband_order(self):

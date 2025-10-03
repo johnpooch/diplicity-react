@@ -61,6 +61,7 @@ class PhaseType:
 
 class OrderType:
     MOVE = "Move"
+    MOVE_VIA_CONVOY = "MoveViaConvoy"
     HOLD = "Hold"
     SUPPORT = "Support"
     CONVOY = "Convoy"
@@ -69,6 +70,7 @@ class OrderType:
 
     ORDER_TYPE_CHOICES = (
         (MOVE, "Move"),
+        (MOVE_VIA_CONVOY, "Move via Convoy"),
         (HOLD, "Hold"),
         (SUPPORT, "Support"),
         (CONVOY, "Convoy"),

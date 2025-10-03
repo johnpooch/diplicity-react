@@ -16,7 +16,7 @@ def get_order_data_from_selected(selected):
     if result["order_type"] == OrderType.BUILD:
         if len(selected) >= 3:
             result["unit_type"] = selected[2]
-    elif result["order_type"] == OrderType.MOVE:
+    elif result["order_type"] in [OrderType.MOVE, OrderType.MOVE_VIA_CONVOY]:
         if len(selected) >= 3:
             result["target"] = selected[2]
     elif result["order_type"] == OrderType.SUPPORT:

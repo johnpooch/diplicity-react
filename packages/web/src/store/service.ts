@@ -602,6 +602,7 @@ export type OrderOption = {
 };
 export type OrderTypeEnum =
   | "Move"
+  | "MoveViaConvoy"
   | "Hold"
   | "Support"
   | "Convoy"
