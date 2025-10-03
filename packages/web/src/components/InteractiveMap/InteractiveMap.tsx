@@ -401,7 +401,39 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
           />
         );
       })}
-      {props.orders?.filter(o => o.orderType === "Move").map((o) => {
+      {props.orders?.filter(o => o.orderType === "Convoy").map((o) => {
+        const color = props.variant.nations.find(n => n.name === o.nation.name)
+          ?.color as string;
+        const source = map.provinces.find(p => p.id === o.source.id);
+        const target = map.provinces.find(p => p.id === o.target?.id);
+        const aux = map.provinces.find(p => p.id === o.aux?.id);
+        if (!source) return null;
+        if (!target) return null;
+        if (!aux) return null;
+        return (
+          <CurvedArrow
+            key={o.source.id}
+            x1={source.center.x - UNIT_OFFSET_X}
+            y1={source.center.y - UNIT_OFFSET_Y}
+            x2={target.center.x - UNIT_OFFSET_X}
+            y2={target.center.y - UNIT_OFFSET_Y}
+            x3={aux.center.x - UNIT_OFFSET_X}
+            y3={aux.center.y - UNIT_OFFSET_Y}
+            lineWidth={ORDER_LINE_WIDTH}
+            arrowWidth={ORDER_ARROW_WIDTH}
+            arrowLength={ORDER_ARROW_LENGTH}
+            strokeWidth={ORDER_STROKE_WIDTH}
+            offset={UNIT_RADIUS}
+            stroke={"#000000"}
+            fill={color}
+            dash={{
+              length: ORDER_DASH_LENGTH,
+              spacing: ORDER_DASH_SPACING,
+            }}
+          />
+        );
+      })}
+      {props.orders?.filter(o => o.orderType === "Move" || o.orderType === "MoveViaConvoy").map((o) => {
         const source = map.provinces.find(p => p.id === o.source.id);
         const target = map.provinces.find(p => p.id === o.target?.id);
         if (!source) return null;

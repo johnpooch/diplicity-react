@@ -1020,6 +1020,7 @@ components:
     OrderTypeEnum:
       enum:
       - Move
+      - MoveViaConvoy
       - Hold
       - Support
       - Convoy
@@ -1028,6 +1029,7 @@ components:
       type: string
       description: |-
         * `Move` - Move
+        * `MoveViaConvoy` - Move via Convoy
         * `Hold` - Hold
         * `Support` - Support
         * `Convoy` - Convoy
