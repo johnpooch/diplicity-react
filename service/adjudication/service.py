@@ -11,31 +11,31 @@ logger = logging.getLogger(__name__)
 def _make_adjudication_request(phase, endpoint, method="GET", data=None):
     url = f"{ADJUDICATION_BASE_URL}/{endpoint}/{phase.variant.name}"
     context = {"game": phase.game}
-    
+
     # Log the request attempt
     logger.info(f"Making {method.upper()} request to adjudication service: {url}")
     if data and method.upper() == "POST":
-        logger.debug(f"Request payload: {json.dumps(data, indent=2)}")
+        logger.info(f"Request payload: {json.dumps(data, indent=2)}")
 
     try:
         if method.upper() == "POST":
             response = requests.post(url, json=data)
         else:
             response = requests.get(url)
-        
+
         logger.info(f"Received response with status code: {response.status_code}")
-        logger.debug(f"Response headers: {dict(response.headers)}")
-        
+        logger.info(f"Response headers: {dict(response.headers)}")
+
         response.raise_for_status()
         response_data = response.json()
-        logger.debug(f"Response data: {json.dumps(response_data, indent=2)}")
-        
+        logger.info(f"Response data: {json.dumps(response_data, indent=2)}")
+
         serializer = AdjudicationSerializer(data=response_data, context=context)
         serializer.is_valid(raise_exception=True)
-        
+
         logger.info(f"Successfully processed adjudication request for endpoint: {endpoint}")
         return serializer.validated_data
-        
+
     except requests.exceptions.HTTPError as e:
         logger.error(f"HTTP error occurred for {method.upper()} {url}: {e}")
         logger.error(f"Response status code: {response.status_code}")
@@ -50,7 +50,7 @@ def _make_adjudication_request(phase, endpoint, method="GET", data=None):
         raise
     except Exception as e:
         logger.error(f"Unexpected error during adjudication request to {url}: {e}")
-        if 'response' in locals():
+        if "response" in locals():
             logger.error(f"Response status: {response.status_code}, text: {response.text}")
         raise
 
