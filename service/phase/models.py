@@ -210,10 +210,12 @@ class Phase(BaseModel):
     @property
     def phase_states_with_possible_orders(self):
         nations = self.nations_with_possible_orders
+        logger.info(f"Nations with possible orders: {nations}")
         return [phase_state for phase_state in self.phase_states.all() if phase_state.member.nation.name in nations]
 
     @property
     def should_resolve_immediately(self):
+        logger.info(f"Checking if phase {self.id} should resolve immediately")
         return all(phase_state.orders_confirmed for phase_state in self.phase_states_with_possible_orders)
 
 
