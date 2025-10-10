@@ -59,6 +59,15 @@ const ORDER_FAILED_CROSS_FILL = "red";
 const ORDER_FAILED_CROSS_STROKE = "black";
 const ORDER_FAILED_CROSS_STROKE_WIDTH = 2;
 
+const RETREAT_FLAG_SCALE = 1.5;
+const RETREAT_FLAG_OFFSET_X = -6;
+const RETREAT_FLAG_OFFSET_Y = 2;
+const RETREAT_FLAG_POLE_HEIGHT = 12;
+const RETREAT_FLAG_POLE_STROKE_WIDTH = 2;
+const RETREAT_FLAG_STROKE_WIDTH = 1;
+const RETREAT_FLAG_FILL = "white";
+const RETREAT_FLAG_STROKE = "black";
+
 const InteractiveMap: React.FC<InteractiveMapProps> = props => {
   const [hoveredProvince, setHoveredProvince] = useState<string | null>(null);
 
@@ -335,6 +344,26 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
               >
                 {unit.type === "Army" ? "A" : "F"}
               </text>
+              {unit.dislodgedBy && (
+                <g transform={`translate(${x - 8 + offsetX + UNIT_RADIUS + RETREAT_FLAG_OFFSET_X}, ${y - 18 + offsetY - UNIT_RADIUS + RETREAT_FLAG_OFFSET_Y}) scale(${RETREAT_FLAG_SCALE})`}>
+                  {/* Flag pole */}
+                  <line
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2={RETREAT_FLAG_POLE_HEIGHT}
+                    stroke={RETREAT_FLAG_STROKE}
+                    strokeWidth={RETREAT_FLAG_POLE_STROKE_WIDTH}
+                  />
+                  {/* Flag */}
+                  <path
+                    d="M 0 0 L 8 2 L 8 6 L 0 8 Z"
+                    fill={RETREAT_FLAG_FILL}
+                    stroke={RETREAT_FLAG_STROKE}
+                    strokeWidth={RETREAT_FLAG_STROKE_WIDTH}
+                  />
+                </g>
+              )}
             </g>
           );
         })}

@@ -33,6 +33,8 @@ def _make_adjudication_request(phase, endpoint, method="GET", data=None):
         serializer = AdjudicationSerializer(data=response_data, context=context)
         serializer.is_valid(raise_exception=True)
 
+        logger.info(f"Serializer response data: {serializer.validated_data}")
+
         logger.info(f"Successfully processed adjudication request for endpoint: {endpoint}")
         return serializer.validated_data
 

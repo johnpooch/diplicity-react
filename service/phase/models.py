@@ -17,14 +17,14 @@ class PhaseManager(models.Manager):
 
     def resolve_due_phases(self):
         logger.info("Starting resolution of due phases")
-        
+
         phases = self.get_queryset().filter(status=PhaseStatus.ACTIVE)
         total_phases = phases.count()
         logger.info(f"Found {total_phases} active phases to check for resolution")
-        
+
         resolved_count = 0
         failed_count = 0
-        
+
         for phase in phases:
             should_resolve = (
                 phase.scheduled_resolution and phase.scheduled_resolution <= timezone.now()
@@ -41,13 +41,15 @@ class PhaseManager(models.Manager):
                     logger.error(f"Failed to resolve phase {phase.id} ({phase.name}): {e}", exc_info=True)
             else:
                 logger.debug(f"Phase {phase.id} ({phase.name}) not due for resolution yet")
-        
+
         result = {
             "resolved": resolved_count,
             "failed": failed_count,
         }
-        
-        logger.info(f"Phase resolution complete: {resolved_count} resolved, {failed_count} failed out of {total_phases} total phases")
+
+        logger.info(
+            f"Phase resolution complete: {resolved_count} resolved, {failed_count} failed out of {total_phases} total phases"
+        )
         return result
 
     def resolve(self, phase):
@@ -55,9 +57,11 @@ class PhaseManager(models.Manager):
         self.create_from_adjudication_data(phase, adjudication_data)
 
     def create_from_adjudication_data(self, previous_phase, adjudication_data):
-        logger.info(f"Creating new phase from adjudication data for previous phase {previous_phase.id} ({previous_phase.name})")
+        logger.info(
+            f"Creating new phase from adjudication data for previous phase {previous_phase.id} ({previous_phase.name})"
+        )
         logger.debug(f"Adjudication data keys: {list(adjudication_data.keys())}")
-        
+
         try:
             # Process order resolutions
             resolutions_count = 0
@@ -66,9 +70,11 @@ class PhaseManager(models.Manager):
                     (r for r in adjudication_data["resolutions"] if r["province"] == order.source.province_id), None
                 )
                 if resolution:
-                    if hasattr(order, 'resolution'):
+                    if hasattr(order, "resolution"):
                         order.resolution.delete()
-                    by_province = previous_phase.variant.provinces.get(province_id=resolution["by"]) if resolution["by"] else None
+                    by_province = (
+                        previous_phase.variant.provinces.get(province_id=resolution["by"]) if resolution["by"] else None
+                    )
                     OrderResolution.objects.create(
                         order=order,
                         status=resolution["result"],
@@ -78,15 +84,17 @@ class PhaseManager(models.Manager):
                     logger.debug(f"Created resolution for order {order.id}: {resolution['result']}")
                 else:
                     logger.warning(f"No resolution found for order {order.id} in province {order.source.province_id}")
-            
+
             logger.info(f"Created {resolutions_count} order resolutions")
 
             # Calculate next phase details
             phase_duration_seconds = previous_phase.game.movement_phase_duration_seconds
             scheduled_resolution = timezone.now() + timedelta(seconds=phase_duration_seconds)
             new_ordinal = previous_phase.ordinal + 1
-            
-            logger.info(f"Creating new phase {new_ordinal} ({adjudication_data['season']} {adjudication_data['year']}, {adjudication_data['type']})")
+
+            logger.info(
+                f"Creating new phase {new_ordinal} ({adjudication_data['season']} {adjudication_data['year']}, {adjudication_data['type']})"
+            )
 
             # Create the new phase
             new_phase = self.create(
@@ -100,7 +108,7 @@ class PhaseManager(models.Manager):
                 status=PhaseStatus.ACTIVE,
                 scheduled_resolution=scheduled_resolution,
             )
-            
+
             logger.info(f"Created new phase {new_phase.id} scheduled for resolution at {scheduled_resolution}")
 
             # Create supply centers
@@ -113,23 +121,39 @@ class PhaseManager(models.Manager):
                     )
                     supply_centers_count += 1
                 except Exception as e:
-                    logger.error(f"Failed to create supply center for province {supply_center['province']}, nation {supply_center['nation']}: {e}")
-            
+                    logger.error(
+                        f"Failed to create supply center for province {supply_center['province']}, nation {supply_center['nation']}: {e}"
+                    )
+
             logger.info(f"Created {supply_centers_count} supply centers")
 
             # Create units
             units_count = 0
             for unit in adjudication_data["units"]:
                 try:
+                    logger.info(
+                        f"Creating unit {unit['type']} for nation {unit['nation']} in province {unit['province']}"
+                    )
+                    dislodged_by_id = unit.get("dislodged_by", None)
+                    logger.info(f"Dislodged by ID: {dislodged_by_id}")
+                    dislodged_by = (
+                        previous_phase.units.filter(province__province_id=dislodged_by_id).first()
+                        if dislodged_by_id
+                        else None
+                    )
+                    logger.info(f"Dislodged by: {dislodged_by}")
                     new_phase.units.create(
                         type=unit["type"],
                         nation=new_phase.variant.nations.get(name=unit["nation"]),
                         province=new_phase.variant.provinces.get(province_id=unit["province"]),
+                        dislodged_by=dislodged_by,
                     )
                     units_count += 1
                 except Exception as e:
-                    logger.error(f"Failed to create unit {unit['type']} for nation {unit['nation']} in province {unit['province']}: {e}")
-            
+                    logger.error(
+                        f"Failed to create unit {unit['type']} for nation {unit['nation']} in province {unit['province']}: {e}"
+                    )
+
             logger.info(f"Created {units_count} units")
 
             # Create phase states
@@ -139,7 +163,7 @@ class PhaseManager(models.Manager):
                     member=member,
                 )
                 phase_states_count += 1
-            
+
             logger.info(f"Created {phase_states_count} phase states for game members")
 
             # Mark previous phase as completed
@@ -149,9 +173,11 @@ class PhaseManager(models.Manager):
 
             logger.info(f"Successfully created new phase {new_phase.id} from adjudication data")
             return new_phase
-            
+
         except Exception as e:
-            logger.error(f"Failed to create phase from adjudication data for phase {previous_phase.id}: {e}", exc_info=True)
+            logger.error(
+                f"Failed to create phase from adjudication data for phase {previous_phase.id}: {e}", exc_info=True
+            )
             raise
 
 

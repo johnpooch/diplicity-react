@@ -534,3 +534,170 @@ def test_active_game_create_move_order_fleet_to_named_coast(
 
     # Assert that Italy has a fleet in Spain SC
     assert phase.units.filter(nation__name="Italy", province__province_id="spa/sc", type=UnitType.FLEET).exists()
+
+
+@pytest.mark.django_db
+def test_dislodged_unit_scenario(
+    authenticated_client,
+    authenticated_client_for_secondary_user,
+    italy_vs_germany_variant,
+    mock_send_notification_to_users,
+    mock_immediate_on_commit,
+):
+    """
+    Integration test covering a dislodged unit scenario:
+    - Create Italy vs Germany game
+    - Spring 1901 Movement: Setup positions
+    - Fall 1901 Movement: Germany attacks Italy's position with support, causing dislodgement
+    - Fall 1901 Retreat: Italy retreats the dislodged unit
+    - Verify final positions
+    """
+    active_game = create_active_game(
+        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+    )
+
+    italy_member = active_game.members.filter(nation__name="Italy").first()
+    germany_member = active_game.members.filter(nation__name="Germany").first()
+
+    create_order_url = reverse("order-create", args=[active_game.id])
+    confirm_url = reverse("game-confirm-phase", args=[active_game.id])
+    resolve_url = reverse("phase-resolve")
+
+    # Determine which client is which nation
+    primary_is_germany = germany_member.user == active_game.members.first().user
+    if primary_is_germany:
+        germany_client = authenticated_client
+        italy_client = authenticated_client_for_secondary_user
+    else:
+        germany_client = authenticated_client_for_secondary_user
+        italy_client = authenticated_client
+
+    # ===== SPRING 1901 MOVEMENT PHASE =====
+    # Germany: Berlin to Munich, Munich to Bohemia
+    # Italy: Venice to Tyrolia
+
+    phase = active_game.current_phase
+    assert phase.season == "Spring"
+    assert phase.year == 1901
+    assert phase.type == "Movement"
+
+    # Germany: Berlin to Munich
+    germany_client.post(create_order_url, {"selected": ["ber"]}, format="json")
+    germany_client.post(create_order_url, {"selected": ["ber", "Move"]}, format="json")
+    response = germany_client.post(create_order_url, {"selected": ["ber", "Move", "mun"]}, format="json")
+    assert response.status_code == status.HTTP_201_CREATED
+
+    # Germany: Munich to Bohemia
+    germany_client.post(create_order_url, {"selected": ["mun"]}, format="json")
+    germany_client.post(create_order_url, {"selected": ["mun", "Move"]}, format="json")
+    response = germany_client.post(create_order_url, {"selected": ["mun", "Move", "boh"]}, format="json")
+    assert response.status_code == status.HTTP_201_CREATED
+
+    # Italy: Venice to Tyrolia
+    italy_client.post(create_order_url, {"selected": ["ven"]}, format="json")
+    italy_client.post(create_order_url, {"selected": ["ven", "Move"]}, format="json")
+    response = italy_client.post(create_order_url, {"selected": ["ven", "Move", "tyr"]}, format="json")
+    assert response.status_code == status.HTTP_201_CREATED
+
+    # Both players confirm
+    germany_client.put(confirm_url)
+    italy_client.put(confirm_url)
+
+    # Resolve phase
+    resolve_response = authenticated_client.post(resolve_url)
+    assert resolve_response.data["resolved"] >= 1
+
+    # ===== SPRING 1901 RETREAT PHASE =====
+    # No units dislodged, should auto-resolve
+
+    phase = active_game.current_phase
+    phase.refresh_from_db()
+    assert phase.season == "Spring"
+    assert phase.year == 1901
+    assert phase.type == "Retreat"
+
+    # Resolve retreat phase (no orders needed)
+    resolve_response = authenticated_client.post(resolve_url)
+    assert resolve_response.data["resolved"] >= 1
+
+    # ===== FALL 1901 MOVEMENT PHASE =====
+    # Germany: Munich to Tyrolia (attacking Italy)
+    # Germany: Bohemia supports Munich to Tyrolia
+
+    phase = active_game.current_phase
+    phase.refresh_from_db()
+    assert phase.season == "Fall"
+    assert phase.year == 1901
+    assert phase.type == "Movement"
+
+    # Verify positions from Spring 1901
+    assert phase.units.filter(nation__name="Germany", province__province_id="mun").exists()
+    assert phase.units.filter(nation__name="Germany", province__province_id="boh").exists()
+    assert phase.units.filter(nation__name="Italy", province__province_id="tyr").exists()
+
+    # Germany: Munich to Tyrolia
+    germany_client.post(create_order_url, {"selected": ["mun"]}, format="json")
+    germany_client.post(create_order_url, {"selected": ["mun", "Move"]}, format="json")
+    response = germany_client.post(create_order_url, {"selected": ["mun", "Move", "tyr"]}, format="json")
+    assert response.status_code == status.HTTP_201_CREATED
+
+    # Germany: Bohemia supports Munich to Tyrolia
+    germany_client.post(create_order_url, {"selected": ["boh"]}, format="json")
+    germany_client.post(create_order_url, {"selected": ["boh", "Support"]}, format="json")
+    germany_client.post(create_order_url, {"selected": ["boh", "Support", "mun"]}, format="json")
+    response = germany_client.post(create_order_url, {"selected": ["boh", "Support", "mun", "tyr"]}, format="json")
+    assert response.status_code == status.HTTP_201_CREATED
+
+    # Both players confirm
+    germany_client.put(confirm_url)
+    italy_client.put(confirm_url)
+
+    # Resolve phase
+    resolve_response = authenticated_client.post(resolve_url)
+    assert resolve_response.data["resolved"] >= 1
+
+    # ===== FALL 1901 RETREAT PHASE =====
+    # Italy's army in Tyrolia should be dislodged
+    # Italy retreats to Trieste
+
+    phase = active_game.current_phase
+    phase.refresh_from_db()
+    assert phase.season == "Fall"
+    assert phase.year == 1901
+    assert phase.type == "Retreat"
+
+    # Verify Germany's army is now in Tyrolia
+    assert phase.units.filter(nation__name="Germany", province__province_id="tyr").exists()
+
+    # Verify Italy's dislodged army is still in Tyrolia (but marked as dislodged)
+    italy_dislodged_unit = phase.units.filter(nation__name="Italy", province__province_id="tyr").first()
+    assert italy_dislodged_unit is not None
+    assert italy_dislodged_unit.dislodged_by is not None
+
+    # Italy: Retreat from Tyrolia to Trieste
+    italy_client.post(create_order_url, {"selected": ["tyr"]}, format="json")
+    italy_client.post(create_order_url, {"selected": ["tyr", "Move"]}, format="json")
+    response = italy_client.post(create_order_url, {"selected": ["tyr", "Move", "tri"]}, format="json")
+    assert response.status_code == status.HTTP_201_CREATED
+
+    # Italy confirms
+    italy_client.put(confirm_url)
+
+    # Resolve retreat phase
+    resolve_response = authenticated_client.post(resolve_url)
+    assert resolve_response.data["resolved"] >= 1
+
+    # ===== FALL 1901 ADJUSTMENT PHASE =====
+    # Verify final positions
+
+    phase = active_game.current_phase
+    phase.refresh_from_db()
+
+    # German army should be in Tyrolia
+    assert phase.units.filter(nation__name="Germany", province__province_id="tyr", type=UnitType.ARMY).exists()
+
+    # Italian army should be in Trieste
+    assert phase.units.filter(nation__name="Italy", province__province_id="tri", type=UnitType.ARMY).exists()
+
+    # Italian army should NOT be in Tyrolia anymore
+    assert not phase.units.filter(nation__name="Italy", province__province_id="tyr").exists()

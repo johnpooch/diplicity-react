@@ -4,7 +4,7 @@ from django.utils import timezone
 from datetime import timedelta
 from unittest.mock import patch, Mock
 from rest_framework import status
-from common.constants import PhaseStatus, PhaseType, OrderType
+from common.constants import PhaseStatus, PhaseType, OrderType, UnitType
 from .models import Phase, PhaseState
 from .serializers import PhaseStateSerializer
 from .utils import transform_options
@@ -141,8 +141,7 @@ def test_phase_should_resolve_immediately_no_users_with_orders(active_game_with_
 
 @pytest.mark.django_db
 def test_phase_should_resolve_immediately_all_confirmed(
-    active_game_with_phase_state,
-    godip_options_england_london_hold
+    active_game_with_phase_state, godip_options_england_london_hold
 ):
     """
     Test that a phase should resolve immediately when all users with orders have confirmed.
@@ -160,10 +159,7 @@ def test_phase_should_resolve_immediately_all_confirmed(
 
 @pytest.mark.django_db
 def test_phase_should_not_resolve_immediately_partial_confirmation(
-    active_game_with_phase_state,
-    secondary_user,
-    classical_france_nation,
-    godip_options_england_france_both_hold
+    active_game_with_phase_state, secondary_user, classical_france_nation, godip_options_england_france_both_hold
 ):
     """
     Test that a phase should NOT resolve immediately when some users with orders haven't confirmed.
@@ -182,8 +178,7 @@ def test_phase_should_not_resolve_immediately_partial_confirmation(
 
 @pytest.mark.django_db
 def test_nations_with_possible_orders_various_scenarios(
-    godip_options_england_london_hold,
-    godip_options_england_france_both_hold
+    godip_options_england_london_hold, godip_options_england_france_both_hold
 ):
     """
     Test the nations_with_possible_orders property with various option configurations.
@@ -239,10 +234,7 @@ def test_resolve_due_phases_with_immediate_resolution(active_game_with_phase_sta
 
 
 @pytest.mark.django_db
-def test_resolve_due_phases_no_resolution_needed(
-    active_game_with_phase_state,
-    godip_options_england_london_hold
-):
+def test_resolve_due_phases_no_resolution_needed(active_game_with_phase_state, godip_options_england_london_hold):
     """
     Test that resolve_due_phases doesn't resolve phases that aren't ready.
     """
@@ -539,31 +531,15 @@ class TestOptionsTransformation:
         raw_options = {
             "England": {
                 "lon": {
-                    "Next": {
-                        "Hold": {
-                            "Next": {
-                                "lon": {
-                                    "Next": {},
-                                    "Type": "SrcProvince"
-                                }
-                            },
-                            "Type": "OrderType"
-                        }
-                    },
-                    "Type": "Province"
+                    "Next": {"Hold": {"Next": {"lon": {"Next": {}, "Type": "SrcProvince"}}, "Type": "OrderType"}},
+                    "Type": "Province",
                 }
             }
         }
 
         result = transform_options(raw_options)
 
-        expected = {
-            "England": {
-                "lon": {
-                    "Hold": {}
-                }
-            }
-        }
+        expected = {"England": {"lon": {"Hold": {}}}}
 
         assert result == expected
 
@@ -580,43 +556,24 @@ class TestOptionsTransformation:
                             "Next": {
                                 "lon": {
                                     "Next": {
-                                        "eng": {
-                                            "Next": {},
-                                            "Type": "Province"
-                                        },
-                                        "nth": {
-                                            "Next": {},
-                                            "Type": "Province"
-                                        },
-                                        "wal": {
-                                            "Next": {},
-                                            "Type": "Province"
-                                        }
+                                        "eng": {"Next": {}, "Type": "Province"},
+                                        "nth": {"Next": {}, "Type": "Province"},
+                                        "wal": {"Next": {}, "Type": "Province"},
                                     },
-                                    "Type": "SrcProvince"
+                                    "Type": "SrcProvince",
                                 }
                             },
-                            "Type": "OrderType"
+                            "Type": "OrderType",
                         }
                     },
-                    "Type": "Province"
+                    "Type": "Province",
                 }
             }
         }
 
         result = transform_options(raw_options)
 
-        expected = {
-            "England": {
-                "lon": {
-                    "Move": {
-                        "eng": {},
-                        "nth": {},
-                        "wal": {}
-                    }
-                }
-            }
-        }
+        expected = {"England": {"lon": {"Move": {"eng": {}, "nth": {}, "wal": {}}}}}
 
         assert result == expected
 
@@ -633,52 +590,23 @@ class TestOptionsTransformation:
                             "Next": {
                                 "lon": {
                                     "Next": {
-                                        "wal": {
-                                            "Next": {
-                                                "yor": {
-                                                    "Next": {},
-                                                    "Type": "Province"
-                                                }
-                                            },
-                                            "Type": "Province"
-                                        },
-                                        "yor": {
-                                            "Next": {
-                                                "wal": {
-                                                    "Next": {},
-                                                    "Type": "Province"
-                                                }
-                                            },
-                                            "Type": "Province"
-                                        }
+                                        "wal": {"Next": {"yor": {"Next": {}, "Type": "Province"}}, "Type": "Province"},
+                                        "yor": {"Next": {"wal": {"Next": {}, "Type": "Province"}}, "Type": "Province"},
                                     },
-                                    "Type": "SrcProvince"
+                                    "Type": "SrcProvince",
                                 }
                             },
-                            "Type": "OrderType"
+                            "Type": "OrderType",
                         }
                     },
-                    "Type": "Province"
+                    "Type": "Province",
                 }
             }
         }
 
         result = transform_options(raw_options)
 
-        expected = {
-            "England": {
-                "lon": {
-                    "Support": {
-                        "wal": {
-                            "yor": {}
-                        },
-                        "yor": {
-                            "wal": {}
-                        }
-                    }
-                }
-            }
-        }
+        expected = {"England": {"lon": {"Support": {"wal": {"yor": {}}, "yor": {"wal": {}}}}}}
 
         assert result == expected
 
@@ -697,43 +625,26 @@ class TestOptionsTransformation:
                                     "Next": {
                                         "yor": {
                                             "Next": {
-                                                "bel": {
-                                                    "Next": {},
-                                                    "Type": "Province"
-                                                },
-                                                "hol": {
-                                                    "Next": {},
-                                                    "Type": "Province"
-                                                }
+                                                "bel": {"Next": {}, "Type": "Province"},
+                                                "hol": {"Next": {}, "Type": "Province"},
                                             },
-                                            "Type": "Province"
+                                            "Type": "Province",
                                         }
                                     },
-                                    "Type": "SrcProvince"
+                                    "Type": "SrcProvince",
                                 }
                             },
-                            "Type": "OrderType"
+                            "Type": "OrderType",
                         }
                     },
-                    "Type": "Province"
+                    "Type": "Province",
                 }
             }
         }
 
         result = transform_options(raw_options)
 
-        expected = {
-            "England": {
-                "nth": {
-                    "Convoy": {
-                        "yor": {
-                            "bel": {},
-                            "hol": {}
-                        }
-                    }
-                }
-            }
-        }
+        expected = {"England": {"nth": {"Convoy": {"yor": {"bel": {}, "hol": {}}}}}}
 
         assert result == expected
 
@@ -751,43 +662,24 @@ class TestOptionsTransformation:
                             "Next": {
                                 "mar": {
                                     "Next": {
-                                        "bur": {
-                                            "Next": {},
-                                            "Type": "Province"
-                                        },
-                                        "gas": {
-                                            "Next": {},
-                                            "Type": "Province"
-                                        },
-                                        "spa": {
-                                            "Next": {},
-                                            "Type": "Province"
-                                        }
+                                        "bur": {"Next": {}, "Type": "Province"},
+                                        "gas": {"Next": {}, "Type": "Province"},
+                                        "spa": {"Next": {}, "Type": "Province"},
                                     },
-                                    "Type": "SrcProvince"
+                                    "Type": "SrcProvince",
                                 }
                             },
-                            "Type": "OrderType"
+                            "Type": "OrderType",
                         }
                     },
-                    "Type": "Province"
+                    "Type": "Province",
                 }
             }
         }
 
         result = transform_options(raw_options)
 
-        expected = {
-            "France": {
-                "mar": {
-                    "Move": {
-                        "bur": {},
-                        "gas": {},
-                        "spa": {}
-                    }
-                }
-            }
-        }
+        expected = {"France": {"mar": {"Move": {"bur": {}, "gas": {}, "spa": {}}}}}
 
         assert result == expected
 
@@ -801,62 +693,30 @@ class TestOptionsTransformation:
             "France": {
                 "spa": {
                     "Next": {
-                        "Hold": {
-                            "Next": {
-                                "spa": {
-                                    "Next": {},
-                                    "Type": "SrcProvince"
-                                }
-                            },
-                            "Type": "OrderType"
-                        },
+                        "Hold": {"Next": {"spa": {"Next": {}, "Type": "SrcProvince"}}, "Type": "OrderType"},
                         "Move": {
                             "Next": {
                                 "spa": {
                                     "Next": {
-                                        "bre": {
-                                            "Next": {},
-                                            "Type": "Province"
-                                        },
-                                        "gas": {
-                                            "Next": {},
-                                            "Type": "Province"
-                                        },
-                                        "mar": {
-                                            "Next": {},
-                                            "Type": "Province"
-                                        },
-                                        "por": {
-                                            "Next": {},
-                                            "Type": "Province"
-                                        }
+                                        "bre": {"Next": {}, "Type": "Province"},
+                                        "gas": {"Next": {}, "Type": "Province"},
+                                        "mar": {"Next": {}, "Type": "Province"},
+                                        "por": {"Next": {}, "Type": "Province"},
                                     },
-                                    "Type": "SrcProvince"
+                                    "Type": "SrcProvince",
                                 }
                             },
-                            "Type": "OrderType"
-                        }
+                            "Type": "OrderType",
+                        },
                     },
-                    "Type": "Province"
+                    "Type": "Province",
                 }
             }
         }
 
         result = transform_options(raw_options)
 
-        expected = {
-            "France": {
-                "spa": {
-                    "Hold": {},
-                    "Move": {
-                        "bre": {},
-                        "gas": {},
-                        "mar": {},
-                        "por": {}
-                    }
-                }
-            }
-        }
+        expected = {"France": {"spa": {"Hold": {}, "Move": {"bre": {}, "gas": {}, "mar": {}, "por": {}}}}}
 
         assert result == expected
 
@@ -870,57 +730,29 @@ class TestOptionsTransformation:
             "Russia": {
                 "stp": {
                     "Next": {
-                        "Hold": {
-                            "Next": {
-                                "stp/sc": {
-                                    "Next": {},
-                                    "Type": "SrcProvince"
-                                }
-                            },
-                            "Type": "OrderType"
-                        },
+                        "Hold": {"Next": {"stp/sc": {"Next": {}, "Type": "SrcProvince"}}, "Type": "OrderType"},
                         "Move": {
                             "Next": {
                                 "stp/sc": {
                                     "Next": {
-                                        "bot": {
-                                            "Next": {},
-                                            "Type": "Province"
-                                        },
-                                        "fin": {
-                                            "Next": {},
-                                            "Type": "Province"
-                                        },
-                                        "lvn": {
-                                            "Next": {},
-                                            "Type": "Province"
-                                        }
+                                        "bot": {"Next": {}, "Type": "Province"},
+                                        "fin": {"Next": {}, "Type": "Province"},
+                                        "lvn": {"Next": {}, "Type": "Province"},
                                     },
-                                    "Type": "SrcProvince"
+                                    "Type": "SrcProvince",
                                 }
                             },
-                            "Type": "OrderType"
-                        }
+                            "Type": "OrderType",
+                        },
                     },
-                    "Type": "Province"
+                    "Type": "Province",
                 }
             }
         }
 
         result = transform_options(raw_options)
 
-        expected = {
-            "Russia": {
-                "stp": {
-                    "Hold": {},
-                    "Move": {
-                        "bot": {},
-                        "fin": {},
-                        "lvn": {}
-                    }
-                }
-            }
-        }
+        expected = {"Russia": {"stp": {"Hold": {}, "Move": {"bot": {}, "fin": {}, "lvn": {}}}}}
 
         assert result == expected
 
@@ -938,50 +770,25 @@ class TestOptionsTransformation:
                             "Next": {
                                 "mid": {
                                     "Next": {
-                                        "bre": {
-                                            "Next": {},
-                                            "Type": "Province"
-                                        },
-                                        "eng": {
-                                            "Next": {},
-                                            "Type": "Province"
-                                        },
-                                        "spa/nc": {
-                                            "Next": {},
-                                            "Type": "Province"
-                                        },
-                                        "spa/sc": {
-                                            "Next": {},
-                                            "Type": "Province"
-                                        }
+                                        "bre": {"Next": {}, "Type": "Province"},
+                                        "eng": {"Next": {}, "Type": "Province"},
+                                        "spa/nc": {"Next": {}, "Type": "Province"},
+                                        "spa/sc": {"Next": {}, "Type": "Province"},
                                     },
-                                    "Type": "SrcProvince"
+                                    "Type": "SrcProvince",
                                 }
                             },
-                            "Type": "OrderType"
+                            "Type": "OrderType",
                         }
                     },
-                    "Type": "Province"
+                    "Type": "Province",
                 }
             }
         }
 
         result = transform_options(raw_options)
 
-        expected = {
-            "France": {
-                "mid": {
-                    "Move": {
-                        "bre": {},
-                        "eng": {},
-                        "spa": {
-                            "spa/nc": {},
-                            "spa/sc": {}
-                        }
-                    }
-                }
-            }
-        }
+        expected = {"France": {"mid": {"Move": {"bre": {}, "eng": {}, "spa": {"spa/nc": {}, "spa/sc": {}}}}}}
 
         assert result == expected
 
@@ -999,45 +806,24 @@ class TestOptionsTransformation:
                             "Next": {
                                 "bot": {
                                     "Next": {
-                                        "bal": {
-                                            "Next": {},
-                                            "Type": "Province"
-                                        },
-                                        "fin": {
-                                            "Next": {},
-                                            "Type": "Province"
-                                        },
-                                        "stp/sc": {
-                                            "Next": {},
-                                            "Type": "Province"
-                                        }
+                                        "bal": {"Next": {}, "Type": "Province"},
+                                        "fin": {"Next": {}, "Type": "Province"},
+                                        "stp/sc": {"Next": {}, "Type": "Province"},
                                     },
-                                    "Type": "SrcProvince"
+                                    "Type": "SrcProvince",
                                 }
                             },
-                            "Type": "OrderType"
+                            "Type": "OrderType",
                         }
                     },
-                    "Type": "Province"
+                    "Type": "Province",
                 }
             }
         }
 
         result = transform_options(raw_options)
 
-        expected = {
-            "Russia": {
-                "bot": {
-                    "Move": {
-                        "bal": {},
-                        "fin": {},
-                        "stp": {
-                            "stp/sc": {}
-                        }
-                    }
-                }
-            }
-        }
+        expected = {"Russia": {"bot": {"Move": {"bal": {}, "fin": {}, "stp": {"stp/sc": {}}}}}}
 
         assert result == expected
 
@@ -1052,35 +838,19 @@ class TestOptionsTransformation:
                     "Next": {
                         "Build": {
                             "Next": {
-                                "Army": {
-                                    "Next": {
-                                        "mun": {
-                                            "Next": {},
-                                            "Type": "SrcProvince"
-                                        }
-                                    },
-                                    "Type": "UnitType"
-                                }
+                                "Army": {"Next": {"mun": {"Next": {}, "Type": "SrcProvince"}}, "Type": "UnitType"}
                             },
-                            "Type": "OrderType"
+                            "Type": "OrderType",
                         }
                     },
-                    "Type": "Province"
+                    "Type": "Province",
                 }
             }
         }
 
         result = transform_options(raw_options)
 
-        expected = {
-            "Germany": {
-                "mun": {
-                    "Build": {
-                        "Army": {}
-                    }
-                }
-            }
-        }
+        expected = {"Germany": {"mun": {"Build": {"Army": {}}}}}
 
         assert result == expected
 
@@ -1096,45 +866,20 @@ class TestOptionsTransformation:
                     "Next": {
                         "Build": {
                             "Next": {
-                                "Army": {
-                                    "Next": {
-                                        "bre": {
-                                            "Next": {},
-                                            "Type": "SrcProvince"
-                                        }
-                                    },
-                                    "Type": "UnitType"
-                                },
-                                "Fleet": {
-                                    "Next": {
-                                        "bre": {
-                                            "Next": {},
-                                            "Type": "SrcProvince"
-                                        }
-                                    },
-                                    "Type": "UnitType"
-                                }
+                                "Army": {"Next": {"bre": {"Next": {}, "Type": "SrcProvince"}}, "Type": "UnitType"},
+                                "Fleet": {"Next": {"bre": {"Next": {}, "Type": "SrcProvince"}}, "Type": "UnitType"},
                             },
-                            "Type": "OrderType"
+                            "Type": "OrderType",
                         }
                     },
-                    "Type": "Province"
+                    "Type": "Province",
                 }
             }
         }
 
         result = transform_options(raw_options)
 
-        expected = {
-            "France": {
-                "bre": {
-                    "Build": {
-                        "Army": {},
-                        "Fleet": {}
-                    }
-                }
-            }
-        }
+        expected = {"France": {"bre": {"Build": {"Army": {}, "Fleet": {}}}}}
 
         assert result == expected
 
@@ -1151,75 +896,151 @@ class TestOptionsTransformation:
                     "Next": {
                         "Build": {
                             "Next": {
-                                "Army": {
-                                    "Next": {
-                                        "stp": {
-                                            "Next": {},
-                                            "Type": "SrcProvince"
-                                        }
-                                    },
-                                    "Type": "UnitType"
-                                },
-                                "Fleet": {
-                                    "Next": {
-                                        "stp/nc": {
-                                            "Next": {},
-                                            "Type": "SrcProvince"
-                                        }
-                                    },
-                                    "Type": "UnitType"
-                                }
+                                "Army": {"Next": {"stp": {"Next": {}, "Type": "SrcProvince"}}, "Type": "UnitType"},
+                                "Fleet": {"Next": {"stp/nc": {"Next": {}, "Type": "SrcProvince"}}, "Type": "UnitType"},
                             },
-                            "Type": "OrderType"
+                            "Type": "OrderType",
                         }
                     },
-                    "Type": "Province"
+                    "Type": "Province",
                 },
                 "stp/sc": {
                     "Next": {
                         "Build": {
                             "Next": {
-                                "Army": {
-                                    "Next": {
-                                        "stp": {
-                                            "Next": {},
-                                            "Type": "SrcProvince"
-                                        }
-                                    },
-                                    "Type": "UnitType"
-                                },
-                                "Fleet": {
-                                    "Next": {
-                                        "stp/sc": {
-                                            "Next": {},
-                                            "Type": "SrcProvince"
-                                        }
-                                    },
-                                    "Type": "UnitType"
-                                }
+                                "Army": {"Next": {"stp": {"Next": {}, "Type": "SrcProvince"}}, "Type": "UnitType"},
+                                "Fleet": {"Next": {"stp/sc": {"Next": {}, "Type": "SrcProvince"}}, "Type": "UnitType"},
                             },
-                            "Type": "OrderType"
+                            "Type": "OrderType",
                         }
                     },
-                    "Type": "Province"
-                }
+                    "Type": "Province",
+                },
             }
         }
 
         result = transform_options(raw_options)
 
-        expected = {
-            "Russia": {
-                "stp": {
-                    "Build": {
-                        "Army": {},
-                        "Fleet": {
-                            "stp/nc": {},
-                            "stp/sc": {}
-                        }
-                    }
-                }
-            }
-        }
+        expected = {"Russia": {"stp": {"Build": {"Army": {}, "Fleet": {"stp/nc": {}, "stp/sc": {}}}}}}
 
         assert result == expected
+
+
+class TestCreateFromAdjudicationData:
+
+    @pytest.mark.django_db
+    def test_create_from_adjudication_data_basic(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        initial_phase_count = Phase.objects.count()
+
+        new_phase = Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+
+        assert Phase.objects.count() == initial_phase_count + 1
+        assert new_phase.season == "Spring"
+        assert new_phase.year == 1901
+        assert new_phase.type == "Retreat"
+        assert new_phase.ordinal == phase.ordinal + 1
+        assert new_phase.status == PhaseStatus.ACTIVE
+        assert new_phase.game == phase.game
+        assert new_phase.variant == phase.variant
+
+        assert new_phase.units.count() == 6
+        assert new_phase.supply_centers.count() == 6
+
+        italy_units = new_phase.units.filter(nation__name="Italy")
+        assert italy_units.count() == 3
+
+        germany_units = new_phase.units.filter(nation__name="Germany")
+        assert germany_units.count() == 3
+
+        ven_unit = new_phase.units.get(province__province_id="ven")
+        assert ven_unit.type == UnitType.ARMY
+        assert ven_unit.nation.name == "Italy"
+        assert ven_unit.dislodged_by is None
+
+    @pytest.mark.django_db
+    def test_create_from_adjudication_data_with_dislodged_unit(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_with_dislodged_unit,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+
+        new_phase = Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_with_dislodged_unit)
+
+        assert new_phase.units.count() == 4
+
+        dislodged_unit = new_phase.units.get(province__province_id="kie", nation__name="Germany")
+        assert dislodged_unit.dislodged_by is not None
+
+        dislodging_unit = phase.units.get(province__province_id="ven")
+        assert dislodged_unit.dislodged_by == dislodging_unit
+
+        attacker_unit = new_phase.units.get(province__province_id="kie", nation__name="Italy")
+        assert attacker_unit.dislodged_by is None
+
+    @pytest.mark.django_db
+    def test_create_from_adjudication_data_marks_previous_phase_completed(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        assert phase.status == PhaseStatus.ACTIVE
+
+        Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+
+        phase.refresh_from_db()
+        assert phase.status == PhaseStatus.COMPLETED
+
+    @pytest.mark.django_db
+    def test_create_from_adjudication_data_creates_phase_states(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        member_count = phase.game.members.count()
+
+        new_phase = Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+
+        assert new_phase.phase_states.count() == member_count
+        assert new_phase.phase_states.count() == 2
+
+        for phase_state in new_phase.phase_states.all():
+            assert phase_state.orders_confirmed is False
+            assert phase_state.eliminated is False
+
+    @pytest.mark.django_db
+    def test_create_from_adjudication_data_scheduled_resolution_time(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        duration_seconds = phase.game.movement_phase_duration_seconds
+
+        new_phase = Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+
+        assert new_phase.scheduled_resolution is not None
+
+        time_diff = (new_phase.scheduled_resolution - timezone.now()).total_seconds()
+        assert abs(time_diff - duration_seconds) < 2
+
+    @pytest.mark.django_db
+    def test_create_from_adjudication_data_creates_order_resolutions(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        orders_count = len(phase.all_orders)
+
+        Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+
+        resolved_orders = [order for order in phase.all_orders if hasattr(order, "resolution")]
+        assert len(resolved_orders) == orders_count
