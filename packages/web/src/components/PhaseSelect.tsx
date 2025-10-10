@@ -51,19 +51,29 @@ const PhaseSelect: React.FC = () => {
   const phase = game.phases.find(p => p.id === selectedPhase);
   if (!phase) throw new Error("Phase not found");
 
-  const previousDisabled = phase.ordinal === 1;
-  const nextDisabled = phase.ordinal === game.phases.length;
+  // Sort phases by ordinal to ensure proper ordering
+  const sortedPhases = [...game.phases].sort((a, b) => a.ordinal - b.ordinal);
+  const currentPhaseIndex = sortedPhases.findIndex(p => p.id === selectedPhase);
 
-  const handlePhaseSelect = (phase: number) => {
-    setSelectedPhase(phase);
+  const previousDisabled = currentPhaseIndex === 0;
+  const nextDisabled = currentPhaseIndex === sortedPhases.length - 1;
+
+  const handlePhaseSelect = (phaseId: number) => {
+    setSelectedPhase(phaseId);
   };
 
   const handleNext = () => {
-    setSelectedPhase(selectedPhase + 1);
+    if (currentPhaseIndex < sortedPhases.length - 1) {
+      const nextPhase = sortedPhases[currentPhaseIndex + 1];
+      setSelectedPhase(nextPhase.id);
+    }
   };
 
   const handlePrevious = () => {
-    setSelectedPhase(selectedPhase - 1);
+    if (currentPhaseIndex > 0) {
+      const previousPhase = sortedPhases[currentPhaseIndex - 1];
+      setSelectedPhase(previousPhase.id);
+    }
   };
 
   return (

@@ -7,7 +7,14 @@ from unittest.mock import patch
 from rest_framework import status
 from game.models import Game
 from member.models import Member
-from common.constants import GameStatus, NationAssignment, OrderCreationStep, PhaseStatus
+from common.constants import (
+    GameStatus,
+    NationAssignment,
+    OrderCreationStep,
+    OrderResolutionStatus,
+    PhaseStatus,
+    UnitType,
+)
 
 
 def create_active_game(authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant):
@@ -392,3 +399,138 @@ def test_scheduled_phase_resolution_after_time_elapsed(
     new_phase = active_game.current_phase
     assert new_phase.id != current_phase.id
     assert new_phase.status == PhaseStatus.ACTIVE
+
+
+@pytest.mark.django_db
+def test_active_game_create_move_order_fleet_to_named_coast(
+    authenticated_client,
+    authenticated_client_for_secondary_user,
+    italy_vs_germany_variant,
+    mock_send_notification_to_users,
+    mock_immediate_on_commit,
+):
+    active_game = create_active_game(
+        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+    )
+    create_order_url = reverse("order-create", args=[active_game.id])
+    first_phase = active_game.current_phase
+
+    italy_member = active_game.members.filter(nation__name="Italy").first()
+    germany_member = active_game.members.filter(nation__name="Germany").first()
+
+    # Secondary user creates an order
+    create_order_payload = {"selected": ["nap", "Move", "tys"]}
+    create_order_response = authenticated_client_for_secondary_user.post(
+        create_order_url, create_order_payload, format="json"
+    )
+
+    # Phase has not resolved yet
+    confirm_order_url = reverse("game-confirm-phase", args=[active_game.id])
+
+    # Primary user confirms their order
+    confirm_order_response = authenticated_client.put(confirm_order_url)
+    assert confirm_order_response.status_code == status.HTTP_200_OK
+
+    # Phase has not resolved yet
+    first_phase.refresh_from_db()
+    assert first_phase.status == PhaseStatus.ACTIVE
+
+    # Secondary user confirms their order
+    confirm_order_response = authenticated_client_for_secondary_user.put(confirm_order_url)
+    assert confirm_order_response.status_code == status.HTTP_200_OK
+
+    # Simulate the scheduled resolver task running
+    resolve_url = reverse("phase-resolve")
+    resolve_response = authenticated_client.post(resolve_url)
+    assert resolve_response.status_code == status.HTTP_200_OK
+    assert resolve_response.data["resolved"] >= 1
+
+    # Second phase has been created
+    second_phase = active_game.current_phase
+    assert second_phase.status == PhaseStatus.ACTIVE
+    assert second_phase.season == "Spring"
+    assert second_phase.year == 1901
+    assert second_phase.type == "Retreat"
+
+    # Test auto-resolution behavior: Retreat phase should resolve immediately
+    # since typically no retreat moves are possible in small variants
+    assert second_phase.should_resolve_immediately
+
+    # Simulate the scheduled resolver task running
+    resolve_response = authenticated_client.post(resolve_url)
+    assert resolve_response.status_code == status.HTTP_200_OK
+    assert resolve_response.data["resolved"] >= 1  # At least the retreat phase resolved
+
+    # First phase has resolved
+    first_phase.refresh_from_db()
+    assert first_phase.status == PhaseStatus.COMPLETED
+
+    # Secondary user creates an order
+    create_order_payload = {"selected": ["tys", "Move", "gol"]}
+    create_order_response = authenticated_client_for_secondary_user.post(
+        create_order_url, create_order_payload, format="json"
+    )
+
+    confirm_order_response = authenticated_client.put(confirm_order_url)
+    confirm_order_response = authenticated_client_for_secondary_user.put(confirm_order_url)
+
+    resolve_response = authenticated_client.post(resolve_url)
+    assert resolve_response.status_code == status.HTTP_200_OK
+    assert resolve_response.data["resolved"] >= 1
+
+    phase = active_game.current_phase
+    assert phase.status == PhaseStatus.ACTIVE
+    assert phase.season == "Fall"
+    assert phase.year == 1901
+    assert phase.type == "Retreat"
+
+    resolve_response = authenticated_client.post(resolve_url)
+    assert resolve_response.status_code == status.HTTP_200_OK
+    assert resolve_response.data["resolved"] >= 1
+
+    phase = active_game.current_phase
+    assert phase.status == PhaseStatus.ACTIVE
+    assert phase.season == "Fall"
+    assert phase.year == 1901
+    assert phase.type == "Adjustment"
+
+    resolve_response = authenticated_client.post(resolve_url)
+    assert resolve_response.status_code == status.HTTP_200_OK
+    assert resolve_response.data["resolved"] >= 1
+
+    phase = active_game.current_phase
+    assert phase.status == PhaseStatus.ACTIVE
+    assert phase.season == "Spring"
+    assert phase.year == 1902
+    assert phase.type == "Movement"
+
+    create_order_payload = {"selected": ["gol", "Move", "spa", "spa/sc"]}
+    create_order_response = authenticated_client_for_secondary_user.post(
+        create_order_url, create_order_payload, format="json"
+    )
+    assert create_order_response.status_code == status.HTTP_201_CREATED
+    assert create_order_response.data["selected"] == ["gol", "Move", "spa", "spa/sc"]
+    assert create_order_response.data["step"] == OrderCreationStep.COMPLETED
+    assert create_order_response.data["title"] == "Gulf of Lyon will move to Spain"
+
+    confirm_order_response = authenticated_client.put(confirm_order_url)
+    confirm_order_response = authenticated_client_for_secondary_user.put(confirm_order_url)
+
+    resolve_response = authenticated_client.post(resolve_url)
+    assert resolve_response.status_code == status.HTTP_200_OK
+    assert resolve_response.data["resolved"] >= 1
+
+    order = phase.phase_states.get(member=italy_member).orders.get(source__province_id="gol")
+
+    phase = active_game.current_phase
+    assert phase.status == PhaseStatus.ACTIVE
+    assert phase.season == "Spring"
+    assert phase.year == 1902
+    assert phase.type == "Retreat"
+
+    # Assert that order has resolved successfully
+    order.refresh_from_db()
+    assert order.resolution.status == OrderResolutionStatus.SUCCEEDED
+
+    # Assert that Italy has a fleet in Spain SC
+    assert phase.units.filter(nation__name="Italy", province__province_id="spa/sc", type=UnitType.FLEET).exists()

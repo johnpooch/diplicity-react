@@ -24,11 +24,10 @@ class OrderQuerySet(models.QuerySet):
     def with_related_data(self):
         return self.select_related(
             "phase_state__member__user",
-            "phase_state__phase",
             "phase_state__member",
             "phase_state__phase__game__variant",
             "resolution",
-        ).prefetch_related("phase_state__member__user__profile")
+        ).prefetch_related("phase_state__member__user__profile", "phase_state__phase__units")
 
 
 class OrderManager(models.Manager):
@@ -76,6 +75,8 @@ class OrderManager(models.Manager):
             order.target = self.try_get_province(phase, order_data["target"])
         if "aux" in order_data:
             order.aux = self.try_get_province(phase, order_data["aux"])
+        if "named_coast" in order_data:
+            order.named_coast = self.try_get_province(phase, order_data["named_coast"])
 
         return order
 
@@ -96,6 +97,9 @@ class Order(BaseModel):
         "province.Province", on_delete=models.CASCADE, related_name="aux_orders", null=True, blank=True
     )
     unit_type = models.CharField(max_length=50, choices=UnitType.UNIT_TYPE_CHOICES, null=True, blank=True)
+    named_coast = models.ForeignKey(
+        "province.Province", on_delete=models.CASCADE, related_name="named_coast_orders", null=True, blank=True
+    )
 
     class Meta:
         constraints = [
@@ -119,7 +123,11 @@ class Order(BaseModel):
 
     @property
     def options(self):
-        return get_options_for_order(self.phase.options, self)
+        return get_options_for_order(self.phase.transformed_options, self)
+
+    @property
+    def source_unit(self):
+        return self.phase.units.filter(province=self.source).first()
 
     @property
     def options_display(self):
@@ -149,6 +157,8 @@ class Order(BaseModel):
             result.append(self.aux.province_id)
         if self.target:
             result.append(self.target.province_id)
+        if self.named_coast:
+            result.append(self.named_coast.province_id)
         return result
 
     @property
@@ -159,8 +169,25 @@ class Order(BaseModel):
         if self.order_type == OrderType.BUILD and not self.unit_type:
             return OrderCreationStep.SELECT_UNIT_TYPE
 
+        if (
+            self.order_type == OrderType.BUILD
+            and self.unit_type == UnitType.FLEET
+            and self.source.named_coasts.exists()
+            and not self.named_coast
+        ):
+            return OrderCreationStep.SELECT_NAMED_COAST
+
         if self.order_type in [OrderType.MOVE, OrderType.MOVE_VIA_CONVOY] and not self.target:
             return OrderCreationStep.SELECT_TARGET
+
+        if (
+            self.order_type == OrderType.MOVE
+            and self.target
+            and self.target.named_coasts.exists()
+            and self.source_unit.type == UnitType.FLEET
+            and not self.named_coast
+        ):
+            return OrderCreationStep.SELECT_NAMED_COAST
 
         if self.order_type in [OrderType.SUPPORT, OrderType.CONVOY]:
             if not self.aux:
@@ -180,6 +207,10 @@ class Order(BaseModel):
 
         if step == OrderCreationStep.SELECT_ORDER_TYPE:
             return f"Select order type for {self.source.name}"
+        elif step == OrderCreationStep.SELECT_NAMED_COAST and self.order_type == OrderType.BUILD:
+            return f"Select which coast of {self.source.name} to build a fleet on"
+        elif step == OrderCreationStep.SELECT_NAMED_COAST and self.order_type == OrderType.MOVE:
+            return f"Select which coast of {self.target.name} to move to"
         elif step == OrderCreationStep.SELECT_UNIT_TYPE and self.order_type == OrderType.BUILD:
             return f"Select unit type to build in {self.source.name}"
         elif step == OrderCreationStep.SELECT_TARGET and self.order_type in [OrderType.MOVE, OrderType.MOVE_VIA_CONVOY]:
@@ -197,6 +228,8 @@ class Order(BaseModel):
         elif step == OrderCreationStep.COMPLETED and self.order_type == OrderType.DISBAND:
             return f"{self.source.name} will be disbanded"
         elif step == OrderCreationStep.COMPLETED and self.order_type == OrderType.BUILD:
+            if self.named_coast:
+                return f"{self.unit_type} will be built in {self.named_coast.name}"
             return f"{self.unit_type} will be built in {self.source.name}"
         elif step == OrderCreationStep.COMPLETED and self.order_type in [OrderType.MOVE, OrderType.MOVE_VIA_CONVOY]:
             action = "move via convoy to" if self.order_type == OrderType.MOVE_VIA_CONVOY else "move to"
@@ -220,7 +253,7 @@ class Order(BaseModel):
 
     def clean(self):
         try:
-            get_options_for_order(self.phase.options, self)
+            get_options_for_order(self.phase.transformed_options, self)
         except Exception as e:
             raise exceptions.ValidationError(e)
 

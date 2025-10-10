@@ -16,9 +16,13 @@ def get_order_data_from_selected(selected):
     if result["order_type"] == OrderType.BUILD:
         if len(selected) >= 3:
             result["unit_type"] = selected[2]
+        if len(selected) >= 4:
+            result["named_coast"] = selected[3]
     elif result["order_type"] in [OrderType.MOVE, OrderType.MOVE_VIA_CONVOY]:
         if len(selected) >= 3:
             result["target"] = selected[2]
+        if len(selected) >= 4:
+            result["named_coast"] = selected[3]
     elif result["order_type"] == OrderType.SUPPORT:
         if len(selected) >= 3:
             result["aux"] = selected[2]
@@ -36,7 +40,7 @@ def get_order_data_from_selected(selected):
 def _navigate_options(current_options, key, error_message):
     if key not in current_options:
         raise ValueError(error_message)
-    return current_options[key].get("Next", {})
+    return current_options[key]
 
 
 def get_options_for_order(options, order):
@@ -53,12 +57,6 @@ def get_options_for_order(options, order):
         current_options = _navigate_options(
             current_options, order.order_type, f"Order type {order.order_type} not found in options"
         )
-
-        # TODO Add explainer
-        if len(current_options) == 1:
-            key = list(current_options.keys())[0]
-            if current_options[key].get("Type") == "SrcProvince":
-                current_options = current_options[key].get("Next", {})
 
     if order.order_type in [OrderType.SUPPORT, OrderType.CONVOY]:
         if order.aux:

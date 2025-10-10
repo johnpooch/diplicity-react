@@ -361,6 +361,36 @@ def classical_spain_province(django_db_setup, django_db_blocker, classical_varia
         return Province.objects.get(province_id="spa", variant=classical_variant)
 
 
+@pytest.fixture(scope="session")
+def classical_spain_nc_province(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="spa/nc", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_spain_sc_province(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="spa/sc", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_stp_province(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="stp", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_stp_nc_province(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="stp/nc", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_stp_sc_province(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="stp/sc", variant=classical_variant)
+
+
 @pytest.fixture
 def sample_options():
     return {
@@ -490,6 +520,7 @@ def mock_immediate_on_commit():
     with patch("django.db.transaction.on_commit", side_effect=immediate_on_commit):
         yield
 
+
 @pytest.fixture(scope="session")
 def classical_italy_nation(django_db_setup, django_db_blocker, classical_variant):
     with django_db_blocker.unblock():
@@ -512,3 +543,46 @@ def classical_turkey_nation(django_db_setup, django_db_blocker, classical_varian
 def classical_russia_nation(django_db_setup, django_db_blocker, classical_variant):
     with django_db_blocker.unblock():
         return Nation.objects.get(name="Russia", variant=classical_variant)
+
+
+@pytest.fixture
+def godip_options_simple_hold():
+    return {
+        "England": {
+            "lon": {
+                "Next": {"Hold": {"Next": {"lon": {"Next": {}, "Type": "SrcProvince"}}, "Type": "OrderType"}},
+                "Type": "Province",
+            }
+        }
+    }
+
+
+@pytest.fixture
+def godip_options_england_london_hold():
+    return {
+        "England": {
+            "lon": {
+                "Next": {"Hold": {"Next": {"lon": {"Next": {}, "Type": "SrcProvince"}}, "Type": "OrderType"}},
+                "Type": "Province",
+            }
+        },
+        "France": {},
+    }
+
+
+@pytest.fixture
+def godip_options_england_france_both_hold():
+    return {
+        "England": {
+            "lon": {
+                "Next": {"Hold": {"Next": {"lon": {"Next": {}, "Type": "SrcProvince"}}, "Type": "OrderType"}},
+                "Type": "Province",
+            }
+        },
+        "France": {
+            "par": {
+                "Next": {"Hold": {"Next": {"par": {"Next": {}, "Type": "SrcProvince"}}, "Type": "OrderType"}},
+                "Type": "Province",
+            }
+        },
+    }

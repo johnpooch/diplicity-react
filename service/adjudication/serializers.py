@@ -1,6 +1,8 @@
 from collections import defaultdict
 from rest_framework import serializers
 
+from common.constants import OrderType, UnitType
+
 
 class AdjudcationOrderSerializer(serializers.Serializer):
     nation = serializers.CharField()
@@ -66,7 +68,15 @@ class AdjudicationSerializer(serializers.Serializer):
         # Marshall orders into a dict: { nation: { source: [...] }}
         temp_dict = defaultdict(dict)
         for order in instance.all_orders:
-            temp_dict[order.nation.name][order.selected[0]] = order.selected[1:]
+            if order.order_type == OrderType.BUILD and order.unit_type == UnitType.FLEET and order.named_coast:
+                temp_dict[order.nation.name][order.named_coast.province_id] = [order.order_type, order.unit_type]
+            elif order.order_type == OrderType.MOVE and order.named_coast:
+                temp_dict[order.nation.name][order.source.province_id] = [
+                    order.order_type,
+                    order.named_coast.province_id,
+                ]
+            else:
+                temp_dict[order.nation.name][order.selected[0]] = order.selected[1:]
         instance.orders_godip = dict(temp_dict)
 
         instance.resolutions_godip = {}
@@ -113,15 +123,20 @@ class AdjudicationSerializer(serializers.Serializer):
         # Merge units and dislodgeds
         units.extend(dislodgeds)
 
-        # Marshall resolutions into a list of dicts
-        resolutions = [
-            {
-                "province": province,
-                "result": result.split(":")[0] if ":" in result else result,
-                "by": result.split(":")[1] if ":" in result else None,
-            }
-            for province, result in phase["Resolutions"].items()
-        ]
+        resolutions = []
+        for province, result in phase["Resolutions"].items():
+            # Check if the resolution is for a named coast - if it is, set the source to the parent province
+            if variant.provinces.filter(province_id=province, parent__isnull=False).exists():
+                source = variant.provinces.get(province_id=province).parent.province_id
+            else:
+                source = province
+            resolutions.append(
+                {
+                    "province": source,
+                    "result": result.split(":")[0] if ":" in result else result,
+                    "by": result.split(":")[1] if ":" in result else None,
+                }
+            )
 
         # Filter options to only include variant nations
         options = {

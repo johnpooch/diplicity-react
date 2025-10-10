@@ -8,6 +8,7 @@ from datetime import timedelta
 from common.constants import PhaseStatus, PhaseType
 from adjudication.service import resolve
 from order.models import OrderResolution
+from phase.utils import transform_options
 
 logger = logging.getLogger(__name__)
 
@@ -200,9 +201,13 @@ class Phase(BaseModel):
         return [order for phase_state in self.phase_states.all() for order in phase_state.orders.all()]
 
     @property
+    def transformed_options(self):
+        return transform_options(self.options or {})
+
+    @property
     def nations_with_possible_orders(self):
         nations = set()
-        for nation, options in (self.options or {}).items():
+        for nation, options in (self.transformed_options or {}).items():
             if any(province_data for province_data in options.values()):
                 nations.add(nation)
         return nations
@@ -237,7 +242,7 @@ class PhaseState(BaseModel):
 
     @property
     def orderable_provinces(self):
-        options = self.phase.options
+        options = self.phase.transformed_options
         nation = self.member.nation
         orderable_ids = list(options[nation.name].keys())
         base_provinces = (

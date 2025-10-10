@@ -614,12 +614,14 @@ export type StepEnum =
   | "select-unit-type"
   | "select-target"
   | "select-aux"
+  | "select-named-coast"
   | "completed";
 export type NullEnum = null;
 export type OrderRead = {
   source: ProvinceRead;
   target: ProvinceRead;
   aux: ProvinceRead;
+  namedCoast: ProvinceRead;
   resolution: OrderResolutionRead;
   options: OrderOption[];
   orderType: OrderTypeEnum;

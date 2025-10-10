@@ -339,7 +339,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
           );
         })}
       {props.orders?.filter(o => o.orderType === "Hold").map((o) => {
-        const source = map.provinces.find(p => p.id === o.source.id);
+        const source = o.namedCoast ? map.provinces.find(p => p.id === o.namedCoast.id) : map.provinces.find(p => p.id === o.source.id);
         if (!source) return null;
         return (
           <Octagon
@@ -458,7 +458,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
       {props.orders?.filter(o => o.orderType === "Build").map((o) => {
         const color = props.variant.nations.find(n => n.name === o.nation.name)
           ?.color as string;
-        const source = map.provinces.find(p => p.id === o.source.id);
+        const source = o.namedCoast ? map.provinces.find(p => p.id === o.namedCoast.id) : map.provinces.find(p => p.id === o.source.id);
         if (!source) return null;
         const { x, y } = source.center;
 

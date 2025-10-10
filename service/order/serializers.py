@@ -21,6 +21,7 @@ class OrderSerializer(serializers.Serializer):
     source = ProvinceSerializer(read_only=True)
     target = ProvinceSerializer(read_only=True)
     aux = ProvinceSerializer(read_only=True)
+    named_coast = ProvinceSerializer(read_only=True)
     resolution = OrderResolutionSerializer(read_only=True)
     options = OrderOptionSerializer(source="options_display", read_only=True, many=True)
     order_type = serializers.ChoiceField(choices=OrderType.ORDER_TYPE_CHOICES, read_only=True)
@@ -41,7 +42,7 @@ class OrderSerializer(serializers.Serializer):
     def validate_selected(self, value):
         order = Order.objects.create_from_selected(self.context["request"].user, self.context["phase"], value)
         try:
-            get_options_for_order(order.phase.options, order)
+            get_options_for_order(order.phase.transformed_options, order)
         except Exception as e:
             raise exceptions.ValidationError(e)
         return order.selected

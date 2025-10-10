@@ -84,6 +84,7 @@ class OrderCreationStep:
     SELECT_UNIT_TYPE = "select-unit-type"
     SELECT_TARGET = "select-target"
     SELECT_AUX = "select-aux"
+    SELECT_NAMED_COAST = "select-named-coast"
     COMPLETED = "completed"
 
     ORDER_CREATION_STEP_CHOICES = (
@@ -91,6 +92,7 @@ class OrderCreationStep:
         (SELECT_UNIT_TYPE, "select-unit-type"),
         (SELECT_TARGET, "select-target"),
         (SELECT_AUX, "select-aux"),
+        (SELECT_NAMED_COAST, "select-named-coast"),
         (COMPLETED, "completed"),
     )
 

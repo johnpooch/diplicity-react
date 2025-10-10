@@ -1,4 +1,5 @@
 import json
+from phase.utils import transform_options
 import pytest
 from django.urls import reverse
 from django.test.utils import override_settings
@@ -457,14 +458,14 @@ class TestOrderCreateView:
 
     def test_order_create_move_via_convoy_with_source(self, authenticated_client, game_with_options, primary_user):
         game = game_with_options
-        
+
         # Update options to include MoveViaConvoy
         phase = game.current_phase
         sample_options = phase.options.copy()
         sample_options["England"]["bud"]["Next"]["MoveViaConvoy"] = sample_options["England"]["bud"]["Next"]["Move"]
         phase.options = sample_options
         phase.save()
-        
+
         url = reverse("order-create", args=[game.id])
         data = {"selected": ["bud", "MoveViaConvoy"]}
         response = authenticated_client.post(url, data, format="json")
@@ -492,16 +493,18 @@ class TestOrderCreateView:
         assert response.data["step"] == OrderCreationStep.SELECT_TARGET
         assert response.data["title"] == "Select province to move Budapest to"
 
-    def test_order_create_move_via_convoy_with_source_and_target(self, authenticated_client, game_with_options, primary_user):
+    def test_order_create_move_via_convoy_with_source_and_target(
+        self, authenticated_client, game_with_options, primary_user
+    ):
         game = game_with_options
-        
+
         # Update options to include MoveViaConvoy
         phase = game.current_phase
         sample_options = phase.options.copy()
         sample_options["England"]["bud"]["Next"]["MoveViaConvoy"] = sample_options["England"]["bud"]["Next"]["Move"]
         phase.options = sample_options
         phase.save()
-        
+
         url = reverse("order-create", args=[game.id])
         data = {"selected": ["bud", "MoveViaConvoy", "gal"]}
         response = authenticated_client.post(url, data, format="json")
@@ -523,16 +526,18 @@ class TestOrderCreateView:
         assert response.data["step"] == OrderCreationStep.COMPLETED
         assert response.data["title"] == "Budapest will move via convoy to Galicia"
 
-    def test_order_create_move_via_convoy_with_invalid_target(self, authenticated_client, game_with_options, primary_user):
+    def test_order_create_move_via_convoy_with_invalid_target(
+        self, authenticated_client, game_with_options, primary_user
+    ):
         game = game_with_options
-        
+
         # Update options to include MoveViaConvoy
         phase = game.current_phase
         sample_options = phase.options.copy()
         sample_options["England"]["bud"]["Next"]["MoveViaConvoy"] = sample_options["England"]["bud"]["Next"]["Move"]
         phase.options = sample_options
         phase.save()
-        
+
         url = reverse("order-create", args=[game.id])
         data = {"selected": ["bud", "MoveViaConvoy", "invalid"]}
         response = authenticated_client.post(url, data, format="json")
@@ -714,7 +719,7 @@ class TestOrderListViewQueryPerformance:
             response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(connection.queries) == 9
+        assert len(connection.queries) == 13
 
     @pytest.mark.django_db
     def test_list_orders_query_count_with_multiple_orders(
@@ -751,7 +756,7 @@ class TestOrderListViewQueryPerformance:
             response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(connection.queries) == 9
+        assert len(connection.queries) == 13
 
 
 class TestOrderCreateViewQueryPerformance:
@@ -769,7 +774,7 @@ class TestOrderCreateViewQueryPerformance:
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
 
-        assert query_count == 19
+        assert query_count == 23
 
 
 class TestGetOptionsForOrder:
@@ -777,7 +782,7 @@ class TestGetOptionsForOrder:
     @pytest.mark.django_db
     def test_no_source_returns_nation_provinces(self, sample_options, test_phase_state):
         order = Order(phase_state=test_phase_state, source=None, order_type=None, target=None, aux=None)
-        options = get_options_for_order(sample_options, order)
+        options = get_options_for_order(transform_options(sample_options), order)
         assert "bud" in options
         assert "tri" in options
         assert len(options) == 2
@@ -787,7 +792,7 @@ class TestGetOptionsForOrder:
         order = Order(
             phase_state=test_phase_state, source=classical_budapest_province, order_type=None, target=None, aux=None
         )
-        options = get_options_for_order(sample_options, order)
+        options = get_options_for_order(transform_options(sample_options), order)
         assert "Hold" in options
         assert "Move" in options
         assert "Support" in options
@@ -800,7 +805,7 @@ class TestGetOptionsForOrder:
         order = Order(
             phase_state=test_phase_state, source=classical_budapest_province, order_type="Move", target=None, aux=None
         )
-        options = get_options_for_order(sample_options, order)
+        options = get_options_for_order(transform_options(sample_options), order)
         assert "gal" in options
         assert "rum" in options
         assert "ser" in options
@@ -815,7 +820,7 @@ class TestGetOptionsForOrder:
         order = Order(
             phase_state=test_phase_state, source=classical_budapest_province, order_type="Hold", target=None, aux=None
         )
-        options = get_options_for_order(sample_options, order)
+        options = get_options_for_order(transform_options(sample_options), order)
         assert options == []
 
     @pytest.mark.django_db
@@ -829,7 +834,7 @@ class TestGetOptionsForOrder:
             target=classical_trieste_province,
             aux=None,
         )
-        options = get_options_for_order(sample_options, order)
+        options = get_options_for_order(transform_options(sample_options), order)
         assert options == []
 
     @pytest.mark.django_db
@@ -843,7 +848,7 @@ class TestGetOptionsForOrder:
             target=classical_trieste_province,
             aux=classical_trieste_province,
         )
-        options = get_options_for_order(sample_options, order)
+        options = get_options_for_order(transform_options(sample_options), order)
         assert options == []
 
     @pytest.mark.django_db
@@ -852,7 +857,7 @@ class TestGetOptionsForOrder:
             phase_state=test_phase_state, source=classical_london_province, order_type=None, target=None, aux=None
         )
         with pytest.raises(ValueError, match="Source province lon not found in options"):
-            get_options_for_order(sample_options, order)
+            get_options_for_order(transform_options(sample_options), order)
 
     @pytest.mark.django_db
     def test_invalid_order_type_raises_error(self, sample_options, test_phase_state, classical_budapest_province):
@@ -864,7 +869,7 @@ class TestGetOptionsForOrder:
             aux=None,
         )
         with pytest.raises(ValueError, match="Order type InvalidType not found in options"):
-            get_options_for_order(sample_options, order)
+            get_options_for_order(transform_options(sample_options), order)
 
     @pytest.mark.django_db
     def test_invalid_target_raises_error(
@@ -878,7 +883,7 @@ class TestGetOptionsForOrder:
             aux=None,
         )
         with pytest.raises(ValueError, match="Target province lon not found in options"):
-            get_options_for_order(sample_options, order)
+            get_options_for_order(transform_options(sample_options), order)
 
     @pytest.mark.django_db
     def test_invalid_aux_raises_error(
@@ -897,7 +902,7 @@ class TestGetOptionsForOrder:
             aux=classical_london_province,
         )
         with pytest.raises(ValueError, match="Auxiliary province lon not found in options"):
-            get_options_for_order(sample_options, order)
+            get_options_for_order(transform_options(sample_options), order)
 
     @pytest.mark.django_db
     def test_nested_support_order_options(self, sample_options, test_phase_state, classical_budapest_province):
@@ -908,7 +913,7 @@ class TestGetOptionsForOrder:
             target=None,
             aux=None,
         )
-        options = get_options_for_order(sample_options, order)
+        options = get_options_for_order(transform_options(sample_options), order)
         assert "sev" in options
         assert "tri" in options
         assert "vie" in options
@@ -925,7 +930,7 @@ class TestGetOptionsForOrder:
             target=None,
             aux=classical_vienna_province,
         )
-        options = get_options_for_order(sample_options, order)
+        options = get_options_for_order(transform_options(sample_options), order)
         assert "gal" in options
         assert "tri" in options
         assert "vie" in options
@@ -937,7 +942,7 @@ class TestGetOptionsForOrder:
         order = Order(phase_state=test_phase_state, source=None, order_type=None, target=None, aux=None)
 
         with pytest.raises(KeyError):
-            get_options_for_order(empty_options, order)
+            get_options_for_order(transform_options(empty_options), order)
 
     @pytest.mark.django_db
     def test_convoy_order_structure(self, sample_options, test_phase_state, classical_budapest_province):
@@ -957,7 +962,7 @@ class TestGetOptionsForOrder:
             target=None,
             aux=None,
         )
-        options = get_options_for_order(sample_options, order)
+        options = get_options_for_order(transform_options(sample_options), order)
         assert "sev" in options
         assert len(options) == 1
 
@@ -979,7 +984,7 @@ class TestGetOptionsForOrder:
             target=None,
             aux=None,
         )
-        options = get_options_for_order(sample_options, order)
+        options = get_options_for_order(transform_options(sample_options), order)
         assert "Army" in options
         assert "Fleet" in options
         assert len(options) == 2
@@ -997,7 +1002,7 @@ class TestGetOptionsForOrder:
             target=None,
             aux=None,
         )
-        options = get_options_for_order(sample_options, order)
+        options = get_options_for_order(transform_options(sample_options), order)
         assert options == []
 
 
@@ -1068,6 +1073,54 @@ class TestOrderComplete:
         assert order.complete is True
 
     @pytest.mark.django_db
+    def test_move_fleet_order_complete_when_named_coast_set(
+        self,
+        test_phase_state,
+        classical_london_province,
+        classical_spain_province,
+        classical_spain_nc_province,
+        classical_england_nation,
+    ):
+        """Test that MOVE Fleet orders are complete when named coast is selected."""
+        phase = test_phase_state.phase
+        # Create a fleet unit at the source
+        phase.units.create(
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
+
+        order = Order(
+            phase_state=test_phase_state,
+            order_type=OrderType.MOVE,
+            source=classical_london_province,
+            target=classical_spain_province,
+            named_coast=classical_spain_nc_province,
+        )
+        assert order.complete is True
+
+    @pytest.mark.django_db
+    def test_move_fleet_order_incomplete_when_named_coast_missing(
+        self, test_phase_state, classical_london_province, classical_spain_province, classical_england_nation
+    ):
+        """Test that MOVE Fleet orders are incomplete when named coast is missing."""
+        phase = test_phase_state.phase
+        # Create a fleet unit at the source
+        phase.units.create(
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
+
+        order = Order(
+            phase_state=test_phase_state,
+            order_type=OrderType.MOVE,
+            source=classical_london_province,
+            target=classical_spain_province,
+        )
+        assert order.complete is False
+
+    @pytest.mark.django_db
     def test_move_order_incomplete_when_target_none(self, test_phase_state, classical_london_province):
         order = Order(
             phase_state=test_phase_state, order_type=OrderType.MOVE, source=classical_london_province, target=None
@@ -1091,6 +1144,31 @@ class TestOrderComplete:
             unit_type=UnitType.ARMY,
         )
         assert order_army.complete is True
+
+    @pytest.mark.django_db
+    def test_build_fleet_order_complete_when_named_coast_set(
+        self, test_phase_state, classical_spain_province, classical_spain_nc_province
+    ):
+        """Test that BUILD Fleet orders are complete when named coast is selected."""
+        order = Order(
+            phase_state=test_phase_state,
+            order_type=OrderType.BUILD,
+            source=classical_spain_province,
+            unit_type=UnitType.FLEET,
+            named_coast=classical_spain_nc_province,
+        )
+        assert order.complete is True
+
+    @pytest.mark.django_db
+    def test_build_fleet_order_incomplete_when_named_coast_missing(self, test_phase_state, classical_spain_province):
+        """Test that BUILD Fleet orders are incomplete when named coast is missing."""
+        order = Order(
+            phase_state=test_phase_state,
+            order_type=OrderType.BUILD,
+            source=classical_spain_province,
+            unit_type=UnitType.FLEET,
+        )
+        assert order.complete is False
 
     @pytest.mark.django_db
     def test_build_order_incomplete_when_unit_type_none(self, test_phase_state, classical_london_province):
@@ -1203,7 +1281,10 @@ class TestOrderComplete:
     @pytest.mark.django_db
     def test_move_via_convoy_order_incomplete_when_target_none(self, test_phase_state, classical_london_province):
         order = Order(
-            phase_state=test_phase_state, order_type=OrderType.MOVE_VIA_CONVOY, source=classical_london_province, target=None
+            phase_state=test_phase_state,
+            order_type=OrderType.MOVE_VIA_CONVOY,
+            source=classical_london_province,
+            target=None,
         )
         assert order.complete is False
 
@@ -1308,6 +1389,26 @@ class TestGetOrderDataFromSelected:
     def test_disband_order(self):
         result = get_order_data_from_selected(["ber", OrderType.DISBAND])
         expected = {"source": "ber", "order_type": OrderType.DISBAND}
+        assert result == expected
+
+    def test_build_order_with_named_coast(self):
+        result = get_order_data_from_selected(["spa", OrderType.BUILD, UnitType.FLEET, "spa/nc"])
+        expected = {
+            "source": "spa",
+            "order_type": OrderType.BUILD,
+            "unit_type": UnitType.FLEET,
+            "named_coast": "spa/nc",
+        }
+        assert result == expected
+
+    def test_move_order_with_named_coast(self):
+        result = get_order_data_from_selected(["lon", OrderType.MOVE, "spa", "spa/nc"])
+        expected = {"source": "lon", "order_type": OrderType.MOVE, "target": "spa", "named_coast": "spa/nc"}
+        assert result == expected
+
+    def test_move_via_convoy_order_with_named_coast(self):
+        result = get_order_data_from_selected(["lon", OrderType.MOVE_VIA_CONVOY, "spa", "spa/nc"])
+        expected = {"source": "lon", "order_type": OrderType.MOVE_VIA_CONVOY, "target": "spa", "named_coast": "spa/nc"}
         assert result == expected
 
 
@@ -1617,3 +1718,508 @@ class TestOrderValidationLimits:
             exceptions.ValidationError, match="Cannot create order: nation has reached maximum of 1 orders"
         ):
             order2.clean()
+
+
+class TestOrderNamedCoastStep:
+
+    @pytest.mark.django_db
+    def test_build_fleet_step_selects_named_coast_when_source_has_named_coasts(
+        self, test_phase_state, classical_spain_province
+    ):
+        """Test that BUILD Fleet orders require named coast selection when source has named coasts."""
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_spain_province,
+            order_type=OrderType.BUILD,
+            unit_type=UnitType.FLEET,
+        )
+
+        assert order.step == OrderCreationStep.SELECT_NAMED_COAST
+
+    @pytest.mark.django_db
+    def test_build_army_step_does_not_select_named_coast(self, test_phase_state, classical_spain_province):
+        """Test that BUILD Army orders do not require named coast selection."""
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_spain_province,
+            order_type=OrderType.BUILD,
+            unit_type=UnitType.ARMY,
+        )
+
+        assert order.step == OrderCreationStep.COMPLETED
+
+    @pytest.mark.django_db
+    def test_build_fleet_step_completed_when_named_coast_selected(
+        self, test_phase_state, classical_spain_province, classical_spain_nc_province
+    ):
+        """Test that BUILD Fleet orders are completed when named coast is selected."""
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_spain_province,
+            order_type=OrderType.BUILD,
+            unit_type=UnitType.FLEET,
+            named_coast=classical_spain_nc_province,
+        )
+
+        assert order.step == OrderCreationStep.COMPLETED
+
+    @pytest.mark.django_db
+    def test_build_fleet_step_does_not_select_named_coast_when_source_has_no_named_coasts(
+        self, test_phase_state, classical_london_province
+    ):
+        """Test that BUILD Fleet orders do not require named coast selection when source has no named coasts."""
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_london_province,
+            order_type=OrderType.BUILD,
+            unit_type=UnitType.FLEET,
+        )
+
+        assert order.step == OrderCreationStep.COMPLETED
+
+    @pytest.mark.django_db
+    def test_move_fleet_step_selects_named_coast_when_target_has_named_coasts(
+        self, test_phase_state, classical_london_province, classical_spain_province, classical_england_nation
+    ):
+        """Test that MOVE Fleet orders require named coast selection when target has named coasts."""
+        phase = test_phase_state.phase
+        # Create a fleet unit at the source
+        phase.units.create(
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
+
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_london_province,
+            order_type=OrderType.MOVE,
+            target=classical_spain_province,
+        )
+
+        assert order.step == OrderCreationStep.SELECT_NAMED_COAST
+
+    @pytest.mark.django_db
+    def test_move_army_step_does_not_select_named_coast(
+        self, test_phase_state, classical_london_province, classical_spain_province, classical_england_nation
+    ):
+        """Test that MOVE Army orders do not require named coast selection."""
+        phase = test_phase_state.phase
+        # Create an army unit at the source
+        phase.units.create(
+            type=UnitType.ARMY,
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
+
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_london_province,
+            order_type=OrderType.MOVE,
+            target=classical_spain_province,
+        )
+
+        assert order.step == OrderCreationStep.COMPLETED
+
+    @pytest.mark.django_db
+    def test_move_fleet_step_completed_when_named_coast_selected(
+        self,
+        test_phase_state,
+        classical_london_province,
+        classical_spain_province,
+        classical_spain_nc_province,
+        classical_england_nation,
+    ):
+        """Test that MOVE Fleet orders are completed when named coast is selected."""
+        phase = test_phase_state.phase
+        # Create a fleet unit at the source
+        phase.units.create(
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
+
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_london_province,
+            order_type=OrderType.MOVE,
+            target=classical_spain_province,
+            named_coast=classical_spain_nc_province,
+        )
+
+        assert order.step == OrderCreationStep.COMPLETED
+
+    @pytest.mark.django_db
+    def test_move_fleet_step_does_not_select_named_coast_when_target_has_no_named_coasts(
+        self, test_phase_state, classical_london_province, classical_paris_province, classical_england_nation
+    ):
+        """Test that MOVE Fleet orders do not require named coast selection when target has no named coasts."""
+        phase = test_phase_state.phase
+        # Create a fleet unit at the source
+        phase.units.create(
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
+
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_london_province,
+            order_type=OrderType.MOVE,
+            target=classical_paris_province,
+        )
+
+        assert order.step == OrderCreationStep.COMPLETED
+
+
+class TestOrderNamedCoastTitles:
+
+    @pytest.mark.django_db
+    def test_build_named_coast_title(self, test_phase_state, classical_spain_province):
+        """Test title generation for BUILD named coast selection."""
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_spain_province,
+            order_type=OrderType.BUILD,
+            unit_type=UnitType.FLEET,
+        )
+
+        assert order.title == "Select which coast of Spain to build a fleet on"
+
+    @pytest.mark.django_db
+    def test_move_named_coast_title(
+        self, test_phase_state, classical_london_province, classical_spain_province, classical_england_nation
+    ):
+        """Test title generation for MOVE named coast selection."""
+        phase = test_phase_state.phase
+        # Create a fleet unit at the source
+        phase.units.create(
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
+
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_london_province,
+            order_type=OrderType.MOVE,
+            target=classical_spain_province,
+        )
+
+        assert order.title == "Select which coast of Spain to move to"
+
+
+class TestOrderNamedCoastSelectedProperty:
+
+    @pytest.mark.django_db
+    def test_selected_includes_named_coast_for_build_order(
+        self, test_phase_state, classical_spain_province, classical_spain_nc_province
+    ):
+        """Test that selected property includes named_coast for BUILD orders."""
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_spain_province,
+            order_type=OrderType.BUILD,
+            unit_type=UnitType.FLEET,
+            named_coast=classical_spain_nc_province,
+        )
+
+        expected = ["spa", "Build", "Fleet", "spa/nc"]
+        assert order.selected == expected
+
+    @pytest.mark.django_db
+    def test_selected_includes_named_coast_for_move_order(
+        self, test_phase_state, classical_london_province, classical_spain_province, classical_spain_nc_province
+    ):
+        """Test that selected property includes named_coast for MOVE orders."""
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_london_province,
+            order_type=OrderType.MOVE,
+            target=classical_spain_province,
+            named_coast=classical_spain_nc_province,
+        )
+
+        expected = ["lon", "Move", "spa", "spa/nc"]
+        assert order.selected == expected
+
+    @pytest.mark.django_db
+    def test_selected_does_not_include_named_coast_when_none(
+        self, test_phase_state, classical_london_province, classical_paris_province
+    ):
+        """Test that selected property does not include named_coast when it's None."""
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_london_province,
+            order_type=OrderType.MOVE,
+            target=classical_paris_province,
+            named_coast=None,
+        )
+
+        expected = ["lon", "Move", "par"]
+        assert order.selected == expected
+
+
+class TestOrderNamedCoastCreation:
+
+    @pytest.mark.django_db
+    def test_order_create_build_fleet_with_named_coast(
+        self,
+        authenticated_client,
+        game_with_options,
+        primary_user,
+        classical_spain_province,
+        classical_spain_nc_province,
+    ):
+        """Test creating a BUILD Fleet order with named coast selection."""
+        game = game_with_options
+        phase = game.current_phase
+
+        # Set up options for Spain with named coasts
+        phase.options = {
+            "England": {
+                "spa": {
+                    "Next": {
+                        "Build": {
+                            "Next": {
+                                "Fleet": {
+                                    "Next": {
+                                        "spa/nc": {"Next": {}, "Type": "SrcProvince"},
+                                        "spa/sc": {"Next": {}, "Type": "SrcProvince"},
+                                    },
+                                    "Type": "UnitType",
+                                },
+                            },
+                            "Type": "OrderType",
+                        },
+                    },
+                    "Type": "Province",
+                },
+            },
+        }
+        phase.save()
+
+        url = reverse("order-create", args=[game.id])
+        data = {"selected": ["spa", "Build", "Fleet", "spa/nc"]}
+        response = authenticated_client.post(url, data, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert Order.objects.count() == 1
+
+        order = Order.objects.first()
+        assert order.source == classical_spain_province
+        assert order.order_type == OrderType.BUILD
+        assert order.unit_type == UnitType.FLEET
+        assert order.named_coast == classical_spain_nc_province
+        assert order.complete is True
+
+    @pytest.mark.django_db
+    def test_order_create_move_fleet_with_named_coast(
+        self,
+        authenticated_client,
+        game_with_options,
+        primary_user,
+        classical_london_province,
+        classical_spain_province,
+        classical_spain_nc_province,
+        classical_england_nation,
+    ):
+        """Test creating a MOVE Fleet order with named coast selection."""
+        game = game_with_options
+        phase = game.current_phase
+
+        # Create a fleet unit at London
+        phase.units.create(
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
+
+        # Set up options for London to move to Spain with named coasts
+        phase.options = {
+            "England": {
+                "lon": {
+                    "Next": {
+                        "Move": {
+                            "Next": {
+                                "spa": {
+                                    "Next": {
+                                        "spa/nc": {"Next": {}, "Type": "Province"},
+                                        "spa/sc": {"Next": {}, "Type": "Province"},
+                                    },
+                                    "Type": "Province",
+                                },
+                            },
+                            "Type": "OrderType",
+                        },
+                    },
+                    "Type": "Province",
+                },
+            },
+        }
+        phase.save()
+
+        url = reverse("order-create", args=[game.id])
+        data = {"selected": ["lon", "Move", "spa", "spa/nc"]}
+        response = authenticated_client.post(url, data, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert Order.objects.count() == 1
+
+        order = Order.objects.first()
+        assert order.source == classical_london_province
+        assert order.order_type == OrderType.MOVE
+        assert order.target == classical_spain_province
+        assert order.named_coast == classical_spain_nc_province
+        assert order.complete is True
+
+    @pytest.mark.django_db
+    def test_order_create_build_fleet_step_by_step(
+        self, authenticated_client, game_with_options, primary_user, classical_spain_province
+    ):
+        """Test creating a BUILD Fleet order step by step with named coast selection."""
+        game = game_with_options
+        phase = game.current_phase
+
+        # Set up options for Spain with named coasts
+        phase.options = {
+            "England": {
+                "spa": {
+                    "Next": {
+                        "Build": {
+                            "Next": {
+                                "Fleet": {
+                                    "Next": {
+                                        "spa/nc": {"Next": {}, "Type": "SrcProvince"},
+                                        "spa/sc": {"Next": {}, "Type": "SrcProvince"},
+                                    },
+                                    "Type": "UnitType",
+                                },
+                            },
+                            "Type": "OrderType",
+                        },
+                    },
+                    "Type": "Province",
+                },
+            },
+        }
+        phase.save()
+
+        url = reverse("order-create", args=[game.id])
+
+        # Step 1: Select source
+        data = {"selected": ["spa"]}
+        response = authenticated_client.post(url, data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["step"] == OrderCreationStep.SELECT_ORDER_TYPE
+
+        # Step 2: Select order type
+        data = {"selected": ["spa", "Build"]}
+        response = authenticated_client.post(url, data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["step"] == OrderCreationStep.SELECT_UNIT_TYPE
+
+        # Step 3: Select unit type
+        data = {"selected": ["spa", "Build", "Fleet"]}
+        response = authenticated_client.post(url, data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["step"] == OrderCreationStep.SELECT_NAMED_COAST
+        assert response.data["title"] == "Select which coast of Spain to build a fleet on"
+        assert response.data["options"] == [
+            {"value": "spa/nc", "label": "Spain (NC)"},
+            {"value": "spa/sc", "label": "Spain (SC)"},
+        ]
+
+        # Step 4: Select named coast
+        data = {"selected": ["spa", "Build", "Fleet", "spa/nc"]}
+        response = authenticated_client.post(url, data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["step"] == OrderCreationStep.COMPLETED
+        assert response.data["complete"] is True
+        assert Order.objects.count() == 1
+
+
+class TestOrderSourceUnit:
+
+    @pytest.mark.django_db
+    def test_source_unit_returns_unit_at_source_province(
+        self,
+        test_phase_state,
+        classical_london_province,
+        classical_england_nation,
+    ):
+        phase = test_phase_state.phase
+        unit = phase.units.create(
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
+
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_london_province,
+            order_type=OrderType.HOLD,
+        )
+
+        assert order.source_unit == unit
+        assert order.source_unit.type == UnitType.FLEET
+        assert order.source_unit.province == classical_london_province
+
+    @pytest.mark.django_db
+    def test_source_unit_returns_none_when_no_unit_at_source(
+        self,
+        test_phase_state,
+        classical_london_province,
+    ):
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_london_province,
+            order_type=OrderType.BUILD,
+        )
+
+        assert order.source_unit is None
+
+    @pytest.mark.django_db
+    def test_source_unit_returns_none_when_source_is_none(
+        self,
+        test_phase_state,
+    ):
+        order = Order(
+            phase_state=test_phase_state,
+            source=None,
+            order_type=None,
+        )
+
+        assert order.source_unit is None
+
+    @pytest.mark.django_db
+    def test_source_unit_with_multiple_units_returns_first(
+        self,
+        test_phase_state,
+        classical_london_province,
+        classical_england_nation,
+        classical_france_nation,
+    ):
+        phase = test_phase_state.phase
+
+        fleet_unit = phase.units.create(
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_london_province,
+        )
+
+        army_unit = phase.units.create(
+            type=UnitType.ARMY,
+            nation=classical_france_nation,
+            province=classical_london_province,
+        )
+
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_london_province,
+            order_type=OrderType.HOLD,
+        )
+
+        result = order.source_unit
+        assert result is not None
+        assert result in [fleet_unit, army_unit]
