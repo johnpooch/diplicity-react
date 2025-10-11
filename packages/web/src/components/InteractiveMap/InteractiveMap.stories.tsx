@@ -272,6 +272,10 @@ export default {
           type: "Army",
           nation: Nations.France,
           province: Provinces.Marseilles,
+          dislodgedBy: {
+            type: "Army",
+            nation: Nations.Germany,
+          }
         },
         // Germany
         {
@@ -506,6 +510,13 @@ export default {
         target: Provinces.BlackSea,
         aux: Provinces.Constantinople,
         resolution: { status: "Failed" }
+      },
+      // Disband order - for dislodged unit
+      {
+        id: 16,
+        nation: Nations.Italy,
+        orderType: "Disband",
+        source: Provinces.Venice,
       },
     ],
     selected: [],

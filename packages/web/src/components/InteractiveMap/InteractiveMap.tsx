@@ -8,6 +8,7 @@ import { OrderRead, PhaseRead, Variant, VariantRead } from "../../store";
 import classical from "../../maps/classical.json";
 import { ConvoyArrow } from "./orders/convoy";
 import { SupportHoldArrow } from "./orders/support-hold";
+import { Minus } from "./shapes/minus";
 
 const VARIANT_MAPS: Record<string, typeof classical> = {
   classical,
@@ -81,6 +82,15 @@ const BUILD_CROSS_STROKE_WIDTH = 1;
 const BUILD_CROSS_ANGLE = 90;
 const BUILD_CROSS_OFFSET_X = 8;
 const BUILD_CROSS_OFFSET_Y = -8;
+
+const DISBAND_MINUS_WIDTH = 3;
+const DISBAND_MINUS_LENGTH = 12;
+const DISBAND_MINUS_FILL = "red";
+const DISBAND_MINUS_STROKE = "white";
+const DISBAND_MINUS_STROKE_WIDTH = 1;
+const DISBAND_MINUS_ANGLE = 90;
+const DISBAND_MINUS_OFFSET_X = 10;
+const DISBAND_MINUS_OFFSET_Y = -6;
 
 const SUPPLY_CENTER_OUTER_RADIUS = 7;
 const SUPPLY_CENTER_INNER_RADIUS = 4;
@@ -345,6 +355,10 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
           const offsetX = unit.dislodgedBy ? 8 : 0;
           const offsetY = unit.dislodgedBy ? 8 : 0;
 
+          const hasDisbandOrder = props.orders?.some(
+            o => o.orderType === "Disband" && o.source.id === unit.province.id
+          );
+
           return (
             <g key={`${unit.province.id}-${index}`}>
               <circle
@@ -354,6 +368,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
                 fill={color}
                 stroke="black"
                 strokeWidth={2}
+                opacity={hasDisbandOrder ? 0.7 : 1}
               />
               <text
                 x={x - 10 + offsetX}
@@ -365,7 +380,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
               >
                 {unit.type === "Army" ? "A" : "F"}
               </text>
-              {unit.dislodgedBy && (
+              {unit.dislodgedBy && !hasDisbandOrder && (
                 <g transform={`translate(${x - 8 + offsetX + UNIT_RADIUS + RETREAT_FLAG_OFFSET_X}, ${y - 18 + offsetY - UNIT_RADIUS + RETREAT_FLAG_OFFSET_Y}) scale(${RETREAT_FLAG_SCALE})`}>
                   {/* Flag pole */}
                   <line
@@ -637,6 +652,28 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
               strokeWidth={BUILD_CROSS_STROKE_WIDTH}
             />
           </g>
+        );
+      })}
+      {props.orders?.filter(o => o.orderType === "Disband").map((o) => {
+        const source = map.provinces.find(p => p.id === o.source.id);
+        if (!source) return null;
+        const { x, y } = source.center;
+
+        const offsetX = 8;
+        const offsetY = 8;
+
+        return (
+          <Minus
+            key={`disband-${o.source.id}`}
+            x={x - 10 + offsetX + DISBAND_MINUS_OFFSET_X}
+            y={y - 10 + offsetY + DISBAND_MINUS_OFFSET_Y}
+            width={DISBAND_MINUS_WIDTH}
+            length={DISBAND_MINUS_LENGTH}
+            angle={DISBAND_MINUS_ANGLE}
+            fill={DISBAND_MINUS_FILL}
+            stroke={DISBAND_MINUS_STROKE}
+            strokeWidth={DISBAND_MINUS_STROKE_WIDTH}
+          />
         );
       })}
       {provincesToRender.map(province => {
