@@ -6,7 +6,6 @@ import { Octagon } from "./shapes/octagon";
 import { OrderRead, PhaseRead, Variant, VariantRead } from "../../store";
 
 import classical from "../../maps/classical.json";
-import { getClosestPointOnLine } from "./InteractiveMap.utils";
 import { ConvoyArrow } from "./orders/convoy";
 import { SupportHoldArrow } from "./orders/support-hold";
 
@@ -453,7 +452,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
               offset={UNIT_RADIUS + UNIT_OFFSET_RADIUS}
               onRenderCenter={
                 o.resolution && o.resolution.status !== "Succeeded"
-                  ? (x: number, y: number, angle: number) => (
+                  ? (x: number, y: number, _angle: number) => (
                     <Cross
                       x={x}
                       y={y}
@@ -493,7 +492,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
             }}
             onRenderCenter={
               o.resolution && o.resolution.status !== "Succeeded"
-                ? (x: number, y: number, angle: number) => (
+                ? (x: number, y: number, _angle: number) => (
                   <Cross
                     x={x}
                     y={y}
@@ -533,7 +532,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
             fill={color}
             onRenderCenter={
               o.resolution && o.resolution.status !== "Succeeded"
-                ? (x: number, y: number, angle: number) => (
+                ? (x: number, y: number, _angle: number) => (
                   <Cross
                     x={x}
                     y={y}
@@ -557,38 +556,6 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
         if (!source) return null;
         if (!target) return null;
         if (!aux) return null;
-        const closestPoint = getClosestPointOnLine(source.center.x, source.center.y, target.center.x, target.center.y, aux.center.x, aux.center.y);
-
-        // Calculate the direction vector from (x1, y1) to the closest point
-        const directionX = closestPoint.x - source.center.x;
-        const directionY = closestPoint.y - source.center.y;
-
-        // Normalize the direction vector
-        const magnitude = Math.sqrt(
-          directionX * directionX + directionY * directionY,
-        );
-        const unitX = directionX / magnitude;
-        const unitY = directionY / magnitude;
-
-        // Apply the offset in the direction of the unit vector
-        const offsetX = UNIT_RADIUS * unitX;
-        const offsetY = UNIT_RADIUS * unitY;
-
-        // Adjust the start and end points by the offset
-        const startX = source.center.x + offsetX;
-        const startY = source.center.y + offsetY;
-        const endX = closestPoint.x;
-        const endY = closestPoint.y;
-
-        const angle = Math.atan2(endY - startY, endX - startX);
-
-        const centerX = (startX + endX) / 2;
-        const centerY = (startY + endY) / 2;
-
-        const dash = {
-          length: ORDER_DASH_LENGTH * 2,
-          spacing: ORDER_DASH_LENGTH
-        }
 
         const color = props.variant.nations.find(n => n.name === o.nation.name)?.color as string;
 
@@ -613,7 +580,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
             }}
             onRenderCenter={
               o.resolution && o.resolution.status !== "Succeeded"
-                ? (x: number, y: number, angle: number) => (
+                ? (x: number, y: number, _angle: number) => (
                   <Cross
                     x={x}
                     y={y}
