@@ -6,6 +6,9 @@ import { Octagon } from "./shapes/octagon";
 import { OrderRead, PhaseRead, Variant, VariantRead } from "../../store";
 
 import classical from "../../maps/classical.json";
+import { getClosestPointOnLine } from "./InteractiveMap.utils";
+import { ConvoyArrow } from "./orders/convoy";
+import { SupportHoldArrow } from "./orders/support-hold";
 
 const VARIANT_MAPS: Record<string, typeof classical> = {
   classical,
@@ -42,18 +45,21 @@ const HIGHLIGHTED_STROKE_COLOR = "#FFFFFF";
 
 const DEFAULT_FILL = "transparent";
 
+const SUCCESS_COLOR = "rgba(0,0,0,1)";
+
 const UNIT_RADIUS = 10;
+const UNIT_OFFSET_RADIUS = 5;
 const UNIT_OFFSET_X = 10;
 const UNIT_OFFSET_Y = 10;
 
-const ORDER_STROKE_WIDTH = 1;
-const ORDER_LINE_WIDTH = 5;
-const ORDER_ARROW_WIDTH = 7.5;
-const ORDER_ARROW_LENGTH = 10;
-const ORDER_DASH_LENGTH = 5;
-const ORDER_DASH_SPACING = 2.5;
+const ORDER_STROKE_WIDTH = 2.5;
+const ORDER_LINE_WIDTH = 3;
+const ORDER_ARROW_WIDTH = 6;
+const ORDER_ARROW_LENGTH = 8;
+const ORDER_DASH_LENGTH = 4;
+const ORDER_DASH_SPACING = 2;
 
-const ORDER_FAILED_CROSS_WIDTH = 4;
+const ORDER_FAILED_CROSS_WIDTH = 3;
 const ORDER_FAILED_CROSS_LENGTH = 16;
 const ORDER_FAILED_CROSS_FILL = "red";
 const ORDER_FAILED_CROSS_STROKE = "black";
@@ -67,6 +73,22 @@ const RETREAT_FLAG_POLE_STROKE_WIDTH = 2;
 const RETREAT_FLAG_STROKE_WIDTH = 1;
 const RETREAT_FLAG_FILL = "white";
 const RETREAT_FLAG_STROKE = "black";
+
+const BUILD_CROSS_WIDTH = 3;
+const BUILD_CROSS_LENGTH = 12;
+const BUILD_CROSS_FILL = "green";
+const BUILD_CROSS_STROKE = "white";
+const BUILD_CROSS_STROKE_WIDTH = 1;
+const BUILD_CROSS_ANGLE = 90;
+const BUILD_CROSS_OFFSET_X = 8;
+const BUILD_CROSS_OFFSET_Y = -8;
+
+const SUPPLY_CENTER_OUTER_RADIUS = 7;
+const SUPPLY_CENTER_INNER_RADIUS = 4;
+const SUPPLY_CENTER_FILL = "white";
+const SUPPLY_CENTER_STROKE = "black";
+const SUPPLY_CENTER_OPACITY = 0.8;
+const SUPPLY_CENTER_STROKE_WIDTH = 2;
 
 const InteractiveMap: React.FC<InteractiveMapProps> = props => {
   const [hoveredProvince, setHoveredProvince] = useState<string | null>(null);
@@ -250,20 +272,20 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
                 <circle
                   cx={province.supplyCenter.x}
                   cy={province.supplyCenter.y}
-                  r={10}
-                  fill="white"
-                  stroke="black"
-                  opacity={0.7}
-                  strokeWidth={4}
+                  r={SUPPLY_CENTER_OUTER_RADIUS}
+                  fill={SUPPLY_CENTER_FILL}
+                  stroke={SUPPLY_CENTER_STROKE}
+                  opacity={SUPPLY_CENTER_OPACITY}
+                  strokeWidth={SUPPLY_CENTER_STROKE_WIDTH}
                 />
                 <circle
                   cx={province.supplyCenter.x}
                   cy={province.supplyCenter.y}
-                  r={5}
-                  fill="none"
-                  stroke="black"
-                  opacity={0.7}
-                  strokeWidth={4}
+                  r={SUPPLY_CENTER_INNER_RADIUS}
+                  fill={SUPPLY_CENTER_FILL}
+                  stroke={SUPPLY_CENTER_STROKE}
+                  opacity={SUPPLY_CENTER_OPACITY}
+                  strokeWidth={SUPPLY_CENTER_STROKE_WIDTH}
                 />
               </g>
             )}
@@ -377,7 +399,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
             y={source.center.y - UNIT_OFFSET_Y}
             strokeWidth={ORDER_LINE_WIDTH}
             size={24}
-            stroke={"#000000"}
+            stroke={SUCCESS_COLOR}
             fill={"transparent"}
             onRenderBottomCenter={
               o.resolution && o.resolution.status !== "Succeeded"
@@ -407,6 +429,48 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
         if (!source) return null;
         if (!target) return null;
         if (!aux) return null;
+
+        if (aux === target) {
+          // Render HoldArrow if auxiliary is the same as the target
+          return (
+            <SupportHoldArrow
+              x1={source.center.x - UNIT_OFFSET_X}
+              y1={source.center.y - UNIT_OFFSET_Y}
+              x2={target.center.x - UNIT_OFFSET_X}
+              y2={target.center.y - UNIT_OFFSET_Y}
+              stroke={
+                SUCCESS_COLOR
+              }
+              fill={color}
+              lineWidth={ORDER_LINE_WIDTH}
+              arrowWidth={ORDER_ARROW_WIDTH}
+              arrowLength={ORDER_ARROW_LENGTH}
+              strokeWidth={ORDER_STROKE_WIDTH}
+              dash={{
+                length: ORDER_DASH_LENGTH,
+                spacing: ORDER_DASH_SPACING,
+              }}
+              offset={UNIT_RADIUS + UNIT_OFFSET_RADIUS}
+              onRenderCenter={
+                o.resolution && o.resolution.status !== "Succeeded"
+                  ? (x: number, y: number, angle: number) => (
+                    <Cross
+                      x={x}
+                      y={y}
+                      width={ORDER_FAILED_CROSS_WIDTH}
+                      length={ORDER_FAILED_CROSS_LENGTH}
+                      angle={45}
+                      fill={ORDER_FAILED_CROSS_FILL}
+                      stroke={ORDER_FAILED_CROSS_STROKE}
+                      strokeWidth={ORDER_FAILED_CROSS_STROKE_WIDTH}
+                    />
+                  )
+                  : undefined
+              }
+            />
+          );
+        }
+
         return (
           <CurvedArrow
             key={o.source.id}
@@ -421,44 +485,28 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
             arrowLength={ORDER_ARROW_LENGTH}
             strokeWidth={ORDER_STROKE_WIDTH}
             offset={UNIT_RADIUS}
-            stroke={"#000000"}
+            stroke={SUCCESS_COLOR}
             fill={color}
             dash={{
               length: ORDER_DASH_LENGTH,
               spacing: ORDER_DASH_SPACING,
             }}
-          />
-        );
-      })}
-      {props.orders?.filter(o => o.orderType === "Convoy").map((o) => {
-        const color = props.variant.nations.find(n => n.name === o.nation.name)
-          ?.color as string;
-        const source = map.provinces.find(p => p.id === o.source.id);
-        const target = map.provinces.find(p => p.id === o.target?.id);
-        const aux = map.provinces.find(p => p.id === o.aux?.id);
-        if (!source) return null;
-        if (!target) return null;
-        if (!aux) return null;
-        return (
-          <CurvedArrow
-            key={o.source.id}
-            x1={source.center.x - UNIT_OFFSET_X}
-            y1={source.center.y - UNIT_OFFSET_Y}
-            x2={target.center.x - UNIT_OFFSET_X}
-            y2={target.center.y - UNIT_OFFSET_Y}
-            x3={aux.center.x - UNIT_OFFSET_X}
-            y3={aux.center.y - UNIT_OFFSET_Y}
-            lineWidth={ORDER_LINE_WIDTH}
-            arrowWidth={ORDER_ARROW_WIDTH}
-            arrowLength={ORDER_ARROW_LENGTH}
-            strokeWidth={ORDER_STROKE_WIDTH}
-            offset={UNIT_RADIUS}
-            stroke={"#000000"}
-            fill={color}
-            dash={{
-              length: ORDER_DASH_LENGTH,
-              spacing: ORDER_DASH_SPACING,
-            }}
+            onRenderCenter={
+              o.resolution && o.resolution.status !== "Succeeded"
+                ? (x: number, y: number, angle: number) => (
+                  <Cross
+                    x={x}
+                    y={y}
+                    width={ORDER_FAILED_CROSS_WIDTH}
+                    length={ORDER_FAILED_CROSS_LENGTH}
+                    angle={45}
+                    fill={ORDER_FAILED_CROSS_FILL}
+                    stroke={ORDER_FAILED_CROSS_STROKE}
+                    strokeWidth={ORDER_FAILED_CROSS_STROKE_WIDTH}
+                  />
+                )
+                : undefined
+            }
           />
         );
       })}
@@ -467,6 +515,8 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
         const target = map.provinces.find(p => p.id === o.target?.id);
         if (!source) return null;
         if (!target) return null;
+        const color = props.variant.nations.find(n => n.name === o.nation.name)
+          ?.color as string;
         return (
           <Arrow
             key={o.source.id}
@@ -479,8 +529,104 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
             arrowLength={ORDER_ARROW_LENGTH}
             strokeWidth={ORDER_STROKE_WIDTH}
             offset={UNIT_RADIUS}
-            stroke={"#000000"}
-            fill={"green"}
+            stroke={SUCCESS_COLOR}
+            fill={color}
+            onRenderCenter={
+              o.resolution && o.resolution.status !== "Succeeded"
+                ? (x: number, y: number, angle: number) => (
+                  <Cross
+                    x={x}
+                    y={y}
+                    width={ORDER_FAILED_CROSS_WIDTH}
+                    length={ORDER_FAILED_CROSS_LENGTH}
+                    angle={45}
+                    fill={ORDER_FAILED_CROSS_FILL}
+                    stroke={ORDER_FAILED_CROSS_STROKE}
+                    strokeWidth={ORDER_FAILED_CROSS_STROKE_WIDTH}
+                  />
+                )
+                : undefined
+            }
+          />
+        );
+      })}
+      {props.orders?.filter(o => o.orderType === "Convoy").map((o) => {
+        const source = map.provinces.find(p => p.id === o.source.id);
+        const target = map.provinces.find(p => p.id === o.target?.id);
+        const aux = map.provinces.find(p => p.id === o.aux?.id);
+        if (!source) return null;
+        if (!target) return null;
+        if (!aux) return null;
+        const closestPoint = getClosestPointOnLine(source.center.x, source.center.y, target.center.x, target.center.y, aux.center.x, aux.center.y);
+
+        // Calculate the direction vector from (x1, y1) to the closest point
+        const directionX = closestPoint.x - source.center.x;
+        const directionY = closestPoint.y - source.center.y;
+
+        // Normalize the direction vector
+        const magnitude = Math.sqrt(
+          directionX * directionX + directionY * directionY,
+        );
+        const unitX = directionX / magnitude;
+        const unitY = directionY / magnitude;
+
+        // Apply the offset in the direction of the unit vector
+        const offsetX = UNIT_RADIUS * unitX;
+        const offsetY = UNIT_RADIUS * unitY;
+
+        // Adjust the start and end points by the offset
+        const startX = source.center.x + offsetX;
+        const startY = source.center.y + offsetY;
+        const endX = closestPoint.x;
+        const endY = closestPoint.y;
+
+        const angle = Math.atan2(endY - startY, endX - startX);
+
+        const centerX = (startX + endX) / 2;
+        const centerY = (startY + endY) / 2;
+
+        const dash = {
+          length: ORDER_DASH_LENGTH * 2,
+          spacing: ORDER_DASH_LENGTH
+        }
+
+        const color = props.variant.nations.find(n => n.name === o.nation.name)?.color as string;
+
+        return (
+          <ConvoyArrow
+            x1={source.center.x - UNIT_OFFSET_X}
+            y1={source.center.y - UNIT_OFFSET_Y}
+            x2={target.center.x - UNIT_OFFSET_X}
+            y2={target.center.y - UNIT_OFFSET_Y}
+            x3={aux.center.x - UNIT_OFFSET_X}
+            y3={aux.center.y - UNIT_OFFSET_Y}
+            lineWidth={ORDER_LINE_WIDTH}
+            arrowWidth={ORDER_ARROW_WIDTH}
+            arrowLength={ORDER_ARROW_LENGTH}
+            strokeWidth={ORDER_STROKE_WIDTH}
+            offset={UNIT_RADIUS + UNIT_OFFSET_RADIUS}
+            stroke={SUCCESS_COLOR}
+            fill={color}
+            dash={{
+              length: ORDER_DASH_LENGTH * 2,
+              spacing: ORDER_DASH_LENGTH,
+            }}
+            onRenderCenter={
+              o.resolution && o.resolution.status !== "Succeeded"
+                ? (x: number, y: number, angle: number) => (
+                  <Cross
+                    x={x}
+                    y={y}
+                    width={ORDER_FAILED_CROSS_WIDTH}
+                    length={ORDER_FAILED_CROSS_LENGTH}
+                    angle={45}
+                    fill={ORDER_FAILED_CROSS_FILL}
+                    stroke={ORDER_FAILED_CROSS_STROKE}
+                    strokeWidth={ORDER_FAILED_CROSS_STROKE_WIDTH}
+                  />
+                )
+                : undefined
+            }
           />
         );
       })}
@@ -513,6 +659,16 @@ const InteractiveMap: React.FC<InteractiveMapProps> = props => {
             >
               {o.unitType === "Army" ? "A" : "F"}
             </text>
+            <Cross
+              x={x - 10 + BUILD_CROSS_OFFSET_X}
+              y={y - 10 + BUILD_CROSS_OFFSET_Y}
+              width={BUILD_CROSS_WIDTH}
+              length={BUILD_CROSS_LENGTH}
+              angle={BUILD_CROSS_ANGLE}
+              fill={BUILD_CROSS_FILL}
+              stroke={BUILD_CROSS_STROKE}
+              strokeWidth={BUILD_CROSS_STROKE_WIDTH}
+            />
           </g>
         );
       })}
