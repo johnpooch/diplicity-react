@@ -11,16 +11,18 @@ def sort_by_province(supply_centers):
     return sorted(supply_centers, key=lambda x: x["province"])
 
 
-def create_order(phase_state, source, order_type, target=None, aux=None, unit_type=None):
+def create_order(phase_state, source, order_type, target=None, aux=None, unit_type=None, named_coast=None):
     source = phase_state.phase.variant.provinces.get(province_id=source)
     target = phase_state.phase.variant.provinces.get(province_id=target) if target else None
     aux = phase_state.phase.variant.provinces.get(province_id=aux) if aux else None
+    named_coast = phase_state.phase.variant.provinces.get(province_id=named_coast) if named_coast else None
     phase_state.orders.create(
         source=source,
         order_type=order_type,
         target=target,
         aux=aux,
         unit_type=unit_type,
+        named_coast=named_coast,
     )
 
 
@@ -689,3 +691,177 @@ class TestAdjudicationService:
         par_bounce_result = next((r for r in data["resolutions"] if r["province"] == "par"), None)
         assert par_bounce_result["result"] == "ErrBounce"
         assert par_bounce_result["by"] == "mun"
+
+    @pytest.mark.django_db
+    def test_resolve_build_army_named_coast(
+        self,
+        classical_variant,
+        classical_england_nation,
+        classical_france_nation,
+        classical_germany_nation,
+        classical_italy_nation,
+        classical_austria_nation,
+        classical_russia_nation,
+        classical_turkey_nation,
+        primary_user,
+        secondary_user,
+        tertiary_user,
+    ):
+        game = Game.objects.create(variant=classical_variant, name="Classical Test Game", status=GameStatus.ACTIVE)
+
+        members_by_nation = {
+            "England": Member.objects.create(nation=classical_england_nation, user=primary_user, game=game),
+            "France": Member.objects.create(nation=classical_france_nation, user=secondary_user, game=game),
+            "Germany": Member.objects.create(nation=classical_germany_nation, user=tertiary_user, game=game),
+            "Italy": Member.objects.create(nation=classical_italy_nation, user=primary_user, game=game),
+            "Austria": Member.objects.create(nation=classical_austria_nation, user=secondary_user, game=game),
+            "Russia": Member.objects.create(nation=classical_russia_nation, user=tertiary_user, game=game),
+            "Turkey": Member.objects.create(nation=classical_turkey_nation, user=primary_user, game=game),
+        }
+
+        phase = Phase.objects.create(
+            game=game, variant=classical_variant, season="Fall", year=1901, type="Adjustment", ordinal=3
+        )
+
+        setup_classical_opening(phase, members_by_nation)
+
+        # Delete unit in st. petersburg
+        phase.units.filter(province__province_id="stp/sc").delete()
+
+        russia_state = phase.phase_states.get(member=members_by_nation["Russia"])
+
+        create_order(russia_state, "stp", OrderType.BUILD, unit_type="Army")
+
+        data = adjudication_service.resolve(phase)
+
+        assert data["year"] == 1902
+        assert data["season"] == "Spring"
+        assert data["type"] == "Movement"
+
+        # Check that order resolutions are correct
+        stp_build_result = next((r for r in data["resolutions"] if r["province"] == "stp"), None)
+        assert stp_build_result["result"] == "OK"
+        assert stp_build_result["by"] == None
+
+    @pytest.mark.django_db
+    def test_resolve_build_fleet_named_coast(
+        self,
+        classical_variant,
+        classical_england_nation,
+        classical_france_nation,
+        classical_germany_nation,
+        classical_italy_nation,
+        classical_austria_nation,
+        classical_russia_nation,
+        classical_turkey_nation,
+        primary_user,
+        secondary_user,
+        tertiary_user,
+    ):
+        game = Game.objects.create(variant=classical_variant, name="Classical Test Game", status=GameStatus.ACTIVE)
+
+        members_by_nation = {
+            "England": Member.objects.create(nation=classical_england_nation, user=primary_user, game=game),
+            "France": Member.objects.create(nation=classical_france_nation, user=secondary_user, game=game),
+            "Germany": Member.objects.create(nation=classical_germany_nation, user=tertiary_user, game=game),
+            "Italy": Member.objects.create(nation=classical_italy_nation, user=primary_user, game=game),
+            "Austria": Member.objects.create(nation=classical_austria_nation, user=secondary_user, game=game),
+            "Russia": Member.objects.create(nation=classical_russia_nation, user=tertiary_user, game=game),
+            "Turkey": Member.objects.create(nation=classical_turkey_nation, user=primary_user, game=game),
+        }
+
+        phase = Phase.objects.create(
+            game=game, variant=classical_variant, season="Fall", year=1901, type="Adjustment", ordinal=3
+        )
+
+        setup_classical_opening(phase, members_by_nation)
+
+        # Delete unit in st. petersburg
+        phase.units.filter(province__province_id="stp/sc").delete()
+
+        russia_state = phase.phase_states.get(member=members_by_nation["Russia"])
+
+        create_order(russia_state, "stp", OrderType.BUILD, unit_type="Fleet", named_coast="stp/nc")
+
+        data = adjudication_service.resolve(phase)
+
+        assert data["year"] == 1902
+        assert data["season"] == "Spring"
+        assert data["type"] == "Movement"
+
+        # Check that order resolutions are correct
+        stp_build_result = next((r for r in data["resolutions"] if r["province"] == "stp"), None)
+        assert stp_build_result["result"] == "OK"
+        assert stp_build_result["by"] == None
+
+    @pytest.mark.django_db
+    def test_resolve_move_fleet_named_coast(
+        self,
+        phase_spring_1901_movement,
+        member_italy,
+        member_germany,
+    ):
+        """
+        Test unit move scenario with a fleet named coast.
+
+        Italian Fleet in Mid Atlantic moves to Spain South Coast
+        """
+        phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
+
+        create_unit(phase_state_italy, "mid", "Fleet")
+
+        create_order(phase_state_italy, "mid", OrderType.MOVE, "spa", named_coast="spa/nc")
+
+        data = adjudication_service.resolve(phase_spring_1901_movement)
+
+        assert data["year"] == 1901
+        assert data["season"] == "Spring"
+        assert data["type"] == "Retreat"
+
+        assert sort_by_province(data["units"]) == sort_by_province(
+            [
+                {"type": "Fleet", "nation": "Italy", "province": "spa/nc", "dislodged_by": None},
+            ]
+        )
+
+        assert sort_by_province(data["resolutions"]) == sort_by_province(
+            [
+                {"province": "mid", "result": "OK", "by": None},
+            ]
+        )
+
+    @pytest.mark.django_db
+    def test_resolve_move_army_named_coast(
+        self,
+        phase_spring_1901_movement,
+        member_italy,
+        member_germany,
+    ):
+        """
+        Test unit move scenario with a army named coast.
+
+        Italian Fleet in Mid Atlantic moves to Spain South Coast
+        """
+        phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
+
+        create_unit(phase_state_italy, "mar", "Army")
+
+        create_order(phase_state_italy, "mar", OrderType.MOVE, "spa")
+
+        data = adjudication_service.resolve(phase_spring_1901_movement)
+
+        assert data["year"] == 1901
+        assert data["season"] == "Spring"
+        assert data["type"] == "Retreat"
+
+        assert sort_by_province(data["units"]) == sort_by_province(
+            [
+                {"type": "Army", "nation": "Italy", "province": "spa", "dislodged_by": None},
+            ]
+        )
+
+        assert sort_by_province(data["resolutions"]) == sort_by_province(
+            [
+                {"province": "mar", "result": "OK", "by": None},
+            ]
+        )

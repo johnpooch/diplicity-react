@@ -1,0 +1,481 @@
+{
+    "Italy": {
+        "rom": {
+            "Next": {
+                "Build": {
+                    "Next": {
+                        "Army": {
+                            "Next": {
+                                "rom": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        },
+                        "Fleet": {
+                            "Next": {
+                                "rom": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        }
+                    },
+                    "Type": "OrderType"
+                }
+            },
+            "Type": "Province",
+            "Filter": "MAX:Build:0"
+        },
+        "ven": {
+            "Next": {
+                "Build": {
+                    "Next": {
+                        "Army": {
+                            "Next": {
+                                "ven": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        },
+                        "Fleet": {
+                            "Next": {
+                                "ven": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        }
+                    },
+                    "Type": "OrderType"
+                }
+            },
+            "Type": "Province",
+            "Filter": "MAX:Build:0"
+        }
+    },
+    "France": {
+        "bre": {
+            "Next": {
+                "Build": {
+                    "Next": {
+                        "Army": {
+                            "Next": {
+                                "bre": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        },
+                        "Fleet": {
+                            "Next": {
+                                "bre": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        }
+                    },
+                    "Type": "OrderType"
+                }
+            },
+            "Type": "Province",
+            "Filter": "MAX:Build:1"
+        },
+        "mar": {
+            "Next": {
+                "Build": {
+                    "Next": {
+                        "Army": {
+                            "Next": {
+                                "mar": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        },
+                        "Fleet": {
+                            "Next": {
+                                "mar": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        }
+                    },
+                    "Type": "OrderType"
+                }
+            },
+            "Type": "Province",
+            "Filter": "MAX:Build:1"
+        },
+        "par": {
+            "Next": {
+                "Build": {
+                    "Next": {
+                        "Army": {
+                            "Next": {
+                                "par": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        }
+                    },
+                    "Type": "OrderType"
+                }
+            },
+            "Type": "Province",
+            "Filter": "MAX:Build:1"
+        }
+    },
+    "Russia": {
+        "mos": {
+            "Next": {
+                "Build": {
+                    "Next": {
+                        "Army": {
+                            "Next": {
+                                "mos": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        }
+                    },
+                    "Type": "OrderType"
+                }
+            },
+            "Type": "Province",
+            "Filter": "MAX:Build:1"
+        },
+        "sev": {
+            "Next": {
+                "Build": {
+                    "Next": {
+                        "Army": {
+                            "Next": {
+                                "sev": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        },
+                        "Fleet": {
+                            "Next": {
+                                "sev": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        }
+                    },
+                    "Type": "OrderType"
+                }
+            },
+            "Type": "Province",
+            "Filter": "MAX:Build:1"
+        },
+        "stp/nc": {
+            "Next": {
+                "Build": {
+                    "Next": {
+                        "Army": {
+                            "Next": {
+                                "stp": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        },
+                        "Fleet": {
+                            "Next": {
+                                "stp/nc": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        }
+                    },
+                    "Type": "OrderType"
+                }
+            },
+            "Type": "Province",
+            "Filter": "MAX:Build:1"
+        },
+        "stp/sc": {
+            "Next": {
+                "Build": {
+                    "Next": {
+                        "Army": {
+                            "Next": {
+                                "stp": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        },
+                        "Fleet": {
+                            "Next": {
+                                "stp/sc": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        }
+                    },
+                    "Type": "OrderType"
+                }
+            },
+            "Type": "Province",
+            "Filter": "MAX:Build:1"
+        }
+    },
+    "Turkey": {
+        "ank": {
+            "Next": {
+                "Build": {
+                    "Next": {
+                        "Army": {
+                            "Next": {
+                                "ank": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        },
+                        "Fleet": {
+                            "Next": {
+                                "ank": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        }
+                    },
+                    "Type": "OrderType"
+                }
+            },
+            "Type": "Province",
+            "Filter": "MAX:Build:0"
+        },
+        "smy": {
+            "Next": {
+                "Build": {
+                    "Next": {
+                        "Army": {
+                            "Next": {
+                                "smy": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        },
+                        "Fleet": {
+                            "Next": {
+                                "smy": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        }
+                    },
+                    "Type": "OrderType"
+                }
+            },
+            "Type": "Province",
+            "Filter": "MAX:Build:0"
+        }
+    },
+    "Austria": {},
+    "England": {
+        "edi": {
+            "Next": {
+                "Build": {
+                    "Next": {
+                        "Army": {
+                            "Next": {
+                                "edi": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        },
+                        "Fleet": {
+                            "Next": {
+                                "edi": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        }
+                    },
+                    "Type": "OrderType"
+                }
+            },
+            "Type": "Province",
+            "Filter": "MAX:Build:1"
+        },
+        "lon": {
+            "Next": {
+                "Build": {
+                    "Next": {
+                        "Army": {
+                            "Next": {
+                                "lon": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        },
+                        "Fleet": {
+                            "Next": {
+                                "lon": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        }
+                    },
+                    "Type": "OrderType"
+                }
+            },
+            "Type": "Province",
+            "Filter": "MAX:Build:1"
+        },
+        "lvp": {
+            "Next": {
+                "Build": {
+                    "Next": {
+                        "Army": {
+                            "Next": {
+                                "lvp": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        },
+                        "Fleet": {
+                            "Next": {
+                                "lvp": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        }
+                    },
+                    "Type": "OrderType"
+                }
+            },
+            "Type": "Province",
+            "Filter": "MAX:Build:1"
+        }
+    },
+    "Germany": {
+        "ber": {
+            "Next": {
+                "Build": {
+                    "Next": {
+                        "Army": {
+                            "Next": {
+                                "ber": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        },
+                        "Fleet": {
+                            "Next": {
+                                "ber": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        }
+                    },
+                    "Type": "OrderType"
+                }
+            },
+            "Type": "Province",
+            "Filter": "MAX:Build:1"
+        },
+        "kie": {
+            "Next": {
+                "Build": {
+                    "Next": {
+                        "Army": {
+                            "Next": {
+                                "kie": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        },
+                        "Fleet": {
+                            "Next": {
+                                "kie": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        }
+                    },
+                    "Type": "OrderType"
+                }
+            },
+            "Type": "Province",
+            "Filter": "MAX:Build:1"
+        },
+        "mun": {
+            "Next": {
+                "Build": {
+                    "Next": {
+                        "Army": {
+                            "Next": {
+                                "mun": {
+                                    "Next": {},
+                                    "Type": "SrcProvince"
+                                }
+                            },
+                            "Type": "UnitType"
+                        }
+                    },
+                    "Type": "OrderType"
+                }
+            },
+            "Type": "Province",
+            "Filter": "MAX:Build:1"
+        }
+    }
+}

@@ -84,6 +84,7 @@ class OrderCreationStep:
     SELECT_UNIT_TYPE = "select-unit-type"
     SELECT_TARGET = "select-target"
     SELECT_AUX = "select-aux"
+    SELECT_NAMED_COAST = "select-named-coast"
     COMPLETED = "completed"
 
     ORDER_CREATION_STEP_CHOICES = (
@@ -91,6 +92,7 @@ class OrderCreationStep:
         (SELECT_UNIT_TYPE, "select-unit-type"),
         (SELECT_TARGET, "select-target"),
         (SELECT_AUX, "select-aux"),
+        (SELECT_NAMED_COAST, "select-named-coast"),
         (COMPLETED, "completed"),
     )
 
@@ -128,6 +130,8 @@ class OrderResolutionStatus:
     ILLEGAL_SUPPORT_DESTINATION = "ErrIllegalSupportDestination"
     INVALID_DESTINATION = "ErrInvalidDestination"
     MISSING_SUPPORT_UNIT = "ErrMissingSupportUnit"
+    MISSING_UNIT = "ErrMissingUnit"
+    SUPPORT_BROKEN = "ErrSupportBroken"
 
     STATUS_CHOICES = (
         (SUCCEEDED, "Succeeded"),
@@ -138,4 +142,6 @@ class OrderResolutionStatus:
         (ILLEGAL_SUPPORT_DESTINATION, "Illegal support destination"),
         (INVALID_DESTINATION, "Invalid destination"),
         (MISSING_SUPPORT_UNIT, "Missing support unit"),
+        (MISSING_UNIT, "Missing unit"),
+        (SUPPORT_BROKEN, "Support broken"),
     )

@@ -88,7 +88,7 @@ export const ActivePhaseOrders: React.FC<ActivePhaseOrdersProps> = (props) => {
                                         primary={
                                             order ? (
                                                 <OrderSummary
-                                                    source={province.name}
+                                                    source={order.namedCoast?.name || province.name}
                                                     destination={order.target?.name || null}
                                                     aux={order.aux?.name || null}
                                                     type={order.orderType}

@@ -51,9 +51,9 @@ const SelectedPhaseContextProvider: React.FC<{
 
   const defaultPhase = gameRetrieveQuery.data
     ? gameRetrieveQuery.data.phases.reduce(
-        (max, obj) => (obj.id > max.id ? obj : max),
-        gameRetrieveQuery.data.phases[0]
-      ).id
+      (max, obj) => (obj.id > max.id ? obj : max),
+      gameRetrieveQuery.data.phases[0]
+    ).id
     : 1;
 
   const selectedPhaseOrDefault = selectedPhase || defaultPhase;

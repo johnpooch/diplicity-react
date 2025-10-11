@@ -4,9 +4,10 @@ from django.utils import timezone
 from datetime import timedelta
 from unittest.mock import patch, Mock
 from rest_framework import status
-from common.constants import PhaseStatus, PhaseType, OrderType
+from common.constants import PhaseStatus, PhaseType, OrderType, UnitType
 from .models import Phase, PhaseState
 from .serializers import PhaseStateSerializer
+from .utils import transform_options
 from order.models import Order
 
 
@@ -139,12 +140,14 @@ def test_phase_should_resolve_immediately_no_users_with_orders(active_game_with_
 
 
 @pytest.mark.django_db
-def test_phase_should_resolve_immediately_all_confirmed(active_game_with_phase_state):
+def test_phase_should_resolve_immediately_all_confirmed(
+    active_game_with_phase_state, godip_options_england_london_hold
+):
     """
     Test that a phase should resolve immediately when all users with orders have confirmed.
     """
     phase = active_game_with_phase_state.current_phase
-    phase.options = {"England": {"lon": {"Hold": [], "Move": ["nth"]}}}
+    phase.options = godip_options_england_london_hold
     phase.save()
     assert not phase.should_resolve_immediately
     phase_state = phase.phase_states.first()
@@ -156,7 +159,7 @@ def test_phase_should_resolve_immediately_all_confirmed(active_game_with_phase_s
 
 @pytest.mark.django_db
 def test_phase_should_not_resolve_immediately_partial_confirmation(
-    active_game_with_phase_state, secondary_user, classical_france_nation
+    active_game_with_phase_state, secondary_user, classical_france_nation, godip_options_england_france_both_hold
 ):
     """
     Test that a phase should NOT resolve immediately when some users with orders haven't confirmed.
@@ -164,10 +167,7 @@ def test_phase_should_not_resolve_immediately_partial_confirmation(
     phase = active_game_with_phase_state.current_phase
     secondary_member = active_game_with_phase_state.members.create(user=secondary_user, nation=classical_france_nation)
     phase.phase_states.create(member=secondary_member)
-    phase.options = {
-        "England": {"lon": {"Hold": [], "Move": ["nth"]}},
-        "France": {"par": {"Hold": [], "Move": ["pic"]}},
-    }
+    phase.options = godip_options_england_france_both_hold
     phase.save()
     first_phase_state = phase.phase_states.first()
     first_phase_state.orders_confirmed = True
@@ -177,7 +177,9 @@ def test_phase_should_not_resolve_immediately_partial_confirmation(
 
 
 @pytest.mark.django_db
-def test_nations_with_possible_orders_various_scenarios():
+def test_nations_with_possible_orders_various_scenarios(
+    godip_options_england_london_hold, godip_options_england_france_both_hold
+):
     """
     Test the nations_with_possible_orders property with various option configurations.
     """
@@ -186,14 +188,11 @@ def test_nations_with_possible_orders_various_scenarios():
     assert len(phase.nations_with_possible_orders) == 0
     phase.options = {"England": {}, "France": {}}
     assert len(phase.nations_with_possible_orders) == 0
-    phase.options = {"England": {"lon": {"Hold": [], "Move": ["nth"]}}, "France": {}}
+    phase.options = godip_options_england_london_hold
     nations = phase.nations_with_possible_orders
     assert len(nations) == 1
     assert "England" in nations
-    phase.options = {
-        "England": {"lon": {"Hold": [], "Move": ["nth"]}},
-        "France": {"par": {"Hold": [], "Move": ["pic"]}},
-    }
+    phase.options = godip_options_england_france_both_hold
     nations = phase.nations_with_possible_orders
     assert len(nations) == 2
     assert "England" in nations
@@ -235,7 +234,7 @@ def test_resolve_due_phases_with_immediate_resolution(active_game_with_phase_sta
 
 
 @pytest.mark.django_db
-def test_resolve_due_phases_no_resolution_needed(active_game_with_phase_state):
+def test_resolve_due_phases_no_resolution_needed(active_game_with_phase_state, godip_options_england_london_hold):
     """
     Test that resolve_due_phases doesn't resolve phases that aren't ready.
     """
@@ -243,7 +242,7 @@ def test_resolve_due_phases_no_resolution_needed(active_game_with_phase_state):
 
     future_time = timezone.now() + timedelta(hours=24)
     phase.scheduled_resolution = future_time
-    phase.options = {"England": {"lon": {"Hold": [], "Move": ["nth"]}}}
+    phase.options = godip_options_england_london_hold
     phase.save()
     with patch.object(Phase.objects, "resolve") as mock_resolve:
         result = Phase.objects.resolve_due_phases()
@@ -520,3 +519,528 @@ class TestAdjustmentPhaseOrderLimits:
         orderable = phase_state.orderable_provinces
         assert orderable.count() == 3  # All have orders
         assert set(p.province_id for p in orderable) == {"lon", "par", "edi"}
+
+
+class TestOptionsTransformation:
+
+    @pytest.mark.django_db
+    def test_transform_simple_hold_order(self):
+        """
+        Test transforming a simple Hold order removes SrcProvince layer.
+        """
+        raw_options = {
+            "England": {
+                "lon": {
+                    "Next": {"Hold": {"Next": {"lon": {"Next": {}, "Type": "SrcProvince"}}, "Type": "OrderType"}},
+                    "Type": "Province",
+                }
+            }
+        }
+
+        result = transform_options(raw_options)
+
+        expected = {"England": {"lon": {"Hold": {}}}}
+
+        assert result == expected
+
+    @pytest.mark.django_db
+    def test_transform_simple_move_order(self):
+        """
+        Test transforming a Move order removes SrcProvince layer and exposes targets.
+        """
+        raw_options = {
+            "England": {
+                "lon": {
+                    "Next": {
+                        "Move": {
+                            "Next": {
+                                "lon": {
+                                    "Next": {
+                                        "eng": {"Next": {}, "Type": "Province"},
+                                        "nth": {"Next": {}, "Type": "Province"},
+                                        "wal": {"Next": {}, "Type": "Province"},
+                                    },
+                                    "Type": "SrcProvince",
+                                }
+                            },
+                            "Type": "OrderType",
+                        }
+                    },
+                    "Type": "Province",
+                }
+            }
+        }
+
+        result = transform_options(raw_options)
+
+        expected = {"England": {"lon": {"Move": {"eng": {}, "nth": {}, "wal": {}}}}}
+
+        assert result == expected
+
+    @pytest.mark.django_db
+    def test_transform_simple_support_order(self):
+        """
+        Test transforming a Support order removes SrcProvince layer and preserves aux/target structure.
+        """
+        raw_options = {
+            "England": {
+                "lon": {
+                    "Next": {
+                        "Support": {
+                            "Next": {
+                                "lon": {
+                                    "Next": {
+                                        "wal": {"Next": {"yor": {"Next": {}, "Type": "Province"}}, "Type": "Province"},
+                                        "yor": {"Next": {"wal": {"Next": {}, "Type": "Province"}}, "Type": "Province"},
+                                    },
+                                    "Type": "SrcProvince",
+                                }
+                            },
+                            "Type": "OrderType",
+                        }
+                    },
+                    "Type": "Province",
+                }
+            }
+        }
+
+        result = transform_options(raw_options)
+
+        expected = {"England": {"lon": {"Support": {"wal": {"yor": {}}, "yor": {"wal": {}}}}}}
+
+        assert result == expected
+
+    @pytest.mark.django_db
+    def test_transform_simple_convoy_order(self):
+        """
+        Test transforming a Convoy order removes SrcProvince layer and preserves aux/target structure.
+        """
+        raw_options = {
+            "England": {
+                "nth": {
+                    "Next": {
+                        "Convoy": {
+                            "Next": {
+                                "nth": {
+                                    "Next": {
+                                        "yor": {
+                                            "Next": {
+                                                "bel": {"Next": {}, "Type": "Province"},
+                                                "hol": {"Next": {}, "Type": "Province"},
+                                            },
+                                            "Type": "Province",
+                                        }
+                                    },
+                                    "Type": "SrcProvince",
+                                }
+                            },
+                            "Type": "OrderType",
+                        }
+                    },
+                    "Type": "Province",
+                }
+            }
+        }
+
+        result = transform_options(raw_options)
+
+        expected = {"England": {"nth": {"Convoy": {"yor": {"bel": {}, "hol": {}}}}}}
+
+        assert result == expected
+
+    @pytest.mark.django_db
+    def test_transform_army_move_to_named_coast_province(self):
+        """
+        Test transforming an army moving to a province with named coasts.
+        Army uses parent province, not specific coasts.
+        """
+        raw_options = {
+            "France": {
+                "mar": {
+                    "Next": {
+                        "Move": {
+                            "Next": {
+                                "mar": {
+                                    "Next": {
+                                        "bur": {"Next": {}, "Type": "Province"},
+                                        "gas": {"Next": {}, "Type": "Province"},
+                                        "spa": {"Next": {}, "Type": "Province"},
+                                    },
+                                    "Type": "SrcProvince",
+                                }
+                            },
+                            "Type": "OrderType",
+                        }
+                    },
+                    "Type": "Province",
+                }
+            }
+        }
+
+        result = transform_options(raw_options)
+
+        expected = {"France": {"mar": {"Move": {"bur": {}, "gas": {}, "spa": {}}}}}
+
+        assert result == expected
+
+    @pytest.mark.django_db
+    def test_transform_army_move_from_named_coast_province(self):
+        """
+        Test transforming an army moving FROM a province with named coasts.
+        The orderable province is the parent, army can move regardless of coast.
+        """
+        raw_options = {
+            "France": {
+                "spa": {
+                    "Next": {
+                        "Hold": {"Next": {"spa": {"Next": {}, "Type": "SrcProvince"}}, "Type": "OrderType"},
+                        "Move": {
+                            "Next": {
+                                "spa": {
+                                    "Next": {
+                                        "bre": {"Next": {}, "Type": "Province"},
+                                        "gas": {"Next": {}, "Type": "Province"},
+                                        "mar": {"Next": {}, "Type": "Province"},
+                                        "por": {"Next": {}, "Type": "Province"},
+                                    },
+                                    "Type": "SrcProvince",
+                                }
+                            },
+                            "Type": "OrderType",
+                        },
+                    },
+                    "Type": "Province",
+                }
+            }
+        }
+
+        result = transform_options(raw_options)
+
+        expected = {"France": {"spa": {"Hold": {}, "Move": {"bre": {}, "gas": {}, "mar": {}, "por": {}}}}}
+
+        assert result == expected
+
+    @pytest.mark.django_db
+    def test_transform_fleet_move_from_named_coast_province(self):
+        """
+        Test transforming a fleet moving FROM a named coast province.
+        Orderable province is parent but SrcProvince confirms specific coast.
+        """
+        raw_options = {
+            "Russia": {
+                "stp": {
+                    "Next": {
+                        "Hold": {"Next": {"stp/sc": {"Next": {}, "Type": "SrcProvince"}}, "Type": "OrderType"},
+                        "Move": {
+                            "Next": {
+                                "stp/sc": {
+                                    "Next": {
+                                        "bot": {"Next": {}, "Type": "Province"},
+                                        "fin": {"Next": {}, "Type": "Province"},
+                                        "lvn": {"Next": {}, "Type": "Province"},
+                                    },
+                                    "Type": "SrcProvince",
+                                }
+                            },
+                            "Type": "OrderType",
+                        },
+                    },
+                    "Type": "Province",
+                }
+            }
+        }
+
+        result = transform_options(raw_options)
+
+        expected = {"Russia": {"stp": {"Hold": {}, "Move": {"bot": {}, "fin": {}, "lvn": {}}}}}
+
+        assert result == expected
+
+    @pytest.mark.django_db
+    def test_transform_fleet_move_to_named_coast_province(self):
+        """
+        Test transforming a fleet moving TO a named coast province.
+        Should group spa/nc and spa/sc under spa with coast selection.
+        """
+        raw_options = {
+            "France": {
+                "mid": {
+                    "Next": {
+                        "Move": {
+                            "Next": {
+                                "mid": {
+                                    "Next": {
+                                        "bre": {"Next": {}, "Type": "Province"},
+                                        "eng": {"Next": {}, "Type": "Province"},
+                                        "spa/nc": {"Next": {}, "Type": "Province"},
+                                        "spa/sc": {"Next": {}, "Type": "Province"},
+                                    },
+                                    "Type": "SrcProvince",
+                                }
+                            },
+                            "Type": "OrderType",
+                        }
+                    },
+                    "Type": "Province",
+                }
+            }
+        }
+
+        result = transform_options(raw_options)
+
+        expected = {"France": {"mid": {"Move": {"bre": {}, "eng": {}, "spa": {"spa/nc": {}, "spa/sc": {}}}}}}
+
+        assert result == expected
+
+    @pytest.mark.django_db
+    def test_transform_fleet_move_to_single_named_coast(self):
+        """
+        Test transforming a fleet moving to ONLY ONE named coast.
+        Should still group under parent for consistency.
+        """
+        raw_options = {
+            "Russia": {
+                "bot": {
+                    "Next": {
+                        "Move": {
+                            "Next": {
+                                "bot": {
+                                    "Next": {
+                                        "bal": {"Next": {}, "Type": "Province"},
+                                        "fin": {"Next": {}, "Type": "Province"},
+                                        "stp/sc": {"Next": {}, "Type": "Province"},
+                                    },
+                                    "Type": "SrcProvince",
+                                }
+                            },
+                            "Type": "OrderType",
+                        }
+                    },
+                    "Type": "Province",
+                }
+            }
+        }
+
+        result = transform_options(raw_options)
+
+        expected = {"Russia": {"bot": {"Move": {"bal": {}, "fin": {}, "stp": {"stp/sc": {}}}}}}
+
+        assert result == expected
+
+    @pytest.mark.django_db
+    def test_transform_simple_build_army(self):
+        """
+        Test transforming a simple Build Army order in a landlocked province.
+        """
+        raw_options = {
+            "Germany": {
+                "mun": {
+                    "Next": {
+                        "Build": {
+                            "Next": {
+                                "Army": {"Next": {"mun": {"Next": {}, "Type": "SrcProvince"}}, "Type": "UnitType"}
+                            },
+                            "Type": "OrderType",
+                        }
+                    },
+                    "Type": "Province",
+                }
+            }
+        }
+
+        result = transform_options(raw_options)
+
+        expected = {"Germany": {"mun": {"Build": {"Army": {}}}}}
+
+        assert result == expected
+
+    @pytest.mark.django_db
+    def test_transform_coastal_build_army_and_fleet(self):
+        """
+        Test transforming a Build order in a coastal province.
+        Both Army and Fleet options should be available.
+        """
+        raw_options = {
+            "France": {
+                "bre": {
+                    "Next": {
+                        "Build": {
+                            "Next": {
+                                "Army": {"Next": {"bre": {"Next": {}, "Type": "SrcProvince"}}, "Type": "UnitType"},
+                                "Fleet": {"Next": {"bre": {"Next": {}, "Type": "SrcProvince"}}, "Type": "UnitType"},
+                            },
+                            "Type": "OrderType",
+                        }
+                    },
+                    "Type": "Province",
+                }
+            }
+        }
+
+        result = transform_options(raw_options)
+
+        expected = {"France": {"bre": {"Build": {"Army": {}, "Fleet": {}}}}}
+
+        assert result == expected
+
+    @pytest.mark.django_db
+    def test_transform_build_with_named_coasts(self):
+        """
+        Test transforming Build orders in a province with named coasts.
+        Should merge stp/nc and stp/sc into single stp entry.
+        Army uses parent, Fleet adds coast selection step.
+        """
+        raw_options = {
+            "Russia": {
+                "stp/nc": {
+                    "Next": {
+                        "Build": {
+                            "Next": {
+                                "Army": {"Next": {"stp": {"Next": {}, "Type": "SrcProvince"}}, "Type": "UnitType"},
+                                "Fleet": {"Next": {"stp/nc": {"Next": {}, "Type": "SrcProvince"}}, "Type": "UnitType"},
+                            },
+                            "Type": "OrderType",
+                        }
+                    },
+                    "Type": "Province",
+                },
+                "stp/sc": {
+                    "Next": {
+                        "Build": {
+                            "Next": {
+                                "Army": {"Next": {"stp": {"Next": {}, "Type": "SrcProvince"}}, "Type": "UnitType"},
+                                "Fleet": {"Next": {"stp/sc": {"Next": {}, "Type": "SrcProvince"}}, "Type": "UnitType"},
+                            },
+                            "Type": "OrderType",
+                        }
+                    },
+                    "Type": "Province",
+                },
+            }
+        }
+
+        result = transform_options(raw_options)
+
+        expected = {"Russia": {"stp": {"Build": {"Army": {}, "Fleet": {"stp/nc": {}, "stp/sc": {}}}}}}
+
+        assert result == expected
+
+
+class TestCreateFromAdjudicationData:
+
+    @pytest.mark.django_db
+    def test_create_from_adjudication_data_basic(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        initial_phase_count = Phase.objects.count()
+
+        new_phase = Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+
+        assert Phase.objects.count() == initial_phase_count + 1
+        assert new_phase.season == "Spring"
+        assert new_phase.year == 1901
+        assert new_phase.type == "Retreat"
+        assert new_phase.ordinal == phase.ordinal + 1
+        assert new_phase.status == PhaseStatus.ACTIVE
+        assert new_phase.game == phase.game
+        assert new_phase.variant == phase.variant
+
+        assert new_phase.units.count() == 6
+        assert new_phase.supply_centers.count() == 6
+
+        italy_units = new_phase.units.filter(nation__name="Italy")
+        assert italy_units.count() == 3
+
+        germany_units = new_phase.units.filter(nation__name="Germany")
+        assert germany_units.count() == 3
+
+        ven_unit = new_phase.units.get(province__province_id="ven")
+        assert ven_unit.type == UnitType.ARMY
+        assert ven_unit.nation.name == "Italy"
+        assert ven_unit.dislodged_by is None
+
+    @pytest.mark.django_db
+    def test_create_from_adjudication_data_with_dislodged_unit(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_with_dislodged_unit,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+
+        new_phase = Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_with_dislodged_unit)
+
+        assert new_phase.units.count() == 4
+
+        dislodged_unit = new_phase.units.get(province__province_id="kie", nation__name="Germany")
+        assert dislodged_unit.dislodged_by is not None
+
+        dislodging_unit = phase.units.get(province__province_id="ven")
+        assert dislodged_unit.dislodged_by == dislodging_unit
+
+        attacker_unit = new_phase.units.get(province__province_id="kie", nation__name="Italy")
+        assert attacker_unit.dislodged_by is None
+
+    @pytest.mark.django_db
+    def test_create_from_adjudication_data_marks_previous_phase_completed(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        assert phase.status == PhaseStatus.ACTIVE
+
+        Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+
+        phase.refresh_from_db()
+        assert phase.status == PhaseStatus.COMPLETED
+
+    @pytest.mark.django_db
+    def test_create_from_adjudication_data_creates_phase_states(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        member_count = phase.game.members.count()
+
+        new_phase = Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+
+        assert new_phase.phase_states.count() == member_count
+        assert new_phase.phase_states.count() == 2
+
+        for phase_state in new_phase.phase_states.all():
+            assert phase_state.orders_confirmed is False
+            assert phase_state.eliminated is False
+
+    @pytest.mark.django_db
+    def test_create_from_adjudication_data_scheduled_resolution_time(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        duration_seconds = phase.game.movement_phase_duration_seconds
+
+        new_phase = Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+
+        assert new_phase.scheduled_resolution is not None
+
+        time_diff = (new_phase.scheduled_resolution - timezone.now()).total_seconds()
+        assert abs(time_diff - duration_seconds) < 2
+
+    @pytest.mark.django_db
+    def test_create_from_adjudication_data_creates_order_resolutions(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        orders_count = len(phase.all_orders)
+
+        Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+
+        resolved_orders = [order for order in phase.all_orders if hasattr(order, "resolution")]
+        assert len(resolved_orders) == orders_count

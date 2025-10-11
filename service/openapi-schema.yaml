@@ -944,6 +944,10 @@ components:
           allOf:
           - $ref: '#/components/schemas/Province'
           readOnly: true
+        namedCoast:
+          allOf:
+          - $ref: '#/components/schemas/Province'
+          readOnly: true
         resolution:
           allOf:
           - $ref: '#/components/schemas/OrderResolution'
@@ -986,6 +990,7 @@ components:
       required:
       - aux
       - complete
+      - namedCoast
       - nation
       - options
       - orderType
@@ -1172,6 +1177,7 @@ components:
       - select-unit-type
       - select-target
       - select-aux
+      - select-named-coast
       - completed
       type: string
       description: |-
@@ -1179,6 +1185,7 @@ components:
         * `select-unit-type` - select-unit-type
         * `select-target` - select-target
         * `select-aux` - select-aux
+        * `select-named-coast` - select-named-coast
         * `completed` - completed
     SupplyCenter:
       type: object

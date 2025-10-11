@@ -361,6 +361,36 @@ def classical_spain_province(django_db_setup, django_db_blocker, classical_varia
         return Province.objects.get(province_id="spa", variant=classical_variant)
 
 
+@pytest.fixture(scope="session")
+def classical_spain_nc_province(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="spa/nc", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_spain_sc_province(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="spa/sc", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_stp_province(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="stp", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_stp_nc_province(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="stp/nc", variant=classical_variant)
+
+
+@pytest.fixture(scope="session")
+def classical_stp_sc_province(django_db_setup, django_db_blocker, classical_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="stp/sc", variant=classical_variant)
+
+
 @pytest.fixture
 def sample_options():
     return {
@@ -490,6 +520,7 @@ def mock_immediate_on_commit():
     with patch("django.db.transaction.on_commit", side_effect=immediate_on_commit):
         yield
 
+
 @pytest.fixture(scope="session")
 def classical_italy_nation(django_db_setup, django_db_blocker, classical_variant):
     with django_db_blocker.unblock():
@@ -512,3 +543,142 @@ def classical_turkey_nation(django_db_setup, django_db_blocker, classical_varian
 def classical_russia_nation(django_db_setup, django_db_blocker, classical_variant):
     with django_db_blocker.unblock():
         return Nation.objects.get(name="Russia", variant=classical_variant)
+
+
+@pytest.fixture
+def godip_options_simple_hold():
+    return {
+        "England": {
+            "lon": {
+                "Next": {"Hold": {"Next": {"lon": {"Next": {}, "Type": "SrcProvince"}}, "Type": "OrderType"}},
+                "Type": "Province",
+            }
+        }
+    }
+
+
+@pytest.fixture
+def godip_options_england_london_hold():
+    return {
+        "England": {
+            "lon": {
+                "Next": {"Hold": {"Next": {"lon": {"Next": {}, "Type": "SrcProvince"}}, "Type": "OrderType"}},
+                "Type": "Province",
+            }
+        },
+        "France": {},
+    }
+
+
+@pytest.fixture
+def godip_options_england_france_both_hold():
+    return {
+        "England": {
+            "lon": {
+                "Next": {"Hold": {"Next": {"lon": {"Next": {}, "Type": "SrcProvince"}}, "Type": "OrderType"}},
+                "Type": "Province",
+            }
+        },
+        "France": {
+            "par": {
+                "Next": {"Hold": {"Next": {"par": {"Next": {}, "Type": "SrcProvince"}}, "Type": "OrderType"}},
+                "Type": "Province",
+            }
+        },
+    }
+
+
+@pytest.fixture(scope="session")
+def italy_vs_germany_variant(django_db_setup, django_db_blocker):
+    with django_db_blocker.unblock():
+        return Variant.objects.get(id="italy-vs-germany")
+
+
+@pytest.fixture(scope="session")
+def italy_vs_germany_italy_nation(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+    with django_db_blocker.unblock():
+        return Nation.objects.get(name="Italy", variant=italy_vs_germany_variant)
+
+
+@pytest.fixture(scope="session")
+def italy_vs_germany_germany_nation(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+    with django_db_blocker.unblock():
+        return Nation.objects.get(name="Germany", variant=italy_vs_germany_variant)
+
+
+@pytest.fixture(scope="session")
+def italy_vs_germany_venice_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="ven", variant=italy_vs_germany_variant)
+
+
+@pytest.fixture(scope="session")
+def italy_vs_germany_rome_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="rom", variant=italy_vs_germany_variant)
+
+
+@pytest.fixture(scope="session")
+def italy_vs_germany_greece_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="gre", variant=italy_vs_germany_variant)
+
+
+@pytest.fixture(scope="session")
+def italy_vs_germany_warsaw_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="war", variant=italy_vs_germany_variant)
+
+
+@pytest.fixture(scope="session")
+def italy_vs_germany_naples_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="nap", variant=italy_vs_germany_variant)
+
+
+@pytest.fixture(scope="session")
+def italy_vs_germany_trieste_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="tri", variant=italy_vs_germany_variant)
+
+
+@pytest.fixture(scope="session")
+def italy_vs_germany_kiel_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="kie", variant=italy_vs_germany_variant)
+
+
+@pytest.fixture(scope="session")
+def italy_vs_germany_berlin_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="ber", variant=italy_vs_germany_variant)
+
+
+@pytest.fixture(scope="session")
+def italy_vs_germany_munich_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="mun", variant=italy_vs_germany_variant)
+
+
+@pytest.fixture(scope="session")
+def italy_vs_germany_ionian_sea_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="ion", variant=italy_vs_germany_variant)
+
+
+@pytest.fixture(scope="session")
+def italy_vs_germany_denmark_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="den", variant=italy_vs_germany_variant)
+
+
+@pytest.fixture(scope="session")
+def italy_vs_germany_prussia_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="pru", variant=italy_vs_germany_variant)
+
+
+@pytest.fixture(scope="session")
+def italy_vs_germany_ruhr_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="ruh", variant=italy_vs_germany_variant)
