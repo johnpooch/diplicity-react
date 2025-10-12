@@ -46,6 +46,7 @@ class GameQuerySet(models.QuerySet):
             "phases__supply_centers__province__named_coasts",
             "phases__phase_states",
             # Members data
+            "members__nation",
             "members__user__profile",
         )
 
@@ -132,6 +133,8 @@ class Game(BaseModel):
             return 24 * 60 * 60
         elif self.movement_phase_duration == MovementPhaseDuration.FORTY_EIGHT_HOURS:
             return 48 * 60 * 60
+        elif self.movement_phase_duration == MovementPhaseDuration.ONE_WEEK:
+            return 7 * 24 * 60 * 60
         return 0
 
     def can_join(self, user):

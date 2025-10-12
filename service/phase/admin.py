@@ -11,7 +11,7 @@ class PhaseAdmin(admin.ModelAdmin):
     list_filter = ["status", "season", "type"]
     search_fields = ["game__name", "season", "year"]
     readonly_fields = ["ordinal", "created_at", "updated_at"]
-    actions = ["dry_run_resolution"]
+    actions = ["dry_run_resolution", "revert_to_phase"]
     ordering = ["-created_at"]
 
     def dry_run_resolution(self, request, queryset):
@@ -43,6 +43,40 @@ class PhaseAdmin(admin.ModelAdmin):
             )
 
     dry_run_resolution.short_description = "Dry-run resolution (no database changes)"
+
+    def revert_to_phase(self, request, queryset):
+        if queryset.count() != 1:
+            self.message_user(
+                request,
+                "Please select exactly one phase to revert to.",
+                level=messages.ERROR
+            )
+            return
+
+        phase = queryset.first()
+
+        try:
+            phase.revert_to_this_phase()
+            self.message_user(
+                request,
+                f"Successfully reverted game '{phase.game.name}' to {phase.name}. "
+                f"All later phases have been deleted.",
+                level=messages.SUCCESS
+            )
+        except ValueError as e:
+            self.message_user(
+                request,
+                f"Cannot revert phase: {str(e)}",
+                level=messages.ERROR
+            )
+        except Exception as e:
+            self.message_user(
+                request,
+                f"Error reverting phase: {str(e)}",
+                level=messages.ERROR
+            )
+
+    revert_to_phase.short_description = "Revert to this phase"
 
 
 @admin.register(PhaseState)

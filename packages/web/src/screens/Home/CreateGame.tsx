@@ -2,7 +2,6 @@ import React from "react";
 import {
   Button,
   Checkbox,
-  Divider,
   FormControl,
   FormControlLabel,
   MenuItem,
@@ -13,7 +12,7 @@ import {
   FormHelperText,
 } from "@mui/material";
 import { HomeLayout } from "./Layout";
-import { NationAssignmentEnum, service } from "../../store";
+import { NationAssignmentEnum, MovementPhaseDurationEnum, service } from "../../store";
 import { HomeAppBar } from "./AppBar";
 import { IconName } from "../../components/Icon";
 import { useNavigate } from "react-router";
@@ -27,6 +26,7 @@ const initialValues = {
   name: randomGameName(),
   variantId: "classical",
   nationAssignment: "random" as NationAssignmentEnum,
+  movementPhaseDuration: "24 hours" as MovementPhaseDurationEnum,
   private: false,
 };
 
@@ -91,7 +91,24 @@ const CreateGame: React.FC = () => {
                   />
                   <FormHelperText sx={{ margin: 0 }}>Make this game private (only accessible via direct link, not shown in public listings).</FormHelperText>
                 </FormControl>
-                <Divider />
+                <Typography variant="h4">Deadlines</Typography>
+                <FormControl>
+
+                  <TextField
+                    select
+                    label="Phase Deadline"
+                    variant="standard"
+                    name="movementPhaseDuration"
+                    value={formik.values.movementPhaseDuration}
+                    onChange={e => formik.setFieldValue("movementPhaseDuration", e.target.value)}
+                    disabled={createGameQuery.isLoading}
+                  >
+                    <MenuItem value="24 hours">24 hours</MenuItem>
+                    <MenuItem value="48 hours">48 hours</MenuItem>
+                    <MenuItem value="1 week">1 week</MenuItem>
+                  </TextField>
+                  <FormHelperText sx={{ margin: 0 }}>After the deadline, the phase will be automatically resolved.</FormHelperText>
+                </FormControl>
                 <Typography variant="h4">Variant</Typography>
                 {query.isLoading ? (
                   <Skeleton variant="rectangular" width="100%" height={48} />

@@ -136,3 +136,151 @@ def mock_adjudication_data_with_dislodged_unit():
             {"province": "kie", "result": "OK", "by": None},
         ],
     }
+
+
+@pytest.fixture
+def game_with_three_phases(
+    db,
+    italy_vs_germany_variant,
+    italy_vs_germany_italy_nation,
+    italy_vs_germany_germany_nation,
+    italy_vs_germany_venice_province,
+    italy_vs_germany_rome_province,
+    italy_vs_germany_naples_province,
+    italy_vs_germany_kiel_province,
+    italy_vs_germany_berlin_province,
+    italy_vs_germany_munich_province,
+    primary_user,
+    secondary_user,
+):
+    from game.models import Game
+    from member.models import Member
+    from order.models import OrderResolution
+
+    game = Game.objects.create(
+        variant=italy_vs_germany_variant,
+        name="Test Game with Multiple Phases",
+        status=GameStatus.ACTIVE,
+        movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+    )
+
+    member_italy = Member.objects.create(
+        nation=italy_vs_germany_italy_nation,
+        user=primary_user,
+        game=game,
+    )
+
+    member_germany = Member.objects.create(
+        nation=italy_vs_germany_germany_nation,
+        user=secondary_user,
+        game=game,
+    )
+
+    phase1 = Phase.objects.create(
+        game=game,
+        variant=italy_vs_germany_variant,
+        season="Spring",
+        year=1901,
+        type="Movement",
+        ordinal=1,
+        status=PhaseStatus.COMPLETED,
+    )
+
+    phase_state_italy_1 = phase1.phase_states.create(member=member_italy)
+    phase_state_germany_1 = phase1.phase_states.create(member=member_germany)
+
+    phase1.supply_centers.create(province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation)
+    phase1.supply_centers.create(province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation)
+    phase1.supply_centers.create(province=italy_vs_germany_naples_province, nation=italy_vs_germany_italy_nation)
+    phase1.supply_centers.create(province=italy_vs_germany_kiel_province, nation=italy_vs_germany_germany_nation)
+    phase1.supply_centers.create(province=italy_vs_germany_berlin_province, nation=italy_vs_germany_germany_nation)
+    phase1.supply_centers.create(province=italy_vs_germany_munich_province, nation=italy_vs_germany_germany_nation)
+
+    unit1 = phase1.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
+    phase1.units.create(province=italy_vs_germany_rome_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
+    phase1.units.create(province=italy_vs_germany_naples_province, type=UnitType.FLEET, nation=italy_vs_germany_italy_nation)
+    phase1.units.create(province=italy_vs_germany_kiel_province, type=UnitType.FLEET, nation=italy_vs_germany_germany_nation)
+    phase1.units.create(province=italy_vs_germany_berlin_province, type=UnitType.ARMY, nation=italy_vs_germany_germany_nation)
+    phase1.units.create(province=italy_vs_germany_munich_province, type=UnitType.ARMY, nation=italy_vs_germany_germany_nation)
+
+    order1 = phase_state_italy_1.orders.create(
+        source=italy_vs_germany_venice_province,
+        order_type=OrderType.HOLD,
+    )
+    OrderResolution.objects.create(order=order1, status="OK")
+
+    order2 = phase_state_germany_1.orders.create(
+        source=italy_vs_germany_kiel_province,
+        order_type=OrderType.HOLD,
+    )
+    OrderResolution.objects.create(order=order2, status="OK")
+
+    phase2 = Phase.objects.create(
+        game=game,
+        variant=italy_vs_germany_variant,
+        season="Fall",
+        year=1901,
+        type="Movement",
+        ordinal=2,
+        status=PhaseStatus.COMPLETED,
+    )
+
+    phase_state_italy_2 = phase2.phase_states.create(member=member_italy)
+    phase_state_germany_2 = phase2.phase_states.create(member=member_germany)
+
+    phase2.supply_centers.create(province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation)
+    phase2.supply_centers.create(province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation)
+    phase2.supply_centers.create(province=italy_vs_germany_naples_province, nation=italy_vs_germany_italy_nation)
+    phase2.supply_centers.create(province=italy_vs_germany_kiel_province, nation=italy_vs_germany_germany_nation)
+    phase2.supply_centers.create(province=italy_vs_germany_berlin_province, nation=italy_vs_germany_germany_nation)
+    phase2.supply_centers.create(province=italy_vs_germany_munich_province, nation=italy_vs_germany_germany_nation)
+
+    phase2.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
+    phase2.units.create(province=italy_vs_germany_rome_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
+    phase2.units.create(province=italy_vs_germany_naples_province, type=UnitType.FLEET, nation=italy_vs_germany_italy_nation)
+    phase2.units.create(province=italy_vs_germany_kiel_province, type=UnitType.FLEET, nation=italy_vs_germany_germany_nation)
+    phase2.units.create(province=italy_vs_germany_berlin_province, type=UnitType.ARMY, nation=italy_vs_germany_germany_nation)
+    phase2.units.create(province=italy_vs_germany_munich_province, type=UnitType.ARMY, nation=italy_vs_germany_germany_nation)
+
+    order3 = phase_state_italy_2.orders.create(
+        source=italy_vs_germany_venice_province,
+        order_type=OrderType.HOLD,
+    )
+    OrderResolution.objects.create(order=order3, status="OK")
+
+    phase3 = Phase.objects.create(
+        game=game,
+        variant=italy_vs_germany_variant,
+        season="Spring",
+        year=1902,
+        type="Movement",
+        ordinal=3,
+        status=PhaseStatus.ACTIVE,
+    )
+
+    phase_state_italy_3 = phase3.phase_states.create(member=member_italy, orders_confirmed=True)
+    phase_state_germany_3 = phase3.phase_states.create(member=member_germany, orders_confirmed=False)
+
+    phase3.supply_centers.create(province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation)
+    phase3.supply_centers.create(province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation)
+    phase3.supply_centers.create(province=italy_vs_germany_naples_province, nation=italy_vs_germany_italy_nation)
+    phase3.supply_centers.create(province=italy_vs_germany_kiel_province, nation=italy_vs_germany_germany_nation)
+    phase3.supply_centers.create(province=italy_vs_germany_berlin_province, nation=italy_vs_germany_germany_nation)
+
+    phase3.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
+    phase3.units.create(province=italy_vs_germany_rome_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
+    phase3.units.create(province=italy_vs_germany_naples_province, type=UnitType.FLEET, nation=italy_vs_germany_italy_nation)
+    phase3.units.create(province=italy_vs_germany_kiel_province, type=UnitType.FLEET, nation=italy_vs_germany_germany_nation)
+    phase3.units.create(province=italy_vs_germany_berlin_province, type=UnitType.ARMY, nation=italy_vs_germany_germany_nation)
+
+    phase_state_italy_3.orders.create(
+        source=italy_vs_germany_venice_province,
+        order_type=OrderType.HOLD,
+    )
+
+    phase_state_germany_3.orders.create(
+        source=italy_vs_germany_kiel_province,
+        order_type=OrderType.HOLD,
+    )
+
+    return game
