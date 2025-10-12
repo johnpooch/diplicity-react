@@ -5,9 +5,9 @@ from django.db import models
 from django.utils import timezone
 from common.models import BaseModel
 from datetime import timedelta
-from common.constants import PhaseStatus, PhaseType
+from common.constants import PhaseStatus, PhaseType, GameStatus
 from adjudication.service import resolve
-from order.models import OrderResolution
+from order.models import OrderResolution, Order
 from phase.utils import transform_options
 
 logger = logging.getLogger(__name__)
@@ -248,6 +248,35 @@ class Phase(BaseModel):
     def should_resolve_immediately(self):
         logger.info(f"Checking if phase {self.id} should resolve immediately")
         return all(phase_state.orders_confirmed for phase_state in self.phase_states_with_possible_orders)
+
+    def revert_to_this_phase(self):
+
+        logger.info(f"Reverting game {self.game.id} to phase {self.id} ({self.name})")
+
+        if self.game.status == GameStatus.COMPLETED:
+            logger.error(f"Cannot revert phase {self.id} - game {self.game.id} has ended")
+            raise ValueError("Cannot revert phases in an ended game")
+
+        later_phases = self.game.phases.filter(ordinal__gt=self.ordinal)
+        later_phases_count = later_phases.count()
+        logger.info(f"Deleting {later_phases_count} phases after phase {self.ordinal}")
+        later_phases.delete()
+
+        orders_count = Order.objects.filter(phase_state__phase=self).count()
+        logger.info(f"Deleting {orders_count} orders for phase {self.id}")
+        Order.objects.filter(phase_state__phase=self).delete()
+
+        logger.info(f"Reactivating phase {self.id} with new scheduled resolution")
+        self.status = PhaseStatus.ACTIVE
+        phase_duration_seconds = self.game.movement_phase_duration_seconds
+        self.scheduled_resolution = timezone.now() + timedelta(seconds=phase_duration_seconds)
+        self.save()
+
+        phase_states_count = self.phase_states.count()
+        logger.info(f"Resetting orders_confirmed to False for {phase_states_count} phase states")
+        self.phase_states.update(orders_confirmed=False)
+
+        logger.info(f"Successfully reverted game {self.game.id} to phase {self.id}")
 
 
 class PhaseState(BaseModel):

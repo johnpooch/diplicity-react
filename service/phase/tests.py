@@ -4,7 +4,7 @@ from django.utils import timezone
 from datetime import timedelta
 from unittest.mock import patch, Mock
 from rest_framework import status
-from common.constants import PhaseStatus, PhaseType, OrderType, UnitType
+from common.constants import PhaseStatus, PhaseType, OrderType, UnitType, GameStatus
 from .models import Phase, PhaseState
 from .serializers import PhaseStateSerializer
 from .utils import transform_options
@@ -1044,3 +1044,202 @@ class TestCreateFromAdjudicationData:
 
         resolved_orders = [order for order in phase.all_orders if hasattr(order, "resolution")]
         assert len(resolved_orders) == orders_count
+
+
+class TestPhaseReversion:
+
+    @pytest.mark.django_db
+    def test_revert_to_phase_success(self, game_with_three_phases):
+        game = game_with_three_phases
+        phase1 = game.phases.get(ordinal=1)
+
+        initial_phase_count = game.phases.count()
+        assert initial_phase_count == 3
+
+        phase1.revert_to_this_phase()
+
+        assert game.phases.count() == 1
+        assert not game.phases.filter(ordinal=2).exists()
+        assert not game.phases.filter(ordinal=3).exists()
+
+        phase1.refresh_from_db()
+        assert phase1.status == PhaseStatus.ACTIVE
+        assert phase1.scheduled_resolution is not None
+        assert phase1.scheduled_resolution > timezone.now()
+
+        for phase_state in phase1.phase_states.all():
+            assert phase_state.orders_confirmed is False
+
+        assert phase1.phase_states.first().orders.count() == 0
+
+    @pytest.mark.django_db
+    def test_revert_to_phase_deletes_related_objects(self, game_with_three_phases):
+        game = game_with_three_phases
+        phase1 = game.phases.get(ordinal=1)
+        phase2 = game.phases.get(ordinal=2)
+        phase3 = game.phases.get(ordinal=3)
+
+        phase1_units_count = phase1.units.count()
+        phase1_supply_centers_count = phase1.supply_centers.count()
+        phase2_units_count = phase2.units.count()
+        phase3_units_count = phase3.units.count()
+
+        assert phase1_units_count > 0
+        assert phase2_units_count > 0
+        assert phase3_units_count > 0
+
+        phase1.revert_to_this_phase()
+
+        phase1.refresh_from_db()
+        assert phase1.units.count() == phase1_units_count
+        assert phase1.supply_centers.count() == phase1_supply_centers_count
+
+        assert not Phase.objects.filter(id=phase2.id).exists()
+        assert not Phase.objects.filter(id=phase3.id).exists()
+
+    @pytest.mark.django_db
+    def test_revert_to_phase_multiple_later_phases(
+        self,
+        game_with_three_phases,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+    ):
+        game = game_with_three_phases
+
+        phase4 = Phase.objects.create(
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1902,
+            type="Movement",
+            ordinal=4,
+            status=PhaseStatus.ACTIVE,
+        )
+        phase4.units.create(
+            province=italy_vs_germany_venice_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation
+        )
+
+        assert game.phases.count() == 4
+
+        phase2 = game.phases.get(ordinal=2)
+        phase2.revert_to_this_phase()
+
+        assert game.phases.count() == 2
+        assert game.phases.filter(ordinal=1).exists()
+        assert game.phases.filter(ordinal=2).exists()
+        assert not game.phases.filter(ordinal=3).exists()
+        assert not game.phases.filter(ordinal=4).exists()
+
+    @pytest.mark.django_db
+    def test_revert_to_last_phase_no_deletion(self, game_with_three_phases):
+        game = game_with_three_phases
+        phase3 = game.phases.get(ordinal=3)
+
+        initial_phase_count = game.phases.count()
+        phase3_orders_count = Order.objects.filter(phase_state__phase=phase3).count()
+        assert phase3_orders_count > 0
+
+        phase3.revert_to_this_phase()
+
+        assert game.phases.count() == initial_phase_count
+
+        phase3.refresh_from_db()
+        assert phase3.status == PhaseStatus.ACTIVE
+
+        assert Order.objects.filter(phase_state__phase=phase3).count() == 0
+
+    @pytest.mark.django_db
+    def test_revert_to_phase_recalculates_scheduled_resolution(self, game_with_three_phases):
+        game = game_with_three_phases
+        phase1 = game.phases.get(ordinal=1)
+
+        duration_seconds = game.movement_phase_duration_seconds
+        before_revert = timezone.now()
+
+        phase1.revert_to_this_phase()
+
+        phase1.refresh_from_db()
+        assert phase1.scheduled_resolution is not None
+
+        expected_resolution = before_revert + timedelta(seconds=duration_seconds)
+        time_diff = abs((phase1.scheduled_resolution - expected_resolution).total_seconds())
+        assert time_diff < 2
+
+    @pytest.mark.django_db
+    def test_revert_to_phase_clears_orders(self, game_with_three_phases):
+        game = game_with_three_phases
+        phase1 = game.phases.get(ordinal=1)
+
+        phase1.status = PhaseStatus.ACTIVE
+        phase1.save()
+
+        phase_state = phase1.phase_states.first()
+
+        initial_orders_count = phase_state.orders.count()
+        assert initial_orders_count > 0
+
+        phase1.revert_to_this_phase()
+
+        assert phase_state.orders.count() == 0
+
+    @pytest.mark.django_db
+    def test_revert_to_phase_resets_phase_state_flags(self, game_with_three_phases):
+        game = game_with_three_phases
+        phase3 = game.phases.get(ordinal=3)
+
+        phase_state_confirmed = phase3.phase_states.filter(orders_confirmed=True).first()
+        assert phase_state_confirmed is not None
+
+        phase3.revert_to_this_phase()
+
+        for phase_state in phase3.phase_states.all():
+            phase_state.refresh_from_db()
+            assert phase_state.orders_confirmed is False
+
+    @pytest.mark.django_db
+    def test_revert_to_phase_ended_game_raises_error(
+        self,
+        game_with_three_phases,
+    ):
+        game = game_with_three_phases
+        game.status = GameStatus.COMPLETED
+        game.save()
+
+        phase1 = game.phases.get(ordinal=1)
+
+        with pytest.raises(ValueError, match="Cannot revert phases in an ended game"):
+            phase1.revert_to_this_phase()
+
+        assert game.phases.count() == 3
+
+    @pytest.mark.django_db
+    def test_revert_to_phase_with_order_resolutions(self, game_with_three_phases):
+        game = game_with_three_phases
+        phase1 = game.phases.get(ordinal=1)
+        phase2 = game.phases.get(ordinal=2)
+
+        order_resolutions_phase2 = [
+            order.resolution for order in phase2.all_orders if hasattr(order, 'resolution')
+        ]
+        assert len(order_resolutions_phase2) > 0
+
+        phase1.revert_to_this_phase()
+
+        from order.models import OrderResolution
+        for resolution in order_resolutions_phase2:
+            assert not OrderResolution.objects.filter(id=resolution.id).exists()
+
+    @pytest.mark.django_db
+    def test_revert_to_completed_phase_makes_active(self, game_with_three_phases):
+        game = game_with_three_phases
+        phase1 = game.phases.get(ordinal=1)
+
+        assert phase1.status == PhaseStatus.COMPLETED
+
+        phase1.revert_to_this_phase()
+
+        phase1.refresh_from_db()
+        assert phase1.status == PhaseStatus.ACTIVE
