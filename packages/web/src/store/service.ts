@@ -445,9 +445,11 @@ export type FcmDeviceRead = {
   type: TypeEnum;
 };
 export type NationAssignmentEnum = "random" | "ordered";
+export type MovementPhaseDurationEnum = "24 hours" | "48 hours" | "1 week";
 export type Game = {
   name: string;
   nationAssignment: NationAssignmentEnum;
+  movementPhaseDuration?: MovementPhaseDurationEnum;
   private: boolean;
 };
 export type StatusEnum = "pending" | "active" | "completed" | "template";
@@ -554,7 +556,6 @@ export type MemberRead = {
 export type GameRead = {
   id: string;
   status: string;
-  movementPhaseDuration: string;
   canJoin: boolean;
   canLeave: boolean;
   phases: PhaseRead[];
@@ -563,12 +564,14 @@ export type GameRead = {
   phaseConfirmed: boolean;
   name: string;
   nationAssignment: NationAssignmentEnum;
+  movementPhaseDuration?: MovementPhaseDurationEnum;
   private: boolean;
 };
 export type GameWrite = {
   name: string;
   variantId: string;
   nationAssignment: NationAssignmentEnum;
+  movementPhaseDuration?: MovementPhaseDurationEnum;
   private: boolean;
 };
 export type PhaseState = {};

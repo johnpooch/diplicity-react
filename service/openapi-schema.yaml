@@ -815,9 +815,6 @@ components:
         status:
           type: string
           readOnly: true
-        movementPhaseDuration:
-          type: string
-          readOnly: true
         canJoin:
           type: boolean
           readOnly: true
@@ -848,6 +845,10 @@ components:
           writeOnly: true
         nationAssignment:
           $ref: '#/components/schemas/NationAssignmentEnum'
+        movementPhaseDuration:
+          allOf:
+          - $ref: '#/components/schemas/MovementPhaseDurationEnum'
+          default: 24 hours
         private:
           type: boolean
       required:
@@ -855,7 +856,6 @@ components:
       - canLeave
       - id
       - members
-      - movementPhaseDuration
       - name
       - nationAssignment
       - phaseConfirmed
@@ -908,6 +908,16 @@ components:
       - nation
       - picture
       - username
+    MovementPhaseDurationEnum:
+      enum:
+      - 24 hours
+      - 48 hours
+      - 1 week
+      type: string
+      description: |-
+        * `24 hours` - 24 hours
+        * `48 hours` - 48 hours
+        * `1 week` - 1 week
     Nation:
       type: object
       properties:

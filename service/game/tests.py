@@ -2,8 +2,10 @@ import pytest
 from django.urls import reverse
 from django.test.utils import override_settings
 from django.db import connection
+from django.utils import timezone
+from datetime import timedelta
 from rest_framework import status
-from common.constants import PhaseStatus, GameStatus, NationAssignment
+from common.constants import PhaseStatus, GameStatus, NationAssignment, MovementPhaseDuration
 
 from .models import Game
 
@@ -404,7 +406,7 @@ class TestGameListViewQueryPerformance:
         classical_england_nation,
         classical_edinburgh_province,
     ):
-        for i in range(3):
+        for i in range(4):
             game = Game.objects.create(
                 name=f"Game with Phases {i}",
                 variant=classical_variant,
@@ -433,7 +435,8 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count <= 33
+
+        assert query_count == 31
 
 
 class TestGameCreateView:
@@ -857,3 +860,22 @@ class TestGamePrivateFiltering:
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
         assert response.data["movement_phase_duration"] == "48 hours"
+
+    @pytest.mark.django_db
+    def test_game_with_one_week_phase_duration(self, authenticated_client, active_game_with_phase_state):
+        game = active_game_with_phase_state
+        phase = game.current_phase
+        now = timezone.now()
+
+        game.movement_phase_duration = MovementPhaseDuration.ONE_WEEK
+        phase.scheduled_resolution = now + timedelta(seconds=game.movement_phase_duration_seconds)
+        phase.save()
+        game.save()
+
+        expected_resolution = now + timedelta(weeks=1)
+        assert abs((phase.scheduled_resolution - expected_resolution).total_seconds()) < 1
+
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["movement_phase_duration"] == "1 week"
