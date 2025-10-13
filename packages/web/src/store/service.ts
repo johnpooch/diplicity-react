@@ -552,6 +552,7 @@ export type MemberRead = {
   nation: string | null;
   isCurrentUser: boolean;
   game: GameSummary;
+  supplyCenterCount: number;
 };
 export type GameRead = {
   id: string;
