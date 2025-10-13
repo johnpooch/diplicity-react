@@ -1,10 +1,8 @@
 import React from "react";
 import {
   Alert,
-  List,
   ListItem,
   ListItemAvatar,
-  ListItemText,
   Skeleton,
   Stack,
 } from "@mui/material";
@@ -13,7 +11,7 @@ import { service } from "../../store";
 import { HomeAppBar } from "./AppBar";
 import { useNavigate, useParams } from "react-router";
 import { GameMenu } from "../../components/GameMenu";
-import { MemberAvatar } from "../../components/MemberAvatar";
+import { PlayerCard } from "../../components";
 
 const PlayerInfo: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -53,27 +51,22 @@ const PlayerInfo: React.FC = () => {
                 {query.data.variant.nations.length} players have joined.
               </Alert>
             )}
-            <List>
-              {query.data
-                ? query.data.members.map(member => (
-                  <ListItem key={member.username}>
-                    <ListItemAvatar>
-                      <MemberAvatar member={member} variant={query.data.variant.id} size="medium" />
-                    </ListItemAvatar>
-                    <ListItemText primary={member.username} secondary={member.nation} />
-                  </ListItem>
-                ))
-                : Array.from({ length: 3 }, (_, index) => (
-                  <ListItem key={index}>
-                    <ListItemAvatar>
-                      <Skeleton variant="circular" width={40} height={40} />
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={<Skeleton variant="text" width={150} />}
-                    />
-                  </ListItem>
-                ))}
-            </List>
+            {query.data
+              ? query.data.members.map(member => (
+                <PlayerCard
+                  key={member.username}
+                  member={member}
+                  variant={query.data.variant.id}
+                />
+              ))
+              : Array.from({ length: 3 }, (_, index) => (
+                <ListItem key={index}>
+                  <ListItemAvatar>
+                    <Skeleton variant="circular" width={40} height={40} />
+                  </ListItemAvatar>
+                  <Skeleton variant="text" width={150} />
+                </ListItem>
+              ))}
           </>
         </Stack>
       }

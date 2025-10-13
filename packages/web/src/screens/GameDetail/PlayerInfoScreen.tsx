@@ -3,16 +3,14 @@ import {
     List,
     ListItem,
     ListItemAvatar,
-    ListItemText,
     Skeleton,
     Stack,
 } from "@mui/material";
 import { GameDetailLayout } from "./Layout";
 import { GameDetailAppBar } from "./AppBar";
 import { useNavigate } from "react-router";
-import { MemberAvatar } from "../../components/MemberAvatar";
 import { useSelectedGameContext } from "../../context";
-import { GameMap, Panel } from "../../components";
+import { GameMap, Panel, PlayerCard } from "../../components";
 
 const PlayerInfoScreen: React.FC = () => {
     const { gameId, gameRetrieveQuery: query } = useSelectedGameContext();
@@ -40,21 +38,18 @@ const PlayerInfoScreen: React.FC = () => {
                             <List>
                                 {query.data
                                     ? query.data.members.map(member => (
-                                        <ListItem key={member.username}>
-                                            <ListItemAvatar>
-                                                <MemberAvatar member={member} variant={query.data?.variant.id ?? ""} size="medium" />
-                                            </ListItemAvatar>
-                                            <ListItemText primary={member.username} secondary={member.nation} />
-                                        </ListItem>
+                                        <PlayerCard
+                                            key={member.username}
+                                            member={member}
+                                            variant={query.data?.variant.id ?? ""}
+                                        />
                                     ))
                                     : Array.from({ length: 3 }, (_, index) => (
                                         <ListItem key={index}>
                                             <ListItemAvatar>
                                                 <Skeleton variant="circular" width={40} height={40} />
                                             </ListItemAvatar>
-                                            <ListItemText
-                                                primary={<Skeleton variant="text" width={150} />}
-                                            />
+                                            <Skeleton variant="text" width={150} />
                                         </ListItem>
                                     ))}
                             </List>

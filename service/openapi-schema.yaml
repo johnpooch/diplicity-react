@@ -900,6 +900,9 @@ components:
           allOf:
           - $ref: '#/components/schemas/GameSummary'
           readOnly: true
+        supplyCenterCount:
+          type: integer
+          readOnly: true
       required:
       - game
       - id
@@ -907,6 +910,7 @@ components:
       - name
       - nation
       - picture
+      - supplyCenterCount
       - username
     MovementPhaseDurationEnum:
       enum:

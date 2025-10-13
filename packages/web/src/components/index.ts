@@ -7,3 +7,4 @@ export * from "./NotificationBanner";
 export * from "./OrderSummary";
 export * from "./Panel";
 export * from "./PhaseSelect";
+export * from "./PlayerCard";
