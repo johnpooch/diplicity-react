@@ -37,7 +37,7 @@ const PhaseSelect: React.FC = () => {
   const isMobile = responsiveness.device === "mobile";
 
   const { gameRetrieveQuery } = useSelectedGameContext();
-  const { selectedPhase, setSelectedPhase } = useSelectedPhaseContext();
+  const { selectedPhase, setPhase, setPreviousPhase, setNextPhase } = useSelectedPhaseContext();
 
   if (gameRetrieveQuery.isLoading) {
     return null;
@@ -59,21 +59,7 @@ const PhaseSelect: React.FC = () => {
   const nextDisabled = currentPhaseIndex === sortedPhases.length - 1;
 
   const handlePhaseSelect = (phaseId: number) => {
-    setSelectedPhase(phaseId);
-  };
-
-  const handleNext = () => {
-    if (currentPhaseIndex < sortedPhases.length - 1) {
-      const nextPhase = sortedPhases[currentPhaseIndex + 1];
-      setSelectedPhase(nextPhase.id);
-    }
-  };
-
-  const handlePrevious = () => {
-    if (currentPhaseIndex > 0) {
-      const previousPhase = sortedPhases[currentPhaseIndex - 1];
-      setSelectedPhase(previousPhase.id);
-    }
+    setPhase(phaseId);
   };
 
   return (
@@ -84,7 +70,7 @@ const PhaseSelect: React.FC = () => {
             edge="start"
             color="inherit"
             aria-label="back"
-            onClick={handlePrevious}
+            onClick={setPreviousPhase}
             disabled={previousDisabled}
             sx={styles.iconButton}
           >
@@ -113,7 +99,7 @@ const PhaseSelect: React.FC = () => {
             edge="end"
             color="inherit"
             aria-label="forward"
-            onClick={handleNext}
+            onClick={setNextPhase}
             disabled={nextDisabled}
             sx={styles.iconButton}
           >
