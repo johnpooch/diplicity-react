@@ -24,8 +24,7 @@ const useStyles = createUseStyles(() => ({
     border: theme => `1px solid ${theme.palette.divider}`,
     flexGrow: 1,
   },
-  formControl: {
-  },
+  formControl: {},
   iconButton: {
     height: "fit-content",
   },
@@ -37,7 +36,8 @@ const PhaseSelect: React.FC = () => {
   const isMobile = responsiveness.device === "mobile";
 
   const { gameRetrieveQuery } = useSelectedGameContext();
-  const { selectedPhase, setPhase, setPreviousPhase, setNextPhase } = useSelectedPhaseContext();
+  const { selectedPhase, setPhase, setPreviousPhase, setNextPhase } =
+    useSelectedPhaseContext();
 
   if (gameRetrieveQuery.isLoading) {
     return null;
