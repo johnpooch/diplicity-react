@@ -1,6 +1,6 @@
-import React, { useState, useEffect, createContext, useContext } from "react";
-import { useLocation, useNavigate, useParams } from "react-router";
-import { service } from "../store";
+import React, { useReducer, useEffect, createContext, useContext } from "react";
+import { useLocation, useNavigate } from "react-router";
+import { useSelectedGameContext } from "./SelectedGameContext";
 
 const SelectedPhaseContext = createContext<
   SelectedPhaseContextType | undefined
@@ -18,49 +18,100 @@ const useSelectedPhaseContext = () => {
 
 type SelectedPhaseContextType = {
   selectedPhase: number;
-  setSelectedPhase: (phase: number) => void;
+  setPhase: (phase: number) => void;
+  setPreviousPhase: () => void;
+  setNextPhase: () => void;
+};
+
+type State = {
+  selectedPhase: number | undefined;
+};
+
+type Action =
+  | { type: "SET_PHASE"; payload: number }
+  | { type: "SET_PREVIOUS_PHASE"; payload: { phases: Array<{ id: number; ordinal: number }> } }
+  | { type: "SET_NEXT_PHASE"; payload: { phases: Array<{ id: number; ordinal: number }> } };
+
+const reducer = (state: State, action: Action): State => {
+  switch (action.type) {
+    case "SET_PHASE":
+      return { selectedPhase: action.payload };
+    case "SET_PREVIOUS_PHASE": {
+      if (state.selectedPhase === undefined) return state;
+      const currentIndex = action.payload.phases.findIndex(p => p.id === state.selectedPhase);
+      if (currentIndex > 0) {
+        return { selectedPhase: action.payload.phases[currentIndex - 1].id };
+      }
+      return state;
+    }
+    case "SET_NEXT_PHASE": {
+      if (state.selectedPhase === undefined) return state;
+      const currentIndex = action.payload.phases.findIndex(p => p.id === state.selectedPhase);
+      if (currentIndex < action.payload.phases.length - 1) {
+        return { selectedPhase: action.payload.phases[currentIndex + 1].id };
+      }
+      return state;
+    }
+    default:
+      return state;
+  }
 };
 
 const SelectedPhaseContextProvider: React.FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
-  const { gameId } = useParams<{ gameId: string }>();
-  if (!gameId) throw new Error("Game ID is required");
-
-  const gameRetrieveQuery = service.endpoints.gameRetrieve.useQuery({
-    gameId,
-  });
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [selectedPhase, setSelectedPhase] = useState<number | undefined>(() => {
+  const [state, dispatch] = useReducer(reducer, undefined, () => {
     const params = new URLSearchParams(location.search);
     const phase = params.get("selectedPhase");
-    return phase ? Number(phase) : undefined;
+    return { selectedPhase: phase ? Number(phase) : undefined };
   });
+
+  const { gameRetrieveQuery } = useSelectedGameContext();
+
+  useEffect(() => {
+    if (!phases) return;
+    const defaultPhase = phases[phases.length - 1].id
+    dispatch({ type: "SET_PHASE", payload: defaultPhase });
+  }, [gameRetrieveQuery.data?.phases]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    if (selectedPhase === undefined) {
+    if (state.selectedPhase === undefined) {
       params.delete("selectedPhase");
     } else {
-      params.set("selectedPhase", selectedPhase.toString());
+      params.set("selectedPhase", state.selectedPhase.toString());
     }
     navigate({ search: params.toString() }, { replace: true });
-  }, [selectedPhase, location.search, navigate]);
+  }, [state.selectedPhase, location.search, navigate]);
 
-  const defaultPhase = gameRetrieveQuery.data
-    ? gameRetrieveQuery.data.phases.reduce(
-      (max, obj) => (obj.id > max.id ? obj : max),
-      gameRetrieveQuery.data.phases[0]
-    ).id
-    : 1;
+  const phases = gameRetrieveQuery.data?.phases;
 
-  const selectedPhaseOrDefault = selectedPhase || defaultPhase;
+  if (!phases || !state.selectedPhase) return (
+    <SelectedPhaseContext.Provider
+      value={{ selectedPhase: 1, setPhase: () => { }, setPreviousPhase: () => { }, setNextPhase: () => { } }}
+    >
+      {children}
+    </SelectedPhaseContext.Provider>
+  );
+
+  const setPhase = (phase: number) => {
+    dispatch({ type: "SET_PHASE", payload: phase });
+  };
+
+  const setPreviousPhase = () => {
+    dispatch({ type: "SET_PREVIOUS_PHASE", payload: { phases } });
+  };
+
+  const setNextPhase = () => {
+    dispatch({ type: "SET_NEXT_PHASE", payload: { phases } });
+  };
 
   return (
     <SelectedPhaseContext.Provider
-      value={{ selectedPhase: selectedPhaseOrDefault, setSelectedPhase }}
+      value={{ selectedPhase: state.selectedPhase, setPhase, setPreviousPhase, setNextPhase }}
     >
       {children}
     </SelectedPhaseContext.Provider>

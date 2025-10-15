@@ -719,7 +719,7 @@ class TestOrderListViewQueryPerformance:
             response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(connection.queries) == 13
+        assert len(connection.queries) == 14
 
     @pytest.mark.django_db
     def test_list_orders_query_count_with_multiple_orders(
@@ -756,7 +756,7 @@ class TestOrderListViewQueryPerformance:
             response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(connection.queries) == 13
+        assert len(connection.queries) == 14
 
 
 class TestOrderCreateViewQueryPerformance:
@@ -774,7 +774,7 @@ class TestOrderCreateViewQueryPerformance:
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
 
-        assert query_count == 23
+        assert query_count == 24
 
 
 class TestGetOptionsForOrder:
@@ -2137,6 +2137,146 @@ class TestOrderNamedCoastCreation:
         assert response.data["step"] == OrderCreationStep.COMPLETED
         assert response.data["complete"] is True
         assert Order.objects.count() == 1
+
+
+class TestOrderSummary:
+
+    @pytest.mark.django_db
+    def test_hold_order_summary(self, test_phase_state, classical_london_province):
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_london_province,
+            order_type=OrderType.HOLD,
+        )
+        assert order.summary == "Hold"
+
+    @pytest.mark.django_db
+    def test_disband_order_summary(self, test_phase_state, classical_london_province):
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_london_province,
+            order_type=OrderType.DISBAND,
+        )
+        assert order.summary == "Disband"
+
+    @pytest.mark.django_db
+    def test_build_army_order_summary(self, test_phase_state, classical_london_province):
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_london_province,
+            order_type=OrderType.BUILD,
+            unit_type=UnitType.ARMY,
+        )
+        assert order.summary == "Build army"
+
+    @pytest.mark.django_db
+    def test_build_fleet_order_summary(self, test_phase_state, classical_london_province):
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_london_province,
+            order_type=OrderType.BUILD,
+            unit_type=UnitType.FLEET,
+        )
+        assert order.summary == "Build fleet"
+
+    @pytest.mark.django_db
+    def test_build_fleet_with_named_coast_summary(
+        self, test_phase_state, classical_spain_province, classical_spain_nc_province
+    ):
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_spain_province,
+            order_type=OrderType.BUILD,
+            unit_type=UnitType.FLEET,
+            named_coast=classical_spain_nc_province,
+        )
+        assert order.summary == "Build fleet"
+
+    @pytest.mark.django_db
+    def test_move_order_summary(self, test_phase_state, classical_london_province, classical_english_channel_province):
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_london_province,
+            order_type=OrderType.MOVE,
+            target=classical_english_channel_province,
+        )
+        assert order.summary == "Move to English Channel"
+
+    @pytest.mark.django_db
+    def test_move_via_convoy_order_summary(self, test_phase_state, classical_london_province, classical_paris_province):
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_london_province,
+            order_type=OrderType.MOVE_VIA_CONVOY,
+            target=classical_paris_province,
+        )
+        assert order.summary == "Move via convoy to Paris"
+
+    @pytest.mark.django_db
+    def test_support_hold_order_summary(
+        self, test_phase_state, classical_london_province, classical_english_channel_province
+    ):
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_london_province,
+            order_type=OrderType.SUPPORT,
+            aux=classical_english_channel_province,
+            target=classical_english_channel_province,
+        )
+        assert order.summary == "Support English Channel to hold"
+
+    @pytest.mark.django_db
+    def test_support_move_order_summary(
+        self,
+        test_phase_state,
+        classical_london_province,
+        classical_english_channel_province,
+        classical_paris_province,
+    ):
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_london_province,
+            order_type=OrderType.SUPPORT,
+            aux=classical_english_channel_province,
+            target=classical_paris_province,
+        )
+        assert order.summary == "Support English Channel to Paris"
+
+    @pytest.mark.django_db
+    def test_convoy_order_summary(
+        self,
+        test_phase_state,
+        classical_english_channel_province,
+        classical_london_province,
+        classical_paris_province,
+    ):
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_english_channel_province,
+            order_type=OrderType.CONVOY,
+            aux=classical_london_province,
+            target=classical_paris_province,
+        )
+        assert order.summary == "Convoy London to Paris"
+
+    @pytest.mark.django_db
+    def test_incomplete_order_summary_is_none(self, test_phase_state, classical_london_province):
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_london_province,
+            order_type=OrderType.MOVE,
+            target=None,
+        )
+        assert order.summary is None
+
+    @pytest.mark.django_db
+    def test_no_order_type_summary_is_none(self, test_phase_state, classical_london_province):
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_london_province,
+            order_type=None,
+        )
+        assert order.summary is None
 
 
 class TestOrderSourceUnit:

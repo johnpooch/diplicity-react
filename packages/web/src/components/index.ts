@@ -4,7 +4,7 @@ export * from "./GameCard";
 export * from "./GameMenu";
 export * from "./GameMap";
 export * from "./NotificationBanner";
-export * from "./OrderSummary";
+export * from "./OrderCard";
 export * from "./Panel";
 export * from "./PhaseSelect";
 export * from "./PlayerCard";

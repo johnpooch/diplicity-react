@@ -634,6 +634,7 @@ export type OrderRead = {
   complete: boolean | null;
   step: (StepEnum | NullEnum) | null;
   title: string | null;
+  summary: string | null;
   selected?: string[];
 };
 export type Channel = {};

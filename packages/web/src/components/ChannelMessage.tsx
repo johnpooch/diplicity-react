@@ -1,7 +1,9 @@
-import { Avatar, Stack, Typography } from "@mui/material";
+import { Stack, Typography } from "@mui/material";
 import { createUseStyles } from "./utils/styles";
+import { ChannelMemberRead } from "../store";
+import { MemberAvatar } from "./MemberAvatar";
 
-const EMPTY_AVATAR_WIDTH = 40;
+const EMPTY_AVATAR_WIDTH = 32;
 const TWENTY_PERCENT_OPACITY_HEX_SUFFIX = "33";
 const BORDER_RADIUS = "16px";
 const USER_BORDER_RADIUS = `${BORDER_RADIUS} ${BORDER_RADIUS} ${BORDER_RADIUS} 0`;
@@ -13,12 +15,13 @@ type ChannelMessageProps = {
   message: string;
   date: string;
   showAvatar: boolean;
-  avatar: string;
+  member: ChannelMemberRead;
+  variant: string;
   color: string;
   isUser: boolean;
 };
 
-const useStyles = createUseStyles<ChannelMessageProps>((props) => ({
+const useStyles = createUseStyles<ChannelMessageProps>(props => ({
   container: {
     flexDirection: props.isUser ? "row" : "row-reverse",
     gap: 2,
@@ -42,12 +45,21 @@ const useStyles = createUseStyles<ChannelMessageProps>((props) => ({
   },
 }));
 
-const ChannelMessage: React.FC<ChannelMessageProps> = (props) => {
+const ChannelMessage: React.FC<ChannelMessageProps> = props => {
   const styles = useStyles(props);
   return (
     <Stack sx={styles.container}>
       {props.showAvatar ? (
-        <Avatar src={props.avatar} />
+        <Stack>
+          <MemberAvatar
+            member={{
+              picture: props.member.picture,
+              nation: props.member.nation.name,
+            }}
+            variant={props.variant}
+            size="medium"
+          />
+        </Stack>
       ) : (
         <Stack sx={styles.emptyAvatar} />
       )}
