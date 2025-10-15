@@ -15,6 +15,7 @@ import Chat from "@mui/icons-material/Chat";
 import Orders from "@mui/icons-material/Gavel";
 import OrdersConfirmed from "@mui/icons-material/CheckBox";
 import OrdersNotConfirmed from "@mui/icons-material/CheckBoxOutlineBlank";
+import Check from "@mui/icons-material/Check";
 import Map from "@mui/icons-material/Map";
 import GroupAdd from "@mui/icons-material/GroupAdd";
 import NoChannels from "@mui/icons-material/Forum";
@@ -39,6 +40,7 @@ enum IconName {
   NoResults = "no-results",
   Empty = "empty",
   StartYear = "start-year",
+  Failure = "failure",
   WinCondition = "win-condition",
   Players = "players",
   Author = "author",
@@ -48,6 +50,7 @@ enum IconName {
   CreateOrder = "create-order",
   OrdersConfirmed = "orders-confirmed",
   OrdersNotConfirmed = "orders-not-confirmed",
+  Success = "check",
   Map = "map",
   GroupAdd = "group-add",
   NoChannels = "no-channels",
@@ -73,6 +76,7 @@ const IconMap = {
   [IconName.StartYear]: StartYear,
   [IconName.WinCondition]: WinCondition,
   [IconName.Players]: Players,
+  [IconName.Failure]: Close,
   [IconName.Author]: Author,
   [IconName.Menu]: Menu,
   [IconName.Chat]: Chat,
@@ -80,6 +84,7 @@ const IconMap = {
   [IconName.CreateOrder]: CreateOrder,
   [IconName.OrdersConfirmed]: OrdersConfirmed,
   [IconName.OrdersNotConfirmed]: OrdersNotConfirmed,
+  [IconName.Success]: Check,
   [IconName.Map]: Map,
   [IconName.GroupAdd]: GroupAdd,
   [IconName.NoChannels]: NoChannels,

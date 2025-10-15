@@ -1,10 +1,5 @@
 import React from "react";
-import {
-  Button,
-  Link,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { Button, Link, Stack, Typography } from "@mui/material";
 import { useNavigate } from "react-router";
 import { service } from "../store";
 import { GameMenu } from "./GameMenu";
@@ -14,16 +9,17 @@ import { createUseStyles } from "./utils/styles";
 import { MemberAvatarGroup } from "./MemberAvatarGroup";
 import { Icon, IconName } from "./Icon";
 
-type GameCardProps = (typeof service.endpoints.gamesList.Types.ResultType)[number];
+type GameCardProps =
+  (typeof service.endpoints.gamesList.Types.ResultType)[number];
 
 const useStyles = createUseStyles<GameCardProps>(() => ({
-  mainContainer: (theme) => ({
+  mainContainer: theme => ({
     borderBottom: `1px solid ${theme.palette.divider}`,
   }),
   mapWrapper: {
     maxWidth: 60,
   },
-  gameName: (theme) => ({
+  gameName: theme => ({
     fontSize: 15,
     lineHeight: "1.8",
     color: theme.palette.text.primary,
@@ -31,7 +27,7 @@ const useStyles = createUseStyles<GameCardProps>(() => ({
       color: theme.palette.text.primary,
     },
   }),
-  gameNameLink: (theme) => ({
+  gameNameLink: theme => ({
     color: theme.palette.text.primary,
     "&:hover": {
       color: theme.palette.text.primary,
@@ -44,7 +40,7 @@ const useStyles = createUseStyles<GameCardProps>(() => ({
     fontSize: 12,
     opacity: 0.6,
   },
-  phaseInfo: (theme) => ({
+  phaseInfo: theme => ({
     color: theme.palette.text.primary,
   }),
   memberButton: {
@@ -58,7 +54,7 @@ const useStyles = createUseStyles<GameCardProps>(() => ({
   },
 }));
 
-const GameCard: React.FC<GameCardProps> = (game) => {
+const GameCard: React.FC<GameCardProps> = game => {
   const navigate = useNavigate();
   const styles = useStyles(game);
   const currentPhase = getCurrentPhase(game.phases);
@@ -96,26 +92,40 @@ const GameCard: React.FC<GameCardProps> = (game) => {
           </Stack>
           <Stack>
             <Stack direction="row" gap={1} alignItems="center">
-              <Link onClick={handleClickGame} underline="hover" sx={styles.gameNameLink}>
-                <Typography variant="body2" sx={styles.gameName}>{game.name}</Typography>
+              <Link
+                onClick={handleClickGame}
+                underline="hover"
+                sx={styles.gameNameLink}
+              >
+                <Typography variant="body2" sx={styles.gameName}>
+                  {game.name}
+                </Typography>
               </Link>
             </Stack>
             <Stack direction="row" gap={1} alignItems="center">
               {game.private && (
                 <Icon name={IconName.Lock} sx={styles.lockIcon} />
               )}
-              <Typography variant="caption" >{game.variant.name} • {game.movementPhaseDuration}</Typography>
+              <Typography variant="caption">
+                {game.variant.name} • {game.movementPhaseDuration}
+              </Typography>
             </Stack>
           </Stack>
         </Stack>
         {game.status === "active" && (
           <Stack>
-            <Typography variant="caption" sx={styles.phaseInfo}>{currentPhase?.season} {currentPhase?.year} • {currentPhase?.type} • Resolves {formatDateTime(currentPhase?.scheduledResolution)}</Typography>
+            <Typography variant="caption" sx={styles.phaseInfo}>
+              {currentPhase?.season} {currentPhase?.year} • {currentPhase?.type}{" "}
+              • Resolves {formatDateTime(currentPhase?.scheduledResolution)}
+            </Typography>
           </Stack>
         )}
         <Button onClick={handleClickPlayerInfo} sx={styles.memberButton}>
-          <Stack direction="row" gap={1} sx={styles.memberContainer} >
-            <MemberAvatarGroup members={game.members} variant={game.variant.id} />
+          <Stack direction="row" gap={1} sx={styles.memberContainer}>
+            <MemberAvatarGroup
+              members={game.members}
+              variant={game.variant.id}
+            />
           </Stack>
         </Button>
       </Stack>
@@ -129,6 +139,5 @@ const GameCard: React.FC<GameCardProps> = (game) => {
     </Stack>
   );
 };
-
 
 export { GameCard };

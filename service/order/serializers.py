@@ -32,6 +32,7 @@ class OrderSerializer(serializers.Serializer):
         choices=OrderCreationStep.ORDER_CREATION_STEP_CHOICES, allow_null=True, read_only=True
     )
     title = serializers.CharField(allow_null=True, read_only=True)
+    summary = serializers.CharField(allow_null=True, read_only=True)
 
     selected = serializers.ListField(
         child=serializers.CharField(),

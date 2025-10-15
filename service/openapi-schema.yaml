@@ -997,6 +997,10 @@ components:
           type: string
           readOnly: true
           nullable: true
+        summary:
+          type: string
+          readOnly: true
+          nullable: true
         selected:
           type: array
           items:
@@ -1011,6 +1015,7 @@ components:
       - resolution
       - source
       - step
+      - summary
       - target
       - title
       - unitType

@@ -241,6 +241,31 @@ class Order(BaseModel):
 
         return None
 
+    @property
+    def summary(self):
+        if not self.complete:
+            return None
+
+        if self.order_type == OrderType.HOLD:
+            return "Hold"
+        elif self.order_type == OrderType.DISBAND:
+            return "Disband"
+        elif self.order_type == OrderType.BUILD:
+            unit_type = self.unit_type.lower() if self.unit_type else "unit"
+            return f"Build {unit_type}"
+        elif self.order_type == OrderType.MOVE:
+            return f"Move to {self.target.name}"
+        elif self.order_type == OrderType.MOVE_VIA_CONVOY:
+            return f"Move via convoy to {self.target.name}"
+        elif self.order_type == OrderType.SUPPORT:
+            if self.aux == self.target:
+                return f"Support {self.aux.name} to hold"
+            return f"Support {self.aux.name} to {self.target.name}"
+        elif self.order_type == OrderType.CONVOY:
+            return f"Convoy {self.aux.name} to {self.target.name}"
+
+        return None
+
     def _count_existing_orders_for_phase_state(self):
         """Count existing complete orders for this phase state, excluding current order."""
         queryset = Order.objects.filter(phase_state=self.phase_state)
