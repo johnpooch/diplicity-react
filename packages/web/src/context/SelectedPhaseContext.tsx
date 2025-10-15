@@ -29,8 +29,14 @@ type State = {
 
 type Action =
   | { type: "SET_PHASE"; payload: number }
-  | { type: "SET_PREVIOUS_PHASE"; payload: { phases: Array<{ id: number; ordinal: number }> } }
-  | { type: "SET_NEXT_PHASE"; payload: { phases: Array<{ id: number; ordinal: number }> } };
+  | {
+      type: "SET_PREVIOUS_PHASE";
+      payload: { phases: Array<{ id: number; ordinal: number }> };
+    }
+  | {
+      type: "SET_NEXT_PHASE";
+      payload: { phases: Array<{ id: number; ordinal: number }> };
+    };
 
 const reducer = (state: State, action: Action): State => {
   switch (action.type) {
@@ -38,7 +44,9 @@ const reducer = (state: State, action: Action): State => {
       return { selectedPhase: action.payload };
     case "SET_PREVIOUS_PHASE": {
       if (state.selectedPhase === undefined) return state;
-      const currentIndex = action.payload.phases.findIndex(p => p.id === state.selectedPhase);
+      const currentIndex = action.payload.phases.findIndex(
+        p => p.id === state.selectedPhase
+      );
       if (currentIndex > 0) {
         return { selectedPhase: action.payload.phases[currentIndex - 1].id };
       }
@@ -46,7 +54,9 @@ const reducer = (state: State, action: Action): State => {
     }
     case "SET_NEXT_PHASE": {
       if (state.selectedPhase === undefined) return state;
-      const currentIndex = action.payload.phases.findIndex(p => p.id === state.selectedPhase);
+      const currentIndex = action.payload.phases.findIndex(
+        p => p.id === state.selectedPhase
+      );
       if (currentIndex < action.payload.phases.length - 1) {
         return { selectedPhase: action.payload.phases[currentIndex + 1].id };
       }
@@ -73,7 +83,7 @@ const SelectedPhaseContextProvider: React.FC<{
 
   useEffect(() => {
     if (!phases) return;
-    const defaultPhase = phases[phases.length - 1].id
+    const defaultPhase = phases[phases.length - 1].id;
     dispatch({ type: "SET_PHASE", payload: defaultPhase });
   }, [gameRetrieveQuery.data?.phases]);
 
@@ -89,29 +99,31 @@ const SelectedPhaseContextProvider: React.FC<{
 
   const phases = gameRetrieveQuery.data?.phases;
 
-  if (!phases || !state.selectedPhase) return (
-    <SelectedPhaseContext.Provider
-      value={{ selectedPhase: 1, setPhase: () => { }, setPreviousPhase: () => { }, setNextPhase: () => { } }}
-    >
-      {children}
-    </SelectedPhaseContext.Provider>
-  );
-
   const setPhase = (phase: number) => {
     dispatch({ type: "SET_PHASE", payload: phase });
   };
 
   const setPreviousPhase = () => {
+    if (!phases) return;
     dispatch({ type: "SET_PREVIOUS_PHASE", payload: { phases } });
   };
 
   const setNextPhase = () => {
+    if (!phases) return;
     dispatch({ type: "SET_NEXT_PHASE", payload: { phases } });
   };
 
+  const selectedPhaseOrDefault =
+    state.selectedPhase ?? phases?.[phases.length - 1].id;
+
   return (
     <SelectedPhaseContext.Provider
-      value={{ selectedPhase: state.selectedPhase, setPhase, setPreviousPhase, setNextPhase }}
+      value={{
+        selectedPhase: selectedPhaseOrDefault ?? 1,
+        setPhase,
+        setPreviousPhase,
+        setNextPhase,
+      }}
     >
       {children}
     </SelectedPhaseContext.Provider>
