@@ -21,6 +21,8 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from fcm_django.api.rest_framework import FCMDeviceAuthorizedViewSet
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework.routers import DefaultRouter
+from project.views import test_sentry
+from project import settings
 
 
 urlpatterns = [
@@ -48,3 +50,9 @@ urlpatterns = [
     ),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token-refresh"),
 ]
+
+# Only enable in development
+if settings.DEBUG:
+    urlpatterns += [
+        path("api/test-sentry/", test_sentry, name="test-sentry"),
+    ]

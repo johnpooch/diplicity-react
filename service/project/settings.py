@@ -16,9 +16,23 @@ import sys
 import dj_database_url
 from datetime import timedelta
 from firebase_admin import credentials, initialize_app
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+SENTRY_DSN = os.getenv("SENTRY_DSN")
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[
+            DjangoIntegration(),
+        ],
+        traces_sample_rate=1.0,
+        send_default_pii=False,
+        environment="development" if os.getenv("DJANGO_DEBUG", "False") == "True" else "production",
+    )
 
 
 # Quick-start development settings - unsuitable for production
