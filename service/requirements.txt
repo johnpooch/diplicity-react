@@ -17,3 +17,4 @@ dj-database-url>=2.1.0,<3.0
 whitenoise>=6.0.0
 flask>=2.0.0,<3.0
 django-filter>=2.0.0,<3.0
+sentry-sdk>=2.0.0,<3.0
