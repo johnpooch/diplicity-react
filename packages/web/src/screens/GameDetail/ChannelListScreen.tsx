@@ -1,15 +1,16 @@
 import React from "react";
 import {
-    Box,
-    Button,
-    Chip,
-    Divider,
-    List,
-    ListItem,
-    ListItemButton,
-    ListItemText,
-    Stack,
-    Typography,
+  Alert,
+  Box,
+  Button,
+  Chip,
+  Divider,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  Stack,
+  Typography,
 } from "@mui/material";
 import { service } from "../../store";
 import { GameDetailAppBar } from "./AppBar";
@@ -20,106 +21,120 @@ import { createUseStyles } from "../../components/utils/styles";
 import { Panel } from "../../components/Panel";
 import { GameMap } from "../../components/GameMap";
 import { useSelectedGameContext } from "../../context";
+import { Notice } from "../../components/Notice";
 
 const useStyles = createUseStyles(() => ({
-    emptyContainer: {
-    },
+  emptyContainer: {},
 }));
 
 const getLatestMessagePreview = (messages: any[]) => {
-    if (messages.length === 0) return "No messages";
-    const latestMessage = messages[messages.length - 1];
-    return `${latestMessage.sender.nation.name}: ${latestMessage.body}`;
+  if (messages.length === 0) return "No messages";
+  const latestMessage = messages[messages.length - 1];
+  return `${latestMessage.sender.nation.name}: ${latestMessage.body}`;
 };
 
 const ChannelListScreen: React.FC = props => {
-    const { gameId } = useSelectedGameContext();
+  const { gameId, gameRetrieveQuery } = useSelectedGameContext();
 
-    const styles = useStyles(props);
+  const styles = useStyles(props);
 
-    const query = service.endpoints.gamesChannelsList.useQuery({ gameId });
-    const navigate = useNavigate();
+  const query = service.endpoints.gamesChannelsList.useQuery({ gameId });
+  const navigate = useNavigate();
 
-    const handleChannelClick = (id: string) => {
-        navigate(`/game/${gameId}/chat/channel/${id}`);
-    };
+  const handleChannelClick = (id: string) => {
+    navigate(`/game/${gameId}/chat/channel/${id}`);
+  };
 
-    const handleCreateChannelClick = () => {
-        navigate(`/game/${gameId}/chat/channel/create`);
-    };
+  const handleCreateChannelClick = () => {
+    navigate(`/game/${gameId}/chat/channel/create`);
+  };
 
-    if (query.isError) {
-        return null;
-    }
+  if (query.isError) {
+    return null;
+  }
 
-    return (
-        <GameDetailLayout
-            appBar={<GameDetailAppBar title="Chat" onNavigateBack={() => navigate("/")} />}
-            rightPanel={
-                <GameMap />
-            }
-            content={
-                <Panel>
-                    <Panel.Content>
-                        {query.data?.length === 0 ? (
-                            <Box sx={styles.emptyContainer}>
-                                <Stack spacing={2} alignItems="center">
-                                    <Icon name={IconName.NoChannels} sx={{ fontSize: 48, color: 'text.secondary' }} />
-                                    <Typography variant="h6" color="text.secondary">
-                                        No channels created
-                                    </Typography>
-                                </Stack>
-                            </Box>
-                        ) : (
-                            <List disablePadding>
-                                {query.data?.map((channel, index) => (
-                                    <ListItem
-                                        key={index}
-                                        divider
-                                        disablePadding
-                                    >
-                                        <ListItemButton
-                                            onClick={() => handleChannelClick(channel.id.toString())}
-                                        >
-                                            <ListItemText
-                                                sx={styles.listItemText}
-                                                primary={
-                                                    <Stack direction="row" spacing={1} alignItems="center">
-                                                        <Typography variant="body1">{channel.name}</Typography>
-                                                        {!channel.private && (
-                                                            <Chip
-                                                                label="Public"
-                                                                size="small"
-                                                                variant="outlined"
-                                                                sx={styles.publicChip}
-                                                            />
-                                                        )}
-                                                    </Stack>
-                                                }
-                                                secondary={getLatestMessagePreview(channel.messages)}
-                                            />
-                                        </ListItemButton>
-                                    </ListItem>
-                                ))}
-                            </List>
-                        )}
-                    </Panel.Content>
-                    <Divider />
-                    <Panel.Footer>
-                        <Button
-                            variant="contained"
-                            onClick={handleCreateChannelClick}
-                            startIcon={<Icon name={IconName.GroupAdd} />}
-                        >
-                            Create Channel
-                        </Button>
-                    </Panel.Footer>
-                </Panel>
-            }
-        />
-    );
+  const isSandboxGame = gameRetrieveQuery.data?.sandbox;
+
+  return (
+    <GameDetailLayout
+      appBar={
+        <GameDetailAppBar title="Chat" onNavigateBack={() => navigate("/")} />
+      }
+      rightPanel={<GameMap />}
+      content={
+        <Panel>
+          <Panel.Content>
+            {isSandboxGame ? (
+              <Notice
+                icon={IconName.NoChannels}
+                title="Chat is not available in sandbox games."
+              />
+            ) : query.data?.length === 0 ? (
+              <Box sx={styles.emptyContainer}>
+                <Stack spacing={2} alignItems="center">
+                  <Icon
+                    name={IconName.NoChannels}
+                    sx={{ fontSize: 48, color: "text.secondary" }}
+                  />
+                  <Typography variant="h6" color="text.secondary">
+                    No channels created
+                  </Typography>
+                </Stack>
+              </Box>
+            ) : (
+              <List disablePadding>
+                {query.data?.map((channel, index) => (
+                  <ListItem key={index} divider disablePadding>
+                    <ListItemButton
+                      onClick={() => handleChannelClick(channel.id.toString())}
+                    >
+                      <ListItemText
+                        sx={styles.listItemText}
+                        primary={
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            alignItems="center"
+                          >
+                            <Typography variant="body1">
+                              {channel.name}
+                            </Typography>
+                            {!channel.private && (
+                              <Chip
+                                label="Public"
+                                size="small"
+                                variant="outlined"
+                                sx={styles.publicChip}
+                              />
+                            )}
+                          </Stack>
+                        }
+                        secondary={getLatestMessagePreview(channel.messages)}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+            )}
+          </Panel.Content>
+          {!isSandboxGame && (
+            <>
+              <Divider />
+              <Panel.Footer>
+                <Button
+                  variant="contained"
+                  onClick={handleCreateChannelClick}
+                  startIcon={<Icon name={IconName.GroupAdd} />}
+                >
+                  Create Channel
+                </Button>
+              </Panel.Footer>
+            </>
+          )}
+        </Panel>
+      }
+    />
+  );
 };
 
 export { ChannelListScreen };
-
-
