@@ -8,7 +8,7 @@ urlpatterns = [
         name="game-confirm-phase",
     ),
     path(
-        "game/<str:game_id>/phase-state/",
+        "game/<str:game_id>/phase-states/",
         views.PhaseStateListView.as_view(),
         name="phase-state-list",
     ),
