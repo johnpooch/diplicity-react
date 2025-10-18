@@ -1,4 +1,6 @@
 import pytest
+from adjudication import service as adjudication_service
+from unittest.mock import patch
 from django.urls import reverse
 from django.test.utils import override_settings
 from django.db import connection
@@ -879,3 +881,70 @@ class TestGamePrivateFiltering:
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
         assert response.data["movement_phase_duration"] == "1 week"
+
+
+class TestGameInfinitePhaseDuration:
+
+    @pytest.mark.django_db
+    def test_movement_phase_duration_can_be_none(self, classical_variant):
+        game = Game.objects.create(
+            name="Infinite Duration Game",
+            variant=classical_variant,
+            movement_phase_duration=None,
+        )
+        assert game.movement_phase_duration is None
+
+    @pytest.mark.django_db
+    def test_movement_phase_duration_seconds_returns_none_when_duration_is_none(self, classical_variant):
+        game = Game.objects.create(
+            name="Infinite Duration Game",
+            variant=classical_variant,
+            movement_phase_duration=None,
+        )
+        assert game.movement_phase_duration_seconds is None
+
+    @pytest.mark.django_db
+    def test_game_start_with_infinite_duration_sets_scheduled_resolution_to_none(self, classical_variant, primary_user):
+
+        game = Game.objects.create(
+            name="Infinite Duration Game",
+            variant=classical_variant,
+            movement_phase_duration=None,
+            status=GameStatus.PENDING,
+        )
+        game.members.create(user=primary_user)
+
+        phase = game.phases.create(
+            game=game,
+            variant=game.variant,
+            season="Spring",
+            year=1901,
+            type="Movement",
+            status=PhaseStatus.PENDING,
+            ordinal=1,
+        )
+
+        with patch.object(adjudication_service, "start", return_value={"options": {}}):
+            game.start()
+
+        phase.refresh_from_db()
+        assert phase.scheduled_resolution is None
+        assert phase.status == PhaseStatus.ACTIVE
+        assert game.status == GameStatus.ACTIVE
+
+    @pytest.mark.django_db
+    def test_game_sandbox_field_defaults_to_false(self, classical_variant):
+        game = Game.objects.create(
+            name="Regular Game",
+            variant=classical_variant,
+        )
+        assert game.sandbox is False
+
+    @pytest.mark.django_db
+    def test_game_can_be_created_as_sandbox(self, classical_variant):
+        game = Game.objects.create(
+            name="Sandbox Game",
+            variant=classical_variant,
+            sandbox=True,
+        )
+        assert game.sandbox is True
