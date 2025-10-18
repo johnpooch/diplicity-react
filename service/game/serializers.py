@@ -62,3 +62,34 @@ class GameSerializer(serializers.Serializer):
             game.channels.create(name="Public Press", private=False)
 
             return game
+
+
+class SandboxGameSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    variant_id = serializers.CharField(write_only=True)
+
+    def validate_variant_id(self, value):
+        if not Variant.objects.filter(id=value).exists():
+            raise serializers.ValidationError("Variant with this ID does not exist.")
+        return value
+
+    def create(self, validated_data):
+        request = self.context["request"]
+        variant = Variant.objects.get(id=validated_data["variant_id"])
+
+        with transaction.atomic():
+            game = Game.objects.create_from_template(
+                variant,
+                name=validated_data["name"],
+                sandbox=True,
+                private=True,
+                nation_assignment=NationAssignment.ORDERED,
+                movement_phase_duration=None,
+            )
+
+            for nation in variant.nations.all():
+                game.members.create(user=request.user)
+
+            game.start()
+
+            return game

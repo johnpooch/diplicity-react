@@ -14,6 +14,7 @@ from .models import Game
 retrieve_viewname = "game-retrieve"
 list_viewname = "game-list"
 create_viewname = "game-create"
+sandbox_create_viewname = "sandbox-game-create"
 
 
 class TestGameRetrieveView:
@@ -948,3 +949,250 @@ class TestGameInfinitePhaseDuration:
             sandbox=True,
         )
         assert game.sandbox is True
+
+
+class TestSandboxGameCreation:
+
+    @pytest.mark.django_db
+    def test_create_sandbox_game_success(self, authenticated_client, classical_variant):
+        url = reverse(sandbox_create_viewname)
+        payload = {
+            "name": "My Sandbox Game",
+            "variant_id": classical_variant.id,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+    @pytest.mark.django_db
+    def test_create_sandbox_game_sets_sandbox_true(self, authenticated_client, classical_variant):
+        url = reverse(sandbox_create_viewname)
+        payload = {
+            "name": "My Sandbox Game",
+            "variant_id": classical_variant.id,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        game = Game.objects.get(id=response.data["id"])
+        assert game.sandbox is True
+
+    @pytest.mark.django_db
+    def test_create_sandbox_game_sets_private_true(self, authenticated_client, classical_variant):
+        url = reverse(sandbox_create_viewname)
+        payload = {
+            "name": "My Sandbox Game",
+            "variant_id": classical_variant.id,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        game = Game.objects.get(id=response.data["id"])
+        assert game.private is True
+
+    @pytest.mark.django_db
+    def test_create_sandbox_game_sets_infinite_duration(self, authenticated_client, classical_variant):
+        url = reverse(sandbox_create_viewname)
+        payload = {
+            "name": "My Sandbox Game",
+            "variant_id": classical_variant.id,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        game = Game.objects.get(id=response.data["id"])
+        assert game.movement_phase_duration is None
+
+    @pytest.mark.django_db
+    def test_create_sandbox_game_sets_ordered_nation_assignment(self, authenticated_client, classical_variant):
+        url = reverse(sandbox_create_viewname)
+        payload = {
+            "name": "My Sandbox Game",
+            "variant_id": classical_variant.id,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        game = Game.objects.get(id=response.data["id"])
+        assert game.nation_assignment == NationAssignment.ORDERED
+
+    @pytest.mark.django_db
+    def test_create_sandbox_game_creates_multiple_members(self, authenticated_client, classical_variant, primary_user):
+        url = reverse(sandbox_create_viewname)
+        payload = {
+            "name": "My Sandbox Game",
+            "variant_id": classical_variant.id,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        game = Game.objects.get(id=response.data["id"])
+        assert game.members.count() == 7
+        assert all(member.user == primary_user for member in game.members.all())
+
+    @pytest.mark.django_db
+    def test_create_sandbox_game_does_not_create_channels(self, authenticated_client, classical_variant):
+        url = reverse(sandbox_create_viewname)
+        payload = {
+            "name": "My Sandbox Game",
+            "variant_id": classical_variant.id,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        game = Game.objects.get(id=response.data["id"])
+        assert game.channels.count() == 0
+
+    @pytest.mark.django_db
+    def test_create_sandbox_game_starts_immediately(self, authenticated_client, classical_variant):
+        url = reverse(sandbox_create_viewname)
+        payload = {
+            "name": "My Sandbox Game",
+            "variant_id": classical_variant.id,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        game = Game.objects.get(id=response.data["id"])
+        assert game.status == GameStatus.ACTIVE
+
+    @pytest.mark.django_db
+    def test_create_sandbox_game_creates_phase_states(self, authenticated_client, classical_variant):
+        url = reverse(sandbox_create_viewname)
+        payload = {
+            "name": "My Sandbox Game",
+            "variant_id": classical_variant.id,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        game = Game.objects.get(id=response.data["id"])
+        current_phase = game.current_phase
+        assert current_phase.phase_states.count() == 7
+
+    @pytest.mark.django_db
+    def test_create_sandbox_game_missing_name(self, authenticated_client, classical_variant):
+        url = reverse(sandbox_create_viewname)
+        payload = {
+            "variant_id": classical_variant.id,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "name" in response.data
+
+    @pytest.mark.django_db
+    def test_create_sandbox_game_missing_variant_id(self, authenticated_client):
+        url = reverse(sandbox_create_viewname)
+        payload = {
+            "name": "My Sandbox Game",
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "variant_id" in response.data
+
+    @pytest.mark.django_db
+    def test_create_sandbox_game_invalid_variant_id(self, authenticated_client):
+        url = reverse(sandbox_create_viewname)
+        payload = {
+            "name": "My Sandbox Game",
+            "variant_id": "non-existent-variant",
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "variant_id" in response.data
+
+    @pytest.mark.django_db
+    def test_create_sandbox_game_unauthenticated(self, unauthenticated_client, classical_variant):
+        url = reverse(sandbox_create_viewname)
+        payload = {
+            "name": "My Sandbox Game",
+            "variant_id": classical_variant.id,
+        }
+        response = unauthenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+class TestSandboxGameFiltering:
+
+    @pytest.mark.django_db
+    def test_sandbox_games_excluded_from_default_list(self, authenticated_client, primary_user, classical_variant):
+        regular_game = Game.objects.create_from_template(
+            classical_variant,
+            name="Regular Game",
+            nation_assignment=NationAssignment.RANDOM,
+            private=False,
+        )
+        regular_game.members.create(user=primary_user)
+
+        sandbox_game = Game.objects.create_from_template(
+            classical_variant,
+            name="Sandbox Game",
+            sandbox=True,
+            private=True,
+            nation_assignment=NationAssignment.ORDERED,
+            movement_phase_duration=None,
+        )
+        sandbox_game.members.create(user=primary_user)
+
+        url = reverse(list_viewname)
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+
+        game_ids = [game["id"] for game in response.data]
+        assert regular_game.id in game_ids
+        assert sandbox_game.id not in game_ids
+
+    @pytest.mark.django_db
+    def test_sandbox_games_included_when_filter_true(self, authenticated_client, primary_user, classical_variant):
+        regular_game = Game.objects.create_from_template(
+            classical_variant,
+            name="Regular Game",
+            nation_assignment=NationAssignment.RANDOM,
+            private=False,
+        )
+        regular_game.members.create(user=primary_user)
+
+        sandbox_game = Game.objects.create_from_template(
+            classical_variant,
+            name="Sandbox Game",
+            sandbox=True,
+            private=True,
+            nation_assignment=NationAssignment.ORDERED,
+            movement_phase_duration=None,
+        )
+        sandbox_game.members.create(user=primary_user)
+
+        url = reverse(list_viewname)
+        response = authenticated_client.get(url, {"sandbox": "true"})
+        assert response.status_code == status.HTTP_200_OK
+
+        game_ids = [game["id"] for game in response.data]
+        assert sandbox_game.id in game_ids
+        assert regular_game.id not in game_ids
+
+    @pytest.mark.django_db
+    def test_sandbox_filter_false_excludes_sandbox_games(self, authenticated_client, primary_user, classical_variant):
+        regular_game = Game.objects.create_from_template(
+            classical_variant,
+            name="Regular Game",
+            nation_assignment=NationAssignment.RANDOM,
+            private=False,
+        )
+        regular_game.members.create(user=primary_user)
+
+        sandbox_game = Game.objects.create_from_template(
+            classical_variant,
+            name="Sandbox Game",
+            sandbox=True,
+            private=True,
+            nation_assignment=NationAssignment.ORDERED,
+            movement_phase_duration=None,
+        )
+        sandbox_game.members.create(user=primary_user)
+
+        url = reverse(list_viewname)
+        response = authenticated_client.get(url, {"sandbox": "false"})
+        assert response.status_code == status.HTTP_200_OK
+
+        game_ids = [game["id"] for game in response.data]
+        assert regular_game.id in game_ids
+        assert sandbox_game.id not in game_ids
