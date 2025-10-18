@@ -50,11 +50,15 @@ class GameSerializer(serializers.Serializer):
         variant = Variant.objects.get(id=validated_data["variant_id"])
 
         with transaction.atomic():
-            return Game.objects.create_from_template(
+            game = Game.objects.create_from_template(
                 variant,
-                request.user,
                 name=validated_data["name"],
                 nation_assignment=validated_data["nation_assignment"],
                 movement_phase_duration=validated_data.get("movement_phase_duration", MovementPhaseDuration.TWENTY_FOUR_HOURS),
                 private=validated_data["private"],
             )
+
+            game.members.create(user=request.user)
+            game.channels.create(name="Public Press", private=False)
+
+            return game

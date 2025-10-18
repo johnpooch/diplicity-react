@@ -55,11 +55,9 @@ class GameManager(models.Manager):
     def get_queryset(self):
         return GameQuerySet(self.model, using=self._db)
 
-    def create_from_template(self, variant, user, **kwargs):
+    def create_from_template(self, variant, **kwargs):
         template_phase = variant.template_phase
         game = self.create(variant=variant, **kwargs)
-        game.members.create(user=user)
-        game.channels.create(name="Public Press", private=False)
 
         phase = game.phases.create(
             game=game,

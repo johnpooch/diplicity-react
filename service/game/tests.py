@@ -759,20 +759,20 @@ class TestGamePrivateFiltering:
         # Create a private game by secondary user
         private_game = Game.objects.create_from_template(
             classical_variant,
-            secondary_user,
             name="Private Game",
             nation_assignment=NationAssignment.RANDOM,
             private=True,
         )
+        private_game.members.create(user=secondary_user)
 
         # Create a public game by secondary user
         public_game = Game.objects.create_from_template(
             classical_variant,
-            secondary_user,
             name="Public Game",
             nation_assignment=NationAssignment.RANDOM,
             private=False,
         )
+        public_game.members.create(user=secondary_user)
 
         # Request games with can_join=true (should exclude private games)
         url = reverse(list_viewname)
@@ -788,11 +788,11 @@ class TestGamePrivateFiltering:
         # Create a private game by primary user
         private_game = Game.objects.create_from_template(
             classical_variant,
-            primary_user,
             name="My Private Game",
             nation_assignment=NationAssignment.RANDOM,
             private=True,
         )
+        private_game.members.create(user=primary_user)
 
         # Request games with mine=true (should include private games for user)
         url = reverse(list_viewname)
@@ -807,11 +807,11 @@ class TestGamePrivateFiltering:
         # Create a private game by secondary user
         private_game = Game.objects.create_from_template(
             classical_variant,
-            secondary_user,
             name="Private Game",
             nation_assignment=NationAssignment.RANDOM,
             private=True,
         )
+        private_game.members.create(user=secondary_user)
 
         # Authenticated user should be able to access private game via direct link
         url = reverse(retrieve_viewname, args=[private_game.id])
