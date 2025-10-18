@@ -475,7 +475,7 @@ export type Auth = {};
 export type AuthRead = {
   id: number;
   email: string;
-  username: string;
+  name: string;
   accessToken: string;
   refreshToken: string;
 };
@@ -605,7 +605,6 @@ export type GameSummary = {
 };
 export type MemberRead = {
   id: number;
-  username: string;
   name: string;
   picture: string;
   nation: string | null;
@@ -705,14 +704,12 @@ export type ChannelMessage = {
 };
 export type ChannelMember = {
   id: number;
-  username: string;
   name: string;
   picture: string;
   nation: Nation;
 };
 export type ChannelMemberRead = {
   id: number;
-  username: string;
   name: string;
   picture: string;
   nation: Nation;
@@ -762,7 +759,6 @@ export type UserProfileRead = {
   id: number;
   name: string;
   picture: string;
-  username: string;
   email: string;
 };
 export type PatchedUserProfile = {
@@ -772,7 +768,6 @@ export type PatchedUserProfileRead = {
   id?: number;
   name?: string;
   picture?: string;
-  username?: string;
   email?: string;
 };
 export type Version = {

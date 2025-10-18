@@ -6,7 +6,6 @@ class UserProfileSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     name = serializers.CharField(min_length=2, max_length=255)
     picture = serializers.CharField(read_only=True)
-    username = serializers.CharField(source="user.username", read_only=True)
     email = serializers.CharField(source="user.email", read_only=True)
 
     def validate_name(self, value):

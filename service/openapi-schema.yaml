@@ -765,7 +765,7 @@ components:
         email:
           type: string
           readOnly: true
-        username:
+        name:
           type: string
           readOnly: true
         accessToken:
@@ -779,8 +779,8 @@ components:
       - email
       - id
       - idToken
+      - name
       - refreshToken
-      - username
     Channel:
       type: object
       properties:
@@ -814,8 +814,6 @@ components:
       properties:
         id:
           type: integer
-        username:
-          type: string
         name:
           type: string
         picture:
@@ -831,7 +829,6 @@ components:
       - name
       - nation
       - picture
-      - username
     ChannelMessage:
       type: object
       properties:
@@ -968,9 +965,6 @@ components:
         id:
           type: integer
           readOnly: true
-        username:
-          type: string
-          readOnly: true
         name:
           type: string
           readOnly: true
@@ -999,7 +993,6 @@ components:
       - nation
       - picture
       - supplyCenterCount
-      - username
     MovementPhaseDurationEnum:
       enum:
       - 24 hours
@@ -1179,9 +1172,6 @@ components:
           maxLength: 255
           minLength: 2
         picture:
-          type: string
-          readOnly: true
-        username:
           type: string
           readOnly: true
         email:
@@ -1450,9 +1440,6 @@ components:
         picture:
           type: string
           readOnly: true
-        username:
-          type: string
-          readOnly: true
         email:
           type: string
           readOnly: true
@@ -1461,7 +1448,6 @@ components:
       - id
       - name
       - picture
-      - username
     Variant:
       type: object
       properties:

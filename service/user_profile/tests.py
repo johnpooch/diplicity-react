@@ -13,7 +13,6 @@ class TestUserProfileRetrieveView:
         assert response.status_code == status.HTTP_200_OK
         assert response.data["name"] == primary_user.profile.name
         assert response.data["picture"] == primary_user.profile.picture
-        assert response.data["username"] == primary_user.username
         assert response.data["email"] == primary_user.email
 
     @pytest.mark.django_db

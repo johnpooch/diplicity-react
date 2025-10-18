@@ -9,7 +9,6 @@ class GameSummarySerializer(serializers.Serializer):
 
 class MemberSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
-    username = serializers.CharField(source="user.username", read_only=True)
     name = serializers.CharField(source="user.profile.name", read_only=True)
     picture = serializers.CharField(source="user.profile.picture", read_only=True)
     nation = serializers.CharField(allow_null=True, read_only=True, source="nation.name")

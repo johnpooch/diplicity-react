@@ -11,7 +11,7 @@ class AuthSerializer(serializers.Serializer):
 
     id = serializers.IntegerField(read_only=True)
     email = serializers.CharField(read_only=True)
-    username = serializers.CharField(read_only=True)
+    name = serializers.CharField(source="profile.name", read_only=True)
     access_token = serializers.CharField(read_only=True)
     refresh_token = serializers.CharField(read_only=True)
 

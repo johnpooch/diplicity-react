@@ -24,7 +24,7 @@ const feedbackSlice = createSlice({
       (_, action) => {
         return {
           severity: "success",
-          message: `Logged in as ${action.payload.username}`,
+          message: `Logged in as ${action.payload.name}`,
         };
       }
     );
