@@ -9,8 +9,8 @@ urlpatterns = [
     ),
     path(
         "game/<str:game_id>/phase-state/",
-        views.PhaseStateRetrieveView.as_view(),
-        name="phase-state-retrieve",
+        views.PhaseStateListView.as_view(),
+        name="phase-state-list",
     ),
     path(
         "game/<str:game_id>/resolve-phase/",

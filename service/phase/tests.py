@@ -96,22 +96,34 @@ def test_confirm_phase_unauthenticated(unauthenticated_client, active_game_with_
 
 
 @pytest.mark.django_db
-def test_retrieve_orderable_provinces_success(authenticated_client, active_game_with_phase_options):
+def test_list_orderable_provinces_success(authenticated_client, active_game_with_phase_options):
     """
-    Test that an authenticated member can retrieve orderable provinces.
+    Test that an authenticated member can list orderable provinces.
     """
-    url = reverse("phase-state-retrieve", args=[active_game_with_phase_options.id])
+    url = reverse("phase-state-list", args=[active_game_with_phase_options.id])
     response = authenticated_client.get(url)
     assert response.status_code == status.HTTP_200_OK
-    assert "orderable_provinces" in response.data
+    assert len(response.data) == 1
+    assert "orderable_provinces" in response.data[0]
 
 
 @pytest.mark.django_db
-def test_retrieve_orderable_provinces_not_member(authenticated_client, active_game_created_by_secondary_user):
+def test_list_orderable_provinces_sandbox_game(authenticated_client, sandbox_game_with_phase_options):
+    """
+    Test that an authenticated member can list orderable provinces in a sandbox game.
+    """
+    url = reverse("phase-state-list", args=[sandbox_game_with_phase_options.id])
+    response = authenticated_client.get(url)
+    assert response.status_code == status.HTTP_200_OK
+    assert len(response.data) == 7
+
+
+@pytest.mark.django_db
+def test_list_orderable_provinces_not_member(authenticated_client, active_game_created_by_secondary_user):
     """
     Test that a non-member cannot retrieve orderable provinces.
     """
-    url = reverse("phase-state-retrieve", args=[active_game_created_by_secondary_user.id])
+    url = reverse("phase-state-list", args=[active_game_created_by_secondary_user.id])
     response = authenticated_client.get(url)
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -1238,9 +1250,7 @@ class TestPhaseReversion:
             status=PhaseStatus.ACTIVE,
         )
         phase4.units.create(
-            province=italy_vs_germany_venice_province,
-            type=UnitType.ARMY,
-            nation=italy_vs_germany_italy_nation
+            province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation
         )
 
         assert game.phases.count() == 4
@@ -1342,14 +1352,13 @@ class TestPhaseReversion:
         phase1 = game.phases.get(ordinal=1)
         phase2 = game.phases.get(ordinal=2)
 
-        order_resolutions_phase2 = [
-            order.resolution for order in phase2.all_orders if hasattr(order, 'resolution')
-        ]
+        order_resolutions_phase2 = [order.resolution for order in phase2.all_orders if hasattr(order, "resolution")]
         assert len(order_resolutions_phase2) > 0
 
         phase1.revert_to_this_phase()
 
         from order.models import OrderResolution
+
         for resolution in order_resolutions_phase2:
             assert not OrderResolution.objects.filter(id=resolution.id).exists()
 

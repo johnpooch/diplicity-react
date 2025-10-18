@@ -209,6 +209,21 @@ def active_game_with_phase_options(db, active_game_with_phase_state, sample_opti
     return active_game_with_phase_state
 
 
+@pytest.fixture
+def sandbox_game_with_phase_options(
+    db, primary_user, base_active_game_for_primary_user, base_active_phase, sample_options
+):
+    base_active_game_for_primary_user.sandbox = True
+    base_active_game_for_primary_user.save()
+    phase = base_active_phase(base_active_game_for_primary_user)
+    phase.options = sample_options
+    phase.save()
+    for nation in base_active_game_for_primary_user.variant.nations.all():
+        member = base_active_game_for_primary_user.members.create(user=primary_user, nation=nation)
+        phase.phase_states.create(member=member)
+    return base_active_game_for_primary_user
+
+
 @pytest.fixture(scope="session")
 def classical_variant(django_db_setup, django_db_blocker):
     with django_db_blocker.unblock():
