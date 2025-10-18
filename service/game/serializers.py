@@ -18,6 +18,7 @@ class BaseGameSerializer(serializers.Serializer):
     variant = VariantSerializer(read_only=True)
     members = MemberSerializer(many=True, read_only=True)
     phase_confirmed = serializers.SerializerMethodField()
+    sandbox = serializers.BooleanField(read_only=True)
 
     name = serializers.CharField()
     variant_id = serializers.CharField(write_only=True)
@@ -43,8 +44,7 @@ class BaseGameSerializer(serializers.Serializer):
 class GameSerializer(BaseGameSerializer):
     nation_assignment = serializers.ChoiceField(choices=NationAssignment.NATION_ASSIGNMENT_CHOICES)
     movement_phase_duration = serializers.ChoiceField(
-        choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES,
-        default=MovementPhaseDuration.TWENTY_FOUR_HOURS
+        choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES, default=MovementPhaseDuration.TWENTY_FOUR_HOURS
     )
     private = serializers.BooleanField()
 
@@ -70,13 +70,9 @@ class GameSerializer(BaseGameSerializer):
 
 
 class SandboxGameSerializer(BaseGameSerializer):
-    nation_assignment = serializers.ChoiceField(
-        choices=NationAssignment.NATION_ASSIGNMENT_CHOICES,
-        read_only=True
-    )
+    nation_assignment = serializers.ChoiceField(choices=NationAssignment.NATION_ASSIGNMENT_CHOICES, read_only=True)
     movement_phase_duration = serializers.ChoiceField(
-        choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES,
-        read_only=True
+        choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES, read_only=True
     )
     private = serializers.BooleanField(read_only=True)
 

@@ -774,7 +774,7 @@ class TestOrderCreateViewQueryPerformance:
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
 
-        assert query_count == 24
+        assert query_count == 28
 
 
 class TestGetOptionsForOrder:

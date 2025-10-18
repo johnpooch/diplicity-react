@@ -57,14 +57,18 @@ class OrderManager(models.Manager):
             raise exceptions.ValidationError(f"Province {province_id} not found")
 
     def create_from_selected(self, user, phase, selected):
-        phase_state = (
-            phase.phase_states.select_related("member__user", "phase", "member", "phase__game__variant")
-            .filter(member__user=user)
-            .first()
-        )
-
         order_data = get_order_data_from_selected(selected)
         source = self.try_get_province(phase, order_data["source"])
+
+        phase_state = None
+        for ps in phase.phase_states.filter(member__user=user):
+            if ps.orderable_provinces.filter(id=source.id).exists():
+                phase_state = ps
+                break
+
+        if not phase_state:
+            raise exceptions.ValidationError(f"Cannot create order: {source.name} is not orderable for this user")
+
         order = Order(phase_state=phase_state, source=source)
 
         if "order_type" in order_data:
