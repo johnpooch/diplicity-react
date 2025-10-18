@@ -121,7 +121,7 @@ def test_resolve_phases_success(authenticated_client):
     """
     Test that the phase resolve endpoint works.
     """
-    url = reverse("phase-resolve")
+    url = reverse("phase-resolve-all")
     response = authenticated_client.post(url)
     assert response.status_code == status.HTTP_200_OK
     assert "resolved" in response.data

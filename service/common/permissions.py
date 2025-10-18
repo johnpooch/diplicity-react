@@ -113,3 +113,21 @@ class IsUserPhaseStateExists(BasePermission):
         if not current_phase:
             return False
         return current_phase.phase_states.filter(member=member).exists()
+
+
+class IsSandboxGame(BasePermission):
+    message = "This action is only available for sandbox games."
+
+    def has_permission(self, request, view):
+        game_id = view.kwargs.get("game_id")
+        game = get_object_or_404(Game, id=game_id)
+        return game.sandbox
+
+
+class IsNotSandboxGame(BasePermission):
+    message = "This action is not available for sandbox games."
+
+    def has_permission(self, request, view):
+        game_id = view.kwargs.get("game_id")
+        game = get_object_or_404(Game, id=game_id)
+        return not game.sandbox
