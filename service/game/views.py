@@ -27,7 +27,7 @@ class GameListView(generics.ListAPIView):
     def get_queryset(self):
         queryset = Game.objects.all().with_related_data()
 
-        if 'sandbox' not in self.request.query_params:
+        if "sandbox" not in self.request.query_params:
             queryset = queryset.filter(sandbox=False)
 
         return queryset
@@ -41,12 +41,3 @@ class GameCreateView(generics.CreateAPIView):
 class CreateSandboxGameView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = SandboxGameSerializer
-
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        game = serializer.save()
-
-        output_serializer = GameSerializer(game, context={'request': request})
-        headers = self.get_success_headers(output_serializer.data)
-        return Response(output_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
