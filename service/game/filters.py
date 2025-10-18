@@ -15,15 +15,12 @@ class GameFilter(django_filters.FilterSet):
 
     def filter_mine(self, queryset, name, value):
         if value:
-            return queryset.filter(members__user=self.request.user)
+            return queryset.filter(members__user=self.request.user).distinct()
         return queryset
 
     def filter_can_join(self, queryset, name, value):
         if value:
-            return queryset.filter(
-                status=GameStatus.PENDING,
-                private=False
-            ).exclude(members__user=self.request.user)
+            return queryset.filter(status=GameStatus.PENDING, private=False).exclude(members__user=self.request.user)
         return queryset
 
     def filter_sandbox(self, queryset, name, value):

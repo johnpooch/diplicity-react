@@ -35,9 +35,7 @@ class PhaseManager(models.Manager):
                 logger.debug(f"Phase {phase.id} ({phase.name}) has no scheduled resolution (sandbox game), skipping")
                 continue
 
-            should_resolve = (
-                phase.scheduled_resolution <= timezone.now()
-            ) or phase.should_resolve_immediately
+            should_resolve = (phase.scheduled_resolution <= timezone.now()) or phase.should_resolve_immediately
 
             if should_resolve:
                 logger.info(f"Resolving phase {phase.id} ({phase.name}) for game {phase.game.id}")
@@ -98,7 +96,9 @@ class PhaseManager(models.Manager):
 
             # Calculate next phase details
             phase_duration_seconds = previous_phase.game.movement_phase_duration_seconds
-            scheduled_resolution = timezone.now() + timedelta(seconds=phase_duration_seconds)
+            scheduled_resolution = (
+                timezone.now() + timedelta(seconds=phase_duration_seconds) if phase_duration_seconds else None
+            )
             new_ordinal = previous_phase.ordinal + 1
 
             logger.info(

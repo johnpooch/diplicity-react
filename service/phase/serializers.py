@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from common.constants import PhaseStatus
+from member.serializers import MemberSerializer
 from province.serializers import ProvinceSerializer
 from supply_center.serializers import SupplyCenterSerializer
 from unit.serializers import UnitSerializer
@@ -15,6 +16,7 @@ class PhaseStateSerializer(serializers.Serializer):
     orders_confirmed = serializers.BooleanField(read_only=True)
     eliminated = serializers.BooleanField(read_only=True)
     orderable_provinces = ProvinceSerializer(read_only=True, many=True)
+    member = MemberSerializer(read_only=True)
 
     def update(self, instance, validated_data):
         instance.orders_confirmed = not instance.orders_confirmed

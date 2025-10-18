@@ -1136,6 +1136,10 @@ components:
           items:
             $ref: '#/components/schemas/Province'
           readOnly: true
+        member:
+          allOf:
+          - $ref: '#/components/schemas/Member'
+          readOnly: true
     Phase:
       type: object
       properties:
@@ -1207,9 +1211,14 @@ components:
           items:
             $ref: '#/components/schemas/Province'
           readOnly: true
+        member:
+          allOf:
+          - $ref: '#/components/schemas/Member'
+          readOnly: true
       required:
       - eliminated
       - id
+      - member
       - orderableProvinces
       - ordersConfirmed
     Province:

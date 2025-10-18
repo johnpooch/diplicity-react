@@ -1,5 +1,5 @@
 import React from "react";
-import { Alert, Divider, Link } from "@mui/material";
+import { Alert, AlertTitle, Divider, Link } from "@mui/material";
 import { Warning as WarningIcon } from "@mui/icons-material";
 import { useNavigate } from "react-router";
 import { useMessaging } from "../context";
@@ -24,8 +24,9 @@ const NotificationBanner: React.FC = () => {
     return (
       <>
         <Alert severity="warning" icon={<WarningIcon />}>
-          You have not enabled notifications. You will not receive
-          messages or phase updates unless you enable notifications.{" "}
+          <AlertTitle>Notifications Disabled</AlertTitle>
+          You have not enabled notifications. You will not receive messages or
+          phase updates unless you enable notifications.{" "}
           <Link href="/profile" onClick={handleLinkClick}>
             Update notification settings
           </Link>

@@ -91,7 +91,11 @@ const GameInfo: React.FC = () => {
                   {
                     label: "Visibility",
                     value: query.data ? (
-                      query.data.private ? "Private" : "Public"
+                      query.data.private ? (
+                        "Private"
+                      ) : (
+                        "Public"
+                      )
                     ) : (
                       <Stack alignItems="flex-end">
                         <Skeleton variant="text" width={60} />

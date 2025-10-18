@@ -27,6 +27,12 @@ const HomeSideNavigation: React.FC = () => {
       onClick: () => navigate("/create-game"),
     },
     {
+      label: "Sandbox",
+      icon: IconName.Sandbox,
+      path: "/sandbox",
+      onClick: () => navigate("/sandbox"),
+    },
+    {
       label: "Profile",
       icon: IconName.Profile,
       path: "/profile",

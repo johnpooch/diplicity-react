@@ -619,6 +619,7 @@ export type PhaseStateRead = {
   ordersConfirmed: boolean;
   eliminated: boolean;
   orderableProvinces: ProvinceRead[];
+  member: MemberRead;
 };
 export type PatchedPhaseState = {};
 export type PatchedPhaseStateRead = {
@@ -626,6 +627,7 @@ export type PatchedPhaseStateRead = {
   ordersConfirmed?: boolean;
   eliminated?: boolean;
   orderableProvinces?: ProvinceRead[];
+  member?: MemberRead;
 };
 export type Order = {
   selected?: string[];

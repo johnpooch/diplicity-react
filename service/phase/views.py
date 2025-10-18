@@ -7,6 +7,7 @@ from common.permissions import (
     IsNotSandboxGame,
     IsSandboxGame,
 )
+from common.serializers import EmptySerializer
 from common.views import SelectedGameMixin, CurrentGameMemberMixin
 from rest_framework.response import Response
 from .models import Phase
@@ -47,7 +48,7 @@ class PhaseStateListView(SelectedGameMixin, generics.ListAPIView):
 
 class PhaseResolveAllView(views.APIView):
     permission_classes = []
-    serializer_class = PhaseResolveResponseSerializer
+    serializer_class = EmptySerializer
 
     def post(self, request, *args, **kwargs):
         result = Phase.objects.resolve_due_phases()
