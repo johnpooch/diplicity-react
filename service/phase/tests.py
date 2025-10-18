@@ -251,6 +251,127 @@ def test_resolve_due_phases_no_resolution_needed(active_game_with_phase_state, g
         mock_resolve.assert_not_called()
 
 
+@pytest.mark.django_db
+def test_resolve_due_phases_skips_sandbox_games(db, classical_variant, primary_user):
+    """
+    Test that resolve_due_phases skips sandbox games (scheduled_resolution=None).
+    """
+    from game.models import Game
+    from common.constants import NationAssignment
+
+    game = Game.objects.create_from_template(
+        classical_variant,
+        name="Sandbox Game",
+        sandbox=True,
+        private=True,
+        nation_assignment=NationAssignment.ORDERED,
+        movement_phase_duration=None,
+    )
+    for nation in classical_variant.nations.all():
+        game.members.create(user=primary_user)
+    game.start()
+
+    phase = game.current_phase
+    assert phase.scheduled_resolution is None
+    assert phase.status == PhaseStatus.ACTIVE
+
+    with patch.object(Phase.objects, "resolve") as mock_resolve:
+        result = Phase.objects.resolve_due_phases()
+        assert result["resolved"] == 0
+        assert result["failed"] == 0
+        mock_resolve.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_sandbox_game_resolve_phase_success(authenticated_client, db, classical_variant, primary_user):
+    """
+    Test that sandbox games can be resolved manually via the resolve endpoint.
+    """
+    from game.models import Game
+    from common.constants import NationAssignment
+
+    game = Game.objects.create_from_template(
+        classical_variant,
+        name="Sandbox Game",
+        sandbox=True,
+        private=True,
+        nation_assignment=NationAssignment.ORDERED,
+        movement_phase_duration=None,
+    )
+    for nation in classical_variant.nations.all():
+        game.members.create(user=primary_user)
+    game.start()
+
+    url = reverse("game-resolve-phase", args=[game.id])
+    with patch.object(Phase.objects, "resolve") as mock_resolve:
+        response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        mock_resolve.assert_called_once()
+
+
+@pytest.mark.django_db
+def test_sandbox_game_resolve_phase_unauthenticated(unauthenticated_client, db, classical_variant, primary_user):
+    """
+    Test that unauthenticated users cannot resolve sandbox game phases.
+    """
+    from game.models import Game
+    from common.constants import NationAssignment
+
+    game = Game.objects.create_from_template(
+        classical_variant,
+        name="Sandbox Game",
+        sandbox=True,
+        private=True,
+        nation_assignment=NationAssignment.ORDERED,
+        movement_phase_duration=None,
+    )
+    for nation in classical_variant.nations.all():
+        game.members.create(user=primary_user)
+    game.start()
+
+    url = reverse("game-resolve-phase", args=[game.id])
+    response = unauthenticated_client.post(url)
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.django_db
+def test_regular_game_cannot_use_sandbox_resolve(authenticated_client, active_game_with_phase_state):
+    """
+    Test that regular games cannot use the sandbox resolve endpoint.
+    """
+    url = reverse("game-resolve-phase", args=[active_game_with_phase_state.id])
+    response = authenticated_client.post(url)
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert "only available for sandbox games" in str(response.data).lower()
+
+
+@pytest.mark.django_db
+def test_sandbox_game_resolve_phase_non_member(
+    authenticated_client_for_secondary_user, db, classical_variant, primary_user
+):
+    """
+    Test that non-members cannot resolve sandbox game phases.
+    """
+    from game.models import Game
+    from common.constants import NationAssignment
+
+    game = Game.objects.create_from_template(
+        classical_variant,
+        name="Sandbox Game",
+        sandbox=True,
+        private=True,
+        nation_assignment=NationAssignment.ORDERED,
+        movement_phase_duration=None,
+    )
+    for nation in classical_variant.nations.all():
+        game.members.create(user=primary_user)
+    game.start()
+
+    url = reverse("game-resolve-phase", args=[game.id])
+    response = authenticated_client_for_secondary_user.post(url)
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
 class TestAdjustmentPhaseOrderLimits:
     """
     Test adjustment phase order limits based on supply center vs unit counts.
