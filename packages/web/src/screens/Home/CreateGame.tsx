@@ -6,11 +6,12 @@ import { Panel } from "../../components/Panel";
 import { Tabs } from "../../components/Tabs";
 import { CreateStandardGame } from "./CreateStandardGame";
 import { CreateSandboxGame } from "./CreateSandboxGame";
+import { useResponsiveness } from "../../components/utils/responsive";
 
 const CreateGame: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-
+  const responsiveness = useResponsiveness();
   // Determine initial tab based on query string parameter
   const getInitialTab = (): "standard" | "sandbox" => {
     const sandboxParam = searchParams.get("sandbox");
@@ -61,6 +62,9 @@ const CreateGame: React.FC = () => {
             {currentTab === "standard" && <CreateStandardGame />}
             {currentTab === "sandbox" && <CreateSandboxGame />}
           </Panel.Content>
+          {responsiveness.device === "mobile" && (
+            <div style={{ height: "56px" }} />
+          )}
         </Panel>
       }
     />
