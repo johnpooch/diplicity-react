@@ -8,4 +8,4 @@ from .serializers import VariantSerializer
 class VariantListView(ListAPIView):
     serializer_class = VariantSerializer
     permission_classes = [IsAuthenticated]
-    queryset = Variant.objects.all()
+    queryset = Variant.objects.all().with_related_data()

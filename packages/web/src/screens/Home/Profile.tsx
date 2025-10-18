@@ -12,6 +12,7 @@ import {
   Divider,
   Skeleton,
   Alert,
+  TextField,
 } from "@mui/material";
 import { HomeLayout } from "./Layout";
 import { authSlice, service } from "../../store";
@@ -27,7 +28,17 @@ const Profile: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const query = service.endpoints.userRetrieve.useQuery();
-  const { enableMessaging, enabled, disableMessaging, permissionDenied, error } = useMessaging();
+  const [updateProfile, updateProfileMutation] =
+    service.endpoints.userUpdatePartialUpdate.useMutation();
+  const {
+    enableMessaging,
+    enabled,
+    disableMessaging,
+    permissionDenied,
+    error,
+  } = useMessaging();
+
+  const [editedName, setEditedName] = useState<string | null>(null);
 
   const handleLogout = () => {
     dispatch(authSlice.actions.logout());
@@ -52,13 +63,36 @@ const Profile: React.FC = () => {
     };
   };
 
+  const handleStartEditName = () => {
+    setEditedName(query.data?.name || "");
+  };
+
+  const handleCancelEditName = () => {
+    setEditedName(null);
+  };
+
+  const handleSaveName = async () => {
+    if (editedName && editedName.trim().length >= 2) {
+      try {
+        await updateProfile({
+          patchedUserProfile: { name: editedName.trim() },
+        }).unwrap();
+        setEditedName(null);
+      } catch (err) {
+        // Error will be shown via updateProfileMutation.error
+      }
+    }
+  };
+
   if (query.isError) {
     return <div>Error</div>;
   }
 
   return (
     <HomeLayout
-      appBar={<HomeAppBar title="Profile" onNavigateBack={() => navigate("/")} />}
+      appBar={
+        <HomeAppBar title="Profile" onNavigateBack={() => navigate("/")} />
+      }
       content={
         <Stack>
           <NotificationBanner />
@@ -67,14 +101,60 @@ const Profile: React.FC = () => {
               {query.isLoading ? (
                 <Skeleton variant="circular" width={40} height={40} />
               ) : (
-                <Avatar src={query.data?.picture} alt={query.data?.username} />
+                <Avatar src={query.data?.picture} alt={query.data?.name} />
               )}
             </Grid2>
             <Grid2 size="grow">
               {query.isLoading ? (
                 <Skeleton variant="text" width={150} height={24} />
+              ) : editedName !== null ? (
+                <Stack direction="row" alignItems="center" gap={1}>
+                  <TextField
+                    value={editedName}
+                    onChange={e => setEditedName(e.target.value)}
+                    autoFocus
+                    size="small"
+                    disabled={updateProfileMutation.isLoading}
+                    error={updateProfileMutation.isError}
+                    helperText={
+                      updateProfileMutation.isError
+                        ? "Failed to update name. Please try again."
+                        : ""
+                    }
+                    onKeyDown={e => {
+                      if (e.key === "Enter") {
+                        handleSaveName();
+                      } else if (e.key === "Escape") {
+                        handleCancelEditName();
+                      }
+                    }}
+                  />
+                  <IconButton
+                    aria-label="save"
+                    onClick={handleSaveName}
+                    icon={IconName.Success}
+                    disabled={
+                      updateProfileMutation.isLoading ||
+                      !editedName ||
+                      editedName.trim().length < 2
+                    }
+                  />
+                  <IconButton
+                    aria-label="cancel"
+                    onClick={handleCancelEditName}
+                    icon={IconName.Close}
+                    disabled={updateProfileMutation.isLoading}
+                  />
+                </Stack>
               ) : (
-                <Typography variant="body1">{query.data?.username}</Typography>
+                <Stack direction="row" alignItems="center" gap={1}>
+                  <Typography variant="body1">{query.data?.name}</Typography>
+                  <IconButton
+                    aria-label="edit name"
+                    onClick={handleStartEditName}
+                    icon={IconName.Edit}
+                  />
+                </Stack>
               )}
             </Grid2>
             <Grid2 size="auto">
@@ -94,14 +174,11 @@ const Profile: React.FC = () => {
           <Stack p={2} gap={2}>
             <Typography variant="h4">Notifications</Typography>
             <Stack gap={2}>
-              {error && (
-                <Alert severity="error">
-                  {error}
-                </Alert>
-              )}
+              {error && <Alert severity="error">{error}</Alert>}
               {permissionDenied && !error && (
                 <Alert severity="warning">
-                  Notifications are blocked in your browser. To enable them, click the icon in your address bar and allow notifications.
+                  Notifications are blocked in your browser. To enable them,
+                  click the icon in your address bar and allow notifications.
                 </Alert>
               )}
               <FormControl>

@@ -13,6 +13,7 @@ const NavigationItems = [
   { label: "My Games", icon: IconName.MyGames, value: "/" },
   { label: "Find Games", icon: IconName.FindGames, value: "/find-games" },
   { label: "Create Game", icon: IconName.CreateGame, value: "/create-game" },
+  { label: "Sandbox", icon: IconName.Sandbox, value: "/sandbox" },
   { label: "Profile", icon: IconName.Profile, value: "/profile" },
 ];
 

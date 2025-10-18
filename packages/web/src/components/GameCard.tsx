@@ -107,7 +107,10 @@ const GameCard: React.FC<GameCardProps> = game => {
                 <Icon name={IconName.Lock} sx={styles.lockIcon} />
               )}
               <Typography variant="caption">
-                {game.variant.name} • {game.movementPhaseDuration}
+                {game.variant.name} •{" "}
+                {game.movementPhaseDuration
+                  ? game.movementPhaseDuration
+                  : "Resolve when ready"}
               </Typography>
             </Stack>
           </Stack>
@@ -116,18 +119,22 @@ const GameCard: React.FC<GameCardProps> = game => {
           <Stack>
             <Typography variant="caption" sx={styles.phaseInfo}>
               {currentPhase?.season} {currentPhase?.year} • {currentPhase?.type}{" "}
-              • Resolves {formatDateTime(currentPhase?.scheduledResolution)}
+              {currentPhase?.scheduledResolution
+                ? `• Resolves ${formatDateTime(currentPhase?.scheduledResolution)}`
+                : ""}
             </Typography>
           </Stack>
         )}
-        <Button onClick={handleClickPlayerInfo} sx={styles.memberButton}>
-          <Stack direction="row" gap={1} sx={styles.memberContainer}>
-            <MemberAvatarGroup
-              members={game.members}
-              variant={game.variant.id}
-            />
-          </Stack>
-        </Button>
+        {!game.sandbox && (
+          <Button onClick={handleClickPlayerInfo} sx={styles.memberButton}>
+            <Stack direction="row" gap={1} sx={styles.memberContainer}>
+              <MemberAvatarGroup
+                members={game.members}
+                variant={game.variant.id}
+              />
+            </Stack>
+          </Button>
+        )}
       </Stack>
       <Stack>
         <GameMenu

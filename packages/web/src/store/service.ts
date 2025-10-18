@@ -13,6 +13,12 @@ const injectedRtkApi = api.injectEndpoints({
         },
       }),
     }),
+    apiTestSentryRetrieve: build.query<
+      ApiTestSentryRetrieveApiResponse,
+      ApiTestSentryRetrieveApiArg
+    >({
+      query: () => ({ url: `/api/test-sentry/` }),
+    }),
     apiTokenRefreshCreate: build.mutation<
       ApiTokenRefreshCreateApiResponse,
       ApiTokenRefreshCreateApiArg
@@ -132,11 +138,20 @@ const injectedRtkApi = api.injectEndpoints({
         method: "DELETE",
       }),
     }),
-    gamePhaseStateRetrieve: build.query<
-      GamePhaseStateRetrieveApiResponse,
-      GamePhaseStateRetrieveApiArg
+    gamePhaseStatesList: build.query<
+      GamePhaseStatesListApiResponse,
+      GamePhaseStatesListApiArg
     >({
-      query: (queryArg) => ({ url: `/game/${queryArg.gameId}/phase-state/` }),
+      query: (queryArg) => ({ url: `/game/${queryArg.gameId}/phase-states/` }),
+    }),
+    gameResolvePhaseCreate: build.mutation<
+      GameResolvePhaseCreateApiResponse,
+      GameResolvePhaseCreateApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/game/${queryArg.gameId}/resolve-phase/`,
+        method: "POST",
+      }),
     }),
     gamesList: build.query<GamesListApiResponse, GamesListApiArg>({
       query: (queryArg) => ({
@@ -144,6 +159,7 @@ const injectedRtkApi = api.injectEndpoints({
         params: {
           can_join: queryArg.canJoin,
           mine: queryArg.mine,
+          sandbox: queryArg.sandbox,
         },
       }),
     }),
@@ -177,14 +193,40 @@ const injectedRtkApi = api.injectEndpoints({
       PhaseResolveCreateApiResponse,
       PhaseResolveCreateApiArg
     >({
+      query: () => ({ url: `/phase/resolve/`, method: "POST" }),
+    }),
+    sandboxGameCreate: build.mutation<
+      SandboxGameCreateApiResponse,
+      SandboxGameCreateApiArg
+    >({
       query: (queryArg) => ({
-        url: `/phase/resolve/`,
+        url: `/sandbox-game/`,
         method: "POST",
-        body: queryArg.phaseResolveResponse,
+        body: queryArg.sandboxGame,
       }),
     }),
     userRetrieve: build.query<UserRetrieveApiResponse, UserRetrieveApiArg>({
       query: () => ({ url: `/user/` }),
+    }),
+    userUpdateUpdate: build.mutation<
+      UserUpdateUpdateApiResponse,
+      UserUpdateUpdateApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/user/update/`,
+        method: "PUT",
+        body: queryArg.userProfile,
+      }),
+    }),
+    userUpdatePartialUpdate: build.mutation<
+      UserUpdatePartialUpdateApiResponse,
+      UserUpdatePartialUpdateApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/user/update/`,
+        method: "PATCH",
+        body: queryArg.patchedUserProfile,
+      }),
     }),
     variantsList: build.query<VariantsListApiResponse, VariantsListApiArg>({
       query: () => ({ url: `/variants/` }),
@@ -304,6 +346,8 @@ export type ApiSchemaRetrieveApiArg = {
     | "zh-hans"
     | "zh-hant";
 };
+export type ApiTestSentryRetrieveApiResponse = unknown;
+export type ApiTestSentryRetrieveApiArg = void;
 export type ApiTokenRefreshCreateApiResponse =
   /** status 200  */ TokenRefreshRead;
 export type ApiTokenRefreshCreateApiArg = {
@@ -367,15 +411,20 @@ export type GameOrdersDeleteDestroyApiArg = {
   gameId: string;
   sourceId: string;
 };
-export type GamePhaseStateRetrieveApiResponse =
-  /** status 200  */ PhaseStateRead;
-export type GamePhaseStateRetrieveApiArg = {
+export type GamePhaseStatesListApiResponse =
+  /** status 200  */ PhaseStateRead[];
+export type GamePhaseStatesListApiArg = {
+  gameId: string;
+};
+export type GameResolvePhaseCreateApiResponse = unknown;
+export type GameResolvePhaseCreateApiArg = {
   gameId: string;
 };
 export type GamesListApiResponse = /** status 200  */ GameRead[];
 export type GamesListApiArg = {
   canJoin?: boolean;
   mine?: boolean;
+  sandbox?: boolean;
 };
 export type GamesChannelsListApiResponse = /** status 200  */ ChannelRead[];
 export type GamesChannelsListApiArg = {
@@ -394,13 +443,23 @@ export type GamesChannelsCreateCreateApiArg = {
   gameId: string;
   channel: ChannelWrite;
 };
-export type PhaseResolveCreateApiResponse =
-  /** status 200  */ PhaseResolveResponse;
-export type PhaseResolveCreateApiArg = {
-  phaseResolveResponse: PhaseResolveResponse;
+export type PhaseResolveCreateApiResponse = unknown;
+export type PhaseResolveCreateApiArg = void;
+export type SandboxGameCreateApiResponse = /** status 201  */ SandboxGameRead;
+export type SandboxGameCreateApiArg = {
+  sandboxGame: SandboxGameWrite;
 };
-export type UserRetrieveApiResponse = /** status 200  */ UserProfile;
+export type UserRetrieveApiResponse = /** status 200  */ UserProfileRead;
 export type UserRetrieveApiArg = void;
+export type UserUpdateUpdateApiResponse = /** status 200  */ UserProfileRead;
+export type UserUpdateUpdateApiArg = {
+  userProfile: UserProfile;
+};
+export type UserUpdatePartialUpdateApiResponse =
+  /** status 200  */ UserProfileRead;
+export type UserUpdatePartialUpdateApiArg = {
+  patchedUserProfile: PatchedUserProfile;
+};
 export type VariantsListApiResponse = /** status 200  */ VariantRead[];
 export type VariantsListApiArg = void;
 export type VersionRetrieveApiResponse = /** status 200  */ Version;
@@ -416,7 +475,7 @@ export type Auth = {};
 export type AuthRead = {
   id: number;
   email: string;
-  username: string;
+  name: string;
   accessToken: string;
   refreshToken: string;
 };
@@ -546,7 +605,6 @@ export type GameSummary = {
 };
 export type MemberRead = {
   id: number;
-  username: string;
   name: string;
   picture: string;
   nation: string | null;
@@ -563,6 +621,7 @@ export type GameRead = {
   variant: VariantRead;
   members: MemberRead[];
   phaseConfirmed: boolean;
+  sandbox: boolean;
   name: string;
   nationAssignment: NationAssignmentEnum;
   movementPhaseDuration?: MovementPhaseDurationEnum;
@@ -581,6 +640,7 @@ export type PhaseStateRead = {
   ordersConfirmed: boolean;
   eliminated: boolean;
   orderableProvinces: ProvinceRead[];
+  member: MemberRead;
 };
 export type PatchedPhaseState = {};
 export type PatchedPhaseStateRead = {
@@ -588,6 +648,7 @@ export type PatchedPhaseStateRead = {
   ordersConfirmed?: boolean;
   eliminated?: boolean;
   orderableProvinces?: ProvinceRead[];
+  member?: MemberRead;
 };
 export type Order = {
   selected?: string[];
@@ -643,14 +704,12 @@ export type ChannelMessage = {
 };
 export type ChannelMember = {
   id: number;
-  username: string;
   name: string;
   picture: string;
   nation: Nation;
 };
 export type ChannelMemberRead = {
   id: number;
-  username: string;
   name: string;
   picture: string;
   nation: Nation;
@@ -671,16 +730,45 @@ export type ChannelRead = {
 export type ChannelWrite = {
   memberIds: number[];
 };
-export type PhaseResolveResponse = {
-  resolved: number;
-  failed: number;
+export type SandboxGame = {
+  name: string;
+};
+export type SandboxGameRead = {
+  id: string;
+  status: string;
+  canJoin: boolean;
+  canLeave: boolean;
+  phases: PhaseRead[];
+  variant: VariantRead;
+  members: MemberRead[];
+  phaseConfirmed: boolean;
+  sandbox: boolean;
+  name: string;
+  nationAssignment: NationAssignmentEnum;
+  movementPhaseDuration: MovementPhaseDurationEnum;
+  private: boolean;
+};
+export type SandboxGameWrite = {
+  name: string;
+  variantId: string;
 };
 export type UserProfile = {
+  name: string;
+};
+export type UserProfileRead = {
   id: number;
   name: string;
   picture: string;
-  username: string;
   email: string;
+};
+export type PatchedUserProfile = {
+  name?: string;
+};
+export type PatchedUserProfileRead = {
+  id?: number;
+  name?: string;
+  picture?: string;
+  email?: string;
 };
 export type Version = {
   environment: string;
@@ -688,6 +776,7 @@ export type Version = {
 };
 export const {
   useApiSchemaRetrieveQuery,
+  useApiTestSentryRetrieveQuery,
   useApiTokenRefreshCreateMutation,
   useAuthLoginCreateMutation,
   useDevicesListQuery,
@@ -702,13 +791,17 @@ export const {
   useGameOrdersCreateMutation,
   useGameOrdersListQuery,
   useGameOrdersDeleteDestroyMutation,
-  useGamePhaseStateRetrieveQuery,
+  useGamePhaseStatesListQuery,
+  useGameResolvePhaseCreateMutation,
   useGamesListQuery,
   useGamesChannelsListQuery,
   useGamesChannelsMessagesCreateCreateMutation,
   useGamesChannelsCreateCreateMutation,
   usePhaseResolveCreateMutation,
+  useSandboxGameCreateMutation,
   useUserRetrieveQuery,
+  useUserUpdateUpdateMutation,
+  useUserUpdatePartialUpdateMutation,
   useVariantsListQuery,
   useVersionRetrieveQuery,
 } = injectedRtkApi;

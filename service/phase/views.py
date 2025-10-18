@@ -1,5 +1,13 @@
 from rest_framework import permissions, generics, views, status
-from common.permissions import IsActiveGame, IsActiveGameMember, IsCurrentPhaseActive, IsUserPhaseStateExists
+from common.permissions import (
+    IsActiveGame,
+    IsActiveGameMember,
+    IsCurrentPhaseActive,
+    IsUserPhaseStateExists,
+    IsNotSandboxGame,
+    IsSandboxGame,
+)
+from common.serializers import EmptySerializer
 from common.views import SelectedGameMixin, CurrentGameMemberMixin
 from rest_framework.response import Response
 from .models import Phase
@@ -13,6 +21,7 @@ class PhaseStateUpdateView(SelectedGameMixin, CurrentGameMemberMixin, generics.U
         IsActiveGameMember,
         IsCurrentPhaseActive,
         IsUserPhaseStateExists,
+        IsNotSandboxGame,
     ]
     serializer_class = PhaseStateSerializer
 
@@ -23,7 +32,7 @@ class PhaseStateUpdateView(SelectedGameMixin, CurrentGameMemberMixin, generics.U
         return current_phase.phase_states.get(member=member)
 
 
-class PhaseStateRetrieveView(SelectedGameMixin, CurrentGameMemberMixin, generics.RetrieveAPIView):
+class PhaseStateListView(SelectedGameMixin, generics.ListAPIView):
     permission_classes = [
         permissions.IsAuthenticated,
         IsActiveGame,
@@ -31,17 +40,32 @@ class PhaseStateRetrieveView(SelectedGameMixin, CurrentGameMemberMixin, generics
     ]
     serializer_class = PhaseStateSerializer
 
-    def get_object(self):
+    def get_queryset(self):
         game = self.get_game()
-        member = self.get_current_game_member()
         current_phase = game.current_phase
-        return current_phase.phase_states.get(member=member)
+        return current_phase.phase_states.filter(member__user=self.request.user)
 
 
-class PhaseResolveView(views.APIView):
+class PhaseResolveAllView(views.APIView):
     permission_classes = []
-    serializer_class = PhaseResolveResponseSerializer
+    serializer_class = EmptySerializer
 
     def post(self, request, *args, **kwargs):
         result = Phase.objects.resolve_due_phases()
         return Response(result, status=status.HTTP_200_OK)
+
+
+class PhaseResolveView(SelectedGameMixin, views.APIView):
+    permission_classes = [
+        permissions.IsAuthenticated,
+        IsActiveGame,
+        IsActiveGameMember,
+        IsCurrentPhaseActive,
+        IsSandboxGame,
+    ]
+
+    def post(self, request, *args, **kwargs):
+        game = self.get_game()
+        current_phase = game.current_phase
+        Phase.objects.resolve_phase(current_phase)
+        return Response(status=status.HTTP_204_NO_CONTENT)

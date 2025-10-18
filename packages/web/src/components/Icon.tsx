@@ -14,6 +14,7 @@ import Menu from "@mui/icons-material/MoreHoriz";
 import Chat from "@mui/icons-material/Chat";
 import Orders from "@mui/icons-material/Gavel";
 import OrdersConfirmed from "@mui/icons-material/CheckBox";
+import ResolvePhase from "@mui/icons-material/CheckBoxOutlined";
 import OrdersNotConfirmed from "@mui/icons-material/CheckBoxOutlineBlank";
 import Check from "@mui/icons-material/Check";
 import Map from "@mui/icons-material/Map";
@@ -27,6 +28,8 @@ import FullscreenExit from "@mui/icons-material/FullscreenExit";
 import Lock from "@mui/icons-material/Lock";
 import Clock from "@mui/icons-material/AccessTime";
 import Star from "@mui/icons-material/Star";
+import Sandbox from "@mui/icons-material/Widgets";
+import Edit from "@mui/icons-material/Edit";
 
 import { SxProps, Theme } from "@mui/material";
 
@@ -62,6 +65,9 @@ enum IconName {
   Lock = "lock",
   Clock = "clock",
   Star = "star",
+  Sandbox = "sandbox",
+  ResolvePhase = "resolve-phase",
+  Edit = "edit",
 }
 
 const IconMap = {
@@ -96,6 +102,9 @@ const IconMap = {
   [IconName.Lock]: Lock,
   [IconName.Clock]: Clock,
   [IconName.Star]: Star,
+  [IconName.Sandbox]: Sandbox,
+  [IconName.ResolvePhase]: ResolvePhase,
+  [IconName.Edit]: Edit,
 };
 
 interface IconProps {

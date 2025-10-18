@@ -81,7 +81,7 @@ class CurrentGameMemberMixin:
 
     def get_current_game_member(self):
         game = self.get_game()
-        return game.members.get(user=self.request.user)
+        return game.members.filter(user=self.request.user).first()
 
     def get_serializer_context(self):
         context = super().get_serializer_context()

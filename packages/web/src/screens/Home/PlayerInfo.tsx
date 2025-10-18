@@ -53,20 +53,20 @@ const PlayerInfo: React.FC = () => {
             )}
             {query.data
               ? query.data.members.map(member => (
-                <PlayerCard
-                  key={member.username}
-                  member={member}
-                  variant={query.data.variant.id}
-                />
-              ))
+                  <PlayerCard
+                    key={member.id}
+                    member={member}
+                    variant={query.data.variant.id}
+                  />
+                ))
               : Array.from({ length: 3 }, (_, index) => (
-                <ListItem key={index}>
-                  <ListItemAvatar>
-                    <Skeleton variant="circular" width={40} height={40} />
-                  </ListItemAvatar>
-                  <Skeleton variant="text" width={150} />
-                </ListItem>
-              ))}
+                  <ListItem key={index}>
+                    <ListItemAvatar>
+                      <Skeleton variant="circular" width={40} height={40} />
+                    </ListItemAvatar>
+                    <Skeleton variant="text" width={150} />
+                  </ListItem>
+                ))}
           </>
         </Stack>
       }

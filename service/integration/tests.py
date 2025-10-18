@@ -16,6 +16,8 @@ from common.constants import (
     UnitType,
 )
 
+resolve_all_url = reverse("phase-resolve-all")
+
 
 def create_active_game(authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant):
     create_url = reverse("game-create")
@@ -307,8 +309,7 @@ def test_active_game_create_orders_and_confirm(
     assert confirm_order_response.status_code == status.HTTP_200_OK
 
     # Simulate the scheduled resolver task running
-    resolve_url = reverse("phase-resolve")
-    resolve_response = authenticated_client.post(resolve_url)
+    resolve_response = authenticated_client.post(resolve_all_url)
     assert resolve_response.status_code == status.HTTP_200_OK
     assert resolve_response.data["resolved"] >= 1
 
@@ -333,7 +334,7 @@ def test_active_game_create_orders_and_confirm(
     assert second_phase.should_resolve_immediately
 
     # Simulate the scheduled resolver task running
-    resolve_response = authenticated_client.post(resolve_url)
+    resolve_response = authenticated_client.post(resolve_all_url)
     assert resolve_response.status_code == status.HTTP_200_OK
     assert resolve_response.data["resolved"] >= 1  # At least the retreat phase resolved
 
@@ -387,8 +388,7 @@ def test_scheduled_phase_resolution_after_time_elapsed(
 
     with patch("django.utils.timezone.now", return_value=future_time):
         # Simulate the scheduled resolver task running
-        resolve_url = reverse("phase-resolve")
-        resolve_response = authenticated_client.post(resolve_url)
+        resolve_response = authenticated_client.post(resolve_all_url)
         assert resolve_response.status_code == status.HTTP_200_OK
         assert resolve_response.data["resolved"] >= 1  # Phase resolved due to time elapsed
 
@@ -440,8 +440,7 @@ def test_active_game_create_move_order_fleet_to_named_coast(
     assert confirm_order_response.status_code == status.HTTP_200_OK
 
     # Simulate the scheduled resolver task running
-    resolve_url = reverse("phase-resolve")
-    resolve_response = authenticated_client.post(resolve_url)
+    resolve_response = authenticated_client.post(resolve_all_url)
     assert resolve_response.status_code == status.HTTP_200_OK
     assert resolve_response.data["resolved"] >= 1
 
@@ -457,7 +456,7 @@ def test_active_game_create_move_order_fleet_to_named_coast(
     assert second_phase.should_resolve_immediately
 
     # Simulate the scheduled resolver task running
-    resolve_response = authenticated_client.post(resolve_url)
+    resolve_response = authenticated_client.post(resolve_all_url)
     assert resolve_response.status_code == status.HTTP_200_OK
     assert resolve_response.data["resolved"] >= 1  # At least the retreat phase resolved
 
@@ -474,7 +473,7 @@ def test_active_game_create_move_order_fleet_to_named_coast(
     confirm_order_response = authenticated_client.put(confirm_order_url)
     confirm_order_response = authenticated_client_for_secondary_user.put(confirm_order_url)
 
-    resolve_response = authenticated_client.post(resolve_url)
+    resolve_response = authenticated_client.post(resolve_all_url)
     assert resolve_response.status_code == status.HTTP_200_OK
     assert resolve_response.data["resolved"] >= 1
 
@@ -484,7 +483,7 @@ def test_active_game_create_move_order_fleet_to_named_coast(
     assert phase.year == 1901
     assert phase.type == "Retreat"
 
-    resolve_response = authenticated_client.post(resolve_url)
+    resolve_response = authenticated_client.post(resolve_all_url)
     assert resolve_response.status_code == status.HTTP_200_OK
     assert resolve_response.data["resolved"] >= 1
 
@@ -494,7 +493,7 @@ def test_active_game_create_move_order_fleet_to_named_coast(
     assert phase.year == 1901
     assert phase.type == "Adjustment"
 
-    resolve_response = authenticated_client.post(resolve_url)
+    resolve_response = authenticated_client.post(resolve_all_url)
     assert resolve_response.status_code == status.HTTP_200_OK
     assert resolve_response.data["resolved"] >= 1
 
@@ -516,7 +515,7 @@ def test_active_game_create_move_order_fleet_to_named_coast(
     confirm_order_response = authenticated_client.put(confirm_order_url)
     confirm_order_response = authenticated_client_for_secondary_user.put(confirm_order_url)
 
-    resolve_response = authenticated_client.post(resolve_url)
+    resolve_response = authenticated_client.post(resolve_all_url)
     assert resolve_response.status_code == status.HTTP_200_OK
     assert resolve_response.data["resolved"] >= 1
 
@@ -561,7 +560,6 @@ def test_dislodged_unit_scenario(
 
     create_order_url = reverse("order-create", args=[active_game.id])
     confirm_url = reverse("game-confirm-phase", args=[active_game.id])
-    resolve_url = reverse("phase-resolve")
 
     # Determine which client is which nation
     primary_is_germany = germany_member.user == active_game.members.first().user
@@ -604,7 +602,7 @@ def test_dislodged_unit_scenario(
     italy_client.put(confirm_url)
 
     # Resolve phase
-    resolve_response = authenticated_client.post(resolve_url)
+    resolve_response = authenticated_client.post(resolve_all_url)
     assert resolve_response.data["resolved"] >= 1
 
     # ===== SPRING 1901 RETREAT PHASE =====
@@ -617,7 +615,7 @@ def test_dislodged_unit_scenario(
     assert phase.type == "Retreat"
 
     # Resolve retreat phase (no orders needed)
-    resolve_response = authenticated_client.post(resolve_url)
+    resolve_response = authenticated_client.post(resolve_all_url)
     assert resolve_response.data["resolved"] >= 1
 
     # ===== FALL 1901 MOVEMENT PHASE =====
@@ -653,7 +651,7 @@ def test_dislodged_unit_scenario(
     italy_client.put(confirm_url)
 
     # Resolve phase
-    resolve_response = authenticated_client.post(resolve_url)
+    resolve_response = authenticated_client.post(resolve_all_url)
     assert resolve_response.data["resolved"] >= 1
 
     # ===== FALL 1901 RETREAT PHASE =====
@@ -684,7 +682,7 @@ def test_dislodged_unit_scenario(
     italy_client.put(confirm_url)
 
     # Resolve retreat phase
-    resolve_response = authenticated_client.post(resolve_url)
+    resolve_response = authenticated_client.post(resolve_all_url)
     assert resolve_response.data["resolved"] >= 1
 
     # ===== FALL 1901 ADJUSTMENT PHASE =====

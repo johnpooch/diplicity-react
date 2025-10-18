@@ -11,7 +11,6 @@ Member = apps.get_model("member", "Member")
 
 class ChannelMemberSerializer(serializers.Serializer):
     id = serializers.IntegerField()
-    username = serializers.CharField(source="user.username")
     name = serializers.CharField(source="user.profile.name")
     picture = serializers.CharField(source="user.profile.picture")
     nation = NationSerializer()

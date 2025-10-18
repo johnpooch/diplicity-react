@@ -24,7 +24,22 @@ const feedbackSlice = createSlice({
       (_, action) => {
         return {
           severity: "success",
-          message: `Logged in as ${action.payload.username}`,
+          message: `Logged in as ${action.payload.name}`,
+        };
+      }
+    );
+    builder.addMatcher(service.endpoints.gameCreate.matchFulfilled, _ => {
+      return {
+        severity: "success",
+        message: `Game created successfully`,
+      };
+    });
+    builder.addMatcher(
+      service.endpoints.sandboxGameCreate.matchFulfilled,
+      _ => {
+        return {
+          severity: "success",
+          message: `Sandbox game created successfully`,
         };
       }
     );

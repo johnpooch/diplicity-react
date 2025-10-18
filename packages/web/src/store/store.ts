@@ -23,11 +23,14 @@ const enhancedApi = api.enhanceEndpoints({
     gameCreate: {
       invalidatesTags: ["Game"],
     },
-    gamePhaseStateRetrieve: {
+    gamePhaseStatesList: {
       providesTags: ["PhaseState"],
     },
     gameConfirmPhasePartialUpdate: {
-      invalidatesTags: ["Game", "PhaseState"],
+      invalidatesTags: ["Game", "PhaseState", "Order"],
+    },
+    gameResolvePhaseCreate: {
+      invalidatesTags: ["Game", "PhaseState", "Order"],
     },
     gameJoinCreate: {
       invalidatesTags: ["Game"],
@@ -52,6 +55,12 @@ const enhancedApi = api.enhanceEndpoints({
     },
     gameOrdersDeleteDestroy: {
       invalidatesTags: ["Order", "PhaseState"],
+    },
+    userRetrieve: {
+      providesTags: ["User"],
+    },
+    userUpdatePartialUpdate: {
+      invalidatesTags: ["User"],
     },
   },
 });

@@ -8,9 +8,14 @@ urlpatterns = [
         name="game-confirm-phase",
     ),
     path(
-        "game/<str:game_id>/phase-state/",
-        views.PhaseStateRetrieveView.as_view(),
-        name="phase-state-retrieve",
+        "game/<str:game_id>/phase-states/",
+        views.PhaseStateListView.as_view(),
+        name="phase-state-list",
     ),
-    path("phase/resolve/", views.PhaseResolveView.as_view(), name="phase-resolve"),
+    path(
+        "game/<str:game_id>/resolve-phase/",
+        views.PhaseResolveView.as_view(),
+        name="game-resolve-phase",
+    ),
+    path("phase/resolve/", views.PhaseResolveAllView.as_view(), name="phase-resolve-all"),
 ]

@@ -47,7 +47,7 @@ const PlayerCard: React.FC<PlayerCardProps> = props => {
               flexDirection="column"
             >
               <Typography variant="body2" sx={styles.username}>
-                {props.member.username}
+                {props.member.name}
               </Typography>
               {props.member.nation && (
                 <Stack direction="row" gap={1} alignItems="center">

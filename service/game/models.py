@@ -55,11 +55,9 @@ class GameManager(models.Manager):
     def get_queryset(self):
         return GameQuerySet(self.model, using=self._db)
 
-    def create_from_template(self, variant, user, **kwargs):
+    def create_from_template(self, variant, **kwargs):
         template_phase = variant.template_phase
         game = self.create(variant=variant, **kwargs)
-        game.members.create(user=user)
-        game.channels.create(name="Public Press", private=False)
 
         phase = game.phases.create(
             game=game,
@@ -96,10 +94,13 @@ class Game(BaseModel):
     variant = models.ForeignKey("variant.Variant", on_delete=models.CASCADE, related_name="games")
     name = models.CharField(max_length=100)
     status = models.CharField(max_length=20, choices=GameStatus.STATUS_CHOICES, default=GameStatus.PENDING)
+    sandbox = models.BooleanField(default=False)
     private = models.BooleanField(default=False)
     movement_phase_duration = models.CharField(
         max_length=20,
         choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES,
+        null=True,
+        blank=True,
         default=MovementPhaseDuration.TWENTY_FOUR_HOURS,
     )
     nation_assignment = models.CharField(
@@ -129,6 +130,8 @@ class Game(BaseModel):
 
     @property
     def movement_phase_duration_seconds(self):
+        if self.movement_phase_duration is None:
+            return None
         if self.movement_phase_duration == MovementPhaseDuration.TWENTY_FOUR_HOURS:
             return 24 * 60 * 60
         elif self.movement_phase_duration == MovementPhaseDuration.FORTY_EIGHT_HOURS:
@@ -163,7 +166,10 @@ class Game(BaseModel):
 
         current_phase.status = PhaseStatus.ACTIVE
         current_phase.options = adjudication_data["options"]
-        current_phase.scheduled_resolution = timezone.now() + timedelta(seconds=self.movement_phase_duration_seconds)
+        if self.movement_phase_duration is not None:
+            current_phase.scheduled_resolution = timezone.now() + timedelta(seconds=self.movement_phase_duration_seconds)
+        else:
+            current_phase.scheduled_resolution = None
         current_phase.save()
 
         members = self.members.all()

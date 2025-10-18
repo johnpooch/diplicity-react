@@ -44,7 +44,7 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-gdnbe1&siif)1gsuv+f
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,service").split(",")
+ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,service,allowed-health-check").split(",")
 
 # CSRF Settings
 CSRF_TRUSTED_ORIGINS = ["https://diplicity-service.azurewebsites.net", "http://localhost:8000", "http://localhost:5173"]
@@ -83,11 +83,13 @@ INSTALLED_APPS = [
     "adjudication",
     "notification",
     "integration",
+    "health",
     "drf_spectacular",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "health.middleware.AzureHealthCheckMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
@@ -222,8 +224,8 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=90),
 }
 
 firebase_credentials = {

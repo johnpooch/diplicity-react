@@ -4,6 +4,7 @@ import { CreateGame } from "./CreateGame";
 import { Profile } from "./Profile";
 import { GameInfo } from "./GameInfo";
 import { PlayerInfo } from "./PlayerInfo";
+import { SandboxGames } from "./SandboxGames";
 
 export const Home = {
   MyGames: MyGames,
@@ -12,4 +13,5 @@ export const Home = {
   Profile: Profile,
   GameInfo: GameInfo,
   PlayerInfo: PlayerInfo,
+  SandboxGames: SandboxGames,
 };

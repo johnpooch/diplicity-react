@@ -1,186 +1,65 @@
-import React from "react";
-import {
-  Button,
-  Checkbox,
-  FormControl,
-  FormControlLabel,
-  MenuItem,
-  Stack,
-  TextField,
-  Typography,
-  Skeleton,
-  FormHelperText,
-} from "@mui/material";
+import React, { useState, useEffect } from "react";
+import { Divider } from "@mui/material";
 import { HomeLayout } from "./Layout";
-import { NationAssignmentEnum, MovementPhaseDurationEnum, service } from "../../store";
-import { HomeAppBar } from "./AppBar";
-import { IconName } from "../../components/Icon";
-import { useNavigate } from "react-router";
-import { useFormik } from "formik";
-import { randomGameName } from "../../util";
-import { Table } from "../../components/Table";
-import { InteractiveMap } from "../../components/InteractiveMap/InteractiveMap";
+import { useNavigate, useSearchParams } from "react-router";
 import { Panel } from "../../components/Panel";
-
-const initialValues = {
-  name: randomGameName(),
-  variantId: "classical",
-  nationAssignment: "random" as NationAssignmentEnum,
-  movementPhaseDuration: "24 hours" as MovementPhaseDurationEnum,
-  private: false,
-};
+import { Tabs } from "../../components/Tabs";
+import { CreateStandardGame } from "./CreateStandardGame";
+import { CreateSandboxGame } from "./CreateSandboxGame";
 
 const CreateGame: React.FC = () => {
   const navigate = useNavigate();
-  const query = service.endpoints.variantsList.useQuery(undefined);
-  const [createGameMutationTrigger, createGameQuery] =
-    service.endpoints.gameCreate.useMutation();
+  const [searchParams] = useSearchParams();
 
-  const handleSubmit = async (
-    values: Parameters<typeof createGameMutationTrigger>[0]["game"]
-  ) => {
-    await createGameMutationTrigger({ game: values }).unwrap();
-    navigate("/");
+  // Determine initial tab based on query string parameter
+  const getInitialTab = (): "standard" | "sandbox" => {
+    const sandboxParam = searchParams.get("sandbox");
+    if (sandboxParam === "true") {
+      return "sandbox";
+    }
+    return "standard";
   };
 
-  const formik = useFormik<
-    Parameters<typeof createGameMutationTrigger>[0]["game"]
-  >({
-    initialValues,
-    onSubmit: handleSubmit,
-  });
+  const [currentTab, setCurrentTab] = useState<"standard" | "sandbox">(
+    getInitialTab()
+  );
 
-  const selectedVariant = query.data?.find(v => v.id === formik.values.variantId);
+  // Update tab when query string changes
+  useEffect(() => {
+    const newTab = getInitialTab();
+    setCurrentTab(newTab);
+  }, [searchParams]);
+
+  // Update URL when tab changes
+  const handleTabChange = (newTab: "standard" | "sandbox") => {
+    setCurrentTab(newTab);
+    const newSearchParams = new URLSearchParams(searchParams);
+    if (newTab === "sandbox") {
+      newSearchParams.set("sandbox", "true");
+    } else {
+      newSearchParams.delete("sandbox");
+    }
+    navigate(`?${newSearchParams.toString()}`, { replace: true });
+  };
 
   return (
     <HomeLayout
-      appBar={<HomeAppBar title="Create Game" onNavigateBack={() => navigate("/")} />}
       content={
         <Panel>
           <Panel.Content>
-            <form
-              onSubmit={e => {
-                e.preventDefault();
-                formik.handleSubmit(e);
-              }}
-            >
-              <Stack spacing={2} padding={2}>
-                <Typography variant="h4">General</Typography>
-                <FormControl>
-                  <TextField
-                    label="Game Name"
-                    variant="standard"
-                    name="name"
-                    value={formik.values.name}
-                    onChange={e => formik.setFieldValue("name", e.target.value)}
-                    onBlur={formik.handleBlur}
-                    disabled={createGameQuery.isLoading}
-                  />
-                </FormControl>
-                <FormControl>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={formik.values.private}
-                        onChange={e => formik.setFieldValue("private", e.target.checked)}
-                        disabled={createGameQuery.isLoading}
-                        name="private"
-                      />
-                    }
-                    label="Private"
-                  />
-                  <FormHelperText sx={{ margin: 0 }}>Make this game private (only accessible via direct link, not shown in public listings).</FormHelperText>
-                </FormControl>
-                <Typography variant="h4">Deadlines</Typography>
-                <FormControl>
-
-                  <TextField
-                    select
-                    label="Phase Deadline"
-                    variant="standard"
-                    name="movementPhaseDuration"
-                    value={formik.values.movementPhaseDuration}
-                    onChange={e => formik.setFieldValue("movementPhaseDuration", e.target.value)}
-                    disabled={createGameQuery.isLoading}
-                  >
-                    <MenuItem value="24 hours">24 hours</MenuItem>
-                    <MenuItem value="48 hours">48 hours</MenuItem>
-                    <MenuItem value="1 week">1 week</MenuItem>
-                  </TextField>
-                  <FormHelperText sx={{ margin: 0 }}>After the deadline, the phase will be automatically resolved.</FormHelperText>
-                </FormControl>
-                <Typography variant="h4">Variant</Typography>
-                {query.isLoading ? (
-                  <Skeleton variant="rectangular" width="100%" height={48} />
-                ) : (
-                  <TextField
-                    select
-                    label="Variant"
-                    variant="standard"
-                    name="variantId"
-                    value={formik.values.variantId}
-                    onChange={e => formik.setFieldValue("variantId", e.target.value)}
-                    disabled={createGameQuery.isLoading}
-                  >
-                    {query.data?.map(variant => (
-                      <MenuItem key={variant.id} value={variant.id}>
-                        {variant.name}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                )}
-                {query.isLoading ? (
-                  <Skeleton variant="rectangular" width="100%" height={400} />
-                ) : selectedVariant?.templatePhase ? (
-                  <InteractiveMap
-                    variant={selectedVariant}
-                    phase={selectedVariant.templatePhase}
-                    interactive={false}
-                    selected={[]}
-                    orders={undefined}
-                  />
-                ) : null}
-                <Table
-                  rows={[
-                    {
-                      label: "Number of nations",
-                      value: query.isLoading ? (
-                        <Skeleton variant="text" width={100} />
-                      ) : (
-                        selectedVariant?.nations.length.toString()
-                      ),
-                      icon: IconName.Players,
-                    },
-                    {
-                      label: "Start year",
-                      value: query.isLoading ? (
-                        <Skeleton variant="text" width={100} />
-                      ) : (
-                        selectedVariant?.templatePhase.year.toString()
-                      ),
-                      icon: IconName.StartYear,
-                    },
-                    {
-                      label: "Original author",
-                      value: query.isLoading ? (
-                        <Skeleton variant="text" width={100} />
-                      ) : (
-                        selectedVariant?.author
-                      ),
-                      icon: IconName.Author,
-                    },
-                  ]}
-                />
-                <Button
-                  variant="contained"
-                  color="primary"
-                  type="submit"
-                  disabled={createGameQuery.isLoading}
-                >
-                  Create
-                </Button>
-              </Stack>
-            </form>
+            <Tabs
+              value={currentTab}
+              onChange={(_, newValue) =>
+                handleTabChange(newValue as "standard" | "sandbox")
+              }
+              options={[
+                { label: "Standard", value: "standard" },
+                { label: "Sandbox", value: "sandbox" },
+              ]}
+            />
+            <Divider />
+            {currentTab === "standard" && <CreateStandardGame />}
+            {currentTab === "sandbox" && <CreateSandboxGame />}
           </Panel.Content>
         </Panel>
       }
