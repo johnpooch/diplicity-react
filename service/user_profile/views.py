@@ -10,3 +10,11 @@ class UserProfileRetrieveView(generics.RetrieveAPIView):
 
     def get_object(self):
         return UserProfile.objects.with_related_data().get(user=self.request.user)
+
+
+class UserProfileUpdateView(generics.UpdateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = UserProfileSerializer
+
+    def get_object(self):
+        return UserProfile.objects.get(user=self.request.user)

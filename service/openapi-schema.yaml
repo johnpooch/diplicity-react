@@ -644,21 +644,11 @@ paths:
       operationId: phaseResolveCreate
       tags:
       - phase
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PhaseResolveResponse'
-        required: true
       security:
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PhaseResolveResponse'
-          description: ''
+          description: No response body
   /sandbox-game/:
     post:
       operationId: sandboxGameCreate
@@ -684,6 +674,44 @@ paths:
       operationId: userRetrieve
       tags:
       - user
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+  /user/update/:
+    put:
+      operationId: userUpdateUpdate
+      tags:
+      - user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfile'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+    patch:
+      operationId: userUpdatePartialUpdate
+      tags:
+      - user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserProfile'
       security:
       - jwtAuth: []
       responses:
@@ -1140,6 +1168,25 @@ components:
           allOf:
           - $ref: '#/components/schemas/Member'
           readOnly: true
+    PatchedUserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 255
+          minLength: 2
+        picture:
+          type: string
+          readOnly: true
+        username:
+          type: string
+          readOnly: true
+        email:
+          type: string
+          readOnly: true
     Phase:
       type: object
       properties:
@@ -1184,16 +1231,6 @@ components:
       - type
       - units
       - year
-    PhaseResolveResponse:
-      type: object
-      properties:
-        resolved:
-          type: integer
-        failed:
-          type: integer
-      required:
-      - failed
-      - resolved
     PhaseState:
       type: object
       properties:
@@ -1405,14 +1442,20 @@ components:
       properties:
         id:
           type: integer
+          readOnly: true
         name:
           type: string
+          maxLength: 255
+          minLength: 2
         picture:
           type: string
+          readOnly: true
         username:
           type: string
+          readOnly: true
         email:
           type: string
+          readOnly: true
       required:
       - email
       - id

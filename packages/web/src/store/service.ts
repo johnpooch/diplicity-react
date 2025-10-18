@@ -193,11 +193,7 @@ const injectedRtkApi = api.injectEndpoints({
       PhaseResolveCreateApiResponse,
       PhaseResolveCreateApiArg
     >({
-      query: (queryArg) => ({
-        url: `/phase/resolve/`,
-        method: "POST",
-        body: queryArg.phaseResolveResponse,
-      }),
+      query: () => ({ url: `/phase/resolve/`, method: "POST" }),
     }),
     sandboxGameCreate: build.mutation<
       SandboxGameCreateApiResponse,
@@ -211,6 +207,26 @@ const injectedRtkApi = api.injectEndpoints({
     }),
     userRetrieve: build.query<UserRetrieveApiResponse, UserRetrieveApiArg>({
       query: () => ({ url: `/user/` }),
+    }),
+    userUpdateUpdate: build.mutation<
+      UserUpdateUpdateApiResponse,
+      UserUpdateUpdateApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/user/update/`,
+        method: "PUT",
+        body: queryArg.userProfile,
+      }),
+    }),
+    userUpdatePartialUpdate: build.mutation<
+      UserUpdatePartialUpdateApiResponse,
+      UserUpdatePartialUpdateApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/user/update/`,
+        method: "PATCH",
+        body: queryArg.patchedUserProfile,
+      }),
     }),
     variantsList: build.query<VariantsListApiResponse, VariantsListApiArg>({
       query: () => ({ url: `/variants/` }),
@@ -427,17 +443,23 @@ export type GamesChannelsCreateCreateApiArg = {
   gameId: string;
   channel: ChannelWrite;
 };
-export type PhaseResolveCreateApiResponse =
-  /** status 200  */ PhaseResolveResponse;
-export type PhaseResolveCreateApiArg = {
-  phaseResolveResponse: PhaseResolveResponse;
-};
+export type PhaseResolveCreateApiResponse = unknown;
+export type PhaseResolveCreateApiArg = void;
 export type SandboxGameCreateApiResponse = /** status 201  */ SandboxGameRead;
 export type SandboxGameCreateApiArg = {
   sandboxGame: SandboxGameWrite;
 };
-export type UserRetrieveApiResponse = /** status 200  */ UserProfile;
+export type UserRetrieveApiResponse = /** status 200  */ UserProfileRead;
 export type UserRetrieveApiArg = void;
+export type UserUpdateUpdateApiResponse = /** status 200  */ UserProfileRead;
+export type UserUpdateUpdateApiArg = {
+  userProfile: UserProfile;
+};
+export type UserUpdatePartialUpdateApiResponse =
+  /** status 200  */ UserProfileRead;
+export type UserUpdatePartialUpdateApiArg = {
+  patchedUserProfile: PatchedUserProfile;
+};
 export type VariantsListApiResponse = /** status 200  */ VariantRead[];
 export type VariantsListApiArg = void;
 export type VersionRetrieveApiResponse = /** status 200  */ Version;
@@ -711,10 +733,6 @@ export type ChannelRead = {
 export type ChannelWrite = {
   memberIds: number[];
 };
-export type PhaseResolveResponse = {
-  resolved: number;
-  failed: number;
-};
 export type SandboxGame = {
   name: string;
 };
@@ -738,11 +756,24 @@ export type SandboxGameWrite = {
   variantId: string;
 };
 export type UserProfile = {
+  name: string;
+};
+export type UserProfileRead = {
   id: number;
   name: string;
   picture: string;
   username: string;
   email: string;
+};
+export type PatchedUserProfile = {
+  name?: string;
+};
+export type PatchedUserProfileRead = {
+  id?: number;
+  name?: string;
+  picture?: string;
+  username?: string;
+  email?: string;
 };
 export type Version = {
   environment: string;
@@ -774,6 +805,8 @@ export const {
   usePhaseResolveCreateMutation,
   useSandboxGameCreateMutation,
   useUserRetrieveQuery,
+  useUserUpdateUpdateMutation,
+  useUserUpdatePartialUpdateMutation,
   useVariantsListQuery,
   useVersionRetrieveQuery,
 } = injectedRtkApi;
