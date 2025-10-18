@@ -147,6 +147,17 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
+  /api/test-sentry/:
+    get:
+      operationId: apiTestSentryRetrieve
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
   /api/token/refresh/:
     post:
       operationId: apiTokenRefreshCreate
@@ -467,9 +478,9 @@ paths:
       responses:
         '204':
           description: No response body
-  /game/{gameId}/phase-state/:
+  /game/{gameId}/phase-states/:
     get:
-      operationId: gamePhaseStateRetrieve
+      operationId: gamePhaseStatesList
       description: |-
         Used by views that have a game parameter in the URL. Provides a get_game
         method that returns the game object. Also adds game to the serializer context.
@@ -488,8 +499,29 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PhaseState'
+                type: array
+                items:
+                  $ref: '#/components/schemas/PhaseState'
           description: ''
+  /game/{gameId}/resolve-phase/:
+    post:
+      operationId: gameResolvePhaseCreate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
   /games/:
     get:
       operationId: gamesList
@@ -500,6 +532,10 @@ paths:
           type: boolean
       - in: query
         name: mine
+        schema:
+          type: boolean
+      - in: query
+        name: sandbox
         schema:
           type: boolean
       tags:
@@ -622,6 +658,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhaseResolveResponse'
+          description: ''
+  /sandbox-game/:
+    post:
+      operationId: sandboxGameCreate
+      tags:
+      - sandbox-game
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SandboxGame'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SandboxGame'
           description: ''
   /user/:
     get:
@@ -838,6 +894,9 @@ components:
         phaseConfirmed:
           type: boolean
           readOnly: true
+        sandbox:
+          type: boolean
+          readOnly: true
         name:
           type: string
         variantId:
@@ -861,6 +920,7 @@ components:
       - phaseConfirmed
       - phases
       - private
+      - sandbox
       - status
       - variant
       - variantId
@@ -1178,6 +1238,72 @@ components:
       - parentId
       - supplyCenter
       - type
+    SandboxGame:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        status:
+          type: string
+          readOnly: true
+        canJoin:
+          type: boolean
+          readOnly: true
+        canLeave:
+          type: boolean
+          readOnly: true
+        phases:
+          type: array
+          items:
+            $ref: '#/components/schemas/Phase'
+          readOnly: true
+        variant:
+          allOf:
+          - $ref: '#/components/schemas/Variant'
+          readOnly: true
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/Member'
+          readOnly: true
+        phaseConfirmed:
+          type: boolean
+          readOnly: true
+        sandbox:
+          type: boolean
+          readOnly: true
+        name:
+          type: string
+        variantId:
+          type: string
+          writeOnly: true
+        nationAssignment:
+          allOf:
+          - $ref: '#/components/schemas/NationAssignmentEnum'
+          readOnly: true
+        movementPhaseDuration:
+          allOf:
+          - $ref: '#/components/schemas/MovementPhaseDurationEnum'
+          readOnly: true
+        private:
+          type: boolean
+          readOnly: true
+      required:
+      - canJoin
+      - canLeave
+      - id
+      - members
+      - movementPhaseDuration
+      - name
+      - nationAssignment
+      - phaseConfirmed
+      - phases
+      - private
+      - sandbox
+      - status
+      - variant
+      - variantId
     StatusEnum:
       enum:
       - pending
