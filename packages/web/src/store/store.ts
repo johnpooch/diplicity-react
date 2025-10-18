@@ -56,6 +56,12 @@ const enhancedApi = api.enhanceEndpoints({
     gameOrdersDeleteDestroy: {
       invalidatesTags: ["Order", "PhaseState"],
     },
+    userRetrieve: {
+      providesTags: ["User"],
+    },
+    userUpdatePartialUpdate: {
+      invalidatesTags: ["User"],
+    },
   },
 });
 

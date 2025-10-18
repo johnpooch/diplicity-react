@@ -38,8 +38,7 @@ const Profile: React.FC = () => {
     error,
   } = useMessaging();
 
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [editedName, setEditedName] = useState("");
+  const [editedName, setEditedName] = useState<string | null>(null);
 
   const handleLogout = () => {
     dispatch(authSlice.actions.logout());
@@ -66,22 +65,19 @@ const Profile: React.FC = () => {
 
   const handleStartEditName = () => {
     setEditedName(query.data?.name || "");
-    setIsEditingName(true);
   };
 
   const handleCancelEditName = () => {
-    setIsEditingName(false);
-    setEditedName("");
+    setEditedName(null);
   };
 
   const handleSaveName = async () => {
-    if (editedName.trim().length >= 2) {
+    if (editedName && editedName.trim().length >= 2) {
       try {
         await updateProfile({
-          patchedUserProfileUpdate: { name: editedName.trim() },
+          patchedUserProfile: { name: editedName.trim() },
         }).unwrap();
-        setIsEditingName(false);
-        setEditedName("");
+        setEditedName(null);
       } catch (err) {
         // Error will be shown via updateProfileMutation.error
       }
@@ -111,7 +107,7 @@ const Profile: React.FC = () => {
             <Grid2 size="grow">
               {query.isLoading ? (
                 <Skeleton variant="text" width={150} height={24} />
-              ) : isEditingName ? (
+              ) : editedName !== null ? (
                 <Stack direction="row" alignItems="center" gap={1}>
                   <TextField
                     value={editedName}
@@ -139,6 +135,7 @@ const Profile: React.FC = () => {
                     icon={IconName.Success}
                     disabled={
                       updateProfileMutation.isLoading ||
+                      !editedName ||
                       editedName.trim().length < 2
                     }
                   />
