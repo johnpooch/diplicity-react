@@ -1,8 +1,6 @@
 import React from "react";
-import { Stack, Alert, Link } from "@mui/material";
+import { Stack, Link } from "@mui/material";
 import { HomeLayout } from "./Layout";
-import { createUseStyles } from "../../components/utils/styles";
-import { DiplicityLogo } from "../../components/DiplicityLogo";
 import { service } from "../../store";
 import { NotificationBanner } from "../../components/NotificationBanner";
 import { GameCard } from "../../components/GameCard";
@@ -12,19 +10,7 @@ import { IconName } from "../../components/Icon";
 import { Notice } from "../../components/Notice";
 import { useNavigate } from "react-router";
 
-const useStyles = createUseStyles(() => ({
-  header: {
-    paddingTop: 1,
-    alignItems: "center",
-  },
-  image: {
-    height: 48,
-    width: 48,
-  },
-}));
-
-const SandboxGames: React.FC = props => {
-  const styles = useStyles(props);
+const SandboxGames: React.FC = () => {
   const navigate = useNavigate();
 
   const query = service.endpoints.gamesList.useQuery({

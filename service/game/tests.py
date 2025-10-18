@@ -197,9 +197,9 @@ class TestGameRetrieveView:
         assert response.data["can_join"] is False
         assert response.data["can_leave"] is False
 
-        member_usernames = [member["username"] for member in response.data["members"]]
-        assert primary_user.username in member_usernames
-        assert secondary_user.username in member_usernames
+        member_names = [member["name"] for member in response.data["members"]]
+        assert primary_user.profile.name in member_names
+        assert secondary_user.profile.name in member_names
 
     @pytest.mark.django_db
     def test_game_with_multiple_phases(
