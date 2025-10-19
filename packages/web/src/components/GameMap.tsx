@@ -138,21 +138,31 @@ const GameMap: React.FC = () => {
     }
   };
 
+  const calculateMinScale = () => {
+    if (containerRef.current && gameRetrieveQuery.data) {
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const map = getMap(gameRetrieveQuery.data.variant);
+      const scaleX = containerRect.width / map.width;
+      const scaleY = containerRect.height / map.height;
+      // Min scale is when the larger dimension fits the container
+      return Math.min(scaleX, scaleY);
+    }
+    return 0.5; // Fallback
+  };
+
+  const minScale = useMemo(
+    () => calculateMinScale(),
+    [gameRetrieveQuery.data, containerRef.current]
+  );
+
   const toggleFullscreen = () => {
     const newFullscreenState = !isFullscreen;
     setIsFullscreen(newFullscreenState);
 
     if (transformRef.current && gameRetrieveQuery.data) {
       if (!newFullscreenState) {
-        // Switching to fitted - calculate scale to fit map in container
-        if (containerRef.current) {
-          const containerRect = containerRef.current.getBoundingClientRect();
-          const map = getMap(gameRetrieveQuery.data.variant);
-          const scaleX = containerRect.width / map.width;
-          const scaleY = containerRect.height / map.height;
-          const fittedScale = Math.min(scaleX, scaleY) * 0.95; // 95% to add padding
-          transformRef.current.centerView(fittedScale, 300, "easeOut");
-        }
+        // Switching to fitted - use the calculated min scale
+        transformRef.current.centerView(minScale, 300, "easeOut");
       } else {
         // Switching to fullscreen - reset to 1x centered
         transformRef.current.centerView(1, 300, "easeOut");
@@ -166,7 +176,7 @@ const GameMap: React.FC = () => {
         <>
           <TransformWrapper
             initialScale={1}
-            minScale={1}
+            minScale={minScale}
             maxScale={4}
             limitToBounds={true}
             centerOnInit={true}
