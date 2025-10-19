@@ -30,7 +30,8 @@ import Clock from "@mui/icons-material/AccessTime";
 import Star from "@mui/icons-material/Star";
 import Sandbox from "@mui/icons-material/Widgets";
 import Edit from "@mui/icons-material/Edit";
-
+import PersonAdd from "@mui/icons-material/PersonAdd";
+import PersonRemove from "@mui/icons-material/PersonRemove";
 import { SxProps, Theme } from "@mui/material";
 
 enum IconName {
@@ -68,6 +69,8 @@ enum IconName {
   Sandbox = "sandbox",
   ResolvePhase = "resolve-phase",
   Edit = "edit",
+  Join = "join",
+  Leave = "leave",
 }
 
 const IconMap = {
@@ -105,6 +108,8 @@ const IconMap = {
   [IconName.Sandbox]: Sandbox,
   [IconName.ResolvePhase]: ResolvePhase,
   [IconName.Edit]: Edit,
+  [IconName.Join]: PersonAdd,
+  [IconName.Leave]: PersonRemove,
 };
 
 interface IconProps {

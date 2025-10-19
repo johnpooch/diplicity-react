@@ -8,6 +8,7 @@ import { getCurrentPhase, formatDateTime } from "../util";
 import { createUseStyles } from "./utils/styles";
 import { MemberAvatarGroup } from "./MemberAvatarGroup";
 import { Icon, IconName } from "./Icon";
+import { IconButton } from "./Button";
 
 type GameCardProps =
   (typeof service.endpoints.gamesList.Types.ResultType)[number];
@@ -58,6 +59,14 @@ const GameCard: React.FC<GameCardProps> = game => {
   const navigate = useNavigate();
   const styles = useStyles(game);
   const currentPhase = getCurrentPhase(game.phases);
+
+  const [joinGame, joinGameMutation] =
+    service.endpoints.gameJoinCreate.useMutation();
+
+  const handleClickJoinGame = async () => {
+    await joinGame({ gameId: game.id, member: {} });
+    navigate(`/game-info/${game.id}`);
+  };
 
   const handleClickGameInfo = () => {
     navigate(`/game-info/${game.id}`);
@@ -136,12 +145,20 @@ const GameCard: React.FC<GameCardProps> = game => {
           </Button>
         )}
       </Stack>
-      <Stack>
+      <Stack justifyContent="space-between">
         <GameMenu
           game={game}
           onClickGameInfo={handleClickGameInfo}
           onClickPlayerInfo={handleClickPlayerInfo}
         />
+        {game.canJoin && (
+          <IconButton
+            icon={IconName.Join}
+            color="primary"
+            disabled={joinGameMutation.isLoading}
+            onClick={handleClickJoinGame}
+          />
+        )}
       </Stack>
     </Stack>
   );

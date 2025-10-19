@@ -21,7 +21,16 @@ const Router: React.FC = () => {
       <Route path="/create-game" element={<Home.CreateGame />} />
       <Route path="/sandbox" element={<Home.SandboxGames />} />
       <Route path="/profile" element={<Home.Profile />} />
-      <Route path="/game-info/:gameId" element={<Home.GameInfo />} />
+      <Route
+        path="/game-info/:gameId"
+        element={
+          <SelectedGameContextProvider>
+            <Outlet />
+          </SelectedGameContextProvider>
+        }
+      >
+        <Route path="" element={<Home.GameInfo />} />
+      </Route>
       <Route path="/player-info/:gameId" element={<Home.PlayerInfo />} />
       <Route
         path="/game/:gameId"

@@ -1,5 +1,5 @@
 import { useSelectedGameContext, useSelectedPhaseContext } from "../context";
-import { service } from "../store";
+import { service, Variant } from "../store";
 import { InteractiveMap } from "./InteractiveMap/InteractiveMap";
 import { MenuItem, Stack, Fab } from "@mui/material";
 import { Icon, IconName } from "./Icon";
@@ -7,6 +7,20 @@ import { createUseStyles } from "./utils/styles";
 import { FloatingMenu } from "./FloatingMenu";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { determineRenderableProvinces } from "../utils/provinces";
+import {
+  TransformWrapper,
+  TransformComponent,
+  ReactZoomPanPinchRef,
+} from "react-zoom-pan-pinch";
+import classical from "../maps/classical.json";
+
+const VARIANT_MAPS: Record<string, typeof classical> = {
+  classical,
+};
+
+const getMap = (variant: Variant) => {
+  return VARIANT_MAPS[variant.id] || VARIANT_MAPS.classical;
+};
 
 const useStyles = createUseStyles(() => ({
   mapContainer: {
@@ -29,6 +43,7 @@ const GameMap: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(true);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const transformRef = useRef<ReactZoomPanPinchRef | null>(null);
 
   const [createOrder, createOrderQuery] =
     service.endpoints.gameOrdersCreate.useMutation({
@@ -124,36 +139,66 @@ const GameMap: React.FC = () => {
   };
 
   const toggleFullscreen = () => {
-    setIsFullscreen(!isFullscreen);
+    const newFullscreenState = !isFullscreen;
+    setIsFullscreen(newFullscreenState);
+
+    if (transformRef.current && gameRetrieveQuery.data) {
+      if (!newFullscreenState) {
+        // Switching to fitted - calculate scale to fit map in container
+        if (containerRef.current) {
+          const containerRect = containerRef.current.getBoundingClientRect();
+          const map = getMap(gameRetrieveQuery.data.variant);
+          const scaleX = containerRect.width / map.width;
+          const scaleY = containerRect.height / map.height;
+          const fittedScale = Math.min(scaleX, scaleY) * 0.95; // 95% to add padding
+          transformRef.current.centerView(fittedScale, 300, "easeOut");
+        }
+      } else {
+        // Switching to fullscreen - reset to 1x centered
+        transformRef.current.centerView(1, 300, "easeOut");
+      }
+    }
   };
 
   return (
     <Stack ref={containerRef} sx={styles.mapContainer}>
       {gameRetrieveQuery.data && ordersListQuery.data && (
         <>
-          <div
-            style={{
-              width: "100%",
-              height: "100%",
-              overflow: isFullscreen ? "auto" : "hidden",
+          <TransformWrapper
+            initialScale={1}
+            minScale={1}
+            maxScale={4}
+            limitToBounds={true}
+            centerOnInit={true}
+            wheel={{ step: 0.1 }}
+            onInit={ref => {
+              transformRef.current = ref;
             }}
           >
-            <InteractiveMap
-              interactive
-              variant={gameRetrieveQuery.data.variant}
-              phase={
-                gameRetrieveQuery.data.phases.find(p => p.id === selectedPhase)!
-              }
-              orders={ordersListQuery.data}
-              selected={createOrderQuery.data?.selected ?? []}
-              highlighted={
-                createOrderQuery.data?.options?.map(o => o.value) ?? []
-              }
-              renderableProvinces={renderableProvinces}
-              onClickProvince={handleProvinceClick}
-              fullscreen={isFullscreen}
-            />
-          </div>
+            <TransformComponent
+              wrapperStyle={{
+                width: "100%",
+                height: "100%",
+              }}
+            >
+              <InteractiveMap
+                interactive
+                variant={gameRetrieveQuery.data.variant}
+                phase={
+                  gameRetrieveQuery.data.phases.find(
+                    p => p.id === selectedPhase
+                  )!
+                }
+                orders={ordersListQuery.data}
+                selected={createOrderQuery.data?.selected ?? []}
+                highlighted={
+                  createOrderQuery.data?.options?.map(o => o.value) ?? []
+                }
+                renderableProvinces={renderableProvinces}
+                onClickProvince={handleProvinceClick}
+              />
+            </TransformComponent>
+          </TransformWrapper>
           <FloatingMenu
             open={
               (createOrderQuery.data?.step === "select-order-type" ||

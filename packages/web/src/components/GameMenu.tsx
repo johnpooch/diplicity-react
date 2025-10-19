@@ -26,7 +26,7 @@ type GameMenuProps = {
   onClickPlayerInfo: (navigate: NavigateFunction, gameId: string) => void;
 };
 
-const GameMenu: React.FC<GameMenuProps> = (props) => {
+const GameMenu: React.FC<GameMenuProps> = props => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const location = useLocation();
@@ -81,7 +81,7 @@ const GameMenu: React.FC<GameMenuProps> = (props) => {
 
   return (
     <>
-      <IconButton edge="start" color="inherit" onClick={handleMenuOpen}>
+      <IconButton onClick={handleMenuOpen}>
         <MenuIcon />
       </IconButton>
       <Menu
