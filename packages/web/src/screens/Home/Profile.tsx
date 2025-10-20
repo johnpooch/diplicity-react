@@ -78,7 +78,7 @@ const Profile: React.FC = () => {
           patchedUserProfile: { name: editedName.trim() },
         }).unwrap();
         setEditedName(null);
-      } catch (err) {
+      } catch {
         // Error will be shown via updateProfileMutation.error
       }
     }
@@ -101,7 +101,10 @@ const Profile: React.FC = () => {
               {query.isLoading ? (
                 <Skeleton variant="circular" width={40} height={40} />
               ) : (
-                <Avatar src={query.data?.picture} alt={query.data?.name} />
+                <Avatar
+                  src={query.data?.picture ?? undefined}
+                  alt={query.data?.name}
+                />
               )}
             </Grid2>
             <Grid2 size="grow">

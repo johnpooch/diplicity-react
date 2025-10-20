@@ -76,3 +76,41 @@ def test_existing_user_sign_in(unauthenticated_client, mock_google_auth, mock_re
     user_profile.refresh_from_db()
     assert user_profile.picture == "http://example.com/picture.jpg"
     assert user_profile.name == "Test User"
+
+
+@pytest.mark.django_db
+def test_creates_new_user_with_null_picture(unauthenticated_client, mock_google_auth_without_picture, mock_refresh_token):
+    url = reverse(viewname)
+    response = unauthenticated_client.post(url, {"id_token": "valid_token"}, format="json")
+    assert response.status_code == status.HTTP_201_CREATED
+    assert "access_token" in response.data
+    assert "refresh_token" in response.data
+
+    user_profile = UserProfile.objects.get(user__email="test@example.com")
+    assert user_profile.picture is None
+    assert user_profile.name == "Test User"
+
+
+@pytest.mark.django_db
+def test_updates_existing_user_picture_to_null(unauthenticated_client, mock_google_auth_without_picture, mock_refresh_token):
+    user = User.objects.create_user(
+        username="testuser",
+        email="test@example.com",
+        password="testpass123"
+    )
+    user_profile = UserProfile.objects.create(
+        user=user,
+        name="Test User",
+        picture="http://example.com/picture.jpg",
+    )
+
+    url = reverse(viewname)
+    response = unauthenticated_client.post(url, {"id_token": "valid_token"}, format="json")
+    assert response.status_code == status.HTTP_201_CREATED
+    assert "access_token" in response.data
+    assert "refresh_token" in response.data
+
+    user_profile.refresh_from_db()
+    assert user_profile.picture is None
+    assert user_profile.name == "Test User"
+    assert user_profile.user.email == "test@example.com"

@@ -37,7 +37,7 @@ const MemberAvatar: React.FC<MemberAvatarProps> = ({
   const mainAvatar = (
     <Avatar
       {...rest}
-      src={member.picture}
+      src={member.picture ?? undefined}
       sx={{ width: avatarSize, height: avatarSize }}
     />
   );

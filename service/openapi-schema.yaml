@@ -818,6 +818,7 @@ components:
           type: string
         picture:
           type: string
+          nullable: true
         nation:
           $ref: '#/components/schemas/Nation'
         isCurrentUser:
@@ -971,6 +972,7 @@ components:
         picture:
           type: string
           readOnly: true
+          nullable: true
         nation:
           type: string
           readOnly: true
@@ -1174,6 +1176,7 @@ components:
         picture:
           type: string
           readOnly: true
+          nullable: true
         email:
           type: string
           readOnly: true
@@ -1440,6 +1443,7 @@ components:
         picture:
           type: string
           readOnly: true
+          nullable: true
         email:
           type: string
           readOnly: true

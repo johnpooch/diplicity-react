@@ -21,4 +21,4 @@ class UserProfile(BaseModel):
     objects = UserProfileManager()
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     name = models.CharField(max_length=255)
-    picture = models.URLField()
+    picture = models.URLField(null=True, blank=True)
