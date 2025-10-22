@@ -606,7 +606,7 @@ export type GameSummary = {
 export type MemberRead = {
   id: number;
   name: string;
-  picture: string;
+  picture: string | null;
   nation: string | null;
   isCurrentUser: boolean;
   game: GameSummary;
@@ -705,13 +705,13 @@ export type ChannelMessage = {
 export type ChannelMember = {
   id: number;
   name: string;
-  picture: string;
+  picture: string | null;
   nation: Nation;
 };
 export type ChannelMemberRead = {
   id: number;
   name: string;
-  picture: string;
+  picture: string | null;
   nation: Nation;
   isCurrentUser: boolean;
 };
@@ -758,7 +758,7 @@ export type UserProfile = {
 export type UserProfileRead = {
   id: number;
   name: string;
-  picture: string;
+  picture: string | null;
   email: string;
 };
 export type PatchedUserProfile = {
@@ -767,7 +767,7 @@ export type PatchedUserProfile = {
 export type PatchedUserProfileRead = {
   id?: number;
   name?: string;
-  picture?: string;
+  picture?: string | null;
   email?: string;
 };
 export type Version = {

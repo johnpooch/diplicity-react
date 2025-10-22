@@ -15,6 +15,17 @@ def mock_google_auth():
 
 
 @pytest.fixture
+def mock_google_auth_without_picture():
+    with patch("login.utils.google_id_token.verify_oauth2_token") as mock:
+        mock.return_value = {
+            "iss": "accounts.google.com",
+            "email": "test@example.com",
+            "name": "Test User",
+        }
+        yield mock
+
+
+@pytest.fixture
 def mock_refresh_token():
     with patch("login.serializers.RefreshToken.for_user") as mock:
         mock.return_value = type(

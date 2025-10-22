@@ -12,7 +12,7 @@ Member = apps.get_model("member", "Member")
 class ChannelMemberSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     name = serializers.CharField(source="user.profile.name")
-    picture = serializers.CharField(source="user.profile.picture")
+    picture = serializers.CharField(source="user.profile.picture", allow_null=True)
     nation = NationSerializer()
     is_current_user = serializers.SerializerMethodField()
 
