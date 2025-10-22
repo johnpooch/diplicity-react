@@ -8,6 +8,9 @@ from django.db.models import Prefetch
 from common.constants import GameStatus, MovementPhaseDuration, NationAssignment, PhaseStatus
 from common.models import BaseModel
 from phase.models import Phase
+from member.models import Member
+from unit.models import Unit
+from supply_center.models import SupplyCenter
 from adjudication import service as adjudication_service
 
 
@@ -15,19 +18,45 @@ class GameQuerySet(models.QuerySet):
 
     def with_related_data(self):
 
+        units_prefetch = Prefetch(
+            "units",
+            queryset=Unit.objects.select_related(
+                "nation",
+                "province__parent",
+                "dislodged_by",
+            ).prefetch_related("province__named_coasts"),
+        )
+
+        supply_centers_prefetch = Prefetch(
+            "supply_centers",
+            queryset=SupplyCenter.objects.select_related(
+                "nation",
+                "province__parent",
+            ).prefetch_related("province__named_coasts"),
+        )
+
         template_phase_prefetch = Prefetch(
             "variant__phases",
             queryset=Phase.objects.filter(game=None, status=PhaseStatus.TEMPLATE).prefetch_related(
-                "units__nation",
-                "units__province__parent",
-                "units__province__named_coasts",
-                "units__dislodged_by",
-                "supply_centers__nation",
-                "supply_centers__province__parent",
-                "supply_centers__province__named_coasts",
+                units_prefetch,
+                supply_centers_prefetch,
                 "phase_states",
             ),
             to_attr="template_phases",
+        )
+
+        game_phases_prefetch = Prefetch(
+            "phases",
+            queryset=Phase.objects.prefetch_related(
+                units_prefetch,
+                supply_centers_prefetch,
+                "phase_states",
+            ),
+        )
+
+        members_prefetch = Prefetch(
+            "members",
+            queryset=Member.objects.select_related("nation", "user__profile"),
         )
 
         return self.prefetch_related(
@@ -37,17 +66,9 @@ class GameQuerySet(models.QuerySet):
             "variant__nations",
             template_phase_prefetch,
             # Game phases data
-            "phases__units__nation",
-            "phases__units__province__parent",
-            "phases__units__province__named_coasts",
-            "phases__units__dislodged_by",
-            "phases__supply_centers__nation",
-            "phases__supply_centers__province__parent",
-            "phases__supply_centers__province__named_coasts",
-            "phases__phase_states",
+            game_phases_prefetch,
             # Members data
-            "members__nation",
-            "members__user__profile",
+            members_prefetch,
         )
 
 
