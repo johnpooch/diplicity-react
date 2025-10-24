@@ -1,7 +1,7 @@
 import React from "react";
 import { Button, Link, Stack, Typography } from "@mui/material";
 import { useNavigate } from "react-router";
-import { service } from "../store";
+import { service, VariantRead } from "../store";
 import { GameMenu } from "./GameMenu";
 import { InteractiveMap } from "./InteractiveMap/InteractiveMap";
 import { getCurrentPhase, formatDateTime } from "../util";
@@ -83,7 +83,7 @@ const GameCard: React.FC<GameCardProps> = game => {
             <Link onClick={handleClickGame}>
               <InteractiveMap
                 style={{ borderRadius: 5 }}
-                variant={game.variant}
+                variant={game.variant as VariantRead}
                 phase={currentPhase}
                 orders={[]}
                 selected={[]}

@@ -3,7 +3,7 @@ from django.db import transaction
 from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
 from common.constants import NationAssignment, MovementPhaseDuration
-from variant.serializers import VariantSerializer
+from variant.serializers import VariantSerializer, GameListVariantSerializer
 from phase.serializers import PhaseSerializer
 from member.serializers import MemberSerializer
 from variant.models import Variant
@@ -51,6 +51,25 @@ class BaseGameSerializer(serializers.Serializer):
             span.set_attribute("game.id", instance.id)
             span.set_attribute("game.status", instance.status)
             return super().to_representation(instance)
+
+
+class GameListSerializer(BaseGameSerializer):
+    variant = GameListVariantSerializer(read_only=True)
+    phases = serializers.SerializerMethodField()
+    private = serializers.BooleanField(read_only=True)
+    movement_phase_duration = serializers.CharField(read_only=True)
+    nation_assignment = serializers.CharField(read_only=True)
+
+    @extend_schema_field(PhaseSerializer(many=True))
+    def get_phases(self, obj):
+        with tracer.start_as_current_span("game.serializers.get_phases"):
+            print(obj)
+            print("obj.current_phase")
+            print(obj.current_phase)
+            current_phase = obj.current_phase
+            if current_phase:
+                return [PhaseSerializer(obj.current_phase).data]
+            return []
 
 
 class GameSerializer(BaseGameSerializer):

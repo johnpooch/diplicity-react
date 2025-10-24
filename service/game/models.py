@@ -19,6 +19,35 @@ tracer = trace.get_tracer(__name__)
 
 class GameQuerySet(models.QuerySet):
 
+    def with_list_data(self):
+        current_phase_prefetch = Prefetch(
+            "phases",
+            queryset=Phase.objects.all().prefetch_related(
+                "units__nation",
+                "units__province__parent",
+                "units__province__named_coasts",
+                "supply_centers__nation",
+                "supply_centers__province__parent",
+                "supply_centers__province__named_coasts",
+                "phase_states__member__nation",
+                "phase_states__member__user__profile",
+            ),
+            to_attr="active_phases_list",
+        )
+
+        members_prefetch = Prefetch(
+            "members",
+            queryset=Member.objects.select_related("nation", "user__profile"),
+        )
+
+        return self.prefetch_related(
+            "variant__provinces__parent",
+            "variant__provinces__named_coasts",
+            "variant__nations",
+            current_phase_prefetch,
+            members_prefetch,
+        )
+
     def with_related_data(self):
 
         units_prefetch = Prefetch(
@@ -158,6 +187,12 @@ class Game(BaseModel):
     @property
     def current_phase(self):
         with tracer.start_as_current_span("game.models.current_phase"):
+            # Use prefetched data if available
+            if hasattr(self, "active_phases_list"):
+                print("self.active_phases_list")
+                print(self.active_phases_list)
+                return self.active_phases_list[0] if self.active_phases_list else None
+
             phases = list(self.phases.all())
             return phases[-1] if phases else None
 
@@ -188,6 +223,8 @@ class Game(BaseModel):
     def phase_confirmed(self, user):
         with tracer.start_as_current_span("game.models.phase_confirmed"):
             current_phase = self.current_phase
+            if current_phase is None:
+                return False
             for phase_state in current_phase.phase_states.all():
                 if phase_state.member.user.id == user.id and phase_state.orders_confirmed:
                     return True
