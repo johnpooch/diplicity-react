@@ -1,0 +1,722 @@
+{
+  "id": "sengoku",
+  "name": "Sengoku",
+  "description": "Battle it out during the Sengoku (warring states) period of 16th Century Japan which collapsed the feudal system under the Ashikaga Shogunate. Select one of seven clans to become the new Shogun.",
+  "author": "Benjamin Hester",
+  "nations": [
+    {
+      "name": "Takeda",
+      "color": "#9A0000"
+    },
+    {
+      "name": "Mori",
+      "color": "#F6685B"
+    },
+    {
+      "name": "Chosokabe",
+      "color": "#6A9B4E"
+    },
+    {
+      "name": "Hojo",
+      "color": "#2E6085"
+    },
+    {
+      "name": "Oda",
+      "color": "#E6C83C"
+    },
+    {
+      "name": "Shimazu",
+      "color": "#404040"
+    },
+    {
+      "name": "Uesugi",
+      "color": "#C67931"
+    }
+  ],
+  "provinces": [
+    {
+      "id": "ina",
+      "name": "Inaba",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "etc",
+      "name": "Etchu",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "eas",
+      "name": "East China Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "suo",
+      "name": "Suo",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "tse",
+      "name": "Totomi Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "shu",
+      "name": "Shuri Straits",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "npo",
+      "name": "North Pacific Ocean",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "hig",
+      "name": "Higo",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "aki",
+      "name": "Aki",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "pac",
+      "name": "Pacific Ocean",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "har",
+      "name": "Harima",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "hok",
+      "name": "Hoki",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "wak",
+      "name": "Wakasa Bay",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "tus",
+      "name": "Tushima Strait",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "kan",
+      "name": "Kanmon Straits",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "kaz",
+      "name": "Kazusa",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "yas",
+      "name": "Yamash",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "dew",
+      "name": "Dewa",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "bug",
+      "name": "Bungo",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "set",
+      "name": "Set",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "omi",
+      "name": "Omi",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "ssj",
+      "name": "South Sea of Japan",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "osu",
+      "name": "Osumi",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "awa",
+      "name": "Awa",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "osa",
+      "name": "Osaka Bay",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "sab",
+      "name": "Sagami Bay",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "shi",
+      "name": "Shima",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "kis",
+      "name": "Kii Straits",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "yat",
+      "name": "Yamato",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "mik",
+      "name": "Mikawa",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "owa",
+      "name": "Owari",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ecz",
+      "name": "Echizen",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "too",
+      "name": "Totomi",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "kai",
+      "name": "Kai",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "nag",
+      "name": "Nagato",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "kum",
+      "name": "Kumano Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "min",
+      "name": "Mino",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "mus",
+      "name": "Musashi",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "nos",
+      "name": "North Shinano",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "shs",
+      "name": "Shimosa",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "hid",
+      "name": "Hida",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "izu",
+      "name": "Izu",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "sat",
+      "name": "Satsuma",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "nso",
+      "name": "North Sea of Japan",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "inl",
+      "name": "Inland Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "kaw",
+      "name": "Kawachi",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "hyc",
+      "name": "Hyuga Coast",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "hyg",
+      "name": "Hyuga",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "tan",
+      "name": "Tango",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "not",
+      "name": "Noto",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ise",
+      "name": "Ise",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ecg",
+      "name": "Echigo",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "toj",
+      "name": "Tojama Bay",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "sac",
+      "name": "Sanin Coast",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "hiz",
+      "name": "Hizen",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "iwm",
+      "name": "Iwami",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "bus",
+      "name": "Bungo Straits",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "hit",
+      "name": "Hitachi",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "sos",
+      "name": "South Shinano",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "spo",
+      "name": "South Pacific Ocean",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "sea",
+      "name": "Sea of Japan",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "sht",
+      "name": "Shimotsuke",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "iyo",
+      "name": "Iyo",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "sur",
+      "name": "Suruga",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "bin",
+      "name": "Bingo",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "sus",
+      "name": "Suo Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "bit",
+      "name": "Bitchu",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "izm",
+      "name": "Izumo",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "kii",
+      "name": "Kii",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "tob",
+      "name": "Tosa Bay",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "koz",
+      "name": "Kozuke",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "mut",
+      "name": "Mutsu",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "tsu",
+      "name": "Tsugaru Straits",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "sau",
+      "name": "Sanuki",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ari",
+      "name": "Ariake Bay",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "biz",
+      "name": "Bizen",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "kag",
+      "name": "Kaga",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "chi",
+      "name": "Chikuzen",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "saa",
+      "name": "Sagami",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "iwc",
+      "name": "Iwami Coast",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "toa",
+      "name": "Tosa",
+      "type": "coastal",
+      "supply_center": true
+    }
+  ],
+  "initial_phase": {
+    "season": "Spring",
+    "year": 1570,
+    "type": "Movement"
+  },
+  "initial_units": [
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "mus"
+    },
+    {
+      "type": "Army",
+      "nation": "Takeda",
+      "province": "sos"
+    },
+    {
+      "type": "Army",
+      "nation": "Oda",
+      "province": "owa"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Uesugi",
+      "province": "ecg"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Hojo",
+      "province": "izu"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "biz"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "yas"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "bug"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Chosokabe",
+      "province": "iyo"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Chosokabe",
+      "province": "toa"
+    },
+    {
+      "type": "Army",
+      "nation": "Hojo",
+      "province": "saa"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "hiz"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Oda",
+      "province": "mik"
+    },
+    {
+      "type": "Army",
+      "nation": "Shimazu",
+      "province": "sat"
+    },
+    {
+      "type": "Army",
+      "nation": "Takeda",
+      "province": "kai"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Mori",
+      "province": "nag"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "min"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Shimazu",
+      "province": "osu"
+    },
+    {
+      "type": "Army",
+      "nation": "Uesugi",
+      "province": "koz"
+    },
+    {
+      "type": "Army",
+      "nation": "Mori",
+      "province": "iwm"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "izm"
+    }
+  ],
+  "initial_supply_centers": [
+    {
+      "nation": "Mori",
+      "province": "nag"
+    },
+    {
+      "nation": "Mori",
+      "province": "iwm"
+    },
+    {
+      "nation": "Hojo",
+      "province": "saa"
+    },
+    {
+      "nation": "Oda",
+      "province": "mik"
+    },
+    {
+      "nation": "Shimazu",
+      "province": "sat"
+    },
+    {
+      "nation": "Uesugi",
+      "province": "ecg"
+    },
+    {
+      "nation": "Neutral",
+      "province": "mus"
+    },
+    {
+      "nation": "Takeda",
+      "province": "kai"
+    },
+    {
+      "nation": "Chosokabe",
+      "province": "iyo"
+    },
+    {
+      "nation": "Shimazu",
+      "province": "osu"
+    },
+    {
+      "nation": "Uesugi",
+      "province": "koz"
+    },
+    {
+      "nation": "Neutral",
+      "province": "izm"
+    },
+    {
+      "nation": "Neutral",
+      "province": "min"
+    },
+    {
+      "nation": "Takeda",
+      "province": "sos"
+    },
+    {
+      "nation": "Hojo",
+      "province": "izu"
+    },
+    {
+      "nation": "Neutral",
+      "province": "hiz"
+    },
+    {
+      "nation": "Neutral",
+      "province": "yas"
+    },
+    {
+      "nation": "Chosokabe",
+      "province": "toa"
+    },
+    {
+      "nation": "Oda",
+      "province": "owa"
+    },
+    {
+      "nation": "Neutral",
+      "province": "bug"
+    },
+    {
+      "nation": "Neutral",
+      "province": "biz"
+    }
+  ]
+}

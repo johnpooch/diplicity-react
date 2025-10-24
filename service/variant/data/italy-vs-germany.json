@@ -1,0 +1,573 @@
+{
+  "id": "italy vs germany",
+  "name": "Italy vs Germany",
+  "description": "A two player variant on the classical map.",
+  "author": "",
+  "nations": [
+    {
+      "name": "Germany",
+      "color": "#212121"
+    },
+    {
+      "name": "Italy",
+      "color": "#4CAF50"
+    }
+  ],
+  "provinces": [
+    {
+      "id": "lvn",
+      "name": "Livonia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "lon",
+      "name": "London",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "gol",
+      "name": "Gulf of Lyon",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "bud",
+      "name": "Budapest",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "eng",
+      "name": "English Channel",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "wal",
+      "name": "Wales",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "bel",
+      "name": "Belgium",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "nth",
+      "name": "North Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "edi",
+      "name": "Edinburgh",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "fin",
+      "name": "Finland",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "ank",
+      "name": "Ankara",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "naf",
+      "name": "North Africa",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "boh",
+      "name": "Bohemia",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "pie",
+      "name": "Piedmont",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "nat",
+      "name": "North Atlantic",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "por",
+      "name": "Portugal",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ska",
+      "name": "Skagerakk (SKA)",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "con",
+      "name": "Constantinople",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "rom",
+      "name": "Rome",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "mar",
+      "name": "Marseilles",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "rum",
+      "name": "Rumania",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "smy",
+      "name": "Smyrna",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "adr",
+      "name": "Adriatic Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "tun",
+      "name": "Tunis",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "alb",
+      "name": "Albania",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "iri",
+      "name": "Irish Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "bla",
+      "name": "Black Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "eas",
+      "name": "East Med",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "bul/sc",
+      "name": "Bulgaria (SC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "bul"
+    },
+    {
+      "id": "bul/ec",
+      "name": "Bulgaria (EC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "bul"
+    },
+    {
+      "id": "bul",
+      "name": "Bulgaria",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "ser",
+      "name": "Serbia",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "nrg",
+      "name": "Norwegian Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "nwy",
+      "name": "Norway",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "tyr",
+      "name": "Tyrolia",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "war",
+      "name": "Warsaw",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "hol",
+      "name": "Holland",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "par",
+      "name": "Paris",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "bur",
+      "name": "Burgundy",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "tri",
+      "name": "Trieste",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ruh",
+      "name": "Ruhr",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "aeg",
+      "name": "Aegean Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "apu",
+      "name": "Apulia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "tys",
+      "name": "Tyrrhenian Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "bre",
+      "name": "Brest",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "pru",
+      "name": "Prussia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "spa/nc",
+      "name": "Spain (NC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "spa"
+    },
+    {
+      "id": "spa/sc",
+      "name": "Spain (SC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "spa"
+    },
+    {
+      "id": "spa",
+      "name": "Spain",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "sil",
+      "name": "Silesia",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "arm",
+      "name": "Armenia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "ion",
+      "name": "Ionian Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "ven",
+      "name": "Venice",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "cly",
+      "name": "Clyde",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "lvp",
+      "name": "Liverpool",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "yor",
+      "name": "Yorkshire",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "hel",
+      "name": "Heligoland Bight",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "vie",
+      "name": "Vienna",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "sev",
+      "name": "Sevastopol",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ukr",
+      "name": "Ukraine",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "gre",
+      "name": "Greece",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "mun",
+      "name": "Munich",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "mid",
+      "name": "Mid-Atlantic",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "bar",
+      "name": "Barents Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "stp/nc",
+      "name": "St. Petersburg (NC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "stp"
+    },
+    {
+      "id": "stp",
+      "name": "St. Petersburg",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "stp/sc",
+      "name": "St. Petersburg (SC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "stp"
+    },
+    {
+      "id": "swe",
+      "name": "Sweden",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "kie",
+      "name": "Kiel",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "bot",
+      "name": "Gulf of Bothnia",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "syr",
+      "name": "Syria",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "wes",
+      "name": "West Mediterranean",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "gal",
+      "name": "Galicia",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "tus",
+      "name": "Tuscany",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "mos",
+      "name": "Moscow",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "bal",
+      "name": "Baltic Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "ber",
+      "name": "Berlin",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "nap",
+      "name": "Naples",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "gas",
+      "name": "Gascony",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "den",
+      "name": "Denmark",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "pic",
+      "name": "Picardy",
+      "type": "coastal",
+      "supply_center": false
+    }
+  ],
+  "initial_phase": {
+    "season": "Spring",
+    "year": 1901,
+    "type": "Movement"
+  },
+  "initial_units": [
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "rom"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "ven"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Germany",
+      "province": "kie"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "ber"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "mun"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Italy",
+      "province": "nap"
+    }
+  ],
+  "initial_supply_centers": [
+    {
+      "nation": "Italy",
+      "province": "ven"
+    },
+    {
+      "nation": "Germany",
+      "province": "kie"
+    },
+    {
+      "nation": "Germany",
+      "province": "ber"
+    },
+    {
+      "nation": "Germany",
+      "province": "mun"
+    },
+    {
+      "nation": "Italy",
+      "province": "nap"
+    },
+    {
+      "nation": "Italy",
+      "province": "rom"
+    }
+  ]
+}

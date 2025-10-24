@@ -1,0 +1,773 @@
+{
+  "id": "cold war",
+  "name": "Cold War",
+  "description": "NATO and the USSR fight to become the dominant superpower.",
+  "author": "Firehawk \u0026 Safari",
+  "nations": [
+    {
+      "name": "USSR",
+      "color": "#D73838"
+    },
+    {
+      "name": "NATO",
+      "color": "#197CCB"
+    }
+  ],
+  "provinces": [
+    {
+      "id": "wca/wc",
+      "name": "West Canada (WC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "wca"
+    },
+    {
+      "id": "wca",
+      "name": "West Canada",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "wca/nc",
+      "name": "West Canada (NC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "wca"
+    },
+    {
+      "id": "man",
+      "name": "Manchuria",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "sib",
+      "name": "Siberia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "phi",
+      "name": "Philippines",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "alb",
+      "name": "Albania",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "lon",
+      "name": "London",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "lev",
+      "name": "Levant",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "wch",
+      "name": "West China",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "ukr",
+      "name": "Ukraine",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "ber",
+      "name": "Bering Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "car",
+      "name": "Caribbean Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "cau",
+      "name": "Caucasus",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "nko",
+      "name": "North Korea",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "nko/ec",
+      "name": "North Korea (EC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "nko"
+    },
+    {
+      "id": "nko/wc",
+      "name": "North Korea (WC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "nko"
+    },
+    {
+      "id": "wge",
+      "name": "West Germany",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "noy",
+      "name": "Norway",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "jap",
+      "name": "Japan",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "irn",
+      "name": "Iran",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ban",
+      "name": "Bangladesh",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "cen",
+      "name": "Central America",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "cen/ec",
+      "name": "Central America (EC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "cen"
+    },
+    {
+      "id": "cen/wc",
+      "name": "Central America (WC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "cen"
+    },
+    {
+      "id": "bal",
+      "name": "Baltic Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "aus",
+      "name": "Australia",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "arb",
+      "name": "Arabian Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "ist",
+      "name": "Istanbul",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "soj",
+      "name": "Sea of Japan",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "col",
+      "name": "Colombia",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "col/nc",
+      "name": "Colombia (NC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "col"
+    },
+    {
+      "id": "col/wc",
+      "name": "Colombia (WC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "col"
+    },
+    {
+      "id": "fin",
+      "name": "Finland",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "arm",
+      "name": "Armenia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "que",
+      "name": "Quebec",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "len",
+      "name": "Leningrad",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "len/sc",
+      "name": "Leningrad (SC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "len"
+    },
+    {
+      "id": "len/nc",
+      "name": "Leningrad (NC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "len"
+    },
+    {
+      "id": "goa",
+      "name": "Gulf of Alaska",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "sai",
+      "name": "Saigon",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "nyk",
+      "name": "New York",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "mid",
+      "name": "Midwest",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "los",
+      "name": "Los Angeles",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "eme",
+      "name": "East Mediterranean",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "par",
+      "name": "Paris",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "par/nc",
+      "name": "Paris (NC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "par"
+    },
+    {
+      "id": "par/sc",
+      "name": "Paris (SC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "par"
+    },
+    {
+      "id": "bla",
+      "name": "Black Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "grc",
+      "name": "Greece",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "flo",
+      "name": "Florida",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "nws",
+      "name": "Norwegian Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "egy",
+      "name": "Egypt",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "hav",
+      "name": "Havana",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "mex",
+      "name": "Mexico",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "mex/ec",
+      "name": "Mexico (EC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "mex"
+    },
+    {
+      "id": "mex/wc",
+      "name": "Mexico (WC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "mex"
+    },
+    {
+      "id": "yug",
+      "name": "Yugoslavia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "naf",
+      "name": "North Africa",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "nts",
+      "name": "North Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "inc",
+      "name": "Indian Ocean",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "epa",
+      "name": "East Pacific",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "tun",
+      "name": "Tunisia",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "afg",
+      "name": "Afghanistan",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "wat",
+      "name": "West Atlantic",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "ita",
+      "name": "Italy",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "spa",
+      "name": "Spain",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "mos",
+      "name": "Moscow",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "ins",
+      "name": "Indonesia",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ion",
+      "name": "Ionian Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "vla",
+      "name": "Vladivostok",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ind",
+      "name": "India",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ege",
+      "name": "East Germany",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "scs",
+      "name": "South China Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "wme",
+      "name": "West Mediterranean",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "sha",
+      "name": "Shanghai",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "gom",
+      "name": "Gulf of Mexico",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "eat",
+      "name": "East Atlantic",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "tor",
+      "name": "Toronto",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "bay",
+      "name": "Bay of Bengal",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "hud",
+      "name": "Hudson Bay",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "lib",
+      "name": "Libya",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "seo",
+      "name": "Seoul",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "grd",
+      "name": "Greenland",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "arc",
+      "name": "Arctic Ocean",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "sea",
+      "name": "South East Asia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "yel",
+      "name": "Yellow Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "bra",
+      "name": "Brazil",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "pan",
+      "name": "Panama",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "mon",
+      "name": "Mongolia",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "red",
+      "name": "Red Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "pak",
+      "name": "Pakistan",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "sow",
+      "name": "South West",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "eaf",
+      "name": "East Africa",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "ala",
+      "name": "Alaska",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ura",
+      "name": "Urals",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "irq",
+      "name": "Iraq",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "ara",
+      "name": "Arabia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "ven",
+      "name": "Venezuela",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "den",
+      "name": "Denmark",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "swe",
+      "name": "Sweden",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "kam",
+      "name": "Kamchatka",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "wpa",
+      "name": "West Pacific",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "nvi",
+      "name": "North Vietnam",
+      "type": "coastal",
+      "supply_center": false
+    }
+  ],
+  "initial_phase": {
+    "season": "Spring",
+    "year": 1960,
+    "type": "Movement"
+  },
+  "initial_units": [
+    {
+      "type": "Army",
+      "nation": "USSR",
+      "province": "mos"
+    },
+    {
+      "type": "Fleet",
+      "nation": "NATO",
+      "province": "aus"
+    },
+    {
+      "type": "Army",
+      "nation": "USSR",
+      "province": "vla"
+    },
+    {
+      "type": "Fleet",
+      "nation": "NATO",
+      "province": "ist"
+    },
+    {
+      "type": "Fleet",
+      "nation": "USSR",
+      "province": "len/sc"
+    },
+    {
+      "type": "Fleet",
+      "nation": "USSR",
+      "province": "hav"
+    },
+    {
+      "type": "Fleet",
+      "nation": "NATO",
+      "province": "lon"
+    },
+    {
+      "type": "Army",
+      "nation": "NATO",
+      "province": "los"
+    },
+    {
+      "type": "Fleet",
+      "nation": "USSR",
+      "province": "alb"
+    },
+    {
+      "type": "Army",
+      "nation": "USSR",
+      "province": "sha"
+    },
+    {
+      "type": "Army",
+      "nation": "NATO",
+      "province": "nyk"
+    },
+    {
+      "type": "Army",
+      "nation": "NATO",
+      "province": "par"
+    }
+  ],
+  "initial_supply_centers": [
+    {
+      "nation": "USSR",
+      "province": "vla"
+    },
+    {
+      "nation": "NATO",
+      "province": "aus"
+    },
+    {
+      "nation": "NATO",
+      "province": "los"
+    },
+    {
+      "nation": "NATO",
+      "province": "par"
+    },
+    {
+      "nation": "USSR",
+      "province": "hav"
+    },
+    {
+      "nation": "USSR",
+      "province": "mos"
+    },
+    {
+      "nation": "USSR",
+      "province": "sha"
+    },
+    {
+      "nation": "NATO",
+      "province": "lon"
+    },
+    {
+      "nation": "NATO",
+      "province": "ist"
+    },
+    {
+      "nation": "NATO",
+      "province": "nyk"
+    },
+    {
+      "nation": "USSR",
+      "province": "len"
+    },
+    {
+      "nation": "USSR",
+      "province": "alb"
+    }
+  ]
+}

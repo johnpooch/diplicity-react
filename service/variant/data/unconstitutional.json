@@ -1,0 +1,880 @@
+{
+  "id": "unconstitutional",
+  "name": "Unconstitutional",
+  "description": "Alternative history variant where the US constitution was not ratified (which nearly happened). Operating under the weak Articles of Confederation, States keep their conflicting land claims and border disputes turn into armed conflict. Former slaves control Haiti, and inhabitants of New Orleans, Saint Louis and the Turks and Cacois oppose annexation by the US. Federal government ceases to function, many States have seceded and two groups of Native American tribes, the Western and Muskogee Confederacy, are warning the Americans.",
+  "author": "David E. Cohen",
+  "nations": [
+    {
+      "name": "South Carolina",
+      "color": "#486596"
+    },
+    {
+      "name": "New York",
+      "color": "#644896"
+    },
+    {
+      "name": "Western Confederacy",
+      "color": "#91AA93"
+    },
+    {
+      "name": "Pennsylvania",
+      "color": "#E6D572"
+    },
+    {
+      "name": "Muskogee Confederacy",
+      "color": "#EF9F4B"
+    },
+    {
+      "name": "Virginia",
+      "color": "#B04C58"
+    }
+  ],
+  "provinces": [
+    {
+      "id": "azu",
+      "name": "Azua",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "tur",
+      "name": "Turks and Caicos",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "hoc",
+      "name": "Ho Chunk",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "out",
+      "name": "Outer Banks",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "fra",
+      "name": "Franklin",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "atl",
+      "name": "Atlantic Ocean",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "ver",
+      "name": "Vermont",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "kek",
+      "name": "Kekionga",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "neh",
+      "name": "New Hampshire",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "all",
+      "name": "Allegheny",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "sal",
+      "name": "Saint Louis",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "osa",
+      "name": "Osage",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "sem",
+      "name": "Seminole",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "alb",
+      "name": "Albany",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ohi",
+      "name": "Ohio",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "der",
+      "name": "Delaware",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "phi",
+      "name": "Philadelphia",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "pot",
+      "name": "Potawatomi",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "qua",
+      "name": "Quapow",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "ken",
+      "name": "Kentucky",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "nyc",
+      "name": "New York City",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "nyb",
+      "name": "New York Bight",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "cad",
+      "name": "Caddo",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "mas",
+      "name": "Massachuesetts",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "chk",
+      "name": "Cherokee",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "bea",
+      "name": "Beaufort",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ale",
+      "name": "Alexandria",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "geb",
+      "name": "Georgia Bight",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "wap",
+      "name": "Wapakoneta",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "sou",
+      "name": "South Piedmont",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "mar",
+      "name": "Maryland",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "noc",
+      "name": "North Carolina",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ten",
+      "name": "Tennessee",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "cho",
+      "name": "Choctaw",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ric",
+      "name": "Richmond",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "loi",
+      "name": "Long Island",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "lis",
+      "name": "Long Island Sound",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "gul",
+      "name": "Gulf of Gonave",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "flo",
+      "name": "Florida Bight",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "neo",
+      "name": "New Orleans",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "tuk",
+      "name": "Tukabatchee",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "gua",
+      "name": "Gulf of Maine",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "upp",
+      "name": "Upper Potomac",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "mid",
+      "name": "Midlands",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "guc",
+      "name": "Gulf of Mexico",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "nop",
+      "name": "North Piedmont",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "mis",
+      "name": "Missouri",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "por",
+      "name": "Port au Prince",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "art",
+      "name": "Artibonite",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "bah",
+      "name": "Bahama Banks",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "ill",
+      "name": "Illiniwek",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "deb",
+      "name": "Delaware Bay",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "lyc",
+      "name": "Lycoming",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "det",
+      "name": "Detroit",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "wil",
+      "name": "Williamsburg",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "win",
+      "name": "Windward Passage",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "nic",
+      "name": "Nickajack",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "wet",
+      "name": "Westsylvania",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "mai",
+      "name": "Maine",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "she",
+      "name": "Shenandoah",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "chb",
+      "name": "Chesapeake Bay",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "old",
+      "name": "Old Bahama Channel",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "pro",
+      "name": "Prophetstown",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ala",
+      "name": "Alabama",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "eas",
+      "name": "East Florida",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "mic",
+      "name": "Miccosukee",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "chv",
+      "name": "Charlottesville",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "wer",
+      "name": "Western Reserve",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "har",
+      "name": "Harrisburg",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "sad",
+      "name": "Saint Domingue",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "wef",
+      "name": "West Florida",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "cus",
+      "name": "Cusseta",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "nej",
+      "name": "New Jersey",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "con",
+      "name": "Connecticut",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "iro",
+      "name": "Iroquois",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "yor",
+      "name": "York",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "chi",
+      "name": "Chickasaw",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "tid",
+      "name": "Tidewater",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "chn",
+      "name": "Charleston",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "col",
+      "name": "Columbia",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "rap",
+      "name": "Rappahannock",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "pit",
+      "name": "Pittsburgh",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "cib",
+      "name": "Cibao",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "sar",
+      "name": "Sargasso Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "pen",
+      "name": "Pennyrile",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "ger",
+      "name": "Georgia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "cat",
+      "name": "Catskill",
+      "type": "coastal",
+      "supply_center": false
+    }
+  ],
+  "initial_phase": {
+    "season": "Spring",
+    "year": 1805,
+    "type": "Movement"
+  },
+  "initial_units": [
+    {
+      "type": "Fleet",
+      "nation": "Virginia",
+      "province": "wil"
+    },
+    {
+      "type": "Army",
+      "nation": "New York",
+      "province": "alb"
+    },
+    {
+      "type": "Army",
+      "nation": "Pennsylvania",
+      "province": "yor"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "noc"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "por"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "mas"
+    },
+    {
+      "type": "Army",
+      "nation": "Pennsylvania",
+      "province": "har"
+    },
+    {
+      "type": "Army",
+      "nation": "Pennsylvania",
+      "province": "pit"
+    },
+    {
+      "type": "Army",
+      "nation": "Western Confederacy",
+      "province": "pro"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "nej"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "tur"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "neh"
+    },
+    {
+      "type": "Army",
+      "nation": "Virginia",
+      "province": "ric"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Muskogee Confederacy",
+      "province": "mic"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "cho"
+    },
+    {
+      "type": "Army",
+      "nation": "South Carolina",
+      "province": "bea"
+    },
+    {
+      "type": "Army",
+      "nation": "Virginia",
+      "province": "chv"
+    },
+    {
+      "type": "Army",
+      "nation": "Muskogee Confederacy",
+      "province": "cus"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "eas"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "mar"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "wer"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "sad"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "chk"
+    },
+    {
+      "type": "Army",
+      "nation": "South Carolina",
+      "province": "col"
+    },
+    {
+      "type": "Army",
+      "nation": "Western Confederacy",
+      "province": "kek"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Pennsylvania",
+      "province": "phi"
+    },
+    {
+      "type": "Fleet",
+      "nation": "South Carolina",
+      "province": "chn"
+    },
+    {
+      "type": "Fleet",
+      "nation": "New York",
+      "province": "loi"
+    },
+    {
+      "type": "Fleet",
+      "nation": "New York",
+      "province": "nyc"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "ken"
+    },
+    {
+      "type": "Army",
+      "nation": "Muskogee Confederacy",
+      "province": "tuk"
+    },
+    {
+      "type": "Army",
+      "nation": "Virginia",
+      "province": "ale"
+    },
+    {
+      "type": "Army",
+      "nation": "Western Confederacy",
+      "province": "wap"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "neo"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "sal"
+    }
+  ],
+  "initial_supply_centers": [
+    {
+      "nation": "Pennsylvania",
+      "province": "yor"
+    },
+    {
+      "nation": "Neutral",
+      "province": "neh"
+    },
+    {
+      "nation": "New York",
+      "province": "loi"
+    },
+    {
+      "nation": "Virginia",
+      "province": "wil"
+    },
+    {
+      "nation": "Neutral",
+      "province": "ken"
+    },
+    {
+      "nation": "Neutral",
+      "province": "wer"
+    },
+    {
+      "nation": "Neutral",
+      "province": "nej"
+    },
+    {
+      "nation": "Neutral",
+      "province": "mas"
+    },
+    {
+      "nation": "Western Confederacy",
+      "province": "pro"
+    },
+    {
+      "nation": "Neutral",
+      "province": "noc"
+    },
+    {
+      "nation": "Neutral",
+      "province": "mar"
+    },
+    {
+      "nation": "South Carolina",
+      "province": "bea"
+    },
+    {
+      "nation": "New York",
+      "province": "alb"
+    },
+    {
+      "nation": "Western Confederacy",
+      "province": "wap"
+    },
+    {
+      "nation": "Pennsylvania",
+      "province": "phi"
+    },
+    {
+      "nation": "Pennsylvania",
+      "province": "har"
+    },
+    {
+      "nation": "Muskogee Confederacy",
+      "province": "cus"
+    },
+    {
+      "nation": "South Carolina",
+      "province": "col"
+    },
+    {
+      "nation": "Muskogee Confederacy",
+      "province": "tuk"
+    },
+    {
+      "nation": "Neutral",
+      "province": "cho"
+    },
+    {
+      "nation": "Neutral",
+      "province": "por"
+    },
+    {
+      "nation": "Neutral",
+      "province": "sad"
+    },
+    {
+      "nation": "South Carolina",
+      "province": "chn"
+    },
+    {
+      "nation": "Pennsylvania",
+      "province": "pit"
+    },
+    {
+      "nation": "Virginia",
+      "province": "chv"
+    },
+    {
+      "nation": "Virginia",
+      "province": "ric"
+    },
+    {
+      "nation": "Neutral",
+      "province": "neo"
+    },
+    {
+      "nation": "Neutral",
+      "province": "eas"
+    },
+    {
+      "nation": "Western Confederacy",
+      "province": "kek"
+    },
+    {
+      "nation": "Virginia",
+      "province": "ale"
+    },
+    {
+      "nation": "Neutral",
+      "province": "tur"
+    },
+    {
+      "nation": "New York",
+      "province": "nyc"
+    },
+    {
+      "nation": "Muskogee Confederacy",
+      "province": "mic"
+    },
+    {
+      "nation": "Neutral",
+      "province": "sal"
+    },
+    {
+      "nation": "Neutral",
+      "province": "chk"
+    }
+  ]
+}

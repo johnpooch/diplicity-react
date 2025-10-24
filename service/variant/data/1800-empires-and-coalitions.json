@@ -1,0 +1,921 @@
+{
+  "id": "1800: empires and coalitions",
+  "name": "1800: Empires And Coalitions",
+  "description": "Major and minor powers battle for control of Europe during the Napoleonic Wars.",
+  "author": "VaeVictis",
+  "nations": [
+    {
+      "name": "Ottoman Empire",
+      "color": "#808080"
+    },
+    {
+      "name": "Denmark",
+      "color": "#808080"
+    },
+    {
+      "name": "Sicily",
+      "color": "#808080"
+    },
+    {
+      "name": "Prussia",
+      "color": "#808080"
+    },
+    {
+      "name": "Austria",
+      "color": "#F44336"
+    },
+    {
+      "name": "France",
+      "color": "#80DEEA"
+    },
+    {
+      "name": "Britain",
+      "color": "#808080"
+    },
+    {
+      "name": "Russia",
+      "color": "#F5F5F5"
+    },
+    {
+      "name": "Spain",
+      "color": "#808080"
+    }
+  ],
+  "provinces": [
+    {
+      "id": "sax",
+      "name": "Sax",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "bae",
+      "name": "Bae",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "lio",
+      "name": "Lio",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "mos",
+      "name": "Mos",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "mol",
+      "name": "Mol",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "arm",
+      "name": "Arm",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "cis",
+      "name": "Cis",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "fil",
+      "name": "Fil",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "bar",
+      "name": "Bar",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "eng",
+      "name": "Eng",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "cel",
+      "name": "Cel",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "lor",
+      "name": "Lor",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "val",
+      "name": "Val",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "cat",
+      "name": "Cat",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "sch",
+      "name": "Sch",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "sch/wc",
+      "name": "Sch/Wc",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "sch"
+    },
+    {
+      "id": "sch/ec",
+      "name": "Sch/Ec",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "sch"
+    },
+    {
+      "id": "tys",
+      "name": "Tys",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "mec",
+      "name": "Mec",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "bay",
+      "name": "Bay",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "waa",
+      "name": "Waa",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "gol",
+      "name": "Gol",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "kie",
+      "name": "Kie",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "bud",
+      "name": "Bud",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "bav",
+      "name": "Bav",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "nav",
+      "name": "Nav",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "tun",
+      "name": "Tun",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "wem",
+      "name": "Wem",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "not",
+      "name": "Not",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "par",
+      "name": "Par",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "tra",
+      "name": "Tra",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "bat",
+      "name": "Bat",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "mad",
+      "name": "Mad",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ber",
+      "name": "Ber",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "tri",
+      "name": "Tri",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "bla",
+      "name": "Bla",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "gas",
+      "name": "Gas",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "lyo",
+      "name": "Lyo",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "cro",
+      "name": "Cro",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "nap",
+      "name": "Nap",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "chr",
+      "name": "Chr",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "brl",
+      "name": "Brl",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "alg",
+      "name": "Alg",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "noa",
+      "name": "Noa",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "ang",
+      "name": "Ang",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "brt",
+      "name": "Brt",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "mor",
+      "name": "Mor",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "ion",
+      "name": "Ion",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "apu",
+      "name": "Apu",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "por",
+      "name": "Por",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "pie",
+      "name": "Pie",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "gal",
+      "name": "Gal",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "now",
+      "name": "Now",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "pal",
+      "name": "Pal",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "pap",
+      "name": "Pap",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "pap/wc",
+      "name": "Pap/Wc",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "pap"
+    },
+    {
+      "id": "pap/ec",
+      "name": "Pap/Ec",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "pap"
+    },
+    {
+      "id": "gre",
+      "name": "Gre",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "hel",
+      "name": "Hel",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "mar",
+      "name": "Mar",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "swe",
+      "name": "Swe",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "gob",
+      "name": "Gob",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "arc",
+      "name": "Arc",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "han",
+      "name": "Han",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "lie",
+      "name": "Lie",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ire",
+      "name": "Ire",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "kon",
+      "name": "Kon",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ura",
+      "name": "Ura",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "bel",
+      "name": "Bel",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "aeg",
+      "name": "Aeg",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "bra",
+      "name": "Bra",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "atl",
+      "name": "Atl",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "boh",
+      "name": "Boh",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "edi",
+      "name": "Edi",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "wet",
+      "name": "Wet",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "bos",
+      "name": "Bos",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "con",
+      "name": "Con",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ska",
+      "name": "Ska",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "cen",
+      "name": "Cen",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "ukr",
+      "name": "Ukr",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "stp",
+      "name": "Stp",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "stp/sc",
+      "name": "Stp/Sc",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "stp"
+    },
+    {
+      "id": "stp/nc",
+      "name": "Stp/Nc",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "stp"
+    },
+    {
+      "id": "syr",
+      "name": "Syr",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "pol",
+      "name": "Pol",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "eas",
+      "name": "Eas",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "and",
+      "name": "And",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "and/wc",
+      "name": "And/Wc",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "and"
+    },
+    {
+      "id": "and/ec",
+      "name": "And/Ec",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "and"
+    },
+    {
+      "id": "yor",
+      "name": "Yor",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "adr",
+      "name": "Adr",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "vie",
+      "name": "Vie",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "bai",
+      "name": "Bai",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "sev",
+      "name": "Sev",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "fim",
+      "name": "Fim",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "egy",
+      "name": "Egy",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "lon",
+      "name": "Lon",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "cop",
+      "name": "Cop",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ven",
+      "name": "Ven",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ice",
+      "name": "Ice",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "wae",
+      "name": "Wae",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "tyo",
+      "name": "Tyo",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "rhi",
+      "name": "Rhi",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "gib",
+      "name": "Gib",
+      "type": "coastal",
+      "supply_center": false
+    }
+  ],
+  "initial_phase": {
+    "season": "Spring",
+    "year": 1800,
+    "type": "Movement"
+  },
+  "initial_units": [
+    {
+      "type": "Army",
+      "nation": "Prussia",
+      "province": "brl"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Sicily",
+      "province": "pal"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "bud"
+    },
+    {
+      "type": "Army",
+      "nation": "Sicily",
+      "province": "nap"
+    },
+    {
+      "type": "Army",
+      "nation": "Prussia",
+      "province": "kon"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Spain",
+      "province": "mad"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Denmark",
+      "province": "cop"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "lyo"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Spain",
+      "province": "val"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "ven"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Britain",
+      "province": "gib"
+    },
+    {
+      "type": "Army",
+      "nation": "Britain",
+      "province": "han"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Britain",
+      "province": "lon"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "brt"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Russia",
+      "province": "sev"
+    },
+    {
+      "type": "Fleet",
+      "nation": "France",
+      "province": "mar"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Russia",
+      "province": "stp/sc"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Ottoman Empire",
+      "province": "ang"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Denmark",
+      "province": "chr"
+    },
+    {
+      "type": "Army",
+      "nation": "Ottoman Empire",
+      "province": "con"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Britain",
+      "province": "edi"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "vie"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "kie"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "par"
+    },
+    {
+      "type": "Army",
+      "nation": "Prussia",
+      "province": "ber"
+    }
+  ],
+  "initial_supply_centers": [
+    {
+      "nation": "Sicily",
+      "province": "nap"
+    },
+    {
+      "nation": "Austria",
+      "province": "vie"
+    },
+    {
+      "nation": "France",
+      "province": "par"
+    },
+    {
+      "nation": "Denmark",
+      "province": "chr"
+    },
+    {
+      "nation": "Britain",
+      "province": "lie"
+    },
+    {
+      "nation": "Ottoman Empire",
+      "province": "ang"
+    },
+    {
+      "nation": "Sicily",
+      "province": "pal"
+    },
+    {
+      "nation": "Spain",
+      "province": "mad"
+    },
+    {
+      "nation": "Austria",
+      "province": "ven"
+    },
+    {
+      "nation": "France",
+      "province": "brt"
+    },
+    {
+      "nation": "Britain",
+      "province": "edi"
+    },
+    {
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "nation": "France",
+      "province": "mar"
+    },
+    {
+      "nation": "Britain",
+      "province": "lon"
+    },
+    {
+      "nation": "Britain",
+      "province": "han"
+    },
+    {
+      "nation": "Russia",
+      "province": "kie"
+    },
+    {
+      "nation": "Spain",
+      "province": "val"
+    },
+    {
+      "nation": "Prussia",
+      "province": "ber"
+    },
+    {
+      "nation": "Prussia",
+      "province": "brl"
+    },
+    {
+      "nation": "Russia",
+      "province": "sev"
+    },
+    {
+      "nation": "Ottoman Empire",
+      "province": "con"
+    },
+    {
+      "nation": "Denmark",
+      "province": "cop"
+    },
+    {
+      "nation": "Prussia",
+      "province": "kon"
+    },
+    {
+      "nation": "Austria",
+      "province": "bud"
+    },
+    {
+      "nation": "France",
+      "province": "lyo"
+    },
+    {
+      "nation": "Russia",
+      "province": "stp"
+    }
+  ]
+}
