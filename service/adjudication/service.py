@@ -2,59 +2,82 @@ import json
 import logging
 import requests
 
+from opentelemetry import trace
+
 from .serializers import AdjudicationSerializer
 from common.constants import ADJUDICATION_BASE_URL
 
 logger = logging.getLogger(__name__)
+tracer = trace.get_tracer(__name__)
 
 
 def _make_adjudication_request(phase, endpoint, method="GET", data=None):
     url = f"{ADJUDICATION_BASE_URL}/{endpoint}/{phase.variant.name}"
     context = {"game": phase.game}
 
-    # Log the request attempt
-    logger.info(f"Making {method.upper()} request to adjudication service: {url}")
-    if data and method.upper() == "POST":
-        logger.info(f"Request payload: {json.dumps(data, indent=2)}")
+    with tracer.start_as_current_span(
+        f"adjudication.{endpoint}",
+        attributes={
+            "http.method": method.upper(),
+            "http.url": url,
+            "adjudication.endpoint": endpoint,
+            "adjudication.variant": phase.variant.name,
+        }
+    ) as span:
+        # Log the request attempt
+        logger.info(f"Making {method.upper()} request to adjudication service: {url}")
+        if data and method.upper() == "POST":
+            logger.info(f"Request payload: {json.dumps(data, indent=2)}")
 
-    try:
-        if method.upper() == "POST":
-            response = requests.post(url, json=data)
-        else:
-            response = requests.get(url)
+        try:
+            if method.upper() == "POST":
+                response = requests.post(url, json=data)
+            else:
+                response = requests.get(url)
 
-        logger.info(f"Received response with status code: {response.status_code}")
-        logger.info(f"Response headers: {dict(response.headers)}")
+            logger.info(f"Received response with status code: {response.status_code}")
+            logger.info(f"Response headers: {dict(response.headers)}")
 
-        response.raise_for_status()
-        response_data = response.json()
-        logger.info(f"Response data: {json.dumps(response_data, indent=2)}")
+            span.set_attribute("http.status_code", response.status_code)
 
-        serializer = AdjudicationSerializer(data=response_data, context=context)
-        serializer.is_valid(raise_exception=True)
+            response.raise_for_status()
+            response_data = response.json()
+            logger.info(f"Response data: {json.dumps(response_data, indent=2)}")
 
-        logger.info(f"Serializer response data: {serializer.validated_data}")
+            serializer = AdjudicationSerializer(data=response_data, context=context)
+            serializer.is_valid(raise_exception=True)
 
-        logger.info(f"Successfully processed adjudication request for endpoint: {endpoint}")
-        return serializer.validated_data
+            logger.info(f"Serializer response data: {serializer.validated_data}")
 
-    except requests.exceptions.HTTPError as e:
-        logger.error(f"HTTP error occurred for {method.upper()} {url}: {e}")
-        logger.error(f"Response status code: {response.status_code}")
-        logger.error(f"Response text: {response.text}")
-        raise
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Request exception occurred for {method.upper()} {url}: {e}")
-        raise
-    except json.JSONDecodeError as e:
-        logger.error(f"Failed to decode JSON response from {url}: {e}")
-        logger.error(f"Response text: {response.text}")
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected error during adjudication request to {url}: {e}")
-        if "response" in locals():
-            logger.error(f"Response status: {response.status_code}, text: {response.text}")
-        raise
+            logger.info(f"Successfully processed adjudication request for endpoint: {endpoint}")
+            return serializer.validated_data
+
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"HTTP error occurred for {method.upper()} {url}: {e}")
+            logger.error(f"Response status code: {response.status_code}")
+            logger.error(f"Response text: {response.text}")
+            span.set_attribute("error", True)
+            span.set_attribute("error.type", "HTTPError")
+            span.set_attribute("http.status_code", response.status_code)
+            raise
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Request exception occurred for {method.upper()} {url}: {e}")
+            span.set_attribute("error", True)
+            span.set_attribute("error.type", "RequestException")
+            raise
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to decode JSON response from {url}: {e}")
+            logger.error(f"Response text: {response.text}")
+            span.set_attribute("error", True)
+            span.set_attribute("error.type", "JSONDecodeError")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error during adjudication request to {url}: {e}")
+            if "response" in locals():
+                logger.error(f"Response status: {response.status_code}, text: {response.text}")
+            span.set_attribute("error", True)
+            span.set_attribute("error.type", type(e).__name__)
+            raise
 
 
 def start(phase):

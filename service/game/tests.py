@@ -493,6 +493,61 @@ class TestGameListViewQueryPerformance:
 
         assert query_count == 19
 
+    @pytest.mark.django_db
+    def test_list_games_query_count_with_phase_states(
+        self,
+        authenticated_client,
+        db,
+        classical_variant,
+        primary_user,
+        secondary_user,
+        classical_england_nation,
+        classical_france_nation,
+        classical_edinburgh_province,
+    ):
+        for i in range(2):
+            game = Game.objects.create(
+                name=f"Game {i}",
+                variant=classical_variant,
+                status=GameStatus.ACTIVE,
+            )
+            member1 = game.members.create(user=primary_user, nation=classical_england_nation)
+            member2 = game.members.create(user=secondary_user, nation=classical_france_nation)
+
+            phase = game.phases.create(
+                game=game,
+                variant=game.variant,
+                season="Spring",
+                year=1901,
+                type="Movement",
+                status=PhaseStatus.ACTIVE,
+                ordinal=1,
+            )
+            phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_edinburgh_province)
+            phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+            phase.phase_states.create(member=member1)
+            phase.phase_states.create(member=member2)
+
+        url = reverse(list_viewname)
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        query_count = len(connection.queries)
+
+        member_queries = [
+            q for q in connection.queries
+            if 'FROM "member_member"' in q['sql'] and 'WHERE "member_member"."id"' in q['sql']
+        ]
+        print(f"\n\nTotal queries: {query_count}")
+        print(f"Standalone member queries (by ID): {len(member_queries)}")
+        for q in member_queries:
+            print(f"  - {q['sql'][:200]}")
+
+        assert len(member_queries) == 0, f"Expected no standalone member queries, got {len(member_queries)}"
+
 
 class TestGameCreateView:
 

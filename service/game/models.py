@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.db.models import Prefetch
 from common.constants import GameStatus, MovementPhaseDuration, NationAssignment, PhaseStatus
 from common.models import BaseModel
-from phase.models import Phase
+from phase.models import Phase, PhaseState
 from member.models import Member
 from unit.models import Unit
 from supply_center.models import SupplyCenter
@@ -35,12 +35,20 @@ class GameQuerySet(models.QuerySet):
             ).prefetch_related("province__named_coasts"),
         )
 
+        phase_states_prefetch = Prefetch(
+            "phase_states",
+            queryset=PhaseState.objects.select_related(
+                "member__nation",
+                "member__user__profile",
+            ),
+        )
+
         template_phase_prefetch = Prefetch(
             "variant__phases",
             queryset=Phase.objects.filter(game=None, status=PhaseStatus.TEMPLATE).prefetch_related(
                 units_prefetch,
                 supply_centers_prefetch,
-                "phase_states",
+                phase_states_prefetch,
             ),
             to_attr="template_phases",
         )
@@ -50,7 +58,7 @@ class GameQuerySet(models.QuerySet):
             queryset=Phase.objects.prefetch_related(
                 units_prefetch,
                 supply_centers_prefetch,
-                "phase_states",
+                phase_states_prefetch,
             ),
         )
 
