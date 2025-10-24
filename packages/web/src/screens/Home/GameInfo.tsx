@@ -12,19 +12,33 @@ import { HomeLayout } from "./Layout";
 import { GameListRead, service } from "../../store";
 import { HomeAppBar } from "./AppBar";
 import { IconName } from "../../components/Icon";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate } from "react-router";
 import { Table } from "../../components/Table";
 import { InteractiveMap } from "../../components/InteractiveMap/InteractiveMap";
 import { MapSkeleton } from "../../components/MapSkeleton";
 import { getCurrentPhase } from "../../util";
 import { GameMenu } from "../../components/GameMenu";
 import { MemberAvatarGroup } from "../../components/MemberAvatarGroup";
+import { useSelectedGameContext } from "../../context/SelectedGameContext";
+import { IconButton } from "../../components/Button";
 
 const GameInfo: React.FC = () => {
-  const { gameId } = useParams<{ gameId: string }>();
-  if (!gameId) throw new Error("gameId is required");
+  const { gameId, gameRetrieveQuery: query } = useSelectedGameContext();
 
-  const query = service.endpoints.gameRetrieve.useQuery({ gameId });
+  const [joinGame, joinGameMutation] =
+    service.endpoints.gameJoinCreate.useMutation();
+
+  const [leaveGame, leaveGameQuery] =
+    service.endpoints.gameLeaveDestroy.useMutation();
+
+  const handleClickJoinGame = async () => {
+    await joinGame({ gameId, member: {} });
+  };
+
+  const handleClickLeaveGame = async () => {
+    await leaveGame({ gameId });
+  };
+
   const navigate = useNavigate();
 
   const handlePlayerInfo = () => {
@@ -43,11 +57,29 @@ const GameInfo: React.FC = () => {
           onNavigateBack={() => navigate("/")}
           rightButton={
             query.data && (
-              <GameMenu
-                game={query.data as GameListRead}
-                onClickGameInfo={() => navigate(`/game-info/${gameId}`)}
-                onClickPlayerInfo={() => navigate(`/player-info/${gameId}`)}
-              />
+              <Stack direction="row" spacing={1}>
+                {query.data?.canJoin && (
+                  <IconButton
+                    icon={IconName.Join}
+                    color="primary"
+                    disabled={joinGameMutation.isLoading}
+                    onClick={handleClickJoinGame}
+                  />
+                )}
+                {query.data?.canLeave && (
+                  <IconButton
+                    icon={IconName.Leave}
+                    color="primary"
+                    disabled={leaveGameQuery.isLoading}
+                    onClick={handleClickLeaveGame}
+                  />
+                )}
+                <GameMenu
+                  game={query.data as GameListRead}
+                  onClickGameInfo={() => navigate(`/game-info/${gameId}`)}
+                  onClickPlayerInfo={() => navigate(`/player-info/${gameId}`)}
+                />
+              </Stack>
             )
           }
         />
@@ -133,6 +165,7 @@ const GameInfo: React.FC = () => {
                     phase={getCurrentPhase(query.data.phases)}
                     orders={[]}
                     selected={[]}
+                    style={{ width: "100%", height: "100%" }}
                   />
                 ) : (
                   <MapSkeleton />

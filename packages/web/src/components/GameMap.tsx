@@ -1,12 +1,11 @@
 import { useSelectedGameContext, useSelectedPhaseContext } from "../context";
 import { service } from "../store";
-import { InteractiveMap } from "./InteractiveMap/InteractiveMap";
-import { MenuItem, Stack, Fab } from "@mui/material";
-import { Icon, IconName } from "./Icon";
+import { MenuItem, Stack } from "@mui/material";
 import { createUseStyles } from "./utils/styles";
 import { FloatingMenu } from "./FloatingMenu";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { determineRenderableProvinces } from "../utils/provinces";
+import { InteractiveMapZoomWrapper } from "./InteractiveMap/InteractiveMapZoomWrapper";
 
 const useStyles = createUseStyles(() => ({
   mapContainer: {
@@ -26,7 +25,6 @@ const GameMap: React.FC = () => {
     x: number;
     y: number;
   } | null>(null);
-  const [isFullscreen, setIsFullscreen] = useState(true);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -123,37 +121,26 @@ const GameMap: React.FC = () => {
     }
   };
 
-  const toggleFullscreen = () => {
-    setIsFullscreen(!isFullscreen);
-  };
-
   return (
     <Stack ref={containerRef} sx={styles.mapContainer}>
       {gameRetrieveQuery.data && ordersListQuery.data && (
         <>
-          <div
-            style={{
-              width: "100%",
-              height: "100%",
-              overflow: isFullscreen ? "auto" : "hidden",
+          <InteractiveMapZoomWrapper
+            interactiveMapProps={{
+              interactive: true,
+              // style: { width: "100%", height: "100%" },
+              variant: gameRetrieveQuery.data.variant,
+              phase: gameRetrieveQuery.data.phases.find(
+                p => p.id === selectedPhase
+              )!,
+              orders: ordersListQuery.data,
+              selected: createOrderQuery.data?.selected ?? [],
+              onClickProvince: handleProvinceClick,
+              renderableProvinces: renderableProvinces,
+              highlighted:
+                createOrderQuery.data?.options?.map(o => o.value) ?? [],
             }}
-          >
-            <InteractiveMap
-              interactive
-              variant={gameRetrieveQuery.data.variant}
-              phase={
-                gameRetrieveQuery.data.phases.find(p => p.id === selectedPhase)!
-              }
-              orders={ordersListQuery.data}
-              selected={createOrderQuery.data?.selected ?? []}
-              highlighted={
-                createOrderQuery.data?.options?.map(o => o.value) ?? []
-              }
-              renderableProvinces={renderableProvinces}
-              onClickProvince={handleProvinceClick}
-              fullscreen={isFullscreen}
-            />
-          </div>
+          />
           <FloatingMenu
             open={
               (createOrderQuery.data?.step === "select-order-type" ||
@@ -177,17 +164,6 @@ const GameMap: React.FC = () => {
               </MenuItem>
             ))}
           </FloatingMenu>
-          <Fab
-            color="primary"
-            onClick={toggleFullscreen}
-            sx={{ position: "absolute", bottom: 20, right: 20 }}
-          >
-            <Icon
-              name={
-                isFullscreen ? IconName.FullscreenExit : IconName.Fullscreen
-              }
-            />
-          </Fab>
         </>
       )}
     </Stack>

@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Link, Stack, Typography } from "@mui/material";
+import { Box, Button, Link, Stack, Typography } from "@mui/material";
 import { useNavigate } from "react-router";
 import { service, VariantRead } from "../store";
 import { GameMenu } from "./GameMenu";
@@ -8,6 +8,7 @@ import { getCurrentPhase, formatDateTime } from "../util";
 import { createUseStyles } from "./utils/styles";
 import { MemberAvatarGroup } from "./MemberAvatarGroup";
 import { Icon, IconName } from "./Icon";
+import { IconButton } from "./Button";
 
 type GameCardProps =
   (typeof service.endpoints.gamesList.Types.ResultType)[number];
@@ -59,6 +60,14 @@ const GameCard: React.FC<GameCardProps> = game => {
   const styles = useStyles(game);
   const currentPhase = getCurrentPhase(game.phases);
 
+  const [joinGame, joinGameMutation] =
+    service.endpoints.gameJoinCreate.useMutation();
+
+  const handleClickJoinGame = async () => {
+    await joinGame({ gameId: game.id, member: {} });
+    navigate(`/game-info/${game.id}`);
+  };
+
   const handleClickGameInfo = () => {
     navigate(`/game-info/${game.id}`);
   };
@@ -81,13 +90,15 @@ const GameCard: React.FC<GameCardProps> = game => {
         <Stack direction="row" gap={1}>
           <Stack sx={styles.mapWrapper}>
             <Link onClick={handleClickGame}>
-              <InteractiveMap
-                style={{ borderRadius: 5 }}
-                variant={game.variant as VariantRead}
-                phase={currentPhase}
-                orders={[]}
-                selected={[]}
-              />
+              <Box>
+                <InteractiveMap
+                  style={{ borderRadius: 5, width: "100%", height: "100%" }}
+                  variant={game.variant as VariantRead}
+                  phase={currentPhase}
+                  orders={[]}
+                  selected={[]}
+                />
+              </Box>
             </Link>
           </Stack>
           <Stack>
@@ -136,12 +147,20 @@ const GameCard: React.FC<GameCardProps> = game => {
           </Button>
         )}
       </Stack>
-      <Stack>
+      <Stack justifyContent="space-between">
         <GameMenu
           game={game}
           onClickGameInfo={handleClickGameInfo}
           onClickPlayerInfo={handleClickPlayerInfo}
         />
+        {game.canJoin && (
+          <IconButton
+            icon={IconName.Join}
+            color="primary"
+            disabled={joinGameMutation.isLoading}
+            onClick={handleClickJoinGame}
+          />
+        )}
       </Stack>
     </Stack>
   );

@@ -144,6 +144,7 @@ const CreateStandardGame: React.FC = () => {
             interactive={false}
             selected={[]}
             orders={undefined}
+            style={{ width: "100%", height: "100%" }}
           />
         ) : null}
         <Table

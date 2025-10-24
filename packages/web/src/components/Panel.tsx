@@ -9,6 +9,7 @@ const styles: Styles = {
   },
   content: {
     flexGrow: 1,
+    minHeight: 0,
     overflowY: "auto",
   },
   footer: {
@@ -34,15 +35,15 @@ type FooterProps = {
 const Panel: React.FC<PanelProps> & {
   Content: React.FC<ContentProps>;
   Footer: React.FC<FooterProps>;
-} = (props) => {
+} = props => {
   return <Stack sx={styles.root}>{props.children}</Stack>;
 };
 
-const Content: React.FC<ContentProps> = (props) => {
+const Content: React.FC<ContentProps> = props => {
   return <Box sx={styles.content}>{props.children}</Box>;
 };
 
-const Footer: React.FC<FooterProps> = (props) => {
+const Footer: React.FC<FooterProps> = props => {
   return (
     <>
       {props.divider && <Divider />}

@@ -15,24 +15,19 @@ interface GameDetailLayoutProps {
 const useStyles = createUseStyles<GameDetailLayoutProps>((_props, theme) => ({
   root: {
     flexDirection: "row",
-    height: "100vh"
+    height: "100vh",
+    overflow: "hidden",
   },
-  container: {
-
-  },
-  appBarContainer: {
-
-  },
-  leftPanel: {
-  },
+  container: {},
+  appBarContainer: {},
+  leftPanel: {},
   centerPanel: {
     flexGrow: 1,
-    minWidth: 250,
-    width: 300,
+    minWidth: "fit-content",
     borderRight: `1px solid ${theme.palette.divider}`,
     borderLeft: `1px solid ${theme.palette.divider}`,
     height: "100vh",
-    overflow: "hidden"
+    overflow: "hidden",
   },
   centerPanelMobile: {
     flexGrow: 1,
@@ -40,11 +35,12 @@ const useStyles = createUseStyles<GameDetailLayoutProps>((_props, theme) => ({
     borderRight: `1px solid ${theme.palette.divider}`,
     borderLeft: `1px solid ${theme.palette.divider}`,
     height: "calc(100vh - 56px)",
-    overflow: "hidden"
+    overflow: "hidden",
   },
   rightPanel: {
-    flexGrow: 1
-  }
+    overflow: "hidden",
+    flexGrow: 1,
+  },
 }));
 
 const GameDetailLayout: React.FC<GameDetailLayoutProps> = props => {
@@ -58,20 +54,27 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = props => {
           {props.leftPanel ? props.leftPanel : <GameDetailSideNavigation />}
         </Stack>
       )}
-      <Stack sx={responsiveness.device !== "desktop" ? styles.centerPanelMobile : styles.centerPanel}>
+      <Stack
+        sx={
+          responsiveness.device !== "desktop"
+            ? styles.centerPanelMobile
+            : styles.centerPanel
+        }
+      >
         {props.appBar}
         {props.content}
-        {responsiveness.device !== "desktop" && (
-          props.bottomNavigation ? props.bottomNavigation : <GameDetailBottomNavigation />
-        )}
+        {responsiveness.device !== "desktop" &&
+          (props.bottomNavigation ? (
+            props.bottomNavigation
+          ) : (
+            <GameDetailBottomNavigation />
+          ))}
       </Stack>
       {responsiveness.device === "desktop" && (
-        <Stack sx={styles.rightPanel}>
-          {props.rightPanel}
-        </Stack>
+        <Stack sx={styles.rightPanel}>{props.rightPanel}</Stack>
       )}
     </Stack>
-  )
+  );
 };
 
 export { GameDetailLayout };
