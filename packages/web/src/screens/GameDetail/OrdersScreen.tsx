@@ -8,60 +8,66 @@ import { useSelectedGameContext, useSelectedPhaseContext } from "../../context";
 import { GameMap } from "../../components/GameMap";
 import { ActivePhaseOrders } from "./ActivePhaseOrders";
 import { InactivePhaseOrders } from "./InactivePhaseOrders";
-
-
+import { Panel } from "../../components";
 
 const OrdersScreen: React.FC = () => {
-    const { gameId, gameRetrieveQuery } = useSelectedGameContext();
+  const { gameId, gameRetrieveQuery } = useSelectedGameContext();
 
-    const navigate = useNavigate();
-    const { selectedPhase } = useSelectedPhaseContext();
+  const navigate = useNavigate();
+  const { selectedPhase } = useSelectedPhaseContext();
 
-    const ordersListQuery = service.endpoints.gameOrdersList.useQuery({
-        gameId,
-        phaseId: selectedPhase,
-    });
+  const ordersListQuery = service.endpoints.gameOrdersList.useQuery({
+    gameId,
+    phaseId: selectedPhase,
+  });
 
-    const [confirmOrders, confirmOrdersMutation] =
-        service.endpoints.gameConfirmPhasePartialUpdate.useMutation();
+  const [confirmOrders, confirmOrdersMutation] =
+    service.endpoints.gameConfirmPhasePartialUpdate.useMutation();
 
-    const handleConfirmOrders = async () => {
-        await confirmOrders({ gameId, patchedPhaseState: { ordersConfirmed: true } }).unwrap();
-    };
+  const handleConfirmOrders = async () => {
+    await confirmOrders({
+      gameId,
+      patchedPhaseState: { ordersConfirmed: true },
+    }).unwrap();
+  };
 
-    if (
-        gameRetrieveQuery.isError ||
-        !gameRetrieveQuery.data ||
-        ordersListQuery.isError ||
-        !ordersListQuery.data
-    ) {
-        return null;
-    }
+  if (
+    gameRetrieveQuery.isError ||
+    !gameRetrieveQuery.data ||
+    ordersListQuery.isError ||
+    !ordersListQuery.data
+  ) {
+    return null;
+  }
 
-    const game = gameRetrieveQuery.data;
-    const currentPhase = game.phases.find(p => p.id === selectedPhase)!;
-    const userNation = game.members.find(m => m.isCurrentUser)!.nation ?? "";
+  const game = gameRetrieveQuery.data;
+  const currentPhase = game.phases.find(p => p.id === selectedPhase)!;
+  const userNation = game.members.find(m => m.isCurrentUser)!.nation ?? "";
 
-    return (
-        <GameDetailLayout
-            appBar={<GameDetailAppBar title={<PhaseSelect />} onNavigateBack={() => navigate("/")} />}
-            rightPanel={<GameMap />}
-            content={
-                currentPhase.status === "active" ? (
-                    <ActivePhaseOrders
-                        phase={currentPhase}
-                        userNation={userNation}
-                        onConfirmOrders={handleConfirmOrders}
-                        isPhaseConfirmed={game.phaseConfirmed}
-                        isConfirming={confirmOrdersMutation.isLoading}
-                    />
-                ) : (
-                    <InactivePhaseOrders />
-                )
-            }
+  return (
+    <GameDetailLayout
+      appBar={
+        <GameDetailAppBar
+          title={<PhaseSelect />}
+          onNavigateBack={() => navigate("/")}
         />
-    );
+      }
+      content={
+        currentPhase.status === "active" ? (
+          <ActivePhaseOrders
+            phase={currentPhase}
+            userNation={userNation}
+            onConfirmOrders={handleConfirmOrders}
+            isPhaseConfirmed={game.phaseConfirmed}
+            isConfirming={confirmOrdersMutation.isLoading}
+          />
+        ) : (
+          <InactivePhaseOrders />
+        )
+      }
+      rightPanel={<GameMap />}
+    />
+  );
 };
 
 export { OrdersScreen };
-

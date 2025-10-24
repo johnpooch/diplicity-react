@@ -1,4 +1,4 @@
-import { Decorator, Meta, StoryObj } from "@storybook/react";
+import { Meta, StoryObj } from "@storybook/react";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { useRef, useEffect, useState, CSSProperties, forwardRef } from "react";
 
@@ -75,6 +75,7 @@ const TransformWrapperStory = ({
   const transformRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Calculate aspect ratios with null safety
   const containerAspectRatio =
     containerDimensions?.width && containerDimensions?.height
       ? containerDimensions.width / containerDimensions.height
@@ -85,28 +86,35 @@ const TransformWrapperStory = ({
       ? svgViewBox.width / svgViewBox.height
       : undefined;
 
+  // Determine which dimension is the limiting factor
   const containerIsTallerThanSvg =
     containerAspectRatio && svgAspectRatio
       ? containerAspectRatio < svgAspectRatio
       : undefined;
+
   const containerIsWiderThanSvg =
     containerAspectRatio && svgAspectRatio
       ? containerAspectRatio > svgAspectRatio
       : undefined;
 
-  let scale = 1;
-  if (containerIsTallerThanSvg) {
-    scale =
-      containerDimensions?.height && svgViewBox?.height
-        ? containerDimensions.height / svgViewBox.height
-        : 1;
-  } else if (containerIsWiderThanSvg) {
-    scale =
-      containerDimensions?.width && svgViewBox?.width
-        ? containerDimensions.width / svgViewBox.width
-        : 1;
-  }
+  // Calculate scale based on the limiting dimension
+  const calculateScale = (): number => {
+    if (!containerDimensions || !svgViewBox) return 1;
 
+    if (containerIsTallerThanSvg) {
+      return containerDimensions.height / svgViewBox.height;
+    }
+
+    if (containerIsWiderThanSvg) {
+      return containerDimensions.width / svgViewBox.width;
+    }
+
+    return 1;
+  };
+
+  const scale = calculateScale();
+
+  // Initialize container dimensions
   useEffect(() => {
     if (!containerRef.current) return;
     setContainerDimensions({
@@ -115,6 +123,7 @@ const TransformWrapperStory = ({
     });
   }, []);
 
+  // Initialize SVG viewBox dimensions
   useEffect(() => {
     setSvgViewBox({
       width: svgRef.current?.viewBox.baseVal.width || 0,
@@ -122,7 +131,7 @@ const TransformWrapperStory = ({
     });
   }, []);
 
-  // Auto-scale when scale value changes
+  // Apply scale transformation when scale value changes
   useEffect(() => {
     if (transformRef.current) {
       transformRef.current.setTransform(0, 0, scale, 0);

@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Link, Stack, Typography } from "@mui/material";
+import { Box, Button, Link, Stack, Typography } from "@mui/material";
 import { useNavigate } from "react-router";
 import { service } from "../store";
 import { GameMenu } from "./GameMenu";
@@ -90,13 +90,15 @@ const GameCard: React.FC<GameCardProps> = game => {
         <Stack direction="row" gap={1}>
           <Stack sx={styles.mapWrapper}>
             <Link onClick={handleClickGame}>
-              <InteractiveMap
-                style={{ borderRadius: 5 }}
-                variant={game.variant}
-                phase={currentPhase}
-                orders={[]}
-                selected={[]}
-              />
+              <Box>
+                <InteractiveMap
+                  style={{ borderRadius: 5, width: "100%", height: "100%" }}
+                  variant={game.variant}
+                  phase={currentPhase}
+                  orders={[]}
+                  selected={[]}
+                />
+              </Box>
             </Link>
           </Stack>
           <Stack>
