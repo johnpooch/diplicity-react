@@ -21,6 +21,19 @@ class TestUserProfileRetrieveView:
         response = unauthenticated_client.get(url)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
+    @pytest.mark.django_db
+    def test_retrieve_user_profile_with_null_picture(self, authenticated_client, primary_user):
+        primary_user.profile.picture = None
+        primary_user.profile.save()
+
+        url = reverse("user-profile")
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["picture"] is None
+        assert response.data["name"] == primary_user.profile.name
+        assert response.data["email"] == primary_user.email
+
 
 class TestUserProfileUpdateView:
 

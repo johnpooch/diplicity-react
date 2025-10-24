@@ -12,3 +12,11 @@ class VariantSerializer(serializers.Serializer):
     nations = NationSerializer(many=True)
     provinces = ProvinceSerializer(many=True)
     template_phase = PhaseSerializer()
+
+
+class GameListVariantSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    name = serializers.CharField()
+    description = serializers.CharField()
+    author = serializers.CharField(required=False)
+    nations = NationSerializer(many=True)

@@ -5,29 +5,98 @@ import uuid
 from django.db import models
 from django.utils import timezone
 from django.db.models import Prefetch
+from opentelemetry import trace
 from common.constants import GameStatus, MovementPhaseDuration, NationAssignment, PhaseStatus
 from common.models import BaseModel
-from phase.models import Phase
+from phase.models import Phase, PhaseState
+from member.models import Member
+from unit.models import Unit
+from supply_center.models import SupplyCenter
 from adjudication import service as adjudication_service
+
+tracer = trace.get_tracer(__name__)
 
 
 class GameQuerySet(models.QuerySet):
 
+    def with_list_data(self):
+        current_phase_prefetch = Prefetch(
+            "phases",
+            queryset=Phase.objects.all().prefetch_related(
+                "units__nation",
+                "units__province__parent",
+                "units__province__named_coasts",
+                "supply_centers__nation",
+                "supply_centers__province__parent",
+                "supply_centers__province__named_coasts",
+                "phase_states__member__nation",
+                "phase_states__member__user__profile",
+            ),
+            to_attr="active_phases_list",
+        )
+
+        members_prefetch = Prefetch(
+            "members",
+            queryset=Member.objects.select_related("nation", "user__profile"),
+        )
+
+        return self.prefetch_related(
+            "variant__provinces__parent",
+            "variant__provinces__named_coasts",
+            "variant__nations",
+            current_phase_prefetch,
+            members_prefetch,
+        )
+
     def with_related_data(self):
+
+        units_prefetch = Prefetch(
+            "units",
+            queryset=Unit.objects.select_related(
+                "nation",
+                "province__parent",
+                "dislodged_by",
+            ).prefetch_related("province__named_coasts"),
+        )
+
+        supply_centers_prefetch = Prefetch(
+            "supply_centers",
+            queryset=SupplyCenter.objects.select_related(
+                "nation",
+                "province__parent",
+            ).prefetch_related("province__named_coasts"),
+        )
+
+        phase_states_prefetch = Prefetch(
+            "phase_states",
+            queryset=PhaseState.objects.select_related(
+                "member__nation",
+                "member__user__profile",
+            ),
+        )
 
         template_phase_prefetch = Prefetch(
             "variant__phases",
             queryset=Phase.objects.filter(game=None, status=PhaseStatus.TEMPLATE).prefetch_related(
-                "units__nation",
-                "units__province__parent",
-                "units__province__named_coasts",
-                "units__dislodged_by",
-                "supply_centers__nation",
-                "supply_centers__province__parent",
-                "supply_centers__province__named_coasts",
-                "phase_states",
+                units_prefetch,
+                supply_centers_prefetch,
+                phase_states_prefetch,
             ),
             to_attr="template_phases",
+        )
+
+        game_phases_prefetch = Prefetch(
+            "phases",
+            queryset=Phase.objects.prefetch_related(
+                units_prefetch,
+                supply_centers_prefetch,
+                phase_states_prefetch,
+            ),
+        )
+
+        members_prefetch = Prefetch(
+            "members",
+            queryset=Member.objects.select_related("nation", "user__profile"),
         )
 
         return self.prefetch_related(
@@ -37,17 +106,9 @@ class GameQuerySet(models.QuerySet):
             "variant__nations",
             template_phase_prefetch,
             # Game phases data
-            "phases__units__nation",
-            "phases__units__province__parent",
-            "phases__units__province__named_coasts",
-            "phases__units__dislodged_by",
-            "phases__supply_centers__nation",
-            "phases__supply_centers__province__parent",
-            "phases__supply_centers__province__named_coasts",
-            "phases__phase_states",
+            game_phases_prefetch,
             # Members data
-            "members__nation",
-            "members__user__profile",
+            members_prefetch,
         )
 
 
@@ -125,8 +186,15 @@ class Game(BaseModel):
 
     @property
     def current_phase(self):
-        phases = list(self.phases.all())
-        return phases[-1] if phases else None
+        with tracer.start_as_current_span("game.models.current_phase"):
+            # Use prefetched data if available
+            if hasattr(self, "active_phases_list"):
+                print("self.active_phases_list")
+                print(self.active_phases_list)
+                return self.active_phases_list[0] if self.active_phases_list else None
+
+            phases = list(self.phases.all())
+            return phases[-1] if phases else None
 
     @property
     def movement_phase_duration_seconds(self):
@@ -141,21 +209,26 @@ class Game(BaseModel):
         return 0
 
     def can_join(self, user):
-        user_is_member = any(member.user.id == user.id for member in self.members.all())
-        game_is_pending = self.status == GameStatus.PENDING
-        return not user_is_member and game_is_pending
+        with tracer.start_as_current_span("game.models.can_join"):
+            user_is_member = any(member.user.id == user.id for member in self.members.all())
+            game_is_pending = self.status == GameStatus.PENDING
+            return not user_is_member and game_is_pending
 
     def can_leave(self, user):
-        user_is_member = any(member.user.id == user.id for member in self.members.all())
-        game_is_pending = self.status == GameStatus.PENDING
-        return user_is_member and game_is_pending
+        with tracer.start_as_current_span("game.models.can_leave"):
+            user_is_member = any(member.user.id == user.id for member in self.members.all())
+            game_is_pending = self.status == GameStatus.PENDING
+            return user_is_member and game_is_pending
 
     def phase_confirmed(self, user):
-        current_phase = self.current_phase
-        for phase_state in current_phase.phase_states.all():
-            if phase_state.member.user.id == user.id and phase_state.orders_confirmed:
-                return True
-        return False
+        with tracer.start_as_current_span("game.models.phase_confirmed"):
+            current_phase = self.current_phase
+            if current_phase is None:
+                return False
+            for phase_state in current_phase.phase_states.all():
+                if phase_state.member.user.id == user.id and phase_state.orders_confirmed:
+                    return True
+            return False
 
     def start(self):
         if self.status != GameStatus.PENDING:
@@ -167,7 +240,9 @@ class Game(BaseModel):
         current_phase.status = PhaseStatus.ACTIVE
         current_phase.options = adjudication_data["options"]
         if self.movement_phase_duration is not None:
-            current_phase.scheduled_resolution = timezone.now() + timedelta(seconds=self.movement_phase_duration_seconds)
+            current_phase.scheduled_resolution = timezone.now() + timedelta(
+                seconds=self.movement_phase_duration_seconds
+            )
         else:
             current_phase.scheduled_resolution = None
         current_phase.save()

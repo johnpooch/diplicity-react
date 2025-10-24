@@ -7,7 +7,7 @@ import {
   Stack,
 } from "@mui/material";
 import { HomeLayout } from "./Layout";
-import { service } from "../../store";
+import { GameListRead, service } from "../../store";
 import { HomeAppBar } from "./AppBar";
 import { useNavigate, useParams } from "react-router";
 import { GameMenu } from "../../components/GameMenu";
@@ -33,7 +33,7 @@ const PlayerInfo: React.FC = () => {
           rightButton={
             query.data && (
               <GameMenu
-                game={query.data}
+                game={query.data as GameListRead}
                 onClickGameInfo={() => navigate(`/game-info/${gameId}`)}
                 onClickPlayerInfo={() => navigate(`/player-info/${gameId}`)}
               />

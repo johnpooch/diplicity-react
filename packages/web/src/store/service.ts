@@ -420,7 +420,7 @@ export type GameResolvePhaseCreateApiResponse = unknown;
 export type GameResolvePhaseCreateApiArg = {
   gameId: string;
 };
-export type GamesListApiResponse = /** status 200  */ GameRead[];
+export type GamesListApiResponse = /** status 200  */ GameListRead[];
 export type GamesListApiArg = {
   canJoin?: boolean;
   mine?: boolean;
@@ -564,7 +564,6 @@ export type Phase = {
   status: StatusEnum;
   units: Unit[];
   supplyCenters: SupplyCenter[];
-  options: any;
 };
 export type PhaseRead = {
   id: number;
@@ -578,7 +577,6 @@ export type PhaseRead = {
   status: StatusEnum;
   units: UnitRead[];
   supplyCenters: SupplyCenterRead[];
-  options: any;
 };
 export type Variant = {
   id: string;
@@ -606,7 +604,7 @@ export type GameSummary = {
 export type MemberRead = {
   id: number;
   name: string;
-  picture: string;
+  picture: string | null;
   nation: string | null;
   isCurrentUser: boolean;
   game: GameSummary;
@@ -698,6 +696,35 @@ export type OrderRead = {
   summary: string | null;
   selected?: string[];
 };
+export type GameList = {
+  name: string;
+};
+export type GameListVariant = {
+  id: string;
+  name: string;
+  description: string;
+  author?: string;
+  nations: Nation[];
+};
+export type GameListRead = {
+  id: string;
+  status: string;
+  canJoin: boolean;
+  canLeave: boolean;
+  phases: PhaseRead[];
+  variant: GameListVariant;
+  members: MemberRead[];
+  phaseConfirmed: boolean;
+  sandbox: boolean;
+  name: string;
+  private: boolean;
+  movementPhaseDuration: string;
+  nationAssignment: string;
+};
+export type GameListWrite = {
+  name: string;
+  variantId: string;
+};
 export type Channel = {};
 export type ChannelMessage = {
   body: string;
@@ -705,13 +732,13 @@ export type ChannelMessage = {
 export type ChannelMember = {
   id: number;
   name: string;
-  picture: string;
+  picture: string | null;
   nation: Nation;
 };
 export type ChannelMemberRead = {
   id: number;
   name: string;
-  picture: string;
+  picture: string | null;
   nation: Nation;
   isCurrentUser: boolean;
 };
@@ -758,7 +785,7 @@ export type UserProfile = {
 export type UserProfileRead = {
   id: number;
   name: string;
-  picture: string;
+  picture: string | null;
   email: string;
 };
 export type PatchedUserProfile = {
@@ -767,7 +794,7 @@ export type PatchedUserProfile = {
 export type PatchedUserProfileRead = {
   id?: number;
   name?: string;
-  picture?: string;
+  picture?: string | null;
   email?: string;
 };
 export type Version = {

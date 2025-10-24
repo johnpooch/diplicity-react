@@ -108,7 +108,7 @@ const ChannelCreateScreen: React.FC = props => {
                           onClick={() => handleToggle(member.id)}
                         >
                           <ListItemAvatar>
-                            <Avatar src={member.picture}>
+                            <Avatar src={member.picture ?? undefined}>
                               {member.nation?.[0]}
                             </Avatar>
                           </ListItemAvatar>

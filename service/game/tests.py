@@ -247,7 +247,7 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 30
+        assert query_count == 19
 
     @pytest.mark.django_db
     def test_retrieve_game_query_count_multiple_phases_with_units(
@@ -288,7 +288,7 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 31
+        assert query_count == 19
 
 
 class TestGameListView:
@@ -397,7 +397,7 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count <= 30
+        assert query_count == 17
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_phases_and_units(
@@ -439,7 +439,108 @@ class TestGameListViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        assert query_count == 31
+        assert query_count == 17
+
+    @pytest.mark.django_db
+    def test_list_games_query_count_with_different_nations(
+        self,
+        authenticated_client,
+        db,
+        classical_variant,
+        primary_user,
+        classical_england_nation,
+        classical_france_nation,
+        classical_germany_nation,
+        classical_austria_nation,
+        classical_edinburgh_province,
+    ):
+        nations = [
+            classical_england_nation,
+            classical_france_nation,
+            classical_germany_nation,
+            classical_austria_nation,
+        ]
+
+        for i in range(4):
+            game = Game.objects.create(
+                name=f"Game {i}",
+                variant=classical_variant,
+                status=GameStatus.ACTIVE,
+            )
+            game.members.create(user=primary_user, nation=nations[i])
+
+            for j in range(2):
+                phase = game.phases.create(
+                    game=game,
+                    variant=game.variant,
+                    season="Spring" if j == 0 else "Fall",
+                    year=1901,
+                    type="Movement",
+                    status=PhaseStatus.ACTIVE if j == 1 else PhaseStatus.COMPLETED,
+                    ordinal=j + 1,
+                )
+                phase.units.create(type="Fleet", nation=nations[i], province=classical_edinburgh_province)
+                phase.supply_centers.create(nation=nations[i], province=classical_edinburgh_province)
+
+        url = reverse(list_viewname)
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        query_count = len(connection.queries)
+
+        assert query_count <= 600
+
+    @pytest.mark.django_db
+    def test_list_games_query_count_with_phase_states(
+        self,
+        authenticated_client,
+        db,
+        classical_variant,
+        primary_user,
+        secondary_user,
+        classical_england_nation,
+        classical_france_nation,
+        classical_edinburgh_province,
+        classical_germany_nation,
+    ):
+        for i in range(2):
+            game = Game.objects.create(
+                name=f"Game {i}",
+                variant=classical_variant,
+                status=GameStatus.ACTIVE,
+            )
+            member1 = game.members.create(user=primary_user, nation=classical_england_nation)
+            member2 = game.members.create(user=secondary_user, nation=classical_france_nation)
+            member3 = game.members.create(user=secondary_user, nation=classical_germany_nation)
+
+            phase = game.phases.create(
+                game=game,
+                variant=game.variant,
+                season="Spring",
+                year=1901,
+                type="Movement",
+                status=PhaseStatus.ACTIVE,
+                ordinal=1,
+            )
+            phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_edinburgh_province)
+            phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+            phase.phase_states.create(member=member1)
+            phase.phase_states.create(member=member2)
+            phase.phase_states.create(member=member3)
+
+        url = reverse(list_viewname)
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        query_count = len(connection.queries)
+
+        assert query_count == 21
 
 
 class TestGameCreateView:

@@ -549,7 +549,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Game'
+                  $ref: '#/components/schemas/GameList'
           description: ''
   /games/{gameId}/channels/:
     get:
@@ -818,6 +818,7 @@ components:
           type: string
         picture:
           type: string
+          nullable: true
         nation:
           $ref: '#/components/schemas/Nation'
         isCurrentUser:
@@ -949,6 +950,90 @@ components:
       - status
       - variant
       - variantId
+    GameList:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        status:
+          type: string
+          readOnly: true
+        canJoin:
+          type: boolean
+          readOnly: true
+        canLeave:
+          type: boolean
+          readOnly: true
+        phases:
+          type: array
+          items:
+            $ref: '#/components/schemas/Phase'
+          readOnly: true
+        variant:
+          allOf:
+          - $ref: '#/components/schemas/GameListVariant'
+          readOnly: true
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/Member'
+          readOnly: true
+        phaseConfirmed:
+          type: boolean
+          readOnly: true
+        sandbox:
+          type: boolean
+          readOnly: true
+        name:
+          type: string
+        variantId:
+          type: string
+          writeOnly: true
+        private:
+          type: boolean
+          readOnly: true
+        movementPhaseDuration:
+          type: string
+          readOnly: true
+        nationAssignment:
+          type: string
+          readOnly: true
+      required:
+      - canJoin
+      - canLeave
+      - id
+      - members
+      - movementPhaseDuration
+      - name
+      - nationAssignment
+      - phaseConfirmed
+      - phases
+      - private
+      - sandbox
+      - status
+      - variant
+      - variantId
+    GameListVariant:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        author:
+          type: string
+        nations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Nation'
+      required:
+      - description
+      - id
+      - name
+      - nations
     GameSummary:
       type: object
       properties:
@@ -971,6 +1056,7 @@ components:
         picture:
           type: string
           readOnly: true
+          nullable: true
         nation:
           type: string
           readOnly: true
@@ -1174,6 +1260,7 @@ components:
         picture:
           type: string
           readOnly: true
+          nullable: true
         email:
           type: string
           readOnly: true
@@ -1207,11 +1294,9 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SupplyCenter'
-        options: {}
       required:
       - id
       - name
-      - options
       - ordinal
       - remainingTime
       - scheduledResolution
@@ -1440,6 +1525,7 @@ components:
         picture:
           type: string
           readOnly: true
+          nullable: true
         email:
           type: string
           readOnly: true
