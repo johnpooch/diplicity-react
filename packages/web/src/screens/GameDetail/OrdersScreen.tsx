@@ -8,7 +8,6 @@ import { useSelectedGameContext, useSelectedPhaseContext } from "../../context";
 import { GameMap } from "../../components/GameMap";
 import { ActivePhaseOrders } from "./ActivePhaseOrders";
 import { InactivePhaseOrders } from "./InactivePhaseOrders";
-import { Panel } from "../../components";
 
 const OrdersScreen: React.FC = () => {
   const { gameId, gameRetrieveQuery } = useSelectedGameContext();

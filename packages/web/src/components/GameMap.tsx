@@ -1,26 +1,11 @@
 import { useSelectedGameContext, useSelectedPhaseContext } from "../context";
-import { service, Variant } from "../store";
-import { InteractiveMap } from "./InteractiveMap/InteractiveMap";
+import { service } from "../store";
 import { MenuItem, Stack } from "@mui/material";
 import { createUseStyles } from "./utils/styles";
 import { FloatingMenu } from "./FloatingMenu";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { determineRenderableProvinces } from "../utils/provinces";
-import {
-  TransformWrapper,
-  TransformComponent,
-  ReactZoomPanPinchRef,
-} from "react-zoom-pan-pinch";
-import classical from "../maps/classical.json";
 import { InteractiveMapZoomWrapper } from "./InteractiveMap/InteractiveMapZoomWrapper";
-
-const VARIANT_MAPS: Record<string, typeof classical> = {
-  classical,
-};
-
-const getMap = (variant: Variant) => {
-  return VARIANT_MAPS[variant.id] || VARIANT_MAPS.classical;
-};
 
 const useStyles = createUseStyles(() => ({
   mapContainer: {
@@ -42,7 +27,6 @@ const GameMap: React.FC = () => {
   } | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const transformRef = useRef<ReactZoomPanPinchRef | null>(null);
 
   const [createOrder, createOrderQuery] =
     service.endpoints.gameOrdersCreate.useMutation({
@@ -151,6 +135,8 @@ const GameMap: React.FC = () => {
               )!,
               orders: ordersListQuery.data,
               selected: createOrderQuery.data?.selected ?? [],
+              onClickProvince: handleProvinceClick,
+              renderableProvinces: renderableProvinces,
               highlighted:
                 createOrderQuery.data?.options?.map(o => o.value) ?? [],
             }}
