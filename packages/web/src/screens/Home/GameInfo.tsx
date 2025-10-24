@@ -165,6 +165,7 @@ const GameInfo: React.FC = () => {
                     phase={getCurrentPhase(query.data.phases)}
                     orders={[]}
                     selected={[]}
+                    style={{ width: "100%", height: "100%" }}
                   />
                 ) : (
                   <MapSkeleton />

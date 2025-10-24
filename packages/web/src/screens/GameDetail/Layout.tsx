@@ -23,8 +23,7 @@ const useStyles = createUseStyles<GameDetailLayoutProps>((_props, theme) => ({
   leftPanel: {},
   centerPanel: {
     flexGrow: 1,
-    minWidth: 250,
-    width: 300,
+    minWidth: "fit-content",
     borderRight: `1px solid ${theme.palette.divider}`,
     borderLeft: `1px solid ${theme.palette.divider}`,
     height: "100vh",
