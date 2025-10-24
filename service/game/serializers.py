@@ -1,12 +1,15 @@
 from rest_framework import serializers
 from django.db import transaction
 from drf_spectacular.utils import extend_schema_field
+from opentelemetry import trace
 from common.constants import NationAssignment, MovementPhaseDuration
 from variant.serializers import VariantSerializer
 from phase.serializers import PhaseSerializer
 from member.serializers import MemberSerializer
 from variant.models import Variant
 from .models import Game
+
+tracer = trace.get_tracer(__name__)
 
 
 class BaseGameSerializer(serializers.Serializer):
@@ -25,20 +28,29 @@ class BaseGameSerializer(serializers.Serializer):
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):
-        return obj.can_join(self.context["request"].user)
+        with tracer.start_as_current_span("game.serializers.get_can_join"):
+            return obj.can_join(self.context["request"].user)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_leave(self, obj):
-        return obj.can_leave(self.context["request"].user)
+        with tracer.start_as_current_span("game.serializers.get_can_leave"):
+            return obj.can_leave(self.context["request"].user)
 
     @extend_schema_field(serializers.BooleanField)
     def get_phase_confirmed(self, obj):
-        return obj.phase_confirmed(self.context["request"].user)
+        with tracer.start_as_current_span("game.serializers.get_phase_confirmed"):
+            return obj.phase_confirmed(self.context["request"].user)
 
     def validate_variant_id(self, value):
         if not Variant.objects.filter(id=value).exists():
             raise serializers.ValidationError("Variant with this ID does not exist.")
         return value
+
+    def to_representation(self, instance):
+        with tracer.start_as_current_span("game.serializers.to_representation") as span:
+            span.set_attribute("game.id", instance.id)
+            span.set_attribute("game.status", instance.status)
+            return super().to_representation(instance)
 
 
 class GameSerializer(BaseGameSerializer):

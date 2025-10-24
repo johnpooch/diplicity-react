@@ -5,6 +5,7 @@ import uuid
 from django.db import models
 from django.utils import timezone
 from django.db.models import Prefetch
+from opentelemetry import trace
 from common.constants import GameStatus, MovementPhaseDuration, NationAssignment, PhaseStatus
 from common.models import BaseModel
 from phase.models import Phase, PhaseState
@@ -12,6 +13,8 @@ from member.models import Member
 from unit.models import Unit
 from supply_center.models import SupplyCenter
 from adjudication import service as adjudication_service
+
+tracer = trace.get_tracer(__name__)
 
 
 class GameQuerySet(models.QuerySet):
@@ -154,8 +157,9 @@ class Game(BaseModel):
 
     @property
     def current_phase(self):
-        phases = list(self.phases.all())
-        return phases[-1] if phases else None
+        with tracer.start_as_current_span("game.models.current_phase"):
+            phases = list(self.phases.all())
+            return phases[-1] if phases else None
 
     @property
     def movement_phase_duration_seconds(self):
@@ -170,21 +174,24 @@ class Game(BaseModel):
         return 0
 
     def can_join(self, user):
-        user_is_member = any(member.user.id == user.id for member in self.members.all())
-        game_is_pending = self.status == GameStatus.PENDING
-        return not user_is_member and game_is_pending
+        with tracer.start_as_current_span("game.models.can_join"):
+            user_is_member = any(member.user.id == user.id for member in self.members.all())
+            game_is_pending = self.status == GameStatus.PENDING
+            return not user_is_member and game_is_pending
 
     def can_leave(self, user):
-        user_is_member = any(member.user.id == user.id for member in self.members.all())
-        game_is_pending = self.status == GameStatus.PENDING
-        return user_is_member and game_is_pending
+        with tracer.start_as_current_span("game.models.can_leave"):
+            user_is_member = any(member.user.id == user.id for member in self.members.all())
+            game_is_pending = self.status == GameStatus.PENDING
+            return user_is_member and game_is_pending
 
     def phase_confirmed(self, user):
-        current_phase = self.current_phase
-        for phase_state in current_phase.phase_states.all():
-            if phase_state.member.user.id == user.id and phase_state.orders_confirmed:
-                return True
-        return False
+        with tracer.start_as_current_span("game.models.phase_confirmed"):
+            current_phase = self.current_phase
+            for phase_state in current_phase.phase_states.all():
+                if phase_state.member.user.id == user.id and phase_state.orders_confirmed:
+                    return True
+            return False
 
     def start(self):
         if self.status != GameStatus.PENDING:
@@ -196,7 +203,9 @@ class Game(BaseModel):
         current_phase.status = PhaseStatus.ACTIVE
         current_phase.options = adjudication_data["options"]
         if self.movement_phase_duration is not None:
-            current_phase.scheduled_resolution = timezone.now() + timedelta(seconds=self.movement_phase_duration_seconds)
+            current_phase.scheduled_resolution = timezone.now() + timedelta(
+                seconds=self.movement_phase_duration_seconds
+            )
         else:
             current_phase.scheduled_resolution = None
         current_phase.save()
