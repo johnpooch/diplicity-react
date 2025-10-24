@@ -14,7 +14,7 @@ const styles: Styles = {
     backgroundPosition: "54%",
     backgroundRepeat: "no-repeat",
   },
-  stack: (theme) => ({
+  stack: theme => ({
     padding: 4,
     bgcolor: theme.palette.background.paper,
     borderRadius: "4px",
@@ -66,9 +66,6 @@ const Login: React.FC = () => {
         </Typography>
         <Typography variant="body2">
           A digital adaptation of the game of Diplomacy.
-        </Typography>
-        <Typography variant="caption">
-          We're rebuilding the app. Currently not ready for players.
         </Typography>
         <Box sx={styles.buttonContainer}>
           <GoogleLogin
