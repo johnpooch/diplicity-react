@@ -147,17 +147,6 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
-  /api/test-sentry/:
-    get:
-      operationId: apiTestSentryRetrieve
-      tags:
-      - api
-      security:
-      - jwtAuth: []
-      - {}
-      responses:
-        '200':
-          description: No response body
   /api/token/refresh/:
     post:
       operationId: apiTokenRefreshCreate
@@ -908,10 +897,6 @@ components:
           items:
             $ref: '#/components/schemas/Phase'
           readOnly: true
-        variant:
-          allOf:
-          - $ref: '#/components/schemas/Variant'
-          readOnly: true
         members:
           type: array
           items:
@@ -928,6 +913,10 @@ components:
         variantId:
           type: string
           writeOnly: true
+        variant:
+          allOf:
+          - $ref: '#/components/schemas/Variant'
+          readOnly: true
         nationAssignment:
           $ref: '#/components/schemas/NationAssignmentEnum'
         movementPhaseDuration:
@@ -970,10 +959,6 @@ components:
           items:
             $ref: '#/components/schemas/Phase'
           readOnly: true
-        variant:
-          allOf:
-          - $ref: '#/components/schemas/GameListVariant'
-          readOnly: true
         members:
           type: array
           items:
@@ -989,7 +974,7 @@ components:
           type: string
         variantId:
           type: string
-          writeOnly: true
+          readOnly: true
         private:
           type: boolean
           readOnly: true
@@ -1012,28 +997,7 @@ components:
       - private
       - sandbox
       - status
-      - variant
       - variantId
-    GameListVariant:
-      type: object
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        description:
-          type: string
-        author:
-          type: string
-        nations:
-          type: array
-          items:
-            $ref: '#/components/schemas/Nation'
-      required:
-      - description
-      - id
-      - name
-      - nations
     GameSummary:
       type: object
       properties:
@@ -1379,10 +1343,6 @@ components:
           items:
             $ref: '#/components/schemas/Phase'
           readOnly: true
-        variant:
-          allOf:
-          - $ref: '#/components/schemas/Variant'
-          readOnly: true
         members:
           type: array
           items:
@@ -1399,6 +1359,10 @@ components:
         variantId:
           type: string
           writeOnly: true
+        variant:
+          allOf:
+          - $ref: '#/components/schemas/Variant'
+          readOnly: true
         nationAssignment:
           allOf:
           - $ref: '#/components/schemas/NationAssignmentEnum'
