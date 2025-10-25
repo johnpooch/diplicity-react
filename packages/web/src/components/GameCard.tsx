@@ -1,7 +1,7 @@
 import React from "react";
 import { Box, Button, Link, Stack, Typography } from "@mui/material";
 import { useNavigate } from "react-router";
-import { service, VariantRead } from "../store";
+import { service } from "../store";
 import { GameMenu } from "./GameMenu";
 import { InteractiveMap } from "./InteractiveMap/InteractiveMap";
 import { getCurrentPhase, formatDateTime } from "../util";
@@ -9,6 +9,7 @@ import { createUseStyles } from "./utils/styles";
 import { MemberAvatarGroup } from "./MemberAvatarGroup";
 import { Icon, IconName } from "./Icon";
 import { IconButton } from "./Button";
+import { useVariantById } from "../hooks";
 
 type GameCardProps =
   (typeof service.endpoints.gamesList.Types.ResultType)[number];
@@ -19,6 +20,8 @@ const useStyles = createUseStyles<GameCardProps>(() => ({
   }),
   mapWrapper: {
     maxWidth: 60,
+    minWidth: 60,
+    maxHeight: 54,
   },
   gameName: theme => ({
     fontSize: 15,
@@ -59,6 +62,7 @@ const GameCard: React.FC<GameCardProps> = game => {
   const navigate = useNavigate();
   const styles = useStyles(game);
   const currentPhase = getCurrentPhase(game.phases);
+  const variant = useVariantById(game.variantId);
 
   const [joinGame, joinGameMutation] =
     service.endpoints.gameJoinCreate.useMutation();
@@ -84,16 +88,23 @@ const GameCard: React.FC<GameCardProps> = game => {
     }
   };
 
+  if (!variant) {
+    return null;
+  }
+
   return (
     <Stack p={1} gap={1} direction="row" sx={styles.mainContainer}>
       <Stack gap={1} flex={1}>
         <Stack direction="row" gap={1}>
           <Stack sx={styles.mapWrapper}>
-            <Link onClick={handleClickGame}>
-              <Box>
+            <Link
+              onClick={handleClickGame}
+              style={{ width: "100%", height: "100%" }}
+            >
+              <Box sx={{ width: "100%", height: "100%" }}>
                 <InteractiveMap
                   style={{ borderRadius: 5, width: "100%", height: "100%" }}
-                  variant={game.variant as VariantRead}
+                  variant={variant}
                   phase={currentPhase}
                   orders={[]}
                   selected={[]}
@@ -118,7 +129,7 @@ const GameCard: React.FC<GameCardProps> = game => {
                 <Icon name={IconName.Lock} sx={styles.lockIcon} />
               )}
               <Typography variant="caption">
-                {game.variant.name} •{" "}
+                {variant.name} •{" "}
                 {game.movementPhaseDuration
                   ? game.movementPhaseDuration
                   : "Resolve when ready"}
@@ -139,10 +150,7 @@ const GameCard: React.FC<GameCardProps> = game => {
         {!game.sandbox && (
           <Button onClick={handleClickPlayerInfo} sx={styles.memberButton}>
             <Stack direction="row" gap={1} sx={styles.memberContainer}>
-              <MemberAvatarGroup
-                members={game.members}
-                variant={game.variant.id}
-              />
+              <MemberAvatarGroup members={game.members} variant={variant.id} />
             </Stack>
           </Button>
         )}

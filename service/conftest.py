@@ -3,6 +3,7 @@ from unittest.mock import patch
 import json
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.test import override_settings
 from game import models
 from user_profile.models import UserProfile
 from variant.models import Variant
@@ -12,6 +13,18 @@ from rest_framework.test import APIClient
 from common.constants import PhaseStatus, UnitType, GameStatus
 
 User = get_user_model()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def disable_cache_for_tests():
+    with override_settings(
+        CACHES={
+            "default": {
+                "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+            }
+        }
+    ):
+        yield
 
 
 @pytest.fixture(scope="session")

@@ -6,7 +6,6 @@ import { useResponsiveness } from "../../components/utils/responsive";
 import { Divider } from "@mui/material";
 import { GameMenu } from "../../components";
 import { useSelectedGameContext } from "../../context";
-import { GameListRead } from "../../store";
 
 interface GameDetailAppBarProps {
   title?: string | React.ReactNode;
@@ -57,7 +56,7 @@ const GameDetailAppBar: React.FC<GameDetailAppBarProps> = props => {
           ) : (
             gameRetrieveQuery.data && (
               <GameMenu
-                game={gameRetrieveQuery.data as GameListRead}
+                game={gameRetrieveQuery.data}
                 onClickGameInfo={handleClickGameInfo}
                 onClickPlayerInfo={handleClickPlayerInfo}
               />

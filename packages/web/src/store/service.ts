@@ -13,12 +13,6 @@ const injectedRtkApi = api.injectEndpoints({
         },
       }),
     }),
-    apiTestSentryRetrieve: build.query<
-      ApiTestSentryRetrieveApiResponse,
-      ApiTestSentryRetrieveApiArg
-    >({
-      query: () => ({ url: `/api/test-sentry/` }),
-    }),
     apiTokenRefreshCreate: build.mutation<
       ApiTokenRefreshCreateApiResponse,
       ApiTokenRefreshCreateApiArg
@@ -346,8 +340,6 @@ export type ApiSchemaRetrieveApiArg = {
     | "zh-hans"
     | "zh-hant";
 };
-export type ApiTestSentryRetrieveApiResponse = unknown;
-export type ApiTestSentryRetrieveApiArg = void;
 export type ApiTokenRefreshCreateApiResponse =
   /** status 200  */ TokenRefreshRead;
 export type ApiTokenRefreshCreateApiArg = {
@@ -578,6 +570,20 @@ export type PhaseRead = {
   units: UnitRead[];
   supplyCenters: SupplyCenterRead[];
 };
+export type Member = {};
+export type GameSummary = {
+  name: string;
+  status: string;
+};
+export type MemberRead = {
+  id: number;
+  name: string;
+  picture: string | null;
+  nation: string | null;
+  isCurrentUser: boolean;
+  game: GameSummary;
+  supplyCenterCount: number;
+};
 export type Variant = {
   id: string;
   name: string;
@@ -596,31 +602,17 @@ export type VariantRead = {
   provinces: ProvinceRead[];
   templatePhase: PhaseRead;
 };
-export type Member = {};
-export type GameSummary = {
-  name: string;
-  status: string;
-};
-export type MemberRead = {
-  id: number;
-  name: string;
-  picture: string | null;
-  nation: string | null;
-  isCurrentUser: boolean;
-  game: GameSummary;
-  supplyCenterCount: number;
-};
 export type GameRead = {
   id: string;
   status: string;
   canJoin: boolean;
   canLeave: boolean;
   phases: PhaseRead[];
-  variant: VariantRead;
   members: MemberRead[];
   phaseConfirmed: boolean;
   sandbox: boolean;
   name: string;
+  variant: VariantRead;
   nationAssignment: NationAssignmentEnum;
   movementPhaseDuration?: MovementPhaseDurationEnum;
   private: boolean;
@@ -699,31 +691,20 @@ export type OrderRead = {
 export type GameList = {
   name: string;
 };
-export type GameListVariant = {
-  id: string;
-  name: string;
-  description: string;
-  author?: string;
-  nations: Nation[];
-};
 export type GameListRead = {
   id: string;
   status: string;
   canJoin: boolean;
   canLeave: boolean;
   phases: PhaseRead[];
-  variant: GameListVariant;
   members: MemberRead[];
   phaseConfirmed: boolean;
   sandbox: boolean;
   name: string;
+  variantId: string;
   private: boolean;
   movementPhaseDuration: string;
   nationAssignment: string;
-};
-export type GameListWrite = {
-  name: string;
-  variantId: string;
 };
 export type Channel = {};
 export type ChannelMessage = {
@@ -766,11 +747,11 @@ export type SandboxGameRead = {
   canJoin: boolean;
   canLeave: boolean;
   phases: PhaseRead[];
-  variant: VariantRead;
   members: MemberRead[];
   phaseConfirmed: boolean;
   sandbox: boolean;
   name: string;
+  variant: VariantRead;
   nationAssignment: NationAssignmentEnum;
   movementPhaseDuration: MovementPhaseDurationEnum;
   private: boolean;
@@ -803,7 +784,6 @@ export type Version = {
 };
 export const {
   useApiSchemaRetrieveQuery,
-  useApiTestSentryRetrieveQuery,
   useApiTokenRefreshCreateMutation,
   useAuthLoginCreateMutation,
   useDevicesListQuery,

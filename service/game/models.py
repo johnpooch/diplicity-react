@@ -40,10 +40,7 @@ class GameQuerySet(models.QuerySet):
             queryset=Member.objects.select_related("nation", "user__profile"),
         )
 
-        return self.prefetch_related(
-            "variant__provinces__parent",
-            "variant__provinces__named_coasts",
-            "variant__nations",
+        return self.select_related("variant").prefetch_related(
             current_phase_prefetch,
             members_prefetch,
         )

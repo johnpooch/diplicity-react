@@ -3,7 +3,7 @@ from django.db import transaction
 from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
 from common.constants import NationAssignment, MovementPhaseDuration
-from variant.serializers import VariantSerializer, GameListVariantSerializer
+from variant.serializers import VariantSerializer
 from phase.serializers import PhaseSerializer
 from member.serializers import MemberSerializer
 from variant.models import Variant
@@ -18,7 +18,6 @@ class BaseGameSerializer(serializers.Serializer):
     can_join = serializers.SerializerMethodField()
     can_leave = serializers.SerializerMethodField()
     phases = PhaseSerializer(many=True, read_only=True)
-    variant = VariantSerializer(read_only=True)
     members = MemberSerializer(many=True, read_only=True)
     phase_confirmed = serializers.SerializerMethodField()
     sandbox = serializers.BooleanField(read_only=True)
@@ -54,7 +53,7 @@ class BaseGameSerializer(serializers.Serializer):
 
 
 class GameListSerializer(BaseGameSerializer):
-    variant = GameListVariantSerializer(read_only=True)
+    variant_id = serializers.CharField(source='variant.id', read_only=True)
     phases = serializers.SerializerMethodField()
     private = serializers.BooleanField(read_only=True)
     movement_phase_duration = serializers.CharField(read_only=True)
@@ -63,9 +62,6 @@ class GameListSerializer(BaseGameSerializer):
     @extend_schema_field(PhaseSerializer(many=True))
     def get_phases(self, obj):
         with tracer.start_as_current_span("game.serializers.get_phases"):
-            print(obj)
-            print("obj.current_phase")
-            print(obj.current_phase)
             current_phase = obj.current_phase
             if current_phase:
                 return [PhaseSerializer(obj.current_phase).data]
@@ -73,6 +69,7 @@ class GameListSerializer(BaseGameSerializer):
 
 
 class GameSerializer(BaseGameSerializer):
+    variant = VariantSerializer(read_only=True)
     nation_assignment = serializers.ChoiceField(choices=NationAssignment.NATION_ASSIGNMENT_CHOICES)
     movement_phase_duration = serializers.ChoiceField(
         choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES, default=MovementPhaseDuration.TWENTY_FOUR_HOURS
@@ -101,6 +98,7 @@ class GameSerializer(BaseGameSerializer):
 
 
 class SandboxGameSerializer(BaseGameSerializer):
+    variant = VariantSerializer(read_only=True)
     nation_assignment = serializers.ChoiceField(choices=NationAssignment.NATION_ASSIGNMENT_CHOICES, read_only=True)
     movement_phase_duration = serializers.ChoiceField(
         choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES, read_only=True

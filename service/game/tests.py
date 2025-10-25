@@ -325,7 +325,7 @@ class TestGameListView:
                 "can_leave",
                 "phases",
                 "members",
-                "variant",
+                "variant_id",
                 "phase_confirmed",
             ]
             for field in required_fields:
@@ -397,7 +397,7 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 17
+        assert query_count == 12
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_phases_and_units(
@@ -439,7 +439,7 @@ class TestGameListViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        assert query_count == 17
+        assert query_count == 12
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_different_nations(
@@ -540,7 +540,7 @@ class TestGameListViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        assert query_count == 21
+        assert query_count == 16
 
 
 class TestGameCreateView:

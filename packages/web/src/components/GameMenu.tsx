@@ -20,8 +20,14 @@ import { NavigateFunction, useLocation, useNavigate } from "react-router";
 import { useDispatch } from "react-redux";
 import { feedbackActions, service } from "../store";
 
+type Game = {
+  id: string;
+  canJoin: boolean;
+  canLeave: boolean;
+};
+
 type GameMenuProps = {
-  game: (typeof service.endpoints.gamesList.Types.ResultType)[number];
+  game: Game;
   onClickGameInfo: (navigate: NavigateFunction, gameId: string) => void;
   onClickPlayerInfo: (navigate: NavigateFunction, gameId: string) => void;
 };
