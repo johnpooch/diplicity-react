@@ -6,7 +6,8 @@
       "Bash(docker compose run:*)",
       "Bash(npm run lint)",
       "Bash(grep:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "ask": []
