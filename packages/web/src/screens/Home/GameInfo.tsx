@@ -9,7 +9,7 @@ import {
   Stack,
 } from "@mui/material";
 import { HomeLayout } from "./Layout";
-import { GameListRead, service } from "../../store";
+import { service } from "../../store";
 import { HomeAppBar } from "./AppBar";
 import { IconName } from "../../components/Icon";
 import { useNavigate } from "react-router";
@@ -75,7 +75,7 @@ const GameInfo: React.FC = () => {
                   />
                 )}
                 <GameMenu
-                  game={query.data as GameListRead}
+                  game={query.data}
                   onClickGameInfo={() => navigate(`/game-info/${gameId}`)}
                   onClickPlayerInfo={() => navigate(`/player-info/${gameId}`)}
                 />
