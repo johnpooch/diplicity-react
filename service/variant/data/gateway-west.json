@@ -1,0 +1,662 @@
+{
+  "id": "gateway west",
+  "name": "Gateway West",
+  "description": "THIS IS A BETA MAP; IT IS STILL IN DEVELOPMENT. THIS MEANS THE MAP CAN BE UPDATED WITHOUT WARNING DURING YOUR GAME.\n\tPROCEED WITH CAUTION. Alternative history variant. Missouri has recently \n\tachieved statehood, and the exploration of the western territories \n\tis gaining momentum as settlers seek new opportunities. However, \n\tindigenous tribes continue to inhabit these lands, and they aspire \n\tto organize and reclaim the territories they once freely roamed.",
+  "author": "TJ Brooks",
+  "nations": [
+    {
+      "name": "Chickasaw",
+      "color": "#1B316D"
+    },
+    {
+      "name": "Osage",
+      "color": "#97CBFF"
+    },
+    {
+      "name": "Missouria",
+      "color": "#8D5117"
+    },
+    {
+      "name": "Illini",
+      "color": "#FF5F05"
+    },
+    {
+      "name": "Otoe",
+      "color": "#850405"
+    },
+    {
+      "name": "Ioway",
+      "color": "#009396"
+    },
+    {
+      "name": "Quapaw",
+      "color": "#F2CC00"
+    }
+  ],
+  "provinces": [
+    {
+      "id": "how",
+      "name": "Howard",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "fra",
+      "name": "Franklin",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "per",
+      "name": "Perry",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "cap",
+      "name": "Cape Girardeau",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "jef",
+      "name": "Jefferson",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "lin",
+      "name": "Lincoln",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ric",
+      "name": "Richmond",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "stf",
+      "name": "St. Francis",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "mer",
+      "name": "Meramec",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "osa",
+      "name": "Osage",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "sco",
+      "name": "Scott",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ceo",
+      "name": "Central Missouri River",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "scp",
+      "name": "South Central Mississippi River",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "cha",
+      "name": "Chariton",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "laf",
+      "name": "Lafayette",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "whi",
+      "name": "White",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "stc",
+      "name": "St. Charles",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "npp",
+      "name": "North Central Mississippi River",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "cpp",
+      "name": "Central Mississippi River",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "mus",
+      "name": "Musse",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "gas",
+      "name": "Gasconade",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "oza",
+      "name": "Ozark",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "new",
+      "name": "New Madrid",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "mad",
+      "name": "Madison",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "nog",
+      "name": "North Grand",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "cli",
+      "name": "Clinton",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "emr",
+      "name": "East Missouri River",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "cly",
+      "name": "Clay",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "jac",
+      "name": "Jackson",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "mot",
+      "name": "Montgomery",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "pla",
+      "name": "Platte",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "lew",
+      "name": "Lewis",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "neo",
+      "name": "Neosho",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "aud",
+      "name": "Audrain",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "big",
+      "name": "Big Pinay",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "cui",
+      "name": "Cuivre",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "sto",
+      "name": "Stockton",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "sog",
+      "name": "South Grand",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "tab",
+      "name": "Table Rock",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "smr",
+      "name": "South Mississippi River",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "nwm",
+      "name": "North West Missouri River",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "nwc",
+      "name": "North West Central Missouri River",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "cal",
+      "name": "Callaway",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ray",
+      "name": "Ray",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "lar",
+      "name": "Clark",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "bla",
+      "name": "Black",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "wes",
+      "name": "West Missouri River",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "col",
+      "name": "Cole",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "way",
+      "name": "Wayne",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "nod",
+      "name": "Nodaway",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "nmr",
+      "name": "North Mississippi River",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "pik",
+      "name": "Pike",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "gre",
+      "name": "Greenville",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "sal",
+      "name": "Saline",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "stl",
+      "name": "St. Louis",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "pet",
+      "name": "Pettis",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "mro",
+      "name": "Monroe",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "joh",
+      "name": "Johnson",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "ran",
+      "name": "Randolph",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "noo",
+      "name": "North Central Missouri River",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "gra",
+      "name": "Grand",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "car",
+      "name": "Carroll",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "bou",
+      "name": "Bourbeuse",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "ste",
+      "name": "Ste. Genevieve",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "mar",
+      "name": "Marion",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "boo",
+      "name": "Boone",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "nis",
+      "name": "Nishnabotna",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "sem",
+      "name": "South East Missouri River",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "but",
+      "name": "Butler",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "hen",
+      "name": "Henry",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "ecm",
+      "name": "East Central Missouri River",
+      "type": "sea",
+      "supply_center": false
+    }
+  ],
+  "initial_phase": {
+    "season": "Spring",
+    "year": 1826,
+    "type": "Movement"
+  },
+  "initial_units": [
+    {
+      "type": "Fleet",
+      "nation": "Missouria",
+      "province": "laf"
+    },
+    {
+      "type": "Army",
+      "nation": "Illini",
+      "province": "lin"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Otoe",
+      "province": "cly"
+    },
+    {
+      "type": "Army",
+      "nation": "Osage",
+      "province": "col"
+    },
+    {
+      "type": "Army",
+      "nation": "Ioway",
+      "province": "mus"
+    },
+    {
+      "type": "Army",
+      "nation": "Quapaw",
+      "province": "but"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Chickasaw",
+      "province": "new"
+    },
+    {
+      "type": "Army",
+      "nation": "Illini",
+      "province": "stl"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Illini",
+      "province": "stc"
+    },
+    {
+      "type": "Army",
+      "nation": "Quapaw",
+      "province": "way"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Missouria",
+      "province": "sal"
+    },
+    {
+      "type": "Army",
+      "nation": "Chickasaw",
+      "province": "stf"
+    },
+    {
+      "type": "Army",
+      "nation": "Osage",
+      "province": "oza"
+    },
+    {
+      "type": "Army",
+      "nation": "Osage",
+      "province": "osa"
+    },
+    {
+      "type": "Army",
+      "nation": "Ioway",
+      "province": "gra"
+    },
+    {
+      "type": "Army",
+      "nation": "Ioway",
+      "province": "nog"
+    },
+    {
+      "type": "Army",
+      "nation": "Chickasaw",
+      "province": "sco"
+    },
+    {
+      "type": "Army",
+      "nation": "Otoe",
+      "province": "pla"
+    },
+    {
+      "type": "Army",
+      "nation": "Quapaw",
+      "province": "bla"
+    },
+    {
+      "type": "Army",
+      "nation": "Missouria",
+      "province": "jac"
+    },
+    {
+      "type": "Army",
+      "nation": "Otoe",
+      "province": "nis"
+    }
+  ],
+  "initial_supply_centers": [
+    {
+      "nation": "Missouria",
+      "province": "sal"
+    },
+    {
+      "nation": "Illini",
+      "province": "stc"
+    },
+    {
+      "nation": "Otoe",
+      "province": "cly"
+    },
+    {
+      "nation": "Otoe",
+      "province": "pla"
+    },
+    {
+      "nation": "Ioway",
+      "province": "mus"
+    },
+    {
+      "nation": "Quapaw",
+      "province": "but"
+    },
+    {
+      "nation": "Chickasaw",
+      "province": "new"
+    },
+    {
+      "nation": "Osage",
+      "province": "oza"
+    },
+    {
+      "nation": "Illini",
+      "province": "stl"
+    },
+    {
+      "nation": "Otoe",
+      "province": "nis"
+    },
+    {
+      "nation": "Ioway",
+      "province": "gra"
+    },
+    {
+      "nation": "Ioway",
+      "province": "nog"
+    },
+    {
+      "nation": "Quapaw",
+      "province": "way"
+    },
+    {
+      "nation": "Chickasaw",
+      "province": "stf"
+    },
+    {
+      "nation": "Missouria",
+      "province": "jac"
+    },
+    {
+      "nation": "Missouria",
+      "province": "laf"
+    },
+    {
+      "nation": "Illini",
+      "province": "lin"
+    },
+    {
+      "nation": "Quapaw",
+      "province": "bla"
+    },
+    {
+      "nation": "Chickasaw",
+      "province": "sco"
+    },
+    {
+      "nation": "Osage",
+      "province": "col"
+    },
+    {
+      "nation": "Osage",
+      "province": "osa"
+    }
+  ]
+}

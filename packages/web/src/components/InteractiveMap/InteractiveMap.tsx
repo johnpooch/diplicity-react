@@ -5,12 +5,14 @@ import { Octagon } from "./shapes/octagon";
 import { OrderRead, PhaseRead, Variant, VariantRead } from "../../store";
 
 import classical from "../../maps/classical.json";
+import hundred from "../../maps/hundred.json";
 import { ConvoyArrow } from "./orders/convoy";
 import { SupportHoldArrow } from "./orders/support-hold";
 import { Minus } from "./shapes/minus";
 
-const VARIANT_MAPS: Record<string, typeof classical> = {
+const VARIANT_MAPS: Record<string, typeof classical | typeof hundred> = {
   classical,
+  hundred,
 };
 
 const getMap = (variant: Variant) => {

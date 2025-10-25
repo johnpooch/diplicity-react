@@ -1,0 +1,1643 @@
+{
+  "id": "western world 901",
+  "name": "Western World 901",
+  "description": "Nine powers compete for the Western World circa 901.",
+  "author": "David Cohen",
+  "nations": [
+    {
+      "name": "Umayyad Emirate",
+      "color": "#808080"
+    },
+    {
+      "name": "Principality of Kiev",
+      "color": "#808080"
+    },
+    {
+      "name": "Kingdom of Denmark",
+      "color": "#808080"
+    },
+    {
+      "name": "Khaganate of Khazaria",
+      "color": "#808080"
+    },
+    {
+      "name": "West Frankish Kingdom",
+      "color": "#808080"
+    },
+    {
+      "name": "Tulunid Emirate",
+      "color": "#808080"
+    },
+    {
+      "name": "Abbasid Caliphate",
+      "color": "#808080"
+    },
+    {
+      "name": "East Frankish Kingdom",
+      "color": "#808080"
+    },
+    {
+      "name": "Eastern Roman Empire",
+      "color": "#808080"
+    }
+  ],
+  "provinces": [
+    {
+      "id": "tol",
+      "name": "Toledo",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "mun",
+      "name": "Munster",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "tyr",
+      "name": "Tyrrhenian Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "sss",
+      "name": "Sijilmassa",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "der",
+      "name": "Derbent",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "vla",
+      "name": "Vlacha",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "ice",
+      "name": "Icelandic Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "smo",
+      "name": "Smolensk",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "ion",
+      "name": "Ionian Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "saa",
+      "name": "Saamiland",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "saa/nc",
+      "name": "Saamiland (NC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "saa"
+    },
+    {
+      "id": "saa/sc",
+      "name": "Saamiland (SC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "saa"
+    },
+    {
+      "id": "sla",
+      "name": "Slavonia",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "kom",
+      "name": "Komia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "arm",
+      "name": "Armenia",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "ula",
+      "name": "Uppland",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "pam",
+      "name": "Pamplona",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "cil",
+      "name": "Cilician Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "sst",
+      "name": "Sijistan",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "gal",
+      "name": "Galicia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "bah",
+      "name": "Barghawata",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "sax",
+      "name": "Saxony",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "bas",
+      "name": "Bashkortostan",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "eas",
+      "name": "East Euxine Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "aql",
+      "name": "Aquileia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "sle",
+      "name": "Salerno",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "spo",
+      "name": "Spoleto",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "ill",
+      "name": "Illyrian Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "nov",
+      "name": "Novgorod",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "kat",
+      "name": "Kattegat",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "bja",
+      "name": "Bjarmaland",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "wel",
+      "name": "Welsh Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "bsa",
+      "name": "British Channel",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "tri",
+      "name": "Tripolitania",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "abo",
+      "name": "Abodrite Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "est",
+      "name": "Esteland",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "bsr",
+      "name": "Basra",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "wes",
+      "name": "West Euxine Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "lig",
+      "name": "Ligurian Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "epi",
+      "name": "Epirus",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "ira",
+      "name": "Irak",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "hel",
+      "name": "Helvetia",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "aqa",
+      "name": "Al-Qatta'i",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "ono",
+      "name": "Onoguria",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "jor",
+      "name": "Jorvik",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "jor/wc",
+      "name": "Jorvik (WC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "jor"
+    },
+    {
+      "id": "jor/ec",
+      "name": "Jorvik (EC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "jor"
+    },
+    {
+      "id": "ali",
+      "name": "Alidistan",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "zar",
+      "name": "Zaragoza",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "bnj",
+      "name": "Balanjar",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "cap",
+      "name": "Cappadocia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "mau",
+      "name": "Mauretania",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "dal",
+      "name": "Dalmatia",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "tou",
+      "name": "Toulouse",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "att",
+      "name": "Attalia",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ngs",
+      "name": "North German Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "fra",
+      "name": "Franconia",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "ale",
+      "name": "Alexandria",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "geo",
+      "name": "Georgia",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "dub",
+      "name": "Dublin",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "maz",
+      "name": "Mazovia",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "sca",
+      "name": "Scania",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "sic",
+      "name": "Sicily",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "dre",
+      "name": "Dregovichia",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "bar",
+      "name": "Barca",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ast",
+      "name": "Asturias",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "vol",
+      "name": "Volhynia",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "gra",
+      "name": "Granada",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "swa",
+      "name": "Swabia",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "con",
+      "name": "Constantinople",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "can",
+      "name": "Cantabric Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "soa",
+      "name": "Sea of Tangiers",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "udm",
+      "name": "Udmurtia",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "lot",
+      "name": "Lothairingia",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "sto",
+      "name": "Stone Belt",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "aut",
+      "name": "Autun",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "str",
+      "name": "Straits of Jebel Tarik",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "bre",
+      "name": "Bremen",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "mec",
+      "name": "Mecca",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "low",
+      "name": "Lower Burgundy",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ueg",
+      "name": "Upper Burgundy",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "bav",
+      "name": "Bavaria",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "chm",
+      "name": "Cheremissia",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "sev",
+      "name": "Severyana",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "aze",
+      "name": "Azerbaijan",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "lib",
+      "name": "Libyan Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "par",
+      "name": "Paris",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "sks",
+      "name": "South Kazar Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "mod",
+      "name": "Mordvinia",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "faz",
+      "name": "Fazzan",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "cad",
+      "name": "Cadiz",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "tah",
+      "name": "Tahert",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "rom",
+      "name": "Rome",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "rom/wc",
+      "name": "Rome (WC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "rom"
+    },
+    {
+      "id": "rom/ec",
+      "name": "Rome (EC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "rom"
+    },
+    {
+      "id": "tar",
+      "name": "Taranto",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "kho",
+      "name": "Khorasan",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "sad",
+      "name": "Sardinia",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "jaz",
+      "name": "Jazira",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "dam",
+      "name": "Damascus",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "nef",
+      "name": "Nefud",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "buc",
+      "name": "Bucellaria",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "now",
+      "name": "Norway",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "ati",
+      "name": "Atil",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ifr",
+      "name": "Ifriqiya",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "cal",
+      "name": "Caledonia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "cos",
+      "name": "Corsica",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "lom",
+      "name": "Lombardy",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "kar",
+      "name": "Karelia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "bor",
+      "name": "Borussia",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "aqt",
+      "name": "Aquitaine",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "jer",
+      "name": "Jerusalem",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "mac",
+      "name": "Macedonia",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "kip",
+      "name": "Kipchak",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "let",
+      "name": "Lettish Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "bag",
+      "name": "Baghdad",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "bul",
+      "name": "Bulgar",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "sak",
+      "name": "Sarkel",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "btt",
+      "name": "Brittany",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "crn",
+      "name": "Cherson",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "gas",
+      "name": "Gascony",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "isf",
+      "name": "Isfahan",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "cod",
+      "name": "Cordova",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "kak",
+      "name": "Kakheti",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "kyz",
+      "name": "Kyzyl Kum",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "got",
+      "name": "Gottland",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "pom",
+      "name": "Pomerania",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "jel",
+      "name": "Jelling",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "kri",
+      "name": "Krivichia",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "abk",
+      "name": "Abkhazia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "fin",
+      "name": "Finnish Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "spa",
+      "name": "Spanish March",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "pol",
+      "name": "Polania",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "cyp",
+      "name": "Cyprus",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "fri",
+      "name": "Friesland",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "ros",
+      "name": "Rostov",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "wsx",
+      "name": "Wessex",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "pec/ec",
+      "name": "Pechenega (EC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "pec"
+    },
+    {
+      "id": "pec",
+      "name": "Pechenega",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "pec/wc",
+      "name": "Pechenega (WC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "pec"
+    },
+    {
+      "id": "vya",
+      "name": "Vyatichia",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "nks",
+      "name": "North Khazar Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "liv",
+      "name": "Livonia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "oce",
+      "name": "Ocean Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "vel/wc",
+      "name": "Veletia (WC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "vel"
+    },
+    {
+      "id": "vel",
+      "name": "Veletia",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "vel/nc",
+      "name": "Veletia (NC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "vel"
+    },
+    {
+      "id": "vik",
+      "name": "Viken",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "nar",
+      "name": "Narbonne",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "whi",
+      "name": "White Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "sey",
+      "name": "Sea of Tyre",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "sgs",
+      "name": "South German Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "mos",
+      "name": "Mosul",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "thr",
+      "name": "Thrace",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "urg",
+      "name": "Urgench",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "tam",
+      "name": "Tamantarka",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "kut",
+      "name": "Kutamia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "val",
+      "name": "Valencia",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "egy",
+      "name": "Egyptian Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "mav",
+      "name": "Moravia",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "cre",
+      "name": "Crete",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ard",
+      "name": "Ardebil",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "snc",
+      "name": "Salamanca",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "wal",
+      "name": "Wales",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "aeg",
+      "name": "Aegean Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "kie",
+      "name": "Kiev",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "bcs",
+      "name": "Bcs",
+      "type": "sea",
+      "supply_center": false
+    }
+  ],
+  "initial_phase": {
+    "season": "Spring",
+    "year": 901,
+    "type": "Movement"
+  },
+  "initial_units": [
+    {
+      "type": "Army",
+      "nation": "Umayyad Emirate",
+      "province": "snc"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Kingdom of Denmark",
+      "province": "jel"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "mav"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "sic"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Kingdom of Denmark",
+      "province": "sca"
+    },
+    {
+      "type": "Army",
+      "nation": "Khaganate of Khazaria",
+      "province": "bnj"
+    },
+    {
+      "type": "Army",
+      "nation": "East Frankish Kingdom",
+      "province": "swa"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "btt"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "est"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "lot"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "bja"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Kingdom of Denmark",
+      "province": "jor/ec"
+    },
+    {
+      "type": "Army",
+      "nation": "West Frankish Kingdom",
+      "province": "gas"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "bul"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "maz"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "sad"
+    },
+    {
+      "type": "Army",
+      "nation": "Abbasid Caliphate",
+      "province": "bag"
+    },
+    {
+      "type": "Army",
+      "nation": "Principality of Kiev",
+      "province": "smo"
+    },
+    {
+      "type": "Army",
+      "nation": "Tulunid Emirate",
+      "province": "dam"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Tulunid Emirate",
+      "province": "jer"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Tulunid Emirate",
+      "province": "bar"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Principality of Kiev",
+      "province": "nov"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "dub"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "bas"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "bor"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "cre"
+    },
+    {
+      "type": "Army",
+      "nation": "Tulunid Emirate",
+      "province": "ale"
+    },
+    {
+      "type": "Army",
+      "nation": "Eastern Roman Empire",
+      "province": "con"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "ifr"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "thr"
+    },
+    {
+      "type": "Army",
+      "nation": "Khaganate of Khazaria",
+      "province": "tam"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "dal"
+    },
+    {
+      "type": "Army",
+      "nation": "East Frankish Kingdom",
+      "province": "bav"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "cos"
+    },
+    {
+      "type": "Army",
+      "nation": "East Frankish Kingdom",
+      "province": "sax"
+    },
+    {
+      "type": "Fleet",
+      "nation": "West Frankish Kingdom",
+      "province": "par"
+    },
+    {
+      "type": "Army",
+      "nation": "West Frankish Kingdom",
+      "province": "aqt"
+    },
+    {
+      "type": "Army",
+      "nation": "Abbasid Caliphate",
+      "province": "ira"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "urg"
+    },
+    {
+      "type": "Army",
+      "nation": "Abbasid Caliphate",
+      "province": "isf"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Eastern Roman Empire",
+      "province": "att"
+    },
+    {
+      "type": "Army",
+      "nation": "Principality of Kiev",
+      "province": "kie"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Umayyad Emirate",
+      "province": "val"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "aze"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "rom"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "mau"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "wsx"
+    },
+    {
+      "type": "Army",
+      "nation": "Principality of Kiev",
+      "province": "ros"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Eastern Roman Empire",
+      "province": "crn"
+    },
+    {
+      "type": "Army",
+      "nation": "Umayyad Emirate",
+      "province": "cod"
+    },
+    {
+      "type": "Army",
+      "nation": "Kingdom of Denmark",
+      "province": "vik"
+    },
+    {
+      "type": "Army",
+      "nation": "West Frankish Kingdom",
+      "province": "nar"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "pam"
+    },
+    {
+      "type": "Fleet",
+      "nation": "East Frankish Kingdom",
+      "province": "bre"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Umayyad Emirate",
+      "province": "cad"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "arm"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "low"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "cyp"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "geo"
+    },
+    {
+      "type": "Army",
+      "nation": "Khaganate of Khazaria",
+      "province": "sak"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Eastern Roman Empire",
+      "province": "tar"
+    },
+    {
+      "type": "Army",
+      "nation": "Neutral",
+      "province": "pec"
+    },
+    {
+      "type": "Army",
+      "nation": "Khaganate of Khazaria",
+      "province": "ati"
+    },
+    {
+      "type": "Army",
+      "nation": "Abbasid Caliphate",
+      "province": "ard"
+    }
+  ],
+  "initial_supply_centers": [
+    {
+      "nation": "Neutral",
+      "province": "cyp"
+    },
+    {
+      "nation": "Neutral",
+      "province": "dal"
+    },
+    {
+      "nation": "Tulunid Emirate",
+      "province": "bar"
+    },
+    {
+      "nation": "East Frankish Kingdom",
+      "province": "swa"
+    },
+    {
+      "nation": "Umayyad Emirate",
+      "province": "cad"
+    },
+    {
+      "nation": "Principality of Kiev",
+      "province": "nov"
+    },
+    {
+      "nation": "Tulunid Emirate",
+      "province": "dam"
+    },
+    {
+      "nation": "Abbasid Caliphate",
+      "province": "ard"
+    },
+    {
+      "nation": "Eastern Roman Empire",
+      "province": "att"
+    },
+    {
+      "nation": "Neutral",
+      "province": "bja"
+    },
+    {
+      "nation": "Neutral",
+      "province": "mau"
+    },
+    {
+      "nation": "Kingdom of Denmark",
+      "province": "sca"
+    },
+    {
+      "nation": "Kingdom of Denmark",
+      "province": "vik"
+    },
+    {
+      "nation": "Khaganate of Khazaria",
+      "province": "tam"
+    },
+    {
+      "nation": "Abbasid Caliphate",
+      "province": "isf"
+    },
+    {
+      "nation": "Neutral",
+      "province": "pam"
+    },
+    {
+      "nation": "Neutral",
+      "province": "bas"
+    },
+    {
+      "nation": "Neutral",
+      "province": "thr"
+    },
+    {
+      "nation": "Principality of Kiev",
+      "province": "kie"
+    },
+    {
+      "nation": "Khaganate of Khazaria",
+      "province": "ati"
+    },
+    {
+      "nation": "Eastern Roman Empire",
+      "province": "con"
+    },
+    {
+      "nation": "Principality of Kiev",
+      "province": "smo"
+    },
+    {
+      "nation": "West Frankish Kingdom",
+      "province": "nar"
+    },
+    {
+      "nation": "Neutral",
+      "province": "maz"
+    },
+    {
+      "nation": "Neutral",
+      "province": "aze"
+    },
+    {
+      "nation": "Kingdom of Denmark",
+      "province": "jor"
+    },
+    {
+      "nation": "Tulunid Emirate",
+      "province": "jer"
+    },
+    {
+      "nation": "West Frankish Kingdom",
+      "province": "gas"
+    },
+    {
+      "nation": "Abbasid Caliphate",
+      "province": "bag"
+    },
+    {
+      "nation": "Neutral",
+      "province": "dub"
+    },
+    {
+      "nation": "Umayyad Emirate",
+      "province": "cod"
+    },
+    {
+      "nation": "West Frankish Kingdom",
+      "province": "aqt"
+    },
+    {
+      "nation": "Neutral",
+      "province": "pec"
+    },
+    {
+      "nation": "Neutral",
+      "province": "wsx"
+    },
+    {
+      "nation": "Kingdom of Denmark",
+      "province": "jel"
+    },
+    {
+      "nation": "Neutral",
+      "province": "sad"
+    },
+    {
+      "nation": "Neutral",
+      "province": "geo"
+    },
+    {
+      "nation": "Neutral",
+      "province": "ifr"
+    },
+    {
+      "nation": "Neutral",
+      "province": "bul"
+    },
+    {
+      "nation": "Khaganate of Khazaria",
+      "province": "bnj"
+    },
+    {
+      "nation": "Neutral",
+      "province": "btt"
+    },
+    {
+      "nation": "Umayyad Emirate",
+      "province": "val"
+    },
+    {
+      "nation": "Neutral",
+      "province": "cos"
+    },
+    {
+      "nation": "Eastern Roman Empire",
+      "province": "crn"
+    },
+    {
+      "nation": "Neutral",
+      "province": "bor"
+    },
+    {
+      "nation": "Umayyad Emirate",
+      "province": "snc"
+    },
+    {
+      "nation": "West Frankish Kingdom",
+      "province": "par"
+    },
+    {
+      "nation": "East Frankish Kingdom",
+      "province": "sax"
+    },
+    {
+      "nation": "Neutral",
+      "province": "low"
+    },
+    {
+      "nation": "Neutral",
+      "province": "rom"
+    },
+    {
+      "nation": "Neutral",
+      "province": "arm"
+    },
+    {
+      "nation": "Neutral",
+      "province": "est"
+    },
+    {
+      "nation": "Tulunid Emirate",
+      "province": "ale"
+    },
+    {
+      "nation": "Abbasid Caliphate",
+      "province": "ira"
+    },
+    {
+      "nation": "Neutral",
+      "province": "sic"
+    },
+    {
+      "nation": "Neutral",
+      "province": "mav"
+    },
+    {
+      "nation": "Neutral",
+      "province": "lot"
+    },
+    {
+      "nation": "East Frankish Kingdom",
+      "province": "bre"
+    },
+    {
+      "nation": "Eastern Roman Empire",
+      "province": "tar"
+    },
+    {
+      "nation": "Principality of Kiev",
+      "province": "ros"
+    },
+    {
+      "nation": "Khaganate of Khazaria",
+      "province": "sak"
+    },
+    {
+      "nation": "Neutral",
+      "province": "cre"
+    },
+    {
+      "nation": "East Frankish Kingdom",
+      "province": "bav"
+    },
+    {
+      "nation": "Neutral",
+      "province": "urg"
+    }
+  ]
+}

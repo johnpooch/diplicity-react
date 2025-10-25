@@ -1,0 +1,307 @@
+{
+  "id": "north sea wars",
+  "name": "North Sea Wars",
+  "description": "A battle for trade routes in the North Sea.",
+  "author": "sqrg",
+  "nations": [
+    {
+      "name": "Britons",
+      "color": "#808080"
+    },
+    {
+      "name": "Romans",
+      "color": "#808080"
+    },
+    {
+      "name": "Frysians",
+      "color": "#808080"
+    },
+    {
+      "name": "Norse",
+      "color": "#808080"
+    }
+  ],
+  "provinces": [
+    {
+      "id": "mag",
+      "name": "Magna Germania",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "got",
+      "name": "Gotaland",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "uns",
+      "name": "Upper North Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "ebe",
+      "name": "East Belgica",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "gei",
+      "name": "Germania Inferior",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "sor",
+      "name": "Sorland",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "lim",
+      "name": "Limfjorden",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "fri",
+      "name": "Frisia",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ali",
+      "name": "Albion",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "cha",
+      "name": "Channel",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "jut",
+      "name": "Jutland",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "jut/wc",
+      "name": "Jutland (WC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "jut"
+    },
+    {
+      "id": "jut/ec",
+      "name": "Jutland (EC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "jut"
+    },
+    {
+      "id": "ges",
+      "name": "Germania Superior",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "ska",
+      "name": "Skagerrak",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "woo",
+      "name": "Wood (Trade)",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "cym",
+      "name": "Cymru",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "ves",
+      "name": "Vestland",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "bat",
+      "name": "Batavia",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "lns",
+      "name": "Lower North Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "ens",
+      "name": "East North Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "ams",
+      "name": "Amsivaria",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "sea",
+      "name": "Sealand",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "nbr",
+      "name": "North Britanny",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "iro",
+      "name": "Iron (Trade)",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "gra",
+      "name": "Grain (Trade)",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ala",
+      "name": "Alba",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "sbr",
+      "name": "South Britanny",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "cns",
+      "name": "Central North Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "ost",
+      "name": "Ostland",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "wns",
+      "name": "West North Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "wbe",
+      "name": "West Belgica",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "men",
+      "name": "Menapia",
+      "type": "coastal",
+      "supply_center": true
+    }
+  ],
+  "initial_phase": {
+    "season": "Spring",
+    "year": 0,
+    "type": "Movement"
+  },
+  "initial_units": [
+    {
+      "type": "Army",
+      "nation": "Frysians",
+      "province": "ams"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Norse",
+      "province": "sor"
+    },
+    {
+      "type": "Army",
+      "nation": "Norse",
+      "province": "got"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Britons",
+      "province": "sbr"
+    },
+    {
+      "type": "Army",
+      "nation": "Britons",
+      "province": "cym"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Romans",
+      "province": "men"
+    },
+    {
+      "type": "Army",
+      "nation": "Romans",
+      "province": "ges"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Frysians",
+      "province": "fri"
+    }
+  ],
+  "initial_supply_centers": [
+    {
+      "nation": "Norse",
+      "province": "sor"
+    },
+    {
+      "nation": "Norse",
+      "province": "got"
+    },
+    {
+      "nation": "Britons",
+      "province": "sbr"
+    },
+    {
+      "nation": "Britons",
+      "province": "cym"
+    },
+    {
+      "nation": "Romans",
+      "province": "men"
+    },
+    {
+      "nation": "Romans",
+      "province": "ges"
+    },
+    {
+      "nation": "Frysians",
+      "province": "fri"
+    },
+    {
+      "nation": "Frysians",
+      "province": "ams"
+    }
+  ]
+}

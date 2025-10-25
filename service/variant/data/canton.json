@@ -1,0 +1,796 @@
+{
+  "id": "canton",
+  "name": "Canton",
+  "description": "Asia at the beginning of the 20th century. It's fate is determined by Britain, China, France, Holland, Japan, Russia, and Turkey.",
+  "author": "Paul Webb",
+  "nations": [
+    {
+      "name": "Turkey",
+      "color": "#FFC107"
+    },
+    {
+      "name": "Britain",
+      "color": "#808080"
+    },
+    {
+      "name": "China",
+      "color": "#808080"
+    },
+    {
+      "name": "Holland",
+      "color": "#808080"
+    },
+    {
+      "name": "Japan",
+      "color": "#808080"
+    },
+    {
+      "name": "Russia",
+      "color": "#F5F5F5"
+    },
+    {
+      "name": "France",
+      "color": "#80DEEA"
+    }
+  ],
+  "provinces": [
+    {
+      "id": "kas",
+      "name": "Kashmir",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "per",
+      "name": "Persia",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "cal",
+      "name": "Calcutta",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "bal",
+      "name": "Baluchistan",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "hue",
+      "name": "Hue",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "bor",
+      "name": "Borneo",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "pgu",
+      "name": "Persian Gulf",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "pse",
+      "name": "Philippine Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "cam",
+      "name": "Cambodia",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "soj",
+      "name": "Sea of Japan",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "bul",
+      "name": "Bulgaria",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "bul/sc",
+      "name": "Bulgaria (SC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "bul"
+    },
+    {
+      "id": "bul/ec",
+      "name": "Bulgaria (EC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "bul"
+    },
+    {
+      "id": "del",
+      "name": "Delhi",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "ecs",
+      "name": "East China Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "chu",
+      "name": "Chunking",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "aki",
+      "name": "Akita",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "bob",
+      "name": "Bay of Bengal",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "amu",
+      "name": "Amur",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "kor",
+      "name": "Korea",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "yel",
+      "name": "Yellow Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "afg",
+      "name": "Afghanistan",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "sia/ec",
+      "name": "Siam (EC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "sia"
+    },
+    {
+      "id": "sia",
+      "name": "Siam",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "sia/wc",
+      "name": "Siam (WC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "sia"
+    },
+    {
+      "id": "mal",
+      "name": "Malaya",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "yun",
+      "name": "Yunnan",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "shi",
+      "name": "Shikoku",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "bag",
+      "name": "Baghdad",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "med",
+      "name": "Mediterranean Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "soo",
+      "name": "Sea of Okhotsk",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "ase",
+      "name": "Arabian Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "kyo",
+      "name": "Kyoto",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "jav",
+      "name": "Java",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "kha",
+      "name": "Khabarovsk",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "arm",
+      "name": "Armenia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "can/sc",
+      "name": "Canton (SC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "can"
+    },
+    {
+      "id": "can/ec",
+      "name": "Canton (EC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "can"
+    },
+    {
+      "id": "can",
+      "name": "Canton",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "asm",
+      "name": "Assam",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "ara",
+      "name": "Arabia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "bla",
+      "name": "Black Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "man",
+      "name": "Manchuria",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "mar",
+      "name": "Primorsky Krai",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "sar",
+      "name": "Sarawak",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "for",
+      "name": "Formosa",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "han",
+      "name": "Hanoi",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "sib",
+      "name": "Siberia",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "mon",
+      "name": "Mongolia",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "wio",
+      "name": "West Indian Ocean",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "rum",
+      "name": "Rumenia",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "irk",
+      "name": "Irkutsk",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "tib",
+      "name": "Tibet",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "gos",
+      "name": "Gulf of Siam",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "cel",
+      "name": "Celebes Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "yes",
+      "name": "Yeso",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "bom",
+      "name": "Bombay",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "con",
+      "name": "Constantinople",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "sio",
+      "name": "South Indian Ocean",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "sas",
+      "name": "Sasebo",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "kan",
+      "name": "Kansu",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "hko",
+      "name": "Hong Kong",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "egy",
+      "name": "Egypt",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "red",
+      "name": "Red Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "mos",
+      "name": "Moscow",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "tom",
+      "name": "Tomsk",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "mad",
+      "name": "Madras",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "bur",
+      "name": "Burma",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "sum",
+      "name": "Sumatra",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "eio",
+      "name": "East Indian Ocean",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "scs",
+      "name": "South China Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "sin",
+      "name": "Sinkiang",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "phi",
+      "name": "Philippines",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "cpo",
+      "name": "Central Pacific Ocean",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "sev",
+      "name": "Sevastopol",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "kar",
+      "name": "Karimata Strait",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "sha",
+      "name": "Shanghai",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "lao",
+      "name": "Laos",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "gom",
+      "name": "Gulf of Martaban",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "tur",
+      "name": "Turkestan",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "jse",
+      "name": "Java Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "tok",
+      "name": "Tokyo",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "dam",
+      "name": "Damascus",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "dam/wc",
+      "name": "Damascus (WC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "dam"
+    },
+    {
+      "id": "dam/sc",
+      "name": "Damascus (SC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "dam"
+    },
+    {
+      "id": "sai",
+      "name": "Saigon",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ban",
+      "name": "Banda Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "kaz",
+      "name": "Kazakhstan",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "pek",
+      "name": "Peking",
+      "type": "coastal",
+      "supply_center": true
+    }
+  ],
+  "initial_phase": {
+    "season": "Spring",
+    "year": 1901,
+    "type": "Movement"
+  },
+  "initial_units": [
+    {
+      "type": "Army",
+      "nation": "Britain",
+      "province": "cal"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Holland",
+      "province": "sum"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Turkey",
+      "province": "con"
+    },
+    {
+      "type": "Fleet",
+      "nation": "China",
+      "province": "pek"
+    },
+    {
+      "type": "Army",
+      "nation": "Japan",
+      "province": "kyo"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Holland",
+      "province": "jav"
+    },
+    {
+      "type": "Army",
+      "nation": "China",
+      "province": "sha"
+    },
+    {
+      "type": "Army",
+      "nation": "China",
+      "province": "tib"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Japan",
+      "province": "sas"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Britain",
+      "province": "mad"
+    },
+    {
+      "type": "Army",
+      "nation": "Britain",
+      "province": "del"
+    },
+    {
+      "type": "Army",
+      "nation": "China",
+      "province": "chu"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "han"
+    },
+    {
+      "type": "Fleet",
+      "nation": "France",
+      "province": "sai"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "hue"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Russia",
+      "province": "kha"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Holland",
+      "province": "bor"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Japan",
+      "province": "tok"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Russia",
+      "province": "sev"
+    },
+    {
+      "type": "Army",
+      "nation": "Turkey",
+      "province": "dam"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "irk"
+    },
+    {
+      "type": "Army",
+      "nation": "Turkey",
+      "province": "bag"
+    }
+  ],
+  "initial_supply_centers": [
+    {
+      "nation": "Turkey",
+      "province": "bag"
+    },
+    {
+      "nation": "Britain",
+      "province": "cal"
+    },
+    {
+      "nation": "Britain",
+      "province": "del"
+    },
+    {
+      "nation": "Holland",
+      "province": "bor"
+    },
+    {
+      "nation": "Japan",
+      "province": "tok"
+    },
+    {
+      "nation": "France",
+      "province": "hue"
+    },
+    {
+      "nation": "Turkey",
+      "province": "con"
+    },
+    {
+      "nation": "China",
+      "province": "sha"
+    },
+    {
+      "nation": "Holland",
+      "province": "jav"
+    },
+    {
+      "nation": "Turkey",
+      "province": "dam"
+    },
+    {
+      "nation": "Britain",
+      "province": "mad"
+    },
+    {
+      "nation": "China",
+      "province": "pek"
+    },
+    {
+      "nation": "China",
+      "province": "chu"
+    },
+    {
+      "nation": "China",
+      "province": "tib"
+    },
+    {
+      "nation": "Japan",
+      "province": "sas"
+    },
+    {
+      "nation": "France",
+      "province": "han"
+    },
+    {
+      "nation": "Holland",
+      "province": "sum"
+    },
+    {
+      "nation": "Japan",
+      "province": "kyo"
+    },
+    {
+      "nation": "Russia",
+      "province": "sev"
+    },
+    {
+      "nation": "Russia",
+      "province": "kha"
+    },
+    {
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "nation": "Russia",
+      "province": "irk"
+    },
+    {
+      "nation": "France",
+      "province": "sai"
+    }
+  ]
+}

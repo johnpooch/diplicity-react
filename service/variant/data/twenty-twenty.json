@@ -1,0 +1,2138 @@
+{
+  "id": "twenty twenty",
+  "name": "Twenty Twenty",
+  "description": "Twenty nations race to conquer the world by the year 2020.",
+  "author": "TTTPPP",
+  "nations": [
+    {
+      "name": "Brazil",
+      "color": "#808080"
+    },
+    {
+      "name": "Canada",
+      "color": "#808080"
+    },
+    {
+      "name": "Australia",
+      "color": "#808080"
+    },
+    {
+      "name": "Italy",
+      "color": "#4CAF50"
+    },
+    {
+      "name": "USA",
+      "color": "#808080"
+    },
+    {
+      "name": "Kenya",
+      "color": "#808080"
+    },
+    {
+      "name": "Egypt",
+      "color": "#808080"
+    },
+    {
+      "name": "Thailand",
+      "color": "#808080"
+    },
+    {
+      "name": "Turkey",
+      "color": "#FFC107"
+    },
+    {
+      "name": "South Africa",
+      "color": "#808080"
+    },
+    {
+      "name": "India",
+      "color": "#808080"
+    },
+    {
+      "name": "Russia",
+      "color": "#F5F5F5"
+    },
+    {
+      "name": "Pakistan",
+      "color": "#808080"
+    },
+    {
+      "name": "China",
+      "color": "#808080"
+    },
+    {
+      "name": "UK",
+      "color": "#808080"
+    },
+    {
+      "name": "Japan",
+      "color": "#808080"
+    },
+    {
+      "name": "Germany",
+      "color": "#90A4AE"
+    },
+    {
+      "name": "Argentina",
+      "color": "#808080"
+    },
+    {
+      "name": "Nigeria",
+      "color": "#808080"
+    },
+    {
+      "name": "Spain",
+      "color": "#808080"
+    }
+  ],
+  "provinces": [
+    {
+      "id": "grc",
+      "name": "Greece",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "esa",
+      "name": "Eastern South Atlantic",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "wio",
+      "name": "West Indian Ocean",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "kol",
+      "name": "Kolkata",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "nai",
+      "name": "Nairobi",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "cap",
+      "name": "Cape Town",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "bob",
+      "name": "Bay of Bengal",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "tan",
+      "name": "Tanzania",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "ale",
+      "name": "Alexandria",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "gux",
+      "name": "Gulf of Mexico",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "uzb",
+      "name": "Uzbekistan",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "chg",
+      "name": "Chicago",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "ham",
+      "name": "Hamburg",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "pai",
+      "name": "Paris",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "hon",
+      "name": "Hong Kong",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "swe",
+      "name": "Sweden",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "bla",
+      "name": "Black Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "bna",
+      "name": "Bangalore",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "lij",
+      "name": "Lijiang",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "atl",
+      "name": "Atlanta",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "rma",
+      "name": "Romania",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "soo",
+      "name": "Southern Ocean",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "gog",
+      "name": "Gulf of Guinea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "she",
+      "name": "Shenyang",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "she/sc",
+      "name": "Shenyang (SC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "she"
+    },
+    {
+      "id": "she/ec",
+      "name": "Shenyang (EC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "she"
+    },
+    {
+      "id": "lah",
+      "name": "Lahore",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "bnk",
+      "name": "Bangkok",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "mun",
+      "name": "Munich",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "irk",
+      "name": "Irkutsk",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "van",
+      "name": "Vancouver",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "cas",
+      "name": "Caribbean Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "yes",
+      "name": "Yellow Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "ade",
+      "name": "Adelaide",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "mor",
+      "name": "Morocco",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "tok",
+      "name": "Tokyo",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "gos",
+      "name": "Gulf of St. Lawrence",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "now",
+      "name": "Norway",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ukr",
+      "name": "Ukraine",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "bet",
+      "name": "Bermuda Triangle",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "che",
+      "name": "Chesapeake Bay",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "gub",
+      "name": "Guiana Basin",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "dar",
+      "name": "Darwin",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "phi",
+      "name": "Philippines",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ecs",
+      "name": "East China Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "lab",
+      "name": "Labrador Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "des",
+      "name": "Denmark Strait",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "kor",
+      "name": "Korea",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "whi",
+      "name": "Whitehorse",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "whi/nc",
+      "name": "Whitehorse (NC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "whi"
+    },
+    {
+      "id": "whi/wc",
+      "name": "Whitehorse (WC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "whi"
+    },
+    {
+      "id": "pol",
+      "name": "Poland",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "gin",
+      "name": "Guinea",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "wna",
+      "name": "Western North Atlantic",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "rec",
+      "name": "Recife",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ben",
+      "name": "Berlin",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "bao",
+      "name": "Baotou",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "sud",
+      "name": "Sudan",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "alb",
+      "name": "Albania",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "anc",
+      "name": "Anchorage",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "gab",
+      "name": "Gabon",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "stp",
+      "name": "St. Petersburg",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "chc",
+      "name": "Chilean Coast",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "wsa",
+      "name": "Western South Atlantic",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "yem",
+      "name": "Yemen",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "yeo",
+      "name": "Yellowknife",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "dub",
+      "name": "Dublin",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "peu",
+      "name": "Peru",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "nig",
+      "name": "Niger",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "ran",
+      "name": "Rangoon",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "mau",
+      "name": "Mauritania",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "asw",
+      "name": "Aswan",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "syd",
+      "name": "Sydney",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "los",
+      "name": "Los Angeles",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "los/wc",
+      "name": "Los Angeles (WC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "los"
+    },
+    {
+      "id": "los/ec",
+      "name": "Los Angeles (EC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "los"
+    },
+    {
+      "id": "yum",
+      "name": "Yumen",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "ank/sc",
+      "name": "Ankara (SC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "ank"
+    },
+    {
+      "id": "ank",
+      "name": "Ankara",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "ank/nc",
+      "name": "Ankara (NC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "ank"
+    },
+    {
+      "id": "por",
+      "name": "Port Elizabeth",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "pag",
+      "name": "Paraguay",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "bul/ec",
+      "name": "Bulgaria (EC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "bul"
+    },
+    {
+      "id": "bul",
+      "name": "Bulgaria",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "bul/sc",
+      "name": "Bulgaria (SC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "bul"
+    },
+    {
+      "id": "com",
+      "name": "Comodoro Rivadavia",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "mec",
+      "name": "Mecca",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "mec/nc",
+      "name": "Mecca (NC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "mec"
+    },
+    {
+      "id": "mec/sc",
+      "name": "Mecca (SC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "mec"
+    },
+    {
+      "id": "ast",
+      "name": "Astana",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "dom",
+      "name": "Dominican Republic",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "bue",
+      "name": "Buenos Aires",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "edi",
+      "name": "Edinburgh",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "arc",
+      "name": "Arctic Ocean",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "was",
+      "name": "Washington DC",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "bes",
+      "name": "Bering Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "abu",
+      "name": "Abuja",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "hat",
+      "name": "Hat",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "fin",
+      "name": "Finland",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "fin/nc",
+      "name": "Finland (NC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "fin"
+    },
+    {
+      "id": "fin/sc",
+      "name": "Finland (SC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "fin"
+    },
+    {
+      "id": "red",
+      "name": "Red Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "spo",
+      "name": "South Pacific Ocean",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "neo",
+      "name": "New Orleans",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "mar",
+      "name": "Marsabit",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "man",
+      "name": "Mandalay",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "men",
+      "name": "Mendoza",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "cot",
+      "name": "Cote d'Ivoire",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "mos",
+      "name": "Moscow",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "ena",
+      "name": "Eastern North Atlantic",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "cho",
+      "name": "Chongqing",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "sma",
+      "name": "South Mid Atlantic",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "ble",
+      "name": "Balearic Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "yak",
+      "name": "Yakutsk",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "lac",
+      "name": "Laccadive Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "lon",
+      "name": "London",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "sao",
+      "name": "Sao Paulo",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "alg",
+      "name": "Algeria",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "hyd",
+      "name": "Hyderabad",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "soj",
+      "name": "Sea of Japan",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "cro",
+      "name": "Croatia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "mom",
+      "name": "Mombasa",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "pab",
+      "name": "Panama Basin",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "cai",
+      "name": "Cairo",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "mum",
+      "name": "Mumbai",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ara",
+      "name": "Arabian Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "okl",
+      "name": "Oklahoma City",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "diy",
+      "name": "Diyarbakir",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "cub",
+      "name": "Cuba",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "bei",
+      "name": "Beijing",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "and",
+      "name": "Andaman Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "bat",
+      "name": "Baltic Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "zam",
+      "name": "Zambia",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "ind",
+      "name": "Indonesia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "alm",
+      "name": "Almaty",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "mac",
+      "name": "Macapa",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "min",
+      "name": "Minneapolis",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "cha",
+      "name": "Chad",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "car",
+      "name": "Central African Republic",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "moq",
+      "name": "Mozambique",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "lap",
+      "name": "Laptev",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "grd",
+      "name": "Greenland",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "beg",
+      "name": "Belgium",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "bea",
+      "name": "Belarus",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "ems",
+      "name": "East Mediterranean Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "gha",
+      "name": "Ghana",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "lyo",
+      "name": "Lyon",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "eth",
+      "name": "Ethiopia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "vie",
+      "name": "Vietnam",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "bad",
+      "name": "Bangladesh",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ang",
+      "name": "Angola",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ant",
+      "name": "Antarctica",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "mot",
+      "name": "Montreal",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "zim",
+      "name": "Zimbabwe",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "mex",
+      "name": "Mexico",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "mex/wc",
+      "name": "Mexico (WC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "mex"
+    },
+    {
+      "id": "mex/ec",
+      "name": "Mexico (EC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "mex"
+    },
+    {
+      "id": "cze",
+      "name": "Czech Republic",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "cad",
+      "name": "Cadiz",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "gur",
+      "name": "Gulf of Mannar",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "ott",
+      "name": "Ottawa",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "oma",
+      "name": "Oman",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ven",
+      "name": "Venezuela",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "bri",
+      "name": "Brisbane",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "dem",
+      "name": "Denmark",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "mio",
+      "name": "Mid Indian Ocean",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "nos",
+      "name": "Norwegian Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "mas",
+      "name": "Mashad",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "vla",
+      "name": "Vladivostok",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "pre",
+      "name": "Pretoria",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ska",
+      "name": "Skaggerak",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "can",
+      "name": "Canaries",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "sap",
+      "name": "Sapporo",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ira/wc",
+      "name": "Iraq (WC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "ira"
+    },
+    {
+      "id": "ira/ec",
+      "name": "Iraq (EC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "ira"
+    },
+    {
+      "id": "ira",
+      "name": "Iraq",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "sco",
+      "name": "Scotia Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "tib",
+      "name": "Tibet",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "tas",
+      "name": "Tasman Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "roe",
+      "name": "Rome",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "roe/wc",
+      "name": "Rome (WC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "roe"
+    },
+    {
+      "id": "roe/ec",
+      "name": "Rome (EC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "roe"
+    },
+    {
+      "id": "kan",
+      "name": "Kano",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "kam",
+      "name": "Kashmir",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "kar",
+      "name": "Karachi",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "bra",
+      "name": "Brasilia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "isl",
+      "name": "Islamabad",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "aeg",
+      "name": "Aegean Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "ser",
+      "name": "Serbia",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "tur",
+      "name": "Turkmenistan",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "bhu",
+      "name": "Bhutan",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "oms",
+      "name": "Omsk",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "aze",
+      "name": "Azerbaijan",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "nep",
+      "name": "Nepal",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "afg",
+      "name": "Afghanistan",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "ned",
+      "name": "New Delhi",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "nma",
+      "name": "North Mid Atlantic",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "npo",
+      "name": "North Pacific Ocean",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "ney",
+      "name": "New York",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "ksi",
+      "name": "Kashi",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "ion",
+      "name": "Ionian Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "mog",
+      "name": "Mongolia",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "nag",
+      "name": "Nagasaki",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "bnh",
+      "name": "Banghazi",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "ros",
+      "name": "Rostov-on-Don",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "chm",
+      "name": "Chiang Mai",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "col/nc",
+      "name": "Colombia (NC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "col"
+    },
+    {
+      "id": "col/wc",
+      "name": "Colombia (WC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "col"
+    },
+    {
+      "id": "col",
+      "name": "Colombia",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "lan",
+      "name": "Lanzhou",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "scs",
+      "name": "South China Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "nap",
+      "name": "Naples",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "hun",
+      "name": "Hungary",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "cab",
+      "name": "Cabo Verde",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "pam",
+      "name": "Panama",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "bod",
+      "name": "Bordeaux",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "bod/wc",
+      "name": "Bordeaux (WC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "bod"
+    },
+    {
+      "id": "bod/ec",
+      "name": "Bordeaux (EC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "bod"
+    },
+    {
+      "id": "riy",
+      "name": "Riyadh",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "sen",
+      "name": "Senegal",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "rio",
+      "name": "Rio de Janeiro",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "drc",
+      "name": "Democratic Republic of Congo",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "dur",
+      "name": "Dubran",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "eio",
+      "name": "East Indian Ocean",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "kum",
+      "name": "Kum",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "iqa",
+      "name": "Iqa",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "mil",
+      "name": "Milan",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "mil/wc",
+      "name": "Milan (WC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "mil"
+    },
+    {
+      "id": "mil/ec",
+      "name": "Milan (EC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "mil"
+    },
+    {
+      "id": "teh",
+      "name": "Tehran",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "peg",
+      "name": "Persian Gulf",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "lag",
+      "name": "Lagos",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "bar",
+      "name": "Barcelona",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "tai",
+      "name": "Taiwan",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "pet",
+      "name": "Perth",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "uru",
+      "name": "Urumqi",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "ist",
+      "name": "Istanbul",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "mpo",
+      "name": "Mid Pacific Ocean",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "mad",
+      "name": "Madrid",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "moc",
+      "name": "Mozambique Channel",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "tri",
+      "name": "Tripoli",
+      "type": "coastal",
+      "supply_center": false
+    }
+  ],
+  "initial_phase": {
+    "season": "Spring",
+    "year": 2001,
+    "type": "Movement"
+  },
+  "initial_units": [
+    {
+      "type": "Fleet",
+      "nation": "Thailand",
+      "province": "bnk"
+    },
+    {
+      "type": "Fleet",
+      "nation": "India",
+      "province": "bna"
+    },
+    {
+      "type": "Army",
+      "nation": "China",
+      "province": "bei"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Egypt",
+      "province": "ale"
+    },
+    {
+      "type": "Army",
+      "nation": "South Africa",
+      "province": "pre"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "ben"
+    },
+    {
+      "type": "Fleet",
+      "nation": "UK",
+      "province": "lon"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Argentina",
+      "province": "com"
+    },
+    {
+      "type": "Army",
+      "nation": "USA",
+      "province": "okl"
+    },
+    {
+      "type": "Army",
+      "nation": "Kenya",
+      "province": "nai"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Italy",
+      "province": "roe/ec"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Japan",
+      "province": "tok"
+    },
+    {
+      "type": "Army",
+      "nation": "Nigeria",
+      "province": "kan"
+    },
+    {
+      "type": "Army",
+      "nation": "Pakistan",
+      "province": "isl"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Australia",
+      "province": "syd"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Japan",
+      "province": "sap"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Pakistan",
+      "province": "kar"
+    },
+    {
+      "type": "Army",
+      "nation": "Turkey",
+      "province": "ank"
+    },
+    {
+      "type": "Army",
+      "nation": "USA",
+      "province": "anc"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Japan",
+      "province": "nag"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Kenya",
+      "province": "mom"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Brazil",
+      "province": "rec"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "nap"
+    },
+    {
+      "type": "Army",
+      "nation": "Pakistan",
+      "province": "lah"
+    },
+    {
+      "type": "Fleet",
+      "nation": "South Africa",
+      "province": "cap"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Brazil",
+      "province": "rio"
+    },
+    {
+      "type": "Army",
+      "nation": "Nigeria",
+      "province": "abu"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "irk"
+    },
+    {
+      "type": "Army",
+      "nation": "Kenya",
+      "province": "mar"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Thailand",
+      "province": "hat"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Canada",
+      "province": "iqa"
+    },
+    {
+      "type": "Fleet",
+      "nation": "UK",
+      "province": "edi"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Australia",
+      "province": "bri"
+    },
+    {
+      "type": "Army",
+      "nation": "Thailand",
+      "province": "chm"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Turkey",
+      "province": "ist"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "vla"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "type": "Army",
+      "nation": "Egypt",
+      "province": "asw"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "mun"
+    },
+    {
+      "type": "Army",
+      "nation": "Spain",
+      "province": "bar"
+    },
+    {
+      "type": "Army",
+      "nation": "Egypt",
+      "province": "cai"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Canada",
+      "province": "mot"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Spain",
+      "province": "cad"
+    },
+    {
+      "type": "Army",
+      "nation": "Turkey",
+      "province": "diy"
+    },
+    {
+      "type": "Fleet",
+      "nation": "South Africa",
+      "province": "dur"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Argentina",
+      "province": "bue"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Spain",
+      "province": "mad"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Germany",
+      "province": "ham"
+    },
+    {
+      "type": "Fleet",
+      "nation": "India",
+      "province": "mum"
+    },
+    {
+      "type": "Army",
+      "nation": "China",
+      "province": "cho"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Argentina",
+      "province": "men"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Australia",
+      "province": "pet"
+    },
+    {
+      "type": "Army",
+      "nation": "India",
+      "province": "ned"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "mil"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Nigeria",
+      "province": "lag"
+    },
+    {
+      "type": "Army",
+      "nation": "China",
+      "province": "bao"
+    },
+    {
+      "type": "Army",
+      "nation": "China",
+      "province": "yum"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Canada",
+      "province": "van"
+    },
+    {
+      "type": "Army",
+      "nation": "USA",
+      "province": "atl"
+    },
+    {
+      "type": "Fleet",
+      "nation": "USA",
+      "province": "was"
+    },
+    {
+      "type": "Fleet",
+      "nation": "UK",
+      "province": "dub"
+    },
+    {
+      "type": "Army",
+      "nation": "Brazil",
+      "province": "mac"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "oms"
+    }
+  ],
+  "initial_supply_centers": [
+    {
+      "nation": "Egypt",
+      "province": "asw"
+    },
+    {
+      "nation": "Turkey",
+      "province": "ank"
+    },
+    {
+      "nation": "Turkey",
+      "province": "diy"
+    },
+    {
+      "nation": "Argentina",
+      "province": "bue"
+    },
+    {
+      "nation": "Canada",
+      "province": "van"
+    },
+    {
+      "nation": "USA",
+      "province": "was"
+    },
+    {
+      "nation": "Egypt",
+      "province": "ale"
+    },
+    {
+      "nation": "China",
+      "province": "yum"
+    },
+    {
+      "nation": "Japan",
+      "province": "nag"
+    },
+    {
+      "nation": "Nigeria",
+      "province": "abu"
+    },
+    {
+      "nation": "Italy",
+      "province": "nap"
+    },
+    {
+      "nation": "Egypt",
+      "province": "cai"
+    },
+    {
+      "nation": "Pakistan",
+      "province": "lah"
+    },
+    {
+      "nation": "Spain",
+      "province": "cad"
+    },
+    {
+      "nation": "Canada",
+      "province": "iqa"
+    },
+    {
+      "nation": "China",
+      "province": "bao"
+    },
+    {
+      "nation": "Nigeria",
+      "province": "lag"
+    },
+    {
+      "nation": "Australia",
+      "province": "syd"
+    },
+    {
+      "nation": "UK",
+      "province": "dub"
+    },
+    {
+      "nation": "Brazil",
+      "province": "rio"
+    },
+    {
+      "nation": "Brazil",
+      "province": "mac"
+    },
+    {
+      "nation": "Russia",
+      "province": "oms"
+    },
+    {
+      "nation": "Germany",
+      "province": "mun"
+    },
+    {
+      "nation": "South Africa",
+      "province": "pre"
+    },
+    {
+      "nation": "India",
+      "province": "mum"
+    },
+    {
+      "nation": "UK",
+      "province": "lon"
+    },
+    {
+      "nation": "Germany",
+      "province": "ham"
+    },
+    {
+      "nation": "Argentina",
+      "province": "com"
+    },
+    {
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "nation": "China",
+      "province": "bei"
+    },
+    {
+      "nation": "UK",
+      "province": "edi"
+    },
+    {
+      "nation": "USA",
+      "province": "anc"
+    },
+    {
+      "nation": "South Africa",
+      "province": "dur"
+    },
+    {
+      "nation": "Kenya",
+      "province": "mom"
+    },
+    {
+      "nation": "Russia",
+      "province": "irk"
+    },
+    {
+      "nation": "Pakistan",
+      "province": "kar"
+    },
+    {
+      "nation": "Australia",
+      "province": "bri"
+    },
+    {
+      "nation": "Italy",
+      "province": "roe"
+    },
+    {
+      "nation": "USA",
+      "province": "okl"
+    },
+    {
+      "nation": "Kenya",
+      "province": "mar"
+    },
+    {
+      "nation": "Nigeria",
+      "province": "kan"
+    },
+    {
+      "nation": "Germany",
+      "province": "ben"
+    },
+    {
+      "nation": "Argentina",
+      "province": "men"
+    },
+    {
+      "nation": "USA",
+      "province": "atl"
+    },
+    {
+      "nation": "South Africa",
+      "province": "cap"
+    },
+    {
+      "nation": "India",
+      "province": "bna"
+    },
+    {
+      "nation": "Thailand",
+      "province": "hat"
+    },
+    {
+      "nation": "Russia",
+      "province": "vla"
+    },
+    {
+      "nation": "Canada",
+      "province": "mot"
+    },
+    {
+      "nation": "Italy",
+      "province": "mil"
+    },
+    {
+      "nation": "Kenya",
+      "province": "nai"
+    },
+    {
+      "nation": "Spain",
+      "province": "bar"
+    },
+    {
+      "nation": "Thailand",
+      "province": "chm"
+    },
+    {
+      "nation": "Turkey",
+      "province": "ist"
+    },
+    {
+      "nation": "India",
+      "province": "ned"
+    },
+    {
+      "nation": "Brazil",
+      "province": "rec"
+    },
+    {
+      "nation": "China",
+      "province": "cho"
+    },
+    {
+      "nation": "Japan",
+      "province": "tok"
+    },
+    {
+      "nation": "Japan",
+      "province": "sap"
+    },
+    {
+      "nation": "Spain",
+      "province": "mad"
+    },
+    {
+      "nation": "Australia",
+      "province": "pet"
+    },
+    {
+      "nation": "Thailand",
+      "province": "bnk"
+    },
+    {
+      "nation": "Pakistan",
+      "province": "isl"
+    }
+  ]
+}

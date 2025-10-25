@@ -1,0 +1,648 @@
+{
+  "id": "ancient mediterranean",
+  "name": "Ancient Mediterranean",
+  "description": "Five historical nations battle for dominance of the Mediterranean.",
+  "author": "Don Hessong",
+  "nations": [
+    {
+      "name": "Rome",
+      "color": "#808080"
+    },
+    {
+      "name": "Greece",
+      "color": "#808080"
+    },
+    {
+      "name": "Egypt",
+      "color": "#808080"
+    },
+    {
+      "name": "Persia",
+      "color": "#808080"
+    },
+    {
+      "name": "Carthage",
+      "color": "#808080"
+    }
+  ],
+  "provinces": [
+    {
+      "id": "etr",
+      "name": "Etruria",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "che",
+      "name": "Chersonesus",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "lig",
+      "name": "Ligurian Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "adr",
+      "name": "Adriatic Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "sic",
+      "name": "Sicilia",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "mes",
+      "name": "Messenian Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "min",
+      "name": "Minoan Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "gau",
+      "name": "Gaul",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "num",
+      "name": "Numidia",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "sad",
+      "name": "Sardinia",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ara",
+      "name": "Arabia",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "ven",
+      "name": "Venetia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "dac",
+      "name": "Dacia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "sag",
+      "name": "Saguntum",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "gop",
+      "name": "Gulf of Pelusium",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "mem",
+      "name": "Memphis",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "cor",
+      "name": "Corsica",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "lus",
+      "name": "Lusitania",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "sip",
+      "name": "Sinope",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ibe",
+      "name": "Iberian Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "spa",
+      "name": "Sparta",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "sah",
+      "name": "Sahara",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "cir",
+      "name": "Cirta",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "arm",
+      "name": "Armenia",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "mac",
+      "name": "Macedonia",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "gos",
+      "name": "Gulf of Syrtis",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "cyp",
+      "name": "Cyprus",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "byz",
+      "name": "Byzantium",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "rom",
+      "name": "Roma",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "tys",
+      "name": "Tyrrhenean Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "ant",
+      "name": "Antioch",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "nab",
+      "name": "Nabatea",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "cyr",
+      "name": "Cyrene",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "cap",
+      "name": "Cappadocia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "apu",
+      "name": "Apulia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "jer",
+      "name": "Jerusalem",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "car",
+      "name": "Carthage",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "rav",
+      "name": "Ravenna",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "syr",
+      "name": "Syrian Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "the",
+      "name": "Thebes",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ale",
+      "name": "Alexandria",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "tye",
+      "name": "Tyre",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "bal",
+      "name": "Baleares",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ber",
+      "name": "Berber Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "ill",
+      "name": "Illyria",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "mas",
+      "name": "Massilia",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "bla",
+      "name": "Black Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "bit",
+      "name": "Bithynia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "dam",
+      "name": "Damascus",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "ion",
+      "name": "Ionian Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "isa",
+      "name": "Isauria",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "rha",
+      "name": "Rhaetia",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "epi",
+      "name": "Epirus",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "aus",
+      "name": "Ausonian Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "pun",
+      "name": "Punic Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "mil",
+      "name": "Miletus",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "lib",
+      "name": "Libyan Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "mar",
+      "name": "Marmarica",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "tha",
+      "name": "Thapsus",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "dal",
+      "name": "Dalmatia",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "cil",
+      "name": "Cilician Strait",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "pet",
+      "name": "Petra",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "sii",
+      "name": "Sinaï",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "aeg",
+      "name": "Aegean Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "nea",
+      "name": "Neapolis",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "sid",
+      "name": "Sidon",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "mau",
+      "name": "Mauretania",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "ath",
+      "name": "Athens",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "ree",
+      "name": "Reed Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "bay",
+      "name": "Bayuda",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "cre",
+      "name": "Crete",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "sam",
+      "name": "Sarmatia",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "pha",
+      "name": "Phazania",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "tar",
+      "name": "Tarraconensis",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "gal",
+      "name": "Galatia",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "vin",
+      "name": "Vindobona",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "lep",
+      "name": "Leptis",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "got",
+      "name": "Gulf of Tacape",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "egy",
+      "name": "Egyptian Sea",
+      "type": "sea",
+      "supply_center": false
+    }
+  ],
+  "initial_phase": {
+    "season": "Spring",
+    "year": 1,
+    "type": "Movement"
+  },
+  "initial_units": [
+    {
+      "type": "Fleet",
+      "nation": "Rome",
+      "province": "nea"
+    },
+    {
+      "type": "Army",
+      "nation": "Carthage",
+      "province": "car"
+    },
+    {
+      "type": "Army",
+      "nation": "Egypt",
+      "province": "the"
+    },
+    {
+      "type": "Army",
+      "nation": "Greece",
+      "province": "mac"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Persia",
+      "province": "sid"
+    },
+    {
+      "type": "Army",
+      "nation": "Egypt",
+      "province": "mem"
+    },
+    {
+      "type": "Army",
+      "nation": "Rome",
+      "province": "rom"
+    },
+    {
+      "type": "Army",
+      "nation": "Carthage",
+      "province": "cir"
+    },
+    {
+      "type": "Army",
+      "nation": "Persia",
+      "province": "ant"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Egypt",
+      "province": "ale"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Carthage",
+      "province": "tha"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Greece",
+      "province": "spa"
+    },
+    {
+      "type": "Army",
+      "nation": "Persia",
+      "province": "dam"
+    },
+    {
+      "type": "Army",
+      "nation": "Rome",
+      "province": "rav"
+    },
+    {
+      "type": "Army",
+      "nation": "Greece",
+      "province": "ath"
+    }
+  ],
+  "initial_supply_centers": [
+    {
+      "nation": "Rome",
+      "province": "nea"
+    },
+    {
+      "nation": "Persia",
+      "province": "sid"
+    },
+    {
+      "nation": "Persia",
+      "province": "dam"
+    },
+    {
+      "nation": "Egypt",
+      "province": "mem"
+    },
+    {
+      "nation": "Egypt",
+      "province": "the"
+    },
+    {
+      "nation": "Carthage",
+      "province": "car"
+    },
+    {
+      "nation": "Greece",
+      "province": "ath"
+    },
+    {
+      "nation": "Egypt",
+      "province": "ale"
+    },
+    {
+      "nation": "Rome",
+      "province": "rom"
+    },
+    {
+      "nation": "Rome",
+      "province": "rav"
+    },
+    {
+      "nation": "Greece",
+      "province": "spa"
+    },
+    {
+      "nation": "Greece",
+      "province": "mac"
+    },
+    {
+      "nation": "Persia",
+      "province": "ant"
+    },
+    {
+      "nation": "Carthage",
+      "province": "tha"
+    },
+    {
+      "nation": "Carthage",
+      "province": "cir"
+    }
+  ]
+}

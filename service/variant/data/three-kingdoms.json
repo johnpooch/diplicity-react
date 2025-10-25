@@ -1,0 +1,391 @@
+{
+  "id": "three kingdoms",
+  "name": "Three Kingdoms",
+  "description": "THIS IS A BETA MAP; IT IS NOT FINAL. THIS MEANS THE MAP CAN BE UPDATED WITHOUT WARNING DURING YOUR GAME. PROCEED WITH CAUTION. The Three Kingdoms from 220 to 280 AD was the tripartite division of China among the dynastic states of Cao Wei, Shu Han, and Eastern Wu. The period is one of the bloodiest in Chinese history. The term 'Three Kingdoms' is something of a misnomer, since each state was eventually headed not by a king, but by an emperor who claimed suzerainty over all China. Fight for suzerainty with your two adversaries!",
+  "author": "Kuthador",
+  "nations": [
+    {
+      "name": "Wu",
+      "color": "#7F5E13"
+    },
+    {
+      "name": "Shu",
+      "color": "#126176"
+    },
+    {
+      "name": "Wei",
+      "color": "#7D1C12"
+    }
+  ],
+  "provinces": [
+    {
+      "id": "nah",
+      "name": "Nanhai",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "luo",
+      "name": "Luoyang",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "lan",
+      "name": "Langya",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "sha",
+      "name": "Shangyong",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "jig",
+      "name": "Jingzhao",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "hed",
+      "name": "Hedong",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "run",
+      "name": "Runan",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "cha",
+      "name": "Changsha",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "xia",
+      "name": "Xiangyang",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "boh",
+      "name": "Bohai",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "sou",
+      "name": "South China Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "luj",
+      "name": "Lujiang",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "nan",
+      "name": "Nan",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "han",
+      "name": "Hanzhong",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "ful",
+      "name": "Fuling",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "jiy",
+      "name": "Jianye",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "wes",
+      "name": "West Yangtze",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "yer",
+      "name": "Yellow River",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "tay",
+      "name": "Taiyuan",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "wul",
+      "name": "Wuling",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "zho",
+      "name": "Zhongshan",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "zan",
+      "name": "Zangke",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "eay",
+      "name": "East Yangtze",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "bad",
+      "name": "Badong",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "kua",
+      "name": "Kuaiji",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "cen",
+      "name": "Central Yangtze",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "yon",
+      "name": "Yongchang",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "can",
+      "name": "Cangwu",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "che",
+      "name": "Chengdu",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "yuz",
+      "name": "Yuzhang",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "qio",
+      "name": "Qiao",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "gua",
+      "name": "Guangling",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "don",
+      "name": "Donglai",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "yes",
+      "name": "Yellow Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "lin",
+      "name": "Lingling",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "qin",
+      "name": "Qianwei",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "pea",
+      "name": "Pearl River",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "and",
+      "name": "Anding",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "ecs",
+      "name": "East China Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "jic",
+      "name": "Jincheng",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "jio",
+      "name": "Jiaozhi",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "hep",
+      "name": "Hepu",
+      "type": "coastal",
+      "supply_center": false
+    }
+  ],
+  "initial_phase": {
+    "season": "Spring",
+    "year": 220,
+    "type": "Movement"
+  },
+  "initial_units": [
+    {
+      "type": "Army",
+      "nation": "Wei",
+      "province": "tay"
+    },
+    {
+      "type": "Army",
+      "nation": "Wei",
+      "province": "qio"
+    },
+    {
+      "type": "Army",
+      "nation": "Wu",
+      "province": "lin"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Wu",
+      "province": "nah"
+    },
+    {
+      "type": "Army",
+      "nation": "Wu",
+      "province": "jiy"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Shu",
+      "province": "qin"
+    },
+    {
+      "type": "Army",
+      "nation": "Shu",
+      "province": "che"
+    },
+    {
+      "type": "Army",
+      "nation": "Shu",
+      "province": "han"
+    },
+    {
+      "type": "Army",
+      "nation": "Shu",
+      "province": "zan"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Wei",
+      "province": "don"
+    },
+    {
+      "type": "Army",
+      "nation": "Wu",
+      "province": "yuz"
+    },
+    {
+      "type": "Army",
+      "nation": "Wei",
+      "province": "luo"
+    }
+  ],
+  "initial_supply_centers": [
+    {
+      "nation": "Wu",
+      "province": "lin"
+    },
+    {
+      "nation": "Shu",
+      "province": "qin"
+    },
+    {
+      "nation": "Shu",
+      "province": "che"
+    },
+    {
+      "nation": "Shu",
+      "province": "han"
+    },
+    {
+      "nation": "Shu",
+      "province": "zan"
+    },
+    {
+      "nation": "Wei",
+      "province": "qio"
+    },
+    {
+      "nation": "Wu",
+      "province": "nah"
+    },
+    {
+      "nation": "Wu",
+      "province": "jiy"
+    },
+    {
+      "nation": "Wei",
+      "province": "don"
+    },
+    {
+      "nation": "Wei",
+      "province": "luo"
+    },
+    {
+      "nation": "Wei",
+      "province": "tay"
+    },
+    {
+      "nation": "Wu",
+      "province": "yuz"
+    }
+  ]
+}

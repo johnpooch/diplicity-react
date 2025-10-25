@@ -1,0 +1,520 @@
+{
+  "id": "vietnam war",
+  "name": "Vietnam War",
+  "description": "The Indochina Peninsula in 1955: the beginning of Vietnam War.",
+  "author": "ThePolice",
+  "nations": [
+    {
+      "name": "North Vietnam",
+      "color": "#FD0000"
+    },
+    {
+      "name": "Thailand",
+      "color": "#006FFF"
+    },
+    {
+      "name": "South Vietnam",
+      "color": "#F0D211"
+    },
+    {
+      "name": "Cambodia",
+      "color": "#708D9E"
+    },
+    {
+      "name": "Laos",
+      "color": "#03853A"
+    }
+  ],
+  "provinces": [
+    {
+      "id": "kha",
+      "name": "Khao Luang",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "cgo",
+      "name": "Central Gulf of Thailand",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "pre",
+      "name": "Preah",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "tay",
+      "name": "Tay Ninh",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "xuy",
+      "name": "Xuyen",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "xuy/ec",
+      "name": "Xuyen (EC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "xuy"
+    },
+    {
+      "id": "xuy/wc",
+      "name": "Xuyen (WC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "xuy"
+    },
+    {
+      "id": "hai",
+      "name": "Hainan",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "pat",
+      "name": "Pattaya",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "phn",
+      "name": "Phnum",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "coa",
+      "name": "Coast of Vietnam",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "nah",
+      "name": "Nam Ha",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "hue",
+      "name": "Hue",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "kul",
+      "name": "Kulen Prum",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "nol",
+      "name": "Dien Bien",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "thn",
+      "name": "Thai Nguyen",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "phh",
+      "name": "Phou Hin",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "loe",
+      "name": "Loei",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "ang",
+      "name": "Angkor Wat",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "nak",
+      "name": "Nak",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "syk",
+      "name": "Sai Yok",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "udo",
+      "name": "Udon",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "bur",
+      "name": "Buri Ram",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "vin",
+      "name": "Vinh",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "noa",
+      "name": "North Gulf of Thailand",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "ton",
+      "name": "Tonle Sap",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "nov",
+      "name": "North Vietnam",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "ple",
+      "name": "Pleiku",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "scs",
+      "name": "South China Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "meo",
+      "name": "Mekong",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "meo/river",
+      "name": "Mekong (River)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "meo"
+    },
+    {
+      "id": "meo/wc",
+      "name": "Mekong (WC)",
+      "type": "named_coast",
+      "supply_center": true,
+      "parent": "meo"
+    },
+    {
+      "id": "thh",
+      "name": "Thanh",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "att",
+      "name": "Attapeu",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "ubo",
+      "name": "Ubon",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "vir",
+      "name": "Virachey",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "stc",
+      "name": "South Thailand Coast",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "cam",
+      "name": "Ca Mau",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "lua",
+      "name": "Luang",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "pak",
+      "name": "Pakxe",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "nkd",
+      "name": "Nam Kading",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "phs",
+      "name": "Xiangkhouang",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "han",
+      "name": "Hanoi",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "cev",
+      "name": "Central Vietnam",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "vie",
+      "name": "Vientiane",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "eas",
+      "name": "East Coast",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "pac",
+      "name": "Pacific Ocean",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "med",
+      "name": "Mekong Delta",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "sag",
+      "name": "Saigon",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "chi",
+      "name": "Chiang Mai",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "non",
+      "name": "North Gulf of Tonkin",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "soa",
+      "name": "South Gulf of Thailand",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "pha",
+      "name": "Phan",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "nan",
+      "name": "Nan",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "phr",
+      "name": "Phrae",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "ban",
+      "name": "Bangkok",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "son",
+      "name": "South Gulf of Tonkin",
+      "type": "sea",
+      "supply_center": false
+    }
+  ],
+  "initial_phase": {
+    "season": "Spring",
+    "year": 1955,
+    "type": "Movement"
+  },
+  "initial_units": [
+    {
+      "type": "Army",
+      "nation": "North Vietnam",
+      "province": "thh"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Thailand",
+      "province": "pat"
+    },
+    {
+      "type": "Army",
+      "nation": "Thailand",
+      "province": "ban"
+    },
+    {
+      "type": "Fleet",
+      "nation": "South Vietnam",
+      "province": "eas"
+    },
+    {
+      "type": "Army",
+      "nation": "Cambodia",
+      "province": "ang"
+    },
+    {
+      "type": "Fleet",
+      "nation": "South Vietnam",
+      "province": "cam"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Cambodia",
+      "province": "pre"
+    },
+    {
+      "type": "Army",
+      "nation": "Laos",
+      "province": "nah"
+    },
+    {
+      "type": "Army",
+      "nation": "Laos",
+      "province": "pak"
+    },
+    {
+      "type": "Army",
+      "nation": "Laos",
+      "province": "vie"
+    },
+    {
+      "type": "Army",
+      "nation": "North Vietnam",
+      "province": "thn"
+    },
+    {
+      "type": "Army",
+      "nation": "Thailand",
+      "province": "loe"
+    },
+    {
+      "type": "Army",
+      "nation": "South Vietnam",
+      "province": "sag"
+    },
+    {
+      "type": "Fleet",
+      "nation": "North Vietnam",
+      "province": "han"
+    },
+    {
+      "type": "Army",
+      "nation": "Cambodia",
+      "province": "meo"
+    }
+  ],
+  "initial_supply_centers": [
+    {
+      "nation": "Thailand",
+      "province": "pat"
+    },
+    {
+      "nation": "Laos",
+      "province": "nah"
+    },
+    {
+      "nation": "Laos",
+      "province": "vie"
+    },
+    {
+      "nation": "North Vietnam",
+      "province": "han"
+    },
+    {
+      "nation": "North Vietnam",
+      "province": "thn"
+    },
+    {
+      "nation": "Cambodia",
+      "province": "pre"
+    },
+    {
+      "nation": "Cambodia",
+      "province": "meo"
+    },
+    {
+      "nation": "Thailand",
+      "province": "ban"
+    },
+    {
+      "nation": "Thailand",
+      "province": "loe"
+    },
+    {
+      "nation": "South Vietnam",
+      "province": "eas"
+    },
+    {
+      "nation": "South Vietnam",
+      "province": "sag"
+    },
+    {
+      "nation": "Laos",
+      "province": "pak"
+    },
+    {
+      "nation": "North Vietnam",
+      "province": "thh"
+    },
+    {
+      "nation": "South Vietnam",
+      "province": "cam"
+    },
+    {
+      "nation": "Cambodia",
+      "province": "ang"
+    }
+  ]
+}

@@ -1,0 +1,152 @@
+{
+  "id": "pure",
+  "name": "Pure",
+  "description": "A minimal version of Diplomacy where each country is a single province.",
+  "author": "Danny Loeb",
+  "nations": [
+    {
+      "name": "Austria",
+      "color": "#F44336"
+    },
+    {
+      "name": "England",
+      "color": "#2196F3"
+    },
+    {
+      "name": "France",
+      "color": "#80DEEA"
+    },
+    {
+      "name": "Germany",
+      "color": "#90A4AE"
+    },
+    {
+      "name": "Italy",
+      "color": "#4CAF50"
+    },
+    {
+      "name": "Turkey",
+      "color": "#FFC107"
+    },
+    {
+      "name": "Russia",
+      "color": "#F5F5F5"
+    }
+  ],
+  "provinces": [
+    {
+      "id": "ber",
+      "name": "Berlin",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "lon",
+      "name": "London",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "par",
+      "name": "Paris",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "rom",
+      "name": "Rome",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "con",
+      "name": "Constantinople",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "vie",
+      "name": "Vienna",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "mos",
+      "name": "Moscow",
+      "type": "land",
+      "supply_center": true
+    }
+  ],
+  "initial_phase": {
+    "season": "Spring",
+    "year": 1901,
+    "type": "Movement"
+  },
+  "initial_units": [
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "par"
+    },
+    {
+      "type": "Army",
+      "nation": "Italy",
+      "province": "rom"
+    },
+    {
+      "type": "Army",
+      "nation": "Turkey",
+      "province": "con"
+    },
+    {
+      "type": "Army",
+      "nation": "Austria",
+      "province": "vie"
+    },
+    {
+      "type": "Army",
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "type": "Army",
+      "nation": "Germany",
+      "province": "ber"
+    },
+    {
+      "type": "Army",
+      "nation": "England",
+      "province": "lon"
+    }
+  ],
+  "initial_supply_centers": [
+    {
+      "nation": "Austria",
+      "province": "vie"
+    },
+    {
+      "nation": "Russia",
+      "province": "mos"
+    },
+    {
+      "nation": "Germany",
+      "province": "ber"
+    },
+    {
+      "nation": "England",
+      "province": "lon"
+    },
+    {
+      "nation": "France",
+      "province": "par"
+    },
+    {
+      "nation": "Italy",
+      "province": "rom"
+    },
+    {
+      "nation": "Turkey",
+      "province": "con"
+    }
+  ]
+}
