@@ -1,77 +1,153 @@
 import React from "react";
-import { Navigate, Outlet, Route, Routes } from "react-router";
-import { useSelector } from "react-redux";
+import {
+  createBrowserRouter,
+  Outlet,
+  RouterProvider,
+  redirect,
+} from "react-router";
 import { Login } from "./screens/Login";
-import { selectAuth } from "./store";
 import {
   SelectedGameContextProvider,
   SelectedPhaseContextProvider,
 } from "./context";
 import { GameDetail, Home } from "./screens";
-import { useResponsiveness } from "./components/utils/responsive";
+import { store } from "./store";
+import { service } from "./store/service";
 
-const Router: React.FC = () => {
-  const { loggedIn } = useSelector(selectAuth);
-  const responsiveness = useResponsiveness();
-
-  return loggedIn ? (
-    <Routes>
-      <Route index element={<Home.MyGames />} />
-      <Route path="/find-games" element={<Home.FindGames />} />
-      <Route path="/create-game" element={<Home.CreateGame />} />
-      <Route path="/sandbox" element={<Home.SandboxGames />} />
-      <Route path="/profile" element={<Home.Profile />} />
-      <Route
-        path="/game-info/:gameId"
-        element={
-          <SelectedGameContextProvider>
-            <Outlet />
-          </SelectedGameContextProvider>
-        }
-      >
-        <Route path="" element={<Home.GameInfo />} />
-      </Route>
-      <Route path="/player-info/:gameId" element={<Home.PlayerInfo />} />
-      <Route
-        path="/game/:gameId"
-        element={
-          <SelectedGameContextProvider>
-            <SelectedPhaseContextProvider>
-              <Outlet />
-            </SelectedPhaseContextProvider>
-          </SelectedGameContextProvider>
-        }
-      >
-        <Route
-          path=""
-          element={
-            responsiveness.device !== "desktop" ? (
-              <GameDetail.MapScreen />
-            ) : (
-              <GameDetail.OrdersScreen />
-            )
-          }
-        />
-        <Route path="game-info" element={<GameDetail.GameInfoScreen />} />
-        <Route path="player-info" element={<GameDetail.PlayerInfoScreen />} />
-        <Route path="orders" element={<GameDetail.OrdersScreen />} />
-        <Route path="chat" element={<GameDetail.ChannelListScreen />} />
-        <Route
-          path="chat/channel/create"
-          element={<GameDetail.ChannelCreateScreen />}
-        />
-        <Route
-          path="chat/channel/:channelId"
-          element={<GameDetail.ChannelScreen />}
-        />
-      </Route>
-    </Routes>
-  ) : (
-    <Routes>
-      <Route path="*" element={<Navigate to="/" />} />
-      <Route path="/" element={<Login />} />
-    </Routes>
+const variantsLoader = async () => {
+  const result = await store.dispatch(
+    service.endpoints.variantsList.initiate()
   );
+  return result.data || [];
+};
+
+const AuthLayout: React.FC = () => {
+  return <Outlet />;
+};
+
+const GameInfoLayout: React.FC = () => {
+  return (
+    <SelectedGameContextProvider>
+      <Outlet />
+    </SelectedGameContextProvider>
+  );
+};
+
+const GameLayout: React.FC = () => {
+  return (
+    <SelectedGameContextProvider>
+      <SelectedPhaseContextProvider>
+        <Outlet />
+      </SelectedPhaseContextProvider>
+    </SelectedGameContextProvider>
+  );
+};
+
+const GameIndexRoute: React.FC = () => {
+  const isMobile = window.innerWidth < 1024;
+  return isMobile ? <GameDetail.MapScreen /> : <GameDetail.OrdersScreen />;
+};
+
+interface RouterProps {
+  loggedIn: boolean;
+}
+
+const Router: React.FC<RouterProps> = ({ loggedIn }) => {
+  const router = React.useMemo(
+    () =>
+      loggedIn
+        ? createBrowserRouter([
+            {
+              id: "root",
+              path: "/",
+              element: <AuthLayout />,
+              loader: variantsLoader,
+              children: [
+                {
+                  index: true,
+                  element: <Home.MyGames />,
+                },
+                {
+                  path: "find-games",
+                  element: <Home.FindGames />,
+                },
+                {
+                  path: "create-game",
+                  element: <Home.CreateGame />,
+                },
+                {
+                  path: "sandbox",
+                  element: <Home.SandboxGames />,
+                },
+                {
+                  path: "profile",
+                  element: <Home.Profile />,
+                },
+                {
+                  path: "game-info/:gameId",
+                  element: <GameInfoLayout />,
+                  children: [
+                    {
+                      index: true,
+                      element: <Home.GameInfo />,
+                    },
+                  ],
+                },
+                {
+                  path: "player-info/:gameId",
+                  element: <Home.PlayerInfo />,
+                },
+                {
+                  path: "game/:gameId",
+                  element: <GameLayout />,
+                  children: [
+                    {
+                      index: true,
+                      element: <GameIndexRoute />,
+                    },
+                    {
+                      path: "game-info",
+                      element: <GameDetail.GameInfoScreen />,
+                    },
+                    {
+                      path: "player-info",
+                      element: <GameDetail.PlayerInfoScreen />,
+                    },
+                    {
+                      path: "orders",
+                      element: <GameDetail.OrdersScreen />,
+                    },
+                    {
+                      path: "chat",
+                      element: <GameDetail.ChannelListScreen />,
+                    },
+                    {
+                      path: "chat/channel/create",
+                      element: <GameDetail.ChannelCreateScreen />,
+                    },
+                    {
+                      path: "chat/channel/:channelId",
+                      element: <GameDetail.ChannelScreen />,
+                    },
+                  ],
+                },
+              ],
+            },
+          ])
+        : createBrowserRouter([
+            {
+              path: "/",
+              element: <Login />,
+            },
+            {
+              path: "*",
+              loader: () => redirect("/"),
+            },
+          ]),
+    [loggedIn]
+  );
+
+  return <RouterProvider router={router} />;
 };
 
 export default Router;
