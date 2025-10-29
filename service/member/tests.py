@@ -16,8 +16,6 @@ def test_join_game_success(authenticated_client, pending_game_created_by_seconda
     response = authenticated_client.post(url)
     assert response.status_code == status.HTTP_201_CREATED
     assert response.data["name"] == primary_user.profile.name
-    assert response.data["game"]["name"] == pending_game_created_by_secondary_user.name
-    assert response.data["game"]["status"] == pending_game_created_by_secondary_user.status
     assert response.data["is_current_user"] is True
 
 

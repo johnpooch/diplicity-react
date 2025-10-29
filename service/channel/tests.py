@@ -170,8 +170,6 @@ class TestChannelMessageCreateView:
         payload = {"body": "Hello, world!"}
         response = authenticated_client.post(url, payload, format="json")
 
-        print(response.data)
-
         assert response.status_code == status.HTTP_201_CREATED
         mock_send_notification_to_users.assert_called_once()
 

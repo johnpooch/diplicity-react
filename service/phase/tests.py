@@ -1,6 +1,8 @@
 import pytest
 from django.urls import reverse
 from django.utils import timezone
+from django.test.utils import override_settings
+from django.db import connection
 from datetime import timedelta
 from unittest.mock import patch, Mock
 from rest_framework import status
@@ -1373,3 +1375,124 @@ class TestPhaseReversion:
 
         phase1.refresh_from_db()
         assert phase1.status == PhaseStatus.ACTIVE
+
+
+class TestPhaseRetrieveView:
+
+    @pytest.mark.django_db
+    def test_retrieve_phase_success(self, authenticated_client, active_game_with_phase_state):
+        game = active_game_with_phase_state
+        phase = game.current_phase
+        url = reverse("phase-retrieve", args=[game.id, phase.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["id"] == phase.id
+        assert response.data["ordinal"] == phase.ordinal
+        assert response.data["season"] == phase.season
+        assert response.data["year"] == phase.year
+        assert response.data["type"] == phase.type
+        assert response.data["status"] == phase.status
+
+    @pytest.mark.django_db
+    def test_retrieve_phase_unauthenticated(self, unauthenticated_client, active_game_with_phase_state):
+        game = active_game_with_phase_state
+        phase = game.current_phase
+        url = reverse("phase-retrieve", args=[game.id, phase.id])
+        response = unauthenticated_client.get(url)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_retrieve_phase_not_found(self, authenticated_client, active_game_with_phase_state):
+        game = active_game_with_phase_state
+        url = reverse("phase-retrieve", args=[game.id, 99999])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
+    def test_retrieve_phase_response_structure(self, authenticated_client, active_game_with_phase_state):
+        game = active_game_with_phase_state
+        phase = game.current_phase
+        url = reverse("phase-retrieve", args=[game.id, phase.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+
+        required_fields = [
+            "id",
+            "ordinal",
+            "season",
+            "year",
+            "name",
+            "type",
+            "remaining_time",
+            "scheduled_resolution",
+            "status",
+            "units",
+            "supply_centers",
+        ]
+        for field in required_fields:
+            assert field in response.data
+
+        assert isinstance(response.data["units"], list)
+        assert isinstance(response.data["supply_centers"], list)
+
+    @pytest.mark.django_db
+    def test_retrieve_phase_with_units_and_supply_centers(
+        self, authenticated_client, active_game_with_phase_state, classical_england_nation, classical_london_province
+    ):
+        game = active_game_with_phase_state
+        phase = game.current_phase
+
+        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
+
+        url = reverse("phase-retrieve", args=[game.id, phase.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+
+        assert len(response.data["units"]) > 0
+        assert len(response.data["supply_centers"]) > 0
+
+        unit = response.data["units"][0]
+        assert "type" in unit
+        assert "nation" in unit
+        assert "province" in unit
+
+        supply_center = response.data["supply_centers"][0]
+        assert "nation" in supply_center
+        assert "province" in supply_center
+
+
+class TestPhaseRetrieveViewQueryPerformance:
+
+    @pytest.mark.django_db
+    def test_retrieve_phase_query_count(
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        classical_england_nation,
+        classical_france_nation,
+        classical_london_province,
+        classical_paris_province,
+        classical_edinburgh_province,
+    ):
+        game = active_game_with_phase_state
+        phase = game.current_phase
+
+        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+        phase.units.create(type="Army", nation=classical_france_nation, province=classical_paris_province)
+        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_edinburgh_province)
+
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
+        phase.supply_centers.create(nation=classical_france_nation, province=classical_paris_province)
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+
+        url = reverse("phase-retrieve", args=[game.id, phase.id])
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        query_count = len(connection.queries)
+
+        assert query_count == 9

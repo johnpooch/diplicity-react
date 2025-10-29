@@ -12,12 +12,21 @@ import { HomeAppBar } from "./AppBar";
 import { useNavigate, useParams } from "react-router";
 import { GameMenu } from "../../components/GameMenu";
 import { PlayerCard } from "../../components";
+import { useCurrentPhase } from "../../hooks";
 
 const PlayerInfo: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
   if (!gameId) throw new Error("gameId is required");
 
   const query = service.endpoints.gameRetrieve.useQuery({ gameId });
+  const currentPhaseQuery = useCurrentPhase({
+    id: gameId,
+    phases: query.data?.phases.map(phase => phase.id) ?? [],
+  });
+
+  console.log("currentPhaseQuery.data");
+  console.log(currentPhaseQuery.data);
+
   const navigate = useNavigate();
 
   if (query.isError) {
@@ -57,6 +66,7 @@ const PlayerInfo: React.FC = () => {
                     key={member.id}
                     member={member}
                     variant={query.data.variant.id}
+                    phase={currentPhaseQuery.data}
                   />
                 ))
               : Array.from({ length: 3 }, (_, index) => (

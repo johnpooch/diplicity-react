@@ -1,7 +1,7 @@
 import React from "react";
-import { Stack, Typography } from "@mui/material";
+import { Skeleton, Stack, Typography } from "@mui/material";
 import { MemberAvatar } from "./MemberAvatar";
-import { service } from "../store";
+import { PhaseRead, service } from "../store";
 import { createUseStyles } from "./utils/styles";
 import { Icon, IconName } from "./Icon";
 
@@ -11,6 +11,7 @@ type Member =
 type PlayerCardProps = {
   member: Member;
   variant: string;
+  phase: PhaseRead | undefined;
 };
 
 const useStyles = createUseStyles<PlayerCardProps>(() => ({
@@ -29,6 +30,11 @@ const useStyles = createUseStyles<PlayerCardProps>(() => ({
 
 const PlayerCard: React.FC<PlayerCardProps> = props => {
   const styles = useStyles(props);
+
+  const supplyCenterCount = props.phase?.supplyCenters.filter(
+    sc => sc.nation.name === props.member.nation
+  ).length;
+
   return (
     <Stack p={1} gap={1} direction="row" sx={styles.mainContainer}>
       <Stack gap={1} flex={1}>
@@ -57,9 +63,13 @@ const PlayerCard: React.FC<PlayerCardProps> = props => {
                   <Typography variant="caption">•</Typography>
                   <Stack direction="row" gap={0.5} alignItems="center">
                     <Icon name={IconName.Star} sx={styles.starIcon} />
-                    <Typography variant="caption">
-                      {props.member.supplyCenterCount}
-                    </Typography>
+                    {supplyCenterCount ? (
+                      <Typography variant="caption">
+                        {supplyCenterCount}
+                      </Typography>
+                    ) : (
+                      <Skeleton variant="text" width={10} height={10} />
+                    )}
                   </Stack>
                 </Stack>
               )}

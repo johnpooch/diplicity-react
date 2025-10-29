@@ -4,7 +4,6 @@ import { HomeLayout } from "./Layout";
 import { service } from "../../store";
 import { NotificationBanner } from "../../components/NotificationBanner";
 import { GameCard } from "../../components/GameCard";
-import { GameCardSkeleton } from "../../components/GameCardSkeleton";
 import { HomeAppBar } from "./AppBar";
 import { Notice } from "../../components/Notice";
 import { IconName } from "../../components/Icon";
@@ -26,7 +25,7 @@ const FindGames: React.FC = () => {
           <NotificationBanner />
           {query.isLoading ? (
             Array.from({ length: 3 }, (_, index) => (
-              <GameCardSkeleton key={index} />
+              <GameCard key={index} />
             ))
           ) : query.data?.length === 0 ? (
             <Notice
@@ -35,7 +34,7 @@ const FindGames: React.FC = () => {
               icon={IconName.NoResults}
             />
           ) : (
-            query.data?.map(game => <GameCard key={game.id} {...game} />)
+            query.data?.map(game => <GameCard key={game.id} game={game} />)
           )}
         </Stack>
       }
