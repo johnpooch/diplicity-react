@@ -5,9 +5,15 @@ import { GameDetailAppBar } from "./AppBar";
 import { useNavigate } from "react-router";
 import { useSelectedGameContext } from "../../context";
 import { GameMap, Panel, PlayerCard } from "../../components";
+import { useCurrentPhase } from "../../hooks";
 
 const PlayerInfoScreen: React.FC = () => {
   const { gameId, gameRetrieveQuery: query } = useSelectedGameContext();
+  const currentPhaseQuery = useCurrentPhase({
+    id: gameId ?? "",
+    phases: query.data?.phases.map(phase => phase.id) ?? [],
+  });
+
   const navigate = useNavigate();
 
   if (query.isError) {
@@ -36,6 +42,7 @@ const PlayerInfoScreen: React.FC = () => {
                         key={member.id}
                         member={member}
                         variant={query.data?.variant.id ?? ""}
+                        phase={currentPhaseQuery.data}
                       />
                     ))
                   : Array.from({ length: 3 }, (_, index) => (

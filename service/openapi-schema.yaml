@@ -147,6 +147,17 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
+  /api/test-sentry/:
+    get:
+      operationId: apiTestSentryRetrieve
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
   /api/token/refresh/:
     post:
       operationId: apiTokenRefreshCreate
@@ -491,6 +502,31 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/PhaseState'
+          description: ''
+  /game/{gameId}/phase/{phaseId}/:
+    get:
+      operationId: gamePhaseRetrieve
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: phaseId
+        schema:
+          type: integer
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Phase'
           description: ''
   /game/{gameId}/resolve-phase/:
     post:
@@ -957,7 +993,7 @@ components:
         phases:
           type: array
           items:
-            $ref: '#/components/schemas/Phase'
+            type: integer
           readOnly: true
         members:
           type: array

@@ -13,7 +13,24 @@ from phase.utils import transform_options
 logger = logging.getLogger(__name__)
 
 
+class PhaseQuerySet(models.QuerySet):
+    def with_detail_data(self):
+        return self.prefetch_related(
+            "units__nation",
+            "units__province__parent",
+            "units__province__named_coasts",
+            "supply_centers__nation",
+            "supply_centers__province__parent",
+            "supply_centers__province__named_coasts",
+        )
+
+
 class PhaseManager(models.Manager):
+    def get_queryset(self):
+        return PhaseQuerySet(self.model, using=self._db)
+
+    def with_detail_data(self):
+        return self.get_queryset().with_detail_data()
 
     def resolve_phase(self, phase):
         logger.info(f"Manually resolving phase {phase.id} ({phase.name}) for game {phase.game.id}")

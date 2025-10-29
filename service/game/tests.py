@@ -326,7 +326,6 @@ class TestGameListView:
                 "phases",
                 "members",
                 "variant_id",
-                "phase_confirmed",
             ]
             for field in required_fields:
                 assert field in game
@@ -397,7 +396,7 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 12
+        assert query_count == 3
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_phases_and_units(
@@ -439,7 +438,16 @@ class TestGameListViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        assert query_count == 12
+        print("\n" + "=" * 80)
+        print(f"QUERY COUNT: {query_count}")
+        print("=" * 80)
+        for i, query in enumerate(connection.queries, 1):
+            print(f"\nQuery {i}:")
+            print(f"SQL: {query['sql']}")
+            print(f"Time: {query['time']}")
+        print("=" * 80 + "\n")
+
+        assert query_count == 3
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_different_nations(
@@ -491,7 +499,16 @@ class TestGameListViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        assert query_count <= 600
+        print("\n" + "=" * 80)
+        print(f"QUERY COUNT: {query_count}")
+        print("=" * 80)
+        for i, query in enumerate(connection.queries, 1):
+            print(f"\nQuery {i}:")
+            print(f"SQL: {query['sql']}")
+            print(f"Time: {query['time']}")
+        print("=" * 80 + "\n")
+
+        assert query_count == 3
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_phase_states(
@@ -540,7 +557,7 @@ class TestGameListViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        assert query_count == 16
+        assert query_count == 3
 
 
 class TestGameCreateView:

@@ -13,6 +13,12 @@ const injectedRtkApi = api.injectEndpoints({
         },
       }),
     }),
+    apiTestSentryRetrieve: build.query<
+      ApiTestSentryRetrieveApiResponse,
+      ApiTestSentryRetrieveApiArg
+    >({
+      query: () => ({ url: `/api/test-sentry/` }),
+    }),
     apiTokenRefreshCreate: build.mutation<
       ApiTokenRefreshCreateApiResponse,
       ApiTokenRefreshCreateApiArg
@@ -137,6 +143,14 @@ const injectedRtkApi = api.injectEndpoints({
       GamePhaseStatesListApiArg
     >({
       query: (queryArg) => ({ url: `/game/${queryArg.gameId}/phase-states/` }),
+    }),
+    gamePhaseRetrieve: build.query<
+      GamePhaseRetrieveApiResponse,
+      GamePhaseRetrieveApiArg
+    >({
+      query: (queryArg) => ({
+        url: `/game/${queryArg.gameId}/phase/${queryArg.phaseId}/`,
+      }),
     }),
     gameResolvePhaseCreate: build.mutation<
       GameResolvePhaseCreateApiResponse,
@@ -340,6 +354,8 @@ export type ApiSchemaRetrieveApiArg = {
     | "zh-hans"
     | "zh-hant";
 };
+export type ApiTestSentryRetrieveApiResponse = unknown;
+export type ApiTestSentryRetrieveApiArg = void;
 export type ApiTokenRefreshCreateApiResponse =
   /** status 200  */ TokenRefreshRead;
 export type ApiTokenRefreshCreateApiArg = {
@@ -407,6 +423,11 @@ export type GamePhaseStatesListApiResponse =
   /** status 200  */ PhaseStateRead[];
 export type GamePhaseStatesListApiArg = {
   gameId: string;
+};
+export type GamePhaseRetrieveApiResponse = /** status 200  */ PhaseRead;
+export type GamePhaseRetrieveApiArg = {
+  gameId: string;
+  phaseId: number;
 };
 export type GameResolvePhaseCreateApiResponse = unknown;
 export type GameResolvePhaseCreateApiArg = {
@@ -696,7 +717,7 @@ export type GameListRead = {
   status: string;
   canJoin: boolean;
   canLeave: boolean;
-  phases: PhaseRead[];
+  phases: number[];
   members: MemberRead[];
   phaseConfirmed: boolean;
   sandbox: boolean;
@@ -784,6 +805,7 @@ export type Version = {
 };
 export const {
   useApiSchemaRetrieveQuery,
+  useApiTestSentryRetrieveQuery,
   useApiTokenRefreshCreateMutation,
   useAuthLoginCreateMutation,
   useDevicesListQuery,
@@ -799,6 +821,7 @@ export const {
   useGameOrdersListQuery,
   useGameOrdersDeleteDestroyMutation,
   useGamePhaseStatesListQuery,
+  useGamePhaseRetrieveQuery,
   useGameResolvePhaseCreateMutation,
   useGamesListQuery,
   useGamesChannelsListQuery,

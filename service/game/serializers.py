@@ -7,6 +7,7 @@ from variant.serializers import VariantSerializer
 from phase.serializers import PhaseSerializer
 from member.serializers import MemberSerializer
 from variant.models import Variant
+from phase.models import Phase
 from .models import Game
 
 tracer = trace.get_tracer(__name__)
@@ -19,7 +20,6 @@ class BaseGameSerializer(serializers.Serializer):
     can_leave = serializers.SerializerMethodField()
     phases = PhaseSerializer(many=True, read_only=True)
     members = MemberSerializer(many=True, read_only=True)
-    phase_confirmed = serializers.SerializerMethodField()
     sandbox = serializers.BooleanField(read_only=True)
 
     name = serializers.CharField()
@@ -35,11 +35,6 @@ class BaseGameSerializer(serializers.Serializer):
         with tracer.start_as_current_span("game.serializers.get_can_leave"):
             return obj.can_leave(self.context["request"].user)
 
-    @extend_schema_field(serializers.BooleanField)
-    def get_phase_confirmed(self, obj):
-        with tracer.start_as_current_span("game.serializers.get_phase_confirmed"):
-            return obj.phase_confirmed(self.context["request"].user)
-
     def validate_variant_id(self, value):
         if not Variant.objects.filter(id=value).exists():
             raise serializers.ValidationError("Variant with this ID does not exist.")
@@ -52,29 +47,43 @@ class BaseGameSerializer(serializers.Serializer):
             return super().to_representation(instance)
 
 
-class GameListSerializer(BaseGameSerializer):
-    variant_id = serializers.CharField(source='variant.id', read_only=True)
-    phases = serializers.SerializerMethodField()
+class GameListSerializer(serializers.Serializer):
+    id = serializers.CharField(read_only=True)
+    name = serializers.CharField(read_only=True)
+    status = serializers.CharField(read_only=True)
+    can_join = serializers.SerializerMethodField(read_only=True)
+    can_leave = serializers.SerializerMethodField(read_only=True)
+    variant_id = serializers.CharField(source="variant.id", read_only=True)
+    phases = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     private = serializers.BooleanField(read_only=True)
     movement_phase_duration = serializers.CharField(read_only=True)
     nation_assignment = serializers.CharField(read_only=True)
+    members = MemberSerializer(many=True, read_only=True)
 
-    @extend_schema_field(PhaseSerializer(many=True))
-    def get_phases(self, obj):
-        with tracer.start_as_current_span("game.serializers.get_phases"):
-            current_phase = obj.current_phase
-            if current_phase:
-                return [PhaseSerializer(obj.current_phase).data]
-            return []
+    @extend_schema_field(serializers.BooleanField)
+    def get_can_join(self, obj):
+        with tracer.start_as_current_span("game.serializers.get_can_join"):
+            return obj.can_join(self.context["request"].user)
+
+    @extend_schema_field(serializers.BooleanField)
+    def get_can_leave(self, obj):
+        with tracer.start_as_current_span("game.serializers.get_can_leave"):
+            return obj.can_leave(self.context["request"].user)
 
 
 class GameSerializer(BaseGameSerializer):
     variant = VariantSerializer(read_only=True)
     nation_assignment = serializers.ChoiceField(choices=NationAssignment.NATION_ASSIGNMENT_CHOICES)
+    phase_confirmed = serializers.SerializerMethodField()
     movement_phase_duration = serializers.ChoiceField(
         choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES, default=MovementPhaseDuration.TWENTY_FOUR_HOURS
     )
     private = serializers.BooleanField()
+
+    @extend_schema_field(serializers.BooleanField)
+    def get_phase_confirmed(self, obj):
+        with tracer.start_as_current_span("game.serializers.get_phase_confirmed"):
+            return obj.phase_confirmed(self.context["request"].user)
 
     def create(self, validated_data):
         request = self.context["request"]
