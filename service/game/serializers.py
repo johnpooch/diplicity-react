@@ -7,6 +7,7 @@ from variant.serializers import VariantSerializer
 from phase.serializers import PhaseSerializer
 from member.serializers import MemberSerializer
 from variant.models import Variant
+from phase.models import Phase
 from .models import Game
 
 tracer = trace.get_tracer(__name__)
@@ -54,18 +55,10 @@ class BaseGameSerializer(serializers.Serializer):
 
 class GameListSerializer(BaseGameSerializer):
     variant_id = serializers.CharField(source='variant.id', read_only=True)
-    phases = serializers.SerializerMethodField()
+    phases = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     private = serializers.BooleanField(read_only=True)
     movement_phase_duration = serializers.CharField(read_only=True)
     nation_assignment = serializers.CharField(read_only=True)
-
-    @extend_schema_field(PhaseSerializer(many=True))
-    def get_phases(self, obj):
-        with tracer.start_as_current_span("game.serializers.get_phases"):
-            current_phase = obj.current_phase
-            if current_phase:
-                return [PhaseSerializer(obj.current_phase).data]
-            return []
 
 
 class GameSerializer(BaseGameSerializer):

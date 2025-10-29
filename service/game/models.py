@@ -186,9 +186,7 @@ class Game(BaseModel):
         with tracer.start_as_current_span("game.models.current_phase"):
             # Use prefetched data if available
             if hasattr(self, "active_phases_list"):
-                print("self.active_phases_list")
-                print(self.active_phases_list)
-                return self.active_phases_list[0] if self.active_phases_list else None
+                return self.active_phases_list[-1] if self.active_phases_list else None
 
             phases = list(self.phases.all())
             return phases[-1] if phases else None

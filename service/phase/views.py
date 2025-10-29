@@ -11,7 +11,7 @@ from common.serializers import EmptySerializer
 from common.views import SelectedGameMixin, CurrentGameMemberMixin
 from rest_framework.response import Response
 from .models import Phase
-from .serializers import PhaseStateSerializer, PhaseResolveResponseSerializer
+from .serializers import PhaseStateSerializer, PhaseResolveResponseSerializer, PhaseSerializer
 
 
 class PhaseStateUpdateView(SelectedGameMixin, CurrentGameMemberMixin, generics.UpdateAPIView):
@@ -53,6 +53,16 @@ class PhaseResolveAllView(views.APIView):
     def post(self, request, *args, **kwargs):
         result = Phase.objects.resolve_due_phases()
         return Response(result, status=status.HTTP_200_OK)
+
+
+class PhaseRetrieveView(generics.RetrieveAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PhaseSerializer
+    lookup_field = 'id'
+    lookup_url_kwarg = 'phase_id'
+
+    def get_queryset(self):
+        return Phase.objects.with_detail_data()
 
 
 class PhaseResolveView(SelectedGameMixin, views.APIView):

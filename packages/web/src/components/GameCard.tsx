@@ -4,7 +4,7 @@ import { useNavigate } from "react-router";
 import { service } from "../store";
 import { GameMenu } from "./GameMenu";
 import { InteractiveMap } from "./InteractiveMap/InteractiveMap";
-import { getCurrentPhase, formatDateTime } from "../util";
+import { formatDateTime } from "../util";
 import { createUseStyles } from "./utils/styles";
 import { MemberAvatarGroup } from "./MemberAvatarGroup";
 import { Icon, IconName } from "./Icon";
@@ -13,6 +13,12 @@ import { useVariantById } from "../hooks";
 
 type GameCardProps =
   (typeof service.endpoints.gamesList.Types.ResultType)[number];
+
+const getCurrentPhaseId = (phaseIds: number[]): number | undefined => {
+  if (!phaseIds || phaseIds.length === 0) return undefined;
+  // Phases are ordered by ordinal, so the last one is the current phase
+  return phaseIds[phaseIds.length - 1];
+};
 
 const useStyles = createUseStyles<GameCardProps>(() => ({
   mainContainer: theme => ({
@@ -61,8 +67,18 @@ const useStyles = createUseStyles<GameCardProps>(() => ({
 const GameCard: React.FC<GameCardProps> = game => {
   const navigate = useNavigate();
   const styles = useStyles(game);
-  const currentPhase = getCurrentPhase(game.phases);
+  const currentPhaseId = getCurrentPhaseId(game.phases);
   const variant = useVariantById(game.variantId);
+
+  const { data: currentPhase, isLoading: isPhaseLoading } = service.endpoints.gamePhaseRetrieve.useQuery(
+    {
+      gameId: game.id,
+      phaseId: currentPhaseId || 0,
+    },
+    {
+      skip: !currentPhaseId,
+    }
+  );
 
   const [joinGame, joinGameMutation] =
     service.endpoints.gameJoinCreate.useMutation();
@@ -88,7 +104,7 @@ const GameCard: React.FC<GameCardProps> = game => {
     }
   };
 
-  if (!variant) {
+  if (!variant || (game.status === "active" && !currentPhase)) {
     return null;
   }
 
@@ -96,22 +112,24 @@ const GameCard: React.FC<GameCardProps> = game => {
     <Stack p={1} gap={1} direction="row" sx={styles.mainContainer}>
       <Stack gap={1} flex={1}>
         <Stack direction="row" gap={1}>
-          <Stack sx={styles.mapWrapper}>
-            <Link
-              onClick={handleClickGame}
-              style={{ width: "100%", height: "100%" }}
-            >
-              <Box sx={{ width: "100%", height: "100%" }}>
-                <InteractiveMap
-                  style={{ borderRadius: 5, width: "100%", height: "100%" }}
-                  variant={variant}
-                  phase={currentPhase}
-                  orders={[]}
-                  selected={[]}
-                />
-              </Box>
-            </Link>
-          </Stack>
+          {currentPhase && (
+            <Stack sx={styles.mapWrapper}>
+              <Link
+                onClick={handleClickGame}
+                style={{ width: "100%", height: "100%" }}
+              >
+                <Box sx={{ width: "100%", height: "100%" }}>
+                  <InteractiveMap
+                    style={{ borderRadius: 5, width: "100%", height: "100%" }}
+                    variant={variant}
+                    phase={currentPhase}
+                    orders={[]}
+                    selected={[]}
+                  />
+                </Box>
+              </Link>
+            </Stack>
+          )}
           <Stack>
             <Stack direction="row" gap={1} alignItems="center">
               <Link
