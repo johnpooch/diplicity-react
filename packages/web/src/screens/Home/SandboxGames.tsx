@@ -4,7 +4,6 @@ import { HomeLayout } from "./Layout";
 import { service } from "../../store";
 import { NotificationBanner } from "../../components/NotificationBanner";
 import { GameCard } from "../../components/GameCard";
-import { GameCardSkeleton } from "../../components/GameCardSkeleton";
 import { HomeAppBar } from "./AppBar";
 import { IconName } from "../../components/Icon";
 import { Notice } from "../../components/Notice";
@@ -35,7 +34,7 @@ const SandboxGames: React.FC = () => {
           <NotificationBanner />
           {query.isLoading
             ? Array.from({ length: 3 }, (_, index) => (
-                <GameCardSkeleton key={index} />
+                <GameCard key={index} />
               ))
             : query.data
               ? (() => {
@@ -55,7 +54,7 @@ const SandboxGames: React.FC = () => {
                     );
                   }
                   return query.data.map(game => (
-                    <GameCard key={game.id} {...game} />
+                    <GameCard key={game.id} game={game} />
                   ));
                 })()
               : null}

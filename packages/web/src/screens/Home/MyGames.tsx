@@ -8,7 +8,6 @@ import { DiplicityLogo } from "../../components/DiplicityLogo";
 import { service } from "../../store";
 import { NotificationBanner } from "../../components/NotificationBanner";
 import { GameCard } from "../../components/GameCard";
-import { GameCardSkeleton } from "../../components/GameCardSkeleton";
 import { Notice } from "../../components/Notice";
 import { IconName } from "../../components/Icon";
 
@@ -85,27 +84,25 @@ const MyGames: React.FC = props => {
         <Stack>
           <NotificationBanner />
           {query.isLoading
-            ? Array.from({ length: 3 }, (_, index) => (
-              <GameCardSkeleton key={index} />
-            ))
+            ? Array.from({ length: 3 }, (_, index) => <GameCard key={index} />)
             : query.data
               ? (() => {
-                const filteredGames = query.data.filter(
-                  game => game.status === selectedStatus
-                );
-                if (filteredGames.length === 0) {
-                  return (
-                    <Notice
-                      title={`No ${selectedStatus.toLowerCase()} games`}
-                      message={getStatusMessage(selectedStatus)}
-                      icon={IconName.Empty}
-                    />
+                  const filteredGames = query.data.filter(
+                    game => game.status === selectedStatus
                   );
-                }
-                return filteredGames.map(game => (
-                  <GameCard key={game.id} {...game} />
-                ));
-              })()
+                  if (filteredGames.length === 0) {
+                    return (
+                      <Notice
+                        title={`No ${selectedStatus.toLowerCase()} games`}
+                        message={getStatusMessage(selectedStatus)}
+                        icon={IconName.Empty}
+                      />
+                    );
+                  }
+                  return filteredGames.map(game => (
+                    <GameCard key={game.id} game={game} />
+                  ));
+                })()
               : null}
         </Stack>
       }
