@@ -20,29 +20,14 @@ tracer = trace.get_tracer(__name__)
 class GameQuerySet(models.QuerySet):
 
     def with_list_data(self):
-        current_phase_prefetch = Prefetch(
-            "phases",
-            queryset=Phase.objects.all().prefetch_related(
-                "units__nation",
-                "units__province__parent",
-                "units__province__named_coasts",
-                "supply_centers__nation",
-                "supply_centers__province__parent",
-                "supply_centers__province__named_coasts",
-                "phase_states__member__nation",
-                "phase_states__member__user__profile",
-            ),
-            to_attr="active_phases_list",
-        )
-
         members_prefetch = Prefetch(
             "members",
             queryset=Member.objects.select_related("nation", "user__profile"),
         )
 
         return self.select_related("variant").prefetch_related(
-            current_phase_prefetch,
             members_prefetch,
+            "phases",
         )
 
     def with_related_data(self):

@@ -9,16 +9,10 @@ import { createUseStyles } from "./utils/styles";
 import { MemberAvatarGroup } from "./MemberAvatarGroup";
 import { Icon, IconName } from "./Icon";
 import { IconButton } from "./Button";
-import { useVariantById } from "../hooks";
+import { useVariantById, useCurrentPhase } from "../hooks";
 
 type GameCardProps = {
   game?: (typeof service.endpoints.gamesList.Types.ResultType)[number];
-};
-
-const getCurrentPhaseId = (phaseIds: number[]): number | undefined => {
-  if (!phaseIds || phaseIds.length === 0) return undefined;
-  // Phases are ordered by ordinal, so the last one is the current phase
-  return phaseIds[phaseIds.length - 1];
 };
 
 const useStyles = createUseStyles<GameCardProps>(() => ({
@@ -68,18 +62,8 @@ const useStyles = createUseStyles<GameCardProps>(() => ({
 const GameCard: React.FC<GameCardProps> = props => {
   const navigate = useNavigate();
   const styles = useStyles(props);
-  const currentPhaseId = getCurrentPhaseId(props.game?.phases ?? []);
   const variant = useVariantById(props.game?.variantId ?? "");
-
-  const currentPhaseQuery = service.endpoints.gamePhaseRetrieve.useQuery(
-    {
-      gameId: props.game?.id ?? "",
-      phaseId: currentPhaseId || 0,
-    },
-    {
-      skip: !currentPhaseId,
-    }
-  );
+  const currentPhaseQuery = useCurrentPhase(props.game);
 
   const [joinGame, joinGameMutation] =
     service.endpoints.gameJoinCreate.useMutation();
