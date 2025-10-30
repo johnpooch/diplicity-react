@@ -128,7 +128,10 @@ WSGI_APPLICATION = "project.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-if "DATABASE_URL" in os.environ:
+
+if "DATABASE_CONNECTION_STRING" in os.environ:
+    DATABASES = {"default": dj_database_url.parse(os.getenv("DATABASE_CONNECTION_STRING") or "")}
+elif "DATABASE_URL" in os.environ:
     db_url = os.getenv("DATABASE_URL")
     DATABASES = {
         "default": dj_database_url.config(
