@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies
-COPY requirements.txt dev_requirements.txt /app/
+COPY ./requirements.txt ./dev_requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt -r dev_requirements.txt
 
 # Copy the application code
