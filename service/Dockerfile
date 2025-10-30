@@ -46,7 +46,7 @@ RUN useradd -ms /bin/bash appuser
 RUN mkdir -p /app/staticfiles && chown -R appuser:appuser /app
 
 # Copy and set up entrypoint script
-COPY --chmod=755 entrypoint.sh /entrypoint.sh
+COPY --chmod=755 ./entrypoint.sh /entrypoint.sh
 
 # Switch to non-root user
 USER appuser
