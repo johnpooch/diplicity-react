@@ -1,7 +1,7 @@
 import json
 import logging
 
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from common.models import BaseModel
 from datetime import timedelta
@@ -78,7 +78,8 @@ class PhaseManager(models.Manager):
 
     def resolve(self, phase):
         adjudication_data = resolve(phase)
-        self.create_from_adjudication_data(phase, adjudication_data)
+        with transaction.atomic():
+            self.create_from_adjudication_data(phase, adjudication_data)
 
     def create_from_adjudication_data(self, previous_phase, adjudication_data):
         logger.info(
