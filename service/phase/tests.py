@@ -1,4 +1,5 @@
 import pytest
+from django.db import IntegrityError, DatabaseError
 from django.urls import reverse
 from django.utils import timezone
 from django.test.utils import override_settings
@@ -10,7 +11,9 @@ from common.constants import PhaseStatus, PhaseType, OrderType, UnitType, GameSt
 from .models import Phase, PhaseState
 from .serializers import PhaseStateSerializer
 from .utils import transform_options
-from order.models import Order
+from order.models import Order, OrderResolution
+from supply_center.models import SupplyCenter
+from unit.models import Unit
 
 
 @pytest.mark.django_db
@@ -1496,3 +1499,292 @@ class TestPhaseRetrieveViewQueryPerformance:
         query_count = len(connection.queries)
 
         assert query_count == 9
+
+
+class TestResolveTransactionSafety:
+
+    @pytest.mark.django_db
+    def test_resolve_rollback_on_database_error(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        initial_phase_count = Phase.objects.count()
+        initial_phase_status = phase.status
+
+        with patch("phase.models.resolve") as mock_resolve:
+            mock_resolve.return_value = mock_adjudication_data_basic
+
+            original_save = phase.save
+
+            def fail_on_save(*args, **kwargs):
+                raise IntegrityError("Simulated database integrity error")
+
+            with patch.object(phase, "save", side_effect=fail_on_save):
+                with pytest.raises(IntegrityError, match="Simulated database integrity error"):
+                    Phase.objects.resolve(phase)
+
+        assert Phase.objects.count() == initial_phase_count
+        phase.refresh_from_db()
+        assert phase.status == initial_phase_status
+        assert phase.status == PhaseStatus.ACTIVE
+
+        from order.models import OrderResolution
+
+        resolution_count = OrderResolution.objects.filter(order__phase_state__phase=phase).count()
+        assert resolution_count == 0
+
+    @pytest.mark.django_db
+    def test_resolve_rollback_after_phase_created(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        game = phase.game
+        initial_phase_count = Phase.objects.count()
+        initial_active_phases = Phase.objects.filter(status=PhaseStatus.ACTIVE).count()
+
+        with patch("phase.models.resolve") as mock_resolve:
+            mock_resolve.return_value = mock_adjudication_data_basic
+
+            original_create_from_adj = Phase.objects.create_from_adjudication_data
+
+            def create_then_fail(*args, **kwargs):
+                result = original_create_from_adj(*args, **kwargs)
+                raise DatabaseError("Simulated database error after creation")
+
+            with patch.object(Phase.objects, "create_from_adjudication_data", side_effect=create_then_fail):
+                with pytest.raises(DatabaseError, match="Simulated database error after creation"):
+                    Phase.objects.resolve(phase)
+
+        assert Phase.objects.count() == initial_phase_count
+
+        active_phases = Phase.objects.filter(status=PhaseStatus.ACTIVE).count()
+        assert active_phases == initial_active_phases
+
+        phase.refresh_from_db()
+        assert phase.status == PhaseStatus.ACTIVE
+
+    @pytest.mark.django_db
+    def test_resolve_rollback_during_supply_center_creation(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+
+        phase = italy_vs_germany_phase_with_orders
+        initial_phase_count = Phase.objects.count()
+        initial_sc_count = SupplyCenter.objects.count()
+
+        with patch("phase.models.resolve") as mock_resolve:
+            mock_resolve.return_value = mock_adjudication_data_basic
+
+            original_create_from_adj = Phase.objects.create_from_adjudication_data
+
+            def failing_create(*args, **kwargs):
+                phase_obj = args[0]
+                adj_data = args[1]
+
+                new_phase = Phase.objects.create(
+                    game=phase_obj.game,
+                    variant=phase_obj.variant,
+                    ordinal=phase_obj.ordinal + 1,
+                    season=adj_data["season"],
+                    year=adj_data["year"],
+                    type=adj_data["type"],
+                    options=adj_data["options"],
+                    status=PhaseStatus.ACTIVE,
+                    scheduled_resolution=None,
+                )
+
+                raise Exception("Simulated failure during supply center creation")
+
+            with patch.object(Phase.objects, "create_from_adjudication_data", side_effect=failing_create):
+                with pytest.raises(Exception, match="Simulated failure during supply center creation"):
+                    Phase.objects.resolve(phase)
+
+        assert Phase.objects.count() == initial_phase_count
+        assert SupplyCenter.objects.count() == initial_sc_count
+
+        phase.refresh_from_db()
+        assert phase.status == PhaseStatus.ACTIVE
+
+    @pytest.mark.django_db
+    def test_resolve_rollback_during_unit_creation(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+
+        phase = italy_vs_germany_phase_with_orders
+        initial_phase_count = Phase.objects.count()
+        initial_unit_count = Unit.objects.count()
+
+        with patch("phase.models.resolve") as mock_resolve:
+            mock_resolve.return_value = mock_adjudication_data_basic
+
+            original_method = Phase.objects.create_from_adjudication_data
+
+            call_count = [0]
+
+            def failing_on_units(*args, **kwargs):
+                call_count[0] += 1
+                if call_count[0] == 1:
+                    original_method(*args, **kwargs)
+                    raise Exception("Simulated failure after phase creation")
+                return original_method(*args, **kwargs)
+
+            with patch.object(Phase.objects, "create_from_adjudication_data", side_effect=failing_on_units):
+                with pytest.raises(Exception, match="Simulated failure after phase creation"):
+                    Phase.objects.resolve(phase)
+
+        assert Phase.objects.count() == initial_phase_count
+        assert Unit.objects.count() == initial_unit_count
+
+        phase.refresh_from_db()
+        assert phase.status == PhaseStatus.ACTIVE
+
+    @pytest.mark.django_db
+    def test_resolve_no_partial_data_on_failure(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+
+        initial_counts = {
+            "phases": Phase.objects.count(),
+            "order_resolutions": OrderResolution.objects.count(),
+            "supply_centers": SupplyCenter.objects.count(),
+            "units": Unit.objects.count(),
+            "phase_states": PhaseState.objects.count(),
+        }
+
+        with patch("phase.models.resolve") as mock_resolve:
+            mock_resolve.return_value = mock_adjudication_data_basic
+
+            original_method = Phase.objects.create_from_adjudication_data
+
+            def fail_mid_process(*args, **kwargs):
+                original_method(*args, **kwargs)
+                raise Exception("Simulated mid-process failure")
+
+            with patch.object(Phase.objects, "create_from_adjudication_data", side_effect=fail_mid_process):
+                with pytest.raises(Exception, match="Simulated mid-process failure"):
+                    Phase.objects.resolve(phase)
+
+        assert Phase.objects.count() == initial_counts["phases"]
+        assert OrderResolution.objects.count() == initial_counts["order_resolutions"]
+        assert SupplyCenter.objects.count() == initial_counts["supply_centers"]
+        assert Unit.objects.count() == initial_counts["units"]
+        assert PhaseState.objects.count() == initial_counts["phase_states"]
+
+    @pytest.mark.django_db
+    def test_resolve_commits_all_data_on_success(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        orders_count = len(phase.all_orders)
+        member_count = phase.game.members.count()
+
+        initial_counts = {
+            "phases": Phase.objects.count(),
+            "order_resolutions": OrderResolution.objects.count(),
+            "supply_centers": SupplyCenter.objects.count(),
+            "units": Unit.objects.count(),
+            "phase_states": PhaseState.objects.count(),
+        }
+
+        with patch("phase.models.resolve") as mock_resolve:
+            mock_resolve.return_value = mock_adjudication_data_basic
+
+            Phase.objects.resolve(phase)
+
+        assert Phase.objects.count() == initial_counts["phases"] + 1
+
+        assert OrderResolution.objects.count() == initial_counts["order_resolutions"] + orders_count
+
+        new_phase = phase.game.phases.last()
+        assert new_phase.ordinal == phase.ordinal + 1
+
+        expected_sc_count = len(mock_adjudication_data_basic["supply_centers"])
+        assert SupplyCenter.objects.filter(phase=new_phase).count() == expected_sc_count
+
+        expected_unit_count = len(mock_adjudication_data_basic["units"])
+        assert Unit.objects.filter(phase=new_phase).count() == expected_unit_count
+
+        assert PhaseState.objects.filter(phase=new_phase).count() == member_count
+
+        phase.refresh_from_db()
+        assert phase.status == PhaseStatus.COMPLETED
+
+    @pytest.mark.django_db
+    def test_resolve_can_retry_after_rollback(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        initial_phase_count = Phase.objects.count()
+
+        with patch("phase.models.resolve") as mock_resolve:
+            mock_resolve.return_value = mock_adjudication_data_basic
+
+            original_method = Phase.objects.create_from_adjudication_data
+            call_count = [0]
+
+            def fail_first_time(*args, **kwargs):
+                call_count[0] += 1
+                if call_count[0] == 1:
+                    raise Exception("Simulated first attempt failure")
+                return original_method(*args, **kwargs)
+
+            with patch.object(Phase.objects, "create_from_adjudication_data", side_effect=fail_first_time):
+                with pytest.raises(Exception, match="Simulated first attempt failure"):
+                    Phase.objects.resolve(phase)
+
+                assert Phase.objects.count() == initial_phase_count
+                phase.refresh_from_db()
+                assert phase.status == PhaseStatus.ACTIVE
+
+                Phase.objects.resolve(phase)
+
+        assert Phase.objects.count() == initial_phase_count + 1
+        new_phase = phase.game.phases.last()
+        assert new_phase is not None
+        assert new_phase.status == PhaseStatus.ACTIVE
+
+        phase.refresh_from_db()
+        assert phase.status == PhaseStatus.COMPLETED
+
+    @pytest.mark.django_db
+    def test_resolve_prevents_duplicate_active_phases(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        game = phase.game
+
+        assert Phase.objects.filter(game=game, status=PhaseStatus.ACTIVE).count() == 1
+
+        with patch("phase.models.resolve") as mock_resolve:
+            mock_resolve.return_value = mock_adjudication_data_basic
+
+            original_method = Phase.objects.create_from_adjudication_data
+
+            def fail_before_marking_complete(*args, **kwargs):
+                result = original_method(*args, **kwargs)
+                raise Exception("Simulated failure before marking previous phase complete")
+
+            with patch.object(Phase.objects, "create_from_adjudication_data", side_effect=fail_before_marking_complete):
+                with pytest.raises(Exception, match="Simulated failure before marking previous phase complete"):
+                    Phase.objects.resolve(phase)
+
+        active_phases = Phase.objects.filter(game=game, status=PhaseStatus.ACTIVE)
+        assert active_phases.count() == 1
+        assert active_phases.first().id == phase.id
