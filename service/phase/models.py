@@ -3,6 +3,7 @@ import logging
 
 from django.db import models, transaction
 from django.utils import timezone
+from opentelemetry import trace
 from common.models import BaseModel
 from datetime import timedelta
 from common.constants import PhaseStatus, PhaseType, GameStatus
@@ -11,6 +12,7 @@ from order.models import OrderResolution, Order
 from phase.utils import transform_options
 
 logger = logging.getLogger(__name__)
+tracer = trace.get_tracer(__name__)
 
 
 class PhaseQuerySet(models.QuerySet):
@@ -33,179 +35,224 @@ class PhaseManager(models.Manager):
         return self.get_queryset().with_detail_data()
 
     def resolve_phase(self, phase):
-        logger.info(f"Manually resolving phase {phase.id} ({phase.name}) for game {phase.game.id}")
-        self.resolve(phase)
-        logger.info(f"Successfully resolved phase {phase.id}")
+        with tracer.start_as_current_span("phase.manager.resolve_phase") as span:
+            span.set_attribute("phase.id", phase.id)
+            span.set_attribute("game.id", str(phase.game.id))
+            logger.info(f"Manually resolving phase {phase.id} ({phase.name}) for game {phase.game.id}")
+            self.resolve(phase)
+            logger.info(f"Successfully resolved phase {phase.id}")
 
     def resolve_due_phases(self):
-        logger.info("Starting resolution of due phases")
+        with tracer.start_as_current_span("phase.manager.resolve_due_phases") as span:
+            logger.info("Starting resolution of due phases")
 
-        phases = self.get_queryset().filter(status=PhaseStatus.ACTIVE)
-        total_phases = phases.count()
-        logger.info(f"Found {total_phases} active phases to check for resolution")
+            with tracer.start_as_current_span("phase.query_active_phases") as query_span:
+                phases = self.get_queryset().filter(status=PhaseStatus.ACTIVE)
+                total_phases = phases.count()
+                query_span.set_attribute("phases.found", total_phases)
+                logger.info(f"Found {total_phases} active phases to check for resolution")
 
-        resolved_count = 0
-        failed_count = 0
+            resolved_count = 0
+            failed_count = 0
 
-        for phase in phases:
-            if phase.scheduled_resolution is None:
-                logger.debug(f"Phase {phase.id} ({phase.name}) has no scheduled resolution (sandbox game), skipping")
-                continue
+            for phase in phases:
+                with tracer.start_as_current_span("phase.check_should_resolve") as check_span:
+                    check_span.set_attribute("phase.id", phase.id)
+                    check_span.set_attribute("game.id", str(phase.game.id))
 
-            should_resolve = (phase.scheduled_resolution <= timezone.now()) or phase.should_resolve_immediately
+                    if phase.scheduled_resolution is None:
+                        logger.debug(f"Phase {phase.id} ({phase.name}) has no scheduled resolution (sandbox game), skipping")
+                        check_span.set_attribute("should_resolve", False)
+                        check_span.set_attribute("skip_reason", "no_scheduled_resolution")
+                        continue
 
-            if should_resolve:
-                logger.info(f"Resolving phase {phase.id} ({phase.name}) for game {phase.game.id}")
-                try:
-                    self.resolve(phase)
-                    resolved_count += 1
-                    logger.info(f"Successfully resolved phase {phase.id}")
-                except Exception as e:
-                    failed_count += 1
-                    logger.error(f"Failed to resolve phase {phase.id} ({phase.name}): {e}", exc_info=True)
-            else:
-                logger.debug(f"Phase {phase.id} ({phase.name}) not due for resolution yet")
+                    should_resolve = (phase.scheduled_resolution <= timezone.now()) or phase.should_resolve_immediately
+                    check_span.set_attribute("should_resolve", should_resolve)
+                    check_span.set_attribute("should_resolve_immediately", phase.should_resolve_immediately)
 
-        result = {
-            "resolved": resolved_count,
-            "failed": failed_count,
-        }
+                    if should_resolve:
+                        logger.info(f"Resolving phase {phase.id} ({phase.name}) for game {phase.game.id}")
+                        try:
+                            self.resolve(phase)
+                            resolved_count += 1
+                            logger.info(f"Successfully resolved phase {phase.id}")
+                        except Exception as e:
+                            failed_count += 1
+                            logger.error(f"Failed to resolve phase {phase.id} ({phase.name}): {e}", exc_info=True)
+                    else:
+                        logger.debug(f"Phase {phase.id} ({phase.name}) not due for resolution yet")
 
-        logger.info(
-            f"Phase resolution complete: {resolved_count} resolved, {failed_count} failed out of {total_phases} total phases"
-        )
-        return result
+            result = {
+                "resolved": resolved_count,
+                "failed": failed_count,
+            }
 
-    def resolve(self, phase):
-        adjudication_data = resolve(phase)
-        with transaction.atomic():
-            self.create_from_adjudication_data(phase, adjudication_data)
-
-    def create_from_adjudication_data(self, previous_phase, adjudication_data):
-        logger.info(
-            f"Creating new phase from adjudication data for previous phase {previous_phase.id} ({previous_phase.name})"
-        )
-        logger.debug(f"Adjudication data keys: {list(adjudication_data.keys())}")
-
-        try:
-            # Process order resolutions
-            resolutions_count = 0
-            for order in previous_phase.all_orders:
-                resolution = next(
-                    (r for r in adjudication_data["resolutions"] if r["province"] == order.source.province_id), None
-                )
-                if resolution:
-                    if hasattr(order, "resolution"):
-                        order.resolution.delete()
-                    by_province = (
-                        previous_phase.variant.provinces.get(province_id=resolution["by"]) if resolution["by"] else None
-                    )
-                    OrderResolution.objects.create(
-                        order=order,
-                        status=resolution["result"],
-                        by=by_province,
-                    )
-                    resolutions_count += 1
-                    logger.debug(f"Created resolution for order {order.id}: {resolution['result']}")
-                else:
-                    logger.warning(f"No resolution found for order {order.id} in province {order.source.province_id}")
-
-            logger.info(f"Created {resolutions_count} order resolutions")
-
-            # Calculate next phase details
-            phase_duration_seconds = previous_phase.game.movement_phase_duration_seconds
-            scheduled_resolution = (
-                timezone.now() + timedelta(seconds=phase_duration_seconds) if phase_duration_seconds else None
-            )
-            new_ordinal = previous_phase.ordinal + 1
+            span.set_attribute("phases.total", total_phases)
+            span.set_attribute("phases.resolved", resolved_count)
+            span.set_attribute("phases.failed", failed_count)
 
             logger.info(
-                f"Creating new phase {new_ordinal} ({adjudication_data['season']} {adjudication_data['year']}, {adjudication_data['type']})"
+                f"Phase resolution complete: {resolved_count} resolved, {failed_count} failed out of {total_phases} total phases"
             )
+            return result
 
-            # Create the new phase
-            new_phase = self.create(
-                game=previous_phase.game,
-                variant=previous_phase.variant,
-                ordinal=new_ordinal,
-                season=adjudication_data["season"],
-                year=adjudication_data["year"],
-                type=adjudication_data["type"],
-                options=adjudication_data["options"],
-                status=PhaseStatus.ACTIVE,
-                scheduled_resolution=scheduled_resolution,
+    def resolve(self, phase):
+        with tracer.start_as_current_span("phase.manager.resolve") as span:
+            span.set_attribute("phase.id", phase.id)
+            span.set_attribute("game.id", str(phase.game.id))
+            adjudication_data = resolve(phase)
+
+            with tracer.start_as_current_span("phase.transaction_atomic"):
+                with transaction.atomic():
+                    self.create_from_adjudication_data(phase, adjudication_data)
+
+    def create_from_adjudication_data(self, previous_phase, adjudication_data):
+        with tracer.start_as_current_span("phase.create_from_adjudication_data") as span:
+            span.set_attribute("previous_phase.id", previous_phase.id)
+            span.set_attribute("new_phase.ordinal", previous_phase.ordinal + 1)
+
+            logger.info(
+                f"Creating new phase from adjudication data for previous phase {previous_phase.id} ({previous_phase.name})"
             )
+            logger.debug(f"Adjudication data keys: {list(adjudication_data.keys())}")
 
-            logger.info(f"Created new phase {new_phase.id} scheduled for resolution at {scheduled_resolution}")
+            try:
+                # Process order resolutions
+                with tracer.start_as_current_span("phase.create_order_resolutions") as resolutions_span:
+                    resolutions_count = 0
+                    order_count = len(previous_phase.all_orders)
+                    for order in previous_phase.all_orders:
+                        resolution = next(
+                            (r for r in adjudication_data["resolutions"] if r["province"] == order.source.province_id), None
+                        )
+                        if resolution:
+                            if hasattr(order, "resolution"):
+                                order.resolution.delete()
+                            by_province = (
+                                previous_phase.variant.provinces.get(province_id=resolution["by"]) if resolution["by"] else None
+                            )
+                            OrderResolution.objects.create(
+                                order=order,
+                                status=resolution["result"],
+                                by=by_province,
+                            )
+                            resolutions_count += 1
+                            logger.debug(f"Created resolution for order {order.id}: {resolution['result']}")
+                        else:
+                            logger.warning(f"No resolution found for order {order.id} in province {order.source.province_id}")
 
-            # Create supply centers
-            supply_centers_count = 0
-            for supply_center in adjudication_data["supply_centers"]:
-                try:
-                    new_phase.supply_centers.create(
-                        province=new_phase.variant.provinces.get(province_id=supply_center["province"]),
-                        nation=new_phase.variant.nations.get(name=supply_center["nation"]),
-                    )
-                    supply_centers_count += 1
-                except Exception as e:
-                    logger.error(
-                        f"Failed to create supply center for province {supply_center['province']}, nation {supply_center['nation']}: {e}"
-                    )
+                    resolutions_span.set_attribute("order_count", order_count)
+                    resolutions_span.set_attribute("resolutions_created", resolutions_count)
+                    logger.info(f"Created {resolutions_count} order resolutions")
 
-            logger.info(f"Created {supply_centers_count} supply centers")
-
-            # Create units
-            units_count = 0
-            for unit in adjudication_data["units"]:
-                try:
-                    logger.info(
-                        f"Creating unit {unit['type']} for nation {unit['nation']} in province {unit['province']}"
-                    )
-                    dislodged_by_id = unit.get("dislodged_by", None)
-                    logger.info(f"Dislodged by ID: {dislodged_by_id}")
-                    dislodged_by = (
-                        previous_phase.units.filter(province__province_id=dislodged_by_id).first()
-                        if dislodged_by_id
-                        else None
-                    )
-                    logger.info(f"Dislodged by: {dislodged_by}")
-                    new_phase.units.create(
-                        type=unit["type"],
-                        nation=new_phase.variant.nations.get(name=unit["nation"]),
-                        province=new_phase.variant.provinces.get(province_id=unit["province"]),
-                        dislodged_by=dislodged_by,
-                    )
-                    units_count += 1
-                except Exception as e:
-                    logger.error(
-                        f"Failed to create unit {unit['type']} for nation {unit['nation']} in province {unit['province']}: {e}"
-                    )
-
-            logger.info(f"Created {units_count} units")
-
-            # Create phase states
-            phase_states_count = 0
-            for member in new_phase.game.members.all():
-                new_phase.phase_states.create(
-                    member=member,
+                # Calculate next phase details
+                phase_duration_seconds = previous_phase.game.movement_phase_duration_seconds
+                scheduled_resolution = (
+                    timezone.now() + timedelta(seconds=phase_duration_seconds) if phase_duration_seconds else None
                 )
-                phase_states_count += 1
+                new_ordinal = previous_phase.ordinal + 1
 
-            logger.info(f"Created {phase_states_count} phase states for game members")
+                logger.info(
+                    f"Creating new phase {new_ordinal} ({adjudication_data['season']} {adjudication_data['year']}, {adjudication_data['type']})"
+                )
 
-            # Mark previous phase as completed
-            previous_phase.status = PhaseStatus.COMPLETED
-            previous_phase.save()
-            logger.info(f"Marked previous phase {previous_phase.id} as completed")
+                # Create the new phase
+                with tracer.start_as_current_span("phase.create_new_phase") as new_phase_span:
+                    new_phase = self.create(
+                        game=previous_phase.game,
+                        variant=previous_phase.variant,
+                        ordinal=new_ordinal,
+                        season=adjudication_data["season"],
+                        year=adjudication_data["year"],
+                        type=adjudication_data["type"],
+                        options=adjudication_data["options"],
+                        status=PhaseStatus.ACTIVE,
+                        scheduled_resolution=scheduled_resolution,
+                    )
+                    new_phase_span.set_attribute("phase.id", new_phase.id)
+                    new_phase_span.set_attribute("phase.ordinal", new_ordinal)
+                    new_phase_span.set_attribute("phase.season", adjudication_data["season"])
+                    new_phase_span.set_attribute("phase.year", adjudication_data["year"])
+                    new_phase_span.set_attribute("phase.type", adjudication_data["type"])
 
-            logger.info(f"Successfully created new phase {new_phase.id} from adjudication data")
-            return new_phase
+                logger.info(f"Created new phase {new_phase.id} scheduled for resolution at {scheduled_resolution}")
 
-        except Exception as e:
-            logger.error(
-                f"Failed to create phase from adjudication data for phase {previous_phase.id}: {e}", exc_info=True
-            )
-            raise
+                # Create supply centers
+                with tracer.start_as_current_span("phase.create_supply_centers") as sc_span:
+                    supply_centers_count = 0
+                    for supply_center in adjudication_data["supply_centers"]:
+                        try:
+                            new_phase.supply_centers.create(
+                                province=new_phase.variant.provinces.get(province_id=supply_center["province"]),
+                                nation=new_phase.variant.nations.get(name=supply_center["nation"]),
+                            )
+                            supply_centers_count += 1
+                        except Exception as e:
+                            logger.error(
+                                f"Failed to create supply center for province {supply_center['province']}, nation {supply_center['nation']}: {e}"
+                            )
+
+                    sc_span.set_attribute("supply_centers_count", supply_centers_count)
+                    logger.info(f"Created {supply_centers_count} supply centers")
+
+                # Create units
+                with tracer.start_as_current_span("phase.create_units") as units_span:
+                    units_count = 0
+                    for unit in adjudication_data["units"]:
+                        try:
+                            logger.info(
+                                f"Creating unit {unit['type']} for nation {unit['nation']} in province {unit['province']}"
+                            )
+                            dislodged_by_id = unit.get("dislodged_by", None)
+                            logger.info(f"Dislodged by ID: {dislodged_by_id}")
+                            dislodged_by = (
+                                previous_phase.units.filter(province__province_id=dislodged_by_id).first()
+                                if dislodged_by_id
+                                else None
+                            )
+                            logger.info(f"Dislodged by: {dislodged_by}")
+                            new_phase.units.create(
+                                type=unit["type"],
+                                nation=new_phase.variant.nations.get(name=unit["nation"]),
+                                province=new_phase.variant.provinces.get(province_id=unit["province"]),
+                                dislodged_by=dislodged_by,
+                            )
+                            units_count += 1
+                        except Exception as e:
+                            logger.error(
+                                f"Failed to create unit {unit['type']} for nation {unit['nation']} in province {unit['province']}: {e}"
+                            )
+
+                    units_span.set_attribute("units_count", units_count)
+                    logger.info(f"Created {units_count} units")
+
+                # Create phase states
+                with tracer.start_as_current_span("phase.create_phase_states") as ps_span:
+                    phase_states_count = 0
+                    for member in new_phase.game.members.all():
+                        new_phase.phase_states.create(
+                            member=member,
+                        )
+                        phase_states_count += 1
+
+                    ps_span.set_attribute("phase_states_count", phase_states_count)
+                    logger.info(f"Created {phase_states_count} phase states for game members")
+
+                # Mark previous phase as completed
+                with tracer.start_as_current_span("phase.mark_previous_complete") as complete_span:
+                    complete_span.set_attribute("previous_phase.id", previous_phase.id)
+                    previous_phase.status = PhaseStatus.COMPLETED
+                    previous_phase.save()
+                    logger.info(f"Marked previous phase {previous_phase.id} as completed")
+
+                logger.info(f"Successfully created new phase {new_phase.id} from adjudication data")
+                return new_phase
+
+            except Exception as e:
+                logger.error(
+                    f"Failed to create phase from adjudication data for phase {previous_phase.id}: {e}", exc_info=True
+                )
+                raise
 
 
 class Phase(BaseModel):

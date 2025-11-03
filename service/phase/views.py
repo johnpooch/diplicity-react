@@ -1,4 +1,5 @@
 from rest_framework import permissions, generics, views, status
+from opentelemetry import trace
 from common.permissions import (
     IsActiveGame,
     IsActiveGameMember,
@@ -12,6 +13,8 @@ from common.views import SelectedGameMixin, CurrentGameMemberMixin
 from rest_framework.response import Response
 from .models import Phase
 from .serializers import PhaseStateSerializer, PhaseResolveResponseSerializer, PhaseSerializer
+
+tracer = trace.get_tracer(__name__)
 
 
 class PhaseStateUpdateView(SelectedGameMixin, CurrentGameMemberMixin, generics.UpdateAPIView):
@@ -51,8 +54,11 @@ class PhaseResolveAllView(views.APIView):
     serializer_class = EmptySerializer
 
     def post(self, request, *args, **kwargs):
-        result = Phase.objects.resolve_due_phases()
-        return Response(result, status=status.HTTP_200_OK)
+        with tracer.start_as_current_span("phase.resolve_all_view") as span:
+            result = Phase.objects.resolve_due_phases()
+            span.set_attribute("phases.resolved", result["resolved"])
+            span.set_attribute("phases.failed", result["failed"])
+            return Response(result, status=status.HTTP_200_OK)
 
 
 class PhaseRetrieveView(generics.RetrieveAPIView):
@@ -77,5 +83,8 @@ class PhaseResolveView(SelectedGameMixin, views.APIView):
     def post(self, request, *args, **kwargs):
         game = self.get_game()
         current_phase = game.current_phase
-        Phase.objects.resolve_phase(current_phase)
+        with tracer.start_as_current_span("phase.resolve_view") as span:
+            span.set_attribute("phase.id", current_phase.id)
+            span.set_attribute("game.id", str(game.id))
+            Phase.objects.resolve_phase(current_phase)
         return Response(status=status.HTTP_204_NO_CONTENT)
