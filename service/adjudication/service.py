@@ -41,13 +41,29 @@ def _make_adjudication_request(phase, endpoint, method="GET", data=None):
             span.set_attribute("http.status_code", response.status_code)
 
             response.raise_for_status()
-            response_data = response.json()
-            logger.info(f"Response data: {json.dumps(response_data, indent=2)}")
 
-            serializer = AdjudicationSerializer(data=response_data, context=context)
-            serializer.is_valid(raise_exception=True)
+            with tracer.start_as_current_span("adjudication.parse_json") as parse_span:
+                response_data = response.json()
+                parse_span.set_attribute("response.size_bytes", len(response.text))
+                logger.info(f"Response data: {json.dumps(response_data, indent=2)}")
 
-            logger.info(f"Serializer response data: {serializer.validated_data}")
+            with tracer.start_as_current_span("adjudication.deserialize_response") as deser_span:
+                serializer = AdjudicationSerializer(data=response_data, context=context)
+                serializer.is_valid(raise_exception=True)
+
+                validated_data = serializer.validated_data
+                try:
+                    if validated_data and isinstance(validated_data, dict):
+                        if "units" in validated_data:
+                            deser_span.set_attribute("units.count", len(validated_data["units"]))
+                        if "supply_centers" in validated_data:
+                            deser_span.set_attribute("supply_centers.count", len(validated_data["supply_centers"]))
+                        if "resolutions" in validated_data:
+                            deser_span.set_attribute("resolutions.count", len(validated_data["resolutions"]))
+                except (KeyError, TypeError):
+                    pass
+
+                logger.info(f"Serializer response data: {validated_data}")
 
             logger.info(f"Successfully processed adjudication request for endpoint: {endpoint}")
             return serializer.validated_data
@@ -86,6 +102,12 @@ def start(phase):
 
 
 def resolve(phase):
-    logger.info(f"Resolving adjudication for phase {phase.id} of game {phase.game.id}")
-    serialized_phase = AdjudicationSerializer(phase, context={"game": phase.game}).data
-    return _make_adjudication_request(phase, "resolve-with-options", method="POST", data=serialized_phase)
+    with tracer.start_as_current_span("adjudication.resolve") as span:
+        span.set_attribute("phase.id", phase.id)
+        span.set_attribute("game.id", str(phase.game.id))
+        logger.info(f"Resolving adjudication for phase {phase.id} of game {phase.game.id}")
+
+        with tracer.start_as_current_span("adjudication.serialize_request"):
+            serialized_phase = AdjudicationSerializer(phase, context={"game": phase.game}).data
+
+        return _make_adjudication_request(phase, "resolve-with-options", method="POST", data=serialized_phase)
