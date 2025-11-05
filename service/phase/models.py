@@ -247,10 +247,12 @@ class PhaseManager(models.Manager):
 
                 # Create phase states
                 with tracer.start_as_current_span("phase.create_phase_states") as ps_span:
+                    nations_with_orders = new_phase.nations_with_possible_orders
                     phase_states_count = 0
                     for member in new_phase.game.members.all():
                         new_phase.phase_states.create(
                             member=member,
+                            has_possible_orders=member.nation.name in nations_with_orders,
                         )
                         phase_states_count += 1
 
@@ -377,6 +379,7 @@ class PhaseState(BaseModel):
     phase = models.ForeignKey(Phase, on_delete=models.CASCADE, related_name="phase_states")
     orders_confirmed = models.BooleanField(default=False)
     eliminated = models.BooleanField(default=False)
+    has_possible_orders = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.member.user.username} - {self.phase.name}"

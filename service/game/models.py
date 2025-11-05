@@ -239,8 +239,12 @@ class Game(BaseModel):
             member.nation = nation
             member.save()
 
+        nations_with_orders = current_phase.nations_with_possible_orders
         for member in members:
-            current_phase.phase_states.create(member=member)
+            current_phase.phase_states.create(
+                member=member,
+                has_possible_orders=member.nation.name in nations_with_orders,
+            )
 
         self.status = GameStatus.ACTIVE
         self.save()

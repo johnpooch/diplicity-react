@@ -8,6 +8,7 @@ from datetime import timedelta
 from unittest.mock import patch, Mock
 from rest_framework import status
 from common.constants import PhaseStatus, PhaseType, OrderType, UnitType, GameStatus
+from game.models import Game
 from .models import Phase, PhaseState
 from .serializers import PhaseStateSerializer
 from .utils import transform_options
@@ -1499,6 +1500,65 @@ class TestPhaseRetrieveViewQueryPerformance:
         query_count = len(connection.queries)
 
         assert query_count == 9
+
+
+class TestGetPhasesToResolvePerformance:
+
+    @pytest.mark.django_db
+    def test_get_phases_to_resolve_query_count(
+        self,
+        classical_variant,
+        primary_user,
+        secondary_user,
+        classical_england_nation,
+        classical_france_nation,
+        godip_options_england_london_hold,
+    ):
+        for i in range(10):
+            game = Game.objects.create(
+                name=f"Game {i}",
+                variant=classical_variant,
+                status=GameStatus.ACTIVE,
+            )
+            game.members.create(user=primary_user, nation=classical_england_nation)
+            game.members.create(user=secondary_user, nation=classical_france_nation)
+
+            previous_phase = game.phases.create(
+                variant=game.variant,
+                season="Spring",
+                year=1901,
+                type="Movement",
+                status=PhaseStatus.COMPLETED,
+                ordinal=1,
+                scheduled_resolution=timezone.now() - timedelta(hours=1),
+                options=godip_options_england_london_hold,
+            )
+
+            for member in game.members.all():
+                previous_phase.phase_states.create(member=member)
+
+            active_phase = game.phases.create(
+                variant=game.variant,
+                season="Spring",
+                year=1901,
+                type="Retreat",
+                status=PhaseStatus.ACTIVE,
+                ordinal=2,
+                scheduled_resolution=timezone.now() - timedelta(hours=1),
+                options=godip_options_england_london_hold,
+            )
+
+            for member in game.members.all():
+                active_phase.phase_states.create(member=member)
+
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            phases_to_resolve = Phase.objects.get_phases_to_resolve()
+
+        query_count = len(connection.queries)
+
+        assert query_count == 62
 
 
 class TestResolveTransactionSafety:
