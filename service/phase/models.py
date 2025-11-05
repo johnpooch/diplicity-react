@@ -42,9 +42,9 @@ class PhaseManager(models.Manager):
             self.resolve(phase)
             logger.info(f"Successfully resolved phase {phase.id}")
 
-    def resolve_due_phases(self):
-        with tracer.start_as_current_span("phase.manager.resolve_due_phases") as span:
-            logger.info("Starting resolution of due phases")
+    def get_phases_to_resolve(self):
+        with tracer.start_as_current_span("phase.manager.get_phases_to_resolve") as span:
+            logger.info("Querying phases to resolve")
 
             with tracer.start_as_current_span("phase.query_active_phases") as query_span:
                 phases = self.get_queryset().filter(status=PhaseStatus.ACTIVE)
@@ -52,8 +52,7 @@ class PhaseManager(models.Manager):
                 query_span.set_attribute("phases.found", total_phases)
                 logger.info(f"Found {total_phases} active phases to check for resolution")
 
-            resolved_count = 0
-            failed_count = 0
+            phases_to_resolve = []
 
             for phase in phases:
                 with tracer.start_as_current_span("phase.check_should_resolve") as check_span:
@@ -71,28 +70,48 @@ class PhaseManager(models.Manager):
                     check_span.set_attribute("should_resolve_immediately", phase.should_resolve_immediately)
 
                     if should_resolve:
-                        logger.info(f"Resolving phase {phase.id} ({phase.name}) for game {phase.game.id}")
-                        try:
-                            self.resolve(phase)
-                            resolved_count += 1
-                            logger.info(f"Successfully resolved phase {phase.id}")
-                        except Exception as e:
-                            failed_count += 1
-                            logger.error(f"Failed to resolve phase {phase.id} ({phase.name}): {e}", exc_info=True)
+                        phases_to_resolve.append(phase)
+                        logger.debug(f"Phase {phase.id} ({phase.name}) marked for resolution")
                     else:
                         logger.debug(f"Phase {phase.id} ({phase.name}) not due for resolution yet")
+
+            span.set_attribute("phases.total", total_phases)
+            span.set_attribute("phases.to_resolve", len(phases_to_resolve))
+            logger.info(f"Identified {len(phases_to_resolve)} phases to resolve out of {total_phases} active phases")
+
+            return phases_to_resolve
+
+    def resolve_due_phases(self):
+        with tracer.start_as_current_span("phase.manager.resolve_due_phases") as span:
+            logger.info("Starting resolution of due phases")
+
+            phases_to_resolve = self.get_phases_to_resolve()
+            total_phases_to_resolve = len(phases_to_resolve)
+
+            resolved_count = 0
+            failed_count = 0
+
+            for phase in phases_to_resolve:
+                logger.info(f"Resolving phase {phase.id} ({phase.name}) for game {phase.game.id}")
+                try:
+                    self.resolve(phase)
+                    resolved_count += 1
+                    logger.info(f"Successfully resolved phase {phase.id}")
+                except Exception as e:
+                    failed_count += 1
+                    logger.error(f"Failed to resolve phase {phase.id} ({phase.name}): {e}", exc_info=True)
 
             result = {
                 "resolved": resolved_count,
                 "failed": failed_count,
             }
 
-            span.set_attribute("phases.total", total_phases)
+            span.set_attribute("phases.total", total_phases_to_resolve)
             span.set_attribute("phases.resolved", resolved_count)
             span.set_attribute("phases.failed", failed_count)
 
             logger.info(
-                f"Phase resolution complete: {resolved_count} resolved, {failed_count} failed out of {total_phases} total phases"
+                f"Phase resolution complete: {resolved_count} resolved, {failed_count} failed out of {total_phases_to_resolve} phases"
             )
             return result
 
