@@ -244,6 +244,9 @@ def test_resolve_due_phases_with_immediate_resolution(active_game_with_phase_sta
     phase.scheduled_resolution = future_time
     phase.options = {}
     phase.save()
+    phase_state = phase.phase_states.first()
+    phase_state.has_possible_orders = False
+    phase_state.save()
     with patch.object(Phase.objects, "resolve") as mock_resolve:
         result = Phase.objects.resolve_due_phases()
         assert result["resolved"] == 1
@@ -1558,7 +1561,7 @@ class TestGetPhasesToResolvePerformance:
 
         query_count = len(connection.queries)
 
-        assert query_count == 62
+        assert query_count == 1
 
 
 class TestResolveTransactionSafety:
@@ -1848,3 +1851,500 @@ class TestResolveTransactionSafety:
         active_phases = Phase.objects.filter(game=game, status=PhaseStatus.ACTIVE)
         assert active_phases.count() == 1
         assert active_phases.first().id == phase.id
+
+
+class TestFilterDuePhasesBasicFiltering:
+
+    @pytest.mark.django_db
+    def test_filter_due_phases_past_scheduled_resolution(self, phase_factory, classical_england_nation):
+        phase = phase_factory(
+            scheduled_resolution=timezone.now() - timedelta(hours=1),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False}
+            ],
+        )
+
+        phases = Phase.objects.filter_due_phases()
+
+        assert phase in phases
+
+    @pytest.mark.django_db
+    def test_filter_due_phases_future_scheduled_resolution_not_confirmed(
+        self, phase_factory, classical_england_nation, classical_france_nation
+    ):
+        phase = phase_factory(
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
+                {"nation": classical_france_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+
+        phases = Phase.objects.filter_due_phases()
+
+        assert phase not in phases
+
+    @pytest.mark.django_db
+    def test_filter_due_phases_future_scheduled_resolution_all_confirmed(
+        self, phase_factory, classical_england_nation, classical_france_nation
+    ):
+        phase = phase_factory(
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
+                {"nation": classical_france_nation, "has_possible_orders": True, "orders_confirmed": True},
+            ],
+        )
+
+        phases = Phase.objects.filter_due_phases()
+
+        assert phase in phases
+
+    @pytest.mark.django_db
+    def test_filter_due_phases_excludes_sandbox_games(self, phase_factory, classical_england_nation):
+        phase = phase_factory(
+            scheduled_resolution=None,
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True}
+            ],
+        )
+        game = phase.game
+        game.sandbox = True
+        game.save()
+
+        phases = Phase.objects.filter_due_phases()
+
+        assert phase not in phases
+
+    @pytest.mark.django_db
+    def test_filter_due_phases_excludes_non_active_phases(self, phase_factory, classical_england_nation):
+        completed_phase = phase_factory(
+            scheduled_resolution=timezone.now() - timedelta(hours=1),
+            status=PhaseStatus.COMPLETED,
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False}
+            ],
+        )
+
+        phases = Phase.objects.filter_due_phases()
+
+        assert completed_phase not in phases
+
+
+class TestFilterDuePhasesHasPossibleOrdersLogic:
+
+    @pytest.mark.django_db
+    def test_filter_due_phases_ignores_members_without_possible_orders(
+        self, phase_factory, classical_england_nation, classical_france_nation
+    ):
+        phase = phase_factory(
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
+                {"nation": classical_france_nation, "has_possible_orders": False, "orders_confirmed": False},
+            ],
+        )
+
+        phases = Phase.objects.filter_due_phases()
+
+        assert phase in phases
+
+    @pytest.mark.django_db
+    def test_filter_due_phases_all_members_have_no_possible_orders(
+        self, phase_factory, classical_england_nation, classical_france_nation, classical_germany_nation
+    ):
+        phase = phase_factory(
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": False, "orders_confirmed": False},
+                {"nation": classical_france_nation, "has_possible_orders": False, "orders_confirmed": False},
+                {"nation": classical_germany_nation, "has_possible_orders": False, "orders_confirmed": False},
+            ],
+        )
+
+        phases = Phase.objects.filter_due_phases()
+
+        assert phase in phases
+
+    @pytest.mark.django_db
+    def test_filter_due_phases_mixed_confirmation_status(
+        self,
+        phase_factory,
+        classical_england_nation,
+        classical_france_nation,
+        classical_germany_nation,
+        classical_italy_nation,
+    ):
+        phase = phase_factory(
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
+                {"nation": classical_france_nation, "has_possible_orders": True, "orders_confirmed": True},
+                {"nation": classical_germany_nation, "has_possible_orders": True, "orders_confirmed": False},
+                {"nation": classical_italy_nation, "has_possible_orders": False, "orders_confirmed": False},
+            ],
+        )
+
+        phases = Phase.objects.filter_due_phases()
+
+        assert phase not in phases
+
+    @pytest.mark.django_db
+    def test_filter_due_phases_only_has_possible_orders_false_members(
+        self, phase_factory, classical_england_nation, classical_france_nation
+    ):
+        phase = phase_factory(
+            scheduled_resolution=timezone.now() + timedelta(hours=1),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": False, "orders_confirmed": False},
+                {"nation": classical_france_nation, "has_possible_orders": False, "orders_confirmed": False},
+            ],
+        )
+
+        phases = Phase.objects.filter_due_phases()
+
+        assert phase in phases
+
+
+class TestFilterDuePhasesEdgeCases:
+
+    @pytest.mark.django_db
+    def test_filter_due_phases_single_member_game(self, phase_factory, classical_england_nation):
+        phase = phase_factory(
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
+            ],
+        )
+
+        phases = Phase.objects.filter_due_phases()
+
+        assert phase in phases
+
+    @pytest.mark.django_db
+    def test_filter_due_phases_empty_game_no_members(self, phase_factory):
+        phase = phase_factory(
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=[],
+        )
+
+        phases = Phase.objects.filter_due_phases()
+
+        assert phase in phases
+
+    @pytest.mark.django_db
+    def test_filter_due_phases_exact_scheduled_time(self, phase_factory, classical_england_nation):
+        phase = phase_factory(
+            scheduled_resolution=timezone.now(),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False}
+            ],
+        )
+
+        phases = Phase.objects.filter_due_phases()
+
+        assert phase in phases
+
+    @pytest.mark.django_db
+    def test_filter_due_phases_multiple_games_isolation(self, multiple_games_with_phases):
+        phases = Phase.objects.filter_due_phases()
+
+        should_resolve_phases = [g["phase"] for g in multiple_games_with_phases if g["should_resolve"]]
+        should_not_resolve_phases = [g["phase"] for g in multiple_games_with_phases if not g["should_resolve"]]
+
+        for phase in should_resolve_phases:
+            assert phase in phases
+
+        for phase in should_not_resolve_phases:
+            assert phase not in phases
+
+
+class TestFilterDuePhasesQueryPerformance:
+
+    @pytest.mark.django_db
+    def test_filter_due_phases_single_query(
+        self,
+        classical_variant,
+        primary_user,
+        secondary_user,
+        classical_england_nation,
+        classical_france_nation,
+        godip_options_england_london_hold,
+    ):
+        from game.models import Game
+
+        for i in range(10):
+            game = Game.objects.create(
+                name=f"Game {i}",
+                variant=classical_variant,
+                status=GameStatus.ACTIVE,
+            )
+            game.members.create(user=primary_user, nation=classical_england_nation)
+            game.members.create(user=secondary_user, nation=classical_france_nation)
+
+            phase = game.phases.create(
+                variant=game.variant,
+                season="Spring",
+                year=1901,
+                type="Movement",
+                status=PhaseStatus.ACTIVE,
+                ordinal=1,
+                scheduled_resolution=timezone.now() - timedelta(hours=1),
+                options=godip_options_england_london_hold,
+            )
+
+            for member in game.members.all():
+                phase.phase_states.create(
+                    member=member,
+                    has_possible_orders=True,
+                )
+
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            phases_to_resolve = list(Phase.objects.filter_due_phases())
+
+        query_count = len(connection.queries)
+
+        assert query_count <= 2
+
+    @pytest.mark.django_db
+    def test_filter_due_phases_no_n_plus_one_with_many_phases(
+        self,
+        classical_variant,
+        primary_user,
+        secondary_user,
+        classical_england_nation,
+        classical_france_nation,
+        godip_options_england_london_hold,
+    ):
+        from game.models import Game
+
+        for i in range(50):
+            game = Game.objects.create(
+                name=f"Game {i}",
+                variant=classical_variant,
+                status=GameStatus.ACTIVE,
+            )
+            game.members.create(user=primary_user, nation=classical_england_nation)
+            game.members.create(user=secondary_user, nation=classical_france_nation)
+
+            phase = game.phases.create(
+                variant=game.variant,
+                season="Spring",
+                year=1901,
+                type="Movement",
+                status=PhaseStatus.ACTIVE,
+                ordinal=1,
+                scheduled_resolution=timezone.now() - timedelta(hours=1),
+                options=godip_options_england_london_hold,
+            )
+
+            for member in game.members.all():
+                phase.phase_states.create(
+                    member=member,
+                    has_possible_orders=True,
+                )
+
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            phases_to_resolve = list(Phase.objects.filter_due_phases())
+
+        query_count = len(connection.queries)
+
+        assert query_count <= 2
+
+
+class TestFilterDuePhasesConsistencyWithOldBehavior:
+
+    @pytest.mark.django_db
+    def test_filter_due_phases_matches_get_phases_to_resolve_past_due(self, active_game_with_phase_state):
+        phase = active_game_with_phase_state.current_phase
+        past_time = timezone.now() - timedelta(hours=1)
+        phase.scheduled_resolution = past_time
+        phase.save()
+
+        phase_state = phase.phase_states.first()
+        phase_state.has_possible_orders = True
+        phase_state.save()
+
+        old_result = Phase.objects.get_phases_to_resolve()
+        new_result = list(Phase.objects.filter_due_phases())
+
+        assert set(old_result) == set(new_result)
+
+    @pytest.mark.django_db
+    def test_filter_due_phases_matches_get_phases_to_resolve_immediate_resolution(self, active_game_with_phase_state):
+        phase = active_game_with_phase_state.current_phase
+        future_time = timezone.now() + timedelta(hours=24)
+        phase.scheduled_resolution = future_time
+        phase.options = {}
+        phase.save()
+
+        phase_state = phase.phase_states.first()
+        phase_state.has_possible_orders = False
+        phase_state.save()
+
+        old_result = Phase.objects.get_phases_to_resolve()
+        new_result = list(Phase.objects.filter_due_phases())
+
+        assert set(old_result) == set(new_result)
+
+    @pytest.mark.django_db
+    def test_filter_due_phases_matches_get_phases_to_resolve_no_resolution(
+        self, active_game_with_phase_state, godip_options_england_london_hold
+    ):
+        phase = active_game_with_phase_state.current_phase
+        future_time = timezone.now() + timedelta(hours=24)
+        phase.scheduled_resolution = future_time
+        phase.options = godip_options_england_london_hold
+        phase.save()
+
+        phase_state = phase.phase_states.first()
+        phase_state.has_possible_orders = True
+        phase_state.orders_confirmed = False
+        phase_state.save()
+
+        old_result = Phase.objects.get_phases_to_resolve()
+        new_result = list(Phase.objects.filter_due_phases())
+
+        assert set(old_result) == set(new_result)
+        assert len(old_result) == 0
+        assert len(new_result) == 0
+
+    @pytest.mark.django_db
+    def test_filter_due_phases_matches_get_phases_to_resolve_comprehensive(
+        self,
+        classical_variant,
+        primary_user,
+        secondary_user,
+        classical_england_nation,
+        classical_france_nation,
+        godip_options_england_london_hold,
+    ):
+        from game.models import Game
+
+        for i in range(20):
+            game = Game.objects.create(
+                name=f"Game {i}",
+                variant=classical_variant,
+                status=GameStatus.ACTIVE,
+            )
+            game.members.create(user=primary_user, nation=classical_england_nation)
+            game.members.create(user=secondary_user, nation=classical_france_nation)
+
+            if i < 5:
+                scheduled_resolution = timezone.now() - timedelta(hours=1)
+                has_possible_orders_england = True
+                has_possible_orders_france = True
+                orders_confirmed_england = False
+                orders_confirmed_france = False
+            elif i < 10:
+                scheduled_resolution = timezone.now() + timedelta(hours=24)
+                has_possible_orders_england = True
+                has_possible_orders_france = True
+                orders_confirmed_england = True
+                orders_confirmed_france = True
+            elif i < 15:
+                scheduled_resolution = timezone.now() + timedelta(hours=24)
+                has_possible_orders_england = True
+                has_possible_orders_france = True
+                orders_confirmed_england = True
+                orders_confirmed_france = False
+            else:
+                scheduled_resolution = None
+                has_possible_orders_england = False
+                has_possible_orders_france = False
+                orders_confirmed_england = False
+                orders_confirmed_france = False
+
+            phase = game.phases.create(
+                variant=game.variant,
+                season="Spring",
+                year=1901,
+                type="Movement",
+                status=PhaseStatus.ACTIVE,
+                ordinal=1,
+                scheduled_resolution=scheduled_resolution,
+                options=godip_options_england_london_hold if i < 15 else {},
+            )
+
+            for member in game.members.all():
+                phase.phase_states.create(
+                    member=member,
+                    has_possible_orders=(
+                        has_possible_orders_england
+                        if member.nation == classical_england_nation
+                        else has_possible_orders_france
+                    ),
+                    orders_confirmed=(
+                        orders_confirmed_england
+                        if member.nation == classical_england_nation
+                        else orders_confirmed_france
+                    ),
+                )
+
+        old_result = Phase.objects.get_phases_to_resolve()
+        new_result = list(Phase.objects.filter_due_phases())
+
+        assert set(old_result) == set(new_result)
+
+
+class TestFilterDuePhasesIntegration:
+
+    @pytest.mark.django_db
+    def test_filter_due_phases_used_by_resolve_due_phases(self, active_game_with_phase_state):
+        phase = active_game_with_phase_state.current_phase
+        past_time = timezone.now() - timedelta(hours=1)
+        phase.scheduled_resolution = past_time
+        phase.save()
+
+        phase_state = phase.phase_states.first()
+        phase_state.has_possible_orders = True
+        phase_state.save()
+
+        with patch.object(Phase.objects, "get_phases_to_resolve") as mock_old:
+            with patch.object(Phase.objects, "resolve") as mock_resolve:
+                Phase.objects.resolve_due_phases()
+                mock_old.assert_called_once()
+
+    @pytest.mark.django_db
+    def test_filter_due_phases_returns_queryset(self):
+        from django.db.models.query import QuerySet
+
+        result = Phase.objects.filter_due_phases()
+
+        assert isinstance(result, QuerySet)
+
+    @pytest.mark.django_db
+    def test_filter_due_phases_can_be_chained(
+        self, phase_factory, classical_variant, italy_vs_germany_variant, classical_england_nation
+    ):
+        phase_classical = phase_factory(
+            scheduled_resolution=timezone.now() - timedelta(hours=1),
+            phase_states_config=[{"nation": classical_england_nation, "has_possible_orders": True}],
+        )
+
+        from game.models import Game
+
+        game_italy = Game.objects.create(
+            variant=italy_vs_germany_variant,
+            name="Italy Game",
+            status=GameStatus.ACTIVE,
+        )
+
+        phase_italy = game_italy.phases.create(
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type="Movement",
+            status=PhaseStatus.ACTIVE,
+            ordinal=1,
+            scheduled_resolution=timezone.now() - timedelta(hours=1),
+        )
+
+        phases_filtered_by_variant = Phase.objects.filter_due_phases().filter(variant=italy_vs_germany_variant)
+
+        assert phase_italy in phases_filtered_by_variant
+        assert phase_classical not in phases_filtered_by_variant

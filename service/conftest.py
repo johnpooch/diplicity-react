@@ -125,7 +125,7 @@ def active_game_with_phase_state(
 ):
     phase = base_active_phase(base_active_game_for_primary_user)
     member = base_active_game_for_primary_user.members.create(user=primary_user, nation=classical_england_nation)
-    phase_state = phase.phase_states.create(member=member)
+    phase_state = phase.phase_states.create(member=member, has_possible_orders=True)
     return base_active_game_for_primary_user
 
 

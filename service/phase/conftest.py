@@ -1,4 +1,6 @@
 import pytest
+from datetime import timedelta
+from django.utils import timezone
 from phase.models import Phase
 from common.constants import PhaseStatus, UnitType, OrderType, GameStatus, MovementPhaseDuration
 
@@ -284,3 +286,146 @@ def game_with_three_phases(
     )
 
     return game
+
+
+@pytest.fixture
+def phase_factory(db, classical_variant, primary_user, secondary_user):
+    from game.models import Game
+    from member.models import Member
+
+    def _create_phase(
+        scheduled_resolution=None,
+        phase_states_config=None,
+        status=PhaseStatus.ACTIVE,
+        game=None,
+        options=None,
+    ):
+        if game is None:
+            game = Game.objects.create(
+                variant=classical_variant,
+                name=f"Test Game {Phase.objects.count()}",
+                status=GameStatus.ACTIVE,
+                movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            )
+
+        phase = Phase.objects.create(
+            game=game,
+            variant=classical_variant,
+            season="Spring",
+            year=1901,
+            type="Movement",
+            ordinal=1,
+            status=status,
+            scheduled_resolution=scheduled_resolution,
+            options=options or {},
+        )
+
+        if phase_states_config:
+            for config in phase_states_config:
+                nation = config.get('nation')
+                if not nation:
+                    continue
+
+                member = game.members.filter(nation=nation).first()
+                if not member:
+                    user = config.get('user', primary_user)
+                    member = Member.objects.create(
+                        nation=nation,
+                        user=user,
+                        game=game,
+                    )
+
+                phase.phase_states.create(
+                    member=member,
+                    has_possible_orders=config.get('has_possible_orders', False),
+                    orders_confirmed=config.get('orders_confirmed', False),
+                )
+
+        return phase
+
+    return _create_phase
+
+
+@pytest.fixture
+def multiple_games_with_phases(
+    db,
+    classical_variant,
+    primary_user,
+    secondary_user,
+    classical_england_nation,
+    classical_france_nation,
+):
+    from game.models import Game
+    from member.models import Member
+
+    games_data = []
+
+    for i in range(3):
+        game = Game.objects.create(
+            variant=classical_variant,
+            name=f"Multi Game {i}",
+            status=GameStatus.ACTIVE,
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+        )
+
+        member_england = Member.objects.create(
+            nation=classical_england_nation,
+            user=primary_user,
+            game=game,
+        )
+
+        member_france = Member.objects.create(
+            nation=classical_france_nation,
+            user=secondary_user,
+            game=game,
+        )
+
+        if i == 0:
+            scheduled_resolution = timezone.now() - timedelta(hours=1)
+            has_possible_orders_england = True
+            has_possible_orders_france = True
+            orders_confirmed_england = False
+            orders_confirmed_france = False
+        elif i == 1:
+            scheduled_resolution = timezone.now() + timedelta(hours=24)
+            has_possible_orders_england = True
+            has_possible_orders_france = True
+            orders_confirmed_england = True
+            orders_confirmed_france = True
+        else:
+            scheduled_resolution = timezone.now() + timedelta(hours=24)
+            has_possible_orders_england = True
+            has_possible_orders_france = True
+            orders_confirmed_england = True
+            orders_confirmed_france = False
+
+        phase = Phase.objects.create(
+            game=game,
+            variant=classical_variant,
+            season="Spring",
+            year=1901,
+            type="Movement",
+            ordinal=1,
+            status=PhaseStatus.ACTIVE,
+            scheduled_resolution=scheduled_resolution,
+        )
+
+        phase.phase_states.create(
+            member=member_england,
+            has_possible_orders=has_possible_orders_england,
+            orders_confirmed=orders_confirmed_england,
+        )
+
+        phase.phase_states.create(
+            member=member_france,
+            has_possible_orders=has_possible_orders_france,
+            orders_confirmed=orders_confirmed_france,
+        )
+
+        games_data.append({
+            'game': game,
+            'phase': phase,
+            'should_resolve': i in [0, 1],
+        })
+
+    return games_data
