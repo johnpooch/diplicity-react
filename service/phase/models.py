@@ -2,6 +2,7 @@ import json
 import logging
 
 from django.db import models, transaction
+from django.db.models import Q, Exists, OuterRef
 from django.utils import timezone
 from opentelemetry import trace
 from common.models import BaseModel
@@ -26,6 +27,18 @@ class PhaseQuerySet(models.QuerySet):
             "supply_centers__province__named_coasts",
         )
 
+    def filter_due_phases(self):
+        return self.filter(
+            Q(status=PhaseStatus.ACTIVE)
+            & Q(game__sandbox=False)
+            & (
+                (Q(scheduled_resolution__isnull=False) & Q(scheduled_resolution__lte=timezone.now()))
+                | ~Exists(
+                    PhaseState.objects.filter(phase=OuterRef("pk"), has_possible_orders=True, orders_confirmed=False)
+                )
+            )
+        )
+
 
 class PhaseManager(models.Manager):
     def get_queryset(self):
@@ -33,6 +46,9 @@ class PhaseManager(models.Manager):
 
     def with_detail_data(self):
         return self.get_queryset().with_detail_data()
+
+    def filter_due_phases(self):
+        return self.get_queryset().filter_due_phases()
 
     def resolve_phase(self, phase):
         with tracer.start_as_current_span("phase.manager.resolve_phase") as span:
@@ -46,38 +62,13 @@ class PhaseManager(models.Manager):
         with tracer.start_as_current_span("phase.manager.get_phases_to_resolve") as span:
             logger.info("Querying phases to resolve")
 
-            with tracer.start_as_current_span("phase.query_active_phases") as query_span:
-                phases = self.get_queryset().filter(status=PhaseStatus.ACTIVE)
-                total_phases = phases.count()
-                query_span.set_attribute("phases.found", total_phases)
-                logger.info(f"Found {total_phases} active phases to check for resolution")
+            with tracer.start_as_current_span("phase.query_due_phases") as query_span:
+                phases_to_resolve = list(self.filter_due_phases())
+                query_span.set_attribute("phases.found", len(phases_to_resolve))
+                logger.info(f"Found {len(phases_to_resolve)} phases to resolve")
 
-            phases_to_resolve = []
-
-            for phase in phases:
-                with tracer.start_as_current_span("phase.check_should_resolve") as check_span:
-                    check_span.set_attribute("phase.id", phase.id)
-                    check_span.set_attribute("game.id", str(phase.game.id))
-
-                    if phase.scheduled_resolution is None:
-                        logger.debug(f"Phase {phase.id} ({phase.name}) has no scheduled resolution (sandbox game), skipping")
-                        check_span.set_attribute("should_resolve", False)
-                        check_span.set_attribute("skip_reason", "no_scheduled_resolution")
-                        continue
-
-                    should_resolve = (phase.scheduled_resolution <= timezone.now()) or phase.should_resolve_immediately
-                    check_span.set_attribute("should_resolve", should_resolve)
-                    check_span.set_attribute("should_resolve_immediately", phase.should_resolve_immediately)
-
-                    if should_resolve:
-                        phases_to_resolve.append(phase)
-                        logger.debug(f"Phase {phase.id} ({phase.name}) marked for resolution")
-                    else:
-                        logger.debug(f"Phase {phase.id} ({phase.name}) not due for resolution yet")
-
-            span.set_attribute("phases.total", total_phases)
             span.set_attribute("phases.to_resolve", len(phases_to_resolve))
-            logger.info(f"Identified {len(phases_to_resolve)} phases to resolve out of {total_phases} active phases")
+            logger.info(f"Identified {len(phases_to_resolve)} phases to resolve")
 
             return phases_to_resolve
 
@@ -142,13 +133,16 @@ class PhaseManager(models.Manager):
                     order_count = len(previous_phase.all_orders)
                     for order in previous_phase.all_orders:
                         resolution = next(
-                            (r for r in adjudication_data["resolutions"] if r["province"] == order.source.province_id), None
+                            (r for r in adjudication_data["resolutions"] if r["province"] == order.source.province_id),
+                            None,
                         )
                         if resolution:
                             if hasattr(order, "resolution"):
                                 order.resolution.delete()
                             by_province = (
-                                previous_phase.variant.provinces.get(province_id=resolution["by"]) if resolution["by"] else None
+                                previous_phase.variant.provinces.get(province_id=resolution["by"])
+                                if resolution["by"]
+                                else None
                             )
                             OrderResolution.objects.create(
                                 order=order,
@@ -158,7 +152,9 @@ class PhaseManager(models.Manager):
                             resolutions_count += 1
                             logger.debug(f"Created resolution for order {order.id}: {resolution['result']}")
                         else:
-                            logger.warning(f"No resolution found for order {order.id} in province {order.source.province_id}")
+                            logger.warning(
+                                f"No resolution found for order {order.id} in province {order.source.province_id}"
+                            )
 
                     resolutions_span.set_attribute("order_count", order_count)
                     resolutions_span.set_attribute("resolutions_created", resolutions_count)
