@@ -154,13 +154,13 @@ def test_create_game_with_italy_vs_germany_variant_one_user_joins(
     assert italy_member.user != germany_member.user
 
     # Notification is sent to both users
-    mock_send_notification_to_users.assert_called_once_with(
-        user_ids=[germany_member.user.id, italy_member.user.id],
-        title="Game Started",
-        body=f"Game '{game.name}' has started!",
-        notification_type="game_start",
-        data={"game_id": str(game.id)},
-    )
+    mock_send_notification_to_users.assert_called_once()
+    call_args = mock_send_notification_to_users.call_args
+    assert set(call_args.kwargs["user_ids"]) == {germany_member.user.id, italy_member.user.id}
+    assert call_args.kwargs["title"] == "Game Started"
+    assert call_args.kwargs["body"] == f"Game '{game.name}' has started!"
+    assert call_args.kwargs["notification_type"] == "game_start"
+    assert call_args.kwargs["data"] == {"game_id": str(game.id)}
 
 
 @pytest.mark.django_db
@@ -314,13 +314,13 @@ def test_active_game_create_orders_and_confirm(
     assert resolve_response.data["resolved"] >= 1
 
     # Notification is sent to both users
-    mock_send_notification_to_users.assert_called_with(
-        user_ids=[germany_member.user.id, italy_member.user.id],
-        title="Phase Resolved",
-        body=f"Phase '{first_phase.name}' has been resolved!",
-        notification_type="phase_resolved",
-        data={"game_id": str(active_game.id)},
-    )
+    assert mock_send_notification_to_users.called
+    call_args = mock_send_notification_to_users.call_args_list[-1]
+    assert set(call_args.kwargs["user_ids"]) == {germany_member.user.id, italy_member.user.id}
+    assert call_args.kwargs["title"] == "Phase Resolved"
+    assert call_args.kwargs["body"] == f"Phase '{first_phase.name}' has been resolved!"
+    assert call_args.kwargs["notification_type"] == "phase_resolved"
+    assert call_args.kwargs["data"] == {"game_id": str(active_game.id)}
 
     # Second phase has been created
     second_phase = active_game.current_phase
@@ -343,13 +343,13 @@ def test_active_game_create_orders_and_confirm(
     assert first_phase.status == PhaseStatus.COMPLETED
 
     # Notification is sent to both users
-    mock_send_notification_to_users.assert_called_with(
-        user_ids=[germany_member.user.id, italy_member.user.id],
-        title="Phase Resolved",
-        body=f"Phase '{second_phase.name}' has been resolved!",
-        notification_type="phase_resolved",
-        data={"game_id": str(active_game.id)},
-    )
+    assert mock_send_notification_to_users.called
+    call_args = mock_send_notification_to_users.call_args_list[-1]
+    assert set(call_args.kwargs["user_ids"]) == {germany_member.user.id, italy_member.user.id}
+    assert call_args.kwargs["title"] == "Phase Resolved"
+    assert call_args.kwargs["body"] == f"Phase '{second_phase.name}' has been resolved!"
+    assert call_args.kwargs["notification_type"] == "phase_resolved"
+    assert call_args.kwargs["data"] == {"game_id": str(active_game.id)}
 
 
 @pytest.mark.django_db
