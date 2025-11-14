@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import patch
 import json
+from pathlib import Path
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import override_settings
@@ -795,3 +796,17 @@ def hundred_orleanais_province(django_db_setup, django_db_blocker, hundred_varia
 def hundred_aragon_province(django_db_setup, django_db_blocker, hundred_variant):
     with django_db_blocker.unblock():
         return Province.objects.get(province_id="ara", variant=hundred_variant)
+
+
+@pytest.fixture
+def adjudication_data_classical():
+    data_path = Path(__file__).parent / "game" / "tests" / "data" / "start_classical.json"
+    with open(data_path) as f:
+        return json.load(f)
+
+
+@pytest.fixture
+def adjudication_data_italy_vs_germany():
+    data_path = Path(__file__).parent / "game" / "tests" / "data" / "start_italy_vs_germany.json"
+    with open(data_path) as f:
+        return json.load(f)

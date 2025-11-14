@@ -8,6 +8,7 @@ from phase.serializers import PhaseSerializer
 from member.serializers import MemberSerializer
 from variant.models import Variant
 from phase.models import Phase
+from member.models import Member
 from .models import Game
 
 tracer = trace.get_tracer(__name__)
@@ -87,7 +88,7 @@ class GameSerializer(BaseGameSerializer):
 
     def create(self, validated_data):
         request = self.context["request"]
-        variant = Variant.objects.get(id=validated_data["variant_id"])
+        variant = Variant.objects.with_game_creation_data().get(id=validated_data["variant_id"])
 
         with transaction.atomic():
             game = Game.objects.create_from_template(
@@ -103,7 +104,12 @@ class GameSerializer(BaseGameSerializer):
             game.members.create(user=request.user)
             game.channels.create(name="Public Press", private=False)
 
-            return game
+            # Clean up temporary attribute
+            if hasattr(game, "_created_phase"):
+                delattr(game, "_created_phase")
+
+        # Reload game with prefetched data to avoid n+1 queries during serialization
+        return Game.objects.all().with_related_data().get(id=game.id)
 
 
 class SandboxGameSerializer(BaseGameSerializer):
@@ -116,7 +122,7 @@ class SandboxGameSerializer(BaseGameSerializer):
 
     def create(self, validated_data):
         request = self.context["request"]
-        variant = Variant.objects.get(id=validated_data["variant_id"])
+        variant = Variant.objects.with_game_creation_data().get(id=validated_data["variant_id"])
 
         with transaction.atomic():
             game = Game.objects.create_from_template(
@@ -128,9 +134,22 @@ class SandboxGameSerializer(BaseGameSerializer):
                 movement_phase_duration=None,
             )
 
-            for nation in variant.nations.all():
-                game.members.create(user=request.user)
+            # Bulk create members to avoid n+1 queries
+            nations_list = list(variant.nations.all())
+            members_to_create = [Member(game=game, user=request.user) for _ in nations_list]
+            created_members = Member.objects.bulk_create(members_to_create)
 
-            game.start()
+            # Get the phase we just created from create_from_template to avoid querying for it
+            # create_from_template stores it on game._created_phase
+            current_phase = getattr(game, "_created_phase", None)
+            if current_phase is None:
+                current_phase = game.phases.first()
 
-            return game
+            game.start(current_phase=current_phase, members=created_members)
+
+            # Clean up temporary attribute
+            if hasattr(game, "_created_phase"):
+                delattr(game, "_created_phase")
+
+        # Reload game with prefetched data to avoid n+1 queries during serialization
+        return Game.objects.all().with_related_data().get(id=game.id)
