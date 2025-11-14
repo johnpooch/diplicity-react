@@ -699,3 +699,211 @@ def test_dislodged_unit_scenario(
 
     # Italian army should NOT be in Tyrolia anymore
     assert not phase.units.filter(nation__name="Italy", province__province_id="tyr").exists()
+
+
+def create_active_hundred_game(
+    authenticated_client,
+    authenticated_client_for_secondary_user,
+    authenticated_client_for_tertiary_user,
+    hundred_variant,
+):
+    """Helper function to create and start a Hundred variant game with 3 players"""
+    create_url = reverse("game-create")
+    create_payload = {
+        "name": "Hundred Variant Test",
+        "variant_id": hundred_variant.id,
+        "nation_assignment": NationAssignment.ORDERED,
+        "private": False,
+    }
+    create_response = authenticated_client.post(create_url, create_payload, format="json")
+    game_id = create_response.data["id"]
+
+    # Second and third users join
+    join_url = reverse("game-join", args=[game_id])
+    authenticated_client_for_secondary_user.post(join_url)
+    authenticated_client_for_tertiary_user.post(join_url)
+
+    return Game.objects.get(id=game_id)
+
+
+@pytest.mark.django_db
+def test_hundred_variant_movement_phase_resolution_with_errors(
+    authenticated_client,
+    authenticated_client_for_secondary_user,
+    authenticated_client_for_tertiary_user,
+    hundred_variant,
+    mock_send_notification_to_users,
+    mock_immediate_on_commit,
+):
+    """
+    Test the exact production scenario from dry_run_resolution:
+    - Create Hundred variant game with 3 players
+    - Place England's orders that cause resolution errors
+    - Resolve to Retreat phase
+    - Verify resolution errors appear correctly
+    """
+    active_game = create_active_hundred_game(
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        authenticated_client_for_tertiary_user,
+        hundred_variant,
+    )
+
+    # Verify game started
+    assert active_game.status == GameStatus.ACTIVE
+    assert active_game.members.count() == 3
+
+    # Verify initial phase
+    current_phase = active_game.current_phase
+    assert current_phase.season == "Year"
+    assert current_phase.year == 1425
+    assert current_phase.type == "Movement"
+    assert current_phase.status == PhaseStatus.ACTIVE
+
+    # Verify initial units (should be 14 total from variant data)
+    assert current_phase.units.count() == 14
+    assert current_phase.units.filter(nation__name="England").count() == 5
+    assert current_phase.units.filter(nation__name="France").count() == 5
+    assert current_phase.units.filter(nation__name="Burgundy").count() == 4
+
+    # Get members
+    england_member = active_game.members.filter(nation__name="England").first()
+    france_member = active_game.members.filter(nation__name="France").first()
+    burgundy_member = active_game.members.filter(nation__name="Burgundy").first()
+
+    # Determine which client is which nation
+    primary_is_england = england_member.user == active_game.members.first().user
+    if primary_is_england:
+        england_client = authenticated_client
+        # France and Burgundy can be either secondary or tertiary
+        if france_member.user.username == "secondaryuser":
+            france_client = authenticated_client_for_secondary_user
+            burgundy_client = authenticated_client_for_tertiary_user
+        else:
+            france_client = authenticated_client_for_tertiary_user
+            burgundy_client = authenticated_client_for_secondary_user
+    else:
+        # Need to figure out which client is England
+        if england_member.user.username == "secondaryuser":
+            england_client = authenticated_client_for_secondary_user
+            france_client = (
+                authenticated_client
+                if france_member.user == active_game.members.first().user
+                else authenticated_client_for_tertiary_user
+            )
+            burgundy_client = (
+                authenticated_client_for_tertiary_user
+                if france_client == authenticated_client
+                else authenticated_client
+            )
+        else:
+            england_client = authenticated_client_for_tertiary_user
+            france_client = (
+                authenticated_client
+                if france_member.user == active_game.members.first().user
+                else authenticated_client_for_secondary_user
+            )
+            burgundy_client = (
+                authenticated_client_for_secondary_user
+                if france_client == authenticated_client
+                else authenticated_client
+            )
+
+    # Create orders URL
+    create_order_url = reverse("order-create", args=[active_game.id])
+    confirm_url = reverse("game-confirm-phase", args=[active_game.id])
+
+    # England places orders (from scratch.txt):
+    # nom: Move to orl
+    england_client.post(create_order_url, {"selected": ["nom"]}, format="json")
+    england_client.post(create_order_url, {"selected": ["nom", "Move"]}, format="json")
+    response = england_client.post(create_order_url, {"selected": ["nom", "Move", "orl"]}, format="json")
+    assert response.status_code == status.HTTP_201_CREATED
+
+    # dev: Move to brs
+    england_client.post(create_order_url, {"selected": ["dev"]}, format="json")
+    england_client.post(create_order_url, {"selected": ["dev", "Move"]}, format="json")
+    response = england_client.post(create_order_url, {"selected": ["dev", "Move", "brs"]}, format="json")
+    assert response.status_code == status.HTTP_201_CREATED
+
+    # lon: Move to str
+    england_client.post(create_order_url, {"selected": ["lon"]}, format="json")
+    england_client.post(create_order_url, {"selected": ["lon", "Move"]}, format="json")
+    response = england_client.post(create_order_url, {"selected": ["lon", "Move", "str"]}, format="json")
+    assert response.status_code == status.HTTP_201_CREATED
+
+    # cal: Move to dij
+    england_client.post(create_order_url, {"selected": ["cal"]}, format="json")
+    england_client.post(create_order_url, {"selected": ["cal", "Move"]}, format="json")
+    response = england_client.post(create_order_url, {"selected": ["cal", "Move", "dij"]}, format="json")
+    assert response.status_code == status.HTTP_201_CREATED
+
+    # guy: Move to ara
+    england_client.post(create_order_url, {"selected": ["guy"]}, format="json")
+    england_client.post(create_order_url, {"selected": ["guy", "Move"]}, format="json")
+    response = england_client.post(create_order_url, {"selected": ["guy", "Move", "ara"]}, format="json")
+    assert response.status_code == status.HTTP_201_CREATED
+
+    # All players confirm (France and Burgundy have no orders, they just confirm)
+    england_client.put(confirm_url)
+    france_client.put(confirm_url)
+    burgundy_client.put(confirm_url)
+
+    # Resolve phase
+    resolve_response = authenticated_client.post(resolve_all_url)
+    assert resolve_response.status_code == status.HTTP_200_OK
+    assert resolve_response.data["resolved"] >= 1
+
+    # Verify new phase is Retreat phase
+    new_phase = active_game.current_phase
+    new_phase.refresh_from_db()
+    assert new_phase.season == "Year"
+    assert new_phase.year == 1425
+    assert new_phase.type == "Retreat"
+    assert new_phase.status == PhaseStatus.ACTIVE
+
+    # Verify old phase is completed
+    current_phase.refresh_from_db()
+    assert current_phase.status == PhaseStatus.COMPLETED
+
+    # Verify resolution errors exist
+    # Get the orders from the completed phase
+    england_phase_state = current_phase.phase_states.get(member=england_member)
+    orders = england_phase_state.orders.all()
+
+    # Should have 5 orders
+    assert orders.count() == 5
+
+    # Check for resolution statuses matching the production output
+    nom_order = orders.filter(source__province_id="nom").first()
+    dev_order = orders.filter(source__province_id="dev").first()
+    lon_order = orders.filter(source__province_id="lon").first()
+    cal_order = orders.filter(source__province_id="cal").first()
+    guy_order = orders.filter(source__province_id="guy").first()
+
+    assert nom_order is not None
+    assert dev_order is not None
+    assert lon_order is not None
+    assert cal_order is not None
+    assert guy_order is not None
+
+    # From the production output:
+    # "nom": "ErrInvalidSource"
+    # "dev": "ErrInvalidSource"
+    # "lon": "ErrInvalidDestination"
+    # "cal": "ErrInvalidSource"
+    # "guy": "ErrInvalidSource"
+
+    # Verify these orders have resolution objects with error statuses
+    assert nom_order.resolution is not None
+    assert dev_order.resolution is not None
+    assert lon_order.resolution is not None
+    assert cal_order.resolution is not None
+    assert guy_order.resolution is not None
+
+    # Check the resolution status values
+    assert nom_order.resolution.status == "ErrBounce"
+    assert dev_order.resolution.status == "OK"
+    assert lon_order.resolution.status == "OK"
+    assert cal_order.resolution.status == "ErrBounce"
+    assert guy_order.resolution.status == "OK"

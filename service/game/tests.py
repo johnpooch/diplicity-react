@@ -1314,3 +1314,118 @@ class TestSandboxGameFiltering:
         game_ids = [game["id"] for game in response.data]
         assert regular_game.id in game_ids
         assert sandbox_game.id not in game_ids
+
+
+class TestGameAdminQueryPerformance:
+
+    @pytest.mark.django_db
+    def test_admin_changelist_query_count_simple(
+        self, authenticated_client, pending_game_created_by_primary_user, primary_user
+    ):
+        primary_user.is_staff = True
+        primary_user.is_superuser = True
+        primary_user.save()
+        authenticated_client.force_login(primary_user)
+
+        url = "/admin/game/game/"
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(url)
+
+        assert response.status_code == 200
+        query_count = len(connection.queries)
+        assert query_count == 7
+
+    @pytest.mark.django_db
+    def test_admin_changelist_query_count_with_multiple_games_and_phases(
+        self,
+        authenticated_client,
+        db,
+        classical_variant,
+        primary_user,
+        classical_england_nation,
+        classical_edinburgh_province,
+    ):
+        primary_user.is_staff = True
+        primary_user.is_superuser = True
+        primary_user.save()
+        authenticated_client.force_login(primary_user)
+
+        for i in range(4):
+            game = Game.objects.create(
+                name=f"Game with Phases {i}",
+                variant=classical_variant,
+                status=GameStatus.ACTIVE,
+            )
+            game.members.create(user=primary_user, nation=classical_england_nation)
+
+            for j in range(2):
+                phase = game.phases.create(
+                    game=game,
+                    variant=game.variant,
+                    season="Spring" if j == 0 else "Fall",
+                    year=1901,
+                    type="Movement",
+                    status=PhaseStatus.ACTIVE if j == 1 else PhaseStatus.COMPLETED,
+                    ordinal=j + 1,
+                )
+                phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_edinburgh_province)
+                phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+
+        url = "/admin/game/game/"
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(url)
+
+        assert response.status_code == 200
+        query_count = len(connection.queries)
+        assert query_count == 7
+
+    @pytest.mark.django_db
+    def test_admin_changelist_query_count_with_many_games(
+        self,
+        authenticated_client,
+        db,
+        classical_variant,
+        primary_user,
+        classical_england_nation,
+        classical_edinburgh_province,
+    ):
+        primary_user.is_staff = True
+        primary_user.is_superuser = True
+        primary_user.save()
+        authenticated_client.force_login(primary_user)
+
+        for i in range(10):
+            game = Game.objects.create(
+                name=f"Game {i}",
+                variant=classical_variant,
+                status=GameStatus.ACTIVE,
+            )
+            game.members.create(user=primary_user, nation=classical_england_nation)
+
+            phase_count = i % 4
+            for j in range(phase_count):
+                phase = game.phases.create(
+                    game=game,
+                    variant=game.variant,
+                    season="Spring" if j % 2 == 0 else "Fall",
+                    year=1901 + (j // 2),
+                    type="Movement",
+                    status=PhaseStatus.ACTIVE if j == phase_count - 1 else PhaseStatus.COMPLETED,
+                    ordinal=j + 1,
+                )
+                phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_edinburgh_province)
+                phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+
+        url = "/admin/game/game/"
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(url)
+
+        assert response.status_code == 200
+        query_count = len(connection.queries)
+        assert query_count <= 7
