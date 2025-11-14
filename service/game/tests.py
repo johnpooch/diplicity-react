@@ -871,6 +871,57 @@ class TestGameCreateView:
         assert response.data["private"] is False
 
 
+class TestGameCreateViewPerformance:
+
+    @pytest.mark.django_db
+    def test_create_game_query_count_small_variant(self, authenticated_client, italy_vs_germany_variant):
+        url = reverse(create_viewname)
+        payload = {
+            "name": "Performance Test Game",
+            "variant_id": italy_vs_germany_variant.id,
+            "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
+        }
+
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            response = authenticated_client.post(url, payload, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        query_count = len(connection.queries)
+
+        print(f"\nQuery count: {query_count}")
+        for i, query in enumerate(connection.queries, 1):
+            print(f"\nQuery {i}: {query['sql']}")
+
+        assert query_count == 39
+
+    @pytest.mark.django_db
+    def test_create_game_query_count_large_variant(self, authenticated_client, classical_variant):
+        url = reverse(create_viewname)
+        payload = {
+            "name": "Classical Performance Test",
+            "variant_id": classical_variant.id,
+            "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
+        }
+
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            response = authenticated_client.post(url, payload, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        query_count = len(connection.queries)
+
+        print(f"\nQuery count: {query_count}")
+        for i, query in enumerate(connection.queries, 1):
+            print(f"\nQuery {i}: {query['sql']}")
+
+        assert query_count == 39
+
+
 class TestGamePrivateFiltering:
 
     @pytest.mark.django_db
@@ -1227,6 +1278,61 @@ class TestSandboxGameCreation:
         }
         response = unauthenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+class TestSandboxGameCreateViewPerformance:
+
+    @pytest.mark.django_db
+    def test_create_sandbox_game_query_count_small_variant(
+        self, authenticated_client, italy_vs_germany_variant, adjudication_data_italy_vs_germany
+    ):
+        url = reverse(sandbox_create_viewname)
+        payload = {
+            "name": "Sandbox Performance Test",
+            "variant_id": italy_vs_germany_variant.id,
+        }
+
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            with patch("adjudication.service.start") as mock_start:
+                mock_start.return_value = adjudication_data_italy_vs_germany
+                response = authenticated_client.post(url, payload, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        query_count = len(connection.queries)
+
+        print(f"\nQuery count (small variant): {query_count}")
+        for i, query in enumerate(connection.queries, 1):
+            print(f"\nQuery {i}: {query['sql']}")
+
+        assert query_count == 44
+
+    @pytest.mark.django_db
+    def test_create_sandbox_game_query_count_large_variant(
+        self, authenticated_client, classical_variant, adjudication_data_classical
+    ):
+        url = reverse(sandbox_create_viewname)
+        payload = {
+            "name": "Classical Sandbox Performance Test",
+            "variant_id": classical_variant.id,
+        }
+
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            with patch("adjudication.service.start") as mock_start:
+                mock_start.return_value = adjudication_data_classical
+                response = authenticated_client.post(url, payload, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        query_count = len(connection.queries)
+
+        print(f"\nQuery count (large variant): {query_count}")
+        for i, query in enumerate(connection.queries, 1):
+            print(f"\nQuery {i}: {query['sql']}")
+
+        assert query_count == 44
 
 
 class TestSandboxGameFiltering:

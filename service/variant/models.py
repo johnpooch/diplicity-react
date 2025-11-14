@@ -32,10 +32,33 @@ class VariantQuerySet(models.QuerySet):
             template_phase_prefetch,
         )
 
+    def with_game_creation_data(self):
+        template_phase_prefetch = Prefetch(
+            "phases",
+            queryset=Phase.objects.filter(
+                game=None,
+                status=PhaseStatus.TEMPLATE
+            ).prefetch_related(
+                "units__nation",
+                "units__province",
+                "supply_centers__nation",
+                "supply_centers__province",
+            ),
+            to_attr="template_phases",
+        )
+
+        return self.prefetch_related(
+            "nations",
+            template_phase_prefetch,
+        )
+
 
 class VariantManager(models.Manager):
     def get_queryset(self):
         return VariantQuerySet(self.model, using=self._db)
+
+    def with_game_creation_data(self):
+        return self.get_queryset().with_game_creation_data()
 
 
 class Variant(BaseModel):

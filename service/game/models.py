@@ -112,20 +112,34 @@ class GameManager(models.Manager):
             ordinal=1,
         )
 
-        for template_unit in template_phase.units.all():
-            phase.units.create(
+        from unit.models import Unit
+
+        units_to_create = [
+            Unit(
+                phase=phase,
                 type=template_unit.type,
                 nation=template_unit.nation,
                 province=template_unit.province,
                 dislodged_by=template_unit.dislodged_by,
             )
+            for template_unit in template_phase.units.all()
+        ]
+        Unit.objects.bulk_create(units_to_create)
 
-        for template_sc in template_phase.supply_centers.all():
-            phase.supply_centers.create(
+        from supply_center.models import SupplyCenter
+
+        supply_centers_to_create = [
+            SupplyCenter(
+                phase=phase,
                 nation=template_sc.nation,
                 province=template_sc.province,
             )
+            for template_sc in template_phase.supply_centers.all()
+        ]
+        SupplyCenter.objects.bulk_create(supply_centers_to_create)
 
+        # Store phase on game object to avoid querying for it later
+        game._created_phase = phase
         return game
 
 
@@ -210,12 +224,17 @@ class Game(BaseModel):
                     return True
             return False
 
-    def start(self):
+    def start(self, current_phase=None, members=None):
         if self.status != GameStatus.PENDING:
             raise ValueError("Game is not pending")
 
-        current_phase = self.current_phase
-        adjudication_data = adjudication_service.start(self.current_phase)
+        # Use provided phase/members to avoid unnecessary queries, or fetch if not provided
+        if current_phase is None:
+            current_phase = self.current_phase
+        if members is None:
+            members = list(self.members.all())
+
+        adjudication_data = adjudication_service.start(current_phase)
 
         current_phase.status = PhaseStatus.ACTIVE
         current_phase.options = adjudication_data["options"]
@@ -227,24 +246,36 @@ class Game(BaseModel):
             current_phase.scheduled_resolution = None
         current_phase.save()
 
-        members = self.members.all()
-        nations = self.variant.nations.all()
+        # Use prefetched nations if available, otherwise fetch
+        # variant.nations.all() is already prefetched via with_game_creation_data()
+        # Accessing .all() on a prefetched queryset doesn't trigger a new query
+        nations = list(self.variant.nations.all())
 
         if self.nation_assignment == NationAssignment.RANDOM:
-            members = members.order_by("?")
-        elif self.nation_assignment == NationAssignment.ORDERED:
-            members = members.order_by("id")
+            import random
 
+            random.shuffle(members)
+        elif self.nation_assignment == NationAssignment.ORDERED:
+            members.sort(key=lambda m: m.id)
+
+        now = timezone.now()
         for member, nation in zip(members, nations):
             member.nation = nation
-            member.save()
+            member.updated_at = now
+
+        # Use bulk_update to avoid n+1 queries
+        Member.objects.bulk_update(members, ["nation", "updated_at"])
 
         nations_with_orders = current_phase.nations_with_possible_orders
-        for member in members:
-            current_phase.phase_states.create(
+        phase_states_to_create = [
+            PhaseState(
+                phase=current_phase,
                 member=member,
                 has_possible_orders=member.nation.name in nations_with_orders,
             )
+            for member in members
+        ]
+        PhaseState.objects.bulk_create(phase_states_to_create)
 
         self.status = GameStatus.ACTIVE
         self.save()
