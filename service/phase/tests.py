@@ -1,3 +1,5 @@
+from adjudication.service import resolve
+import json
 import pytest
 from django.db import IntegrityError, DatabaseError
 from django.urls import reverse
@@ -1188,6 +1190,141 @@ class TestCreateFromAdjudicationData:
         assert len(resolved_orders) == orders_count
 
 
+class TestCreateFromAdjudicationDataPerformance:
+
+    @pytest.mark.django_db
+    def test_create_from_adjudication_data_query_count_with_small_game(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = Phase.objects.with_adjudication_data().get(pk=italy_vs_germany_phase_with_orders.pk)
+
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+
+        query_count = len(connection.queries)
+
+        assert query_count == 12
+
+    @pytest.mark.django_db
+    def test_create_from_adjudication_data_query_count_with_full_game(
+        self,
+        classical_variant,
+        primary_user,
+        classical_england_nation,
+        classical_france_nation,
+        classical_germany_nation,
+        classical_italy_nation,
+        classical_austria_nation,
+        classical_russia_nation,
+        classical_turkey_nation,
+        classical_london_province,
+        classical_paris_province,
+    ):
+        from game.models import Game
+        from province.models import Province
+
+        game = Game.objects.create(
+            name="Full Classical Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+
+        nations = [
+            classical_england_nation,
+            classical_france_nation,
+            classical_germany_nation,
+            classical_italy_nation,
+            classical_austria_nation,
+            classical_russia_nation,
+            classical_turkey_nation,
+        ]
+
+        for nation in nations:
+            game.members.create(user=primary_user, nation=nation)
+
+        berlin = Province.objects.get(province_id="ber", variant=classical_variant)
+        rome = Province.objects.get(province_id="rom", variant=classical_variant)
+        vienna = Province.objects.get(province_id="vie", variant=classical_variant)
+        moscow = Province.objects.get(province_id="mos", variant=classical_variant)
+        constantinople = Province.objects.get(province_id="con", variant=classical_variant)
+
+        phase = game.phases.create(
+            variant=classical_variant,
+            season="Spring",
+            year=1901,
+            type="Movement",
+            status=PhaseStatus.ACTIVE,
+            ordinal=1,
+            scheduled_resolution=timezone.now() - timedelta(hours=1),
+            options={},
+        )
+
+        supply_centers_data = [
+            (classical_london_province, classical_england_nation),
+            (classical_paris_province, classical_france_nation),
+            (berlin, classical_germany_nation),
+            (rome, classical_italy_nation),
+            (vienna, classical_austria_nation),
+            (moscow, classical_russia_nation),
+            (constantinople, classical_turkey_nation),
+        ]
+
+        for province, nation in supply_centers_data:
+            phase.supply_centers.create(province=province, nation=nation)
+
+        units_data = [
+            (classical_london_province, classical_england_nation, UnitType.FLEET),
+            (classical_paris_province, classical_france_nation, UnitType.ARMY),
+            (berlin, classical_germany_nation, UnitType.ARMY),
+            (rome, classical_italy_nation, UnitType.FLEET),
+            (vienna, classical_austria_nation, UnitType.ARMY),
+            (moscow, classical_russia_nation, UnitType.ARMY),
+            (constantinople, classical_turkey_nation, UnitType.FLEET),
+        ]
+
+        for province, nation, unit_type in units_data:
+            phase.units.create(province=province, nation=nation, type=unit_type)
+
+        for member in game.members.all():
+            phase_state = phase.phase_states.create(
+                member=member,
+                has_possible_orders=True,
+            )
+            phase_state.orders.create(
+                source=supply_centers_data[nations.index(member.nation)][0],
+                order_type=OrderType.HOLD,
+            )
+
+        # Create mock adjudication data for full game
+        mock_adjudication_data = {
+            "season": "Spring",
+            "year": 1901,
+            "type": "Retreat",
+            "options": {},
+            "supply_centers": [{"province": sc[0].province_id, "nation": sc[1].name} for sc in supply_centers_data],
+            "units": [
+                {"province": u[0].province_id, "nation": u[1].name, "type": u[2], "dislodged_by": None}
+                for u in units_data
+            ],
+            "resolutions": [{"province": sc[0].province_id, "result": "OK", "by": None} for sc in supply_centers_data],
+        }
+
+        phase = Phase.objects.with_adjudication_data().get(pk=phase.pk)
+
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data)
+
+        query_count = len(connection.queries)
+
+        assert query_count == 12
+
+
 class TestPhaseReversion:
 
     @pytest.mark.django_db
@@ -1561,7 +1698,7 @@ class TestGetPhasesToResolvePerformance:
 
         query_count = len(connection.queries)
 
-        assert query_count == 1
+        assert query_count == 7
 
 
 class TestResolveTransactionSafety:
@@ -2348,6 +2485,238 @@ class TestFilterDuePhasesIntegration:
 
         assert phase_italy in phases_filtered_by_variant
         assert phase_classical not in phases_filtered_by_variant
+
+
+class TestResolveQueryPerformance:
+
+    @pytest.mark.django_db
+    def test_resolve_query_count_with_small_game(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+
+        phase.scheduled_resolution = timezone.now() - timedelta(hours=1)
+        phase.save()
+
+        phase_state = phase.phase_states.first()
+        phase_state.has_possible_orders = True
+        phase_state.save()
+
+        phases = list(Phase.objects.get_phases_to_resolve())
+        assert phase in phases
+        phase = next(p for p in phases if p.id == phase.id)
+
+        connection.queries_log.clear()
+
+        # Create mock response matching the adjudication service format
+        mock_response_data = {
+            "options": {},
+            "phase": {
+                "Season": "Spring",
+                "Year": 1901,
+                "Type": "Retreat",
+                "Units": {
+                    "ven": {"Type": "Army", "Nation": "Italy"},
+                    "rom": {"Type": "Army", "Nation": "Italy"},
+                    "nap": {"Type": "Fleet", "Nation": "Italy"},
+                    "kie": {"Type": "Fleet", "Nation": "Germany"},
+                    "ber": {"Type": "Army", "Nation": "Germany"},
+                    "mun": {"Type": "Army", "Nation": "Germany"},
+                },
+                "Orders": {},
+                "SupplyCenters": {
+                    "ven": "Italy",
+                    "rom": "Italy",
+                    "nap": "Italy",
+                    "kie": "Germany",
+                    "ber": "Germany",
+                    "mun": "Germany",
+                },
+                "Dislodgeds": {},
+                "Dislodgers": {},
+                "Bounces": {},
+                "Resolutions": {
+                    "ven": "OK",
+                    "rom": "OK",
+                    "nap": "OK",
+                    "kie": "OK",
+                    "ber": "OK",
+                    "mun": "OK",
+                },
+            },
+        }
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = mock_response_data
+        mock_response.text = json.dumps(mock_response_data)
+        mock_response.headers = {}
+        mock_response.raise_for_status = Mock()
+
+        with override_settings(DEBUG=True):
+            with patch("adjudication.service.requests.post", return_value=mock_response):
+                resolve(phase)
+        query_count = len(connection.queries)
+
+        # Print all queries for analysis
+        print(f"\n=== Total Query Count: {query_count} ===\n")
+        for i, query in enumerate(connection.queries, 1):
+            print(f"Query {i}:")
+            print(f"  SQL: {query['sql']}")
+            print(f"  Time: {query['time']}s")
+            print()
+
+        assert query_count == 2
+
+    @pytest.mark.django_db
+    def test_resolve_query_count_with_full_game(
+        self,
+        classical_variant,
+        primary_user,
+        classical_england_nation,
+        classical_france_nation,
+        classical_germany_nation,
+        classical_italy_nation,
+        classical_austria_nation,
+        classical_russia_nation,
+        classical_turkey_nation,
+        classical_london_province,
+        classical_paris_province,
+    ):
+        from game.models import Game
+        from province.models import Province
+
+        game = Game.objects.create(
+            name="Full Classical Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+
+        nations = [
+            classical_england_nation,
+            classical_france_nation,
+            classical_germany_nation,
+            classical_italy_nation,
+            classical_austria_nation,
+            classical_russia_nation,
+            classical_turkey_nation,
+        ]
+
+        for nation in nations:
+            game.members.create(user=primary_user, nation=nation)
+
+        berlin = Province.objects.get(province_id="ber", variant=classical_variant)
+        rome = Province.objects.get(province_id="rom", variant=classical_variant)
+        vienna = Province.objects.get(province_id="vie", variant=classical_variant)
+        moscow = Province.objects.get(province_id="mos", variant=classical_variant)
+        constantinople = Province.objects.get(province_id="con", variant=classical_variant)
+
+        phase = game.phases.create(
+            variant=classical_variant,
+            season="Spring",
+            year=1901,
+            type="Movement",
+            status=PhaseStatus.ACTIVE,
+            ordinal=1,
+            scheduled_resolution=timezone.now() - timedelta(hours=1),
+            options={},
+        )
+
+        supply_centers_data = [
+            (classical_london_province, classical_england_nation),
+            (classical_paris_province, classical_france_nation),
+            (berlin, classical_germany_nation),
+            (rome, classical_italy_nation),
+            (vienna, classical_austria_nation),
+            (moscow, classical_russia_nation),
+            (constantinople, classical_turkey_nation),
+        ]
+
+        for province, nation in supply_centers_data:
+            phase.supply_centers.create(province=province, nation=nation)
+
+        units_data = [
+            (classical_london_province, classical_england_nation, UnitType.FLEET),
+            (classical_paris_province, classical_france_nation, UnitType.ARMY),
+            (berlin, classical_germany_nation, UnitType.ARMY),
+            (rome, classical_italy_nation, UnitType.FLEET),
+            (vienna, classical_austria_nation, UnitType.ARMY),
+            (moscow, classical_russia_nation, UnitType.ARMY),
+            (constantinople, classical_turkey_nation, UnitType.FLEET),
+        ]
+
+        for province, nation, unit_type in units_data:
+            phase.units.create(province=province, nation=nation, type=unit_type)
+
+        for member in game.members.all():
+            phase_state = phase.phase_states.create(
+                member=member,
+                has_possible_orders=True,
+            )
+            phase_state.orders.create(
+                source=supply_centers_data[nations.index(member.nation)][0],
+                order_type=OrderType.HOLD,
+            )
+
+        # Set up phase for resolution (same as small game test)
+        phase.scheduled_resolution = timezone.now() - timedelta(hours=1)
+        phase.save()
+
+        for phase_state in phase.phase_states.all():
+            phase_state.has_possible_orders = True
+            phase_state.save()
+
+        phases = list(Phase.objects.get_phases_to_resolve())
+        assert phase in phases
+        phase = next(p for p in phases if p.id == phase.id)
+
+        connection.queries_log.clear()
+
+        # Create mock response matching the adjudication service format (same structure as small game test)
+        mock_response_data = {
+            "options": {},
+            "phase": {
+                "Season": "Spring",
+                "Year": 1901,
+                "Type": "Retreat",
+                "Units": {
+                    sc[0].province_id: {"Type": u[2], "Nation": u[1].name}
+                    for sc, u in zip(supply_centers_data, units_data)
+                },
+                "Orders": {},
+                "SupplyCenters": {sc[0].province_id: sc[1].name for sc in supply_centers_data},
+                "Dislodgeds": {},
+                "Dislodgers": {},
+                "Bounces": {},
+                "Resolutions": {sc[0].province_id: "OK" for sc in supply_centers_data},
+            },
+        }
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = mock_response_data
+        mock_response.text = json.dumps(mock_response_data)
+        mock_response.headers = {}
+        mock_response.raise_for_status = Mock()
+
+        with override_settings(DEBUG=True):
+            with patch("adjudication.service.requests.post", return_value=mock_response):
+                resolve(phase)
+        query_count = len(connection.queries)
+
+        # Print all queries for analysis
+        print(f"\n=== Total Query Count: {query_count} ===\n")
+        for i, query in enumerate(connection.queries, 1):
+            print(f"Query {i}:")
+            print(f"  SQL: {query['sql']}")
+            print(f"  Time: {query['time']}s")
+            print()
+
+        # Query count should be similar to small game (2 queries) since we optimized N+1 issues
+        # The only difference is the province lookup which fetches more provinces for classical variant
+        assert query_count == 2
 
 
 class TestPhaseAdminQueryPerformance:

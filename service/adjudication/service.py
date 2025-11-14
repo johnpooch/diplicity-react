@@ -22,7 +22,7 @@ def _make_adjudication_request(phase, endpoint, method="GET", data=None):
             "http.url": url,
             "adjudication.endpoint": endpoint,
             "adjudication.variant": phase.variant.name,
-        }
+        },
     ) as span:
         # Log the request attempt
         logger.info(f"Making {method.upper()} request to adjudication service: {url}")

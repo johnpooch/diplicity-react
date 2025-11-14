@@ -11,6 +11,8 @@ from common.constants import PhaseStatus, PhaseType, GameStatus
 from adjudication.service import resolve
 from order.models import OrderResolution, Order
 from phase.utils import transform_options
+from supply_center.models import SupplyCenter
+from unit.models import Unit
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
@@ -25,6 +27,21 @@ class PhaseQuerySet(models.QuerySet):
             "supply_centers__nation",
             "supply_centers__province__parent",
             "supply_centers__province__named_coasts",
+        )
+
+    def with_adjudication_data(self):
+        return self.select_related("variant", "game").prefetch_related(
+            "supply_centers__province",
+            "supply_centers__nation",
+            "units__province",
+            "units__nation",
+            "units__dislodged_by__province",
+            "phase_states__member__nation",
+            "phase_states__orders__source",
+            "phase_states__orders__target",
+            "phase_states__orders__aux",
+            "phase_states__orders__named_coast",
+            "phase_states__orders__resolution",
         )
 
     def filter_due_phases(self):
@@ -47,6 +64,9 @@ class PhaseManager(models.Manager):
     def with_detail_data(self):
         return self.get_queryset().with_detail_data()
 
+    def with_adjudication_data(self):
+        return self.get_queryset().with_adjudication_data()
+
     def filter_due_phases(self):
         return self.get_queryset().filter_due_phases()
 
@@ -63,7 +83,7 @@ class PhaseManager(models.Manager):
             logger.info("Querying phases to resolve")
 
             with tracer.start_as_current_span("phase.query_due_phases") as query_span:
-                phases_to_resolve = list(self.filter_due_phases())
+                phases_to_resolve = list(self.filter_due_phases().with_adjudication_data())
                 query_span.set_attribute("phases.found", len(phases_to_resolve))
                 logger.info(f"Found {len(phases_to_resolve)} phases to resolve")
 
@@ -127,34 +147,48 @@ class PhaseManager(models.Manager):
             logger.debug(f"Adjudication data keys: {list(adjudication_data.keys())}")
 
             try:
+                # Build lookup dictionaries once to avoid N+1 queries
+                variant = previous_phase.variant
+                province_lookup = {p.province_id: p for p in variant.provinces.all()}
+                nation_lookup = {n.name: n for n in variant.nations.all()}
+                
                 # Process order resolutions
                 with tracer.start_as_current_span("phase.create_order_resolutions") as resolutions_span:
-                    resolutions_count = 0
                     order_count = len(previous_phase.all_orders)
+
+                    # Delete existing resolutions in bulk
+                    order_ids = [order.id for order in previous_phase.all_orders]
+                    OrderResolution.objects.filter(order_id__in=order_ids).delete()
+
+                    # Build list of resolutions to bulk create
+                    resolutions_to_create = []
                     for order in previous_phase.all_orders:
-                        resolution = next(
+                        resolution_data = next(
                             (r for r in adjudication_data["resolutions"] if r["province"] == order.source.province_id),
                             None,
                         )
-                        if resolution:
-                            if hasattr(order, "resolution"):
-                                order.resolution.delete()
+                        if resolution_data:
                             by_province = (
-                                previous_phase.variant.provinces.get(province_id=resolution["by"])
-                                if resolution["by"]
+                                province_lookup.get(resolution_data["by"])
+                                if resolution_data["by"]
                                 else None
                             )
-                            OrderResolution.objects.create(
-                                order=order,
-                                status=resolution["result"],
-                                by=by_province,
+                            resolutions_to_create.append(
+                                OrderResolution(
+                                    order=order,
+                                    status=resolution_data["result"],
+                                    by=by_province,
+                                )
                             )
-                            resolutions_count += 1
-                            logger.debug(f"Created resolution for order {order.id}: {resolution['result']}")
+                            logger.debug(f"Prepared resolution for order {order.id}: {resolution_data['result']}")
                         else:
                             logger.warning(
                                 f"No resolution found for order {order.id} in province {order.source.province_id}"
                             )
+
+                    # Bulk create all resolutions
+                    OrderResolution.objects.bulk_create(resolutions_to_create)
+                    resolutions_count = len(resolutions_to_create)
 
                     resolutions_span.set_attribute("order_count", order_count)
                     resolutions_span.set_attribute("resolutions_created", resolutions_count)
@@ -194,49 +228,72 @@ class PhaseManager(models.Manager):
 
                 # Create supply centers
                 with tracer.start_as_current_span("phase.create_supply_centers") as sc_span:
-                    supply_centers_count = 0
+                    supply_centers_to_create = []
                     for supply_center in adjudication_data["supply_centers"]:
-                        try:
-                            new_phase.supply_centers.create(
-                                province=new_phase.variant.provinces.get(province_id=supply_center["province"]),
-                                nation=new_phase.variant.nations.get(name=supply_center["nation"]),
+                        province = province_lookup.get(supply_center["province"])
+                        nation = nation_lookup.get(supply_center["nation"])
+                        if province and nation:
+                            supply_centers_to_create.append(
+                                SupplyCenter(
+                                    province=province,
+                                    nation=nation,
+                                    phase=new_phase,
+                                )
                             )
-                            supply_centers_count += 1
-                        except Exception as e:
+                        else:
                             logger.error(
-                                f"Failed to create supply center for province {supply_center['province']}, nation {supply_center['nation']}: {e}"
+                                f"Failed to find province {supply_center['province']} or nation {supply_center['nation']}"
                             )
+
+                    # Bulk create all supply centers
+                    SupplyCenter.objects.bulk_create(supply_centers_to_create)
+                    supply_centers_count = len(supply_centers_to_create)
 
                     sc_span.set_attribute("supply_centers_count", supply_centers_count)
                     logger.info(f"Created {supply_centers_count} supply centers")
 
                 # Create units
                 with tracer.start_as_current_span("phase.create_units") as units_span:
-                    units_count = 0
+                    # Build a lookup for previous phase units by province_id to avoid N+1 queries
+                    previous_units_by_province = {
+                        u.province.province_id: u
+                        for u in previous_phase.units.select_related("province").all()
+                    }
+
+                    units_to_create = []
                     for unit in adjudication_data["units"]:
-                        try:
-                            logger.info(
-                                f"Creating unit {unit['type']} for nation {unit['nation']} in province {unit['province']}"
+                        logger.info(
+                            f"Preparing unit {unit['type']} for nation {unit['nation']} in province {unit['province']}"
+                        )
+                        dislodged_by_id = unit.get("dislodged_by", None)
+                        logger.info(f"Dislodged by ID: {dislodged_by_id}")
+                        dislodged_by = (
+                            previous_units_by_province.get(dislodged_by_id)
+                            if dislodged_by_id
+                            else None
+                        )
+                        logger.info(f"Dislodged by: {dislodged_by}")
+
+                        province = province_lookup.get(unit["province"])
+                        nation = nation_lookup.get(unit["nation"])
+                        if province and nation:
+                            units_to_create.append(
+                                Unit(
+                                    type=unit["type"],
+                                    nation=nation,
+                                    province=province,
+                                    phase=new_phase,
+                                    dislodged_by=dislodged_by,
+                                )
                             )
-                            dislodged_by_id = unit.get("dislodged_by", None)
-                            logger.info(f"Dislodged by ID: {dislodged_by_id}")
-                            dislodged_by = (
-                                previous_phase.units.filter(province__province_id=dislodged_by_id).first()
-                                if dislodged_by_id
-                                else None
-                            )
-                            logger.info(f"Dislodged by: {dislodged_by}")
-                            new_phase.units.create(
-                                type=unit["type"],
-                                nation=new_phase.variant.nations.get(name=unit["nation"]),
-                                province=new_phase.variant.provinces.get(province_id=unit["province"]),
-                                dislodged_by=dislodged_by,
-                            )
-                            units_count += 1
-                        except Exception as e:
+                        else:
                             logger.error(
-                                f"Failed to create unit {unit['type']} for nation {unit['nation']} in province {unit['province']}: {e}"
+                                f"Failed to find province {unit['province']} or nation {unit['nation']}"
                             )
+
+                    # Bulk create all units
+                    Unit.objects.bulk_create(units_to_create)
+                    units_count = len(units_to_create)
 
                     units_span.set_attribute("units_count", units_count)
                     logger.info(f"Created {units_count} units")
@@ -244,13 +301,23 @@ class PhaseManager(models.Manager):
                 # Create phase states
                 with tracer.start_as_current_span("phase.create_phase_states") as ps_span:
                     nations_with_orders = new_phase.nations_with_possible_orders
-                    phase_states_count = 0
-                    for member in new_phase.game.members.all():
-                        new_phase.phase_states.create(
-                            member=member,
-                            has_possible_orders=member.nation.name in nations_with_orders,
+
+                    # Prefetch member nations to avoid N+1
+                    members = list(new_phase.game.members.select_related("nation").all())
+
+                    phase_states_to_create = []
+                    for member in members:
+                        phase_states_to_create.append(
+                            new_phase.phase_states.model(
+                                member=member,
+                                phase=new_phase,
+                                has_possible_orders=member.nation.name in nations_with_orders,
+                            )
                         )
-                        phase_states_count += 1
+
+                    # Bulk create all phase states
+                    new_phase.phase_states.model.objects.bulk_create(phase_states_to_create)
+                    phase_states_count = len(phase_states_to_create)
 
                     ps_span.set_attribute("phase_states_count", phase_states_count)
                     logger.info(f"Created {phase_states_count} phase states for game members")
