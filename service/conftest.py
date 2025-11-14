@@ -710,3 +710,88 @@ def italy_vs_germany_prussia_province(django_db_setup, django_db_blocker, italy_
 def italy_vs_germany_ruhr_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
     with django_db_blocker.unblock():
         return Province.objects.get(province_id="ruh", variant=italy_vs_germany_variant)
+
+
+# Hundred variant fixtures
+@pytest.fixture(scope="session")
+def hundred_variant(django_db_setup, django_db_blocker):
+    with django_db_blocker.unblock():
+        return Variant.objects.get(id="hundred")
+
+
+@pytest.fixture(scope="session")
+def hundred_england_nation(django_db_setup, django_db_blocker, hundred_variant):
+    with django_db_blocker.unblock():
+        return Nation.objects.get(name="England", variant=hundred_variant)
+
+
+@pytest.fixture(scope="session")
+def hundred_france_nation(django_db_setup, django_db_blocker, hundred_variant):
+    with django_db_blocker.unblock():
+        return Nation.objects.get(name="France", variant=hundred_variant)
+
+
+@pytest.fixture(scope="session")
+def hundred_burgundy_nation(django_db_setup, django_db_blocker, hundred_variant):
+    with django_db_blocker.unblock():
+        return Nation.objects.get(name="Burgundy", variant=hundred_variant)
+
+
+@pytest.fixture(scope="session")
+def hundred_calais_province(django_db_setup, django_db_blocker, hundred_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="cal", variant=hundred_variant)
+
+
+@pytest.fixture(scope="session")
+def hundred_devon_province(django_db_setup, django_db_blocker, hundred_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="dev", variant=hundred_variant)
+
+
+@pytest.fixture(scope="session")
+def hundred_london_province(django_db_setup, django_db_blocker, hundred_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="lon", variant=hundred_variant)
+
+
+@pytest.fixture(scope="session")
+def hundred_normandy_province(django_db_setup, django_db_blocker, hundred_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="nom", variant=hundred_variant)
+
+
+@pytest.fixture(scope="session")
+def hundred_guyenne_province(django_db_setup, django_db_blocker, hundred_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="guy", variant=hundred_variant)
+
+
+@pytest.fixture(scope="session")
+def hundred_dijon_province(django_db_setup, django_db_blocker, hundred_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="dij", variant=hundred_variant)
+
+
+@pytest.fixture(scope="session")
+def hundred_bristol_channel_province(django_db_setup, django_db_blocker, hundred_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="brs", variant=hundred_variant)
+
+
+@pytest.fixture(scope="session")
+def hundred_strait_of_dover_province(django_db_setup, django_db_blocker, hundred_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="str", variant=hundred_variant)
+
+
+@pytest.fixture(scope="session")
+def hundred_orleanais_province(django_db_setup, django_db_blocker, hundred_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="orl", variant=hundred_variant)
+
+
+@pytest.fixture(scope="session")
+def hundred_aragon_province(django_db_setup, django_db_blocker, hundred_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="ara", variant=hundred_variant)
