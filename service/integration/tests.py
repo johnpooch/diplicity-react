@@ -755,7 +755,7 @@ def test_hundred_variant_movement_phase_resolution_with_errors(
 
     # Verify initial phase
     current_phase = active_game.current_phase
-    assert current_phase.season == "Year"
+    assert current_phase.season == "Spring"
     assert current_phase.year == 1425
     assert current_phase.type == "Movement"
     assert current_phase.status == PhaseStatus.ACTIVE
