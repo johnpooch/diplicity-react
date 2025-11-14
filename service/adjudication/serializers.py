@@ -48,29 +48,36 @@ class AdjudicationSerializer(serializers.Serializer):
                 sc_span.set_attribute("count", len(instance.supply_centers_godip))
 
             # Marshall units into a dict, { province_id: { Type: unit_type, Nation: unit_nation } }
+            # Use prefetched data by iterating over all units and filtering in Python
             with tracer.start_as_current_span("adjudication.marshall_units") as units_span:
                 temp_dict = defaultdict(dict)
-                for unit in instance.units.filter(dislodged_by__isnull=True):
-                    temp_dict[unit.province.province_id] = {
-                        "Type": unit.type,
-                        "Nation": unit.nation.name,
-                    }
+                # Iterate over prefetched units and filter in Python to avoid N+1 queries
+                for unit in instance.units.all():
+                    if unit.dislodged_by is None:
+                        temp_dict[unit.province.province_id] = {
+                            "Type": unit.type,
+                            "Nation": unit.nation.name,
+                        }
                 instance.units_godip = dict(temp_dict)
                 units_span.set_attribute("count", len(instance.units_godip))
 
             # Marshall dislodged units into a dict, { province_id: { Type: unit_type, Nation: unit_nation } }
+            # Cache dislodged units to avoid duplicate queries
             with tracer.start_as_current_span("adjudication.marshall_dislodged_units") as dislodged_span:
+                # Get all dislodged units once by filtering prefetched data in Python
+                dislodged_units = [unit for unit in instance.units.all() if unit.dislodged_by is not None]
+
                 temp_dict = defaultdict(dict)
-                for unit in instance.units.filter(dislodged_by__isnull=False):
+                for unit in dislodged_units:
                     temp_dict[unit.province.province_id] = {
                         "Type": unit.type,
                         "Nation": unit.nation.name,
                     }
                 instance.dislodgeds_godip = dict(temp_dict)
 
-                # Get all of the dislodgers
+                # Get all of the dislodgers using the cached dislodged_units list
                 temp_dict = defaultdict(dict)
-                for unit in instance.units.filter(dislodged_by__isnull=False):
+                for unit in dislodged_units:
                     temp_dict[unit.province.province_id] = unit.dislodged_by.province.province_id
                 instance.dislodgers_godip = dict(temp_dict)
                 dislodged_span.set_attribute("count", len(instance.dislodgeds_godip))
@@ -80,7 +87,10 @@ class AdjudicationSerializer(serializers.Serializer):
                 temp_dict = defaultdict(dict)
                 for order in instance.all_orders:
                     if order.order_type == OrderType.BUILD and order.unit_type == UnitType.FLEET and order.named_coast:
-                        temp_dict[order.nation.name][order.named_coast.province_id] = [order.order_type, order.unit_type]
+                        temp_dict[order.nation.name][order.named_coast.province_id] = [
+                            order.order_type,
+                            order.unit_type,
+                        ]
                     elif order.order_type == OrderType.MOVE and order.named_coast:
                         temp_dict[order.nation.name][order.source.province_id] = [
                             order.order_type,
@@ -143,11 +153,19 @@ class AdjudicationSerializer(serializers.Serializer):
 
             # Parse resolutions
             with tracer.start_as_current_span("adjudication.parse_resolutions") as res_span:
+                # Build a lookup dictionary for provinces with their parents to avoid N+1 queries
+                # Prefetch provinces with parents once
+                province_parent_lookup = {
+                    p.province_id: p.parent.province_id if p.parent else None
+                    for p in variant.provinces.select_related("parent").all()
+                }
+
                 resolutions = []
                 for province, result in phase["Resolutions"].items():
                     # Check if the resolution is for a named coast - if it is, set the source to the parent province
-                    if variant.provinces.filter(province_id=province, parent__isnull=False).exists():
-                        source = variant.provinces.get(province_id=province).parent.province_id
+                    parent_province_id = province_parent_lookup.get(province)
+                    if parent_province_id:
+                        source = parent_province_id
                     else:
                         source = province
                     resolutions.append(

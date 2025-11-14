@@ -82,7 +82,7 @@ class PhaseResolveView(SelectedGameMixin, views.APIView):
 
     def post(self, request, *args, **kwargs):
         game = self.get_game()
-        current_phase = game.current_phase
+        current_phase = Phase.objects.with_adjudication_data().get(pk=game.current_phase.pk)
         with tracer.start_as_current_span("phase.resolve_view") as span:
             span.set_attribute("phase.id", current_phase.id)
             span.set_attribute("game.id", str(game.id))
