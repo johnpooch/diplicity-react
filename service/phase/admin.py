@@ -1,13 +1,15 @@
 import json
 from django.contrib import admin
 from django.contrib import messages
+from django.urls import reverse
+from django.utils.html import format_html
 from adjudication.service import resolve
 from .models import Phase, PhaseState
 
 
 @admin.register(Phase)
 class PhaseAdmin(admin.ModelAdmin):
-    list_display = ["id", "game", "variant", "ordinal", "season", "year", "type", "status", "scheduled_resolution"]
+    list_display = ["id", "game", "variant", "ordinal", "season", "year", "type", "status", "scheduled_resolution", "view_units", "view_supply_centers", "view_phase_states"]
     list_filter = ["status", "season", "type"]
     search_fields = ["game__name", "season", "year"]
     readonly_fields = ["ordinal", "created_at", "updated_at"]
@@ -17,7 +19,37 @@ class PhaseAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         """Optimize queryset by selecting related variant."""
         qs = super().get_queryset(request)
-        return qs.select_related("variant", "game")
+        return qs.select_related("variant", "game").prefetch_related("units", "supply_centers", "phase_states")
+
+    def view_units(self, obj):
+        units = obj.units.all()
+        count = len(units)
+        if count == 0:
+            return "-"
+
+        url = reverse("admin:unit_unit_changelist") + f"?phase__id__exact={obj.id}"
+        return format_html('<a href="{}">{} units</a>', url, count)
+    view_units.short_description = "Units"
+
+    def view_supply_centers(self, obj):
+        supply_centers = obj.supply_centers.all()
+        count = len(supply_centers)
+        if count == 0:
+            return "-"
+
+        url = reverse("admin:supply_center_supplycenter_changelist") + f"?phase__id__exact={obj.id}"
+        return format_html('<a href="{}">{} supply centers</a>', url, count)
+    view_supply_centers.short_description = "Supply Centers"
+
+    def view_phase_states(self, obj):
+        phase_states = obj.phase_states.all()
+        count = len(phase_states)
+        if count == 0:
+            return "-"
+
+        url = reverse("admin:phase_phasestate_changelist") + f"?phase__id__exact={obj.id}"
+        return format_html('<a href="{}">{} phase states</a>', url, count)
+    view_phase_states.short_description = "Phase States"
 
     def dry_run_resolution(self, request, queryset):
         if queryset.count() != 1:

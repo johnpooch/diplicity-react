@@ -7,7 +7,8 @@
       "Bash(npm run lint)",
       "Bash(grep:*)",
       "Bash(python3:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(docker compose:*)"
     ],
     "deny": [],
     "ask": []

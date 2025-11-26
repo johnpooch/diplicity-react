@@ -23,6 +23,14 @@ def disable_cache_for_tests():
             "default": {
                 "BACKEND": "django.core.cache.backends.dummy.DummyCache",
             }
+        },
+        STORAGES={
+            "default": {
+                "BACKEND": "django.core.files.storage.FileSystemStorage",
+            },
+            "staticfiles": {
+                "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+            },
         }
     ):
         yield
