@@ -5,7 +5,7 @@ from common.constants import PhaseStatus, GameStatus
 from game.models import Game
 
 
-class TestUnitAdminQueryPerformance:
+class TestSupplyCenterAdminQueryPerformance:
 
     @pytest.mark.django_db
     def test_admin_changelist_query_count_simple(
@@ -35,13 +35,12 @@ class TestUnitAdminQueryPerformance:
             status=PhaseStatus.ACTIVE,
             ordinal=1,
         )
-        phase.units.create(
-            type="Fleet",
+        phase.supply_centers.create(
             nation=classical_england_nation,
             province=classical_edinburgh_province,
         )
 
-        url = "/admin/unit/unit/"
+        url = "/admin/supply_center/supplycenter/"
         connection.queries_log.clear()
 
         with override_settings(DEBUG=True):
@@ -52,7 +51,7 @@ class TestUnitAdminQueryPerformance:
         assert query_count == 5
 
     @pytest.mark.django_db
-    def test_admin_changelist_query_count_with_multiple_phases_and_units(
+    def test_admin_changelist_query_count_with_multiple_phases_and_supply_centers(
         self,
         authenticated_client,
         db,
@@ -71,7 +70,7 @@ class TestUnitAdminQueryPerformance:
 
         for i in range(4):
             game = Game.objects.create(
-                name=f"Game with Units {i}",
+                name=f"Game with Supply Centers {i}",
                 variant=classical_variant,
                 status=GameStatus.ACTIVE,
             )
@@ -86,23 +85,20 @@ class TestUnitAdminQueryPerformance:
                     status=PhaseStatus.ACTIVE if j == 1 else PhaseStatus.COMPLETED,
                     ordinal=j + 1,
                 )
-                phase.units.create(
-                    type="Fleet",
+                phase.supply_centers.create(
                     nation=classical_england_nation,
                     province=classical_edinburgh_province,
                 )
-                phase.units.create(
-                    type="Army",
+                phase.supply_centers.create(
                     nation=classical_england_nation,
                     province=classical_london_province,
                 )
-                phase.units.create(
-                    type="Army",
+                phase.supply_centers.create(
                     nation=classical_france_nation,
                     province=classical_paris_province,
                 )
 
-        url = "/admin/unit/unit/"
+        url = "/admin/supply_center/supplycenter/"
         connection.queries_log.clear()
 
         with override_settings(DEBUG=True):
@@ -113,7 +109,7 @@ class TestUnitAdminQueryPerformance:
         assert query_count == 5
 
     @pytest.mark.django_db
-    def test_admin_changelist_query_count_with_dislodged_units(
+    def test_admin_changelist_query_count_with_contested_supply_centers(
         self,
         authenticated_client,
         db,
@@ -132,39 +128,36 @@ class TestUnitAdminQueryPerformance:
 
         for i in range(3):
             game = Game.objects.create(
-                name=f"Game with Dislodged Units {i}",
+                name=f"Game with Contested Supply Centers {i}",
                 variant=classical_variant,
                 status=GameStatus.ACTIVE,
             )
 
-            phase = game.phases.create(
-                game=game,
-                variant=classical_variant,
-                season="Spring",
-                year=1901,
-                type="Movement",
-                status=PhaseStatus.ACTIVE,
-                ordinal=1,
-            )
+            for j in range(2):
+                phase = game.phases.create(
+                    game=game,
+                    variant=classical_variant,
+                    season="Spring" if j == 0 else "Fall",
+                    year=1901,
+                    type="Movement",
+                    status=PhaseStatus.ACTIVE if j == 1 else PhaseStatus.COMPLETED,
+                    ordinal=j + 1,
+                )
 
-            attacking_unit = phase.units.create(
-                type="Fleet",
-                nation=classical_france_nation,
-                province=classical_paris_province,
-            )
-            phase.units.create(
-                type="Army",
-                nation=classical_england_nation,
-                province=classical_london_province,
-                dislodged_by=attacking_unit,
-            )
-            phase.units.create(
-                type="Fleet",
-                nation=classical_england_nation,
-                province=classical_edinburgh_province,
-            )
+                phase.supply_centers.create(
+                    nation=classical_england_nation if j == 0 else classical_france_nation,
+                    province=classical_edinburgh_province,
+                )
+                phase.supply_centers.create(
+                    nation=classical_france_nation if j == 0 else classical_england_nation,
+                    province=classical_paris_province,
+                )
+                phase.supply_centers.create(
+                    nation=classical_england_nation,
+                    province=classical_london_province,
+                )
 
-        url = "/admin/unit/unit/"
+        url = "/admin/supply_center/supplycenter/"
         connection.queries_log.clear()
 
         with override_settings(DEBUG=True):
