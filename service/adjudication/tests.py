@@ -127,7 +127,7 @@ class TestAdjudicationService:
         assert data["season"] == "Spring"
         assert data["type"] == "Movement"
         assert data["supply_centers"][0] == {"nation": "Turkey", "province": "ank"}
-        assert data["units"][0] == {"dislodged_by": None, "type": "Fleet", "nation": "Turkey", "province": "ank"}
+        assert data["units"][0] == {"dislodged": False, "dislodged_by": None, "type": "Fleet", "nation": "Turkey", "province": "ank"}
         assert data["resolutions"] == []
 
     @pytest.mark.django_db
@@ -197,12 +197,12 @@ class TestAdjudicationService:
 
         assert sort_by_province(data["units"]) == sort_by_province(
             [
-                {"type": "Army", "nation": "Italy", "province": "tri", "dislodged_by": None},
-                {"type": "Army", "nation": "Italy", "province": "nap", "dislodged_by": None},
-                {"type": "Fleet", "nation": "Italy", "province": "ion", "dislodged_by": None},
-                {"type": "Fleet", "nation": "Germany", "province": "den", "dislodged_by": None},
-                {"type": "Army", "nation": "Germany", "province": "pru", "dislodged_by": None},
-                {"type": "Army", "nation": "Germany", "province": "ruh", "dislodged_by": None},
+                {"type": "Army", "nation": "Italy", "province": "tri", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Italy", "province": "nap", "dislodged": False, "dislodged_by": None},
+                {"type": "Fleet", "nation": "Italy", "province": "ion", "dislodged": False, "dislodged_by": None},
+                {"type": "Fleet", "nation": "Germany", "province": "den", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Germany", "province": "pru", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Germany", "province": "ruh", "dislodged": False, "dislodged_by": None},
             ]
         )
 
@@ -267,12 +267,12 @@ class TestAdjudicationService:
 
         assert sort_by_province(data["units"]) == sort_by_province(
             [
-                {"type": "Army", "nation": "Italy", "province": "tri", "dislodged_by": None},
-                {"type": "Army", "nation": "Italy", "province": "nap", "dislodged_by": None},
-                {"type": "Fleet", "nation": "Italy", "province": "ion", "dislodged_by": None},
-                {"type": "Fleet", "nation": "Germany", "province": "den", "dislodged_by": None},
-                {"type": "Army", "nation": "Germany", "province": "pru", "dislodged_by": None},
-                {"type": "Army", "nation": "Germany", "province": "ruh", "dislodged_by": None},
+                {"type": "Army", "nation": "Italy", "province": "tri", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Italy", "province": "nap", "dislodged": False, "dislodged_by": None},
+                {"type": "Fleet", "nation": "Italy", "province": "ion", "dislodged": False, "dislodged_by": None},
+                {"type": "Fleet", "nation": "Germany", "province": "den", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Germany", "province": "pru", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Germany", "province": "ruh", "dislodged": False, "dislodged_by": None},
             ]
         )
 
@@ -346,12 +346,12 @@ class TestAdjudicationService:
 
         assert sort_by_province(data["units"]) == sort_by_province(
             [
-                {"type": "Army", "nation": "Italy", "province": "tri", "dislodged_by": None},
-                {"type": "Army", "nation": "Italy", "province": "gre", "dislodged_by": None},
-                {"type": "Fleet", "nation": "Italy", "province": "ion", "dislodged_by": None},
-                {"type": "Fleet", "nation": "Germany", "province": "den", "dislodged_by": None},
-                {"type": "Army", "nation": "Germany", "province": "war", "dislodged_by": None},
-                {"type": "Army", "nation": "Germany", "province": "ruh", "dislodged_by": None},
+                {"type": "Army", "nation": "Italy", "province": "tri", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Italy", "province": "gre", "dislodged": False, "dislodged_by": None},
+                {"type": "Fleet", "nation": "Italy", "province": "ion", "dislodged": False, "dislodged_by": None},
+                {"type": "Fleet", "nation": "Germany", "province": "den", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Germany", "province": "war", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Germany", "province": "ruh", "dislodged": False, "dislodged_by": None},
             ]
         )
 
@@ -420,12 +420,12 @@ class TestAdjudicationService:
 
         assert sort_by_province(data["units"]) == sort_by_province(
             [
-                {"type": "Army", "nation": "Italy", "province": "tri", "dislodged_by": None},
-                {"type": "Army", "nation": "Italy", "province": "gre", "dislodged_by": None},
-                {"type": "Fleet", "nation": "Italy", "province": "ion", "dislodged_by": None},
-                {"type": "Fleet", "nation": "Germany", "province": "den", "dislodged_by": None},
-                {"type": "Army", "nation": "Germany", "province": "war", "dislodged_by": None},
-                {"type": "Army", "nation": "Germany", "province": "ruh", "dislodged_by": None},
+                {"type": "Army", "nation": "Italy", "province": "tri", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Italy", "province": "gre", "dislodged": False, "dislodged_by": None},
+                {"type": "Fleet", "nation": "Italy", "province": "ion", "dislodged": False, "dislodged_by": None},
+                {"type": "Fleet", "nation": "Germany", "province": "den", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Germany", "province": "war", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Germany", "province": "ruh", "dislodged": False, "dislodged_by": None},
             ]
         )
 
@@ -496,16 +496,16 @@ class TestAdjudicationService:
 
         assert sort_by_province(data["units"]) == sort_by_province(
             [
-                {"type": "Army", "nation": "Italy", "province": "tri", "dislodged_by": None},
-                {"type": "Army", "nation": "Italy", "province": "gre", "dislodged_by": None},
-                {"type": "Fleet", "nation": "Italy", "province": "ion", "dislodged_by": None},
-                {"type": "Army", "nation": "Italy", "province": "rom", "dislodged_by": None},
-                {"type": "Fleet", "nation": "Italy", "province": "nap", "dislodged_by": None},
-                {"type": "Fleet", "nation": "Germany", "province": "den", "dislodged_by": None},
-                {"type": "Army", "nation": "Germany", "province": "war", "dislodged_by": None},
-                {"type": "Army", "nation": "Germany", "province": "ruh", "dislodged_by": None},
-                {"type": "Army", "nation": "Germany", "province": "ber", "dislodged_by": None},
-                {"type": "Fleet", "nation": "Germany", "province": "kie", "dislodged_by": None},
+                {"type": "Army", "nation": "Italy", "province": "tri", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Italy", "province": "gre", "dislodged": False, "dislodged_by": None},
+                {"type": "Fleet", "nation": "Italy", "province": "ion", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Italy", "province": "rom", "dislodged": False, "dislodged_by": None},
+                {"type": "Fleet", "nation": "Italy", "province": "nap", "dislodged": False, "dislodged_by": None},
+                {"type": "Fleet", "nation": "Germany", "province": "den", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Germany", "province": "war", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Germany", "province": "ruh", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Germany", "province": "ber", "dislodged": False, "dislodged_by": None},
+                {"type": "Fleet", "nation": "Germany", "province": "kie", "dislodged": False, "dislodged_by": None},
             ]
         )
 
@@ -565,9 +565,9 @@ class TestAdjudicationService:
 
         assert sort_by_province(data["units"]) == sort_by_province(
             [
-                {"type": "Army", "nation": "Italy", "province": "kie", "dislodged_by": None},
-                {"type": "Army", "nation": "Italy", "province": "mun", "dislodged_by": None},
-                {"type": "Army", "nation": "Germany", "province": "kie", "dislodged_by": "ber"},
+                {"type": "Army", "nation": "Italy", "province": "kie", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Italy", "province": "mun", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Germany", "province": "kie", "dislodged": True, "dislodged_by": "ber"},
             ]
         )
 
@@ -621,8 +621,8 @@ class TestAdjudicationService:
 
         assert sort_by_province(data["units"]) == sort_by_province(
             [
-                {"type": "Army", "nation": "Italy", "province": "ber", "dislodged_by": None},
-                {"type": "Army", "nation": "Germany", "province": "kie", "dislodged_by": None},
+                {"type": "Army", "nation": "Italy", "province": "ber", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Germany", "province": "kie", "dislodged": False, "dislodged_by": None},
             ]
         )
 
@@ -820,7 +820,7 @@ class TestAdjudicationService:
 
         assert sort_by_province(data["units"]) == sort_by_province(
             [
-                {"type": "Fleet", "nation": "Italy", "province": "spa/nc", "dislodged_by": None},
+                {"type": "Fleet", "nation": "Italy", "province": "spa/nc", "dislodged": False, "dislodged_by": None},
             ]
         )
 
@@ -856,7 +856,7 @@ class TestAdjudicationService:
 
         assert sort_by_province(data["units"]) == sort_by_province(
             [
-                {"type": "Army", "nation": "Italy", "province": "spa", "dislodged_by": None},
+                {"type": "Army", "nation": "Italy", "province": "spa", "dislodged": False, "dislodged_by": None},
             ]
         )
 

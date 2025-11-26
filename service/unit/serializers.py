@@ -8,6 +8,7 @@ class UnitSerializer(serializers.Serializer):
     type = serializers.CharField()
     nation = NationSerializer()
     province = ProvinceSerializer()
+    dislodged = serializers.BooleanField()
     dislodged_by = serializers.SerializerMethodField()
 
     @extend_schema_field(serializers.DictField(allow_null=True))

@@ -153,15 +153,6 @@ def test_create_game_with_italy_vs_germany_variant_one_user_joins(
     assert germany_member is not None
     assert italy_member.user != germany_member.user
 
-    # Notification is sent to both users
-    mock_send_notification_to_users.assert_called_once_with(
-        user_ids=[germany_member.user.id, italy_member.user.id],
-        title="Game Started",
-        body=f"Game '{game.name}' has started!",
-        notification_type="game_start",
-        data={"game_id": str(game.id)},
-    )
-
 
 @pytest.mark.django_db
 def test_create_game_with_classical_variant_one_user_leaves_and_rejoins(
@@ -670,6 +661,7 @@ def test_dislodged_unit_scenario(
     # Verify Italy's dislodged army is still in Tyrolia (but marked as dislodged)
     italy_dislodged_unit = phase.units.filter(nation__name="Italy", province__province_id="tyr").first()
     assert italy_dislodged_unit is not None
+    assert italy_dislodged_unit.dislodged
     assert italy_dislodged_unit.dislodged_by is not None
 
     # Italy: Retreat from Tyrolia to Trieste

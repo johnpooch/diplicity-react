@@ -553,6 +553,7 @@ export type UnitRead = {
   type: string;
   nation: Nation;
   province: ProvinceRead;
+  dislodged: boolean;
   dislodgedBy: {
     [key: string]: any;
   } | null;
