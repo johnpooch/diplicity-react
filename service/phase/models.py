@@ -265,14 +265,22 @@ class PhaseManager(models.Manager):
                         logger.info(
                             f"Preparing unit {unit['type']} for nation {unit['nation']} in province {unit['province']}"
                         )
+
+                        is_dislodged = unit.get("dislodged", False)
+
                         dislodged_by_id = unit.get("dislodged_by", None)
-                        logger.info(f"Dislodged by ID: {dislodged_by_id}")
-                        dislodged_by = (
-                            previous_units_by_province.get(dislodged_by_id)
-                            if dislodged_by_id
-                            else None
-                        )
-                        logger.info(f"Dislodged by: {dislodged_by}")
+                        dislodged_by_unit = None
+
+                        if is_dislodged and dislodged_by_id:
+                            dislodged_by_unit = previous_units_by_province.get(dislodged_by_id)
+                            if not dislodged_by_unit:
+                                logger.warning(
+                                    f"Unit {unit['province']} is dislodged but dislodger {dislodged_by_id} not found in previous phase"
+                                )
+                        elif is_dislodged:
+                            logger.info(
+                                f"Unit {unit['province']} is dislodged but no dislodger information available (convoy case)"
+                            )
 
                         province = province_lookup.get(unit["province"])
                         nation = nation_lookup.get(unit["nation"])
@@ -283,7 +291,8 @@ class PhaseManager(models.Manager):
                                     nation=nation,
                                     province=province,
                                     phase=new_phase,
-                                    dislodged_by=dislodged_by,
+                                    dislodged=is_dislodged,
+                                    dislodged_by=dislodged_by_unit,
                                 )
                             )
                         else:

@@ -341,8 +341,8 @@ const InteractiveMap = forwardRef<SVGSVGElement, InteractiveMapProps>(
         {[...props.phase.units]
           .sort((a, b) => {
             // Sort so dislodged units are rendered last (on top)
-            if (a.dislodgedBy && !b.dislodgedBy) return 1;
-            if (!a.dislodgedBy && b.dislodgedBy) return -1;
+            if (a.dislodged && !b.dislodged) return 1;
+            if (!a.dislodged && b.dislodged) return -1;
             return 0;
           })
           .map((unit, index) => {
@@ -355,8 +355,8 @@ const InteractiveMap = forwardRef<SVGSVGElement, InteractiveMapProps>(
             if (!color) throw new Error("Color not found");
 
             // Offset dislodged units by a few pixels
-            const offsetX = unit.dislodgedBy ? 8 : 0;
-            const offsetY = unit.dislodgedBy ? 8 : 0;
+            const offsetX = unit.dislodged ? 8 : 0;
+            const offsetY = unit.dislodged ? 8 : 0;
 
             const hasDisbandOrder = props.orders?.some(
               o => o.orderType === "Disband" && o.source.id === unit.province.id
@@ -383,7 +383,7 @@ const InteractiveMap = forwardRef<SVGSVGElement, InteractiveMapProps>(
                 >
                   {unit.type === "Army" ? "A" : "F"}
                 </text>
-                {unit.dislodgedBy && !hasDisbandOrder && (
+                {unit.dislodged && !hasDisbandOrder && (
                   <g
                     transform={`translate(${x - 8 + offsetX + UNIT_RADIUS + RETREAT_FLAG_OFFSET_X}, ${y - 18 + offsetY - UNIT_RADIUS + RETREAT_FLAG_OFFSET_Y}) scale(${RETREAT_FLAG_SCALE})`}
                   >

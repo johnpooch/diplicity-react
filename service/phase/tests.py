@@ -976,6 +976,7 @@ class TestCreateFromAdjudicationData:
         ven_unit = new_phase.units.get(province__province_id="ven")
         assert ven_unit.type == UnitType.ARMY
         assert ven_unit.nation.name == "Italy"
+        assert not ven_unit.dislodged
         assert ven_unit.dislodged_by is None
 
     @pytest.mark.django_db
@@ -991,12 +992,14 @@ class TestCreateFromAdjudicationData:
         assert new_phase.units.count() == 4
 
         dislodged_unit = new_phase.units.get(province__province_id="kie", nation__name="Germany")
+        assert dislodged_unit.dislodged
         assert dislodged_unit.dislodged_by is not None
 
         dislodging_unit = phase.units.get(province__province_id="ven")
         assert dislodged_unit.dislodged_by == dislodging_unit
 
         attacker_unit = new_phase.units.get(province__province_id="kie", nation__name="Italy")
+        assert not attacker_unit.dislodged
         assert attacker_unit.dislodged_by is None
 
     @pytest.mark.django_db

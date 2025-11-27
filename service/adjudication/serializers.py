@@ -53,7 +53,7 @@ class AdjudicationSerializer(serializers.Serializer):
                 temp_dict = defaultdict(dict)
                 # Iterate over prefetched units and filter in Python to avoid N+1 queries
                 for unit in instance.units.all():
-                    if unit.dislodged_by is None:
+                    if not unit.dislodged:
                         temp_dict[unit.province.province_id] = {
                             "Type": unit.type,
                             "Nation": unit.nation.name,
@@ -65,7 +65,7 @@ class AdjudicationSerializer(serializers.Serializer):
             # Cache dislodged units to avoid duplicate queries
             with tracer.start_as_current_span("adjudication.marshall_dislodged_units") as dislodged_span:
                 # Get all dislodged units once by filtering prefetched data in Python
-                dislodged_units = [unit for unit in instance.units.all() if unit.dislodged_by is not None]
+                dislodged_units = [unit for unit in instance.units.all() if unit.dislodged]
 
                 temp_dict = defaultdict(dict)
                 for unit in dislodged_units:
@@ -78,7 +78,8 @@ class AdjudicationSerializer(serializers.Serializer):
                 # Get all of the dislodgers using the cached dislodged_units list
                 temp_dict = defaultdict(dict)
                 for unit in dislodged_units:
-                    temp_dict[unit.province.province_id] = unit.dislodged_by.province.province_id
+                    if unit.dislodged_by:
+                        temp_dict[unit.province.province_id] = unit.dislodged_by.province.province_id
                 instance.dislodgers_godip = dict(temp_dict)
                 dislodged_span.set_attribute("count", len(instance.dislodgeds_godip))
 
@@ -128,6 +129,7 @@ class AdjudicationSerializer(serializers.Serializer):
                         "province": province_id,
                         "type": unit_data["Type"],
                         "nation": unit_data["Nation"],
+                        "dislodged": False,
                         "dislodged_by": None,
                     }
                     for province_id, unit_data in phase["Units"].items()
@@ -137,6 +139,7 @@ class AdjudicationSerializer(serializers.Serializer):
                         "province": province_id,
                         "type": unit_data["Type"],
                         "nation": unit_data["Nation"],
+                        "dislodged": True,
                         "dislodged_by": (
                             next((k for k, v in phase["Dislodgers"].items() if v == province_id), None)
                             if phase.get("Dislodgers")

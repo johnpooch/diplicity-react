@@ -5,8 +5,8 @@ from .models import Unit
 
 @admin.register(Unit)
 class UnitAdmin(admin.ModelAdmin):
-    list_display = ["type", "nation", "province", "phase", "dislodged_by"]
-    list_filter = ["type"]
+    list_display = ["type", "nation", "province", "phase", "dislodged", "dislodged_by"]
+    list_filter = ["type", "dislodged"]
     search_fields = ["nation__name", "province__name", "phase__game__name"]
     raw_id_fields = ["nation", "province", "phase", "dislodged_by"]
     ordering = ["phase", "nation", "province"]

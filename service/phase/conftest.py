@@ -100,12 +100,12 @@ def mock_adjudication_data_basic():
             {"province": "mun", "nation": "Germany"},
         ],
         "units": [
-            {"type": "Army", "nation": "Italy", "province": "ven", "dislodged_by": None},
-            {"type": "Army", "nation": "Italy", "province": "rom", "dislodged_by": None},
-            {"type": "Fleet", "nation": "Italy", "province": "nap", "dislodged_by": None},
-            {"type": "Fleet", "nation": "Germany", "province": "kie", "dislodged_by": None},
-            {"type": "Army", "nation": "Germany", "province": "ber", "dislodged_by": None},
-            {"type": "Army", "nation": "Germany", "province": "mun", "dislodged_by": None},
+            {"type": "Army", "nation": "Italy", "province": "ven", "dislodged": False, "dislodged_by": None},
+            {"type": "Army", "nation": "Italy", "province": "rom", "dislodged": False, "dislodged_by": None},
+            {"type": "Fleet", "nation": "Italy", "province": "nap", "dislodged": False, "dislodged_by": None},
+            {"type": "Fleet", "nation": "Germany", "province": "kie", "dislodged": False, "dislodged_by": None},
+            {"type": "Army", "nation": "Germany", "province": "ber", "dislodged": False, "dislodged_by": None},
+            {"type": "Army", "nation": "Germany", "province": "mun", "dislodged": False, "dislodged_by": None},
         ],
         "resolutions": [
             {"province": "ven", "result": "OK", "by": None},
@@ -128,10 +128,10 @@ def mock_adjudication_data_with_dislodged_unit():
             {"province": "kie", "nation": "Germany"},
         ],
         "units": [
-            {"type": "Army", "nation": "Italy", "province": "kie", "dislodged_by": None},
-            {"type": "Army", "nation": "Italy", "province": "rom", "dislodged_by": None},
-            {"type": "Fleet", "nation": "Italy", "province": "nap", "dislodged_by": None},
-            {"type": "Army", "nation": "Germany", "province": "kie", "dislodged_by": "ven"},
+            {"type": "Army", "nation": "Italy", "province": "kie", "dislodged": False, "dislodged_by": None},
+            {"type": "Army", "nation": "Italy", "province": "rom", "dislodged": False, "dislodged_by": None},
+            {"type": "Fleet", "nation": "Italy", "province": "nap", "dislodged": False, "dislodged_by": None},
+            {"type": "Army", "nation": "Germany", "province": "kie", "dislodged": True, "dislodged_by": "ven"},
         ],
         "resolutions": [
             {"province": "ven", "result": "OK", "by": None},

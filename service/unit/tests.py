@@ -156,6 +156,7 @@ class TestUnitAdminQueryPerformance:
                 type="Army",
                 nation=classical_england_nation,
                 province=classical_london_province,
+                dislodged=True,
                 dislodged_by=attacking_unit,
             )
             phase.units.create(
