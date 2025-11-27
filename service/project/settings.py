@@ -47,7 +47,10 @@ DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,service,allowed-health-check").split(",")
 
 # CSRF Settings
-CSRF_TRUSTED_ORIGINS = ["https://diplicity-service.azurewebsites.net", "http://localhost:8000", "http://localhost:5173"]
+CSRF_TRUSTED_ORIGINS = os.getenv(
+    "DJANGO_CSRF_TRUSTED_ORIGINS",
+    "https://diplicity-service.azurewebsites.net,http://localhost:8000,http://localhost:5173",
+).split(",")
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
 
