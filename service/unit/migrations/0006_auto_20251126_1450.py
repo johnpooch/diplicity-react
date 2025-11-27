@@ -4,6 +4,11 @@ from django.db import migrations
 
 
 def populate_dislodged_field(apps, schema_editor):
+    """
+    Ensure dislodged field is populated correctly.
+    This is now also done in 0005, but kept here for idempotency
+    in case this migration was already applied in some environments.
+    """
     Unit = apps.get_model('unit', 'Unit')
     Unit.objects.filter(dislodged_by__isnull=False).update(dislodged=True)
 

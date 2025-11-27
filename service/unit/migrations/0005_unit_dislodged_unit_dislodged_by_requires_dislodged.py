@@ -3,6 +3,12 @@
 from django.db import migrations, models
 
 
+def populate_dislodged_before_constraint(apps, schema_editor):
+    """Populate dislodged field before adding constraint"""
+    Unit = apps.get_model('unit', 'Unit')
+    Unit.objects.filter(dislodged_by__isnull=False).update(dislodged=True)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -14,6 +20,11 @@ class Migration(migrations.Migration):
             model_name='unit',
             name='dislodged',
             field=models.BooleanField(default=False),
+        ),
+        # Populate the field BEFORE adding the constraint
+        migrations.RunPython(
+            populate_dislodged_before_constraint,
+            reverse_code=migrations.RunPython.noop,
         ),
         migrations.AddConstraint(
             model_name='unit',
