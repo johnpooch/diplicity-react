@@ -1,19 +1,21 @@
 name: Trigger Phase Resolution
 on:
   schedule:
-    - cron: '* * * * *'  # Every minute (GitHub doesn't support sub-minute)
+    - cron: '* * * * *'  # Every minute
   workflow_dispatch:  # Allows manual triggering from GitHub UI
 
 jobs:
   trigger-phases:
     runs-on: ubuntu-latest
+    # Stop cron during maintenance
+    if: vars.MAINTENANCE_MODE != 'true'
     steps:
       - name: Call phase resolve endpoint
         run: |
           curl -X POST \
             -H "Content-Type: application/json" \
             -f \
-            http://diplicity-service.azurewebsites.net/phase/resolve/
+            ${{ vars.SERVICE_BASE_URL }}/phase/resolve/
         continue-on-error: true
       
       - name: Log completion

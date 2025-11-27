@@ -30,3 +30,5 @@ jobs:
         env:
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
           VITE_DIPLICITY_API_BASE_URL: ${{ secrets.SERVICE_BASE_URL }}
+          VITE_DIPLICITY_API_BASE_URL: ${{ vars.SERVICE_BASE_URL }}
+          VITE_MAINTENANCE_MODE: ${{ vars.MAINTENANCE_MODE }}
