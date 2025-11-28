@@ -26,17 +26,14 @@ class GameQuerySet(models.QuerySet):
             queryset=Member.objects.select_related("nation", "user__profile"),
         )
 
-        victory_prefetch = Prefetch(
-            "victory",
-            queryset=Victory.objects.prefetch_related(
-                "members__user__profile",
-                "members__nation"
-            )
+        victory_members_prefetch = Prefetch(
+            "victory__members",
+            queryset=Member.objects.select_related("user__profile", "nation")
         )
 
-        return self.select_related("variant").prefetch_related(
+        return self.select_related("variant", "victory").prefetch_related(
             members_prefetch,
-            victory_prefetch,
+            victory_members_prefetch,
             "phases",
         )
 
@@ -91,15 +88,12 @@ class GameQuerySet(models.QuerySet):
             queryset=Member.objects.select_related("nation", "user__profile"),
         )
 
-        victory_prefetch = Prefetch(
-            "victory",
-            queryset=Victory.objects.prefetch_related(
-                "members__user__profile",
-                "members__nation"
-            )
+        victory_members_prefetch = Prefetch(
+            "victory__members",
+            queryset=Member.objects.select_related("user__profile", "nation")
         )
 
-        return self.prefetch_related(
+        return self.select_related("victory").prefetch_related(
             # Variant data with optimized template phase
             "variant__provinces__parent",
             "variant__provinces__named_coasts",
@@ -110,7 +104,7 @@ class GameQuerySet(models.QuerySet):
             # Members data
             members_prefetch,
             # Victory data
-            victory_prefetch,
+            victory_members_prefetch,
         )
 
 

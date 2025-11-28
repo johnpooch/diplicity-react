@@ -77,7 +77,7 @@ class GameListSerializer(serializers.Serializer):
 
     @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_phases(self, obj):
-        return list(obj.phases.values_list("id", flat=True))
+        return [phase.id for phase in obj.phases.all()]
 
 
 class GameSerializer(BaseGameSerializer):
