@@ -1,6 +1,7 @@
 import React, { useReducer, useEffect, createContext, useContext } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useSelectedGameContext } from "./SelectedGameContext";
+import { service } from "../store";
 
 const SelectedPhaseContext = createContext<
   SelectedPhaseContextType | undefined
@@ -79,13 +80,18 @@ const SelectedPhaseContextProvider: React.FC<{
     return { selectedPhase: phase ? Number(phase) : undefined };
   });
 
-  const { gameRetrieveQuery } = useSelectedGameContext();
+  const { gameId } = useSelectedGameContext();
+
+  const phasesQuery = service.endpoints.gamePhasesList.useQuery(
+    { gameId: gameId ?? "" },
+    { skip: !gameId }
+  );
 
   useEffect(() => {
-    if (!phases) return;
-    const defaultPhase = phases[phases.length - 1].id;
+    if (!phasesQuery.data) return;
+    const defaultPhase = phasesQuery.data[phasesQuery.data.length - 1].id;
     dispatch({ type: "SET_PHASE", payload: defaultPhase });
-  }, [gameRetrieveQuery.data?.phases]);
+  }, [phasesQuery.data]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -97,7 +103,7 @@ const SelectedPhaseContextProvider: React.FC<{
     navigate({ search: params.toString() }, { replace: true });
   }, [state.selectedPhase, location.search, navigate]);
 
-  const phases = gameRetrieveQuery.data?.phases;
+  const phases = phasesQuery.data;
 
   const setPhase = (phase: number) => {
     dispatch({ type: "SET_PHASE", payload: phase });

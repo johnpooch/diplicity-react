@@ -2,7 +2,12 @@ import React, { useState, forwardRef } from "react";
 import { Cross } from "./shapes/cross";
 import { CurvedArrow } from "./shapes/curved-arrow";
 import { Octagon } from "./shapes/octagon";
-import { OrderRead, PhaseRead, Variant, VariantRead } from "../../store";
+import {
+  OrderRead,
+  PhaseRetrieveRead,
+  Variant,
+  VariantRead,
+} from "../../store";
 
 import classical from "../../maps/classical.json";
 import hundred from "../../maps/hundred.json";
@@ -22,7 +27,7 @@ const getMap = (variant: Variant) => {
 type InteractiveMapProps = {
   interactive?: boolean;
   variant: VariantRead;
-  phase: PhaseRead;
+  phase: PhaseRetrieveRead;
   selected: string[];
   highlighted?: string[];
   orders: OrderRead[] | undefined;

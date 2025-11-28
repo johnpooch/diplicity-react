@@ -32,9 +32,9 @@ class TestGameRetrieveView:
         assert response.data["can_join"] == False
         assert response.data["can_leave"] == True
         assert response.data["phase_confirmed"] == False
-        assert response.data["phases"][0]["id"] == pending_game_created_by_primary_user.phases.first().id
+        assert len(response.data["phases"]) == len(pending_game_created_by_primary_user.phases.all())
         assert response.data["members"][0]["id"] == pending_game_created_by_primary_user.members.first().id
-        assert response.data["variant"]["id"] == pending_game_created_by_primary_user.variant.id
+        assert response.data["variant_id"] == pending_game_created_by_primary_user.variant.id
 
     @pytest.mark.django_db
     def test_retrieve_game_unauthenticated(self, unauthenticated_client, pending_game_created_by_primary_user):
@@ -64,7 +64,7 @@ class TestGameRetrieveView:
             "can_leave",
             "phases",
             "members",
-            "variant",
+            "variant_id",
             "phase_confirmed",
         ]
         for field in required_fields:
@@ -75,7 +75,7 @@ class TestGameRetrieveView:
         assert isinstance(response.data["phase_confirmed"], bool)
         assert isinstance(response.data["phases"], list)
         assert isinstance(response.data["members"], list)
-        assert isinstance(response.data["variant"], dict)
+        assert isinstance(response.data["variant_id"], str)
 
     @pytest.mark.django_db
     def test_can_join_true_pending_game_non_member(
@@ -224,15 +224,6 @@ class TestGameRetrieveView:
         assert response.status_code == status.HTTP_200_OK
 
         assert len(response.data["phases"]) == 2
-        phase_seasons = [phase["season"] for phase in response.data["phases"]]
-        assert "Spring" in phase_seasons
-        assert "Fall" in phase_seasons
-
-        for phase in response.data["phases"]:
-            assert "units" in phase
-            assert "supply_centers" in phase
-            assert isinstance(phase["units"], list)
-            assert isinstance(phase["supply_centers"], list)
 
 
 class TestGameRetrieveViewQueryPerformance:
@@ -247,7 +238,7 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 19
+        assert query_count == 5
 
     @pytest.mark.django_db
     def test_retrieve_game_query_count_multiple_phases_with_units(
@@ -288,7 +279,7 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 19
+        assert query_count == 5
 
 
 class TestGameListView:
@@ -587,7 +578,7 @@ class TestGameCreateView:
             "can_leave",
             "phases",
             "members",
-            "variant",
+            "variant_id",
             "phase_confirmed",
         ]
         for field in required_fields:

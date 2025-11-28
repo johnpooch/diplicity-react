@@ -12,26 +12,32 @@ import { HomeAppBar } from "./AppBar";
 import { useNavigate, useParams } from "react-router";
 import { GameMenu } from "../../components/GameMenu";
 import { PlayerCard } from "../../components";
-import { useCurrentPhase } from "../../hooks";
+import { getCurrentPhaseId } from "../../util";
 
 const PlayerInfo: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
   if (!gameId) throw new Error("gameId is required");
 
   const query = service.endpoints.gameRetrieve.useQuery({ gameId });
-  const currentPhaseQuery = useCurrentPhase({
-    id: gameId,
-    phases: query.data?.phases.map(phase => phase.id) ?? [],
-  });
 
-  console.log("currentPhaseQuery.data");
-  console.log(currentPhaseQuery.data);
+  const listVariantsQuery = service.endpoints.variantsList.useQuery();
+
+  const currentPhaseId = query.data ? getCurrentPhaseId(query.data) : undefined;
+
+  const currentPhaseQuery = service.endpoints.gamePhaseRetrieve.useQuery(
+    { gameId, phaseId: currentPhaseId ?? 0 },
+    { skip: !currentPhaseId || !gameId }
+  );
 
   const navigate = useNavigate();
 
-  if (query.isError) {
+  if (query.isError || listVariantsQuery.isError) {
     return <div>Error</div>;
   }
+
+  const variant = listVariantsQuery.data?.find(
+    v => v.id === query.data?.variantId
+  );
 
   return (
     <HomeLayout
@@ -57,7 +63,7 @@ const PlayerInfo: React.FC = () => {
             {query.data && query.data.status === "pending" && (
               <Alert severity="info">
                 This game has not started yet. The game will start once{" "}
-                {query.data.variant.nations.length} players have joined.
+                {variant?.nations.length} players have joined.
               </Alert>
             )}
             {query.data && query.data.victory && (
@@ -67,12 +73,12 @@ const PlayerInfo: React.FC = () => {
                   : `The game ended in a draw between ${query.data.victory.members.length} players.`}
               </Alert>
             )}
-            {query.data
+            {query.data && variant
               ? query.data.members.map(member => (
                   <PlayerCard
                     key={member.id}
                     member={member}
-                    variant={query.data.variant.id}
+                    variant={variant.id}
                     phase={currentPhaseQuery.data}
                     victory={query.data.victory}
                   />

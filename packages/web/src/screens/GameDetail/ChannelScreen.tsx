@@ -55,6 +55,8 @@ const ChannelScreen: React.FC = props => {
   const navigate = useNavigate();
   const [message, setMessage] = useState("");
 
+  const listVariantsQuery = service.endpoints.variantsList.useQuery();
+
   const channelsQuery = service.endpoints.gamesChannelsList.useQuery({
     gameId,
   });
@@ -94,7 +96,9 @@ const ChannelScreen: React.FC = props => {
     channelsQuery.isError ||
     !channelsQuery.data ||
     gameRetrieveQuery.isError ||
-    !gameRetrieveQuery.data
+    !gameRetrieveQuery.data ||
+    listVariantsQuery.isError ||
+    !listVariantsQuery.data
   ) {
     return null;
   }
@@ -104,7 +108,10 @@ const ChannelScreen: React.FC = props => {
   if (!channel) throw new Error("Channel not found");
 
   const isSubmitting = createMessageMutation.isLoading;
-  const variant = gameRetrieveQuery.data.variant.id;
+  const variant = listVariantsQuery.data.find(
+    v => v.id === gameRetrieveQuery.data?.variantId
+  );
+  const variantId = variant?.id;
 
   return (
     <GameDetailLayout
@@ -152,7 +159,7 @@ const ChannelScreen: React.FC = props => {
                           date={displayTime(message.createdAt)}
                           showAvatar={showAvatar}
                           member={message.sender}
-                          variant={variant}
+                          variant={variantId!}
                           color={message.sender.nation.color || "#a9a9a9"}
                           isUser={message.sender.isCurrentUser}
                         />

@@ -33,6 +33,13 @@ const GameMap: React.FC = () => {
       fixedCacheKey: "create-interactive",
     });
 
+  const listVariantsQuery = service.endpoints.variantsList.useQuery();
+
+  const phaseQuery = service.endpoints.gamePhaseRetrieve.useQuery({
+    gameId,
+    phaseId: selectedPhase,
+  });
+
   const phaseStatesListQuery = service.endpoints.gamePhaseStatesList.useQuery({
     gameId: gameId,
   });
@@ -48,19 +55,20 @@ const GameMap: React.FC = () => {
     }
   }, [createOrderQuery.data]);
 
+  const variant = listVariantsQuery.data?.find(
+    v => v.id === gameRetrieveQuery.data?.variantId
+  );
+
   // Calculate which provinces should be rendered based on highlighted options
   const renderableProvinces = useMemo(() => {
-    if (!gameRetrieveQuery.data) return [];
+    if (!variant) return [];
 
-    const allProvinces = gameRetrieveQuery.data.variant.provinces;
+    const allProvinces = variant.provinces;
     const highlightedProvinceIds =
       createOrderQuery.data?.options?.map(o => o.value) ?? [];
 
     return determineRenderableProvinces(allProvinces, highlightedProvinceIds);
-  }, [
-    gameRetrieveQuery.data?.variant.provinces,
-    createOrderQuery.data?.options,
-  ]);
+  }, [variant?.provinces, createOrderQuery.data?.options]);
 
   const handleProvinceClick = (
     province: string,
@@ -123,16 +131,14 @@ const GameMap: React.FC = () => {
 
   return (
     <Stack ref={containerRef} sx={styles.mapContainer}>
-      {gameRetrieveQuery.data && ordersListQuery.data && (
+      {gameRetrieveQuery.data && variant && phaseQuery.data && ordersListQuery.data && (
         <>
           <InteractiveMapZoomWrapper
             interactiveMapProps={{
               interactive: true,
               // style: { width: "100%", height: "100%" },
-              variant: gameRetrieveQuery.data.variant,
-              phase: gameRetrieveQuery.data.phases.find(
-                p => p.id === selectedPhase
-              )!,
+              variant: variant,
+              phase: phaseQuery.data,
               orders: ordersListQuery.data,
               selected: createOrderQuery.data?.selected ?? [],
               onClickProvince: handleProvinceClick,

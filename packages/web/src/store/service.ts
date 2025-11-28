@@ -1,11 +1,11 @@
 import { api } from "./api";
 const injectedRtkApi = api.injectEndpoints({
-  endpoints: (build) => ({
+  endpoints: build => ({
     apiSchemaRetrieve: build.query<
       ApiSchemaRetrieveApiResponse,
       ApiSchemaRetrieveApiArg
     >({
-      query: (queryArg) => ({
+      query: queryArg => ({
         url: `/api/schema/`,
         params: {
           format: queryArg.format,
@@ -23,7 +23,7 @@ const injectedRtkApi = api.injectEndpoints({
       ApiTokenRefreshCreateApiResponse,
       ApiTokenRefreshCreateApiArg
     >({
-      query: (queryArg) => ({
+      query: queryArg => ({
         url: `/api/token/refresh/`,
         method: "POST",
         body: queryArg.tokenRefresh,
@@ -33,7 +33,7 @@ const injectedRtkApi = api.injectEndpoints({
       AuthLoginCreateApiResponse,
       AuthLoginCreateApiArg
     >({
-      query: (queryArg) => ({
+      query: queryArg => ({
         url: `/auth/login/`,
         method: "POST",
         body: queryArg.auth,
@@ -46,7 +46,7 @@ const injectedRtkApi = api.injectEndpoints({
       DevicesCreateApiResponse,
       DevicesCreateApiArg
     >({
-      query: (queryArg) => ({
+      query: queryArg => ({
         url: `/devices/`,
         method: "POST",
         body: queryArg.fcmDevice,
@@ -56,27 +56,27 @@ const injectedRtkApi = api.injectEndpoints({
       DevicesUpdateApiResponse,
       DevicesUpdateApiArg
     >({
-      query: (queryArg) => ({
+      query: queryArg => ({
         url: `/devices/`,
         method: "PUT",
         body: queryArg.fcmDevice,
       }),
     }),
     gameCreate: build.mutation<GameCreateApiResponse, GameCreateApiArg>({
-      query: (queryArg) => ({
+      query: queryArg => ({
         url: `/game/`,
         method: "POST",
         body: queryArg.game,
       }),
     }),
     gameRetrieve: build.query<GameRetrieveApiResponse, GameRetrieveApiArg>({
-      query: (queryArg) => ({ url: `/game/${queryArg.gameId}/` }),
+      query: queryArg => ({ url: `/game/${queryArg.gameId}/` }),
     }),
     gameConfirmPhaseUpdate: build.mutation<
       GameConfirmPhaseUpdateApiResponse,
       GameConfirmPhaseUpdateApiArg
     >({
-      query: (queryArg) => ({
+      query: queryArg => ({
         url: `/game/${queryArg.gameId}/confirm-phase/`,
         method: "PUT",
         body: queryArg.phaseState,
@@ -86,7 +86,7 @@ const injectedRtkApi = api.injectEndpoints({
       GameConfirmPhasePartialUpdateApiResponse,
       GameConfirmPhasePartialUpdateApiArg
     >({
-      query: (queryArg) => ({
+      query: queryArg => ({
         url: `/game/${queryArg.gameId}/confirm-phase/`,
         method: "PATCH",
         body: queryArg.patchedPhaseState,
@@ -96,7 +96,7 @@ const injectedRtkApi = api.injectEndpoints({
       GameJoinCreateApiResponse,
       GameJoinCreateApiArg
     >({
-      query: (queryArg) => ({
+      query: queryArg => ({
         url: `/game/${queryArg.gameId}/join/`,
         method: "POST",
         body: queryArg.member,
@@ -106,7 +106,7 @@ const injectedRtkApi = api.injectEndpoints({
       GameLeaveDestroyApiResponse,
       GameLeaveDestroyApiArg
     >({
-      query: (queryArg) => ({
+      query: queryArg => ({
         url: `/game/${queryArg.gameId}/leave/`,
         method: "DELETE",
       }),
@@ -115,7 +115,7 @@ const injectedRtkApi = api.injectEndpoints({
       GameOrdersCreateApiResponse,
       GameOrdersCreateApiArg
     >({
-      query: (queryArg) => ({
+      query: queryArg => ({
         url: `/game/${queryArg.gameId}/orders/`,
         method: "POST",
         body: queryArg.order,
@@ -125,7 +125,7 @@ const injectedRtkApi = api.injectEndpoints({
       GameOrdersListApiResponse,
       GameOrdersListApiArg
     >({
-      query: (queryArg) => ({
+      query: queryArg => ({
         url: `/game/${queryArg.gameId}/orders/${queryArg.phaseId}`,
       }),
     }),
@@ -133,7 +133,7 @@ const injectedRtkApi = api.injectEndpoints({
       GameOrdersDeleteDestroyApiResponse,
       GameOrdersDeleteDestroyApiArg
     >({
-      query: (queryArg) => ({
+      query: queryArg => ({
         url: `/game/${queryArg.gameId}/orders/delete/${queryArg.sourceId}`,
         method: "DELETE",
       }),
@@ -142,27 +142,33 @@ const injectedRtkApi = api.injectEndpoints({
       GamePhaseStatesListApiResponse,
       GamePhaseStatesListApiArg
     >({
-      query: (queryArg) => ({ url: `/game/${queryArg.gameId}/phase-states/` }),
+      query: queryArg => ({ url: `/game/${queryArg.gameId}/phase-states/` }),
     }),
     gamePhaseRetrieve: build.query<
       GamePhaseRetrieveApiResponse,
       GamePhaseRetrieveApiArg
     >({
-      query: (queryArg) => ({
+      query: queryArg => ({
         url: `/game/${queryArg.gameId}/phase/${queryArg.phaseId}/`,
       }),
+    }),
+    gamePhasesList: build.query<
+      GamePhasesListApiResponse,
+      GamePhasesListApiArg
+    >({
+      query: queryArg => ({ url: `/game/${queryArg.gameId}/phases/` }),
     }),
     gameResolvePhaseCreate: build.mutation<
       GameResolvePhaseCreateApiResponse,
       GameResolvePhaseCreateApiArg
     >({
-      query: (queryArg) => ({
+      query: queryArg => ({
         url: `/game/${queryArg.gameId}/resolve-phase/`,
         method: "POST",
       }),
     }),
     gamesList: build.query<GamesListApiResponse, GamesListApiArg>({
-      query: (queryArg) => ({
+      query: queryArg => ({
         url: `/games/`,
         params: {
           can_join: queryArg.canJoin,
@@ -175,13 +181,13 @@ const injectedRtkApi = api.injectEndpoints({
       GamesChannelsListApiResponse,
       GamesChannelsListApiArg
     >({
-      query: (queryArg) => ({ url: `/games/${queryArg.gameId}/channels/` }),
+      query: queryArg => ({ url: `/games/${queryArg.gameId}/channels/` }),
     }),
     gamesChannelsMessagesCreateCreate: build.mutation<
       GamesChannelsMessagesCreateCreateApiResponse,
       GamesChannelsMessagesCreateCreateApiArg
     >({
-      query: (queryArg) => ({
+      query: queryArg => ({
         url: `/games/${queryArg.gameId}/channels/${queryArg.channelId}/messages/create/`,
         method: "POST",
         body: queryArg.channelMessage,
@@ -191,7 +197,7 @@ const injectedRtkApi = api.injectEndpoints({
       GamesChannelsCreateCreateApiResponse,
       GamesChannelsCreateCreateApiArg
     >({
-      query: (queryArg) => ({
+      query: queryArg => ({
         url: `/games/${queryArg.gameId}/channels/create/`,
         method: "POST",
         body: queryArg.channel,
@@ -207,7 +213,7 @@ const injectedRtkApi = api.injectEndpoints({
       SandboxGameCreateApiResponse,
       SandboxGameCreateApiArg
     >({
-      query: (queryArg) => ({
+      query: queryArg => ({
         url: `/sandbox-game/`,
         method: "POST",
         body: queryArg.sandboxGame,
@@ -220,7 +226,7 @@ const injectedRtkApi = api.injectEndpoints({
       UserUpdateUpdateApiResponse,
       UserUpdateUpdateApiArg
     >({
-      query: (queryArg) => ({
+      query: queryArg => ({
         url: `/user/update/`,
         method: "PUT",
         body: queryArg.userProfile,
@@ -230,7 +236,7 @@ const injectedRtkApi = api.injectEndpoints({
       UserUpdatePartialUpdateApiResponse,
       UserUpdatePartialUpdateApiArg
     >({
-      query: (queryArg) => ({
+      query: queryArg => ({
         url: `/user/update/`,
         method: "PATCH",
         body: queryArg.patchedUserProfile,
@@ -377,7 +383,7 @@ export type DevicesUpdateApiArg = {
 };
 export type GameCreateApiResponse = /** status 201  */ GameRead;
 export type GameCreateApiArg = {
-  game: GameWrite;
+  game: Game;
 };
 export type GameRetrieveApiResponse = /** status 200  */ GameRead;
 export type GameRetrieveApiArg = {
@@ -424,10 +430,14 @@ export type GamePhaseStatesListApiResponse =
 export type GamePhaseStatesListApiArg = {
   gameId: string;
 };
-export type GamePhaseRetrieveApiResponse = /** status 200  */ PhaseRead;
+export type GamePhaseRetrieveApiResponse = /** status 200  */ PhaseRetrieveRead;
 export type GamePhaseRetrieveApiArg = {
   gameId: string;
   phaseId: number;
+};
+export type GamePhasesListApiResponse = /** status 200  */ PhaseList[];
+export type GamePhasesListApiArg = {
+  gameId: string;
 };
 export type GameResolvePhaseCreateApiResponse = unknown;
 export type GameResolvePhaseCreateApiArg = {
@@ -460,7 +470,7 @@ export type PhaseResolveCreateApiResponse = unknown;
 export type PhaseResolveCreateApiArg = void;
 export type SandboxGameCreateApiResponse = /** status 201  */ SandboxGameRead;
 export type SandboxGameCreateApiArg = {
-  sandboxGame: SandboxGameWrite;
+  sandboxGame: SandboxGame;
 };
 export type UserRetrieveApiResponse = /** status 200  */ UserProfileRead;
 export type UserRetrieveApiArg = void;
@@ -520,78 +530,10 @@ export type NationAssignmentEnum = "random" | "ordered";
 export type MovementPhaseDurationEnum = "24 hours" | "48 hours" | "1 week";
 export type Game = {
   name: string;
+  variantId: string;
   nationAssignment: NationAssignmentEnum;
   movementPhaseDuration?: MovementPhaseDurationEnum;
   private: boolean;
-};
-export type StatusEnum = "pending" | "active" | "completed" | "template";
-export type Nation = {
-  name: string;
-  color: string;
-};
-export type Province = {
-  id: string;
-  name: string;
-  type: string;
-  supplyCenter: boolean;
-  parentId: string | null;
-};
-export type ProvinceRead = {
-  id: string;
-  name: string;
-  type: string;
-  supplyCenter: boolean;
-  parentId: string | null;
-  namedCoastIds: string[];
-};
-export type Unit = {
-  type: string;
-  nation: Nation;
-  province: Province;
-  dislodged: boolean;
-};
-export type UnitRead = {
-  type: string;
-  nation: Nation;
-  province: ProvinceRead;
-  dislodged: boolean;
-  dislodgedBy: {
-    [key: string]: any;
-  } | null;
-};
-export type SupplyCenter = {
-  province: Province;
-  nation: Nation;
-};
-export type SupplyCenterRead = {
-  province: ProvinceRead;
-  nation: Nation;
-};
-export type Phase = {
-  id: number;
-  ordinal: number;
-  season: string;
-  year: number;
-  name: string;
-  type: string;
-  remainingTime: number;
-  scheduledResolution: string;
-  status: StatusEnum;
-  units: Unit[];
-  supplyCenters: SupplyCenter[];
-};
-export type PhaseRead = {
-  id: number;
-  ordinal: number;
-  season: string;
-  year: number;
-  name: string;
-  type: string;
-  remainingTime: number;
-  scheduledResolution: string;
-  status: StatusEnum;
-  units: UnitRead[];
-  supplyCenters: SupplyCenterRead[];
 };
 export type Member = {};
 export type MemberRead = {
@@ -608,48 +550,38 @@ export type VictoryRead = {
   winningPhaseId: number;
   members: MemberRead[];
 };
-export type Variant = {
-  id: string;
-  name: string;
-  description: string;
-  author?: string;
-  nations: Nation[];
-  provinces: Province[];
-  templatePhase: Phase;
-};
-export type VariantRead = {
-  id: string;
-  name: string;
-  description: string;
-  author?: string;
-  nations: Nation[];
-  provinces: ProvinceRead[];
-  templatePhase: PhaseRead;
-};
 export type GameRead = {
   id: string;
   status: string;
   canJoin: boolean;
   canLeave: boolean;
-  phases: PhaseRead[];
+  phases: number[];
   members: MemberRead[];
   sandbox: boolean;
   victory: VictoryRead | null;
   name: string;
-  variant: VariantRead;
+  variantId: string;
   nationAssignment: NationAssignmentEnum;
   phaseConfirmed: boolean;
   movementPhaseDuration?: MovementPhaseDurationEnum;
   private: boolean;
 };
-export type GameWrite = {
-  name: string;
-  variantId: string;
-  nationAssignment: NationAssignmentEnum;
-  movementPhaseDuration?: MovementPhaseDurationEnum;
-  private: boolean;
-};
 export type PhaseState = {};
+export type Province = {
+  id: string;
+  name: string;
+  type: string;
+  supplyCenter: boolean;
+  parentId: string | null;
+};
+export type ProvinceRead = {
+  id: string;
+  name: string;
+  type: string;
+  supplyCenter: boolean;
+  parentId: string | null;
+  namedCoastIds: string[];
+};
 export type PhaseStateRead = {
   id: string;
   ordersConfirmed: boolean;
@@ -689,6 +621,10 @@ export type OrderTypeEnum =
   | "Build"
   | "Disband";
 export type UnitTypeEnum = "Army" | "Fleet";
+export type Nation = {
+  name: string;
+  color: string;
+};
 export type StepEnum =
   | "select-order-type"
   | "select-unit-type"
@@ -712,6 +648,65 @@ export type OrderRead = {
   title: string | null;
   summary: string | null;
   selected?: string[];
+};
+export type StatusEnum = "pending" | "active" | "completed" | "template";
+export type Unit = {
+  type: string;
+  nation: Nation;
+  province: Province;
+  dislodged: boolean;
+};
+export type UnitRead = {
+  type: string;
+  nation: Nation;
+  province: ProvinceRead;
+  dislodged: boolean;
+  dislodgedBy: {
+    [key: string]: any;
+  } | null;
+};
+export type SupplyCenter = {
+  province: Province;
+  nation: Nation;
+};
+export type SupplyCenterRead = {
+  province: ProvinceRead;
+  nation: Nation;
+};
+export type PhaseRetrieve = {
+  id: number;
+  ordinal: number;
+  season: string;
+  year: number;
+  name: string;
+  type: string;
+  remainingTime: number;
+  scheduledResolution: string;
+  status: StatusEnum;
+  units: Unit[];
+  supplyCenters: SupplyCenter[];
+};
+export type PhaseRetrieveRead = {
+  id: number;
+  ordinal: number;
+  season: string;
+  year: number;
+  name: string;
+  type: string;
+  remainingTime: number;
+  scheduledResolution: string;
+  status: StatusEnum;
+  units: UnitRead[];
+  supplyCenters: SupplyCenterRead[];
+};
+export type PhaseList = {
+  id: number;
+  ordinal: number;
+  season: string;
+  year: number;
+  name: string;
+  type: string;
+  status: StatusEnum;
 };
 export type GameList = {};
 export type GameListRead = {
@@ -763,25 +758,22 @@ export type ChannelWrite = {
 };
 export type SandboxGame = {
   name: string;
+  variantId: string;
 };
 export type SandboxGameRead = {
   id: string;
   status: string;
   canJoin: boolean;
   canLeave: boolean;
-  phases: PhaseRead[];
+  phases: number[];
   members: MemberRead[];
   sandbox: boolean;
   victory: VictoryRead | null;
   name: string;
-  variant: VariantRead;
+  variantId: string;
   nationAssignment: NationAssignmentEnum;
   movementPhaseDuration: MovementPhaseDurationEnum;
   private: boolean;
-};
-export type SandboxGameWrite = {
-  name: string;
-  variantId: string;
 };
 export type UserProfile = {
   name: string;
@@ -800,6 +792,24 @@ export type PatchedUserProfileRead = {
   name?: string;
   picture?: string | null;
   email?: string;
+};
+export type Variant = {
+  id: string;
+  name: string;
+  description: string;
+  author?: string;
+  nations: Nation[];
+  provinces: Province[];
+  templatePhase: PhaseRetrieve;
+};
+export type VariantRead = {
+  id: string;
+  name: string;
+  description: string;
+  author?: string;
+  nations: Nation[];
+  provinces: ProvinceRead[];
+  templatePhase: PhaseRetrieveRead;
 };
 export type Version = {
   environment: string;
@@ -824,6 +834,7 @@ export const {
   useGameOrdersDeleteDestroyMutation,
   useGamePhaseStatesListQuery,
   useGamePhaseRetrieveQuery,
+  useGamePhasesListQuery,
   useGameResolvePhaseCreateMutation,
   useGamesListQuery,
   useGamesChannelsListQuery,

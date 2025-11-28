@@ -16,7 +16,7 @@ import { useNavigate } from "react-router";
 import { Table } from "../../components/Table";
 import { InteractiveMap } from "../../components/InteractiveMap/InteractiveMap";
 import { MapSkeleton } from "../../components/MapSkeleton";
-import { getCurrentPhase } from "../../util";
+import { getCurrentPhaseId } from "../../util";
 import { GameMenu } from "../../components/GameMenu";
 import { MemberAvatarGroup } from "../../components/MemberAvatarGroup";
 import { useSelectedGameContext } from "../../context/SelectedGameContext";
@@ -24,6 +24,15 @@ import { IconButton } from "../../components/Button";
 
 const GameInfo: React.FC = () => {
   const { gameId, gameRetrieveQuery: query } = useSelectedGameContext();
+
+  const listVariantsQuery = service.endpoints.variantsList.useQuery();
+
+  const currentPhaseId = query.data ? getCurrentPhaseId(query.data) : undefined;
+
+  const currentPhaseQuery = service.endpoints.gamePhaseRetrieve.useQuery(
+    { gameId, phaseId: currentPhaseId ?? 0 },
+    { skip: !currentPhaseId || !gameId }
+  );
 
   const [joinGame, joinGameMutation] =
     service.endpoints.gameJoinCreate.useMutation();
@@ -45,9 +54,13 @@ const GameInfo: React.FC = () => {
     navigate(`/player-info/${gameId}`);
   };
 
-  if (query.isError) {
+  if (query.isError || listVariantsQuery.isError) {
     return <div>Error</div>;
   }
+
+  const variant = listVariantsQuery.data?.find(
+    v => v.id === query.data?.variantId
+  );
 
   return (
     <HomeLayout
@@ -91,7 +104,7 @@ const GameInfo: React.FC = () => {
             {query.data && query.data.status === "pending" && (
               <Alert severity="info">
                 This game has not started yet. The game will start once{" "}
-                {query.data.variant.nations.length} players have joined.
+                {variant?.nations.length} players have joined.
               </Alert>
             )}
             {query.data && query.data.victory && (
@@ -108,7 +121,7 @@ const GameInfo: React.FC = () => {
                   {
                     label: "Variant",
                     value: query.data ? (
-                      query.data.variant.name
+                      variant?.name
                     ) : (
                       <Stack alignItems="flex-end">
                         <Skeleton variant="text" width={100} />
@@ -150,16 +163,21 @@ const GameInfo: React.FC = () => {
                 rows={[
                   {
                     label: "Players",
-                    value: query.data ? (
-                      <MemberAvatarGroup
-                        members={query.data.members}
-                        variant={query.data.variant.id}
-                        victory={query.data.victory}
-                        onClick={handlePlayerInfo}
-                      />
-                    ) : (
-                      <Skeleton variant="rectangular" width={100} height={40} />
-                    ),
+                    value:
+                      query.data && variant ? (
+                        <MemberAvatarGroup
+                          members={query.data.members}
+                          variant={variant.id}
+                          victory={query.data.victory}
+                          onClick={handlePlayerInfo}
+                        />
+                      ) : (
+                        <Skeleton
+                          variant="rectangular"
+                          width={100}
+                          height={40}
+                        />
+                      ),
                     icon: IconName.Players,
                   },
                 ]}
@@ -167,10 +185,10 @@ const GameInfo: React.FC = () => {
               <Divider />
               <ListSubheader>Variant details</ListSubheader>
               <ListItem>
-                {query.data ? (
+                {query.data && variant && currentPhaseQuery.data ? (
                   <InteractiveMap
-                    variant={query.data.variant}
-                    phase={getCurrentPhase(query.data.phases)}
+                    variant={variant}
+                    phase={currentPhaseQuery.data}
                     orders={[]}
                     selected={[]}
                     style={{ width: "100%", height: "100%" }}
@@ -184,7 +202,7 @@ const GameInfo: React.FC = () => {
                   {
                     label: "Number of nations",
                     value: query.data ? (
-                      query.data.variant.nations.length.toString()
+                      variant?.nations.length.toString()
                     ) : (
                       <Skeleton variant="text" width={10} />
                     ),
@@ -192,20 +210,22 @@ const GameInfo: React.FC = () => {
                   },
                   {
                     label: "Start year",
-                    value: query.data ? (
-                      query.data.variant.templatePhase.year?.toString()
-                    ) : (
-                      <Skeleton variant="text" width={50} />
-                    ),
+                    value:
+                      query.data && variant ? (
+                        variant?.templatePhase.year?.toString()
+                      ) : (
+                        <Skeleton variant="text" width={50} />
+                      ),
                     icon: IconName.StartYear,
                   },
                   {
                     label: "Original author",
-                    value: query.data ? (
-                      query.data.variant.author
-                    ) : (
-                      <Skeleton variant="text" width={100} />
-                    ),
+                    value:
+                      query.data && variant ? (
+                        variant?.author
+                      ) : (
+                        <Skeleton variant="text" width={100} />
+                      ),
                     icon: IconName.Author,
                   },
                 ]}

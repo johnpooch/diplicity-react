@@ -1481,6 +1481,101 @@ class TestPhaseRetrieveView:
         assert "province" in supply_center
 
 
+class TestPhaseListView:
+
+    @pytest.mark.django_db
+    def test_list_phases_success(self, authenticated_client, active_game_with_phase_state):
+        game = active_game_with_phase_state
+
+        for i in range(3):
+            game.phases.create(
+                game=game,
+                variant=game.variant,
+                season="Fall",
+                year=1901 + i,
+                type="Movement",
+                status=PhaseStatus.COMPLETED,
+                ordinal=2 + i,
+            )
+
+        url = reverse("phase-list", args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 4
+        assert response.data[0]["ordinal"] == 1
+
+    @pytest.mark.django_db
+    def test_list_phases_ordered_by_ordinal(self, authenticated_client, active_game_with_phase_state):
+        game = active_game_with_phase_state
+
+        for i in range(3):
+            game.phases.create(
+                game=game,
+                variant=game.variant,
+                season="Fall",
+                year=1901 + i,
+                type="Movement",
+                status=PhaseStatus.COMPLETED,
+                ordinal=2 + i,
+            )
+
+        url = reverse("phase-list", args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        ordinals = [phase["ordinal"] for phase in response.data]
+        assert ordinals == sorted(ordinals)
+
+    @pytest.mark.django_db
+    def test_list_phases_excludes_units_and_supply_centers(self, authenticated_client, active_game_with_phase_state):
+        game = active_game_with_phase_state
+
+        url = reverse("phase-list", args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert "units" not in response.data[0]
+        assert "supply_centers" not in response.data[0]
+
+    @pytest.mark.django_db
+    def test_list_phases_unauthenticated(self, unauthenticated_client, active_game_with_phase_state):
+        game = active_game_with_phase_state
+
+        url = reverse("phase-list", args=[game.id])
+        response = unauthenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+class TestPhaseListViewPerformance:
+
+    @pytest.mark.django_db
+    def test_list_phases_query_count(self, authenticated_client, active_game_with_phase_state):
+        game = active_game_with_phase_state
+
+        for i in range(10):
+            game.phases.create(
+                game=game,
+                variant=game.variant,
+                season="Fall",
+                year=1901 + i,
+                type="Movement",
+                status=PhaseStatus.COMPLETED,
+                ordinal=2 + i,
+            )
+
+        url = reverse("phase-list", args=[game.id])
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        query_count = len(connection.queries)
+        assert query_count == 6
+
+
 class TestPhaseRetrieveViewQueryPerformance:
 
     @pytest.mark.django_db
