@@ -21,7 +21,7 @@ const BORDER_SIZE = {
 
 const TROPHY_SIZE = {
   small: 16,
-  medium: 24,
+  medium: 20,
 };
 
 type MemberAvatarProps = Pick<AvatarProps, "key"> & {
@@ -56,14 +56,14 @@ const MemberAvatar: React.FC<MemberAvatarProps> = ({
       member.nation?.toLowerCase() as keyof (typeof Flags)[keyof typeof Flags]
     ];
 
-  // Determine badge content based on winner status and nation
-  const badgeContent = isWinner ? (
+  // Create trophy badge for winners
+  const trophyBadge = isWinner ? (
     <Box
       sx={{
         bgcolor: "warning.main",
         borderRadius: "50%",
-        width: badgeSize,
-        height: badgeSize,
+        width: trophySize,
+        height: trophySize,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -72,10 +72,13 @@ const MemberAvatar: React.FC<MemberAvatarProps> = ({
     >
       <Icon
         name={IconName.Trophy}
-        sx={{ fontSize: trophySize, color: "warning.contrastText" }}
+        sx={{ fontSize: 12, color: "warning.contrastText" }}
       />
     </Box>
-  ) : member.nation ? (
+  ) : null;
+
+  // Create nation flag badge
+  const nationBadge = member.nation ? (
     <Avatar
       src={nationFlag}
       sx={{
@@ -86,21 +89,36 @@ const MemberAvatar: React.FC<MemberAvatarProps> = ({
     />
   ) : null;
 
-  // If no badge content, just return the avatar
-  if (!badgeContent) {
-    return mainAvatar;
+  // Build avatar with nested badges
+  let avatar = mainAvatar;
+
+  // Add nation badge at bottom-right if present
+  if (nationBadge) {
+    avatar = (
+      <Badge
+        overlap="circular"
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        badgeContent={nationBadge}
+      >
+        {avatar}
+      </Badge>
+    );
   }
 
-  // Otherwise, wrap it with the Badge
-  return (
-    <Badge
-      overlap="circular"
-      anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-      badgeContent={badgeContent}
-    >
-      {mainAvatar}
-    </Badge>
-  );
+  // Add trophy badge at top-right if present (only when player has won)
+  if (trophyBadge) {
+    avatar = (
+      <Badge
+        overlap="circular"
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        badgeContent={trophyBadge}
+      >
+        {avatar}
+      </Badge>
+    );
+  }
+
+  return avatar;
 };
 
 export { MemberAvatar };
