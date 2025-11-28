@@ -1,5 +1,5 @@
 import React from "react";
-import { Divider, List, ListSubheader, Skeleton, Stack } from "@mui/material";
+import { Alert, Divider, List, ListSubheader, Skeleton, Stack } from "@mui/material";
 import { GameDetailLayout } from "./Layout";
 import { GameDetailAppBar } from "./AppBar";
 import { IconName } from "../../components/Icon";
