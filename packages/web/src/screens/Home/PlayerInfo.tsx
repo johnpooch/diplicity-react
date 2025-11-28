@@ -60,6 +60,13 @@ const PlayerInfo: React.FC = () => {
                 {query.data.variant.nations.length} players have joined.
               </Alert>
             )}
+            {query.data && query.data.victory && (
+              <Alert severity="success">
+                {query.data.victory.type === "solo"
+                  ? `${query.data.victory.members[0]?.name} has won the game!`
+                  : `The game ended in a draw between ${query.data.victory.members.length} players.`}
+              </Alert>
+            )}
             {query.data
               ? query.data.members.map(member => (
                   <PlayerCard
@@ -67,6 +74,7 @@ const PlayerInfo: React.FC = () => {
                     member={member}
                     variant={query.data.variant.id}
                     phase={currentPhaseQuery.data}
+                    victory={query.data.victory}
                   />
                 ))
               : Array.from({ length: 3 }, (_, index) => (

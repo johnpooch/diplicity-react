@@ -548,6 +548,7 @@ export type Unit = {
   type: string;
   nation: Nation;
   province: Province;
+  dislodged: boolean;
 };
 export type UnitRead = {
   type: string;
@@ -593,18 +594,19 @@ export type PhaseRead = {
   supplyCenters: SupplyCenterRead[];
 };
 export type Member = {};
-export type GameSummary = {
-  name: string;
-  status: string;
-};
 export type MemberRead = {
   id: number;
   name: string;
   picture: string | null;
   nation: string | null;
   isCurrentUser: boolean;
-  game: GameSummary;
-  supplyCenterCount: number;
+};
+export type Victory = {};
+export type VictoryRead = {
+  id: number;
+  type: string;
+  winningPhaseId: number;
+  members: MemberRead[];
 };
 export type Variant = {
   id: string;
@@ -631,11 +633,12 @@ export type GameRead = {
   canLeave: boolean;
   phases: PhaseRead[];
   members: MemberRead[];
-  phaseConfirmed: boolean;
   sandbox: boolean;
+  victory: VictoryRead | null;
   name: string;
   variant: VariantRead;
   nationAssignment: NationAssignmentEnum;
+  phaseConfirmed: boolean;
   movementPhaseDuration?: MovementPhaseDurationEnum;
   private: boolean;
 };
@@ -710,23 +713,20 @@ export type OrderRead = {
   summary: string | null;
   selected?: string[];
 };
-export type GameList = {
-  name: string;
-};
+export type GameList = {};
 export type GameListRead = {
   id: string;
+  name: string;
   status: string;
   canJoin: boolean;
   canLeave: boolean;
-  phases: number[];
-  members: MemberRead[];
-  phaseConfirmed: boolean;
-  sandbox: boolean;
-  name: string;
   variantId: string;
+  phases: number[];
   private: boolean;
   movementPhaseDuration: string;
   nationAssignment: string;
+  members: MemberRead[];
+  victory: VictoryRead | null;
 };
 export type Channel = {};
 export type ChannelMessage = {
@@ -770,8 +770,8 @@ export type SandboxGameRead = {
   canLeave: boolean;
   phases: PhaseRead[];
   members: MemberRead[];
-  phaseConfirmed: boolean;
   sandbox: boolean;
+  victory: VictoryRead | null;
   name: string;
   variant: VariantRead;
   nationAssignment: NationAssignmentEnum;

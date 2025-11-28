@@ -147,6 +147,7 @@ const GameInfo: React.FC = () => {
                       <MemberAvatarGroup
                         members={query.data.members}
                         variant={query.data.variant.id}
+                        victory={query.data.victory}
                         onClick={handlePlayerInfo}
                       />
                     ) : (

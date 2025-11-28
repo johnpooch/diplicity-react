@@ -36,6 +36,13 @@ const GameInfoScreen: React.FC = () => {
         <Panel>
           <Panel.Content>
             <Stack>
+              {query.data && query.data.victory && (
+                <Alert severity="success">
+                  {query.data.victory.type === "solo"
+                    ? `${query.data.victory.members[0]?.name} has won the game!`
+                    : `The game ended in a draw between ${query.data.victory.members.length} players.`}
+                </Alert>
+              )}
               <List>
                 <ListSubheader>Game settings</ListSubheader>
                 <Table
@@ -89,6 +96,7 @@ const GameInfoScreen: React.FC = () => {
                         <MemberAvatarGroup
                           members={query.data.members}
                           variant={query.data.variant.id}
+                          victory={query.data.victory}
                           onClick={handlePlayerInfo}
                         />
                       ) : (

@@ -32,6 +32,7 @@ import Sandbox from "@mui/icons-material/Widgets";
 import Edit from "@mui/icons-material/Edit";
 import PersonAdd from "@mui/icons-material/PersonAdd";
 import PersonRemove from "@mui/icons-material/PersonRemove";
+import Trophy from "@mui/icons-material/EmojiEvents";
 import { SxProps, Theme } from "@mui/material";
 
 enum IconName {
@@ -71,6 +72,7 @@ enum IconName {
   Edit = "edit",
   Join = "join",
   Leave = "leave",
+  Trophy = "trophy",
 }
 
 const IconMap = {
@@ -110,6 +112,7 @@ const IconMap = {
   [IconName.Edit]: Edit,
   [IconName.Join]: PersonAdd,
   [IconName.Leave]: PersonRemove,
+  [IconName.Trophy]: Trophy,
 };
 
 interface IconProps {
