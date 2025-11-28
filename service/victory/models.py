@@ -28,7 +28,7 @@ class VictoryManager(models.Manager):
         return self.get_queryset().draw_victories()
 
     def try_create_victory(self, phase):
-        if phase.type != PhaseType.ADJUSTMENT or phase.season != "Fall":
+        if phase.type != PhaseType.ADJUSTMENT:
             return None
 
         winner = check_for_solo_winner(phase.game, phase)
