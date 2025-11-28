@@ -12,12 +12,24 @@ export const InactivePhaseOrders: React.FC = () => {
   const { gameId, gameRetrieveQuery } = useSelectedGameContext();
   const { selectedPhase } = useSelectedPhaseContext();
 
+  const listVariantsQuery = service.endpoints.variantsList.useQuery();
+
+  const phaseQuery = service.endpoints.gamePhaseRetrieve.useQuery({
+    gameId,
+    phaseId: selectedPhase,
+  });
+
   const ordersListQuery = service.endpoints.gameOrdersList.useQuery({
     gameId,
     phaseId: selectedPhase,
   });
 
-  if (!ordersListQuery.data || !gameRetrieveQuery.data)
+  if (
+    !ordersListQuery.data ||
+    !gameRetrieveQuery.data ||
+    !phaseQuery.data ||
+    !listVariantsQuery.data
+  )
     return (
       <Panel>
         <Panel.Content>
@@ -31,8 +43,11 @@ export const InactivePhaseOrders: React.FC = () => {
       </Panel>
     );
 
-  const phase = gameRetrieveQuery.data.phases.find(p => p.id === selectedPhase);
-  const variant = gameRetrieveQuery.data.variant.id;
+  const phase = phaseQuery.data;
+  const variant = listVariantsQuery.data.find(
+    v => v.id === gameRetrieveQuery.data?.variantId
+  );
+  const variantId = variant?.id;
 
   const ordersByNation = ordersListQuery.data.reduce(
     (acc, order) => {
@@ -85,7 +100,7 @@ export const InactivePhaseOrders: React.FC = () => {
                     <MemberAvatar
                       member={member!}
                       size="small"
-                      variant={variant}
+                      variant={variantId!}
                     />
                     {nation}
                   </Stack>

@@ -6,7 +6,7 @@ import { service } from "./service";
 import { api } from "./api";
 
 const enhancedApi = api.enhanceEndpoints({
-  addTagTypes: ["Device", "Game", "Channel", "Order", "PhaseState"],
+  addTagTypes: ["Device", "Game", "Channel", "Order", "PhaseState", "Phase"],
   endpoints: {
     devicesList: {
       providesTags: ["Device"],
@@ -23,6 +23,9 @@ const enhancedApi = api.enhanceEndpoints({
     gameCreate: {
       invalidatesTags: ["Game"],
     },
+    gamePhasesList: {
+      providesTags: ["Phase"],
+    },
     gamePhaseStatesList: {
       providesTags: ["PhaseState"],
     },
@@ -30,7 +33,7 @@ const enhancedApi = api.enhanceEndpoints({
       invalidatesTags: ["Game", "PhaseState", "Order"],
     },
     gameResolvePhaseCreate: {
-      invalidatesTags: ["Game", "PhaseState", "Order"],
+      invalidatesTags: ["Game", "PhaseState", "Order", "Phase"],
     },
     gameJoinCreate: {
       invalidatesTags: ["Game"],

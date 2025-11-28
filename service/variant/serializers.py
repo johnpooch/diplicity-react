@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from province.serializers import ProvinceSerializer
 from nation.serializers import NationSerializer
-from phase.serializers import PhaseSerializer
+from phase.serializers import PhaseRetrieveSerializer
 
 
 class VariantSerializer(serializers.Serializer):
@@ -11,7 +11,7 @@ class VariantSerializer(serializers.Serializer):
     author = serializers.CharField(required=False)
     nations = NationSerializer(many=True)
     provinces = ProvinceSerializer(many=True)
-    template_phase = PhaseSerializer()
+    template_phase = PhaseRetrieveSerializer()
 
 
 class GameListVariantSerializer(serializers.Serializer):

@@ -526,7 +526,32 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Phase'
+                $ref: '#/components/schemas/PhaseRetrieve'
+          description: ''
+  /game/{gameId}/phases/:
+    get:
+      operationId: gamePhasesList
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PhaseList'
           description: ''
   /game/{gameId}/resolve-phase/:
     post:
@@ -931,7 +956,7 @@ components:
         phases:
           type: array
           items:
-            $ref: '#/components/schemas/Phase'
+            type: integer
           readOnly: true
         members:
           type: array
@@ -950,11 +975,6 @@ components:
           type: string
         variantId:
           type: string
-          writeOnly: true
-        variant:
-          allOf:
-          - $ref: '#/components/schemas/Variant'
-          readOnly: true
         nationAssignment:
           $ref: '#/components/schemas/NationAssignmentEnum'
         phaseConfirmed:
@@ -978,7 +998,6 @@ components:
       - private
       - sandbox
       - status
-      - variant
       - variantId
       - victory
     GameList:
@@ -1254,7 +1273,32 @@ components:
         email:
           type: string
           readOnly: true
-    Phase:
+    PhaseList:
+      type: object
+      properties:
+        id:
+          type: integer
+        ordinal:
+          type: integer
+        season:
+          type: string
+        year:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+        status:
+          $ref: '#/components/schemas/StatusEnum'
+      required:
+      - id
+      - name
+      - ordinal
+      - season
+      - status
+      - type
+      - year
+    PhaseRetrieve:
       type: object
       properties:
         id:
@@ -1367,7 +1411,7 @@ components:
         phases:
           type: array
           items:
-            $ref: '#/components/schemas/Phase'
+            type: integer
           readOnly: true
         members:
           type: array
@@ -1386,11 +1430,6 @@ components:
           type: string
         variantId:
           type: string
-          writeOnly: true
-        variant:
-          allOf:
-          - $ref: '#/components/schemas/Variant'
-          readOnly: true
         nationAssignment:
           allOf:
           - $ref: '#/components/schemas/NationAssignmentEnum'
@@ -1414,7 +1453,6 @@ components:
       - private
       - sandbox
       - status
-      - variant
       - variantId
       - victory
     StatusEnum:
@@ -1549,7 +1587,7 @@ components:
           items:
             $ref: '#/components/schemas/Province'
         templatePhase:
-          $ref: '#/components/schemas/Phase'
+          $ref: '#/components/schemas/PhaseRetrieve'
       required:
       - description
       - id

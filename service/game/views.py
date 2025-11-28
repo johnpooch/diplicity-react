@@ -5,7 +5,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from opentelemetry import trace
 
 from .models import Game
-from .serializers import GameSerializer, SandboxGameSerializer, GameListSerializer
+from .serializers import GameCreateSerializer, GameCreateSandboxSerializer, GameListSerializer, GameRetrieveSerializer
 from .filters import GameFilter
 
 tracer = trace.get_tracer(__name__)
@@ -13,9 +13,9 @@ tracer = trace.get_tracer(__name__)
 
 class GameRetrieveView(generics.RetrieveAPIView):
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = GameSerializer
+    serializer_class = GameRetrieveSerializer
 
-    queryset = Game.objects.all().with_related_data()
+    queryset = Game.objects.all().with_retrieve_data()
 
     def get_object(self):
         return get_object_or_404(self.queryset, id=self.kwargs.get("game_id"))
@@ -53,9 +53,9 @@ class GameListView(generics.ListAPIView):
 
 class GameCreateView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = GameSerializer
+    serializer_class = GameCreateSerializer
 
 
 class CreateSandboxGameView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = SandboxGameSerializer
+    serializer_class = GameCreateSandboxSerializer

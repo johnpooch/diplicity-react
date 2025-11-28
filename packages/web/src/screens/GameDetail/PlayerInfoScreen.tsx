@@ -10,22 +10,30 @@ import {
 import { GameDetailLayout } from "./Layout";
 import { GameDetailAppBar } from "./AppBar";
 import { useNavigate } from "react-router";
-import { useSelectedGameContext } from "../../context";
+import { useSelectedGameContext, useSelectedPhaseContext } from "../../context";
 import { GameMap, Panel, PlayerCard } from "../../components";
-import { useCurrentPhase } from "../../hooks";
+import { service } from "../../store";
 
 const PlayerInfoScreen: React.FC = () => {
   const { gameId, gameRetrieveQuery: query } = useSelectedGameContext();
-  const currentPhaseQuery = useCurrentPhase({
-    id: gameId ?? "",
-    phases: query.data?.phases.map(phase => phase.id) ?? [],
+  const { selectedPhase } = useSelectedPhaseContext();
+
+  const listVariantsQuery = service.endpoints.variantsList.useQuery();
+
+  const currentPhaseQuery = service.endpoints.gamePhaseRetrieve.useQuery({
+    gameId: gameId ?? "",
+    phaseId: selectedPhase,
   });
 
   const navigate = useNavigate();
 
-  if (query.isError) {
+  if (query.isError || listVariantsQuery.isError) {
     return <div>Error</div>;
   }
+
+  const variant = listVariantsQuery.data?.find(
+    v => v.id === query.data?.variantId
+  );
 
   return (
     <GameDetailLayout
@@ -50,13 +58,13 @@ const PlayerInfoScreen: React.FC = () => {
                 </Alert>
               )}
               <List>
-                {query.data ? (
+                {query.data && variant ? (
                   <>
                     {query.data.members.map(member => (
                       <PlayerCard
                         key={member.id}
                         member={member}
-                        variant={query.data?.variant.id ?? ""}
+                        variant={variant.id}
                         phase={currentPhaseQuery.data}
                         victory={query.data?.victory}
                       />

@@ -1,6 +1,11 @@
 import React from "react";
 import { Button, Divider, List, ListSubheader, Stack } from "@mui/material";
-import { Phase, Province, ProvinceRead, service } from "../../store";
+import {
+  PhaseRetrieveRead,
+  Province,
+  ProvinceRead,
+  service,
+} from "../../store";
 import { Icon, IconName } from "../../components/Icon";
 import { Panel } from "../../components/Panel";
 import { Notice } from "../../components/Notice";
@@ -10,7 +15,7 @@ import { IconButton } from "../../components/Button";
 import { MemberAvatar } from "../../components/MemberAvatar";
 
 interface ActivePhaseOrdersProps {
-  phase: Phase;
+  phase: PhaseRetrieveRead;
   userNation: string;
   onConfirmOrders: () => void;
   isPhaseConfirmed: boolean;
@@ -28,6 +33,8 @@ export const ActivePhaseOrders: React.FC<ActivePhaseOrdersProps> = props => {
   const handleResolvePhase = async () => {
     await resolvePhase({ gameId }).unwrap();
   };
+
+  const listVariantsQuery = service.endpoints.variantsList.useQuery();
 
   const phaseStatesListQuery = service.endpoints.gamePhaseStatesList.useQuery({
     gameId: gameId,
@@ -74,7 +81,10 @@ export const ActivePhaseOrders: React.FC<ActivePhaseOrdersProps> = props => {
   ).flat();
   const hasOrderableProvinces = allOrderableProvinces.length > 0;
 
-  const variant = gameRetrieveQuery?.data?.variant.id;
+  const variant = listVariantsQuery.data?.find(
+    v => v.id === gameRetrieveQuery.data?.variantId
+  );
+  const variantId = variant?.id;
 
   return (
     <Panel>
@@ -113,7 +123,7 @@ export const ActivePhaseOrders: React.FC<ActivePhaseOrdersProps> = props => {
                         <MemberAvatar
                           member={memberForNation!}
                           size="small"
-                          variant={variant!}
+                          variant={variantId!}
                         />
                         {nation}
                       </Stack>

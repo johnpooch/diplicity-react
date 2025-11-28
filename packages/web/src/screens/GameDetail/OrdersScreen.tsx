@@ -15,6 +15,11 @@ const OrdersScreen: React.FC = () => {
   const navigate = useNavigate();
   const { selectedPhase } = useSelectedPhaseContext();
 
+  const phaseQuery = service.endpoints.gamePhaseRetrieve.useQuery({
+    gameId,
+    phaseId: selectedPhase,
+  });
+
   const ordersListQuery = service.endpoints.gameOrdersList.useQuery({
     gameId,
     phaseId: selectedPhase,
@@ -33,6 +38,8 @@ const OrdersScreen: React.FC = () => {
   if (
     gameRetrieveQuery.isError ||
     !gameRetrieveQuery.data ||
+    phaseQuery.isError ||
+    !phaseQuery.data ||
     ordersListQuery.isError ||
     !ordersListQuery.data
   ) {
@@ -40,7 +47,7 @@ const OrdersScreen: React.FC = () => {
   }
 
   const game = gameRetrieveQuery.data;
-  const currentPhase = game.phases.find(p => p.id === selectedPhase)!;
+  const currentPhase = phaseQuery.data;
   const userNation = game.members.find(m => m.isCurrentUser)!.nation ?? "";
 
   return (

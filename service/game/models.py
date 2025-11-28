@@ -37,6 +37,22 @@ class GameQuerySet(models.QuerySet):
             "phases",
         )
 
+    def with_retrieve_data(self):
+        members_prefetch = Prefetch(
+            "members",
+            queryset=Member.objects.select_related("nation", "user__profile"),
+        )
+
+        victory_members_prefetch = Prefetch(
+            "victory__members",
+            queryset=Member.objects.select_related("user__profile", "nation")
+        )
+
+        return self.select_related("variant", "victory").prefetch_related(
+            members_prefetch,
+            victory_members_prefetch,
+        )
+
     def with_related_data(self):
 
         units_prefetch = Prefetch(
@@ -111,6 +127,15 @@ class GameQuerySet(models.QuerySet):
 class GameManager(models.Manager):
     def get_queryset(self):
         return GameQuerySet(self.model, using=self._db)
+
+    def with_list_data(self):
+        return self.get_queryset().with_list_data()
+
+    def with_retrieve_data(self):
+        return self.get_queryset().with_retrieve_data()
+
+    def with_related_data(self):
+        return self.get_queryset().with_related_data()
 
     def create_from_template(self, variant, **kwargs):
         template_phase = variant.template_phase

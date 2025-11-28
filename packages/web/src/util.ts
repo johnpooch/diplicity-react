@@ -1,4 +1,4 @@
-import { OrderRead, PhaseRead, VariantRead } from "./store";
+import { GameRead } from "./store";
 import { adjectives, conflictSynonyms, nouns } from "./terms";
 
 function capitalize(s: string) {
@@ -9,15 +9,9 @@ function randomOf(ary: string[]) {
   return ary[Math.floor(Math.random() * ary.length)];
 }
 
-// Get the phase with the highest ordinal
-function getCurrentPhase(phases: PhaseRead[]) {
-  return phases.reduce((max, phase) => {
-    if (phase.ordinal > max.ordinal) {
-      return phase;
-    }
-    return max;
-  }, phases[0]);
-}
+const getCurrentPhaseId = (game: GameRead) => {
+  return game.phases[game.phases.length - 1];
+};
 
 function dziemba_levenshtein(a: string, b: string) {
   let tmp;
@@ -116,80 +110,6 @@ const formatOrderText = (order: {
   return `${order.source} ${order.orderType} to ${order.target}`;
 };
 
-const getProvince = (
-  id: string,
-  variant: VariantRead,
-  phase: PhaseRead
-): {
-  id: string;
-  name: string;
-  unitType?: string;
-} => {
-  const province = variant.provinces.find(p => p.id === id);
-  if (!province) throw new Error(`Province not found: ${id}`);
-
-  const unitType = phase.units.find(u => u.province.id === id)?.type;
-  return {
-    id: province.id,
-    name: province.name,
-    unitType: unitType ? capitalize(unitType) : undefined,
-  };
-};
-
-const getOrderSummary = (
-  order: OrderRead,
-  variant: VariantRead,
-  phase: PhaseRead
-) => {
-  const source = order.source
-    ? getProvince(order.source.id, variant, phase)
-    : undefined;
-  const target = order.target
-    ? getProvince(order.target.id, variant, phase)
-    : undefined;
-  const aux = order.aux ? getProvince(order.aux.id, variant, phase) : undefined;
-
-  if (!source) return "";
-
-  if (!order.orderType) {
-    return `${source.unitType} ${source.name}...`;
-  }
-
-  if (order.orderType === "Hold") {
-    return `${source.unitType} ${source.name} Hold`;
-  }
-
-  if (order.orderType === "Move") {
-    if (!target) {
-      return `${source.unitType} ${source.name} Move to...`;
-    } else {
-      return `${source.unitType} ${source.name} Move to ${target.name}`;
-    }
-  }
-
-  if (order.orderType === "Support") {
-    if (!aux) {
-      return `${source.unitType} ${source.name} Support...`;
-    } else if (!target) {
-      return `${source.unitType} ${source.name} Support ${aux.name} to...`;
-    } else {
-      return `${source.unitType} ${source.name} Support ${aux.name} to ${target.name}`;
-    }
-  }
-
-  if (order.orderType === "Convoy") {
-    if (!aux) {
-      return `${source.unitType} ${source.name} Convoy...`;
-    } else if (!target) {
-      return `${source.unitType} ${source.name} Convoy ${aux.name} to...`;
-    } else {
-      return `${source.unitType} ${source.name} Convoy ${aux.name} to ${target.name}`;
-    }
-  }
-
-  throw new Error(`Unknown order type: ${order.orderType}`);
-};
-
 function formatDateTime(djangoDatetime: string) {
   const date = new Date(djangoDatetime);
   const now = new Date();
@@ -227,10 +147,4 @@ function formatDateTime(djangoDatetime: string) {
   }
 }
 
-export {
-  formatOrderText,
-  getOrderSummary,
-  getProvince,
-  getCurrentPhase,
-  formatDateTime,
-};
+export { formatOrderText, formatDateTime, getCurrentPhaseId };

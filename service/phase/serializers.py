@@ -24,7 +24,17 @@ class PhaseStateSerializer(serializers.Serializer):
         return instance
 
 
-class PhaseSerializer(serializers.Serializer):
+class PhaseListSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    ordinal = serializers.IntegerField()
+    season = serializers.CharField()
+    year = serializers.IntegerField()
+    name = serializers.CharField()
+    type = serializers.CharField()
+    status = serializers.ChoiceField(choices=PhaseStatus.STATUS_CHOICES)
+
+
+class PhaseRetrieveSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     ordinal = serializers.IntegerField()
     season = serializers.CharField()

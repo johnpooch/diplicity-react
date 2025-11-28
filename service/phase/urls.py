@@ -13,6 +13,11 @@ urlpatterns = [
         name="phase-state-list",
     ),
     path(
+        "game/<str:game_id>/phases/",
+        views.PhaseListView.as_view(),
+        name="phase-list",
+    ),
+    path(
         "game/<str:game_id>/phase/<int:phase_id>/",
         views.PhaseRetrieveView.as_view(),
         name="phase-retrieve",

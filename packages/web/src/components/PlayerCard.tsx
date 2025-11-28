@@ -1,7 +1,7 @@
 import React from "react";
 import { Chip, Skeleton, Stack, Typography } from "@mui/material";
 import { MemberAvatar } from "./MemberAvatar";
-import { PhaseRead, service, VictoryRead } from "../store";
+import { PhaseRetrieveRead, service, VictoryRead } from "../store";
 import { createUseStyles } from "./utils/styles";
 import { Icon, IconName } from "./Icon";
 
@@ -11,7 +11,7 @@ type Member =
 type PlayerCardProps = {
   member: Member;
   variant: string;
-  phase: PhaseRead | undefined;
+  phase?: PhaseRetrieveRead;
   victory?: VictoryRead | null;
 };
 
@@ -36,7 +36,7 @@ const PlayerCard: React.FC<PlayerCardProps> = props => {
     sc => sc.nation.name === props.member.nation
   ).length;
 
-  const isWinner = props.victory?.members?.some((m) => m.id === props.member.id);
+  const isWinner = props.victory?.members?.some(m => m.id === props.member.id);
 
   return (
     <Stack p={1} gap={1} direction="row" sx={styles.mainContainer}>

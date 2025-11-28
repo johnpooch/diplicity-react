@@ -8,18 +8,25 @@ import { Table } from "../../components/Table";
 import { MemberAvatarGroup } from "../../components/MemberAvatarGroup";
 import { useSelectedGameContext } from "../../context";
 import { GameMap, Panel } from "../../components";
+import { service } from "../../store";
 
 const GameInfoScreen: React.FC = () => {
   const { gameId, gameRetrieveQuery: query } = useSelectedGameContext();
   const navigate = useNavigate();
 
+  const listVariantsQuery = service.endpoints.variantsList.useQuery();
+
   const handlePlayerInfo = () => {
     navigate(`/game/${gameId}/player-info`);
   };
 
-  if (query.isError) {
+  if (query.isError || listVariantsQuery.isError) {
     return <div>Error</div>;
   }
+
+  const variant = listVariantsQuery.data?.find(
+    v => v.id === query.data?.variantId
+  );
 
   return (
     <GameDetailLayout
@@ -50,7 +57,7 @@ const GameInfoScreen: React.FC = () => {
                     {
                       label: "Variant",
                       value: query.data ? (
-                        query.data.variant.name
+                        variant?.name
                       ) : (
                         <Stack alignItems="flex-end">
                           <Skeleton variant="text" width={100} />
@@ -92,20 +99,21 @@ const GameInfoScreen: React.FC = () => {
                   rows={[
                     {
                       label: "Players",
-                      value: query.data ? (
-                        <MemberAvatarGroup
-                          members={query.data.members}
-                          variant={query.data.variant.id}
-                          victory={query.data.victory}
-                          onClick={handlePlayerInfo}
-                        />
-                      ) : (
-                        <Skeleton
-                          variant="rectangular"
-                          width={100}
-                          height={40}
-                        />
-                      ),
+                      value:
+                        query.data && variant ? (
+                          <MemberAvatarGroup
+                            members={query.data.members}
+                            variant={variant.id}
+                            victory={query.data.victory}
+                            onClick={handlePlayerInfo}
+                          />
+                        ) : (
+                          <Skeleton
+                            variant="rectangular"
+                            width={100}
+                            height={40}
+                          />
+                        ),
                       icon: IconName.Players,
                     },
                   ]}
@@ -117,7 +125,7 @@ const GameInfoScreen: React.FC = () => {
                     {
                       label: "Number of nations",
                       value: query.data ? (
-                        query.data.variant.nations.length.toString()
+                        variant?.nations.length.toString()
                       ) : (
                         <Skeleton variant="text" width={10} />
                       ),
@@ -125,20 +133,22 @@ const GameInfoScreen: React.FC = () => {
                     },
                     {
                       label: "Start year",
-                      value: query.data ? (
-                        query.data.variant.templatePhase.year?.toString()
-                      ) : (
-                        <Skeleton variant="text" width={50} />
-                      ),
+                      value:
+                        query.data && variant ? (
+                          variant?.templatePhase.year?.toString()
+                        ) : (
+                          <Skeleton variant="text" width={50} />
+                        ),
                       icon: IconName.StartYear,
                     },
                     {
                       label: "Original author",
-                      value: query.data ? (
-                        query.data.variant.author
-                      ) : (
-                        <Skeleton variant="text" width={100} />
-                      ),
+                      value:
+                        query.data && variant ? (
+                          variant?.author
+                        ) : (
+                          <Skeleton variant="text" width={100} />
+                        ),
                       icon: IconName.Author,
                     },
                   ]}

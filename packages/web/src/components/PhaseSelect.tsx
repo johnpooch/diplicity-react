@@ -14,6 +14,7 @@ import {
 import { useSelectedGameContext, useSelectedPhaseContext } from "../context";
 import { createUseStyles } from "./utils/styles";
 import { useResponsiveness } from "./utils/responsive";
+import { service } from "../store";
 
 const useStyles = createUseStyles(() => ({
   root: {
@@ -35,24 +36,29 @@ const PhaseSelect: React.FC = () => {
   const responsiveness = useResponsiveness();
   const isMobile = responsiveness.device === "mobile";
 
-  const { gameRetrieveQuery } = useSelectedGameContext();
+  const { gameId } = useSelectedGameContext();
   const { selectedPhase, setPhase, setPreviousPhase, setNextPhase } =
     useSelectedPhaseContext();
 
-  if (gameRetrieveQuery.isLoading) {
+  const phasesQuery = service.endpoints.gamePhasesList.useQuery(
+    { gameId: gameId ?? "" },
+    { skip: !gameId }
+  );
+
+  if (phasesQuery.isLoading) {
     return null;
   }
 
-  if (gameRetrieveQuery.isError || !gameRetrieveQuery.data) {
+  if (phasesQuery.isError || !phasesQuery.data) {
     return null;
   }
 
-  const game = gameRetrieveQuery.data;
-  const phase = game.phases.find(p => p.id === selectedPhase);
+  const phases = phasesQuery.data;
+  const phase = phases.find(p => p.id === selectedPhase);
   if (!phase) throw new Error("Phase not found");
 
   // Sort phases by ordinal to ensure proper ordering
-  const sortedPhases = [...game.phases].sort((a, b) => a.ordinal - b.ordinal);
+  const sortedPhases = [...phases].sort((a, b) => a.ordinal - b.ordinal);
   const currentPhaseIndex = sortedPhases.findIndex(p => p.id === selectedPhase);
 
   const previousDisabled = currentPhaseIndex === 0;
@@ -85,7 +91,7 @@ const PhaseSelect: React.FC = () => {
             onChange={event => handlePhaseSelect(event.target.value as number)}
             input={<InputBase />}
           >
-            {game.phases.map(phase => (
+            {phases.map(phase => (
               <MenuItem key={phase.id} value={phase.id}>
                 {phase.name}
               </MenuItem>
