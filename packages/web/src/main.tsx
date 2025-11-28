@@ -6,6 +6,9 @@ import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 import App from "./App.tsx";
+import { initializeObservability } from "./observability";
+
+initializeObservability();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
