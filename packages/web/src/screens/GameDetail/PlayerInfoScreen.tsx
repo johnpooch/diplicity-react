@@ -1,5 +1,12 @@
 import React from "react";
-import { Alert, List, ListItem, ListItemAvatar, Skeleton, Stack } from "@mui/material";
+import {
+  Alert,
+  List,
+  ListItem,
+  ListItemAvatar,
+  Skeleton,
+  Stack,
+} from "@mui/material";
 import { GameDetailLayout } from "./Layout";
 import { GameDetailAppBar } from "./AppBar";
 import { useNavigate } from "react-router";
@@ -49,9 +56,9 @@ const PlayerInfoScreen: React.FC = () => {
                       <PlayerCard
                         key={member.id}
                         member={member}
-                        variant={query.data.variant.id}
+                        variant={query.data?.variant.id ?? ""}
                         phase={currentPhaseQuery.data}
-                        victory={query.data.victory}
+                        victory={query.data?.victory}
                       />
                     ))}
                   </>

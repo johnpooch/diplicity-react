@@ -1026,6 +1026,9 @@ components:
           - $ref: '#/components/schemas/Victory'
           readOnly: true
           nullable: true
+        sandbox:
+          type: boolean
+          readOnly: true
       required:
       - canJoin
       - canLeave
@@ -1036,6 +1039,7 @@ components:
       - nationAssignment
       - phases
       - private
+      - sandbox
       - status
       - variantId
       - victory

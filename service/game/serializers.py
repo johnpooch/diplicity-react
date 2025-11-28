@@ -64,6 +64,7 @@ class GameListSerializer(serializers.Serializer):
     nation_assignment = serializers.CharField(read_only=True)
     members = MemberSerializer(many=True, read_only=True)
     victory = VictorySerializer(read_only=True, allow_null=True)
+    sandbox = serializers.BooleanField(read_only=True)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):

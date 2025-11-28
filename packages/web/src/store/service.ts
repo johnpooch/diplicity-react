@@ -727,6 +727,7 @@ export type GameListRead = {
   nationAssignment: string;
   members: MemberRead[];
   victory: VictoryRead | null;
+  sandbox: boolean;
 };
 export type Channel = {};
 export type ChannelMessage = {
