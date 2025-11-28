@@ -8,7 +8,10 @@
       "Bash(grep:*)",
       "Bash(python3:*)",
       "Bash(git log:*)",
-      "Bash(docker compose:*)"
+      "Bash(docker compose:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []
