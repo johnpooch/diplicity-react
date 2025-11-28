@@ -700,6 +700,7 @@ def create_active_hundred_game(
     hundred_variant,
 ):
     """Helper function to create and start a Hundred variant game with 3 players"""
+    print(hundred_variant.template_phase.season)
     create_url = reverse("game-create")
     create_payload = {
         "name": "Hundred Variant Test",
@@ -747,7 +748,7 @@ def test_hundred_variant_movement_phase_resolution_with_errors(
 
     # Verify initial phase
     current_phase = active_game.current_phase
-    assert current_phase.season == "Spring"
+    assert current_phase.season == "Year"
     assert current_phase.year == 1425
     assert current_phase.type == "Movement"
     assert current_phase.status == PhaseStatus.ACTIVE
@@ -899,3 +900,162 @@ def test_hundred_variant_movement_phase_resolution_with_errors(
     assert lon_order.resolution.status == "OK"
     assert cal_order.resolution.status == "ErrBounce"
     assert guy_order.resolution.status == "OK"
+
+
+@pytest.mark.django_db
+def test_hundred_variant_france_solo_victory_after_one_year(
+    authenticated_client,
+    authenticated_client_for_secondary_user,
+    authenticated_client_for_tertiary_user,
+    hundred_variant,
+    mock_send_notification_to_users,
+    mock_immediate_on_commit,
+):
+    from victory.models import Victory
+    from victory.constants import VictoryType
+
+    active_game = create_active_hundred_game(
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        authenticated_client_for_tertiary_user,
+        hundred_variant,
+    )
+
+    assert active_game.status == GameStatus.ACTIVE
+    assert active_game.members.count() == 3
+
+    current_phase = active_game.current_phase
+    assert current_phase.year == 1425
+    assert current_phase.season == "Year"
+    assert current_phase.type == "Movement"
+    assert current_phase.status == PhaseStatus.ACTIVE
+
+    assert current_phase.units.count() == 14
+
+    france_member = active_game.members.filter(nation__name="France").first()
+    england_member = active_game.members.filter(nation__name="England").first()
+    burgundy_member = active_game.members.filter(nation__name="Burgundy").first()
+
+    primary_is_france = france_member.user == active_game.members.first().user
+    if primary_is_france:
+        france_client = authenticated_client
+        if england_member.user.username == "secondaryuser":
+            england_client = authenticated_client_for_secondary_user
+            burgundy_client = authenticated_client_for_tertiary_user
+        else:
+            england_client = authenticated_client_for_tertiary_user
+            burgundy_client = authenticated_client_for_secondary_user
+    else:
+        if france_member.user.username == "secondaryuser":
+            france_client = authenticated_client_for_secondary_user
+            england_client = (
+                authenticated_client
+                if england_member.user == active_game.members.first().user
+                else authenticated_client_for_tertiary_user
+            )
+            burgundy_client = (
+                authenticated_client_for_tertiary_user
+                if england_client == authenticated_client
+                else authenticated_client
+            )
+        else:
+            france_client = authenticated_client_for_tertiary_user
+            england_client = (
+                authenticated_client
+                if england_member.user == active_game.members.first().user
+                else authenticated_client_for_secondary_user
+            )
+            burgundy_client = (
+                authenticated_client_for_secondary_user
+                if england_client == authenticated_client
+                else authenticated_client
+            )
+
+    create_order_url = reverse("order-create", args=[active_game.id])
+    confirm_url = reverse("game-confirm-phase", args=[active_game.id])
+
+    france_client.post(create_order_url, {"selected": ["orl", "Move", "brt"]}, format="json")
+
+    france_client.post(create_order_url, {"selected": ["pro", "Move", "sav"]}, format="json")
+
+    france_client.post(create_order_url, {"selected": ["tou", "Move", "ara"]}, format="json")
+
+    france_client.post(create_order_url, {"selected": ["par", "Move", "nom"]}, format="json")
+
+    france_client.post(create_order_url, {"selected": ["dau", "Move", "dij"]}, format="json")
+
+    burgundy_client.post(create_order_url, {"selected": ["dij", "Move", "lor"]}, format="json")
+
+    burgundy_client.post(create_order_url, {"selected": ["fla", "Move", "hol"]}, format="json")
+
+    burgundy_client.post(create_order_url, {"selected": ["hol", "Move", "fri"]}, format="json")
+
+    england_client.post(create_order_url, {"selected": ["nom", "Move", "anj"]}, format="json")
+
+    england_client.post(create_order_url, {"selected": ["cal", "Move", "fla"]}, format="json")
+
+    france_client.put(confirm_url)
+    england_client.put(confirm_url)
+    burgundy_client.put(confirm_url)
+
+    resolve_response = authenticated_client.post(resolve_all_url)
+    assert resolve_response.status_code == status.HTTP_200_OK
+    assert resolve_response.data["resolved"] >= 1
+
+    spring_retreat_phase = active_game.current_phase
+    spring_retreat_phase.refresh_from_db()
+    assert spring_retreat_phase.season == "Year"
+    assert spring_retreat_phase.year == 1425
+    assert spring_retreat_phase.type == "Retreat"
+
+    resolve_response = authenticated_client.post(resolve_all_url)
+    assert resolve_response.status_code == status.HTTP_200_OK
+    assert resolve_response.data["resolved"] >= 1
+
+    fall_movement_phase = active_game.current_phase
+    fall_movement_phase.refresh_from_db()
+    assert fall_movement_phase.season == "Year"
+    assert fall_movement_phase.year == 1430
+    assert fall_movement_phase.type == "Movement"
+
+    france_client.post(create_order_url, {"selected": ["sav", "Move", "can"]}, format="json")
+
+    france_client.post(create_order_url, {"selected": ["ara", "Move", "cas"]}, format="json")
+
+    france_client.put(confirm_url)
+    england_client.put(confirm_url)
+    burgundy_client.put(confirm_url)
+
+    resolve_response = authenticated_client.post(resolve_all_url)
+    assert resolve_response.status_code == status.HTTP_200_OK
+    assert resolve_response.data["resolved"] >= 1
+
+    fall_retreat_phase = active_game.current_phase
+    fall_retreat_phase.refresh_from_db()
+    assert fall_retreat_phase.season == "Year"
+    assert fall_retreat_phase.year == 1430
+    assert fall_retreat_phase.type == "Retreat"
+
+    resolve_response = authenticated_client.post(resolve_all_url)
+    assert resolve_response.status_code == status.HTTP_200_OK
+    assert resolve_response.data["resolved"] >= 1
+
+    fall_adjustment_phase = active_game.current_phase
+    fall_adjustment_phase.refresh_from_db()
+    assert fall_adjustment_phase.season == "Year"
+    assert fall_adjustment_phase.year == 1430
+    assert fall_adjustment_phase.type == "Adjustment"
+
+    assert Victory.objects.filter(game=active_game).exists()
+    victory = Victory.objects.get(game=active_game)
+    assert victory.type == VictoryType.SOLO
+    assert victory.members.count() == 1
+    assert victory.members.first() == france_member
+    assert victory.winning_phase == fall_adjustment_phase
+
+    active_game.refresh_from_db()
+    assert active_game.status == GameStatus.COMPLETED
+
+    fall_adjustment_phase.refresh_from_db()
+    assert fall_adjustment_phase.status == PhaseStatus.COMPLETED
+    assert fall_adjustment_phase.scheduled_resolution is None

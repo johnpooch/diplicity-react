@@ -6,6 +6,8 @@ from common.constants import NationAssignment, MovementPhaseDuration
 from variant.serializers import VariantSerializer
 from phase.serializers import PhaseSerializer
 from member.serializers import MemberSerializer
+
+from victory.serializers import VictorySerializer
 from variant.models import Variant
 from phase.models import Phase
 from member.models import Member
@@ -22,6 +24,7 @@ class BaseGameSerializer(serializers.Serializer):
     phases = PhaseSerializer(many=True, read_only=True)
     members = MemberSerializer(many=True, read_only=True)
     sandbox = serializers.BooleanField(read_only=True)
+    victory = VictorySerializer(read_only=True, allow_null=True)
 
     name = serializers.CharField()
     variant_id = serializers.CharField(write_only=True)
@@ -55,11 +58,13 @@ class GameListSerializer(serializers.Serializer):
     can_join = serializers.SerializerMethodField(read_only=True)
     can_leave = serializers.SerializerMethodField(read_only=True)
     variant_id = serializers.CharField(source="variant.id", read_only=True)
-    phases = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    phases = serializers.SerializerMethodField()
     private = serializers.BooleanField(read_only=True)
     movement_phase_duration = serializers.CharField(read_only=True)
     nation_assignment = serializers.CharField(read_only=True)
     members = MemberSerializer(many=True, read_only=True)
+    victory = VictorySerializer(read_only=True, allow_null=True)
+    sandbox = serializers.BooleanField(read_only=True)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):
@@ -70,6 +75,10 @@ class GameListSerializer(serializers.Serializer):
     def get_can_leave(self, obj):
         with tracer.start_as_current_span("game.serializers.get_can_leave"):
             return obj.can_leave(self.context["request"].user)
+
+    @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
+    def get_phases(self, obj):
+        return [phase.id for phase in obj.phases.all()]
 
 
 class GameSerializer(BaseGameSerializer):

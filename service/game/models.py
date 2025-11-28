@@ -12,6 +12,7 @@ from phase.models import Phase, PhaseState
 from member.models import Member
 from unit.models import Unit
 from supply_center.models import SupplyCenter
+from victory.models import Victory
 from adjudication import service as adjudication_service
 
 tracer = trace.get_tracer(__name__)
@@ -25,8 +26,14 @@ class GameQuerySet(models.QuerySet):
             queryset=Member.objects.select_related("nation", "user__profile"),
         )
 
-        return self.select_related("variant").prefetch_related(
+        victory_members_prefetch = Prefetch(
+            "victory__members",
+            queryset=Member.objects.select_related("user__profile", "nation")
+        )
+
+        return self.select_related("variant", "victory").prefetch_related(
             members_prefetch,
+            victory_members_prefetch,
             "phases",
         )
 
@@ -81,7 +88,12 @@ class GameQuerySet(models.QuerySet):
             queryset=Member.objects.select_related("nation", "user__profile"),
         )
 
-        return self.prefetch_related(
+        victory_members_prefetch = Prefetch(
+            "victory__members",
+            queryset=Member.objects.select_related("user__profile", "nation")
+        )
+
+        return self.select_related("victory").prefetch_related(
             # Variant data with optimized template phase
             "variant__provinces__parent",
             "variant__provinces__named_coasts",
@@ -91,6 +103,8 @@ class GameQuerySet(models.QuerySet):
             game_phases_prefetch,
             # Members data
             members_prefetch,
+            # Victory data
+            victory_members_prefetch,
         )
 
 

@@ -182,6 +182,7 @@ const GameCard: React.FC<GameCardProps> = props => {
               <MemberAvatarGroup
                 members={props.game.members}
                 variant={variant.id}
+                victory={props.game.victory}
               />
             </Stack>
           </Button>

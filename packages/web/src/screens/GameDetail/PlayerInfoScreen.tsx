@@ -1,5 +1,12 @@
 import React from "react";
-import { List, ListItem, ListItemAvatar, Skeleton, Stack } from "@mui/material";
+import {
+  Alert,
+  List,
+  ListItem,
+  ListItemAvatar,
+  Skeleton,
+  Stack,
+} from "@mui/material";
 import { GameDetailLayout } from "./Layout";
 import { GameDetailAppBar } from "./AppBar";
 import { useNavigate } from "react-router";
@@ -35,17 +42,29 @@ const PlayerInfoScreen: React.FC = () => {
         <Panel>
           <Panel.Content>
             <Stack>
+              {query.data && query.data.victory && (
+                <Alert severity="success">
+                  {query.data.victory.type === "solo"
+                    ? `${query.data.victory.members[0]?.name} has won the game!`
+                    : `The game ended in a draw between ${query.data.victory.members.length} players.`}
+                </Alert>
+              )}
               <List>
-                {query.data
-                  ? query.data.members.map(member => (
+                {query.data ? (
+                  <>
+                    {query.data.members.map(member => (
                       <PlayerCard
                         key={member.id}
                         member={member}
                         variant={query.data?.variant.id ?? ""}
                         phase={currentPhaseQuery.data}
+                        victory={query.data?.victory}
                       />
-                    ))
-                  : Array.from({ length: 3 }, (_, index) => (
+                    ))}
+                  </>
+                ) : (
+                  <>
+                    {Array.from({ length: 3 }, (_, index) => (
                       <ListItem key={index}>
                         <ListItemAvatar>
                           <Skeleton variant="circular" width={40} height={40} />
@@ -53,6 +72,8 @@ const PlayerInfoScreen: React.FC = () => {
                         <Skeleton variant="text" width={150} />
                       </ListItem>
                     ))}
+                  </>
+                )}
               </List>
             </Stack>
           </Panel.Content>

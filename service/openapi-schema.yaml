@@ -938,12 +938,14 @@ components:
           items:
             $ref: '#/components/schemas/Member'
           readOnly: true
-        phaseConfirmed:
-          type: boolean
-          readOnly: true
         sandbox:
           type: boolean
           readOnly: true
+        victory:
+          allOf:
+          - $ref: '#/components/schemas/Victory'
+          readOnly: true
+          nullable: true
         name:
           type: string
         variantId:
@@ -955,6 +957,9 @@ components:
           readOnly: true
         nationAssignment:
           $ref: '#/components/schemas/NationAssignmentEnum'
+        phaseConfirmed:
+          type: boolean
+          readOnly: true
         movementPhaseDuration:
           allOf:
           - $ref: '#/components/schemas/MovementPhaseDurationEnum'
@@ -975,10 +980,14 @@ components:
       - status
       - variant
       - variantId
+      - victory
     GameList:
       type: object
       properties:
         id:
+          type: string
+          readOnly: true
+        name:
           type: string
           readOnly: true
         status:
@@ -990,26 +999,13 @@ components:
         canLeave:
           type: boolean
           readOnly: true
+        variantId:
+          type: string
+          readOnly: true
         phases:
           type: array
           items:
             type: integer
-          readOnly: true
-        members:
-          type: array
-          items:
-            $ref: '#/components/schemas/Member'
-          readOnly: true
-        phaseConfirmed:
-          type: boolean
-          readOnly: true
-        sandbox:
-          type: boolean
-          readOnly: true
-        name:
-          type: string
-        variantId:
-          type: string
           readOnly: true
         private:
           type: boolean
@@ -1020,6 +1016,19 @@ components:
         nationAssignment:
           type: string
           readOnly: true
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/Member'
+          readOnly: true
+        victory:
+          allOf:
+          - $ref: '#/components/schemas/Victory'
+          readOnly: true
+          nullable: true
+        sandbox:
+          type: boolean
+          readOnly: true
       required:
       - canJoin
       - canLeave
@@ -1028,22 +1037,12 @@ components:
       - movementPhaseDuration
       - name
       - nationAssignment
-      - phaseConfirmed
       - phases
       - private
       - sandbox
       - status
       - variantId
-    GameSummary:
-      type: object
-      properties:
-        name:
-          type: string
-        status:
-          type: string
-      required:
-      - name
-      - status
+      - victory
     Member:
       type: object
       properties:
@@ -1064,21 +1063,12 @@ components:
         isCurrentUser:
           type: boolean
           readOnly: true
-        game:
-          allOf:
-          - $ref: '#/components/schemas/GameSummary'
-          readOnly: true
-        supplyCenterCount:
-          type: integer
-          readOnly: true
       required:
-      - game
       - id
       - isCurrentUser
       - name
       - nation
       - picture
-      - supplyCenterCount
     MovementPhaseDurationEnum:
       enum:
       - 24 hours
@@ -1384,12 +1374,14 @@ components:
           items:
             $ref: '#/components/schemas/Member'
           readOnly: true
-        phaseConfirmed:
-          type: boolean
-          readOnly: true
         sandbox:
           type: boolean
           readOnly: true
+        victory:
+          allOf:
+          - $ref: '#/components/schemas/Victory'
+          readOnly: true
+          nullable: true
         name:
           type: string
         variantId:
@@ -1418,13 +1410,13 @@ components:
       - movementPhaseDuration
       - name
       - nationAssignment
-      - phaseConfirmed
       - phases
       - private
       - sandbox
       - status
       - variant
       - variantId
+      - victory
     StatusEnum:
       enum:
       - pending
@@ -1494,12 +1486,15 @@ components:
           $ref: '#/components/schemas/Nation'
         province:
           $ref: '#/components/schemas/Province'
+        dislodged:
+          type: boolean
         dislodgedBy:
           type: object
           additionalProperties: {}
           nullable: true
           readOnly: true
       required:
+      - dislodged
       - dislodgedBy
       - nation
       - province
@@ -1572,6 +1567,28 @@ components:
       required:
       - environment
       - version
+    Victory:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        type:
+          type: string
+          readOnly: true
+        winningPhaseId:
+          type: integer
+          readOnly: true
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/Member'
+          readOnly: true
+      required:
+      - id
+      - members
+      - type
+      - winningPhaseId
   securitySchemes:
     jwtAuth:
       type: http

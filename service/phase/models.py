@@ -13,6 +13,8 @@ from order.models import OrderResolution, Order
 from phase.utils import transform_options
 from supply_center.models import SupplyCenter
 from unit.models import Unit
+from victory.utils import check_for_solo_winner
+from victory.models import Victory
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
@@ -134,12 +136,26 @@ class PhaseManager(models.Manager):
 
             with tracer.start_as_current_span("phase.transaction_atomic"):
                 with transaction.atomic():
-                    self.create_from_adjudication_data(phase, adjudication_data)
+                    new_phase = self.create_from_adjudication_data(phase, adjudication_data)
+
+                    victory = Victory.objects.try_create_victory(new_phase)
+
+                    if victory:
+                        new_phase.game.status = GameStatus.COMPLETED
+                        new_phase.game.save()
+
+                        new_phase.status = PhaseStatus.COMPLETED
+                        new_phase.scheduled_resolution = None
+                        new_phase.save()
 
     def create_from_adjudication_data(self, previous_phase, adjudication_data):
         with tracer.start_as_current_span("phase.create_from_adjudication_data") as span:
             span.set_attribute("previous_phase.id", previous_phase.id)
             span.set_attribute("new_phase.ordinal", previous_phase.ordinal + 1)
+
+            if previous_phase.game.status == GameStatus.COMPLETED:
+                logger.warning(f"Skipping phase creation - game {previous_phase.game.id} is already completed")
+                return previous_phase
 
             logger.info(
                 f"Creating new phase from adjudication data for previous phase {previous_phase.id} ({previous_phase.name})"

@@ -1,7 +1,7 @@
 import React from "react";
-import { Skeleton, Stack, Typography } from "@mui/material";
+import { Chip, Skeleton, Stack, Typography } from "@mui/material";
 import { MemberAvatar } from "./MemberAvatar";
-import { PhaseRead, service } from "../store";
+import { PhaseRead, service, VictoryRead } from "../store";
 import { createUseStyles } from "./utils/styles";
 import { Icon, IconName } from "./Icon";
 
@@ -12,6 +12,7 @@ type PlayerCardProps = {
   member: Member;
   variant: string;
   phase: PhaseRead | undefined;
+  victory?: VictoryRead | null;
 };
 
 const useStyles = createUseStyles<PlayerCardProps>(() => ({
@@ -35,6 +36,8 @@ const PlayerCard: React.FC<PlayerCardProps> = props => {
     sc => sc.nation.name === props.member.nation
   ).length;
 
+  const isWinner = props.victory?.members?.some((m) => m.id === props.member.id);
+
   return (
     <Stack p={1} gap={1} direction="row" sx={styles.mainContainer}>
       <Stack gap={1} flex={1}>
@@ -44,17 +47,28 @@ const PlayerCard: React.FC<PlayerCardProps> = props => {
               member={props.member}
               variant={props.variant}
               size="medium"
+              isWinner={isWinner}
             />
           </Stack>
-          <Stack>
+          <Stack flex={1}>
             <Stack
               direction="row"
               alignItems="flex-start"
               flexDirection="column"
             >
-              <Typography variant="body2" sx={styles.username}>
-                {props.member.name}
-              </Typography>
+              <Stack direction="row" gap={1} alignItems="center">
+                <Typography variant="body2" sx={styles.username}>
+                  {props.member.name}
+                </Typography>
+                {isWinner && (
+                  <Chip
+                    icon={<Icon name={IconName.Trophy} />}
+                    label={props.victory?.type === "solo" ? "Winner" : "Draw"}
+                    color="warning"
+                    size="small"
+                  />
+                )}
+              </Stack>
               {props.member.nation && (
                 <Stack direction="row" gap={1} alignItems="center">
                   <Typography variant="caption">
