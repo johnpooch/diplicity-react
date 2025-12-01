@@ -11,11 +11,15 @@ import {
 } from "@/components/ui/card";
 import {
   DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, UserPlus, Lock } from "lucide-react";
+import { MoreHorizontal, UserPlus, Lock, Info, Users, Share } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MemberAvatarGroup } from "./MemberAvatarGroup.new";
+import { formatDateTime } from "../util";
 
 export interface GameCardProps {
   game: Pick<
@@ -48,9 +52,14 @@ const GameCard: React.FC<GameCardProps> = ({
   onMenuClick,
 }) => {
   return (
-    <Card className="w-full flex shadow-lg flex-col md:flex-row overflow-hidden p-0">
+    <Card className="w-full flex rounded-none shadow-none border-0 border-b flex-col md:flex-row overflow-hidden p-0">
       {/* 1. Map (SVG) Section - Top on mobile, Left on larger screens */}
-      <div>{map}</div>
+      <button
+        onClick={() => onClickGame(game.id)}
+        className="cursor-pointer hover:opacity-90 transition-opacity"
+      >
+        {map}
+      </button>
 
       {/* 2. Content Container - Right Side */}
       <div className="flex flex-col justify-between flex-grow p-4">
@@ -63,12 +72,31 @@ const GameCard: React.FC<GameCardProps> = ({
               {/* More Actions Button */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  {/* Using a ghost button for a clean icon action */}
                   <Button variant="ghost" size="icon">
                     <MoreHorizontal />
                   </Button>
                 </DropdownMenuTrigger>
-                {/* DropdownMenuContent goes here */}
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onClickGameInfo(game.id)}>
+                    <Info />
+                    Game info
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onClickPlayerInfo(game.id)}>
+                    <Users />
+                    Player info
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => {
+                      navigator.clipboard.writeText(
+                        `${window.location.origin}/game/${game.id}`
+                      );
+                    }}
+                  >
+                    <Share />
+                    Share
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
               </DropdownMenu>
             </div>
 
@@ -76,17 +104,20 @@ const GameCard: React.FC<GameCardProps> = ({
               <div className="flex items-center gap-1">
                 {game.private && <Lock className="h-3 w-3" />}
                 <span>
-                  {variant.name} • {game.movementPhaseDuration}
+                  {variant.name} •{" "}
+                  {game.movementPhaseDuration || "Resolve when ready"}
                 </span>
               </div>
               <p>
                 {phase.season} {phase.year} • {phase.type}
+                {phase.scheduledResolution &&
+                  ` • Resolves ${formatDateTime(phase.scheduledResolution)}`}
               </p>
             </CardDescription>
           </div>
         </CardHeader>
 
-        <CardFooter className="p-0 flex justify-start items-center gap-2">
+        <CardFooter className="p-0 flex justify-between items-center">
           <MemberAvatarGroup
             members={game.members}
             variant={variant.id}

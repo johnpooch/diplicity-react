@@ -75,7 +75,7 @@ const MemberAvatarGroup: React.FC<MemberAvatarGroupProps> = ({
   variant,
   victory,
   max = 7,
-  size = "small",
+  size = "medium",
   onClick,
 }) => {
   const config = SIZE_CONFIG[size];

@@ -5,6 +5,7 @@ import { AppBar } from "./AppBar.new";
 import { Button } from "@/components/ui/button";
 import { Icon, IconName } from "./Icon";
 import { navigationItems } from "../navigation/navigationItems";
+import { GameCard } from "./GameCard.new";
 
 /**
  * HomeLayout is a responsive app shell that provides a flexible three-column
@@ -29,17 +30,169 @@ const createNavItems = (activePath: string = "/") =>
     isActive: item.path === activePath,
   }));
 
-const MockContent = () => (
-  <div className="space-y-4 p-6">
-    <h1 className="text-2xl font-bold">Main Content Area</h1>
-    <div className="space-y-2">
-      {Array.from({ length: 10 }).map((_, i) => (
-        <div key={i} className="rounded-lg border p-4">
-          <div className="h-4 w-3/4 rounded bg-muted" />
-          <div className="mt-2 h-3 w-1/2 rounded bg-muted" />
-        </div>
-      ))}
-    </div>
+const MapComponent = () => (
+  <svg viewBox="0 0 800 600" style={{ width: "100%", height: "100%" }}>
+    <defs>
+      <pattern
+        id="horizontalStripes"
+        width="20"
+        height="20"
+        patternUnits="userSpaceOnUse"
+      >
+        <rect width="20" height="10" fill="#e2e8f0" />
+        <rect y="10" width="20" height="10" fill="#cbd5e1" />
+      </pattern>
+    </defs>
+    <rect width="800" height="600" fill="url(#horizontalStripes)" />
+    <text
+      x="400"
+      y="300"
+      fontSize="48"
+      fill="#64748b"
+      textAnchor="middle"
+      dominantBaseline="middle"
+    >
+      Map
+    </text>
+  </svg>
+);
+
+const mockMembers = [
+  {
+    id: 1,
+    name: "Player 1",
+    picture: null,
+    nation: "Austria",
+    isCurrentUser: false,
+  },
+  {
+    id: 2,
+    name: "Player 2",
+    picture: null,
+    nation: "England",
+    isCurrentUser: false,
+  },
+  {
+    id: 3,
+    name: "Player 3",
+    picture: null,
+    nation: "France",
+    isCurrentUser: false,
+  },
+  {
+    id: 4,
+    name: "Player 4",
+    picture: null,
+    nation: "Germany",
+    isCurrentUser: false,
+  },
+];
+
+const mockGames = [
+  {
+    game: {
+      id: "game-1",
+      name: "European Diplomacy Championship",
+      private: false,
+      members: mockMembers,
+      canJoin: false,
+      movementPhaseDuration: "24 hours" as const,
+    },
+    variant: {
+      name: "Classic",
+      id: "classical",
+    },
+    phase: {
+      season: "Spring",
+      year: 1905,
+      type: "Movement",
+      scheduledResolution: new Date(
+        Date.now() + 6 * 60 * 60 * 1000
+      ).toISOString(),
+    },
+  },
+  {
+    game: {
+      id: "game-2",
+      name: "New Game - Need Players!",
+      private: false,
+      members: mockMembers.slice(0, 2),
+      canJoin: true,
+      movementPhaseDuration: "48 hours" as const,
+    },
+    variant: {
+      name: "Classic",
+      id: "classical",
+    },
+    phase: {
+      season: "Spring",
+      year: 1901,
+      type: "Movement",
+      scheduledResolution: new Date(
+        Date.now() + 26 * 60 * 60 * 1000
+      ).toISOString(),
+    },
+  },
+  {
+    game: {
+      id: "game-3",
+      name: "Private Tournament Match",
+      private: true,
+      members: mockMembers,
+      canJoin: false,
+      movementPhaseDuration: "24 hours" as const,
+    },
+    variant: {
+      name: "Classic",
+      id: "classical",
+    },
+    phase: {
+      season: "Fall",
+      year: 1910,
+      type: "Retreat",
+      scheduledResolution: new Date(
+        Date.now() + 2 * 60 * 60 * 1000
+      ).toISOString(),
+    },
+  },
+  {
+    game: {
+      id: "game-4",
+      name: "Quick Match",
+      private: false,
+      members: mockMembers.slice(0, 3),
+      canJoin: false,
+      movementPhaseDuration: undefined,
+    },
+    variant: {
+      name: "Classic",
+      id: "classical",
+    },
+    phase: {
+      season: "Spring",
+      year: 1902,
+      type: "Movement",
+      scheduledResolution: "",
+    },
+  },
+];
+
+const GameListContent = () => (
+  <div>
+    {mockGames.map(gameData => (
+      <GameCard
+        key={gameData.game.id}
+        game={gameData.game}
+        variant={gameData.variant}
+        phase={gameData.phase}
+        map={<MapComponent />}
+        onClickGame={id => console.log("Game clicked", id)}
+        onClickGameInfo={id => console.log("Game info clicked", id)}
+        onClickPlayerInfo={id => console.log("Player info clicked", id)}
+        onClickJoinGame={id => console.log("Join game clicked", id)}
+        onMenuClick={id => console.log("Menu clicked", id)}
+      />
+    ))}
   </div>
 );
 
@@ -64,7 +217,7 @@ export const Default: Story = {
     center: (
       <>
         <AppBar
-          title="Game Details"
+          title="My Games"
           leftAction={
             <Button
               variant="ghost"
@@ -86,7 +239,7 @@ export const Default: Story = {
             </Button>
           }
         />
-        <MockContent />
+        <GameListContent />
       </>
     ),
     right: <MockInfoPanel />,

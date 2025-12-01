@@ -88,7 +88,9 @@ export const Default: Story = {
       season: "Spring",
       year: 1905,
       type: "Movement",
-      scheduledResolution: "in 6 hours",
+      scheduledResolution: new Date(
+        Date.now() + 6 * 60 * 60 * 1000
+      ).toISOString(),
     },
     map: <MapComponent />,
     onClickGame: id => console.log("Game clicked", id),
@@ -117,7 +119,9 @@ export const WithJoinButton: Story = {
       season: "Spring",
       year: 1901,
       type: "Movement",
-      scheduledResolution: "in 12 hours",
+      scheduledResolution: new Date(
+        Date.now() + 26 * 60 * 60 * 1000
+      ).toISOString(),
     },
     map: <MapComponent />,
     onClickGame: id => console.log("Game clicked", id),
@@ -146,7 +150,38 @@ export const PrivateGame: Story = {
       season: "Fall",
       year: 1910,
       type: "Retreat",
-      scheduledResolution: "in 2 hours",
+      scheduledResolution: new Date(
+        Date.now() + 2 * 60 * 60 * 1000
+      ).toISOString(),
+    },
+    map: <MapComponent />,
+    onClickGame: id => console.log("Game clicked", id),
+    onClickGameInfo: id => console.log("Game info clicked", id),
+    onClickPlayerInfo: id => console.log("Player info clicked", id),
+    onClickJoinGame: id => console.log("Join game clicked", id),
+    onMenuClick: id => console.log("Menu clicked", id),
+  },
+};
+
+export const ResolveWhenReady: Story = {
+  args: {
+    game: {
+      id: "game-4",
+      name: "Quick Match",
+      private: false,
+      members: mockMembers.slice(0, 3),
+      canJoin: false,
+      movementPhaseDuration: undefined,
+    },
+    variant: {
+      name: "Classic",
+      id: "classical",
+    },
+    phase: {
+      season: "Spring",
+      year: 1902,
+      type: "Movement",
+      scheduledResolution: "",
     },
     map: <MapComponent />,
     onClickGame: id => console.log("Game clicked", id),
