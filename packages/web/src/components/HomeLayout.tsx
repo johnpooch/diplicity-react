@@ -58,33 +58,30 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({
   const rightClasses = cn("border-l", "hidden lg:block", "lg:w-[240px]");
 
   // Bottom navigation: visible on mobile only
-  const bottomClasses = cn(
-    "fixed bottom-0 left-0 right-0 border-t bg-background z-50",
-    "block md:hidden"
-  );
-
-  // Bottom nav adds padding to prevent content from being hidden
-  const hasBottom = bottom;
+  const bottomClasses = cn("border-t bg-background", "block md:hidden");
 
   return (
-    <div className={cn("flex min-h-screen items-start w-full", className)}>
-      {/* Main container with max-width constraint */}
-      <div className="flex w-full max-w-[1200px] flex-1 mx-auto">
-        {/* Left Sidebar */}
-        <div className={leftClasses}>{left}</div>
+    <div className={cn("flex flex-col h-screen w-full", className)}>
+      {/* Main content area */}
+      <div className="flex flex-1 min-h-0 w-full">
+        {/* Main container with max-width constraint */}
+        <div className="flex w-full max-w-[1200px] flex-1 mx-auto">
+          {/* Left Sidebar */}
+          <div className={leftClasses}>{left}</div>
 
-        {/* Center Panel */}
-        <div className="flex min-w-0 flex-1 flex-col w-full">
-          {/* Main Content */}
-          <div className={cn("flex-1 w-full", hasBottom && "pb-14")}>{center}</div>
+          {/* Center Panel */}
+          <div className="flex min-w-0 flex-1 flex-col w-full">
+            {/* Main Content */}
+            <div className="flex-1 w-full overflow-auto">{center}</div>
+          </div>
+
+          {/* Right Sidebar */}
+          <div className={rightClasses}>{right}</div>
         </div>
-
-        {/* Right Sidebar */}
-        <div className={rightClasses}>{right}</div>
       </div>
 
       {/* Bottom Navigation */}
-      <div className={bottomClasses}>{bottom}</div>
+      {bottom && <div className={bottomClasses}>{bottom}</div>}
     </div>
   );
 };
