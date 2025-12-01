@@ -238,7 +238,7 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 5
+        assert query_count == 4
 
     @pytest.mark.django_db
     def test_retrieve_game_query_count_multiple_phases_with_units(
@@ -279,7 +279,87 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 5
+        assert query_count == 4
+
+    @pytest.mark.django_db
+    def test_retrieve_game_query_count_with_multiple_members(
+        self,
+        authenticated_client,
+        db,
+        classical_variant,
+        primary_user,
+        secondary_user,
+        classical_england_nation,
+        classical_france_nation,
+        classical_germany_nation,
+        classical_austria_nation,
+        classical_italy_nation,
+        classical_russia_nation,
+        classical_turkey_nation,
+    ):
+        from user_profile.models import UserProfile
+
+        users = [primary_user, secondary_user]
+        for i in range(5):
+            user = type(primary_user).objects.create_user(
+                username=f"user{i}",
+                email=f"user{i}@test.com",
+                password="testpass123"
+            )
+            UserProfile.objects.create(user=user, name=f"User {i}")
+            users.append(user)
+
+        game = Game.objects.create(
+            name="Multi-Member Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+
+        nations = [
+            classical_england_nation,
+            classical_france_nation,
+            classical_germany_nation,
+            classical_austria_nation,
+            classical_italy_nation,
+            classical_russia_nation,
+            classical_turkey_nation,
+        ]
+
+        for user, nation in zip(users, nations):
+            game.members.create(user=user, nation=nation)
+
+        phase = game.phases.create(
+            game=game,
+            variant=game.variant,
+            season="Spring",
+            year=1901,
+            type="Movement",
+            status=PhaseStatus.ACTIVE,
+            ordinal=1,
+        )
+
+        # Create phase states for each member
+        for member in game.members.all():
+            phase.phase_states.create(member=member)
+
+        url = reverse(retrieve_viewname, args=[game.id])
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        query_count = len(connection.queries)
+
+        print(f"\n\n=== TEST: test_retrieve_game_query_count_with_multiple_members ===")
+        print(f"Total queries: {query_count}")
+        print(f"Number of members: {game.members.count()}")
+        print(f"Number of phase_states: {phase.phase_states.count()}")
+        for i, query in enumerate(connection.queries, 1):
+            sql = query['sql'][:300]
+            print(f"{i}. {sql}")
+
+        assert query_count == 4
 
 
 class TestGameListView:
