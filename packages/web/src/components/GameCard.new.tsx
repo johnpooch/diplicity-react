@@ -70,9 +70,8 @@ const GameCard: React.FC<GameCardProps> = ({
   onMenuClick,
 }) => {
   return (
-    // Flex direction roq
-    <Card className="w-full flex shadow-lg flex-row overflow-hidden p-0">
-      {/* 1. Map (SVG) Section - Left Side */}
+    <Card className="w-full flex shadow-lg flex-col md:flex-row overflow-hidden p-0">
+      {/* 1. Map (SVG) Section - Top on mobile, Left on larger screens */}
       <div>{map}</div>
 
       {/* 2. Content Container - Right Side */}
