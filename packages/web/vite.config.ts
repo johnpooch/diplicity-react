@@ -3,22 +3,29 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import { copyFileSync } from "fs";
 import { resolve } from "path";
+import tailwindcss from "@tailwindcss/vite";
 
 // https://vite.dev/config/
 const config = defineConfig({
   plugins: [
     react(),
+    tailwindcss(),
     {
-      name: 'copy-staticwebapp-config',
+      name: "copy-staticwebapp-config",
       writeBundle() {
         // Copy staticwebapp.config.json to dist directory
         copyFileSync(
-          resolve(__dirname, 'staticwebapp.config.json'),
-          resolve(__dirname, 'dist', 'staticwebapp.config.json')
+          resolve(__dirname, "staticwebapp.config.json"),
+          resolve(__dirname, "dist", "staticwebapp.config.json")
         );
-      }
-    }
+      },
+    },
   ],
+  resolve: {
+    alias: {
+      "@": resolve(__dirname, "src"),
+    },
+  },
   server: {
     watch: {
       usePolling: true,
@@ -26,7 +33,7 @@ const config = defineConfig({
     },
     host: true,
     strictPort: true,
-  }
+  },
 });
 
 const testConfig = defineTestConfig({
@@ -39,5 +46,5 @@ const testConfig = defineTestConfig({
 
 export default {
   ...config,
-  ...testConfig
-}
+  ...testConfig,
+};

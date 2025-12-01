@@ -35,6 +35,42 @@ import PersonRemove from "@mui/icons-material/PersonRemove";
 import Trophy from "@mui/icons-material/EmojiEvents";
 import { SxProps, Theme } from "@mui/material";
 
+import {
+  Home as LucideHome,
+  Search as LucideSearch,
+  PlusCircle as LucidePlusCircle,
+  User as LucideUser,
+  ArrowLeft as LucideArrowLeft,
+  SearchX as LucideSearchX,
+  Inbox as LucideInbox,
+  Calendar as LucideCalendar,
+  Flag as LucideFlag,
+  Users as LucideUsers,
+  MoreHorizontal as LucideMoreHorizontal,
+  MessageCircle as LucideMessageCircle,
+  Gavel as LucideGavel,
+  CheckSquare as LucideCheckSquare,
+  Square as LucideSquare,
+  Check as LucideCheck,
+  Map as LucideMap,
+  UserPlus as LucideUserPlus,
+  MessageSquare as LucideMessageSquare,
+  XCircle as LucideXCircle,
+  X as LucideX,
+  Trash2 as LucideTrash2,
+  Maximize as LucideMaximize,
+  Minimize as LucideMinimize,
+  Lock as LucideLock,
+  Clock as LucideClock,
+  Star as LucideStar,
+  Grid3x3 as LucideGrid3x3,
+  Edit as LucideEdit,
+  UserMinus as LucideUserMinus,
+  Trophy as LucideTrophy,
+  type LucideIcon,
+  LucideBlocks,
+} from "lucide-react";
+
 enum IconName {
   MyGames = "my-games",
   FindGames = "find-games",
@@ -75,7 +111,7 @@ enum IconName {
   Trophy = "trophy",
 }
 
-const IconMap = {
+const MuiIconMap = {
   [IconName.MyGames]: Home,
   [IconName.FindGames]: Search,
   [IconName.CreateGame]: Add,
@@ -115,15 +151,79 @@ const IconMap = {
   [IconName.Trophy]: Trophy,
 };
 
+const LucideIconMap: Record<IconName, LucideIcon> = {
+  [IconName.MyGames]: LucideHome,
+  [IconName.FindGames]: LucideSearch,
+  [IconName.CreateGame]: LucidePlusCircle,
+  [IconName.Add]: LucidePlusCircle,
+  [IconName.Profile]: LucideUser,
+  [IconName.Back]: LucideArrowLeft,
+  [IconName.NoResults]: LucideSearchX,
+  [IconName.Empty]: LucideInbox,
+  [IconName.StartYear]: LucideCalendar,
+  [IconName.WinCondition]: LucideFlag,
+  [IconName.Players]: LucideUsers,
+  [IconName.Failure]: LucideX,
+  [IconName.Author]: LucideUser,
+  [IconName.Menu]: LucideMoreHorizontal,
+  [IconName.Chat]: LucideMessageCircle,
+  [IconName.Orders]: LucideGavel,
+  [IconName.CreateOrder]: LucidePlusCircle,
+  [IconName.OrdersConfirmed]: LucideCheckSquare,
+  [IconName.OrdersNotConfirmed]: LucideSquare,
+  [IconName.Success]: LucideCheck,
+  [IconName.Map]: LucideMap,
+  [IconName.GroupAdd]: LucideUserPlus,
+  [IconName.NoChannels]: LucideMessageSquare,
+  [IconName.Cancel]: LucideXCircle,
+  [IconName.Close]: LucideX,
+  [IconName.Delete]: LucideTrash2,
+  [IconName.Fullscreen]: LucideMaximize,
+  [IconName.FullscreenExit]: LucideMinimize,
+  [IconName.Lock]: LucideLock,
+  [IconName.Clock]: LucideClock,
+  [IconName.Star]: LucideStar,
+  [IconName.Sandbox]: LucideBlocks,
+  [IconName.ResolvePhase]: LucideCheckSquare,
+  [IconName.Edit]: LucideEdit,
+  [IconName.Join]: LucideUserPlus,
+  [IconName.Leave]: LucideUserMinus,
+  [IconName.Trophy]: LucideTrophy,
+};
+
 interface IconProps {
   name: IconName;
   sx?: SxProps<Theme>;
+  variant?: "mui" | "lucide";
+  className?: string;
+  size?: number;
+  highlight?: boolean;
 }
 
-const Icon: React.FC<IconProps> = ({ name, ...rest }) => {
-  const IconComponent = IconMap[name];
+const Icon: React.FC<IconProps> = ({
+  name,
+  variant = "mui",
+  sx,
+  className,
+  size,
+  highlight = false,
+  ...rest
+}) => {
+  if (variant === "lucide") {
+    const LucideIconComponent = LucideIconMap[name];
+    const strokeWidth = highlight ? 2.5 : 1.5;
+    return (
+      <LucideIconComponent
+        className={className}
+        size={size}
+        strokeWidth={strokeWidth}
+        {...rest}
+      />
+    );
+  }
 
-  return <IconComponent {...rest} />;
+  const MuiIconComponent = MuiIconMap[name];
+  return <MuiIconComponent sx={sx} {...rest} />;
 };
 
 export { Icon, IconName };

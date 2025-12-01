@@ -11,7 +11,8 @@
       "Bash(docker compose:*)",
       "Bash(npm install:*)",
       "Bash(npm run build:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(npm run dev:*)"
     ],
     "deny": [],
     "ask": []
