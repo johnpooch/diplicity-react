@@ -1,4 +1,5 @@
 export * from "./ChannelMessage";
+export * from "./ErrorBoundary";
 export * from "./Feedback";
 export * from "./GameCard";
 export * from "./GameMenu";
