@@ -48,9 +48,20 @@ class GameQuerySet(models.QuerySet):
             queryset=Member.objects.select_related("user__profile", "nation")
         )
 
+        phase_states_prefetch = Prefetch(
+            "phase_states",
+            queryset=PhaseState.objects.select_related("member__user")
+        )
+
+        phases_prefetch = Prefetch(
+            "phases",
+            queryset=Phase.objects.prefetch_related(phase_states_prefetch)
+        )
+
         return self.select_related("variant", "victory").prefetch_related(
             members_prefetch,
             victory_members_prefetch,
+            phases_prefetch,
         )
 
     def with_related_data(self):
