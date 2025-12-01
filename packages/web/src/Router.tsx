@@ -4,6 +4,7 @@ import {
   Outlet,
   RouterProvider,
   redirect,
+  useRouteError,
 } from "react-router";
 import { Login } from "./screens/Login";
 import {
@@ -13,6 +14,20 @@ import {
 import { GameDetail, Home } from "./screens";
 import { store } from "./store";
 import { service } from "./store/service";
+import { ErrorFallbackUI } from "./components/ErrorBoundary";
+import * as Sentry from "@sentry/react";
+
+const RootErrorBoundary: React.FC = () => {
+  const error = useRouteError() as Error;
+
+  React.useEffect(() => {
+    if (error) {
+      Sentry.captureException(error);
+    }
+  }, [error]);
+
+  return <ErrorFallbackUI error={error} />;
+};
 
 const variantsLoader = async () => {
   const result = await store.dispatch(
@@ -61,6 +76,7 @@ const Router: React.FC<RouterProps> = ({ loggedIn }) => {
               id: "root",
               path: "/",
               element: <AuthLayout />,
+              errorElement: <RootErrorBoundary />,
               loader: variantsLoader,
               children: [
                 {
