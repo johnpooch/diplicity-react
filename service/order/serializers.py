@@ -41,7 +41,13 @@ class OrderSerializer(serializers.Serializer):
     )
 
     def validate_selected(self, value):
-        order = Order.objects.create_from_selected(self.context["request"].user, self.context["phase"], value)
+        phase = self.context["phase"]
+        province_lookup = {p.province_id: p for p in phase.variant.provinces.all()}
+        self.context["_province_lookup"] = province_lookup
+
+        order = Order.objects.create_from_selected(
+            self.context["request"].user, phase, value, province_lookup=province_lookup
+        )
         try:
             get_options_for_order(order.phase.transformed_options, order)
         except Exception as e:
@@ -49,10 +55,16 @@ class OrderSerializer(serializers.Serializer):
         return order.selected
 
     def create(self, validated_data):
+        province_lookup = self.context.get("_province_lookup")
+        if province_lookup is None:
+            province_lookup = {p.province_id: p for p in self.context["phase"].variant.provinces.all()}
+
         order = Order.objects.create_from_selected(
-            self.context["request"].user, self.context["phase"], validated_data["selected"]
+            self.context["request"].user, self.context["phase"], validated_data["selected"], province_lookup=province_lookup
         )
         if order.complete:
             Order.objects.delete_existing_for_source(order.phase_state, order.source)
             order.save()
+            return Order.objects.with_related_data().get(id=order.id)
+
         return order

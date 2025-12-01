@@ -11,6 +11,7 @@ from common.constants import PhaseStatus, PhaseType, GameStatus
 from adjudication.service import resolve
 from order.models import OrderResolution, Order
 from phase.utils import transform_options
+from province.models import Province
 from supply_center.models import SupplyCenter
 from unit.models import Unit
 from victory.utils import check_for_solo_winner
@@ -167,7 +168,7 @@ class PhaseManager(models.Manager):
                 variant = previous_phase.variant
                 province_lookup = {p.province_id: p for p in variant.provinces.all()}
                 nation_lookup = {n.name: n for n in variant.nations.all()}
-                
+
                 # Process order resolutions
                 with tracer.start_as_current_span("phase.create_order_resolutions") as resolutions_span:
                     order_count = len(previous_phase.all_orders)
@@ -184,11 +185,7 @@ class PhaseManager(models.Manager):
                             None,
                         )
                         if resolution_data:
-                            by_province = (
-                                province_lookup.get(resolution_data["by"])
-                                if resolution_data["by"]
-                                else None
-                            )
+                            by_province = province_lookup.get(resolution_data["by"]) if resolution_data["by"] else None
                             resolutions_to_create.append(
                                 OrderResolution(
                                     order=order,
@@ -272,8 +269,7 @@ class PhaseManager(models.Manager):
                 with tracer.start_as_current_span("phase.create_units") as units_span:
                     # Build a lookup for previous phase units by province_id to avoid N+1 queries
                     previous_units_by_province = {
-                        u.province.province_id: u
-                        for u in previous_phase.units.select_related("province").all()
+                        u.province.province_id: u for u in previous_phase.units.select_related("province").all()
                     }
 
                     units_to_create = []
@@ -312,9 +308,7 @@ class PhaseManager(models.Manager):
                                 )
                             )
                         else:
-                            logger.error(
-                                f"Failed to find province {unit['province']} or nation {unit['nation']}"
-                            )
+                            logger.error(f"Failed to find province {unit['province']} or nation {unit['nation']}")
 
                     # Bulk create all units
                     Unit.objects.bulk_create(units_to_create)
@@ -481,24 +475,31 @@ class PhaseState(BaseModel):
         units_count = self.phase.units.filter(nation=nation).count()
         return abs(supply_centers_count - units_count)
 
-    @property
-    def orderable_provinces(self):
+    def get_orderable_provinces(self, provinces):
+
         options = self.phase.transformed_options
         nation = self.member.nation
         orderable_ids = list(options[nation.name].keys())
-        base_provinces = (
-            self.phase.variant.provinces.select_related("parent")
-            .prefetch_related("named_coasts")
-            .filter(province_id__in=orderable_ids)
-        )
+
+        if isinstance(provinces, dict):
+            province_ids = [p.id for p in provinces.values() if p.province_id in orderable_ids]
+            base_provinces = Province.objects.filter(id__in=province_ids)
+        else:
+            base_provinces = provinces.filter(province_id__in=orderable_ids)
+
+        base_provinces = base_provinces.select_related("parent").prefetch_related("named_coasts")
 
         if self.phase.type == PhaseType.ADJUSTMENT:
             max_orders = self.max_allowed_adjustment_orders()
             current_orders = self.orders.count()
 
             if current_orders >= max_orders:
-                # At limit: only show provinces with existing orders (for editing)
                 provinces_with_orders = self.orders.values_list("source__province_id", flat=True)
                 return base_provinces.filter(province_id__in=provinces_with_orders)
 
         return base_provinces
+
+    @property
+    def orderable_provinces(self):
+        provinces = self.phase.variant.provinces.all()
+        return self.get_orderable_provinces(provinces)

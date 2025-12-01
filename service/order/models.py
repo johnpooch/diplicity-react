@@ -25,9 +25,25 @@ class OrderQuerySet(models.QuerySet):
         return self.select_related(
             "phase_state__member__user",
             "phase_state__member",
+            "phase_state__member__nation",
             "phase_state__phase__game__variant",
             "resolution",
-        ).prefetch_related("phase_state__member__user__profile", "phase_state__phase__units")
+            "source",
+            "source__parent",
+            "target",
+            "target__parent",
+            "aux",
+            "aux__parent",
+            "named_coast",
+            "named_coast__parent",
+        ).prefetch_related(
+            "phase_state__member__user__profile",
+            "phase_state__phase__units",
+            "source__named_coasts",
+            "target__named_coasts",
+            "aux__named_coasts",
+            "named_coast__named_coasts",
+        )
 
 
 class OrderManager(models.Manager):
@@ -51,18 +67,33 @@ class OrderManager(models.Manager):
         existing_orders.delete()
 
     def try_get_province(self, phase, province_id):
+        # DEPRECATED: Use province_lookup dictionary instead to avoid N+1 queries.
+        # This method performs a database query for each call.
+        # Prefer building a province_lookup dict once and passing it to create_from_selected.
         try:
             return phase.variant.provinces.get(province_id=province_id)
         except ObjectDoesNotExist:
             raise exceptions.ValidationError(f"Province {province_id} not found")
 
-    def create_from_selected(self, user, phase, selected):
+    def create_from_selected(self, user, phase, selected, province_lookup=None):
         order_data = get_order_data_from_selected(selected)
-        source = self.try_get_province(phase, order_data["source"])
+
+        if province_lookup is None:
+            province_lookup = {p.province_id: p for p in phase.variant.provinces.all()}
+
+        source = province_lookup.get(order_data["source"])
+        if not source:
+            raise exceptions.ValidationError(f"Province {order_data['source']} not found")
 
         phase_state = None
-        for ps in phase.phase_states.filter(member__user=user):
-            if ps.orderable_provinces.filter(id=source.id).exists():
+        phase_states = phase.phase_states.select_related("member__nation").filter(member__user=user)
+        transformed_options = phase.transformed_options
+
+        for ps in phase_states:
+            nation_name = ps.member.nation.name
+            orderable_ids = set(transformed_options.get(nation_name, {}).keys())
+
+            if order_data["source"] in orderable_ids:
                 phase_state = ps
                 break
 
@@ -76,11 +107,20 @@ class OrderManager(models.Manager):
         if "unit_type" in order_data:
             order.unit_type = order_data["unit_type"]
         if "target" in order_data:
-            order.target = self.try_get_province(phase, order_data["target"])
+            target = province_lookup.get(order_data["target"])
+            if not target:
+                raise exceptions.ValidationError(f"Province {order_data['target']} not found")
+            order.target = target
         if "aux" in order_data:
-            order.aux = self.try_get_province(phase, order_data["aux"])
+            aux = province_lookup.get(order_data["aux"])
+            if not aux:
+                raise exceptions.ValidationError(f"Province {order_data['aux']} not found")
+            order.aux = aux
         if "named_coast" in order_data:
-            order.named_coast = self.try_get_province(phase, order_data["named_coast"])
+            named_coast = province_lookup.get(order_data["named_coast"])
+            if not named_coast:
+                raise exceptions.ValidationError(f"Province {order_data['named_coast']} not found")
+            order.named_coast = named_coast
 
         return order
 
