@@ -719,7 +719,7 @@ class TestOrderListViewQueryPerformance:
             response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(connection.queries) == 14
+        assert len(connection.queries) == 7
 
     @pytest.mark.django_db
     def test_list_orders_query_count_with_multiple_orders(
@@ -756,7 +756,164 @@ class TestOrderListViewQueryPerformance:
             response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(connection.queries) == 14
+        assert len(connection.queries) == 7
+
+    @pytest.mark.django_db
+    def test_list_orders_query_count_with_many_orders(
+        self,
+        authenticated_client,
+        order_active_game,
+        primary_user,
+        secondary_user,
+        classical_london_province,
+        classical_liverpool_province,
+        classical_edinburgh_province,
+        classical_wales_province,
+        classical_english_channel_province,
+        classical_irish_sea_province,
+        classical_paris_province,
+        classical_burgundy_province,
+        classical_budapest_province,
+        classical_trieste_province,
+        classical_vienna_province,
+        classical_galicia_province,
+    ):
+        game = order_active_game
+        phase = game.current_phase
+        primary_phase_state = phase.phase_states.get(member__user=primary_user)
+        secondary_phase_state = phase.phase_states.get(member__user=secondary_user)
+
+        Order.objects.create(
+            phase_state=primary_phase_state,
+            order_type=OrderType.MOVE,
+            source=classical_london_province,
+            target=classical_english_channel_province,
+        )
+        Order.objects.create(
+            phase_state=primary_phase_state,
+            order_type=OrderType.MOVE,
+            source=classical_liverpool_province,
+            target=classical_irish_sea_province,
+        )
+        Order.objects.create(
+            phase_state=primary_phase_state,
+            order_type=OrderType.MOVE,
+            source=classical_edinburgh_province,
+            target=classical_wales_province,
+        )
+        Order.objects.create(
+            phase_state=secondary_phase_state,
+            order_type=OrderType.MOVE,
+            source=classical_paris_province,
+            target=classical_burgundy_province,
+        )
+        Order.objects.create(
+            phase_state=secondary_phase_state,
+            order_type=OrderType.MOVE,
+            source=classical_budapest_province,
+            target=classical_trieste_province,
+        )
+        Order.objects.create(
+            phase_state=secondary_phase_state,
+            order_type=OrderType.MOVE,
+            source=classical_vienna_province,
+            target=classical_galicia_province,
+        )
+
+        url = reverse("order-list", args=[game.id, phase.id])
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        query_count = len(connection.queries)
+
+        assert query_count == 7
+
+    @pytest.mark.django_db
+    def test_list_orders_query_count_with_many_orders_with_resolutions(
+        self,
+        authenticated_client,
+        order_active_game,
+        primary_user,
+        secondary_user,
+        classical_london_province,
+        classical_liverpool_province,
+        classical_edinburgh_province,
+        classical_wales_province,
+        classical_english_channel_province,
+        classical_irish_sea_province,
+        classical_paris_province,
+        classical_burgundy_province,
+        classical_budapest_province,
+        classical_trieste_province,
+        classical_vienna_province,
+        classical_galicia_province,
+    ):
+        game = order_active_game
+        phase = game.current_phase
+        primary_phase_state = phase.phase_states.get(member__user=primary_user)
+        secondary_phase_state = phase.phase_states.get(member__user=secondary_user)
+
+        order1 = Order.objects.create(
+            phase_state=primary_phase_state,
+            order_type=OrderType.MOVE,
+            source=classical_london_province,
+            target=classical_english_channel_province,
+        )
+        OrderResolution.objects.create(order=order1, status=OrderResolutionStatus.SUCCEEDED)
+
+        order2 = Order.objects.create(
+            phase_state=primary_phase_state,
+            order_type=OrderType.MOVE,
+            source=classical_liverpool_province,
+            target=classical_irish_sea_province,
+        )
+        OrderResolution.objects.create(order=order2, status=OrderResolutionStatus.SUCCEEDED)
+
+        order3 = Order.objects.create(
+            phase_state=primary_phase_state,
+            order_type=OrderType.MOVE,
+            source=classical_edinburgh_province,
+            target=classical_wales_province,
+        )
+        OrderResolution.objects.create(order=order3, status=OrderResolutionStatus.BOUNCED)
+
+        order4 = Order.objects.create(
+            phase_state=secondary_phase_state,
+            order_type=OrderType.MOVE,
+            source=classical_paris_province,
+            target=classical_burgundy_province,
+        )
+        OrderResolution.objects.create(order=order4, status=OrderResolutionStatus.SUCCEEDED)
+
+        order5 = Order.objects.create(
+            phase_state=secondary_phase_state,
+            order_type=OrderType.MOVE,
+            source=classical_budapest_province,
+            target=classical_trieste_province,
+        )
+        OrderResolution.objects.create(order=order5, status=OrderResolutionStatus.BOUNCED)
+
+        order6 = Order.objects.create(
+            phase_state=secondary_phase_state,
+            order_type=OrderType.MOVE,
+            source=classical_vienna_province,
+            target=classical_galicia_province,
+        )
+        OrderResolution.objects.create(order=order6, status=OrderResolutionStatus.SUCCEEDED)
+
+        url = reverse("order-list", args=[game.id, phase.id])
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        query_count = len(connection.queries)
+
+        assert query_count == 7
 
 
 class TestOrderCreateViewQueryPerformance:
@@ -775,6 +932,70 @@ class TestOrderCreateViewQueryPerformance:
         query_count = len(connection.queries)
 
         assert query_count == 28
+
+    @pytest.mark.django_db
+    def test_order_create_query_count_with_support_order(self, authenticated_client, game_with_options):
+        game = game_with_options
+        url = reverse("order-create", args=[game.id])
+        data = {"selected": ["bud", "Support", "vie", "gal"]}
+
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            response = authenticated_client.post(url, data, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        query_count = len(connection.queries)
+
+        assert query_count == 26
+
+    @pytest.mark.django_db
+    def test_order_create_query_count_with_many_phase_states(self, authenticated_client, game_with_many_phase_states):
+        game = game_with_many_phase_states
+        url = reverse("order-create", args=[game.id])
+        data = {"selected": ["bud", "Move", "gal"]}
+
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            response = authenticated_client.post(url, data, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        query_count = len(connection.queries)
+
+        assert query_count == 28
+
+
+class TestOrderDeleteViewQueryPerformance:
+
+    @pytest.mark.django_db
+    def test_delete_order_query_count(
+        self,
+        authenticated_client,
+        order_active_game,
+        primary_user,
+        classical_london_province,
+        classical_english_channel_province,
+    ):
+        game = order_active_game
+        phase = game.current_phase
+        primary_phase_state = phase.phase_states.get(member__user=primary_user)
+
+        Order.objects.create(
+            phase_state=primary_phase_state,
+            order_type=OrderType.MOVE,
+            source=classical_london_province,
+            target=classical_english_channel_province,
+        )
+
+        url = reverse("order-delete", args=[game.id, "lon"])
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        query_count = len(connection.queries)
+
+        assert query_count == 8
 
 
 class TestGetOptionsForOrder:

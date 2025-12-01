@@ -25,9 +25,25 @@ class OrderQuerySet(models.QuerySet):
         return self.select_related(
             "phase_state__member__user",
             "phase_state__member",
+            "phase_state__member__nation",
             "phase_state__phase__game__variant",
             "resolution",
-        ).prefetch_related("phase_state__member__user__profile", "phase_state__phase__units")
+            "source",
+            "source__parent",
+            "target",
+            "target__parent",
+            "aux",
+            "aux__parent",
+            "named_coast",
+            "named_coast__parent",
+        ).prefetch_related(
+            "phase_state__member__user__profile",
+            "phase_state__phase__units",
+            "source__named_coasts",
+            "target__named_coasts",
+            "aux__named_coasts",
+            "named_coast__named_coasts",
+        )
 
 
 class OrderManager(models.Manager):
