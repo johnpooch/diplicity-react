@@ -12,7 +12,8 @@
       "Bash(npm install:*)",
       "Bash(npm run build:*)",
       "Bash(cat:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(npx shadcn@latest add:*)"
     ],
     "deny": [],
     "ask": []
