@@ -13,16 +13,16 @@ import {
   DropdownMenu,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, UserPlus } from "lucide-react"; // ShadCN typically uses Lucide icons
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"; // Assuming players are Avatars
+import { MoreHorizontal, UserPlus, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MemberAvatarGroup } from "./MemberAvatarGroup.new";
 
 export interface GameCardProps {
   game: Pick<
     GameRead,
     "id" | "name" | "private" | "members" | "canJoin" | "movementPhaseDuration"
   >;
-  variant: Pick<VariantRead, "name">;
+  variant: Pick<VariantRead, "name" | "id">;
   phase: Pick<
     PhaseRetrieveRead,
     "season" | "year" | "type" | "scheduledResolution"
@@ -35,28 +35,6 @@ export interface GameCardProps {
   onMenuClick: (id: string) => void;
   className?: string;
 }
-
-const PlayerAvatarGroup = () => {
-  // Renders small circles/avatars for players
-  const playerInitials = ["K", "A", "O", "D", "R"]; // Example initials
-  return (
-    <div className="flex -space-x-2">
-      {playerInitials.slice(0, 4).map((initial, index) => (
-        <Avatar key={index} className="h-8 w-8 border-2 border-background">
-          <AvatarFallback className="text-sm bg-secondary text-secondary-foreground">
-            {initial}
-          </AvatarFallback>
-        </Avatar>
-      ))}
-      {playerInitials.length > 4 && (
-        <div className="h-8 w-8 border-2 border-background rounded-full bg-muted flex items-center justify-center text-xs text-muted-foreground">
-          +{playerInitials.length - 4}
-        </div>
-      )}
-    </div>
-  );
-};
-// -----------------------------
 
 const GameCard: React.FC<GameCardProps> = ({
   game,
@@ -75,7 +53,7 @@ const GameCard: React.FC<GameCardProps> = ({
       <div>{map}</div>
 
       {/* 2. Content Container - Right Side */}
-      <div className="flex flex-col justify-between flex-grow min-w-0 p-4">
+      <div className="flex flex-col justify-between flex-grow p-4">
         {/* Header (Title, Subtitle, and More Button) */}
         <CardHeader className="p-0">
           <div className="flex flex-col">
@@ -86,12 +64,8 @@ const GameCard: React.FC<GameCardProps> = ({
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   {/* Using a ghost button for a clean icon action */}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 ml-4 flex-shrink-0"
-                  >
-                    <MoreHorizontal className="h-4 w-4" />
+                  <Button variant="ghost" size="icon">
+                    <MoreHorizontal />
                   </Button>
                 </DropdownMenuTrigger>
                 {/* DropdownMenuContent goes here */}
@@ -99,9 +73,12 @@ const GameCard: React.FC<GameCardProps> = ({
             </div>
 
             <CardDescription className="text-sm text-muted-foreground">
-              <p>
-                {variant.name} • {game.movementPhaseDuration}
-              </p>
+              <div className="flex items-center gap-1">
+                {game.private && <Lock className="h-3 w-3" />}
+                <span>
+                  {variant.name} • {game.movementPhaseDuration}
+                </span>
+              </div>
               <p>
                 {phase.season} {phase.year} • {phase.type}
               </p>
@@ -109,12 +86,16 @@ const GameCard: React.FC<GameCardProps> = ({
           </div>
         </CardHeader>
 
-        <CardFooter className="p-0 flex justify-start items-center gap-3 mt-auto">
-          <PlayerAvatarGroup />
+        <CardFooter className="p-0 flex justify-start items-center gap-2">
+          <MemberAvatarGroup
+            members={game.members}
+            variant={variant.id}
+            onClick={() => onClickPlayerInfo(game.id)}
+          />
 
           {game.canJoin && (
             <Button variant="outline" onClick={() => onClickJoinGame(game.id)}>
-              <UserPlus className="h-4 w-4 mr-2" />
+              <UserPlus />
               Join
             </Button>
           )}

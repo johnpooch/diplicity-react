@@ -15,13 +15,25 @@ type Story = StoryObj<typeof meta>;
 const MapComponent = () => (
   <svg viewBox="0 0 800 600" style={{ width: "100%", height: "100%" }}>
     <defs>
-      <pattern id="horizontalStripes" width="20" height="20" patternUnits="userSpaceOnUse">
+      <pattern
+        id="horizontalStripes"
+        width="20"
+        height="20"
+        patternUnits="userSpaceOnUse"
+      >
         <rect width="20" height="10" fill="#e2e8f0" />
         <rect y="10" width="20" height="10" fill="#cbd5e1" />
       </pattern>
     </defs>
     <rect width="800" height="600" fill="url(#horizontalStripes)" />
-    <text x="400" y="300" fontSize="48" fill="#64748b" textAnchor="middle" dominantBaseline="middle">
+    <text
+      x="400"
+      y="300"
+      fontSize="48"
+      fill="#64748b"
+      textAnchor="middle"
+      dominantBaseline="middle"
+    >
       Map
     </text>
   </svg>
@@ -70,6 +82,7 @@ export const Default: Story = {
     },
     variant: {
       name: "Classic",
+      id: "classical",
     },
     phase: {
       season: "Spring",
@@ -98,6 +111,7 @@ export const WithJoinButton: Story = {
     },
     variant: {
       name: "Classic",
+      id: "classical",
     },
     phase: {
       season: "Spring",
@@ -126,96 +140,13 @@ export const PrivateGame: Story = {
     },
     variant: {
       name: "Classic",
+      id: "classical",
     },
     phase: {
       season: "Fall",
       year: 1910,
       type: "Retreat",
       scheduledResolution: "in 2 hours",
-    },
-    map: <MapComponent />,
-    onClickGame: id => console.log("Game clicked", id),
-    onClickGameInfo: id => console.log("Game info clicked", id),
-    onClickPlayerInfo: id => console.log("Player info clicked", id),
-    onClickJoinGame: id => console.log("Join game clicked", id),
-    onMenuClick: id => console.log("Menu clicked", id),
-  },
-};
-
-export const ResolveWhenReady: Story = {
-  args: {
-    game: {
-      id: "game-4",
-      name: "Quick Game",
-      private: false,
-      members: mockMembers,
-      canJoin: false,
-      movementPhaseDuration: undefined,
-    },
-    variant: {
-      name: "Classic",
-    },
-    phase: {
-      season: "Spring",
-      year: 1902,
-      type: "Movement",
-      scheduledResolution: "when ready",
-    },
-    map: <MapComponent />,
-    onClickGame: id => console.log("Game clicked", id),
-    onClickGameInfo: id => console.log("Game info clicked", id),
-    onClickPlayerInfo: id => console.log("Player info clicked", id),
-    onClickJoinGame: id => console.log("Join game clicked", id),
-    onMenuClick: id => console.log("Menu clicked", id),
-  },
-};
-
-export const WithMapImage: Story = {
-  args: {
-    game: {
-      id: "game-5",
-      name: "European Diplomacy Championship",
-      private: false,
-      members: mockMembers,
-      canJoin: false,
-      movementPhaseDuration: "24 hours",
-    },
-    variant: {
-      name: "Classic",
-    },
-    phase: {
-      season: "Spring",
-      year: 1905,
-      type: "Movement",
-      scheduledResolution: "in 6 hours",
-    },
-    map: <MapComponent />,
-    onClickGame: id => console.log("Game clicked", id),
-    onClickGameInfo: id => console.log("Game info clicked", id),
-    onClickPlayerInfo: id => console.log("Player info clicked", id),
-    onClickJoinGame: id => console.log("Join game clicked", id),
-    onMenuClick: id => console.log("Menu clicked", id),
-  },
-};
-
-export const MinimalInfo: Story = {
-  args: {
-    game: {
-      id: "game-6",
-      name: "Simple Game",
-      private: false,
-      members: [],
-      canJoin: false,
-      movementPhaseDuration: undefined,
-    },
-    variant: {
-      name: "Classic",
-    },
-    phase: {
-      season: "Spring",
-      year: 1901,
-      type: "Movement",
-      scheduledResolution: "in 24 hours",
     },
     map: <MapComponent />,
     onClickGame: id => console.log("Game clicked", id),
