@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { GameRead, PhaseRetrieveRead, VariantRead } from "../store";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -16,8 +15,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, UserPlus, Lock, Info, Users, Share } from "lucide-react";
-import { cn } from "@/lib/utils";
+import {
+  MoreHorizontal,
+  UserPlus,
+  Lock,
+  Info,
+  Users,
+  Share,
+} from "lucide-react";
 import { MemberAvatarGroup } from "./MemberAvatarGroup.new";
 import { formatDateTime } from "../util";
 
@@ -56,7 +61,7 @@ const GameCard: React.FC<GameCardProps> = ({
       {/* 1. Map (SVG) Section - Top on mobile, Left on larger screens */}
       <button
         onClick={() => onClickGame(game.id)}
-        className="cursor-pointer hover:opacity-90 transition-opacity"
+        className="cursor-pointer hover:opacity-90 transition-opacity md:max-w-xs lg:max-w-sm"
       >
         {map}
       </button>
@@ -116,7 +121,6 @@ const GameCard: React.FC<GameCardProps> = ({
             </CardDescription>
           </div>
         </CardHeader>
-
         <CardFooter className="p-0 flex justify-between items-center">
           <MemberAvatarGroup
             members={game.members}
