@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { action } from "@storybook/addon-actions";
 import { HomeLayout } from "./HomeLayout";
 import { Navigation } from "./Navigation";
 import { AppBar } from "./AppBar.new";
@@ -7,6 +8,8 @@ import { Icon, IconName } from "./Icon";
 import { navigationItems } from "../navigation/navigationItems";
 import { GameCard } from "./GameCard.new";
 import { InfoPanel } from "./InfoPanel.new";
+import { CreateGame } from "../screens/Home/CreateGame.new";
+import type { VariantRead } from "@/store";
 
 /**
  * HomeLayout is a responsive app shell that provides a flexible three-column
@@ -197,6 +200,62 @@ const GameListContent = () => (
 );
 
 
+const mockVariants: VariantRead[] = [
+  {
+    id: "classical",
+    name: "Classical",
+    description: "The original Diplomacy map, set in Europe in 1901",
+    author: "Allan B. Calhamer",
+    nations: [
+      { name: "Austria", color: "#FF0000" },
+      { name: "England", color: "#0000FF" },
+      { name: "France", color: "#00FFFF" },
+      { name: "Germany", color: "#808080" },
+      { name: "Italy", color: "#00FF00" },
+      { name: "Russia", color: "#FFFFFF" },
+      { name: "Turkey", color: "#FFFF00" },
+    ],
+    provinces: [],
+    templatePhase: {
+      id: 1,
+      ordinal: 1,
+      season: "Spring",
+      year: 1901,
+      name: "Spring 1901 Movement",
+      type: "Movement",
+      remainingTime: 0,
+      scheduledResolution: "",
+      status: "active",
+      units: [],
+      supplyCenters: [],
+    },
+  },
+  {
+    id: "hundred",
+    name: "Hundred Years War",
+    description: "A two-player variant set during the Hundred Years War",
+    author: "Andy Schwarz",
+    nations: [
+      { name: "England", color: "#0000FF" },
+      { name: "France", color: "#00FFFF" },
+    ],
+    provinces: [],
+    templatePhase: {
+      id: 2,
+      ordinal: 1,
+      season: "Spring",
+      year: 1337,
+      name: "Spring 1337 Movement",
+      type: "Movement",
+      remainingTime: 0,
+      scheduledResolution: "",
+      status: "active",
+      units: [],
+      supplyCenters: [],
+    },
+  },
+];
+
 export const Default: Story = {
   args: {
     left: (
@@ -238,6 +297,154 @@ export const Default: Story = {
     bottom: (
       <Navigation
         items={createNavItems("/")}
+        variant="bottom"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+  },
+};
+
+export const CreateGameStandard: Story = {
+  args: {
+    left: (
+      <Navigation
+        items={createNavItems("/create-game")}
+        variant="sidebar"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+    center: (
+      <CreateGame
+        currentTab="standard"
+        onTabChange={action("tab-changed")}
+        onStandardGameSubmit={async data => {
+          action("standard-game-submitted")(data);
+          console.log("Standard game:", data);
+        }}
+        onSandboxGameSubmit={async data => {
+          action("sandbox-game-submitted")(data);
+          console.log("Sandbox game:", data);
+        }}
+        isStandardGameSubmitting={false}
+        isSandboxGameSubmitting={false}
+        variants={mockVariants}
+        isLoadingVariants={false}
+      />
+    ),
+    right: <InfoPanel />,
+    bottom: (
+      <Navigation
+        items={createNavItems("/create-game")}
+        variant="bottom"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+  },
+};
+
+export const CreateGameSandbox: Story = {
+  args: {
+    left: (
+      <Navigation
+        items={createNavItems("/create-game")}
+        variant="sidebar"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+    center: (
+      <CreateGame
+        currentTab="sandbox"
+        onTabChange={action("tab-changed")}
+        onStandardGameSubmit={async data => {
+          action("standard-game-submitted")(data);
+          console.log("Standard game:", data);
+        }}
+        onSandboxGameSubmit={async data => {
+          action("sandbox-game-submitted")(data);
+          console.log("Sandbox game:", data);
+        }}
+        isStandardGameSubmitting={false}
+        isSandboxGameSubmitting={false}
+        variants={mockVariants}
+        isLoadingVariants={false}
+      />
+    ),
+    right: <InfoPanel />,
+    bottom: (
+      <Navigation
+        items={createNavItems("/create-game")}
+        variant="bottom"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+  },
+};
+
+export const CreateGameLoading: Story = {
+  args: {
+    left: (
+      <Navigation
+        items={createNavItems("/create-game")}
+        variant="sidebar"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+    center: (
+      <CreateGame
+        currentTab="standard"
+        onTabChange={action("tab-changed")}
+        onStandardGameSubmit={async data => {
+          action("standard-game-submitted")(data);
+        }}
+        onSandboxGameSubmit={async data => {
+          action("sandbox-game-submitted")(data);
+        }}
+        isStandardGameSubmitting={false}
+        isSandboxGameSubmitting={false}
+        variants={undefined}
+        isLoadingVariants={true}
+      />
+    ),
+    right: <InfoPanel />,
+    bottom: (
+      <Navigation
+        items={createNavItems("/create-game")}
+        variant="bottom"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+  },
+};
+
+export const CreateGameSubmitting: Story = {
+  args: {
+    left: (
+      <Navigation
+        items={createNavItems("/create-game")}
+        variant="sidebar"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+    center: (
+      <CreateGame
+        currentTab="standard"
+        onTabChange={action("tab-changed")}
+        onStandardGameSubmit={async data => {
+          action("standard-game-submitted")(data);
+        }}
+        onSandboxGameSubmit={async data => {
+          action("sandbox-game-submitted")(data);
+        }}
+        isStandardGameSubmitting={true}
+        isSandboxGameSubmitting={false}
+        variants={mockVariants}
+        isLoadingVariants={false}
+      />
+    ),
+    right: <InfoPanel />,
+    bottom: (
+      <Navigation
+        items={createNavItems("/create-game")}
         variant="bottom"
         onItemClick={path => console.log("Navigate to:", path)}
       />

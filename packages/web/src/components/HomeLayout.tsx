@@ -1,5 +1,12 @@
 import React from "react";
-import { cn } from "@/lib/utils"; // ShadCN utility for class merging
+import { cn } from "@/lib/utils";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 
 interface HomeLayoutProps {
   /**
@@ -28,11 +35,11 @@ interface HomeLayoutProps {
  * HomeLayout - A responsive app shell component
  *
  * Provides a three-column layout (left, center, right) with optional bottom navigation.
+ * Uses ShadCN Sidebar for the left sidebar with collapsible functionality.
  *
  * Responsive behavior:
- * - Mobile: Center only + bottom nav
- * - Tablet: Left (collapsed) + center
- * - Desktop: Left (expanded) + center + right
+ * - Mobile: Sidebar hidden (trigger button shown) + center + bottom nav
+ * - Tablet/Desktop: Collapsible sidebar (icon mode) + center + right (desktop only)
  *
  * @example
  * ```tsx
@@ -51,44 +58,50 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({
   bottom,
   className,
 }) => {
-  // Left sidebar: hidden on mobile, visible on tablet+
-  const leftClasses = cn("border-r", "hidden md:block");
-
-  // Right sidebar: hidden on mobile and tablet, visible on desktop only
-  const rightClasses = cn(
-    "border-l",
-    "hidden lg:block",
-    "lg:w-[240px]",
-    "sticky top-0 self-start h-screen overflow-auto",
-    "p-5"
-  );
-
   // Bottom navigation: visible on mobile only
   const bottomClasses = cn("border-t bg-background", "block md:hidden");
 
   return (
-    <div className={cn("flex flex-col h-screen w-full", className)}>
-      {/* Main content area */}
-      <div className="flex flex-1 min-h-0 w-full">
-        {/* Main container with max-width constraint */}
-        <div className="flex w-full max-w-[1200px] flex-1 mx-auto">
-          {/* Left Sidebar */}
-          <div className={leftClasses}>{left}</div>
+    <SidebarProvider>
+      <div
+        className={cn(
+          "flex flex-col h-screen w-full overflow-hidden",
+          className
+        )}
+      >
+        <div className="flex items-stretch flex-1 min-h-0 w-full">
+          {/* Left Sidebar - ShadCN Sidebar with collapsible functionality */}
+          <Sidebar collapsible="icon">
+            <SidebarContent>{left}</SidebarContent>
+          </Sidebar>
 
-          {/* Center Panel */}
-          <div className="flex min-w-0 flex-1 flex-col w-full">
-            {/* Main Content */}
-            <div className="flex-1 w-full overflow-auto">{center}</div>
-          </div>
+          {/* Main Content Area */}
+          <SidebarInset className="flex min-w-0 flex-1 flex-col">
+            {/* Mobile menu trigger */}
+            <div className="md:hidden p-2 border-b shrink-0">
+              <SidebarTrigger />
+            </div>
 
-          {/* Right Sidebar */}
-          <div className={rightClasses}>{right}</div>
+            {/* Center content - scrollable */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="mx-auto w-full max-w-[672px] py-4">{center}</div>
+            </div>
+          </SidebarInset>
+
+          {/* Right Sidebar - Styled to match left sidebar */}
+          {right && (
+            <div className="hidden xl:flex w-64 border-l flex-col">
+              <div className="bg-sidebar flex h-full w-full flex-col p-2">
+                {right}
+              </div>
+            </div>
+          )}
         </div>
-      </div>
 
-      {/* Bottom Navigation */}
-      {bottom && <div className={bottomClasses}>{bottom}</div>}
-    </div>
+        {/* Bottom Navigation */}
+        {bottom && <div className={bottomClasses}>{bottom}</div>}
+      </div>
+    </SidebarProvider>
   );
 };
 
