@@ -1,6 +1,10 @@
 import { Meta, StoryObj } from "@storybook/react";
-import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
-import { useRef, useEffect, useState, CSSProperties, forwardRef } from "react";
+import {
+  TransformWrapper,
+  TransformComponent,
+  ReactZoomPanPinchContentRef,
+} from "react-zoom-pan-pinch";
+import { useRef, useEffect, useState, CSSProperties } from "react";
 
 type StoryArgs = {
   width: number;
@@ -43,19 +47,21 @@ const SvgComponent = ({
   );
 };
 
-const ContainerComponent = forwardRef<
-  HTMLDivElement,
-  {
-    children: React.ReactNode;
-    style: CSSProperties;
-  }
->(({ children, style }, ref) => {
+const ContainerComponent = ({
+  children,
+  style,
+  ref,
+}: {
+  children: React.ReactNode;
+  style: CSSProperties;
+  ref?: React.Ref<HTMLDivElement>;
+}) => {
   return (
     <div ref={ref} style={{ border: "1px solid #ccc", ...style }}>
       {children}
     </div>
   );
-});
+};
 
 const TransformWrapperStory = ({
   width,
@@ -72,7 +78,7 @@ const TransformWrapperStory = ({
   >(undefined);
 
   const svgRef = useRef<SVGSVGElement>(null);
-  const transformRef = useRef<any>(null);
+  const transformRef = useRef<ReactZoomPanPinchContentRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Calculate aspect ratios with null safety

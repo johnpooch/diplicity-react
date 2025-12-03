@@ -56,6 +56,7 @@ const mockItems = [
 
 export const Sidebar: Story = {
   args: {
+    onItemClick: () => {},
     items: mockItems.map((item, index) => ({
       ...item,
       isActive: index === 0,
@@ -66,6 +67,7 @@ export const Sidebar: Story = {
 
 export const Compact: Story = {
   args: {
+    onItemClick: () => {},
     items: mockItems.map((item, index) => ({
       ...item,
       isActive: index === 0,
@@ -76,6 +78,7 @@ export const Compact: Story = {
 
 export const Bottom: Story = {
   args: {
+    onItemClick: () => {},
     items: mockItems.map((item, index) => ({
       ...item,
       isActive: index === 0,

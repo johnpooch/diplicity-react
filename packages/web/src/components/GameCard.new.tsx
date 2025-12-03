@@ -41,7 +41,6 @@ export interface GameCardProps {
   onClickGameInfo: (id: string) => void;
   onClickPlayerInfo: (id: string) => void;
   onClickJoinGame: (id: string) => void;
-  onMenuClick: (id: string) => void;
   className?: string;
 }
 
@@ -54,7 +53,6 @@ const GameCard: React.FC<GameCardProps> = ({
   onClickGameInfo,
   onClickPlayerInfo,
   onClickJoinGame,
-  onMenuClick,
 }) => {
   return (
     <Card className="w-full flex rounded-none shadow-none border-0 border-b flex-col md:flex-row overflow-hidden p-0">

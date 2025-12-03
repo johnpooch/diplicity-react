@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Icon, IconName } from "./Icon";
 import { navigationItems } from "../navigation/navigationItems";
 import { GameCard } from "./GameCard.new";
+import { InfoPanel } from "./InfoPanel.new";
 
 /**
  * HomeLayout is a responsive app shell that provides a flexible three-column
@@ -186,24 +187,15 @@ const GameListContent = () => (
         variant={gameData.variant}
         phase={gameData.phase}
         map={<MapComponent />}
-        onClickGame={id => console.log("Game clicked", id)}
-        onClickGameInfo={id => console.log("Game info clicked", id)}
-        onClickPlayerInfo={id => console.log("Player info clicked", id)}
-        onClickJoinGame={id => console.log("Join game clicked", id)}
-        onMenuClick={id => console.log("Menu clicked", id)}
+        onClickGame={(id: string) => console.log("Game clicked", id)}
+        onClickGameInfo={(id: string) => console.log("Game info clicked", id)}
+        onClickPlayerInfo={(id: string) => console.log("Player info clicked", id)}
+        onClickJoinGame={(id: string) => console.log("Join game clicked", id)}
       />
     ))}
   </div>
 );
 
-const MockInfoPanel = () => (
-  <div className="space-y-4 p-6">
-    <h2 className="font-semibold">Info Panel</h2>
-    <p className="text-sm text-muted-foreground">
-      Welcome message and helpful links would go here.
-    </p>
-  </div>
-);
 
 export const Default: Story = {
   args: {
@@ -242,7 +234,7 @@ export const Default: Story = {
         <GameListContent />
       </>
     ),
-    right: <MockInfoPanel />,
+    right: <InfoPanel />,
     bottom: (
       <Navigation
         items={createNavItems("/")}

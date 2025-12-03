@@ -63,7 +63,6 @@ import {
   Lock as LucideLock,
   Clock as LucideClock,
   Star as LucideStar,
-  Grid3x3 as LucideGrid3x3,
   Edit as LucideEdit,
   UserMinus as LucideUserMinus,
   Trophy as LucideTrophy,

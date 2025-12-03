@@ -54,7 +54,7 @@ const getBezierPoint = (
   return { x, y };
 };
 
-const CurvedArrow: React.FC<CurvedArrowProps> = (props) => {
+const CurvedArrow: React.FC<CurvedArrowProps> = props => {
   const start = getOffsetPoint(
     props.x1,
     props.y1,

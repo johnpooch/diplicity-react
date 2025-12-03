@@ -14,7 +14,9 @@ export default {
 type Story = StoryObj<typeof FloatingMenu>;
 
 // Template for interactive stories
-const InteractiveTemplate = (args: any) => {
+const InteractiveTemplate = (
+  args: React.ComponentProps<typeof FloatingMenu>
+) => {
   const [open, setOpen] = useState(false);
   const [anchorPoint, setAnchorPoint] = useState({ x: 200, y: 150 });
 
@@ -31,12 +33,19 @@ const InteractiveTemplate = (args: any) => {
     setOpen(false);
   };
 
-  const handleMenuItemClick = (_option: string) => {
+  const handleMenuItemClick = () => {
     setOpen(false);
   };
 
   return (
-    <Box sx={{ height: "100vh", width: "100vw", position: "relative", bgcolor: "grey.100" }}>
+    <Box
+      sx={{
+        height: "100vh",
+        width: "100vw",
+        position: "relative",
+        bgcolor: "grey.100",
+      }}
+    >
       {/* Simulated map area */}
       <Box
         onClick={handleMapClick}
@@ -74,23 +83,17 @@ const InteractiveTemplate = (args: any) => {
         />
       </Box>
 
-      <FloatingMenu
-        open={open}
-        x={anchorPoint.x}
-        y={anchorPoint.y}
-        onClose={handleClose}
-        {...args}
-      >
-        <MenuItem onClick={() => handleMenuItemClick("Hold")}>
+      <FloatingMenu onClose={handleClose} {...args}>
+        <MenuItem onClick={handleMenuItemClick}>
           <Typography>Hold</Typography>
         </MenuItem>
-        <MenuItem onClick={() => handleMenuItemClick("Move")}>
+        <MenuItem onClick={handleMenuItemClick}>
           <Typography>Move</Typography>
         </MenuItem>
-        <MenuItem onClick={() => handleMenuItemClick("Support")}>
+        <MenuItem onClick={handleMenuItemClick}>
           <Typography>Support</Typography>
         </MenuItem>
-        <MenuItem onClick={() => handleMenuItemClick("Convoy")}>
+        <MenuItem onClick={handleMenuItemClick}>
           <Typography>Convoy</Typography>
         </MenuItem>
       </FloatingMenu>
@@ -104,8 +107,10 @@ export const Interactive: Story = {
 };
 
 // Test positioning near edges
-const EdgeTestTemplate = (args: any) => {
-  const [menus, setMenus] = useState<Array<{ x: number, y: number, id: number }>>([]);
+const EdgeTestTemplate = (args: React.ComponentProps<typeof FloatingMenu>) => {
+  const [menus, setMenus] = useState<
+    Array<{ x: number; y: number; id: number }>
+  >([]);
 
   const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -123,11 +128,22 @@ const EdgeTestTemplate = (args: any) => {
     { x: 50, y: 50, label: "Top-left" },
     { x: window.innerWidth - 50, y: 50, label: "Top-right" },
     { x: 50, y: window.innerHeight - 50, label: "Bottom-left" },
-    { x: window.innerWidth - 50, y: window.innerHeight - 50, label: "Bottom-right" },
+    {
+      x: window.innerWidth - 50,
+      y: window.innerHeight - 50,
+      label: "Bottom-right",
+    },
   ];
 
   return (
-    <Box sx={{ height: "100vh", width: "100vw", position: "relative", bgcolor: "grey.50" }}>
+    <Box
+      sx={{
+        height: "100vh",
+        width: "100vw",
+        position: "relative",
+        bgcolor: "grey.50",
+      }}
+    >
       <Box
         onClick={handleClick}
         sx={{
@@ -143,7 +159,7 @@ const EdgeTestTemplate = (args: any) => {
             top: "50%",
             left: "50%",
             transform: "translate(-50%, -50%)",
-            textAlign: "center"
+            textAlign: "center",
           }}
         >
           Click anywhere to test positioning
@@ -161,7 +177,7 @@ const EdgeTestTemplate = (args: any) => {
               top: corner.y - 20,
               minWidth: 80,
             }}
-            onClick={(e) => {
+            onClick={e => {
               e.stopPropagation();
               setMenus([{ x: corner.x, y: corner.y, id: Date.now() }]);
             }}
@@ -171,15 +187,8 @@ const EdgeTestTemplate = (args: any) => {
         ))}
       </Box>
 
-      {menus.map((menu) => (
-        <FloatingMenu
-          key={menu.id}
-          open={true}
-          x={menu.x}
-          y={menu.y}
-          onClose={handleClose}
-          {...args}
-        >
+      {menus.map(menu => (
+        <FloatingMenu key={menu.id} onClose={handleClose} {...args}>
           <MenuItem onClick={handleClose}>
             <Typography>Option 1</Typography>
           </MenuItem>
@@ -201,7 +210,7 @@ export const EdgePositioning: Story = {
 };
 
 // Test with container element
-const ContainerTemplate = (args: any) => {
+const ContainerTemplate = (args: React.ComponentProps<typeof FloatingMenu>) => {
   const [open, setOpen] = useState(false);
   const [anchorPoint, setAnchorPoint] = useState({ x: 100, y: 100 });
   const [container, setContainer] = useState<HTMLElement | null>(null);
@@ -220,9 +229,10 @@ const ContainerTemplate = (args: any) => {
       <Typography variant="h5" sx={{ mb: 2 }}>
         Container-relative positioning
       </Typography>
-
       <Box
-        ref={(el) => setContainer(el as HTMLElement)}
+        ref={el => {
+          setContainer(el as HTMLElement);
+        }}
         onClick={handleContainerClick}
         sx={{
           width: 600,
@@ -253,11 +263,7 @@ const ContainerTemplate = (args: any) => {
           }}
         />
       </Box>
-
       <FloatingMenu
-        open={open}
-        x={anchorPoint.x}
-        y={anchorPoint.y}
         container={container}
         onClose={() => setOpen(false)}
         {...args}
@@ -298,7 +304,7 @@ export const Default: Story = {
       </>
     ),
   },
-  render: (args) => (
+  render: args => (
     <Box sx={{ height: "100vh", width: "100vw", bgcolor: "grey.100" }}>
       <FloatingMenu {...args} />
     </Box>

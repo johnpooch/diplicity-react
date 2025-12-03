@@ -8,7 +8,7 @@ import { cn } from "../lib/utils";
 type MemberAvatarGroupProps = {
   members: MemberRead[];
   variant: string;
-  victory?: VictoryRead | null;
+  victory?: Pick<VictoryRead, "members">;
   max?: number;
   size?: "small" | "medium";
   onClick?: () => void;

@@ -56,9 +56,25 @@ docker compose up test-service # Run Django tests in container
 ### Frontend Structure (`/packages/web/`)
 - **State Management**: Redux Toolkit with RTK Query for API calls
 - **Routing**: React Router for navigation
-- **UI Components**: Material UI with custom theme
+- **UI Components**: Transitioning from Material UI to shadcn/ui with Tailwind CSS
 - **Testing**: Vitest + Testing Library
 - **Build**: Vite with TypeScript compilation
+
+### Frontend Style Guide
+
+#### Tailwind CSS
+
+When writing Tailwind CSS classes, follow these principles:
+
+- **Avoid Unnecessary Classes**: Only add Tailwind classes that are actually needed for the design. Remove redundant or default values.
+- **Keep It Minimal**: Prefer fewer, more intentional classes over verbose combinations.
+- **Examples of unnecessary classes to avoid**:
+  - `min-w-0` when the element already has appropriate width constraints
+  - `flex-shrink-0` when shrinking behavior is already handled
+  - `h-8 w-8` when `size="icon"` already sets dimensions
+  - `ml-4` when `gap` utilities already handle spacing
+  - `className="h-4 w-4"` on icons when the default size is appropriate
+- **Trust Component Defaults**: shadcn/ui components have sensible defaults; only override when necessary
 
 ### Backend Structure (`/service/`)
 - **Framework**: Django with Django REST Framework

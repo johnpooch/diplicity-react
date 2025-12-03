@@ -55,7 +55,13 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({
   const leftClasses = cn("border-r", "hidden md:block");
 
   // Right sidebar: hidden on mobile and tablet, visible on desktop only
-  const rightClasses = cn("border-l", "hidden lg:block", "lg:w-[240px]");
+  const rightClasses = cn(
+    "border-l",
+    "hidden lg:block",
+    "lg:w-[240px]",
+    "sticky top-0 self-start h-screen overflow-auto",
+    "p-5"
+  );
 
   // Bottom navigation: visible on mobile only
   const bottomClasses = cn("border-t bg-background", "block md:hidden");

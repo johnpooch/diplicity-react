@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { MemberAvatarGroup } from "./MemberAvatarGroup.new";
+import { MemberRead } from "../store";
 
 const meta = {
   title: "Components/MemberAvatarGroup",
@@ -12,56 +13,47 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+const createMember = (member: {
+  id: number;
+  nation: string;
+  isCurrentUser?: boolean;
+}) =>
+  ({
+    ...member,
+    name: `Player ${member.id}`,
+    picture: null,
+    isCurrentUser: member.isCurrentUser ?? false,
+  }) as MemberRead;
+
 const mockMembers = [
-  {
+  createMember({
     id: 1,
-    name: "Player 1",
-    picture: null,
     nation: "austria",
-    isCurrentUser: false,
-  },
-  {
+  }),
+  createMember({
     id: 2,
-    name: "Player 2",
-    picture: null,
     nation: "england",
-    isCurrentUser: false,
-  },
-  {
+  }),
+  createMember({
     id: 3,
-    name: "Player 3",
-    picture: null,
     nation: "france",
-    isCurrentUser: false,
-  },
-  {
+  }),
+  createMember({
     id: 4,
-    name: "Player 4",
-    picture: null,
     nation: "germany",
-    isCurrentUser: false,
-  },
-  {
+  }),
+  createMember({
     id: 5,
-    name: "Player 5",
-    picture: null,
     nation: "italy",
-    isCurrentUser: false,
-  },
-  {
+  }),
+  createMember({
     id: 6,
-    name: "Player 6",
-    picture: null,
     nation: "russia",
-    isCurrentUser: false,
-  },
-  {
+  }),
+  createMember({
     id: 7,
-    name: "Player 7",
-    picture: null,
     nation: "turkey",
-    isCurrentUser: false,
-  },
+  }),
 ];
 
 export const Small: Story = {
@@ -87,13 +79,10 @@ export const WithWinner: Story = {
     size: "medium",
     victory: {
       members: [
-        {
-          id: 2,
-          name: "Player 2",
-          picture: null,
-          nation: "england",
-          isCurrentUser: false,
-        },
+        createMember({
+          id: 1,
+          nation: "austria",
+        }),
       ],
     },
   },
@@ -105,7 +94,16 @@ export const WithMultipleWinners: Story = {
     variant: "classical",
     size: "medium",
     victory: {
-      members: [{ id: 1 }, { id: 3 }],
+      members: [
+        createMember({
+          id: 1,
+          nation: "austria",
+        }),
+        createMember({
+          id: 3,
+          nation: "france",
+        }),
+      ],
     },
   },
 };

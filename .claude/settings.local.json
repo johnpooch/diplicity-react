@@ -13,7 +13,11 @@
       "Bash(npm run build:*)",
       "Bash(cat:*)",
       "Bash(npm run dev:*)",
-      "Bash(npx shadcn@latest add:*)"
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(npx shadcn@latest diff:*)",
+      "Bash(nvm use)",
+      "Bash(npm --version:*)",
+      "Bash(node --version:*)"
     ],
     "deny": [],
     "ask": []

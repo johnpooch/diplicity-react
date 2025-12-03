@@ -2,7 +2,7 @@
 # It includes both frontend (Node.js) and backend (Python) dependencies.
 
 # Base image with Node.js and Python
-FROM node:current-bullseye-slim
+FROM node:24.10.0-bullseye-slim
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
