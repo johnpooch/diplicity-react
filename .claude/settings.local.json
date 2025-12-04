@@ -19,7 +19,9 @@
       "Bash(npm --version:*)",
       "Bash(node --version:*)",
       "Bash(npx --version:*)",
-      "Bash(npm run lint:*)"
+      "Bash(npm run lint:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []
