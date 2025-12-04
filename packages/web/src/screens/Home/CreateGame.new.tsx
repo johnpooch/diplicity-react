@@ -38,6 +38,11 @@ import { randomGameName } from "@/util";
 import { InteractiveMap } from "@/components/InteractiveMap/InteractiveMap";
 import { HomeLayout } from "./Layout";
 
+type VariantForSelector = Pick<
+  VariantRead,
+  "id" | "name" | "nations" | "author" | "templatePhase"
+>;
+
 const standardGameSchema = z.object({
   name: z
     .string()
@@ -95,9 +100,9 @@ interface VariantSelectorProps {
   control: Control<any>;
   name: string;
   disabled?: boolean;
-  variants: VariantRead[] | undefined;
+  variants: VariantForSelector[] | undefined;
   isLoadingVariants: boolean;
-  selectedVariant: VariantRead | undefined;
+  selectedVariant: VariantForSelector | undefined;
 }
 
 const VariantSelector: React.FC<VariantSelectorProps> = ({
@@ -127,7 +132,7 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {variants?.map((variant: VariantRead) => (
+                {variants?.map((variant) => (
                   <SelectItem key={variant.id} value={variant.id}>
                     {variant.name}
                   </SelectItem>
@@ -190,7 +195,7 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
 interface CreateStandardGameFormProps {
   onSubmit: (data: StandardGameFormValues) => Promise<void>;
   isSubmitting: boolean;
-  variants: VariantRead[] | undefined;
+  variants: VariantForSelector[] | undefined;
   isLoadingVariants: boolean;
 }
 
@@ -319,7 +324,7 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
 interface CreateSandboxGameFormProps {
   onSubmit: (data: SandboxGameFormValues) => Promise<void>;
   isSubmitting: boolean;
-  variants: VariantRead[] | undefined;
+  variants: VariantForSelector[] | undefined;
   isLoadingVariants: boolean;
 }
 
@@ -401,7 +406,7 @@ interface CreateGameProps {
   onSandboxGameSubmit: (data: SandboxGameFormValues) => Promise<void>;
   isStandardGameSubmitting: boolean;
   isSandboxGameSubmitting: boolean;
-  variants: VariantRead[] | undefined;
+  variants: VariantForSelector[] | undefined;
   isLoadingVariants: boolean;
 }
 
@@ -537,4 +542,5 @@ export type {
   CreateGameProps,
   CreateStandardGameFormProps,
   CreateSandboxGameFormProps,
+  VariantForSelector,
 };

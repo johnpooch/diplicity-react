@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { GameRead, PhaseRetrieveRead, VariantRead } from "../store";
+import { GameListRead, PhaseRetrieveRead, VariantRead } from "../store";
 import {
   Card,
   CardDescription,
@@ -27,10 +27,7 @@ import { MemberAvatarGroup } from "./MemberAvatarGroup.new";
 import { formatDateTime } from "../util";
 
 export interface GameCardProps {
-  game: Pick<
-    GameRead,
-    "id" | "name" | "private" | "members" | "canJoin" | "movementPhaseDuration"
-  >;
+  game: GameListRead;
   variant: Pick<VariantRead, "name" | "id">;
   phase: Pick<
     PhaseRetrieveRead,
@@ -55,7 +52,7 @@ const GameCard: React.FC<GameCardProps> = ({
   onClickJoinGame,
 }) => {
   return (
-    <Card className="w-full flex rounded-none shadow-none border-0 border-b flex-col md:flex-row overflow-hidden p-0">
+    <Card className="w-full flex  flex-col md:flex-row overflow-hidden p-0">
       {/* 1. Map (SVG) Section - Top on mobile, Left on larger screens */}
       <button
         onClick={() => onClickGame(game.id)}

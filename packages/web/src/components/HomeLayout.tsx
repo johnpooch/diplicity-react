@@ -3,10 +3,13 @@ import { cn } from "@/lib/utils";
 import {
   Sidebar,
   SidebarContent,
+  SidebarHeader,
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { Item, ItemMedia, ItemContent, ItemTitle } from "@/components/ui/item";
+import { DiplicityLogo } from "@/components/DiplicityLogo";
 
 interface HomeLayoutProps {
   /**
@@ -72,6 +75,16 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({
         <div className="flex items-stretch flex-1 min-h-0 w-full">
           {/* Left Sidebar - ShadCN Sidebar with collapsible functionality */}
           <Sidebar collapsible="icon">
+            <SidebarHeader>
+              <Item className="p-1">
+                <ItemMedia variant="image">
+                  <DiplicityLogo />
+                </ItemMedia>
+                <ItemContent>
+                  <ItemTitle>Diplicity</ItemTitle>
+                </ItemContent>
+              </Item>
+            </SidebarHeader>
             <SidebarContent>{left}</SidebarContent>
           </Sidebar>
 

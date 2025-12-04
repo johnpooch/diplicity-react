@@ -24,9 +24,11 @@ const getMap = (variant: Variant) => {
   return VARIANT_MAPS[variant.id] || VARIANT_MAPS.classical;
 };
 
+type VariantForMap = Pick<VariantRead, "id" | "nations">;
+
 type InteractiveMapProps = {
   interactive?: boolean;
-  variant: VariantRead;
+  variant: VariantForMap;
   phase: PhaseRetrieveRead;
   selected: string[];
   highlighted?: string[];

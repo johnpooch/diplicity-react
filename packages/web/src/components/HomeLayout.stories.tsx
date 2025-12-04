@@ -8,8 +8,11 @@ import { Icon, IconName } from "./Icon";
 import { navigationItems } from "../navigation/navigationItems";
 import { GameCard } from "./GameCard.new";
 import { InfoPanel } from "./InfoPanel.new";
-import { CreateGame } from "../screens/Home/CreateGame.new";
-import type { VariantRead } from "@/store";
+import { CreateGame, VariantForSelector } from "../screens/Home/CreateGame.new";
+import { MyGames } from "../screens/Home/MyGames.new";
+import { Profile } from "../screens/Home/Profile.new";
+import { FindGames } from "../screens/Home/FindGames.new";
+import { SandboxGames } from "../screens/Home/SandboxGames.new";
 
 /**
  * HomeLayout is a responsive app shell that provides a flexible three-column
@@ -181,6 +184,135 @@ const mockGames = [
   },
 ];
 
+const mockMyGames = [
+  {
+    id: "game-1",
+    name: "European Diplomacy Championship",
+    private: false,
+    members: mockMembers,
+    canJoin: false,
+    movementPhaseDuration: "24 hours",
+    status: "active",
+    variant: {
+      name: "Classic",
+      id: "classical",
+    },
+    phase: {
+      season: "Spring",
+      year: 1905,
+      type: "Movement",
+      scheduledResolution: new Date(
+        Date.now() + 6 * 60 * 60 * 1000
+      ).toISOString(),
+    },
+  },
+  {
+    id: "game-2",
+    name: "Quick Evening Game",
+    private: false,
+    members: mockMembers,
+    canJoin: false,
+    movementPhaseDuration: "24 hours",
+    status: "active",
+    variant: {
+      name: "Classic",
+      id: "classical",
+    },
+    phase: {
+      season: "Fall",
+      year: 1902,
+      type: "Movement",
+      scheduledResolution: new Date(
+        Date.now() + 12 * 60 * 60 * 1000
+      ).toISOString(),
+    },
+  },
+  {
+    id: "game-3",
+    name: "New Game - Need Players!",
+    private: false,
+    members: mockMembers.slice(0, 2),
+    canJoin: true,
+    movementPhaseDuration: "48 hours",
+    status: "pending",
+    variant: {
+      name: "Classic",
+      id: "classical",
+    },
+    phase: {
+      season: "Spring",
+      year: 1901,
+      type: "Movement",
+      scheduledResolution: new Date(
+        Date.now() + 26 * 60 * 60 * 1000
+      ).toISOString(),
+    },
+  },
+  {
+    id: "game-4",
+    name: "Weekend Tournament",
+    private: true,
+    members: mockMembers.slice(0, 3),
+    canJoin: false,
+    movementPhaseDuration: "24 hours",
+    status: "pending",
+    variant: {
+      name: "Classic",
+      id: "classical",
+    },
+    phase: {
+      season: "Spring",
+      year: 1901,
+      type: "Movement",
+      scheduledResolution: new Date(
+        Date.now() + 48 * 60 * 60 * 1000
+      ).toISOString(),
+    },
+  },
+  {
+    id: "game-5",
+    name: "Historic Battle - Finished",
+    private: false,
+    members: mockMembers,
+    canJoin: false,
+    movementPhaseDuration: "24 hours",
+    status: "completed",
+    variant: {
+      name: "Classic",
+      id: "classical",
+    },
+    phase: {
+      season: "Fall",
+      year: 1918,
+      type: "Movement",
+      scheduledResolution: new Date(
+        Date.now() - 48 * 60 * 60 * 1000
+      ).toISOString(),
+    },
+  },
+  {
+    id: "game-6",
+    name: "Another Completed Game",
+    private: false,
+    members: mockMembers,
+    canJoin: false,
+    movementPhaseDuration: "48 hours",
+    status: "completed",
+    variant: {
+      name: "Classic",
+      id: "classical",
+    },
+    phase: {
+      season: "Spring",
+      year: 1920,
+      type: "Movement",
+      scheduledResolution: new Date(
+        Date.now() - 72 * 60 * 60 * 1000
+      ).toISOString(),
+    },
+  },
+];
+
 const GameListContent = () => (
   <div>
     {mockGames.map(gameData => (
@@ -200,11 +332,10 @@ const GameListContent = () => (
 );
 
 
-const mockVariants: VariantRead[] = [
+const mockVariants: VariantForSelector[] = [
   {
     id: "classical",
     name: "Classical",
-    description: "The original Diplomacy map, set in Europe in 1901",
     author: "Allan B. Calhamer",
     nations: [
       { name: "Austria", color: "#FF0000" },
@@ -215,7 +346,6 @@ const mockVariants: VariantRead[] = [
       { name: "Russia", color: "#FFFFFF" },
       { name: "Turkey", color: "#FFFF00" },
     ],
-    provinces: [],
     templatePhase: {
       id: 1,
       ordinal: 1,
@@ -233,13 +363,11 @@ const mockVariants: VariantRead[] = [
   {
     id: "hundred",
     name: "Hundred Years War",
-    description: "A two-player variant set during the Hundred Years War",
     author: "Andy Schwarz",
     nations: [
       { name: "England", color: "#0000FF" },
       { name: "France", color: "#00FFFF" },
     ],
-    provinces: [],
     templatePhase: {
       id: 2,
       ordinal: 1,
@@ -445,6 +573,526 @@ export const CreateGameSubmitting: Story = {
     bottom: (
       <Navigation
         items={createNavItems("/create-game")}
+        variant="bottom"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+  },
+};
+
+export const MyGamesActive: Story = {
+  args: {
+    left: (
+      <Navigation
+        items={createNavItems("/")}
+        variant="sidebar"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+    center: (
+      <MyGames
+        selectedStatus="active"
+        onStatusChange={action("status-changed")}
+        isLoading={false}
+        games={mockMyGames}
+        onClickGame={action("game-clicked")}
+        onClickGameInfo={action("game-info-clicked")}
+        onClickPlayerInfo={action("player-info-clicked")}
+        onClickJoinGame={action("join-game-clicked")}
+      />
+    ),
+    right: <InfoPanel />,
+    bottom: (
+      <Navigation
+        items={createNavItems("/")}
+        variant="bottom"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+  },
+};
+
+export const MyGamesPending: Story = {
+  args: {
+    left: (
+      <Navigation
+        items={createNavItems("/")}
+        variant="sidebar"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+    center: (
+      <MyGames
+        selectedStatus="pending"
+        onStatusChange={action("status-changed")}
+        isLoading={false}
+        games={mockMyGames}
+        onClickGame={action("game-clicked")}
+        onClickGameInfo={action("game-info-clicked")}
+        onClickPlayerInfo={action("player-info-clicked")}
+        onClickJoinGame={action("join-game-clicked")}
+      />
+    ),
+    right: <InfoPanel />,
+    bottom: (
+      <Navigation
+        items={createNavItems("/")}
+        variant="bottom"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+  },
+};
+
+export const MyGamesCompleted: Story = {
+  args: {
+    left: (
+      <Navigation
+        items={createNavItems("/")}
+        variant="sidebar"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+    center: (
+      <MyGames
+        selectedStatus="completed"
+        onStatusChange={action("status-changed")}
+        isLoading={false}
+        games={mockMyGames}
+        onClickGame={action("game-clicked")}
+        onClickGameInfo={action("game-info-clicked")}
+        onClickPlayerInfo={action("player-info-clicked")}
+        onClickJoinGame={action("join-game-clicked")}
+      />
+    ),
+    right: <InfoPanel />,
+    bottom: (
+      <Navigation
+        items={createNavItems("/")}
+        variant="bottom"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+  },
+};
+
+export const MyGamesLoading: Story = {
+  args: {
+    left: (
+      <Navigation
+        items={createNavItems("/")}
+        variant="sidebar"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+    center: (
+      <MyGames
+        selectedStatus="active"
+        onStatusChange={action("status-changed")}
+        isLoading={true}
+        games={undefined}
+        onClickGame={action("game-clicked")}
+        onClickGameInfo={action("game-info-clicked")}
+        onClickPlayerInfo={action("player-info-clicked")}
+        onClickJoinGame={action("join-game-clicked")}
+      />
+    ),
+    right: <InfoPanel />,
+    bottom: (
+      <Navigation
+        items={createNavItems("/")}
+        variant="bottom"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+  },
+};
+
+export const MyGamesEmpty: Story = {
+  args: {
+    left: (
+      <Navigation
+        items={createNavItems("/")}
+        variant="sidebar"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+    center: (
+      <MyGames
+        selectedStatus="active"
+        onStatusChange={action("status-changed")}
+        isLoading={false}
+        games={[]}
+        onClickGame={action("game-clicked")}
+        onClickGameInfo={action("game-info-clicked")}
+        onClickPlayerInfo={action("player-info-clicked")}
+        onClickJoinGame={action("join-game-clicked")}
+      />
+    ),
+    right: <InfoPanel />,
+    bottom: (
+      <Navigation
+        items={createNavItems("/")}
+        variant="bottom"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+  },
+};
+
+export const FindGamesDefault: Story = {
+  args: {
+    left: (
+      <Navigation
+        items={createNavItems("/find-games")}
+        variant="sidebar"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+    center: (
+      <FindGames
+        isLoading={false}
+        games={mockMyGames.filter(g => g.canJoin)}
+        onClickGame={action("game-clicked")}
+        onClickGameInfo={action("game-info-clicked")}
+        onClickPlayerInfo={action("player-info-clicked")}
+        onClickJoinGame={action("join-game-clicked")}
+      />
+    ),
+    right: <InfoPanel />,
+    bottom: (
+      <Navigation
+        items={createNavItems("/find-games")}
+        variant="bottom"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+  },
+};
+
+export const FindGamesLoading: Story = {
+  args: {
+    left: (
+      <Navigation
+        items={createNavItems("/find-games")}
+        variant="sidebar"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+    center: (
+      <FindGames
+        isLoading={true}
+        games={undefined}
+        onClickGame={action("game-clicked")}
+        onClickGameInfo={action("game-info-clicked")}
+        onClickPlayerInfo={action("player-info-clicked")}
+        onClickJoinGame={action("join-game-clicked")}
+      />
+    ),
+    right: <InfoPanel />,
+    bottom: (
+      <Navigation
+        items={createNavItems("/find-games")}
+        variant="bottom"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+  },
+};
+
+export const FindGamesEmpty: Story = {
+  args: {
+    left: (
+      <Navigation
+        items={createNavItems("/find-games")}
+        variant="sidebar"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+    center: (
+      <FindGames
+        isLoading={false}
+        games={[]}
+        onClickGame={action("game-clicked")}
+        onClickGameInfo={action("game-info-clicked")}
+        onClickPlayerInfo={action("player-info-clicked")}
+        onClickJoinGame={action("join-game-clicked")}
+      />
+    ),
+    right: <InfoPanel />,
+    bottom: (
+      <Navigation
+        items={createNavItems("/find-games")}
+        variant="bottom"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+  },
+};
+
+export const SandboxGamesDefault: Story = {
+  args: {
+    left: (
+      <Navigation
+        items={createNavItems("/sandbox")}
+        variant="sidebar"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+    center: (
+      <SandboxGames
+        isLoading={false}
+        games={mockMyGames.filter(g => g.status === "active").slice(0, 2)}
+        onClickGame={action("game-clicked")}
+        onClickGameInfo={action("game-info-clicked")}
+        onClickPlayerInfo={action("player-info-clicked")}
+        onClickJoinGame={action("join-game-clicked")}
+        onClickCreateSandbox={action("create-sandbox-clicked")}
+      />
+    ),
+    right: <InfoPanel />,
+    bottom: (
+      <Navigation
+        items={createNavItems("/sandbox")}
+        variant="bottom"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+  },
+};
+
+export const SandboxGamesLoading: Story = {
+  args: {
+    left: (
+      <Navigation
+        items={createNavItems("/sandbox")}
+        variant="sidebar"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+    center: (
+      <SandboxGames
+        isLoading={true}
+        games={undefined}
+        onClickGame={action("game-clicked")}
+        onClickGameInfo={action("game-info-clicked")}
+        onClickPlayerInfo={action("player-info-clicked")}
+        onClickJoinGame={action("join-game-clicked")}
+        onClickCreateSandbox={action("create-sandbox-clicked")}
+      />
+    ),
+    right: <InfoPanel />,
+    bottom: (
+      <Navigation
+        items={createNavItems("/sandbox")}
+        variant="bottom"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+  },
+};
+
+export const SandboxGamesEmpty: Story = {
+  args: {
+    left: (
+      <Navigation
+        items={createNavItems("/sandbox")}
+        variant="sidebar"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+    center: (
+      <SandboxGames
+        isLoading={false}
+        games={[]}
+        onClickGame={action("game-clicked")}
+        onClickGameInfo={action("game-info-clicked")}
+        onClickPlayerInfo={action("player-info-clicked")}
+        onClickJoinGame={action("join-game-clicked")}
+        onClickCreateSandbox={action("create-sandbox-clicked")}
+      />
+    ),
+    right: <InfoPanel />,
+    bottom: (
+      <Navigation
+        items={createNavItems("/sandbox")}
+        variant="bottom"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+  },
+};
+
+export const ProfileDefault: Story = {
+  args: {
+    left: (
+      <Navigation
+        items={createNavItems("/profile")}
+        variant="sidebar"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+    center: (
+      <Profile
+        isLoading={false}
+        userProfile={{
+          name: "John Smith",
+          picture: null,
+        }}
+        onUpdateName={action("update-name")}
+        isSubmitting={false}
+        pushNotificationsEnabled={false}
+        pushNotificationsPermissionDenied={false}
+        pushNotificationsError={undefined}
+        onTogglePushNotifications={action("toggle-push-notifications")}
+        onLogout={action("logout")}
+      />
+    ),
+    right: <InfoPanel />,
+    bottom: (
+      <Navigation
+        items={createNavItems("/profile")}
+        variant="bottom"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+  },
+};
+
+export const ProfileWithAvatar: Story = {
+  args: {
+    left: (
+      <Navigation
+        items={createNavItems("/profile")}
+        variant="sidebar"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+    center: (
+      <Profile
+        isLoading={false}
+        userProfile={{
+          name: "Jane Doe",
+          picture: "https://i.pravatar.cc/150?img=5",
+        }}
+        onUpdateName={action("update-name")}
+        isSubmitting={false}
+        pushNotificationsEnabled={true}
+        pushNotificationsPermissionDenied={false}
+        pushNotificationsError={undefined}
+        onTogglePushNotifications={action("toggle-push-notifications")}
+        onLogout={action("logout")}
+      />
+    ),
+    right: <InfoPanel />,
+    bottom: (
+      <Navigation
+        items={createNavItems("/profile")}
+        variant="bottom"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+  },
+};
+
+export const ProfileEditingName: Story = {
+  args: {
+    left: (
+      <Navigation
+        items={createNavItems("/profile")}
+        variant="sidebar"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+    center: (
+      <Profile
+        isLoading={false}
+        userProfile={{
+          name: "John Smith",
+          picture: null,
+        }}
+        onUpdateName={action("update-name")}
+        isSubmitting={false}
+        pushNotificationsEnabled={false}
+        pushNotificationsPermissionDenied={false}
+        pushNotificationsError={undefined}
+        onTogglePushNotifications={action("toggle-push-notifications")}
+        onLogout={action("logout")}
+      />
+    ),
+    right: <InfoPanel />,
+    bottom: (
+      <Navigation
+        items={createNavItems("/profile")}
+        variant="bottom"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+  },
+};
+
+export const ProfileLoading: Story = {
+  args: {
+    left: (
+      <Navigation
+        items={createNavItems("/profile")}
+        variant="sidebar"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+    center: (
+      <Profile
+        isLoading={true}
+        userProfile={undefined}
+        onUpdateName={action("update-name")}
+        isSubmitting={false}
+        pushNotificationsEnabled={false}
+        pushNotificationsPermissionDenied={false}
+        pushNotificationsError={undefined}
+        onTogglePushNotifications={action("toggle-push-notifications")}
+        onLogout={action("logout")}
+      />
+    ),
+    right: <InfoPanel />,
+    bottom: (
+      <Navigation
+        items={createNavItems("/profile")}
+        variant="bottom"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+  },
+};
+
+export const ProfileNotificationsError: Story = {
+  args: {
+    left: (
+      <Navigation
+        items={createNavItems("/profile")}
+        variant="sidebar"
+        onItemClick={path => console.log("Navigate to:", path)}
+      />
+    ),
+    center: (
+      <Profile
+        isLoading={false}
+        userProfile={{
+          name: "John Smith",
+          picture: null,
+        }}
+        onUpdateName={action("update-name")}
+        isSubmitting={false}
+        pushNotificationsEnabled={false}
+        pushNotificationsPermissionDenied={false}
+        pushNotificationsError="Failed to register service worker"
+        onTogglePushNotifications={action("toggle-push-notifications")}
+        onLogout={action("logout")}
+      />
+    ),
+    right: <InfoPanel />,
+    bottom: (
+      <Navigation
+        items={createNavItems("/profile")}
         variant="bottom"
         onItemClick={path => console.log("Navigate to:", path)}
       />
