@@ -2,6 +2,8 @@ import React, { Suspense, useState } from "react";
 import { useNavigate } from "react-router";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScreenHeader } from "@/components/ui/screen-header";
+import { ScreenContainer } from "@/components/ui/screen-container";
 import { GameCard } from "@/components/GameCard.new";
 import { Notice } from "@/components/Notice.new";
 import { IconName } from "@/components/Icon";
@@ -127,12 +129,12 @@ const MyGames: React.FC = () => {
 
 const MyGamesSuspense: React.FC = () => {
   return (
-    <div className="w-full space-y-4">
-      <h1 className="text-2xl font-bold">My Games</h1>
+    <ScreenContainer>
+      <ScreenHeader title="My Games" />
       <Suspense fallback={<div></div>}>
         <MyGames />
       </Suspense>
-    </div>
+    </ScreenContainer>
   );
 };
 

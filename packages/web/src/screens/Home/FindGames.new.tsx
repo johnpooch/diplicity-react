@@ -1,6 +1,8 @@
 import React, { Suspense } from "react";
 import { useNavigate } from "react-router";
 
+import { ScreenHeader } from "@/components/ui/screen-header";
+import { ScreenContainer } from "@/components/ui/screen-container";
 import { GameCard } from "@/components/GameCard.new";
 import { Notice } from "@/components/Notice.new";
 import { IconName } from "@/components/Icon";
@@ -69,12 +71,12 @@ const FindGames: React.FC = () => {
 
 const FindGamesSuspense: React.FC = () => {
   return (
-    <div className="w-full space-y-4">
-      <h1 className="text-2xl font-bold">Find Games</h1>
+    <ScreenContainer>
+      <ScreenHeader title="Find Games" />
       <Suspense fallback={<div></div>}>
         <FindGames />
       </Suspense>
-    </div>
+    </ScreenContainer>
   );
 };
 

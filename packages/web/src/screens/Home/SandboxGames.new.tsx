@@ -1,6 +1,8 @@
 import React, { Suspense } from "react";
 import { useNavigate } from "react-router";
 
+import { ScreenHeader } from "@/components/ui/screen-header";
+import { ScreenContainer } from "@/components/ui/screen-container";
 import { GameCard } from "@/components/GameCard.new";
 import { Notice } from "@/components/Notice.new";
 import { IconName } from "@/components/Icon";
@@ -79,12 +81,12 @@ const SandboxGames: React.FC = () => {
 
 const SandboxGamesSuspense: React.FC = () => {
   return (
-    <div className="w-full space-y-4">
-      <h1 className="text-2xl font-bold">Sandbox Games</h1>
+    <ScreenContainer>
+      <ScreenHeader title="Sandbox Games" />
       <Suspense fallback={<div></div>}>
         <SandboxGames />
       </Suspense>
-    </div>
+    </ScreenContainer>
   );
 };
 

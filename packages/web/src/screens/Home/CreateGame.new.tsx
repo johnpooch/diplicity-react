@@ -8,6 +8,8 @@ import { Users, Calendar, User } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CardDescription } from "@/components/ui/card";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
+import { ScreenHeader } from "@/components/ui/screen-header";
+import { ScreenContainer } from "@/components/ui/screen-container";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -459,12 +461,12 @@ const CreateGame: React.FC = () => {
 
 const CreateGameSuspense: React.FC = () => {
   return (
-    <div className="w-full space-y-4">
-      <h1 className="text-2xl font-bold">Create Game</h1>
+    <ScreenContainer>
+      <ScreenHeader title="Create Game" />
       <Suspense fallback={<div></div>}>
         <CreateGame />
       </Suspense>
-    </div>
+    </ScreenContainer>
   );
 };
 

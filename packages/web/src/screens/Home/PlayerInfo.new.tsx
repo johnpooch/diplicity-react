@@ -16,6 +16,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
+import { ScreenHeader } from "@/components/ui/screen-header";
+import { ScreenContainer } from "@/components/ui/screen-container";
 import {
   useGameRetrieveSuspense,
   useGamePhaseRetrieve,
@@ -119,41 +121,43 @@ const PlayerInfo: React.FC = () => {
   );
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">Player Info</h1>
-        <div className="flex items-center gap-2">
-          {joinLeaveButton}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" aria-label="Game menu">
-                <MoreHorizontal />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleGameInfo}>
-                <Info />
-                Game info
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handlePlayerInfo}>
-                <Users />
-                Player info
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => {
-                  navigator.clipboard.writeText(
-                    `${window.location.origin}/game/${game.id}`
-                  );
-                }}
-              >
-                <Share />
-                Share
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
+    <ScreenContainer>
+      <ScreenHeader
+        title="Player Info"
+        actions={
+          <>
+            {joinLeaveButton}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" aria-label="Game menu">
+                  <MoreHorizontal />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleGameInfo}>
+                  <Info />
+                  Game info
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handlePlayerInfo}>
+                  <Users />
+                  Player info
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    navigator.clipboard.writeText(
+                      `${window.location.origin}/game/${game.id}`
+                    );
+                  }}
+                >
+                  <Share />
+                  Share
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        }
+      />
 
       {game.status === "pending" && (
         <Alert>
@@ -240,7 +244,7 @@ const PlayerInfo: React.FC = () => {
           })}
         </ScreenCardContent>
       </ScreenCard>
-    </div>
+    </ScreenContainer>
   );
 };
 
