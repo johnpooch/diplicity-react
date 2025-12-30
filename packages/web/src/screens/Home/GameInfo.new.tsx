@@ -40,12 +40,12 @@ import {
 import { getCurrentPhaseId } from "@/util";
 import { InteractiveMap } from "@/components/InteractiveMap/InteractiveMap";
 import { MemberAvatarGroup } from "@/components/MemberAvatarGroup.new";
+import { CardTitle } from "../../components/ui/card";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card";
+  ScreenCard,
+  ScreenCardContent,
+  ScreenCardHeader,
+} from "../../components/ui/screen-card";
 
 interface MetadataRowProps {
   icon: React.ReactNode;
@@ -189,11 +189,11 @@ const GameInfo: React.FC = () => {
           </AlertDescription>
         </Alert>
       )}
-      <Card>
-        <CardHeader className="p-6">
+      <ScreenCard>
+        <ScreenCardHeader>
           <CardTitle>{game.name}</CardTitle>
-        </CardHeader>
-        <CardContent>
+        </ScreenCardHeader>
+        <ScreenCardContent>
           <MetadataRow
             icon={<Map className="size-4" />}
             label="Variant"
@@ -270,8 +270,8 @@ const GameInfo: React.FC = () => {
           ) : (
             <Skeleton className="w-full aspect-square rounded-lg" />
           )}
-        </CardContent>
-      </Card>
+        </ScreenCardContent>
+      </ScreenCard>
     </div>
   );
 };

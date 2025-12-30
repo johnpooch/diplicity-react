@@ -6,7 +6,8 @@ import { z } from "zod";
 import { Users, Calendar, User } from "lucide-react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription } from "@/components/ui/card";
+import { CardDescription } from "@/components/ui/card";
+import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -429,27 +430,27 @@ const CreateGame: React.FC = () => {
         </TabsList>
 
         <TabsContent value="standard">
-          <Card>
-            <CardContent className="p-6">
+          <ScreenCard>
+            <ScreenCardContent>
               <CreateStandardGameForm
                 onSubmit={handleStandardGameSubmit}
                 isSubmitting={createGameMutation.isPending}
                 variants={variants}
               />
-            </CardContent>
-          </Card>
+            </ScreenCardContent>
+          </ScreenCard>
         </TabsContent>
 
         <TabsContent value="sandbox">
-          <Card>
-            <CardContent className="p-6">
+          <ScreenCard>
+            <ScreenCardContent>
               <CreateSandboxGameForm
                 onSubmit={handleSandboxGameSubmit}
                 isSubmitting={createSandboxGameMutation.isPending}
                 variants={variants}
               />
-            </CardContent>
-          </Card>
+            </ScreenCardContent>
+          </ScreenCard>
         </TabsContent>
       </Tabs>
     </div>

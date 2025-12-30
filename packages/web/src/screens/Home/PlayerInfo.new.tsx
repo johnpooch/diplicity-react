@@ -15,16 +15,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemMedia,
-  ItemTitle,
-} from "@/components/ui/item";
-import { Card, CardContent } from "@/components/ui/card";
+import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
 import {
   useGameRetrieveSuspense,
   useGamePhaseRetrieve,
@@ -185,76 +176,70 @@ const PlayerInfo: React.FC = () => {
         </Alert>
       )}
 
-      <Card>
-        <CardContent className="px-0">
-          <ItemGroup>
-            {game.members.map(member => {
-              const nationFlag =
-                Flags[(variant?.id ?? "") as keyof typeof Flags]?.[
-                  member.nation?.toLowerCase() as keyof (typeof Flags)[keyof typeof Flags]
-                ];
+      <ScreenCard>
+        <ScreenCardContent className="divide-y">
+          {game.members.map(member => {
+            const nationFlag =
+              Flags[(variant?.id ?? "") as keyof typeof Flags]?.[
+                member.nation?.toLowerCase() as keyof (typeof Flags)[keyof typeof Flags]
+              ];
 
-              const supplyCenterCount = getSupplyCenterCount(member);
-              const isWinner = winnerIds.includes(member.id);
+            const supplyCenterCount = getSupplyCenterCount(member);
+            const isWinner = winnerIds.includes(member.id);
 
-              return (
-                <React.Fragment key={member.id}>
-                  <Item className="rounded-none border-0" size="default">
-                    <ItemMedia className="relative">
-                      <Avatar className="size-12">
-                        <AvatarImage src={member.picture ?? undefined} />
-                        <AvatarFallback>
-                          {member.nation?.toUpperCase()[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                      {member.nation && nationFlag && (
-                        <span className="absolute -right-1 -bottom-1 inline-flex size-4 items-center justify-center rounded-full bg-white border-2 border-background">
-                          <img
-                            src={nationFlag}
-                            alt={member.nation}
-                            className="h-full w-full rounded-full object-cover"
-                          />
+            return (
+              <div key={member.id} className="flex items-center gap-4 py-4 first:pt-0 last:pb-0">
+                <div className="relative">
+                  <Avatar className="size-12">
+                    <AvatarImage src={member.picture ?? undefined} />
+                    <AvatarFallback>
+                      {member.nation?.toUpperCase()[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                  {member.nation && nationFlag && (
+                    <span className="absolute -right-1 -bottom-1 inline-flex size-4 items-center justify-center rounded-full bg-white border-2 border-background">
+                      <img
+                        src={nationFlag}
+                        alt={member.nation}
+                        className="h-full w-full rounded-full object-cover"
+                      />
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium">{member.name}</span>
+                    {isWinner && (
+                      <Badge variant="default" className="gap-1">
+                        <Trophy className="size-3" />
+                        {game.victory?.type === "solo" ? "Winner" : "Draw"}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {member.nation && (
+                    <div className="text-sm text-muted-foreground mt-1">
+                      <span className="inline-flex items-center gap-2">
+                        <span>{member.nation}</span>
+                        <span>•</span>
+                        <span className="inline-flex items-center gap-1">
+                          <Star className="size-3" />
+                          {supplyCenterCount !== undefined ? (
+                            <span>{supplyCenterCount}</span>
+                          ) : (
+                            <Skeleton className="h-3 w-4" />
+                          )}
                         </span>
-                      )}
-                    </ItemMedia>
-
-                    <ItemContent>
-                      <ItemTitle>
-                        {member.name}
-                        {isWinner && (
-                          <Badge variant="default" className="gap-1">
-                            <Trophy className="size-3" />
-                            {game.victory?.type === "solo" ? "Winner" : "Draw"}
-                          </Badge>
-                        )}
-                      </ItemTitle>
-
-                      {member.nation && (
-                        <ItemDescription className="line-clamp-none">
-                          <span className="inline-flex items-center gap-2">
-                            <span>{member.nation}</span>
-                            <span>•</span>
-                            <span className="inline-flex items-center gap-1">
-                              <Star className="size-3" />
-                              {supplyCenterCount !== undefined ? (
-                                <span>{supplyCenterCount}</span>
-                              ) : (
-                                <Skeleton className="h-3 w-4" />
-                              )}
-                            </span>
-                          </span>
-                        </ItemDescription>
-                      )}
-                    </ItemContent>
-
-                    <ItemActions />
-                  </Item>
-                </React.Fragment>
-              );
-            })}
-          </ItemGroup>
-        </CardContent>
-      </Card>
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </ScreenCardContent>
+      </ScreenCard>
     </div>
   );
 };

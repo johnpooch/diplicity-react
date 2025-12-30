@@ -10,7 +10,7 @@ import { useDispatch } from "react-redux";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -100,8 +100,8 @@ const Profile: React.FC = () => {
         </DropdownMenu>
       </div>
 
-      <Card>
-        <CardContent className="p-6 space-y-4">
+      <ScreenCard>
+        <ScreenCardContent className="space-y-4">
           <h2 className="text-lg font-semibold">User</h2>
           <div className="flex items-center gap-4">
             <div>
@@ -203,8 +203,8 @@ const Profile: React.FC = () => {
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </ScreenCardContent>
+      </ScreenCard>
     </div>
   );
 };
