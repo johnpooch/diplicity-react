@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { Suspense, useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useForm, Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Skeleton } from "@/components/ui/skeleton";
+
 import {
   Select,
   SelectContent,
@@ -28,20 +28,15 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
-import {
-  service,
-  VariantRead,
-  MovementPhaseDurationEnum,
-  NationAssignmentEnum,
-} from "@/store";
+import { MovementPhaseDurationEnum, NationAssignmentEnum } from "@/store";
 import { randomGameName } from "@/util";
 import { InteractiveMap } from "@/components/InteractiveMap/InteractiveMap";
-import { HomeLayout } from "./Layout";
-
-type VariantForSelector = Pick<
-  VariantRead,
-  "id" | "name" | "nations" | "author" | "templatePhase"
->;
+import {
+  useVariantsListSuspense,
+  useGameCreate,
+  useSandboxGameCreate,
+  Variant,
+} from "@/api/generated/endpoints";
 
 const standardGameSchema = z.object({
   name: z
@@ -100,9 +95,8 @@ interface VariantSelectorProps {
   control: Control<any>;
   name: string;
   disabled?: boolean;
-  variants: VariantForSelector[] | undefined;
-  isLoadingVariants: boolean;
-  selectedVariant: VariantForSelector | undefined;
+  variants: Variant[];
+  selectedVariant: Variant;
 }
 
 const VariantSelector: React.FC<VariantSelectorProps> = ({
@@ -110,7 +104,6 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
   name,
   disabled,
   variants,
-  isLoadingVariants,
   selectedVariant,
 }) => {
   return (
@@ -124,7 +117,7 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
             <Select
               onValueChange={field.onChange}
               value={field.value}
-              disabled={disabled || isLoadingVariants}
+              disabled={disabled}
             >
               <FormControl>
                 <SelectTrigger>
@@ -132,7 +125,7 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {variants?.map((variant) => (
+                {variants?.map(variant => (
                   <SelectItem key={variant.id} value={variant.id}>
                     {variant.name}
                   </SelectItem>
@@ -144,9 +137,7 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
         )}
       />
 
-      {isLoadingVariants ? (
-        <Skeleton className="h-96 w-full" />
-      ) : selectedVariant?.templatePhase ? (
+      {selectedVariant?.templatePhase ? (
         <InteractiveMap
           variant={selectedVariant}
           phase={selectedVariant.templatePhase}
@@ -161,29 +152,17 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
         rows={[
           {
             label: "Number of nations",
-            value: isLoadingVariants ? (
-              <Skeleton className="h-4 w-20" />
-            ) : (
-              selectedVariant?.nations.length.toString()
-            ),
+            value: selectedVariant?.nations.length.toString(),
             icon: <Users className="size-4" />,
           },
           {
             label: "Start year",
-            value: isLoadingVariants ? (
-              <Skeleton className="h-4 w-20" />
-            ) : (
-              selectedVariant?.templatePhase.year.toString()
-            ),
+            value: selectedVariant?.templatePhase.year.toString(),
             icon: <Calendar className="size-4" />,
           },
           {
             label: "Original author",
-            value: isLoadingVariants ? (
-              <Skeleton className="h-4 w-20" />
-            ) : (
-              selectedVariant?.author
-            ),
+            value: selectedVariant?.author,
             icon: <User className="size-4" />,
           },
         ]}
@@ -195,21 +174,19 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
 interface CreateStandardGameFormProps {
   onSubmit: (data: StandardGameFormValues) => Promise<void>;
   isSubmitting: boolean;
-  variants: VariantForSelector[] | undefined;
-  isLoadingVariants: boolean;
+  variants: Variant[];
 }
 
 const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
   onSubmit,
   isSubmitting,
   variants,
-  isLoadingVariants,
 }) => {
   const form = useForm<StandardGameFormValues>({
     resolver: zodResolver(standardGameSchema),
     defaultValues: {
       name: randomGameName(),
-      variantId: "classical",
+      variantId: variants[0].id,
       nationAssignment: "random" as NationAssignmentEnum,
       movementPhaseDuration: "24 hours" as MovementPhaseDurationEnum,
       private: false,
@@ -304,16 +281,11 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
             name="variantId"
             disabled={isSubmitting}
             variants={variants}
-            isLoadingVariants={isLoadingVariants}
             selectedVariant={selectedVariant}
           />
         </div>
 
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isSubmitting || isLoadingVariants}
-        >
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting ? "Creating..." : "Create Game"}
         </Button>
       </form>
@@ -324,29 +296,27 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
 interface CreateSandboxGameFormProps {
   onSubmit: (data: SandboxGameFormValues) => Promise<void>;
   isSubmitting: boolean;
-  variants: VariantForSelector[] | undefined;
-  isLoadingVariants: boolean;
+  variants: Variant[];
 }
 
 const CreateSandboxGameForm: React.FC<CreateSandboxGameFormProps> = ({
   onSubmit,
   isSubmitting,
   variants,
-  isLoadingVariants,
 }) => {
   const form = useForm<SandboxGameFormValues>({
     resolver: zodResolver(sandboxGameSchema),
     defaultValues: {
       sandboxGame: {
         name: randomGameName(),
-        variantId: "classical",
+        variantId: variants[0].id,
       },
     },
   });
 
   const selectedVariant = variants?.find(
     v => v.id === form.watch("sandboxGame.variantId")
-  );
+  ) as Variant;
 
   return (
     <Form {...form}>
@@ -359,114 +329,47 @@ const CreateSandboxGameForm: React.FC<CreateSandboxGameFormProps> = ({
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">General</h2>
 
-            <FormField
-              control={form.control}
-              name="sandboxGame.name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Game Name</FormLabel>
-                  <FormControl>
-                    <Input {...field} disabled={isSubmitting} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          <FormField
+            control={form.control}
+            name="sandboxGame.name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Game Name</FormLabel>
+                <FormControl>
+                  <Input {...field} disabled={isSubmitting} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Variant</h2>
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Variant</h2>
 
-            <VariantSelector
-              control={form.control}
-              name="sandboxGame.variantId"
-              disabled={isSubmitting}
-              variants={variants}
-              isLoadingVariants={isLoadingVariants}
-              selectedVariant={selectedVariant}
-            />
-          </div>
+          <VariantSelector
+            control={form.control}
+            name="sandboxGame.variantId"
+            disabled={isSubmitting}
+            variants={variants}
+            selectedVariant={selectedVariant}
+          />
+        </div>
 
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={isSubmitting || isLoadingVariants}
-          >
-            {isSubmitting ? "Creating..." : "Create Sandbox Game"}
-          </Button>
-        </form>
-      </Form>
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? "Creating..." : "Create Sandbox Game"}
+        </Button>
+      </form>
+    </Form>
   );
 };
 
-interface CreateGameProps {
-  currentTab: "standard" | "sandbox";
-  onTabChange: (value: string) => void;
-  onStandardGameSubmit: (data: StandardGameFormValues) => Promise<void>;
-  onSandboxGameSubmit: (data: SandboxGameFormValues) => Promise<void>;
-  isStandardGameSubmitting: boolean;
-  isSandboxGameSubmitting: boolean;
-  variants: VariantForSelector[] | undefined;
-  isLoadingVariants: boolean;
-}
-
-const CreateGame: React.FC<CreateGameProps> = ({
-  currentTab,
-  onTabChange,
-  onStandardGameSubmit,
-  onSandboxGameSubmit,
-  isStandardGameSubmitting,
-  isSandboxGameSubmitting,
-  variants,
-  isLoadingVariants,
-}) => {
-  return (
-    <div className="w-full space-y-4">
-      <h1 className="text-2xl font-bold">Create Game</h1>
-
-      <Tabs value={currentTab} onValueChange={onTabChange}>
-        <TabsList className="w-full">
-          <TabsTrigger value="standard" className="flex-1">
-            Standard
-          </TabsTrigger>
-          <TabsTrigger value="sandbox" className="flex-1">
-            Sandbox
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="standard">
-          <Card>
-            <CardContent className="p-6">
-              <CreateStandardGameForm
-                onSubmit={onStandardGameSubmit}
-                isSubmitting={isStandardGameSubmitting}
-                variants={variants}
-                isLoadingVariants={isLoadingVariants}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="sandbox">
-          <Card>
-            <CardContent className="p-6">
-              <CreateSandboxGameForm
-                onSubmit={onSandboxGameSubmit}
-                isSubmitting={isSandboxGameSubmitting}
-                variants={variants}
-                isLoadingVariants={isLoadingVariants}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-};
-
-const CreateGameContainer: React.FC = () => {
+const CreateGame: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { data: variants } = useVariantsListSuspense();
+  const createGameMutation = useGameCreate();
+  const createSandboxGameMutation = useSandboxGameCreate();
 
   const getInitialTab = (): "standard" | "sandbox" => {
     return searchParams.get("sandbox") === "true" ? "sandbox" : "standard";
@@ -481,12 +384,6 @@ const CreateGameContainer: React.FC = () => {
     setCurrentTab(newTab);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
-
-  const variantsQuery = service.endpoints.variantsList.useQuery(undefined);
-  const [createGame, createGameResult] =
-    service.endpoints.gameCreate.useMutation();
-  const [createSandboxGame, createSandboxGameResult] =
-    service.endpoints.sandboxGameCreate.useMutation();
 
   const handleTabChange = (value: string) => {
     const newTab = value as "standard" | "sandbox";
@@ -503,7 +400,7 @@ const CreateGameContainer: React.FC = () => {
 
   const handleStandardGameSubmit = async (data: StandardGameFormValues) => {
     try {
-      await createGame({ game: data }).unwrap();
+      await createGameMutation.mutateAsync({ data });
       navigate("/");
     } catch (error) {
       console.error("Failed to create game:", error);
@@ -512,7 +409,7 @@ const CreateGameContainer: React.FC = () => {
 
   const handleSandboxGameSubmit = async (data: SandboxGameFormValues) => {
     try {
-      await createSandboxGame(data).unwrap();
+      await createSandboxGameMutation.mutateAsync({ data: data.sandboxGame });
       navigate("/");
     } catch (error) {
       console.error("Failed to create sandbox game:", error);
@@ -520,27 +417,55 @@ const CreateGameContainer: React.FC = () => {
   };
 
   return (
-    <HomeLayout
-      content={
-        <CreateGame
-          currentTab={currentTab}
-          onTabChange={handleTabChange}
-          onStandardGameSubmit={handleStandardGameSubmit}
-          onSandboxGameSubmit={handleSandboxGameSubmit}
-          isStandardGameSubmitting={createGameResult.isLoading}
-          isSandboxGameSubmitting={createSandboxGameResult.isLoading}
-          variants={variantsQuery.data}
-          isLoadingVariants={variantsQuery.isLoading}
-        />
-      }
-    />
+    <div className="space-y-4">
+      <Tabs value={currentTab} onValueChange={handleTabChange}>
+        <TabsList className="w-full">
+          <TabsTrigger value="standard" className="flex-1">
+            Standard
+          </TabsTrigger>
+          <TabsTrigger value="sandbox" className="flex-1">
+            Sandbox
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="standard">
+          <Card>
+            <CardContent className="p-6">
+              <CreateStandardGameForm
+                onSubmit={handleStandardGameSubmit}
+                isSubmitting={createGameMutation.isPending}
+                variants={variants}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="sandbox">
+          <Card>
+            <CardContent className="p-6">
+              <CreateSandboxGameForm
+                onSubmit={handleSandboxGameSubmit}
+                isSubmitting={createSandboxGameMutation.isPending}
+                variants={variants}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 
-export { CreateGame, CreateGameContainer };
-export type {
-  CreateGameProps,
-  CreateStandardGameFormProps,
-  CreateSandboxGameFormProps,
-  VariantForSelector,
+const CreateGameSuspense: React.FC = () => {
+  return (
+    <div className="w-full space-y-4">
+      <h1 className="text-2xl font-bold">Create Game</h1>
+      <Suspense fallback={<div></div>}>
+        <CreateGame />
+      </Suspense>
+    </div>
+  );
 };
+
+export { CreateGameSuspense as CreateGame };
+export type { CreateStandardGameFormProps, CreateSandboxGameFormProps };

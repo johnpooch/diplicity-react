@@ -21,7 +21,12 @@
       "Bash(npx --version:*)",
       "Bash(npm run lint:*)",
       "Bash(npm run typecheck:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npm run codegen:react-query:*)",
+      "Bash(source ~/.nvm/nvm.sh)",
+      "Bash(nvm use:*)",
+      "Bash(npx orval:*)",
+      "Bash(npm run storybook:*)"
     ],
     "deny": [],
     "ask": []

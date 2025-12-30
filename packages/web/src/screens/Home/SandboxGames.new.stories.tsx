@@ -1,35 +1,36 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { MyGames } from "./MyGames.new";
+import { SandboxGames } from "./SandboxGames.new";
 import {
   getGamePhaseRetrieveMockHandler,
   getGamesListMockHandler,
   getVariantsListMockHandler,
 } from "@/api/generated/endpoints";
-import { mockVariants, mockPendingGames, mockPhaseMovement } from "@/mocks";
+import { mockVariants, mockSandboxGames, mockPhaseMovement } from "@/mocks";
 import { HomeLayout } from "../../components/HomeLayout";
 
 const meta = {
-  title: "Screens/MyGames",
-  component: MyGames,
+  title: "Screens/SandboxGames",
+  component: SandboxGames,
   render: args => (
     <HomeLayout>
-      <MyGames {...args} />
+      <SandboxGames {...args} />
     </HomeLayout>
   ),
   parameters: {
     layout: "fullscreen",
     router: {
-      initialEntries: ["/"],
+      path: "/sandbox",
+      initialEntries: ["/sandbox"],
     },
     msw: {
       handlers: [
-        getGamesListMockHandler(mockPendingGames),
+        getGamesListMockHandler(mockSandboxGames),
         getVariantsListMockHandler(mockVariants),
         getGamePhaseRetrieveMockHandler(mockPhaseMovement),
       ],
     },
   },
-} satisfies Meta<typeof MyGames>;
+} satisfies Meta<typeof SandboxGames>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

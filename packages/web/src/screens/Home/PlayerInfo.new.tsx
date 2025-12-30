@@ -1,0 +1,272 @@
+import React, { Suspense } from "react";
+import { useNavigate, useParams } from "react-router";
+import {
+  Info,
+  Trophy,
+  Star,
+  UserPlus,
+  UserMinus,
+  MoreHorizontal,
+  Users,
+  Share,
+} from "lucide-react";
+
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  useGameRetrieveSuspense,
+  useGamePhaseRetrieve,
+  useVariantsListSuspense,
+  Member,
+  useGameJoinCreate,
+  useGameLeaveDestroy,
+} from "@/api/generated/endpoints";
+import { getCurrentPhaseId } from "@/util";
+import { Flags } from "@/assets/flags";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "../../components/ui/tooltip";
+import { Button } from "../../components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../../components/ui/dropdown-menu";
+
+const PlayerInfo: React.FC = () => {
+  const { gameId } = useParams<{ gameId: string }>();
+  if (!gameId) throw new Error("gameId is required");
+
+  const navigate = useNavigate();
+  const { data: game } = useGameRetrieveSuspense(gameId);
+  const { data: variants } = useVariantsListSuspense();
+  const joinGameMutation = useGameJoinCreate();
+  const leaveGameMutation = useGameLeaveDestroy();
+
+  const currentPhaseId = getCurrentPhaseId(game);
+  const { data: currentPhase } = useGamePhaseRetrieve(
+    gameId,
+    currentPhaseId ?? 0,
+    { query: { enabled: !!currentPhaseId } }
+  );
+
+  const variant = variants.find(v => v.id === game.variantId);
+
+  const getSupplyCenterCount = (member: Member) => {
+    if (!currentPhase) return undefined;
+    return currentPhase.supplyCenters.filter(
+      sc => sc.nation.name === member.nation
+    ).length;
+  };
+
+  const winnerIds = game.victory?.members?.map(m => m.id) || [];
+
+  const handleJoinGame = async () => {
+    await joinGameMutation.mutateAsync({ gameId, data: {} });
+  };
+
+  const handleLeaveGame = async () => {
+    await leaveGameMutation.mutateAsync({ gameId });
+  };
+
+  const handlePlayerInfo = () => {
+    navigate(`/player-info/${gameId}`);
+  };
+
+  const handleGameInfo = () => {
+    navigate(`/game-info/${gameId}`);
+  };
+
+  const joinLeaveButton = game.canJoin ? (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          onClick={handleJoinGame}
+          disabled={joinGameMutation.isPending}
+          variant="outline"
+          aria-label="Join game"
+        >
+          <UserPlus className="size-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>Join game</p>
+      </TooltipContent>
+    </Tooltip>
+  ) : (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          onClick={handleLeaveGame}
+          disabled={leaveGameMutation.isPending}
+          variant="outline"
+          aria-label="Leave game"
+        >
+          <UserMinus className="size-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>Leave game</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">Player Info</h1>
+        <div className="flex items-center gap-2">
+          {joinLeaveButton}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" aria-label="Game menu">
+                <MoreHorizontal />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleGameInfo}>
+                <Info />
+                Game info
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handlePlayerInfo}>
+                <Users />
+                Player info
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => {
+                  navigator.clipboard.writeText(
+                    `${window.location.origin}/game/${game.id}`
+                  );
+                }}
+              >
+                <Share />
+                Share
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      {game.status === "pending" && (
+        <Alert>
+          <Info className="size-4" />
+          <AlertDescription>
+            This game has not started yet. The game will start once{" "}
+            {variant?.nations.length} players have joined.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {game.victory && (
+        <Alert>
+          <Trophy className="size-4" />
+          <AlertDescription>
+            {game.victory.type === "solo"
+              ? `${game.victory.members[0]?.name} has won the game!`
+              : `The game ended in a draw between ${game.victory.members.length} players.`}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <Card>
+        <CardContent className="px-0">
+          <ItemGroup>
+            {game.members.map(member => {
+              const nationFlag =
+                Flags[(variant?.id ?? "") as keyof typeof Flags]?.[
+                  member.nation?.toLowerCase() as keyof (typeof Flags)[keyof typeof Flags]
+                ];
+
+              const supplyCenterCount = getSupplyCenterCount(member);
+              const isWinner = winnerIds.includes(member.id);
+
+              return (
+                <React.Fragment key={member.id}>
+                  <Item className="rounded-none border-0" size="default">
+                    <ItemMedia className="relative">
+                      <Avatar className="size-12">
+                        <AvatarImage src={member.picture ?? undefined} />
+                        <AvatarFallback>
+                          {member.nation?.toUpperCase()[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      {member.nation && nationFlag && (
+                        <span className="absolute -right-1 -bottom-1 inline-flex size-4 items-center justify-center rounded-full bg-white border-2 border-background">
+                          <img
+                            src={nationFlag}
+                            alt={member.nation}
+                            className="h-full w-full rounded-full object-cover"
+                          />
+                        </span>
+                      )}
+                    </ItemMedia>
+
+                    <ItemContent>
+                      <ItemTitle>
+                        {member.name}
+                        {isWinner && (
+                          <Badge variant="default" className="gap-1">
+                            <Trophy className="size-3" />
+                            {game.victory?.type === "solo" ? "Winner" : "Draw"}
+                          </Badge>
+                        )}
+                      </ItemTitle>
+
+                      {member.nation && (
+                        <ItemDescription className="line-clamp-none">
+                          <span className="inline-flex items-center gap-2">
+                            <span>{member.nation}</span>
+                            <span>•</span>
+                            <span className="inline-flex items-center gap-1">
+                              <Star className="size-3" />
+                              {supplyCenterCount !== undefined ? (
+                                <span>{supplyCenterCount}</span>
+                              ) : (
+                                <Skeleton className="h-3 w-4" />
+                              )}
+                            </span>
+                          </span>
+                        </ItemDescription>
+                      )}
+                    </ItemContent>
+
+                    <ItemActions />
+                  </Item>
+                </React.Fragment>
+              );
+            })}
+          </ItemGroup>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+const PlayerInfoSuspense: React.FC = () => {
+  return (
+    <div className="w-full">
+      <Suspense fallback={<div></div>}>
+        <PlayerInfo />
+      </Suspense>
+    </div>
+  );
+};
+
+export { PlayerInfoSuspense as PlayerInfo };

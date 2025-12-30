@@ -1,14 +1,14 @@
 import React from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MemberRead, VictoryRead } from "../store/service";
 import { Flags } from "../assets/flags";
 import { Plus } from "lucide-react";
 import { cn } from "../lib/utils";
+import { Member } from "../api/generated/endpoints";
 
 type MemberAvatarGroupProps = {
-  members: MemberRead[];
+  members: readonly Member[];
   variant: string;
-  victory?: Pick<VictoryRead, "members">;
+  victory?: { members: readonly { id: string }[] };
   max?: number;
   size?: "small" | "medium";
   onClick?: () => void;
@@ -30,7 +30,7 @@ const SIZE_CONFIG = {
 };
 
 const MemberAvatar: React.FC<{
-  member: MemberRead;
+  member: Member;
   variant: string;
   size: "small" | "medium";
   isWinner: boolean;

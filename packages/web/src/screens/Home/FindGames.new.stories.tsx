@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { MyGames } from "./MyGames.new";
+import { FindGames } from "./FindGames.new";
 import {
   getGamePhaseRetrieveMockHandler,
   getGamesListMockHandler,
@@ -9,17 +9,18 @@ import { mockVariants, mockPendingGames, mockPhaseMovement } from "@/mocks";
 import { HomeLayout } from "../../components/HomeLayout";
 
 const meta = {
-  title: "Screens/MyGames",
-  component: MyGames,
+  title: "Screens/FindGames",
+  component: FindGames,
   render: args => (
     <HomeLayout>
-      <MyGames {...args} />
+      <FindGames {...args} />
     </HomeLayout>
   ),
   parameters: {
     layout: "fullscreen",
     router: {
-      initialEntries: ["/"],
+      path: "/find-games",
+      initialEntries: ["/find-games"],
     },
     msw: {
       handlers: [
@@ -29,7 +30,7 @@ const meta = {
       ],
     },
   },
-} satisfies Meta<typeof MyGames>;
+} satisfies Meta<typeof FindGames>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

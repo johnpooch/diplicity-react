@@ -1,167 +1,66 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { action } from "@storybook/addon-actions";
 import { Profile } from "./Profile.new";
+import { getUserRetrieveMockHandler } from "@/api/generated/endpoints";
+import { mockUserProfile } from "@/mocks";
+import { HomeLayout } from "../../components/HomeLayout";
 
 const meta = {
   title: "Screens/Profile",
   component: Profile,
+  render: args => (
+    <HomeLayout>
+      <Profile {...args} />
+    </HomeLayout>
+  ),
   parameters: {
     layout: "fullscreen",
+    router: {
+      path: "/profile",
+      initialEntries: ["/profile"],
+    },
+    msw: {
+      handlers: [getUserRetrieveMockHandler(mockUserProfile)],
+    },
   },
 } satisfies Meta<typeof Profile>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {
-  args: {
-    isLoading: false,
-    userProfile: {
-      name: "John Smith",
-      picture: null,
-    },
-    onUpdateName: action("update-name"),
-    isSubmitting: false,
-    pushNotificationsEnabled: false,
-    pushNotificationsPermissionDenied: false,
-    pushNotificationsError: undefined,
-    onTogglePushNotifications: action("toggle-push-notifications"),
-    onLogout: action("logout"),
-  },
-};
+export const Default: Story = {};
 
 export const WithAvatar: Story = {
-  args: {
-    isLoading: false,
-    userProfile: {
-      name: "Jane Doe",
-      picture: "https://i.pravatar.cc/150?img=5",
+  parameters: {
+    msw: {
+      handlers: [
+        getUserRetrieveMockHandler({
+          ...mockUserProfile,
+          name: "Jane Doe",
+          picture: "https://i.pravatar.cc/150?img=5",
+        }),
+      ],
     },
-    onUpdateName: action("update-name"),
-    isSubmitting: false,
-    pushNotificationsEnabled: true,
-    pushNotificationsPermissionDenied: false,
-    pushNotificationsError: undefined,
-    onTogglePushNotifications: action("toggle-push-notifications"),
-    onLogout: action("logout"),
-  },
-};
-
-export const EditingName: Story = {
-  args: {
-    isLoading: false,
-    userProfile: {
-      name: "John Smith",
-      picture: null,
-    },
-    onUpdateName: action("update-name"),
-    isSubmitting: false,
-    pushNotificationsEnabled: false,
-    pushNotificationsPermissionDenied: false,
-    pushNotificationsError: undefined,
-    onTogglePushNotifications: action("toggle-push-notifications"),
-    onLogout: action("logout"),
-  },
-};
-
-export const SavingName: Story = {
-  args: {
-    isLoading: false,
-    userProfile: {
-      name: "John Smith",
-      picture: null,
-    },
-    onUpdateName: action("update-name"),
-    isSubmitting: true,
-    pushNotificationsEnabled: false,
-    pushNotificationsPermissionDenied: false,
-    pushNotificationsError: undefined,
-    onTogglePushNotifications: action("toggle-push-notifications"),
-    onLogout: action("logout"),
-  },
-};
-
-export const SaveNameError: Story = {
-  args: {
-    isLoading: false,
-    userProfile: {
-      name: "John Smith",
-      picture: null,
-    },
-    onUpdateName: async () => {
-      await action("update-name")();
-      throw new Error("Failed to update name");
-    },
-    isSubmitting: false,
-    pushNotificationsEnabled: false,
-    pushNotificationsPermissionDenied: false,
-    pushNotificationsError: undefined,
-    onTogglePushNotifications: action("toggle-push-notifications"),
-    onLogout: action("logout"),
-  },
-};
-
-export const Loading: Story = {
-  args: {
-    isLoading: true,
-    userProfile: undefined,
-    onUpdateName: action("update-name"),
-    isSubmitting: false,
-    pushNotificationsEnabled: false,
-    pushNotificationsPermissionDenied: false,
-    pushNotificationsError: undefined,
-    onTogglePushNotifications: action("toggle-push-notifications"),
-    onLogout: action("logout"),
   },
 };
 
 export const NotificationsEnabled: Story = {
-  args: {
-    isLoading: false,
-    userProfile: {
-      name: "John Smith",
-      picture: null,
+  parameters: {
+    messaging: {
+      enabled: true,
+      permissionDenied: false,
+      error: null,
+      isLoading: false,
     },
-    onUpdateName: action("update-name"),
-    isSubmitting: false,
-    pushNotificationsEnabled: true,
-    pushNotificationsPermissionDenied: false,
-    pushNotificationsError: undefined,
-    onTogglePushNotifications: action("toggle-push-notifications"),
-    onLogout: action("logout"),
-  },
-};
-
-export const NotificationsPermissionDenied: Story = {
-  args: {
-    isLoading: false,
-    userProfile: {
-      name: "John Smith",
-      picture: null,
-    },
-    onUpdateName: action("update-name"),
-    isSubmitting: false,
-    pushNotificationsEnabled: false,
-    pushNotificationsPermissionDenied: true,
-    pushNotificationsError: undefined,
-    onTogglePushNotifications: action("toggle-push-notifications"),
-    onLogout: action("logout"),
   },
 };
 
 export const NotificationsError: Story = {
-  args: {
-    isLoading: false,
-    userProfile: {
-      name: "John Smith",
-      picture: null,
+  parameters: {
+    messaging: {
+      enabled: false,
+      permissionDenied: false,
+      error: "Failed to register service worker",
+      isLoading: false,
     },
-    onUpdateName: action("update-name"),
-    isSubmitting: false,
-    pushNotificationsEnabled: false,
-    pushNotificationsPermissionDenied: false,
-    pushNotificationsError: "Failed to register service worker",
-    onTogglePushNotifications: action("toggle-push-notifications"),
-    onLogout: action("logout"),
   },
 };

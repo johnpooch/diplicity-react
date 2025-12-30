@@ -1,57 +1,45 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router";
-import { Check, X, Pencil, Menu as MenuIcon } from "lucide-react";
+import React, { Suspense, useState } from "react";
+import {
+  Check,
+  X,
+  Pencil,
+  Menu as MenuIcon,
+  MoreHorizontal,
+} from "lucide-react";
+import { useDispatch } from "react-redux";
 
-import { HomeLayout } from "@/components/HomeLayout";
-import { Navigation } from "@/components/Navigation";
-import { InfoPanel } from "@/components/InfoPanel.new";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { navigationItems } from "@/navigation/navigationItems";
-import { authSlice, service } from "@/store";
+import { authSlice } from "@/store";
 import { useMessaging } from "@/context";
-import { useDispatch } from "react-redux";
+import {
+  useUserRetrieveSuspense,
+  useUserUpdatePartialUpdate,
+} from "@/api/generated/endpoints";
 
-interface ProfileProps {
-  isLoading: boolean;
-  userProfile:
-    | {
-        name: string;
-        picture: string | null;
-      }
-    | undefined;
-  onUpdateName: (name: string) => Promise<void>;
-  isSubmitting: boolean;
-  pushNotificationsEnabled: boolean;
-  pushNotificationsPermissionDenied: boolean;
-  pushNotificationsError: string | undefined;
-  onTogglePushNotifications: (enabled: boolean) => void;
-  onLogout: () => void;
-}
+const Profile: React.FC = () => {
+  const dispatch = useDispatch();
+  const { data: userProfile } = useUserRetrieveSuspense();
+  const updateProfileMutation = useUserUpdatePartialUpdate();
 
-const Profile: React.FC<ProfileProps> = ({
-  isLoading,
-  userProfile,
-  onUpdateName,
-  isSubmitting,
-  pushNotificationsEnabled,
-  pushNotificationsPermissionDenied,
-  pushNotificationsError,
-  onTogglePushNotifications,
-  onLogout,
-}) => {
+  const {
+    enableMessaging,
+    enabled,
+    disableMessaging,
+    permissionDenied,
+    error,
+  } = useMessaging();
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState("");
   const [saveNameError, setSaveNameError] = useState(false);
@@ -72,7 +60,9 @@ const Profile: React.FC<ProfileProps> = ({
     const trimmedName = editedName.trim();
     if (trimmedName.length >= 2) {
       try {
-        await onUpdateName(trimmedName);
+        await updateProfileMutation.mutateAsync({
+          data: { name: trimmedName },
+        });
         setIsEditingName(false);
         setEditedName("");
         setSaveNameError(false);
@@ -80,158 +70,6 @@ const Profile: React.FC<ProfileProps> = ({
         setSaveNameError(true);
       }
     }
-  };
-  return (
-    <div className="w-full space-y-4">
-      <h1 className="text-2xl font-bold">Profile</h1>
-
-      <div className="space-y-6">
-        {/* Profile Header */}
-        <div className="flex items-center gap-4">
-          <div>
-            {isLoading ? (
-              <Skeleton className="size-12 rounded-full" />
-            ) : (
-              <Avatar className="size-12">
-                <AvatarImage src={userProfile?.picture ?? undefined} />
-                <AvatarFallback>
-                  {userProfile?.name?.[0]?.toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-            )}
-          </div>
-
-          <div className="flex-1">
-            {isLoading ? (
-              <Skeleton className="h-6 w-40" />
-            ) : isEditingName ? (
-              <div className="flex items-center gap-2">
-                <Input
-                  value={editedName}
-                  onChange={e => setEditedName(e.target.value)}
-                  autoFocus
-                  disabled={isSubmitting}
-                  className="max-w-xs"
-                  onKeyDown={e => {
-                    if (e.key === "Enter") {
-                      handleSaveName();
-                    } else if (e.key === "Escape") {
-                      handleCancelEditName();
-                    }
-                  }}
-                />
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={handleSaveName}
-                  disabled={
-                    isSubmitting || !editedName || editedName.trim().length < 2
-                  }
-                  aria-label="Save"
-                >
-                  <Check className="size-4" />
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={handleCancelEditName}
-                  disabled={isSubmitting}
-                  aria-label="Cancel"
-                >
-                  <X className="size-4" />
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-medium">{userProfile?.name}</span>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={handleStartEditName}
-                  aria-label="Edit name"
-                >
-                  <Pencil className="size-4" />
-                </Button>
-              </div>
-            )}
-            {saveNameError && (
-              <p className="text-sm text-destructive mt-1">
-                Failed to update name. Please try again.
-              </p>
-            )}
-          </div>
-
-          <div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="icon" variant="ghost" aria-label="Menu">
-                  <MenuIcon className="size-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={onLogout}>Logout</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* Notifications Section */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold">Notifications</h2>
-
-          <div className="space-y-4">
-            {pushNotificationsError && (
-              <Alert variant="destructive">
-                <AlertDescription>{pushNotificationsError}</AlertDescription>
-              </Alert>
-            )}
-
-            {pushNotificationsPermissionDenied && !pushNotificationsError && (
-              <Alert>
-                <AlertDescription>
-                  Notifications are blocked in your browser. To enable them,
-                  click the icon in your address bar and allow notifications.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="push-notifications"
-                checked={pushNotificationsEnabled}
-                disabled={pushNotificationsPermissionDenied}
-                onCheckedChange={onTogglePushNotifications}
-              />
-              <Label htmlFor="push-notifications">Push Notifications</Label>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const ProfileContainer: React.FC = () => {
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const query = service.endpoints.userRetrieve.useQuery();
-  const [updateProfile, updateProfileMutation] =
-    service.endpoints.userUpdatePartialUpdate.useMutation();
-
-  const {
-    enableMessaging,
-    enabled,
-    disableMessaging,
-    permissionDenied,
-    error,
-  } = useMessaging();
-
-  const handleUpdateName = async (name: string) => {
-    await updateProfile({
-      patchedUserProfile: { name },
-    }).unwrap();
   };
 
   const handleLogout = () => {
@@ -246,44 +84,139 @@ const ProfileContainer: React.FC = () => {
     }
   };
 
-  const navItems = navigationItems.map(item => ({
-    ...item,
-    isActive: item.path === "/profile",
-  }));
-
   return (
-    <HomeLayout
-      left={
-        <Navigation
-          items={navItems}
-          variant="sidebar"
-          onItemClick={path => navigate(path)}
-        />
-      }
-      center={
-        <Profile
-          isLoading={query.isLoading}
-          userProfile={query.data}
-          onUpdateName={handleUpdateName}
-          isSubmitting={updateProfileMutation.isLoading}
-          pushNotificationsEnabled={enabled}
-          pushNotificationsPermissionDenied={permissionDenied}
-          pushNotificationsError={error ?? undefined}
-          onTogglePushNotifications={handleTogglePushNotifications}
-          onLogout={handleLogout}
-        />
-      }
-      right={<InfoPanel />}
-      bottom={
-        <Navigation
-          items={navItems}
-          variant="bottom"
-          onItemClick={path => navigate(path)}
-        />
-      }
-    />
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">Profile</h1>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon" aria-label="Menu">
+              <MoreHorizontal className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <Card>
+        <CardContent className="p-6 space-y-4">
+          <h2 className="text-lg font-semibold">User</h2>
+          <div className="flex items-center gap-4">
+            <div>
+              <Avatar className="size-12">
+                <AvatarImage src={userProfile?.picture ?? undefined} />
+                <AvatarFallback>
+                  {userProfile?.name?.[0]?.toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+
+            <div className="flex-1">
+              {isEditingName ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={editedName}
+                    onChange={e => setEditedName(e.target.value)}
+                    autoFocus
+                    disabled={updateProfileMutation.isPending}
+                    className="max-w-xs"
+                    onKeyDown={e => {
+                      if (e.key === "Enter") {
+                        handleSaveName();
+                      } else if (e.key === "Escape") {
+                        handleCancelEditName();
+                      }
+                    }}
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={handleSaveName}
+                    disabled={
+                      updateProfileMutation.isPending ||
+                      !editedName ||
+                      editedName.trim().length < 2
+                    }
+                    aria-label="Save"
+                  >
+                    <Check className="size-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={handleCancelEditName}
+                    disabled={updateProfileMutation.isPending}
+                    aria-label="Cancel"
+                  >
+                    <X className="size-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-medium">
+                    {userProfile?.name}
+                  </span>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={handleStartEditName}
+                    aria-label="Edit name"
+                  >
+                    <Pencil className="size-4" />
+                  </Button>
+                </div>
+              )}
+              {saveNameError && (
+                <p className="text-sm text-destructive mt-1">
+                  Failed to update name. Please try again.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Notifications</h2>
+
+            <div className="space-y-2">
+              {permissionDenied && (
+                <Alert>
+                  <AlertDescription>
+                    Notifications are blocked in your browser. To enable them,
+                    click the icon in your address bar and allow notifications.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="push-notifications"
+                    checked={enabled}
+                    disabled={permissionDenied}
+                    onCheckedChange={handleTogglePushNotifications}
+                  />
+                  <Label htmlFor="push-notifications">Push Notifications</Label>
+                </div>
+                {error && <p className="text-sm text-destructive">{error}</p>}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
-export { Profile, ProfileContainer };
-export type { ProfileProps };
+const ProfileSuspense: React.FC = () => {
+  return (
+    <div className="w-full space-y-4">
+      <Suspense fallback={<div></div>}>
+        <Profile />
+      </Suspense>
+    </div>
+  );
+};
+
+export { ProfileSuspense as Profile };

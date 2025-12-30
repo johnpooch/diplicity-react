@@ -168,4 +168,4 @@ const useMessaging = () => {
   return messaging;
 };
 
-export { MessagingContextProvider, useMessaging };
+export { MessagingContext, MessagingContextProvider, useMessaging };

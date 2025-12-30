@@ -8,6 +8,7 @@ import {
   Variant,
   VariantRead,
 } from "../../store";
+import type { PhaseRetrieve } from "../../api/generated/endpoints";
 
 import classical from "../../maps/classical.json";
 import hundred from "../../maps/hundred.json";
@@ -29,7 +30,7 @@ type VariantForMap = Pick<VariantRead, "id" | "nations">;
 type InteractiveMapProps = {
   interactive?: boolean;
   variant: VariantForMap;
-  phase: PhaseRetrieveRead;
+  phase: PhaseRetrieveRead | PhaseRetrieve;
   selected: string[];
   highlighted?: string[];
   orders: OrderRead[] | undefined;

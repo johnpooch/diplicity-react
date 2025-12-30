@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { GameListRead, PhaseRetrieveRead, VariantRead } from "../store";
+import { VariantRead } from "../store";
 import {
   Card,
   CardDescription,
@@ -25,14 +25,14 @@ import {
 } from "lucide-react";
 import { MemberAvatarGroup } from "./MemberAvatarGroup.new";
 import { formatDateTime } from "../util";
+import { GameList, useGamePhaseRetrieve } from "../api/generated/endpoints";
+import { Skeleton } from "./ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 export interface GameCardProps {
-  game: GameListRead;
+  game: GameList;
   variant: Pick<VariantRead, "name" | "id">;
-  phase: Pick<
-    PhaseRetrieveRead,
-    "season" | "year" | "type" | "scheduledResolution"
-  >;
+  phaseId: number;
   map: React.ReactNode;
   onClickGame: (id: string) => void;
   onClickGameInfo: (id: string) => void;
@@ -44,16 +44,38 @@ export interface GameCardProps {
 const GameCard: React.FC<GameCardProps> = ({
   game,
   variant,
-  phase,
+  phaseId,
   map,
   onClickGame,
   onClickGameInfo,
   onClickPlayerInfo,
   onClickJoinGame,
 }) => {
+  const { data: phase } = useGamePhaseRetrieve(game.id, phaseId);
+
+  const handleJoinGame = async () => {
+    await onClickJoinGame(game.id);
+  };
+
+  const joinGameButton = game.canJoin && (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          onClick={handleJoinGame}
+          variant="outline"
+          aria-label="Join game"
+        >
+          <UserPlus className="size-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>Join game</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+
   return (
     <Card className="w-full flex  flex-col md:flex-row overflow-hidden p-0">
-      {/* 1. Map (SVG) Section - Top on mobile, Left on larger screens */}
       <button
         onClick={() => onClickGame(game.id)}
         className="cursor-pointer hover:opacity-90 transition-opacity md:max-w-xs lg:max-w-sm"
@@ -61,43 +83,44 @@ const GameCard: React.FC<GameCardProps> = ({
         {map}
       </button>
 
-      {/* 2. Content Container - Right Side */}
       <div className="flex flex-col justify-between flex-grow p-4">
-        {/* Header (Title, Subtitle, and More Button) */}
         <CardHeader className="p-0">
           <div className="flex flex-col">
-            {/* Title and Menu Group */}
             <div className="flex justify-between items-center">
               <CardTitle>{game.name}</CardTitle>
-              {/* More Actions Button */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <MoreHorizontal />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => onClickGameInfo(game.id)}>
-                    <Info />
-                    Game info
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onClickPlayerInfo(game.id)}>
-                    <Users />
-                    Player info
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => {
-                      navigator.clipboard.writeText(
-                        `${window.location.origin}/game/${game.id}`
-                      );
-                    }}
-                  >
-                    <Share />
-                    Share
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="flex items-center gap-2">
+                {joinGameButton}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon">
+                      <MoreHorizontal />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => onClickGameInfo(game.id)}>
+                      <Info />
+                      Game info
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => onClickPlayerInfo(game.id)}
+                    >
+                      <Users />
+                      Player info
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => {
+                        navigator.clipboard.writeText(
+                          `${window.location.origin}/game/${game.id}`
+                        );
+                      }}
+                    >
+                      <Share />
+                      Share
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
 
             <CardDescription className="text-sm text-muted-foreground">
@@ -108,11 +131,15 @@ const GameCard: React.FC<GameCardProps> = ({
                   {game.movementPhaseDuration || "Resolve when ready"}
                 </span>
               </div>
-              <p>
-                {phase.season} {phase.year} • {phase.type}
-                {phase.scheduledResolution &&
-                  ` • Resolves ${formatDateTime(phase.scheduledResolution)}`}
-              </p>
+              {phase ? (
+                <p>
+                  {phase.season} {phase.year} • {phase.type}
+                  {phase.scheduledResolution &&
+                    ` • Resolves ${formatDateTime(phase.scheduledResolution)}`}
+                </p>
+              ) : (
+                <Skeleton className="w-24 h-4" />
+              )}
             </CardDescription>
           </div>
         </CardHeader>
@@ -122,13 +149,6 @@ const GameCard: React.FC<GameCardProps> = ({
             variant={variant.id}
             onClick={() => onClickPlayerInfo(game.id)}
           />
-
-          {game.canJoin && (
-            <Button variant="outline" onClick={() => onClickJoinGame(game.id)}>
-              <UserPlus />
-              Join
-            </Button>
-          )}
         </CardFooter>
       </div>
     </Card>

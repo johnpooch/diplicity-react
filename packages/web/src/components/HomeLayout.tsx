@@ -1,4 +1,5 @@
 import React from "react";
+import { useLocation, useNavigate } from "react-router";
 import { cn } from "@/lib/utils";
 import {
   Sidebar,
@@ -10,24 +11,15 @@ import {
 } from "@/components/ui/sidebar";
 import { Item, ItemMedia, ItemContent, ItemTitle } from "@/components/ui/item";
 import { DiplicityLogo } from "@/components/DiplicityLogo";
+import { Navigation } from "@/components/Navigation";
+import { InfoPanel } from "@/components/InfoPanel.new";
+import { navigationItems } from "@/navigation/navigationItems";
 
 interface HomeLayoutProps {
   /**
-   * Content for the left sidebar (e.g., navigation)
-   **/
-  left: React.ReactNode;
-  /**
    * Main content area
    **/
-  center: React.ReactNode;
-  /**
-   * Content for the right sidebar (e.g., info panel)
-   **/
-  right: React.ReactNode;
-  /**
-   * Content for the bottom navigation (mobile only)
-   **/
-  bottom: React.ReactNode;
+  children: React.ReactNode;
   /**
    * Custom className for the root container
    **/
@@ -37,7 +29,8 @@ interface HomeLayoutProps {
 /**
  * HomeLayout - A responsive app shell component
  *
- * Provides a three-column layout (left, center, right) with optional bottom navigation.
+ * Provides a three-column layout with navigation (left), main content (center),
+ * and info panel (right), plus bottom navigation for mobile.
  * Uses ShadCN Sidebar for the left sidebar with collapsible functionality.
  *
  * Responsive behavior:
@@ -46,22 +39,20 @@ interface HomeLayoutProps {
  *
  * @example
  * ```tsx
- * <HomeLayout
- *   left={<Navigation />}
- *   center={<MainContent />}
- *   right={<InfoPanel />}
- *   bottom={<MobileNav />}
- * />
+ * <HomeLayout>
+ *   <MyGamesContent />
+ * </HomeLayout>
  * ```
  */
-const HomeLayout: React.FC<HomeLayoutProps> = ({
-  left,
-  center,
-  right,
-  bottom,
-  className,
-}) => {
-  // Bottom navigation: visible on mobile only
+const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const navItems = navigationItems.map(item => ({
+    ...item,
+    isActive: location.pathname === item.path,
+  }));
+
   const bottomClasses = cn("border-t bg-background", "block md:hidden");
 
   return (
@@ -85,34 +76,41 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({
                 </ItemContent>
               </Item>
             </SidebarHeader>
-            <SidebarContent>{left}</SidebarContent>
+            <SidebarContent>
+              <Navigation
+                items={navItems}
+                variant="sidebar"
+                onItemClick={path => navigate(path)}
+              />
+            </SidebarContent>
           </Sidebar>
 
           {/* Main Content Area */}
           <SidebarInset className="flex min-w-0 flex-1 flex-col">
-            {/* Mobile menu trigger */}
-            <div className="md:hidden p-2 border-b shrink-0">
-              <SidebarTrigger />
-            </div>
-
             {/* Center content - scrollable */}
             <div className="flex-1 overflow-y-auto">
-              <div className="mx-auto w-full max-w-[672px] py-4">{center}</div>
+              <div className="mx-auto w-full max-w-[672px] py-4 px-2">
+                {children}
+              </div>
             </div>
           </SidebarInset>
 
-          {/* Right Sidebar - Styled to match left sidebar */}
-          {right && (
-            <div className="hidden xl:flex w-64 border-l flex-col">
-              <div className="bg-sidebar flex h-full w-full flex-col p-2">
-                {right}
-              </div>
+          {/* Right Sidebar - Info Panel */}
+          <div className="hidden xl:flex w-64 border-l flex-col">
+            <div className="bg-sidebar flex h-full w-full flex-col p-2">
+              <InfoPanel />
             </div>
-          )}
+          </div>
         </div>
 
         {/* Bottom Navigation */}
-        {bottom && <div className={bottomClasses}>{bottom}</div>}
+        <div className={bottomClasses}>
+          <Navigation
+            items={navItems}
+            variant="bottom"
+            onItemClick={path => navigate(path)}
+          />
+        </div>
       </div>
     </SidebarProvider>
   );

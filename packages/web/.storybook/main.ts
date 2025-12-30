@@ -9,11 +9,13 @@ const config: StorybookConfig = {
     "@storybook/addon-essentials",
     "@chromatic-com/storybook",
     "@storybook/addon-interactions",
+    "msw-storybook-addon",
   ],
   framework: {
     name: "@storybook/react-vite",
     options: {},
   },
+  staticDirs: ["../public"],
   viteFinal: async config => {
     const { default: tailwindcss } = await import("@tailwindcss/vite");
     return mergeConfig(config, {
