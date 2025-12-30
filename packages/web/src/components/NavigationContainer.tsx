@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router";
 import { Navigation } from "./Navigation";
-import { navigationItems } from "../navigation/navigationItems";
+import { homeNavigationItems } from "../navigation/navigationItems";
 
 interface NavigationContainerProps {
   variant: "sidebar" | "compact" | "bottom";
@@ -19,7 +19,7 @@ const NavigationContainer: React.FC<NavigationContainerProps> = ({
     navigate(path);
   };
 
-  const itemsWithActiveState = navigationItems.map((item) => ({
+  const itemsWithActiveState = homeNavigationItems.map(item => ({
     ...item,
     isActive: location.pathname === item.path,
   }));

@@ -7,13 +7,12 @@ import {
   SidebarHeader,
   SidebarInset,
   SidebarProvider,
-  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Item, ItemMedia, ItemContent, ItemTitle } from "@/components/ui/item";
 import { DiplicityLogo } from "@/components/DiplicityLogo";
 import { Navigation } from "@/components/Navigation";
 import { InfoPanel } from "@/components/InfoPanel.new";
-import { navigationItems } from "@/navigation/navigationItems";
+import { homeNavigationItems } from "@/navigation/navigationItems";
 
 interface HomeLayoutProps {
   /**
@@ -48,7 +47,7 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const navItems = navigationItems.map(item => ({
+  const navItems = homeNavigationItems.map(item => ({
     ...item,
     isActive: location.pathname === item.path,
   }));

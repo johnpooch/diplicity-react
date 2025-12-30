@@ -5,7 +5,7 @@ import { Navigation } from "./Navigation";
 import { AppBar } from "./AppBar.new";
 import { Button } from "@/components/ui/button";
 import { Icon, IconName } from "./Icon";
-import { navigationItems } from "../navigation/navigationItems";
+import { homeNavigationItems } from "../navigation/navigationItems";
 import { GameCard } from "./GameCard.new";
 import { InfoPanel } from "./InfoPanel.new";
 import { CreateGame, VariantForSelector } from "../screens/Home/CreateGame.new";
@@ -32,7 +32,7 @@ type Story = StoryObj<typeof meta>;
 
 // Helper to create navigation items with active state
 const createNavItems = (activePath: string = "/") =>
-  navigationItems.map(item => ({
+  homeNavigationItems.map(item => ({
     ...item,
     isActive: item.path === activePath,
   }));
@@ -324,13 +324,14 @@ const GameListContent = () => (
         map={<MapComponent />}
         onClickGame={(id: string) => console.log("Game clicked", id)}
         onClickGameInfo={(id: string) => console.log("Game info clicked", id)}
-        onClickPlayerInfo={(id: string) => console.log("Player info clicked", id)}
+        onClickPlayerInfo={(id: string) =>
+          console.log("Player info clicked", id)
+        }
         onClickJoinGame={(id: string) => console.log("Join game clicked", id)}
       />
     ))}
   </div>
 );
-
 
 const mockVariants: VariantForSelector[] = [
   {
