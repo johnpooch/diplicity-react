@@ -8,20 +8,10 @@ import {
   CardTitle,
   CardFooter,
 } from "@/components/ui/card";
+import { GameDropdownMenu } from "./GameDropdownMenu";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  MoreHorizontal,
   UserPlus,
   Lock,
-  Info,
-  Users,
-  Share,
 } from "lucide-react";
 import { MemberAvatarGroup } from "./MemberAvatarGroup.new";
 import { formatDateTime } from "../util";
@@ -90,36 +80,11 @@ const GameCard: React.FC<GameCardProps> = ({
               <CardTitle>{game.name}</CardTitle>
               <div className="flex items-center gap-2">
                 {joinGameButton}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon">
-                      <MoreHorizontal />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onClickGameInfo(game.id)}>
-                      <Info />
-                      Game info
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => onClickPlayerInfo(game.id)}
-                    >
-                      <Users />
-                      Player info
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => {
-                        navigator.clipboard.writeText(
-                          `${window.location.origin}/game/${game.id}`
-                        );
-                      }}
-                    >
-                      <Share />
-                      Share
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <GameDropdownMenu
+                  gameId={game.id}
+                  onNavigateToGameInfo={() => onClickGameInfo(game.id)}
+                  onNavigateToPlayerInfo={() => onClickPlayerInfo(game.id)}
+                />
               </div>
             </div>
 

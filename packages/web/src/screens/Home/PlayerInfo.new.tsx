@@ -6,9 +6,6 @@ import {
   Star,
   UserPlus,
   UserMinus,
-  MoreHorizontal,
-  Users,
-  Share,
 } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -18,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { ScreenContainer } from "@/components/ui/screen-container";
+import { GameDropdownMenu } from "@/components/GameDropdownMenu";
 import {
   useGameRetrieveSuspense,
   useGamePhaseRetrieve,
@@ -34,13 +32,6 @@ import {
   TooltipTrigger,
 } from "../../components/ui/tooltip";
 import { Button } from "../../components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "../../components/ui/dropdown-menu";
 
 const PlayerInfo: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -127,34 +118,11 @@ const PlayerInfo: React.FC = () => {
         actions={
           <>
             {joinLeaveButton}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" aria-label="Game menu">
-                  <MoreHorizontal />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleGameInfo}>
-                  <Info />
-                  Game info
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handlePlayerInfo}>
-                  <Users />
-                  Player info
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => {
-                    navigator.clipboard.writeText(
-                      `${window.location.origin}/game/${game.id}`
-                    );
-                  }}
-                >
-                  <Share />
-                  Share
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <GameDropdownMenu
+              gameId={game.id}
+              onNavigateToGameInfo={handleGameInfo}
+              onNavigateToPlayerInfo={handlePlayerInfo}
+            />
           </>
         }
       />

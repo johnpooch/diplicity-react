@@ -11,20 +11,12 @@ import {
   Map,
   UserPlus,
   UserMinus,
-  MoreHorizontal,
-  Share,
 } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { GameDropdownMenu } from "@/components/GameDropdownMenu";
 import {
   Tooltip,
   TooltipContent,
@@ -143,34 +135,11 @@ const GameInfo: React.FC = () => {
         actions={
           <>
             {joinLeaveButton}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" aria-label="Game menu">
-                  <MoreHorizontal />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleGameInfo}>
-                  <Info />
-                  Game info
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handlePlayerInfo}>
-                  <Users />
-                  Player info
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => {
-                    navigator.clipboard.writeText(
-                      `${window.location.origin}/game/${game.id}`
-                    );
-                  }}
-                >
-                  <Share />
-                  Share
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <GameDropdownMenu
+              gameId={game.id}
+              onNavigateToGameInfo={handleGameInfo}
+              onNavigateToPlayerInfo={handlePlayerInfo}
+            />
           </>
         }
       />
