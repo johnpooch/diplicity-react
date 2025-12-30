@@ -1,8 +1,6 @@
 import React, { Suspense } from "react";
 import { useParams, useNavigate } from "react-router";
 import {
-  Info,
-  Trophy,
   Calendar,
   Users,
   Lock,
@@ -13,10 +11,10 @@ import {
   UserMinus,
 } from "lucide-react";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { GameDropdownMenu } from "@/components/GameDropdownMenu";
+import { GameStatusAlerts } from "@/components/GameStatusAlerts";
 import {
   Tooltip,
   TooltipContent,
@@ -143,25 +141,7 @@ const GameInfo: React.FC = () => {
           </>
         }
       />
-      {game.status === "pending" && (
-        <Alert>
-          <Info className="size-4" />
-          <AlertDescription>
-            This game has not started yet. The game will start once{" "}
-            {variant?.nations.length} players have joined.
-          </AlertDescription>
-        </Alert>
-      )}
-      {game.victory && (
-        <Alert>
-          <Trophy className="size-4" />
-          <AlertDescription>
-            {game.victory.type === "solo"
-              ? `${game.victory.members[0]?.name} has won the game!`
-              : `The game ended in a draw between ${game.victory.members.length} players.`}
-          </AlertDescription>
-        </Alert>
-      )}
+      <GameStatusAlerts game={game} variant={variant} />
       <ScreenCard>
         <ScreenCardHeader>
           <CardTitle>{game.name}</CardTitle>

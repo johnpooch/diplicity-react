@@ -1,14 +1,13 @@
 import React, { Suspense } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
-  Info,
-  Trophy,
   Star,
   UserPlus,
   UserMinus,
+  Trophy,
 } from "lucide-react";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { GameStatusAlerts } from "@/components/GameStatusAlerts";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -127,26 +126,7 @@ const PlayerInfo: React.FC = () => {
         }
       />
 
-      {game.status === "pending" && (
-        <Alert>
-          <Info className="size-4" />
-          <AlertDescription>
-            This game has not started yet. The game will start once{" "}
-            {variant?.nations.length} players have joined.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {game.victory && (
-        <Alert>
-          <Trophy className="size-4" />
-          <AlertDescription>
-            {game.victory.type === "solo"
-              ? `${game.victory.members[0]?.name} has won the game!`
-              : `The game ended in a draw between ${game.victory.members.length} players.`}
-          </AlertDescription>
-        </Alert>
-      )}
+      <GameStatusAlerts game={game} variant={variant} />
 
       <ScreenCard>
         <ScreenCardContent className="divide-y">
