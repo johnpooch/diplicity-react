@@ -2,13 +2,7 @@ import React, { useState } from "react";
 import { Cross } from "./shapes/cross";
 import { CurvedArrow } from "./shapes/curved-arrow";
 import { Octagon } from "./shapes/octagon";
-import {
-  OrderRead,
-  PhaseRetrieveRead,
-  Variant,
-  VariantRead,
-} from "../../store";
-import type { PhaseRetrieve } from "../../api/generated/endpoints";
+import type { Order, PhaseRetrieve, Variant } from "../../api/generated/endpoints";
 
 import classical from "../../maps/classical.json";
 import hundred from "../../maps/hundred.json";
@@ -21,19 +15,19 @@ const VARIANT_MAPS: Record<string, typeof classical | typeof hundred> = {
   hundred,
 };
 
-const getMap = (variant: Variant) => {
+const getMap = (variant: { id: string }) => {
   return VARIANT_MAPS[variant.id] || VARIANT_MAPS.classical;
 };
 
-type VariantForMap = Pick<VariantRead, "id" | "nations">;
+type VariantForMap = Pick<Variant, "id" | "nations">;
 
 type InteractiveMapProps = {
   interactive?: boolean;
   variant: VariantForMap;
-  phase: PhaseRetrieveRead | PhaseRetrieve;
+  phase: PhaseRetrieve;
   selected: string[];
   highlighted?: string[];
-  orders: OrderRead[] | undefined;
+  orders: Order[] | undefined;
   renderableProvinces?: string[];
   onClickProvince?: (
     province: string,

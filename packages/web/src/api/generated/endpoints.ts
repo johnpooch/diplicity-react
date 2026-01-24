@@ -137,6 +137,8 @@ export interface GameList {
   readonly canLeave: boolean;
   readonly variantId: string;
   readonly phases: readonly number[];
+  /** @nullable */
+  readonly currentPhaseId: number | null;
   readonly private: boolean;
   readonly movementPhaseDuration: string;
   readonly nationAssignment: string;
@@ -158,6 +160,8 @@ export interface GameRetrieve {
   readonly canJoin: boolean;
   readonly canLeave: boolean;
   readonly phases: readonly number[];
+  /** @nullable */
+  readonly currentPhaseId: number | null;
   readonly members: readonly Member[];
   readonly sandbox: boolean;
   /** @nullable */
@@ -319,6 +323,8 @@ export interface PhaseRetrieve {
   status: StatusEnum;
   units: Unit[];
   supplyCenters: SupplyCenter[];
+  previousPhaseId: number | null;
+  nextPhaseId: number | null;
 }
 
 export interface PhaseState {
@@ -5568,6 +5574,10 @@ export const getGameRetrieveResponseMock = (
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1
   ).map(() => faker.number.int({ min: undefined, max: undefined })),
+  currentPhaseId: faker.helpers.arrayElement([
+    faker.number.int({ min: 1, max: 100 }),
+    null,
+  ]),
   members: Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1
@@ -6073,6 +6083,14 @@ export const getGamePhaseRetrieveResponseMock = (
       color: faker.string.alpha({ length: { min: 10, max: 20 } }),
     },
   })),
+  previousPhaseId: faker.helpers.arrayElement([
+    faker.number.int({ min: 1, max: 100 }),
+    null,
+  ]),
+  nextPhaseId: faker.helpers.arrayElement([
+    faker.number.int({ min: 1, max: 100 }),
+    null,
+  ]),
   ...overrideResponse,
 });
 
@@ -6105,6 +6123,10 @@ export const getGamesListResponseMock = (): GameList[] =>
       { length: faker.number.int({ min: 1, max: 10 }) },
       (_, i) => i + 1
     ).map(() => faker.number.int({ min: undefined, max: undefined })),
+    currentPhaseId: faker.helpers.arrayElement([
+      faker.number.int({ min: 1, max: 100 }),
+      null,
+    ]),
     private: faker.datatype.boolean(),
     movementPhaseDuration: faker.string.alpha({ length: { min: 10, max: 20 } }),
     nationAssignment: faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -6391,6 +6413,14 @@ export const getVariantsListResponseMock = (): Variant[] =>
           color: faker.string.alpha({ length: { min: 10, max: 20 } }),
         },
       })),
+      previousPhaseId: faker.helpers.arrayElement([
+        faker.number.int({ min: 1, max: 100 }),
+        null,
+      ]),
+      nextPhaseId: faker.helpers.arrayElement([
+        faker.number.int({ min: 1, max: 100 }),
+        null,
+      ]),
     },
   }));
 

@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## !!! VERY IMPORTANT PRECURSOR - READ THIS FIRST !!!
+
+**Under no circumstances should you agree with any assertion or claim without providing concrete, evidence-based reasoning.**
+
+- **Evidence-Based Reasoning is Paramount:** For every claim, deduction, or inference, you **must** provide supporting evidence from the related context.
+- **Corroborate All Findings:** Before proceeding with any chain of facts or thoughts, corroborate your findings, deductions, and inferences using the following format:
+  `Based on what I found <here [and here ...]>, <yes/no | deductions> because <why>`.
+- **Avoid Assumptions:** Never assume or guess. If information is unavailable, state it clearly. Do not assume correctness or incorrectness of any party (user or AI).
+- **Logic, Facts, and Conclusive Evidence:** It is **PARAMOUNT** that you utilize logic, facts, and conclusive evidence at all times, rather than establishing blind trust or fulfilling requests without justification.
+
 ## Project Overview
 
 Diplicity React is a full-stack web application for the classic Diplomacy board game. The project consists of:
@@ -83,8 +93,62 @@ When writing Tailwind CSS classes, follow these principles:
 - **Database**: PostgreSQL with Django ORM
 - **Background Tasks**: Management commands for game resolution
 
+## Best Practices
+
+### General Development Guidelines
+
+1. **Follow existing code patterns and conventions** - Consistency is key
+2. **Use TypeScript for type safety** - Never use `any` types
+3. **Run linting before submitting changes** - Fix all violations properly
+   - Frontend: `npm run lint` (only on changed files when possible)
+   - Backend: Use appropriate Python linters
+4. **Run tests to validate changes** - Do not run full test suite
+   - Always run single test files at a time for faster feedback
+   - Frontend: `npm run test <filename>`
+   - Backend: `docker compose run --rm service python3 -m pytest <test_file> -v`
+5. **Never disable lint violations** - Fix the root cause instead
+   - DO NOT use `eslint-disable`, `ts-ignore`, or similar suppression comments
+   - If you cannot resolve a lint issue, explain what you tried and ask for guidance
+   - The only acceptable outcomes are: the violation is properly fixed OR you report the issue
+6. **Prefer composition over effects** - Minimize useEffect usage in React
+7. **Use proper error handling** - Catch and handle errors appropriately
+8. **Write tests alongside features** - Not as an afterthought
+
+### Frontend Best Practices
+
+1. **Component Design**:
+   - Check for existing components before creating new ones
+   - Keep components under 200 lines
+   - Use compound component patterns for complex UIs
+
+2. **Data Management**:
+   - Use TanStack Query for new data fetching features
+   - Always validate API responses with Zod schemas
+   - Use `parseOnlyInDev` pattern to prevent production crashes
+
+3. **Forms**:
+   - Use React Hook Form for all new forms
+   - Integrate Zod for validation
+   - Avoid manual form state management
+
+4. **React Patterns**:
+   - Minimize useEffect usage - prefer derived state and event handlers
+   - Use React 19 features (Context as provider, no forwardRef)
+   - Let React 19 handle memoization automatically
+
+### Backend Best Practices
+
+Follow the Django patterns already established in the codebase (see Backend Development Guidelines section below).
+
 ## Testing
 
+### Frontend Tests
+
+Navigate to `/packages/web` and run:
+```bash
+npm run test              # Run all tests
+npm run test <filename>   # Run specific test file (preferred)
+```
 
 ### Backend Tests
 

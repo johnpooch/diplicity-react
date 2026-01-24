@@ -426,6 +426,28 @@ class Phase(BaseModel):
         logger.info(f"Checking if phase {self.id} should resolve immediately")
         return all(phase_state.orders_confirmed for phase_state in self.phase_states_with_possible_orders)
 
+    @property
+    def previous_phase_id(self):
+        if not self.game:
+            return None
+        return (
+            Phase.objects.filter(game=self.game, ordinal__lt=self.ordinal)
+            .order_by("-ordinal")
+            .values_list("id", flat=True)
+            .first()
+        )
+
+    @property
+    def next_phase_id(self):
+        if not self.game:
+            return None
+        return (
+            Phase.objects.filter(game=self.game, ordinal__gt=self.ordinal)
+            .order_by("ordinal")
+            .values_list("id", flat=True)
+            .first()
+        )
+
     def revert_to_this_phase(self):
 
         logger.info(f"Reverting game {self.game.id} to phase {self.id} ({self.name})")

@@ -26,7 +26,20 @@
       "Bash(source ~/.nvm/nvm.sh)",
       "Bash(nvm use:*)",
       "Bash(npx orval:*)",
-      "Bash(npm run storybook:*)"
+      "Bash(npm run storybook:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:forum.cursor.com)",
+      "WebFetch(domain:shadcn-chat.vercel.app)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:ai-sdk.dev)",
+      "WebFetch(domain:www.prompt-kit.com)",
+      "WebFetch(domain:elements.ai-sdk.dev)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(for file in AppBar GameCard InfoPanel MemberAvatar MemberAvatarGroup Notice GameDetailLayout)",
+      "Bash(do)",
+      "Bash(done)",
+      "WebFetch(domain:ui.shadcn.com)",
+      "Bash(ANALYZE=true npm run build:*)"
     ],
     "deny": [],
     "ask": []

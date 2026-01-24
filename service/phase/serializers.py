@@ -46,3 +46,5 @@ class PhaseRetrieveSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=PhaseStatus.STATUS_CHOICES)
     units = UnitSerializer(many=True)
     supply_centers = SupplyCenterSerializer(many=True)
+    previous_phase_id = serializers.IntegerField(allow_null=True)
+    next_phase_id = serializers.IntegerField(allow_null=True)

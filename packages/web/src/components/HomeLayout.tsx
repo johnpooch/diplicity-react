@@ -11,8 +11,16 @@ import {
 import { Item, ItemMedia, ItemContent, ItemTitle } from "@/components/ui/item";
 import { DiplicityLogo } from "@/components/DiplicityLogo";
 import { Navigation } from "@/components/Navigation";
-import { InfoPanel } from "@/components/InfoPanel.new";
-import { homeNavigationItems } from "@/navigation/navigationItems";
+import { InfoPanel } from "@/components/InfoPanel";
+import { Home, Search, PlusCircle, Blocks, User } from "lucide-react";
+
+const navigationItems = [
+  { label: "My Games", icon: Home, path: "/" },
+  { label: "Find Games", icon: Search, path: "/find-games" },
+  { label: "Create Game", icon: PlusCircle, path: "/create-game" },
+  { label: "Sandbox", icon: Blocks, path: "/sandbox" },
+  { label: "Profile", icon: User, path: "/profile" },
+];
 
 interface HomeLayoutProps {
   /**
@@ -47,7 +55,7 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const navItems = homeNavigationItems.map(item => ({
+  const navItems = navigationItems.map(item => ({
     ...item,
     isActive: location.pathname === item.path,
   }));

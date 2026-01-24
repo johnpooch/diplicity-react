@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { onMessageReceived, getToken, registerServiceWorker } from "../messaging";
-import { selectAuth, service } from "../store";
-import { useSelector } from "react-redux";
+import { useAuth } from "../auth";
+import { useDevicesList, useDevicesCreate } from "../api/generated/endpoints";
 
 type MessagingContextType = {
   enabled: boolean;
@@ -23,14 +23,14 @@ type MessagingContextProviderProps = React.PropsWithChildren<
 const MessagingContextProvider: React.FC<MessagingContextProviderProps> = (
   props
 ) => {
-  const { loggedIn } = useSelector(selectAuth);
+  const { loggedIn } = useAuth();
   const [token, setToken] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [isCheckingToken, setIsCheckingToken] = useState(true);
-  const devicesListQuery = service.endpoints.devicesList.useQuery(undefined, {
-    skip: !loggedIn,
+  const devicesListQuery = useDevicesList({
+    query: { enabled: loggedIn },
   });
-  const [createDevice] = service.endpoints.devicesCreate.useMutation();
+  const createDeviceMutation = useDevicesCreate();
 
   const isNotificationSupported = "Notification" in window;
 
@@ -46,20 +46,20 @@ const MessagingContextProvider: React.FC<MessagingContextProviderProps> = (
   };
 
   useEffect(() => {
-    onMessageReceived((_payload) => {
+    onMessageReceived(() => {
       // Handle received message
     });
   }, []);
 
   useEffect(() => {
     const createDeviceFromToken = async (token: string) => {
-      await createDevice({
-        fcmDevice: {
+      await createDeviceMutation.mutateAsync({
+        data: {
           type: "web",
           registrationId: token,
           active: true,
         },
-      }).unwrap();
+      });
       setToken(token);
     };
     if (token && loggedIn) {
@@ -122,13 +122,13 @@ const MessagingContextProvider: React.FC<MessagingContextProviderProps> = (
     try {
       setError(null);
       if (token) {
-        await createDevice({
-          fcmDevice: {
+        await createDeviceMutation.mutateAsync({
+          data: {
             registrationId: token,
             type: "web",
             active: false,
           },
-        }).unwrap();
+        });
         setToken(undefined);
       }
     } catch (error) {

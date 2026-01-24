@@ -1,2 +1,1 @@
-export { useVariantById } from "./useVariantById";
-export { useCurrentPhase } from "./useCurrentPhase";
+export { useRequiredParams } from "./useRequiredParams";

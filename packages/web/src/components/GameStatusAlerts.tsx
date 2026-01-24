@@ -1,4 +1,3 @@
-import React from "react";
 import { Info, Trophy } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 

@@ -1,5 +1,4 @@
 import { defineConfig } from "orval";
-import { faker } from "@faker-js/faker";
 
 export default defineConfig({
   diplicity: {
@@ -16,10 +15,6 @@ export default defineConfig({
           path: "./src/api/axiosInstance.ts",
           name: "customInstance",
         },
-      },
-      mock: {
-        type: "msw",
-        delay: 80,
       },
     },
     hooks: {

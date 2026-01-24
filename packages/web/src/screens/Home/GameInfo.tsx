@@ -1,241 +1,125 @@
-import React from "react";
-import {
-  Alert,
-  Divider,
-  List,
-  ListItem,
-  ListSubheader,
-  Skeleton,
-  Stack,
-} from "@mui/material";
-import { HomeLayout } from "./Layout";
-import { service } from "../../store";
-import { HomeAppBar } from "./AppBar";
-import { IconName } from "../../components/Icon";
+import React, { Suspense } from "react";
 import { useNavigate } from "react-router";
-import { Table } from "../../components/Table";
-import { InteractiveMap } from "../../components/InteractiveMap/InteractiveMap";
-import { MapSkeleton } from "../../components/MapSkeleton";
-import { getCurrentPhaseId } from "../../util";
-import { GameMenu } from "../../components/GameMenu";
-import { MemberAvatarGroup } from "../../components/MemberAvatarGroup";
-import { useSelectedGameContext } from "../../context/SelectedGameContext";
-import { IconButton } from "../../components/Button";
+import { toast } from "sonner";
+import { useRequiredParams } from "@/hooks";
+import { UserPlus, UserMinus } from "lucide-react";
+
+import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
+import { Button } from "@/components/ui/button";
+import { GameDropdownMenu } from "@/components/GameDropdownMenu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  useGameRetrieveSuspense,
+  useGameJoinCreate,
+  useGameLeaveDestroy,
+} from "@/api/generated/endpoints";
+import { ScreenHeader } from "@/components/ui/screen-header";
+import { ScreenContainer } from "@/components/ui/screen-container";
+import { GameInfoContent } from "@/components/GameInfoContent";
 
 const GameInfo: React.FC = () => {
-  const { gameId, gameRetrieveQuery: query } = useSelectedGameContext();
-
-  const listVariantsQuery = service.endpoints.variantsList.useQuery();
-
-  const currentPhaseId = query.data ? getCurrentPhaseId(query.data) : undefined;
-
-  const currentPhaseQuery = service.endpoints.gamePhaseRetrieve.useQuery(
-    { gameId, phaseId: currentPhaseId ?? 0 },
-    { skip: !currentPhaseId || !gameId }
-  );
-
-  const [joinGame, joinGameMutation] =
-    service.endpoints.gameJoinCreate.useMutation();
-
-  const [leaveGame, leaveGameQuery] =
-    service.endpoints.gameLeaveDestroy.useMutation();
-
-  const handleClickJoinGame = async () => {
-    await joinGame({ gameId, member: {} });
-  };
-
-  const handleClickLeaveGame = async () => {
-    await leaveGame({ gameId });
-  };
+  const { gameId } = useRequiredParams<{ gameId: string }>();
 
   const navigate = useNavigate();
+  const { data: game } = useGameRetrieveSuspense(gameId);
+  const joinGameMutation = useGameJoinCreate();
+  const leaveGameMutation = useGameLeaveDestroy();
+
+  const handleJoinGame = async () => {
+    try {
+      await joinGameMutation.mutateAsync({ gameId, data: {} });
+      toast.success("Game joined successfully");
+    } catch {
+      toast.error("Failed to join game");
+    }
+  };
+
+  const handleLeaveGame = async () => {
+    try {
+      await leaveGameMutation.mutateAsync({ gameId });
+      toast.success("Game left successfully");
+    } catch {
+      toast.error("Failed to leave game");
+    }
+  };
 
   const handlePlayerInfo = () => {
     navigate(`/player-info/${gameId}`);
   };
 
-  if (query.isError || listVariantsQuery.isError) {
-    return <div>Error</div>;
-  }
+  const handleGameInfo = () => {
+    navigate(`/game-info/${gameId}`);
+  };
 
-  const variant = listVariantsQuery.data?.find(
-    v => v.id === query.data?.variantId
+  const joinLeaveButton = game.canJoin ? (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          onClick={handleJoinGame}
+          disabled={joinGameMutation.isPending}
+          variant="outline"
+          aria-label="Join game"
+        >
+          <UserPlus className="size-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>Join game</p>
+      </TooltipContent>
+    </Tooltip>
+  ) : (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          onClick={handleLeaveGame}
+          disabled={leaveGameMutation.isPending}
+          variant="outline"
+          aria-label="Leave game"
+        >
+          <UserMinus className="size-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>Leave game</p>
+      </TooltipContent>
+    </Tooltip>
   );
 
   return (
-    <HomeLayout
-      appBar={
-        <HomeAppBar
-          title="Game Info"
-          onNavigateBack={() => navigate("/")}
-          rightButton={
-            query.data && (
-              <Stack direction="row" spacing={1}>
-                {query.data?.canJoin && (
-                  <IconButton
-                    icon={IconName.Join}
-                    color="primary"
-                    disabled={joinGameMutation.isLoading}
-                    onClick={handleClickJoinGame}
-                  />
-                )}
-                {query.data?.canLeave && (
-                  <IconButton
-                    icon={IconName.Leave}
-                    color="primary"
-                    disabled={leaveGameQuery.isLoading}
-                    onClick={handleClickLeaveGame}
-                  />
-                )}
-                <GameMenu
-                  game={query.data}
-                  onClickGameInfo={() => navigate(`/game-info/${gameId}`)}
-                  onClickPlayerInfo={() => navigate(`/player-info/${gameId}`)}
-                />
-              </Stack>
-            )
-          }
-        />
-      }
-      bottomNavigation={<div></div>}
-      content={
-        <Stack>
+    <ScreenContainer>
+      <ScreenHeader
+        title="Game Info"
+        actions={
           <>
-            {query.data && query.data.status === "pending" && (
-              <Alert severity="info">
-                This game has not started yet. The game will start once{" "}
-                {variant?.nations.length} players have joined.
-              </Alert>
-            )}
-            {query.data && query.data.victory && (
-              <Alert severity="success">
-                {query.data.victory.type === "solo"
-                  ? `${query.data.victory.members[0]?.name} has won the game!`
-                  : `The game ended in a draw between ${query.data.victory.members.length} players.`}
-              </Alert>
-            )}
-            <List>
-              <ListSubheader>Game settings</ListSubheader>
-              <Table
-                rows={[
-                  {
-                    label: "Variant",
-                    value: query.data ? (
-                      variant?.name
-                    ) : (
-                      <Stack alignItems="flex-end">
-                        <Skeleton variant="text" width={100} />
-                      </Stack>
-                    ),
-                    icon: IconName.WinCondition,
-                  },
-                  {
-                    label: "Phase deadlines",
-                    value: query.data ? (
-                      query.data.movementPhaseDuration
-                    ) : (
-                      <Stack alignItems="flex-end">
-                        <Skeleton variant="text" width={100} />
-                      </Stack>
-                    ),
-                    icon: IconName.StartYear,
-                  },
-                  {
-                    label: "Visibility",
-                    value: query.data ? (
-                      query.data.private ? (
-                        "Private"
-                      ) : (
-                        "Public"
-                      )
-                    ) : (
-                      <Stack alignItems="flex-end">
-                        <Skeleton variant="text" width={60} />
-                      </Stack>
-                    ),
-                    icon: IconName.Lock,
-                  },
-                ]}
-              />
-              <Divider />
-              <ListSubheader>Player settings</ListSubheader>
-              <Table
-                rows={[
-                  {
-                    label: "Players",
-                    value:
-                      query.data && variant ? (
-                        <MemberAvatarGroup
-                          members={query.data.members}
-                          variant={variant.id}
-                          victory={query.data.victory}
-                          onClick={handlePlayerInfo}
-                        />
-                      ) : (
-                        <Skeleton
-                          variant="rectangular"
-                          width={100}
-                          height={40}
-                        />
-                      ),
-                    icon: IconName.Players,
-                  },
-                ]}
-              />
-              <Divider />
-              <ListSubheader>Variant details</ListSubheader>
-              <ListItem>
-                {query.data && variant && currentPhaseQuery.data ? (
-                  <InteractiveMap
-                    variant={variant}
-                    phase={currentPhaseQuery.data}
-                    orders={[]}
-                    selected={[]}
-                    style={{ width: "100%", height: "100%" }}
-                  />
-                ) : (
-                  <MapSkeleton />
-                )}
-              </ListItem>
-              <Table
-                rows={[
-                  {
-                    label: "Number of nations",
-                    value: query.data ? (
-                      variant?.nations.length.toString()
-                    ) : (
-                      <Skeleton variant="text" width={10} />
-                    ),
-                    icon: IconName.Players,
-                  },
-                  {
-                    label: "Start year",
-                    value:
-                      query.data && variant ? (
-                        variant?.templatePhase.year?.toString()
-                      ) : (
-                        <Skeleton variant="text" width={50} />
-                      ),
-                    icon: IconName.StartYear,
-                  },
-                  {
-                    label: "Original author",
-                    value:
-                      query.data && variant ? (
-                        variant?.author
-                      ) : (
-                        <Skeleton variant="text" width={100} />
-                      ),
-                    icon: IconName.Author,
-                  },
-                ]}
-              />
-            </List>
+            {joinLeaveButton}
+            <GameDropdownMenu
+              gameId={game.id}
+              canLeave={game.canLeave}
+              onNavigateToGameInfo={handleGameInfo}
+              onNavigateToPlayerInfo={handlePlayerInfo}
+            />
           </>
-        </Stack>
-      }
-    />
+        }
+      />
+      <GameInfoContent onNavigateToPlayerInfo={handlePlayerInfo} />
+    </ScreenContainer>
   );
 };
 
-export { GameInfo };
+const GameInfoSuspense: React.FC = () => {
+  return (
+    <div className="w-full space-y-4">
+      <QueryErrorBoundary>
+        <Suspense fallback={<div></div>}>
+          <GameInfo />
+        </Suspense>
+      </QueryErrorBoundary>
+    </div>
+  );
+};
+
+export { GameInfoSuspense as GameInfoScreen };

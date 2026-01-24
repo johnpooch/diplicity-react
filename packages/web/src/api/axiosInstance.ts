@@ -1,6 +1,5 @@
 import axios, { AxiosError, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
-import { store } from '../store/store';
-import { selectAuth, authSlice } from '../store/auth';
+import { tokenStorage } from '../auth/tokenStorage';
 
 const diplictityApiBaseUrl = import.meta.env.VITE_DIPLICITY_API_BASE_URL;
 
@@ -12,9 +11,9 @@ const axiosInstance = axios.create({
 });
 
 axiosInstance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const token = selectAuth(store.getState()).accessToken;
-  if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
+  const { accessToken } = tokenStorage.getTokenState();
+  if (accessToken && config.headers) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
   }
   return config;
 });
@@ -58,7 +57,7 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = selectAuth(store.getState()).refreshToken;
+      const { refreshToken } = tokenStorage.getTokenState();
 
       try {
         const refreshResult = await axios.post(
@@ -70,7 +69,7 @@ axiosInstance.interceptors.response.use(
 
         if (refreshResult.data?.access) {
           const { access } = refreshResult.data;
-          store.dispatch(authSlice.actions.updateAccessToken(access));
+          tokenStorage.updateAccessToken(access);
 
           processQueue(null);
           isRefreshing = false;
@@ -79,7 +78,7 @@ axiosInstance.interceptors.response.use(
         }
       } catch (refreshError) {
         processQueue(refreshError as Error);
-        store.dispatch(authSlice.actions.logout());
+        tokenStorage.clearTokens();
         isRefreshing = false;
         return Promise.reject(refreshError);
       }

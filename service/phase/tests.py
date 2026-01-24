@@ -2392,3 +2392,91 @@ class TestPhaseAdminCustomActions:
         # Should show orders as JSON
         assert "Orders for" in content
         assert "Total:" in content
+
+
+
+@pytest.mark.django_db
+class TestPhaseNavigationProperties:
+    def test_first_phase_has_no_previous(self, game_with_three_phases):
+        phase1 = game_with_three_phases.phases.get(ordinal=1)
+        assert phase1.previous_phase_id is None
+
+    def test_first_phase_has_next(self, game_with_three_phases):
+        phase1 = game_with_three_phases.phases.get(ordinal=1)
+        phase2 = game_with_three_phases.phases.get(ordinal=2)
+        assert phase1.next_phase_id == phase2.id
+
+    def test_middle_phase_has_both(self, game_with_three_phases):
+        phase1 = game_with_three_phases.phases.get(ordinal=1)
+        phase2 = game_with_three_phases.phases.get(ordinal=2)
+        phase3 = game_with_three_phases.phases.get(ordinal=3)
+        assert phase2.previous_phase_id == phase1.id
+        assert phase2.next_phase_id == phase3.id
+
+    def test_last_phase_has_no_next(self, game_with_three_phases):
+        phase3 = game_with_three_phases.phases.get(ordinal=3)
+        assert phase3.next_phase_id is None
+
+    def test_last_phase_has_previous(self, game_with_three_phases):
+        phase2 = game_with_three_phases.phases.get(ordinal=2)
+        phase3 = game_with_three_phases.phases.get(ordinal=3)
+        assert phase3.previous_phase_id == phase2.id
+
+    def test_phase_without_game_returns_none(self, classical_variant):
+        phase = Phase.objects.create(
+            game=None,
+            variant=classical_variant,
+            season="Spring",
+            year=1901,
+            type="Movement",
+            ordinal=1,
+            status=PhaseStatus.ACTIVE,
+        )
+        assert phase.previous_phase_id is None
+        assert phase.next_phase_id is None
+
+
+@pytest.mark.django_db
+def test_phase_retrieve_includes_navigation_ids(
+    authenticated_client, game_with_three_phases
+):
+    phase2 = game_with_three_phases.phases.get(ordinal=2)
+    phase1 = game_with_three_phases.phases.get(ordinal=1)
+    phase3 = game_with_three_phases.phases.get(ordinal=3)
+
+    url = reverse("phase-retrieve", args=[game_with_three_phases.id, phase2.id])
+    response = authenticated_client.get(url)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["previous_phase_id"] == phase1.id
+    assert response.data["next_phase_id"] == phase3.id
+
+
+@pytest.mark.django_db
+def test_phase_retrieve_first_phase_has_null_previous(
+    authenticated_client, game_with_three_phases
+):
+    phase1 = game_with_three_phases.phases.get(ordinal=1)
+    phase2 = game_with_three_phases.phases.get(ordinal=2)
+
+    url = reverse("phase-retrieve", args=[game_with_three_phases.id, phase1.id])
+    response = authenticated_client.get(url)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["previous_phase_id"] is None
+    assert response.data["next_phase_id"] == phase2.id
+
+
+@pytest.mark.django_db
+def test_phase_retrieve_last_phase_has_null_next(
+    authenticated_client, game_with_three_phases
+):
+    phase3 = game_with_three_phases.phases.get(ordinal=3)
+    phase2 = game_with_three_phases.phases.get(ordinal=2)
+
+    url = reverse("phase-retrieve", args=[game_with_three_phases.id, phase3.id])
+    response = authenticated_client.get(url)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["previous_phase_id"] == phase2.id
+    assert response.data["next_phase_id"] is None

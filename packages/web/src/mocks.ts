@@ -4,9 +4,9 @@ import type {
   PhaseRetrieve,
   Member,
   Nation,
+  Order,
+  PhaseState,
   Province,
-  Unit,
-  SupplyCenter,
   StatusEnum,
   UserProfile,
 } from "@/api/generated/endpoints";
@@ -142,6 +142,8 @@ export const mockPhaseMovement: PhaseRetrieve = {
   remainingTime: 86400,
   scheduledResolution: "2024-01-15T12:00:00Z",
   status: "active" as StatusEnum,
+  previousPhaseId: null,
+  nextPhaseId: 2,
   units: [
     {
       type: "Army",
@@ -209,6 +211,8 @@ export const mockPhaseRetreat: PhaseRetrieve = {
   remainingTime: 43200,
   scheduledResolution: "2024-01-16T00:00:00Z",
   status: "active" as StatusEnum,
+  previousPhaseId: 1,
+  nextPhaseId: 3,
   units: [
     {
       type: "Army",
@@ -234,6 +238,8 @@ export const mockPhaseAdjustment: PhaseRetrieve = {
   remainingTime: 172800,
   scheduledResolution: "2024-01-18T12:00:00Z",
   status: "active" as StatusEnum,
+  previousPhaseId: 2,
+  nextPhaseId: null,
   units: mockPhaseMovement.units,
   supplyCenters: mockProvinces.map((province, index) => ({
     province,
@@ -250,6 +256,7 @@ export const mockGames: GameList[] = [
     canLeave: true,
     variantId: "Classical",
     phases: [1, 2, 3, 4, 5],
+    currentPhaseId: 5,
     private: false,
     movementPhaseDuration: "24 hours",
     nationAssignment: "manual",
@@ -265,6 +272,7 @@ export const mockGames: GameList[] = [
     canLeave: true,
     variantId: "Classical",
     phases: [1, 2],
+    currentPhaseId: 2,
     private: false,
     movementPhaseDuration: "12 hours",
     nationAssignment: "random",
@@ -280,6 +288,7 @@ export const mockGames: GameList[] = [
     canLeave: false,
     variantId: "Classical",
     phases: [1],
+    currentPhaseId: null,
     private: false,
     movementPhaseDuration: "48 hours",
     nationAssignment: "random",
@@ -295,6 +304,7 @@ export const mockGames: GameList[] = [
     canLeave: true,
     variantId: "Classical",
     phases: [1],
+    currentPhaseId: null,
     private: true,
     movementPhaseDuration: "24 hours",
     nationAssignment: "manual",
@@ -310,6 +320,7 @@ export const mockGames: GameList[] = [
     canLeave: false,
     variantId: "Classical",
     phases: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    currentPhaseId: null,
     private: false,
     movementPhaseDuration: "24 hours",
     nationAssignment: "manual",
@@ -330,6 +341,7 @@ export const mockGames: GameList[] = [
     canLeave: false,
     variantId: "Italy vs Germany",
     phases: [1, 2, 3, 4, 5, 6, 7, 8],
+    currentPhaseId: null,
     private: false,
     movementPhaseDuration: "48 hours",
     nationAssignment: "random",
@@ -344,10 +356,10 @@ export const mockGames: GameList[] = [
   },
 ];
 
-export const mockActiveGames = mockGames.filter((g) => g.status === "active");
-export const mockPendingGames = mockGames.filter((g) => g.status === "pending");
+export const mockActiveGames = mockGames.filter(g => g.status === "active");
+export const mockPendingGames = mockGames.filter(g => g.status === "pending");
 export const mockCompletedGames = mockGames.filter(
-  (g) => g.status === "completed"
+  g => g.status === "completed"
 );
 
 export const mockSandboxGames: GameList[] = [
@@ -359,6 +371,7 @@ export const mockSandboxGames: GameList[] = [
     canLeave: true,
     variantId: "Classical",
     phases: [1, 2, 3],
+    currentPhaseId: 3,
     private: false,
     movementPhaseDuration: "manual",
     nationAssignment: "random",
@@ -374,6 +387,7 @@ export const mockSandboxGames: GameList[] = [
     canLeave: true,
     variantId: "Classical",
     phases: [1],
+    currentPhaseId: 1,
     private: false,
     movementPhaseDuration: "manual",
     nationAssignment: "random",
@@ -401,6 +415,8 @@ export const mockVariants: Variant[] = [
       remainingTime: 0,
       scheduledResolution: "1901-01-01T00:00:00Z",
       status: "template" as StatusEnum,
+      previousPhaseId: null,
+      nextPhaseId: null,
       units: [],
       supplyCenters: [],
     },
@@ -422,6 +438,8 @@ export const mockVariants: Variant[] = [
       remainingTime: 0,
       scheduledResolution: "1901-01-01T00:00:00Z",
       status: "template" as StatusEnum,
+      previousPhaseId: null,
+      nextPhaseId: null,
       units: [],
       supplyCenters: [],
     },
@@ -434,3 +452,123 @@ export const mockUserProfile: UserProfile = {
   picture: null,
   email: "john.doe@example.com",
 };
+
+export const mockOrders: Order[] = [
+  {
+    source: mockProvinces[0], // Vienna
+    target: mockProvinces[3], // Berlin
+    aux: mockProvinces[0],
+    namedCoast: mockProvinces[0],
+    resolution: { status: "Succeeded", by: null },
+    options: [],
+    orderType: "Move",
+    unitType: "Army",
+    nation: mockNations[0], // Austria
+    complete: true,
+    step: null,
+    title: "A Vienna - Berlin",
+    summary: "A Vienna - Berlin",
+  },
+  {
+    source: mockProvinces[1], // London
+    target: mockProvinces[1], // London
+    aux: mockProvinces[1],
+    namedCoast: mockProvinces[1],
+    resolution: { status: "Succeeded", by: null },
+    options: [],
+    orderType: "Hold",
+    unitType: "Fleet",
+    nation: mockNations[1], // England
+    complete: true,
+    step: null,
+    title: "F London Hold",
+    summary: "F London Hold",
+  },
+  {
+    source: mockProvinces[2], // Paris
+    target: mockProvinces[3], // Berlin
+    aux: mockProvinces[2],
+    namedCoast: mockProvinces[2],
+    resolution: { status: "Failed", by: mockProvinces[0] },
+    options: [],
+    orderType: "Move",
+    unitType: "Army",
+    nation: mockNations[2], // France
+    complete: true,
+    step: null,
+    title: "A Paris - Berlin",
+    summary: "A Paris - Berlin",
+  },
+  {
+    source: mockProvinces[6], // Constantinople
+    target: mockProvinces[5], // Moscow
+    aux: mockProvinces[6],
+    namedCoast: mockProvinces[6],
+    resolution: { status: "Succeeded", by: null },
+    options: [],
+    orderType: "Move",
+    unitType: "Fleet",
+    nation: mockNations[6], // Turkey
+    complete: true,
+    step: null,
+    title: "F Constantinople - Moscow",
+    summary: "F Constantinople - Moscow",
+  },
+];
+
+export const mockPhaseStates: PhaseState[] = [
+  {
+    id: "ps-1",
+    ordersConfirmed: false,
+    eliminated: false,
+    orderableProvinces: [mockProvinces[0]], // Vienna
+    member: mockMembers[0], // Austria
+  },
+  {
+    id: "ps-2",
+    ordersConfirmed: true,
+    eliminated: false,
+    orderableProvinces: [mockProvinces[1]], // London
+    member: mockMembers[1], // England
+  },
+  {
+    id: "ps-3",
+    ordersConfirmed: false,
+    eliminated: false,
+    orderableProvinces: [mockProvinces[2]], // Paris
+    member: mockMembers[2], // France
+  },
+  {
+    id: "ps-4",
+    ordersConfirmed: false,
+    eliminated: false,
+    orderableProvinces: [mockProvinces[3]], // Berlin
+    member: mockMembers[3], // Germany
+  },
+  {
+    id: "ps-5",
+    ordersConfirmed: false,
+    eliminated: false,
+    orderableProvinces: [mockProvinces[4]], // Rome
+    member: mockMembers[4], // Italy
+  },
+  {
+    id: "ps-6",
+    ordersConfirmed: false,
+    eliminated: false,
+    orderableProvinces: [mockProvinces[5]], // Moscow
+    member: mockMembers[5], // Russia
+  },
+  {
+    id: "ps-7",
+    ordersConfirmed: false,
+    eliminated: false,
+    orderableProvinces: [mockProvinces[6]], // Constantinople
+    member: mockMembers[6], // Turkey (current user)
+  },
+];
+
+export const mockPhaseStatesNoOrders: PhaseState[] = mockPhaseStates.map(ps => ({
+  ...ps,
+  orderableProvinces: [],
+}));

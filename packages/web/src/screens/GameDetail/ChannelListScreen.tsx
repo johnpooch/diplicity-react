@@ -1,139 +1,118 @@
-import React from "react";
+import React, { Suspense } from "react";
+import { Link } from "react-router";
+import { UserPlus, MessageSquare } from "lucide-react";
+import { useRequiredParams } from "@/hooks";
+
+import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
-  Box,
-  Button,
-  Chip,
-  Divider,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
-  Stack,
-  Typography,
-} from "@mui/material";
-import { service } from "../../store";
+  Item,
+  ItemContent,
+  ItemTitle,
+  ItemDescription,
+  ItemGroup,
+  ItemSeparator,
+} from "@/components/ui/item";
+import { Notice } from "@/components/Notice";
 import { GameDetailAppBar } from "./AppBar";
-import { GameDetailLayout } from "./Layout";
-import { useNavigate } from "react-router";
-import { Icon, IconName } from "../../components/Icon";
-import { createUseStyles } from "../../components/utils/styles";
 import { Panel } from "../../components/Panel";
-import { GameMap } from "../../components/GameMap";
-import { useSelectedGameContext } from "../../context";
-import { Notice } from "../../components/Notice";
+import {
+  ChannelMessage,
+  useGameRetrieveSuspense,
+  useGamesChannelsListSuspense,
+} from "@/api/generated/endpoints";
 
-const useStyles = createUseStyles(() => ({
-  emptyContainer: {},
-}));
-
-const getLatestMessagePreview = (messages: any[]) => {
+const getLatestMessagePreview = (
+  messages: readonly ChannelMessage[]
+): string => {
   if (messages.length === 0) return "No messages";
   const latestMessage = messages[messages.length - 1];
   return `${latestMessage.sender.nation.name}: ${latestMessage.body}`;
 };
 
-const ChannelListScreen: React.FC = props => {
-  const { gameId, gameRetrieveQuery } = useSelectedGameContext();
+const ChannelListScreen: React.FC = () => {
+  const { gameId, phaseId } = useRequiredParams<{
+    gameId: string;
+    phaseId: string;
+  }>();
+  const { data: game } = useGameRetrieveSuspense(gameId);
+  const { data: channels } = useGamesChannelsListSuspense(gameId);
 
-  const styles = useStyles(props);
-
-  const query = service.endpoints.gamesChannelsList.useQuery({ gameId });
-  const navigate = useNavigate();
-
-  const handleChannelClick = (id: string) => {
-    navigate(`/game/${gameId}/chat/channel/${id}`);
-  };
-
-  const handleCreateChannelClick = () => {
-    navigate(`/game/${gameId}/chat/channel/create`);
-  };
-
-  if (query.isError) {
-    return null;
-  }
-
-  const isSandboxGame = gameRetrieveQuery.data?.sandbox;
+  const isSandboxGame = game.sandbox;
 
   return (
-    <GameDetailLayout
-      appBar={
-        <GameDetailAppBar title="Chat" onNavigateBack={() => navigate("/")} />
-      }
-      rightPanel={<GameMap />}
-      content={
+    <div className="flex flex-col flex-1">
+      <GameDetailAppBar title="Chat" />
+      <div className="flex-1 overflow-y-auto">
         <Panel>
           <Panel.Content>
             {isSandboxGame ? (
               <Notice
-                icon={IconName.NoChannels}
+                icon={MessageSquare}
                 title="Chat is not available in sandbox games."
+                className="h-full"
               />
-            ) : query.data?.length === 0 ? (
-              <Box sx={styles.emptyContainer}>
-                <Stack spacing={2} alignItems="center">
-                  <Icon
-                    name={IconName.NoChannels}
-                    sx={{ fontSize: 48, color: "text.secondary" }}
-                  />
-                  <Typography variant="h6" color="text.secondary">
-                    No channels created
-                  </Typography>
-                </Stack>
-              </Box>
+            ) : channels.length === 0 ? (
+              <Notice
+                icon={MessageSquare}
+                title="No channels created"
+                className="h-full"
+              />
             ) : (
-              <List disablePadding>
-                {query.data?.map((channel, index) => (
-                  <ListItem key={index} divider disablePadding>
-                    <ListItemButton
-                      onClick={() => handleChannelClick(channel.id.toString())}
-                    >
-                      <ListItemText
-                        sx={styles.listItemText}
-                        primary={
-                          <Stack
-                            direction="row"
-                            spacing={1}
-                            alignItems="center"
-                          >
-                            <Typography variant="body1">
-                              {channel.name}
-                            </Typography>
+              <ItemGroup>
+                {channels.map(channel => (
+                  <React.Fragment key={channel.id}>
+                    <Item asChild size="sm">
+                      <Link
+                        to={`/game/${gameId}/phase/${phaseId}/chat/channel/${channel.id}`}
+                        className="text-foreground no-underline"
+                      >
+                        <ItemContent>
+                          <ItemTitle>
+                            {channel.name}
                             {!channel.private && (
-                              <Chip
-                                label="Public"
-                                size="small"
-                                variant="outlined"
-                                sx={styles.publicChip}
-                              />
+                              <Badge variant="outline">Public</Badge>
                             )}
-                          </Stack>
-                        }
-                        secondary={getLatestMessagePreview(channel.messages)}
-                      />
-                    </ListItemButton>
-                  </ListItem>
+                          </ItemTitle>
+                          <ItemDescription>
+                            {getLatestMessagePreview(channel.messages)}
+                          </ItemDescription>
+                        </ItemContent>
+                      </Link>
+                    </Item>
+                    <ItemSeparator />
+                  </React.Fragment>
                 ))}
-              </List>
+              </ItemGroup>
             )}
           </Panel.Content>
           {!isSandboxGame && (
             <>
-              <Divider />
+              <Separator />
               <Panel.Footer>
-                <Button
-                  variant="contained"
-                  onClick={handleCreateChannelClick}
-                  startIcon={<Icon name={IconName.GroupAdd} />}
-                >
-                  Create Channel
+                <Button asChild>
+                  <Link to={`/game/${gameId}/phase/${phaseId}/chat/channel/create`}>
+                    <UserPlus className="size-4" />
+                    Create Channel
+                  </Link>
                 </Button>
               </Panel.Footer>
             </>
           )}
         </Panel>
-      }
-    />
+      </div>
+    </div>
   );
 };
 
-export { ChannelListScreen };
+const ChannelListScreenSuspense: React.FC = () => (
+  <QueryErrorBoundary>
+    <Suspense fallback={<div></div>}>
+      <ChannelListScreen />
+    </Suspense>
+  </QueryErrorBoundary>
+);
+
+export { ChannelListScreenSuspense as ChannelListScreen };

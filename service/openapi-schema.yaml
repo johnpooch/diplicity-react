@@ -994,6 +994,10 @@ components:
           items:
             type: integer
           readOnly: true
+        currentPhaseId:
+          type: integer
+          nullable: true
+          readOnly: true
         private:
           type: boolean
           readOnly: true
@@ -1019,6 +1023,7 @@ components:
       required:
       - canJoin
       - canLeave
+      - currentPhaseId
       - id
       - members
       - movementPhaseDuration
@@ -1053,6 +1058,10 @@ components:
           items:
             type: integer
           readOnly: true
+        currentPhaseId:
+          type: integer
+          nullable: true
+          readOnly: true
         members:
           type: array
           items:
@@ -1084,6 +1093,7 @@ components:
       required:
       - canJoin
       - canLeave
+      - currentPhaseId
       - id
       - members
       - movementPhaseDuration
@@ -1362,10 +1372,18 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SupplyCenter'
+        previousPhaseId:
+          type: integer
+          nullable: true
+        nextPhaseId:
+          type: integer
+          nullable: true
       required:
       - id
       - name
+      - nextPhaseId
       - ordinal
+      - previousPhaseId
       - remainingTime
       - scheduledResolution
       - season

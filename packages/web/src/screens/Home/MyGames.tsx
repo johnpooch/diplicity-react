@@ -1,35 +1,27 @@
-import React, { useEffect } from "react";
-import { Stack } from "@mui/material";
-import { HomeLayout } from "./Layout";
-import { createUseStyles } from "../../components/utils/styles";
-import { useState } from "react";
-import { Tabs } from "../../components/Tabs";
-import { DiplicityLogo } from "../../components/DiplicityLogo";
-import { service } from "../../store";
-import { NotificationBanner } from "../../components/NotificationBanner";
-import { GameCard } from "../../components/GameCard";
-import { Notice } from "../../components/Notice";
-import { IconName } from "../../components/Icon";
+import React, { Suspense, useState } from "react";
 
-const useStyles = createUseStyles(() => ({
-  header: {
-    paddingTop: 1,
-    alignItems: "center",
-  },
-  image: {
-    height: 48,
-    width: 48,
-  },
-  tabs: {
-    width: "100%",
-  },
-}));
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScreenHeader } from "@/components/ui/screen-header";
+import { ScreenContainer } from "@/components/ui/screen-container";
+import { GameCard } from "@/components/GameCard";
+import { Notice } from "@/components/Notice";
+import { Inbox } from "lucide-react";
+import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
+import {
+  GameList,
+  useGamesListSuspense,
+  useVariantsListSuspense,
+} from "@/api/generated/endpoints";
 
 const statuses = [
   { value: "pending", label: "Staging" },
   { value: "active", label: "Started" },
   { value: "completed", label: "Finished" },
-];
+] as const;
+
+type Status = (typeof statuses)[number]["value"];
+
+const statusPriority: readonly Status[] = ["active", "pending", "completed"];
 
 const getStatusMessage = (status: Status) => {
   switch (status) {
@@ -42,72 +34,88 @@ const getStatusMessage = (status: Status) => {
   }
 };
 
-// Priority order for which status to select if there are games in that status
-const statusPriority = ["active", "pending", "completed"] as const;
+const MyGames: React.FC = () => {
+  const { data: games } = useGamesListSuspense({ mine: true });
+  const { data: variants } = useVariantsListSuspense();
 
-type Status = (typeof statuses)[number]["value"];
+  const [selectedStatus, setSelectedStatus] = useState<Status>(() => {
+    const firstStatusWithGames = statusPriority.find(status =>
+      games.some(game => game.status === status)
+    );
+    return firstStatusWithGames ?? "active";
+  });
 
-const MyGames: React.FC = props => {
-  const styles = useStyles(props);
-  const [selectedStatus, setSelectedStatus] = useState<Status>("active");
-
-  const query = service.endpoints.gamesList.useQuery({ mine: true });
-
-  useEffect(() => {
-    if (query.data) {
-      const firstStatusWithGames = statusPriority.find(status =>
-        query.data!.some(game => game.status === status)
-      );
-      if (firstStatusWithGames) {
-        setSelectedStatus(firstStatusWithGames);
-      }
+  const getVariant = (game: GameList) => {
+    const variant = variants.find(v => v.id === game.variantId);
+    if (!variant) {
+      throw new Error(`Variant not found for game ${game.id}`);
     }
-  }, [query.data]);
-
-  if (query.isError) {
-    return <div>Error</div>;
-  }
+    return variant;
+  };
 
   return (
-    <HomeLayout
-      appBar={
-        <Stack sx={styles.header}>
-          <DiplicityLogo />
-          <Tabs
-            value={selectedStatus}
-            onChange={(_, value) => setSelectedStatus(value)}
-            options={statuses}
-          />
-        </Stack>
-      }
-      content={
-        <Stack>
-          <NotificationBanner />
-          {query.isLoading
-            ? Array.from({ length: 3 }, (_, index) => <GameCard key={index} />)
-            : query.data
-              ? (() => {
-                  const filteredGames = query.data.filter(
-                    game => game.status === selectedStatus
-                  );
-                  if (filteredGames.length === 0) {
-                    return (
-                      <Notice
-                        title={`No ${selectedStatus.toLowerCase()} games`}
-                        message={getStatusMessage(selectedStatus)}
-                        icon={IconName.Empty}
-                      />
-                    );
-                  }
-                  return filteredGames.map(game => (
-                    <GameCard key={game.id} game={game} />
-                  ));
-                })()
-              : null}
-        </Stack>
-      }
-    />
+    <div className="flex flex-col items-center gap-4">
+      <Tabs
+        value={selectedStatus}
+        onValueChange={value => setSelectedStatus(value as Status)}
+        className="w-full"
+      >
+        <TabsList className="w-full">
+          {statuses.map(status => (
+            <TabsTrigger
+              key={status.value}
+              value={status.value}
+              className="flex-1"
+            >
+              {status.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        {statuses.map(status => {
+          const filteredGames = games?.filter(
+            game => game.status === status.value
+          );
+          return (
+            <TabsContent key={status.value} value={status.value}>
+              <div className="space-y-4">
+                {filteredGames && filteredGames.length > 0 ? (
+                  filteredGames.map(game => (
+                    <GameCard
+                      key={game.id}
+                      game={game}
+                      variant={getVariant(game)}
+                      phaseId={game.phases[0]}
+                      map={<div />}
+                    />
+                  ))
+                ) : (
+                  <Notice
+                    title={`No ${status.label.toLowerCase()} games`}
+                    message={getStatusMessage(status.value)}
+                    icon={Inbox}
+                  />
+                )}
+              </div>
+            </TabsContent>
+          );
+        })}
+      </Tabs>
+    </div>
   );
 };
 
-export { MyGames };
+const MyGamesSuspense: React.FC = () => {
+  return (
+    <ScreenContainer>
+      <ScreenHeader title="My Games" />
+      <QueryErrorBoundary>
+        <Suspense fallback={<div></div>}>
+          <MyGames />
+        </Suspense>
+      </QueryErrorBoundary>
+    </ScreenContainer>
+  );
+};
+
+export { MyGamesSuspense as MyGames };

@@ -1,7 +1,7 @@
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { useRef, useState, useEffect } from "react";
-import { Fab } from "@mui/material";
-import { Icon, IconName } from "../Icon";
+import { Maximize, Minimize } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 import { InteractiveMap } from "./InteractiveMap";
 
@@ -166,15 +166,13 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
           <InteractiveMap ref={svgRef} {...interactiveMapProps} />
         </TransformComponent>
       </TransformWrapper>
-      <Fab
-        color="primary"
+      <Button
+        size="icon"
         onClick={handleToggleFullscreen}
-        sx={{ position: "absolute", bottom: 20, right: 20 }}
+        className="absolute bottom-5 right-5 rounded-full shadow-lg"
       >
-        <Icon
-          name={isFullscreen ? IconName.FullscreenExit : IconName.Fullscreen}
-        />
-      </Fab>
+        {isFullscreen ? <Minimize /> : <Maximize />}
+      </Button>
     </div>
   );
 };

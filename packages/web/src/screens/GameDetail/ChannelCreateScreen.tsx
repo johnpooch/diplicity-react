@@ -1,45 +1,41 @@
-import React, { useState } from "react";
-import {
-  Avatar,
-  Button,
-  Checkbox,
-  Divider,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemButton,
-  ListItemText,
-  Stack,
-} from "@mui/material";
-import { service } from "../../store";
-import { GameDetailAppBar } from "./AppBar";
-import { GameDetailLayout } from "./Layout";
+import React, { Suspense, useState } from "react";
 import { useNavigate } from "react-router";
-import { Icon, IconName } from "../../components/Icon";
-import { createUseStyles } from "../../components/utils/styles";
+import { toast } from "sonner";
+import { UserPlus } from "lucide-react";
+import { useRequiredParams } from "@/hooks";
+
+import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import {
+  Item,
+  ItemContent,
+  ItemTitle,
+  ItemDescription,
+  ItemGroup,
+  ItemSeparator,
+  ItemActions,
+  ItemMedia,
+} from "@/components/ui/item";
+import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "../../components/Panel";
-import { GameMap } from "../../components/GameMap";
-import { useSelectedGameContext } from "../../context";
+import {
+  useGameRetrieveSuspense,
+  useGamesChannelsCreateCreate,
+} from "@/api/generated/endpoints";
 
-const useStyles = createUseStyles(() => ({
-  container: {
-    height: "100%",
-  },
-  listContainer: {
-    flexGrow: 1,
-  },
-}));
-
-const ChannelCreateScreen: React.FC = props => {
-  const { gameId, gameRetrieveQuery } = useSelectedGameContext();
-
-  const styles = useStyles(props);
+const ChannelCreateScreen: React.FC = () => {
+  const { gameId, phaseId } = useRequiredParams<{
+    gameId: string;
+    phaseId: string;
+  }>();
   const navigate = useNavigate();
-
   const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
 
-  const [createChannel, createChannelMutation] =
-    service.endpoints.gamesChannelsCreateCreate.useMutation();
+  const { data: game } = useGameRetrieveSuspense(gameId);
+  const createChannelMutation = useGamesChannelsCreateCreate();
 
   const handleToggle = (memberId: number) => {
     setSelectedMembers(prevSelected =>
@@ -50,94 +46,91 @@ const ChannelCreateScreen: React.FC = props => {
   };
 
   const handleCreateChannel = async () => {
-    const response = await createChannel({
-      gameId: gameId,
-      channel: {
-        memberIds: selectedMembers,
-      },
-    });
-    if (response.data) {
-      navigate(`/game/${gameId}/chat/channel/${response.data.id}`);
+    try {
+      const response = await createChannelMutation.mutateAsync({
+        gameId: gameId,
+        data: {
+          memberIds: selectedMembers,
+        },
+      });
+      toast.success("Channel created successfully");
+      if (response) {
+        navigate(`/game/${gameId}/phase/${phaseId}/chat/channel/${response.id}`);
+      }
+    } catch {
+      toast.error("Failed to create channel");
     }
   };
 
   const handleBack = () => {
-    navigate(`/game/${gameId}/chat`);
+    navigate(`/game/${gameId}/phase/${phaseId}/chat`);
   };
 
-  if (gameRetrieveQuery.isError || !gameRetrieveQuery.data) {
-    return null;
-  }
-
-  const game = gameRetrieveQuery.data;
-  const isSubmitting = createChannelMutation.isLoading;
+  const isSubmitting = createChannelMutation.isPending;
 
   return (
-    <GameDetailLayout
-      appBar={
-        <GameDetailAppBar
-          title={"Create Channel"}
-          variant="secondary"
-          onNavigateBack={handleBack}
-        />
-      }
-      rightPanel={<GameMap />}
-      content={
+    <div className="flex flex-col flex-1">
+      <GameDetailAppBar
+        title="Create Channel"
+        variant="secondary"
+        onNavigateBack={handleBack}
+      />
+      <div className="flex-1 overflow-y-auto">
         <Panel>
           <Panel.Content>
-            <Stack sx={styles.container}>
-              <Stack sx={styles.listContainer}>
-                <List>
-                  {game.members
-                    .filter(m => !m.isCurrentUser)
-                    .map(member => (
-                      <ListItem
-                        key={member.nation}
-                        secondaryAction={
-                          <Checkbox
-                            edge="end"
-                            onChange={() => handleToggle(member.id)}
-                            checked={selectedMembers.includes(member.id)}
-                            disableRipple
-                            disabled={isSubmitting}
-                          />
-                        }
-                      >
-                        <ListItemButton
-                          disableRipple
-                          onClick={() => handleToggle(member.id)}
-                        >
-                          <ListItemAvatar>
-                            <Avatar src={member.picture ?? undefined}>
-                              {member.nation?.[0]}
-                            </Avatar>
-                          </ListItemAvatar>
-                          <ListItemText
-                            primary={member.nation}
-                            secondary={member.name}
-                          />
-                        </ListItemButton>
-                      </ListItem>
-                    ))}
-                </List>
-              </Stack>
-            </Stack>
+            <ItemGroup>
+              {game.members
+                .filter(m => !m.isCurrentUser)
+                .map(member => (
+                  <React.Fragment key={member.nation}>
+                    <Item
+                      className="cursor-pointer hover:bg-accent/50"
+                      onClick={() => handleToggle(member.id)}
+                    >
+                      <ItemMedia>
+                        <Avatar>
+                          <AvatarImage src={member.picture ?? undefined} />
+                          <AvatarFallback>{member.nation?.[0]}</AvatarFallback>
+                        </Avatar>
+                      </ItemMedia>
+                      <ItemContent>
+                        <ItemTitle>{member.nation}</ItemTitle>
+                        <ItemDescription>{member.name}</ItemDescription>
+                      </ItemContent>
+                      <ItemActions>
+                        <Checkbox
+                          checked={selectedMembers.includes(member.id)}
+                          disabled={isSubmitting}
+                        />
+                      </ItemActions>
+                    </Item>
+                    <ItemSeparator />
+                  </React.Fragment>
+                ))}
+            </ItemGroup>
           </Panel.Content>
-          <Divider />
+          <Separator />
           <Panel.Footer>
             <Button
-              variant="contained"
               disabled={selectedMembers.length === 0 || isSubmitting}
               onClick={handleCreateChannel}
-              startIcon={<Icon name={IconName.GroupAdd} />}
             >
+              <UserPlus />
               Select Members
             </Button>
           </Panel.Footer>
         </Panel>
-      }
-    />
+      </div>
+    </div>
   );
 };
 
-export { ChannelCreateScreen };
+const ChannelCreateScreenSuspense: React.FC = () => (
+  <QueryErrorBoundary>
+    <Suspense fallback={<div></div>}>
+      <ChannelCreateScreen />
+    </Suspense>
+  </QueryErrorBoundary>
+);
+
+export { ChannelCreateScreenSuspense as ChannelCreateScreen };
