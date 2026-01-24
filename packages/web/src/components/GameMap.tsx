@@ -76,7 +76,7 @@ const GameMap: React.FC = () => {
     const highlightedProvinceIds = orderState?.options?.map(o => o.value) ?? [];
 
     return determineRenderableProvinces(allProvinces, highlightedProvinceIds);
-  }, [variant?.provinces, orderState?.options]);
+  }, [variant, orderState?.options]);
 
   const handleProvinceClick = async (
     province: string,

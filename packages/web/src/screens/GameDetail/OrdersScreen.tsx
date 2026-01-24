@@ -8,6 +8,7 @@ import {
   Play,
   Inbox,
   SearchX,
+  Star,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -35,6 +36,7 @@ import { GameDropdownMenu } from "@/components/GameDropdownMenu";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
 import { PhaseSelect } from "@/components/PhaseSelect";
+import { PhaseGuidance } from "@/components/PhaseGuidance";
 import { useRequiredParams } from "@/hooks";
 import {
   PhaseRetrieve,
@@ -131,6 +133,10 @@ const OrdersScreen: React.FC = () => {
 
   const isActivePhase = phase.status === "active";
 
+  const getSupplyCenterCount = (nation: string) => {
+    return phase.supplyCenters.filter(sc => sc.nation.name === nation).length;
+  };
+
   const handleDeleteOrder = async (sourceId: string) => {
     try {
       await deleteOrderMutation.mutateAsync({ gameId, sourceId });
@@ -208,8 +214,11 @@ const OrdersScreen: React.FC = () => {
       <GameDetailAppBar
         title={
           <div className="flex items-center gap-2">
-            <div className="flex-1 flex justify-center">
+            <div className="flex-1 flex flex-col items-center gap-0.5">
               <PhaseSelect />
+              <Suspense fallback={null}>
+                <PhaseGuidance />
+              </Suspense>
             </div>
             <GameDropdownMenu
               gameId={gameId}
@@ -240,10 +249,15 @@ const OrdersScreen: React.FC = () => {
               >
                 {nationGroups.map(({ nation, member, items }) => (
                   <AccordionItem key={nation} value={nation}>
-                    <AccordionTrigger className="p-0 items-center px-2 py-1">
+                    <AccordionTrigger className="p-2 items-center">
                       <div className="flex items-center gap-2">
                         <MemberAvatar member={member} variant={variant.id} />
-                        {nation}
+                        <span>{nation}</span>
+                        <span className="text-muted-foreground">•</span>
+                        <span className="inline-flex items-center gap-1 text-muted-foreground">
+                          <Star className="size-3" />
+                          <span>{getSupplyCenterCount(nation)}</span>
+                        </span>
                       </div>
                     </AccordionTrigger>
                     <AccordionContent className="p-0">

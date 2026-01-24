@@ -4,6 +4,7 @@ import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
 import { PhaseSelect } from "@/components/PhaseSelect";
+import { PhaseGuidance } from "@/components/PhaseGuidance";
 import { GameMap } from "@/components/GameMap";
 import { GameDropdownMenu } from "@/components/GameDropdownMenu";
 import { useGameRetrieveSuspense } from "../../api/generated/endpoints";
@@ -30,8 +31,11 @@ const MapScreen: React.FC = () => {
       <GameDetailAppBar
         title={
           <div className="flex items-center gap-2">
-            <div className="flex-1 flex justify-center">
+            <div className="flex-1 flex flex-col items-center gap-0.5">
               <PhaseSelect />
+              <Suspense fallback={null}>
+                <PhaseGuidance />
+              </Suspense>
             </div>
             <GameDropdownMenu
               gameId={gameId}

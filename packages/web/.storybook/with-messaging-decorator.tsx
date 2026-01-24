@@ -3,22 +3,45 @@ import type { DecoratorFunction } from "@storybook/csf";
 import type { ReactRenderer } from "@storybook/react";
 import { MessagingContext } from "../src/context/MessagingContext";
 
-const withMessaging: DecoratorFunction<ReactRenderer> = (Story, context) => {
-  const messagingConfig = context.parameters.messaging || {};
+type MessagingWrapperProps = {
+  children: React.ReactNode;
+  messagingConfig: Record<string, unknown>;
+};
 
-  const mockMessaging = useMemo(() => ({
-    enabled: messagingConfig.enabled ?? false,
-    permissionDenied: messagingConfig.permissionDenied ?? false,
-    error: messagingConfig.error ?? null,
-    isLoading: messagingConfig.isLoading ?? false,
-    disableMessaging: messagingConfig.disableMessaging ?? (async () => {}),
-    enableMessaging: messagingConfig.enableMessaging ?? (async () => {}),
-  }), [messagingConfig]);
+const MessagingWrapper: React.FC<MessagingWrapperProps> = ({
+  children,
+  messagingConfig,
+}) => {
+  const mockMessaging = useMemo(
+    () => ({
+      enabled: (messagingConfig?.enabled as boolean) ?? false,
+      permissionDenied: (messagingConfig?.permissionDenied as boolean) ?? false,
+      error: (messagingConfig?.error as string | null) ?? null,
+      isLoading: (messagingConfig?.isLoading as boolean) ?? false,
+      disableMessaging:
+        (messagingConfig?.disableMessaging as () => Promise<void>) ??
+        (async () => {}),
+      enableMessaging:
+        (messagingConfig?.enableMessaging as () => Promise<void>) ??
+        (async () => {}),
+    }),
+    [messagingConfig]
+  );
 
   return (
     <MessagingContext.Provider value={mockMessaging}>
-      <Story />
+      {children}
     </MessagingContext.Provider>
+  );
+};
+
+const withMessaging: DecoratorFunction<ReactRenderer> = (Story, context) => {
+  const messagingConfig = context.parameters.messaging || {};
+
+  return (
+    <MessagingWrapper messagingConfig={messagingConfig}>
+      <Story />
+    </MessagingWrapper>
   );
 };
 

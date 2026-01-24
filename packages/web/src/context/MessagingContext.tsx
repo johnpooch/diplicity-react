@@ -65,7 +65,7 @@ const MessagingContextProvider: React.FC<MessagingContextProviderProps> = (
     if (token && loggedIn) {
       createDeviceFromToken(token);
     }
-  }, [token, loggedIn]);
+  }, [token, loggedIn, createDeviceMutation]);
 
   useEffect(() => {
     // Register the service worker for Firebase messaging
