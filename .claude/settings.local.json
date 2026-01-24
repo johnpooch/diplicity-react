@@ -40,7 +40,9 @@
       "Bash(done)",
       "WebFetch(domain:ui.shadcn.com)",
       "Bash(ANALYZE=true npm run build:*)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(gh issue create --title \"Display supply center count on nation accordion header in Orders screen\" --body \"$\\(cat <<''EOF''\n## Summary\n\nAdd supply center \\(SC\\) count display to the nation accordion headers in the Orders screen, giving players quick visibility into each nation''s standing without navigating to Player Info.\n\n## Current State\n\n- SC counts are calculated and displayed in `PlayerInfoContent.tsx` using the `getSupplyCenterCount` helper\n- The Orders screen \\(`OrdersScreen.tsx`\\) shows nation accordions with avatar and nation name only\n- Players must navigate to Player Info to see SC counts\n\n## Proposed Implementation\n\nUpdate the accordion trigger in `OrdersScreen.tsx` to include SC count:\n\n**Current:**\n```\n[Avatar] Germany\n```\n\n**Proposed:**\n```\n[Avatar] Germany • ⭐ 3\n```\n\n### Technical Details\n\n1. The `phase` object is already available in `OrdersScreen` and contains `supplyCenters` array\n2. Filter `phase.supplyCenters` by nation name to get count \\(same logic as `PlayerInfoContent.tsx`\\)\n3. Display count with star icon next to nation name in `AccordionTrigger`\n\n### Key Consideration\n\nFor historical phases, the SC count should reflect that phase''s state \\(not current phase\\). The existing code already scopes `phase` to the selected phase via `useGamePhaseRetrieveSuspense\\(gameId, selectedPhase\\)`, so this should work correctly.\n\n## Files to Modify\n\n- `packages/web/src/screens/GameDetail/OrdersScreen.tsx`\n\n## Acceptance Criteria\n\n- [ ] SC count displayed on each nation''s accordion header\n- [ ] Count updates correctly when navigating between phases\n- [ ] Visual style matches existing SC display in Player Info \\(star icon\\)\nEOF\n\\)\")",
+      "Bash(gh issue create:*)"
     ],
     "deny": [],
     "ask": []
