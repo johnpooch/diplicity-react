@@ -28,7 +28,11 @@ const GameDetailAppBar: React.FC<GameDetailAppBarProps> = ({
     if (onNavigateBack) {
       onNavigateBack();
     } else {
-      navigate(-1);
+      if (variant === "primary") {
+        navigate(`/`);
+      } else {
+        navigate(-1);
+      }
     }
   };
 

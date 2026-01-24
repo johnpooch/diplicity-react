@@ -94,7 +94,9 @@ const ChannelListScreen: React.FC = () => {
               <Panel.Footer>
                 <div className="flex justify-end w-full">
                   <Button asChild>
-                    <Link to={`/game/${gameId}/phase/${phaseId}/chat/channel/create`}>
+                    <Link
+                      to={`/game/${gameId}/phase/${phaseId}/chat/channel/create`}
+                    >
                       <UserPlus className="size-4" />
                       Create Channel
                     </Link>
