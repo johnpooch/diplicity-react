@@ -2,6 +2,7 @@ import React, { Suspense } from "react";
 import { useNavigate } from "react-router";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { GameDetailAppBar } from "./AppBar";
+import { Panel } from "@/components/Panel";
 import { PhaseSelect } from "@/components/PhaseSelect";
 import { GameMap } from "@/components/GameMap";
 import { GameDropdownMenu } from "@/components/GameDropdownMenu";
@@ -25,7 +26,7 @@ const MapScreen: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col flex-1 min-h-0">
       <GameDetailAppBar
         title={
           <div className="flex items-center gap-2">
@@ -43,7 +44,11 @@ const MapScreen: React.FC = () => {
         onNavigateBack={() => navigate("/")}
       />
       <div className="flex-1 overflow-y-auto">
-        <GameMap />
+        <Panel>
+          <Panel.Content>
+            <GameMap />
+          </Panel.Content>
+        </Panel>
       </div>
     </div>
   );

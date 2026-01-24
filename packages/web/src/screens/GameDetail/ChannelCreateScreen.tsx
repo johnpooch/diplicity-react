@@ -69,7 +69,7 @@ const ChannelCreateScreen: React.FC = () => {
   const isSubmitting = createChannelMutation.isPending;
 
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col flex-1 min-h-0">
       <GameDetailAppBar
         title="Create Channel"
         variant="secondary"

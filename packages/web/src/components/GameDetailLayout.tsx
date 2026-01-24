@@ -88,7 +88,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
           </Sidebar>
 
           {/* Main Content Area - Fixed width on desktop */}
-          <SidebarInset className="@container flex min-w-0 flex-col md:w-[360px] md:flex-none">
+          <SidebarInset className="@container flex min-w-0 min-h-0 flex-col md:w-[360px] md:flex-none">
             {children}
           </SidebarInset>
 

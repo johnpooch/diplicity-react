@@ -1,5 +1,6 @@
 import React, { Suspense, useState } from "react";
 import { useNavigate } from "react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { Send, MessageCircle } from "lucide-react";
 import { useRequiredParams } from "@/hooks";
 import { toast } from "sonner";
@@ -22,6 +23,7 @@ import {
   useGamesChannelsListSuspense,
   useVariantsListSuspense,
   useGamesChannelsMessagesCreateCreate,
+  getGamesChannelsListQueryKey,
   ChannelMessage as ChannelMessageType,
 } from "@/api/generated/endpoints";
 
@@ -72,6 +74,7 @@ const ChannelScreen: React.FC = () => {
   }>();
 
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
 
   const { data: game } = useGameRetrieveSuspense(gameId);
@@ -89,6 +92,9 @@ const ChannelScreen: React.FC = () => {
         data: { body: message },
       });
       setMessage("");
+      queryClient.invalidateQueries({
+        queryKey: getGamesChannelsListQueryKey(gameId),
+      });
     } catch {
       toast.error("Failed to send message");
     }
@@ -110,7 +116,7 @@ const ChannelScreen: React.FC = () => {
   const messageItems = buildMessageItems(channel.messages);
 
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col flex-1 min-h-0">
       <GameDetailAppBar
         title={channel.name}
         onNavigateBack={() => navigate(`/game/${gameId}/phase/${phaseId}/chat`)}

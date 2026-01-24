@@ -204,7 +204,7 @@ const OrdersScreen: React.FC = () => {
       };
 
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col flex-1 min-h-0">
       <GameDetailAppBar
         title={
           <div className="flex items-center gap-2">
