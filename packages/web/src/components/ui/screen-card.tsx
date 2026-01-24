@@ -1,24 +1,33 @@
 import * as React from "react"
-import { Card, CardHeader, CardContent } from "./card"
 import { cn } from "@/lib/utils"
 
-function ScreenCard({ className, ...props }: React.ComponentProps<typeof Card>) {
-  return <Card className={className} {...props} />
-}
-
-function ScreenCardHeader({ className, ...props }: React.ComponentProps<typeof CardHeader>) {
+function ScreenCard({ className, ...props }: React.ComponentProps<"div">) {
   return (
-    <CardHeader
-      className={cn("p-6", className)}
+    <div
+      className={cn(
+        "flex flex-col",
+        "py-2",
+        "@[500px]:rounded-xl @[500px]:border @[500px]:bg-card @[500px]:py-6 @[500px]:shadow-sm",
+        className
+      )}
       {...props}
     />
   )
 }
 
-function ScreenCardContent({ className, ...props }: React.ComponentProps<typeof CardContent>) {
+function ScreenCardHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
-    <CardContent
-      className={cn("p-6", className)}
+    <div
+      className={cn("px-0 @[500px]:px-6", className)}
+      {...props}
+    />
+  )
+}
+
+function ScreenCardContent({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      className={cn("px-0 @[500px]:px-6", className)}
       {...props}
     />
   )

@@ -111,13 +111,15 @@ const ChannelCreateScreen: React.FC = () => {
           </Panel.Content>
           <Separator />
           <Panel.Footer>
-            <Button
-              disabled={selectedMembers.length === 0 || isSubmitting}
-              onClick={handleCreateChannel}
-            >
-              <UserPlus />
-              Select Members
-            </Button>
+            <div className="flex justify-end w-full">
+              <Button
+                disabled={selectedMembers.length === 0 || isSubmitting}
+                onClick={handleCreateChannel}
+              >
+                <UserPlus />
+                Select Members
+              </Button>
+            </div>
           </Panel.Footer>
         </Panel>
       </div>

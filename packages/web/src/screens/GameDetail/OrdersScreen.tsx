@@ -1,7 +1,14 @@
 import React, { Suspense } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
-import { Trash2, CheckSquare, Square, Play, Inbox, SearchX } from "lucide-react";
+import {
+  Trash2,
+  CheckSquare,
+  Square,
+  Play,
+  Inbox,
+  SearchX,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
@@ -146,7 +153,9 @@ const OrdersScreen: React.FC = () => {
       queryClient.invalidateQueries({
         queryKey: getGameRetrieveQueryKey(gameId),
       });
-      toast.success(newConfirmedState ? "Orders confirmed" : "Orders unconfirmed");
+      toast.success(
+        newConfirmedState ? "Orders confirmed" : "Orders unconfirmed"
+      );
     } catch {
       toast.error(
         newConfirmedState
@@ -199,7 +208,9 @@ const OrdersScreen: React.FC = () => {
       <GameDetailAppBar
         title={
           <div className="flex items-center gap-2">
-            <PhaseSelect />
+            <div className="flex-1 flex justify-center">
+              <PhaseSelect />
+            </div>
             <GameDropdownMenu
               gameId={gameId}
               canLeave={game.canLeave}
@@ -296,7 +307,7 @@ const OrdersScreen: React.FC = () => {
             <>
               <Separator />
               <Panel.Footer>
-                <div className="flex gap-2 justify-end">
+                <div className="flex gap-2 justify-end w-full">
                   {game.sandbox ? (
                     <Button
                       disabled={resolvePhaseMutation.isPending}

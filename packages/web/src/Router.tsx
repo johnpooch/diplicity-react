@@ -18,7 +18,7 @@ import * as Sentry from "@sentry/react";
 
 const RouteFallback: React.FC = () => (
   <div className="flex-1 flex items-center justify-center">
-    <div className="animate-pulse text-muted-foreground">Loading...</div>
+    <div className="animate-pulse text-muted-foreground"></div>
   </div>
 );
 

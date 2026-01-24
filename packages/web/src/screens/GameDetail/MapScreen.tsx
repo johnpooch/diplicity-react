@@ -29,7 +29,9 @@ const MapScreen: React.FC = () => {
       <GameDetailAppBar
         title={
           <div className="flex items-center gap-2">
-            <PhaseSelect />
+            <div className="flex-1 flex justify-center">
+              <PhaseSelect />
+            </div>
             <GameDropdownMenu
               gameId={gameId}
               canLeave={game.canLeave}

@@ -39,7 +39,8 @@
       "Bash(do)",
       "Bash(done)",
       "WebFetch(domain:ui.shadcn.com)",
-      "Bash(ANALYZE=true npm run build:*)"
+      "Bash(ANALYZE=true npm run build:*)",
+      "Bash(node -e:*)"
     ],
     "deny": [],
     "ask": []

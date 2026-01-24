@@ -4,20 +4,10 @@ import { CurvedArrow } from "./shapes/curved-arrow";
 import { Octagon } from "./shapes/octagon";
 import type { Order, PhaseRetrieve, Variant } from "../../api/generated/endpoints";
 
-import classical from "../../maps/classical.json";
-import hundred from "../../maps/hundred.json";
 import { ConvoyArrow } from "./orders/convoy";
 import { SupportHoldArrow } from "./orders/support-hold";
 import { Minus } from "./shapes/minus";
-
-const VARIANT_MAPS: Record<string, typeof classical | typeof hundred> = {
-  classical,
-  hundred,
-};
-
-const getMap = (variant: { id: string }) => {
-  return VARIANT_MAPS[variant.id] || VARIANT_MAPS.classical;
-};
+import { useMapData } from "../../hooks/useMapData";
 
 type VariantForMap = Pick<Variant, "id" | "nations">;
 
@@ -109,7 +99,43 @@ const SUPPLY_CENTER_STROKE_WIDTH = 2;
 const InteractiveMap = (props: InteractiveMapProps) => {
   const [hoveredProvince, setHoveredProvince] = useState<string | null>(null);
 
-  const map = getMap(props.variant);
+  const { data: map, isLoading, error } = useMapData(props.variant.id);
+
+  // Show loading state while map data is being fetched
+  if (isLoading || !map) {
+    return (
+      <svg
+        style={{
+          width: props.style?.width || 800,
+          height: props.style?.height || 600,
+          display: "block",
+          ...props.style,
+        }}
+      >
+        <text x="50%" y="50%" textAnchor="middle" fill="#666">
+          Loading map...
+        </text>
+      </svg>
+    );
+  }
+
+  // Show error state if map failed to load
+  if (error) {
+    return (
+      <svg
+        style={{
+          width: props.style?.width || 800,
+          height: props.style?.height || 600,
+          display: "block",
+          ...props.style,
+        }}
+      >
+        <text x="50%" y="50%" textAnchor="middle" fill="#c00">
+          Failed to load map
+        </text>
+      </svg>
+    );
+  }
 
   // Determine which provinces should be rendered
   const renderableProvinces =

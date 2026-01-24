@@ -92,12 +92,14 @@ const ChannelListScreen: React.FC = () => {
             <>
               <Separator />
               <Panel.Footer>
-                <Button asChild>
-                  <Link to={`/game/${gameId}/phase/${phaseId}/chat/channel/create`}>
-                    <UserPlus className="size-4" />
-                    Create Channel
-                  </Link>
-                </Button>
+                <div className="flex justify-end w-full">
+                  <Button asChild>
+                    <Link to={`/game/${gameId}/phase/${phaseId}/chat/channel/create`}>
+                      <UserPlus className="size-4" />
+                      Create Channel
+                    </Link>
+                  </Button>
+                </div>
               </Panel.Footer>
             </>
           )}
