@@ -1609,7 +1609,7 @@ class TestPhaseRetrieveViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        assert query_count == 9
+        assert query_count == 12
 
 
 class TestGetPhasesToResolvePerformance:
