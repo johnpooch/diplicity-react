@@ -2,12 +2,16 @@ import React, { useState } from "react";
 import { Cross } from "./shapes/cross";
 import { CurvedArrow } from "./shapes/curved-arrow";
 import { Octagon } from "./shapes/octagon";
-import type { Order, PhaseRetrieve, Variant } from "../../api/generated/endpoints";
+import type {
+  Order,
+  PhaseRetrieve,
+  Variant,
+} from "../../api/generated/endpoints";
 
 import { ConvoyArrow } from "./orders/convoy";
 import { SupportHoldArrow } from "./orders/support-hold";
 import { Minus } from "./shapes/minus";
-import { useMapData } from "../../hooks/useMapData";
+import { useMapData, type MapData } from "../../hooks/useMapData";
 
 type VariantForMap = Pick<Variant, "id" | "nations">;
 
@@ -25,6 +29,7 @@ type InteractiveMapProps = {
   ) => void;
   style?: React.CSSProperties;
   ref?: React.Ref<SVGSVGElement>;
+  mapData?: MapData;
 };
 
 const HOVER_STROKE_WIDTH = 5;
@@ -99,43 +104,47 @@ const SUPPLY_CENTER_STROKE_WIDTH = 2;
 const InteractiveMap = (props: InteractiveMapProps) => {
   const [hoveredProvince, setHoveredProvince] = useState<string | null>(null);
 
-  const { data: map, isLoading, error } = useMapData(props.variant.id);
+  // If mapData is provided, use it directly; otherwise load internally
+  const { data: loadedMap, isLoading, error } = useMapData(props.variant.id);
+  const map = props.mapData ?? loadedMap;
 
-  // Show loading state while map data is being fetched
-  if (isLoading || !map) {
-    return (
-      <svg
-        style={{
-          width: props.style?.width || 800,
-          height: props.style?.height || 600,
-          display: "block",
-          ...props.style,
-        }}
-      >
-        <text x="50%" y="50%" textAnchor="middle" fill="#666">
-          Loading map...
-        </text>
-      </svg>
-    );
+  // Only show loading/error states if mapData is not provided
+  if (!props.mapData) {
+    if (isLoading || !map) {
+      return (
+        <svg
+          style={{
+            width: props.style?.width || 800,
+            height: props.style?.height || 600,
+            display: "block",
+            ...props.style,
+          }}
+        >
+          <text x="50%" y="50%" textAnchor="middle" fill="#666"></text>
+        </svg>
+      );
+    }
+
+    if (error) {
+      return (
+        <svg
+          style={{
+            width: props.style?.width || 800,
+            height: props.style?.height || 600,
+            display: "block",
+            ...props.style,
+          }}
+        >
+          <text x="50%" y="50%" textAnchor="middle" fill="#c00">
+            Failed to load map
+          </text>
+        </svg>
+      );
+    }
   }
 
-  // Show error state if map failed to load
-  if (error) {
-    return (
-      <svg
-        style={{
-          width: props.style?.width || 800,
-          height: props.style?.height || 600,
-          display: "block",
-          ...props.style,
-        }}
-      >
-        <text x="50%" y="50%" textAnchor="middle" fill="#c00">
-          Failed to load map
-        </text>
-      </svg>
-    );
-  }
+  // At this point map is guaranteed to be defined (either from prop or loaded)
+  if (!map) return null;
 
   // Determine which provinces should be rendered
   const renderableProvinces =

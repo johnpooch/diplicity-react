@@ -4,6 +4,7 @@ import { Maximize, Minimize } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import { InteractiveMap } from "./InteractiveMap";
+import { useMapData } from "../../hooks/useMapData";
 
 type InteractiveMapProps = React.ComponentProps<typeof InteractiveMap>;
 
@@ -22,6 +23,11 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
   const svgRef = useRef<SVGSVGElement>(null);
   const transformRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Load map data at the wrapper level to avoid race condition with viewBox reading
+  const { data: mapData, isLoading } = useMapData(
+    interactiveMapProps.variant.id
+  );
 
   const [isFullscreen, setIsFullscreen] = useState(true);
 
@@ -128,13 +134,15 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
     };
   }, []);
 
-  // Initialize SVG viewBox dimensions
+  // Set SVG viewBox dimensions from loaded map data
   useEffect(() => {
-    setSvgViewBox({
-      width: svgRef.current?.viewBox.baseVal.width || 0,
-      height: svgRef.current?.viewBox.baseVal.height || 0,
-    });
-  }, []);
+    if (mapData) {
+      setSvgViewBox({
+        width: mapData.width,
+        height: mapData.height,
+      });
+    }
+  }, [mapData]);
 
   // Apply scale transformation when scale value changes
   useEffect(() => {
@@ -148,6 +156,17 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
       transformRef.current.setTransform(centerX, centerY, minScale, 0);
     }
   }, [minScale, containerDimensions, svgViewBox]);
+
+  // Show loading state while map data is being fetched
+  if (isLoading || !mapData) {
+    return (
+      <div
+        ref={containerRef}
+        style={{ width: "100%", height: "100%", position: "relative" }}
+        className="flex items-center justify-center"
+      ></div>
+    );
+  }
 
   return (
     <div
@@ -163,7 +182,11 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
         centerZoomedOut={true}
       >
         <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
-          <InteractiveMap ref={svgRef} {...interactiveMapProps} />
+          <InteractiveMap
+            ref={svgRef}
+            {...interactiveMapProps}
+            mapData={mapData}
+          />
         </TransformComponent>
       </TransformWrapper>
       <Button
