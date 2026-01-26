@@ -192,6 +192,51 @@ class GameManager(models.Manager):
         game._created_phase = phase
         return game
 
+    def clone_from_phase(self, source_phase, name):
+        game = self.create(
+            variant=source_phase.game.variant,
+            name=name,
+            sandbox=True,
+            private=True,
+            nation_assignment=NationAssignment.ORDERED,
+            movement_phase_duration=None,
+        )
+
+        phase = game.phases.create(
+            game=game,
+            variant=source_phase.game.variant,
+            season=source_phase.season,
+            year=source_phase.year,
+            type=source_phase.type,
+            status=PhaseStatus.PENDING,
+            ordinal=1,
+        )
+
+        units_to_create = [
+            Unit(
+                phase=phase,
+                type=unit.type,
+                nation=unit.nation,
+                province=unit.province,
+                dislodged=unit.dislodged,
+            )
+            for unit in source_phase.units.all()
+        ]
+        Unit.objects.bulk_create(units_to_create)
+
+        supply_centers_to_create = [
+            SupplyCenter(
+                phase=phase,
+                nation=sc.nation,
+                province=sc.province,
+            )
+            for sc in source_phase.supply_centers.all()
+        ]
+        SupplyCenter.objects.bulk_create(supply_centers_to_create)
+
+        game._created_phase = phase
+        return game
+
 
 class Game(BaseModel):
 

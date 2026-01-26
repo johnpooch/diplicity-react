@@ -1606,3 +1606,158 @@ class TestGameAdminQueryPerformance:
         assert response.status_code == 200
         query_count = len(connection.queries)
         assert query_count <= 7
+
+
+clone_to_sandbox_viewname = "game-clone-to-sandbox"
+
+
+class TestGameCloneToSandbox:
+
+    @pytest.mark.django_db
+    def test_clone_to_sandbox_success(
+        self, authenticated_client, active_game_with_phase_state, adjudication_data_classical
+    ):
+        url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
+        with patch("adjudication.service.start") as mock_start:
+            mock_start.return_value = adjudication_data_classical
+            response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["sandbox"] is True
+        assert response.data["private"] is True
+
+    @pytest.mark.django_db
+    def test_clone_to_sandbox_creates_correct_name(
+        self, authenticated_client, active_game_with_phase_state, adjudication_data_classical
+    ):
+        url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
+        with patch("adjudication.service.start") as mock_start:
+            mock_start.return_value = adjudication_data_classical
+            response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_201_CREATED
+        expected_name = f"{active_game_with_phase_state.name} (Sandbox)"
+        assert response.data["name"] == expected_name
+
+    @pytest.mark.django_db
+    def test_clone_to_sandbox_copies_units(
+        self, authenticated_client, active_game_with_phase_state, adjudication_data_classical
+    ):
+        source_units_count = active_game_with_phase_state.current_phase.units.count()
+        url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
+        with patch("adjudication.service.start") as mock_start:
+            mock_start.return_value = adjudication_data_classical
+            response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_201_CREATED
+        new_game = Game.objects.get(id=response.data["id"])
+        assert new_game.current_phase.units.count() == source_units_count
+
+    @pytest.mark.django_db
+    def test_clone_to_sandbox_copies_supply_centers(
+        self, authenticated_client, active_game_with_phase_state, adjudication_data_classical
+    ):
+        source_sc_count = active_game_with_phase_state.current_phase.supply_centers.count()
+        url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
+        with patch("adjudication.service.start") as mock_start:
+            mock_start.return_value = adjudication_data_classical
+            response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_201_CREATED
+        new_game = Game.objects.get(id=response.data["id"])
+        assert new_game.current_phase.supply_centers.count() == source_sc_count
+
+    @pytest.mark.django_db
+    def test_clone_to_sandbox_preserves_phase_info(
+        self, authenticated_client, active_game_with_phase_state, adjudication_data_classical
+    ):
+        source_phase = active_game_with_phase_state.current_phase
+        url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
+        with patch("adjudication.service.start") as mock_start:
+            mock_start.return_value = adjudication_data_classical
+            response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_201_CREATED
+        new_game = Game.objects.get(id=response.data["id"])
+        new_phase = new_game.current_phase
+        assert new_phase.season == source_phase.season
+        assert new_phase.year == source_phase.year
+        assert new_phase.type == source_phase.type
+
+    @pytest.mark.django_db
+    def test_clone_to_sandbox_creates_all_members_for_user(
+        self, authenticated_client, active_game_with_phase_state, primary_user, adjudication_data_classical
+    ):
+        nations_count = active_game_with_phase_state.variant.nations.count()
+        url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
+        with patch("adjudication.service.start") as mock_start:
+            mock_start.return_value = adjudication_data_classical
+            response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_201_CREATED
+        new_game = Game.objects.get(id=response.data["id"])
+        assert new_game.members.count() == nations_count
+        assert all(m.user == primary_user for m in new_game.members.all())
+
+    @pytest.mark.django_db
+    def test_clone_to_sandbox_game_is_active(
+        self, authenticated_client, active_game_with_phase_state, adjudication_data_classical
+    ):
+        url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
+        with patch("adjudication.service.start") as mock_start:
+            mock_start.return_value = adjudication_data_classical
+            response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["status"] == GameStatus.ACTIVE
+
+    @pytest.mark.django_db
+    def test_clone_to_sandbox_deletes_oldest_when_at_limit(
+        self, authenticated_client, primary_user, classical_variant, adjudication_data_classical,
+        active_game_with_phase_state
+    ):
+        sandboxes = []
+        for i in range(3):
+            sandbox = Game.objects.create_from_template(
+                classical_variant,
+                name=f"Existing Sandbox {i}",
+                sandbox=True,
+                private=True,
+                nation_assignment=NationAssignment.ORDERED,
+                movement_phase_duration=None,
+            )
+            sandbox.members.create(user=primary_user)
+            sandboxes.append(sandbox)
+
+        oldest_sandbox_id = sandboxes[0].id
+
+        url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
+        with patch("adjudication.service.start") as mock_start:
+            mock_start.return_value = adjudication_data_classical
+            response = authenticated_client.post(url)
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert not Game.objects.filter(id=oldest_sandbox_id).exists()
+
+    @pytest.mark.django_db
+    def test_clone_to_sandbox_unauthenticated(
+        self, unauthenticated_client, active_game_with_phase_state
+    ):
+        url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
+        response = unauthenticated_client.post(url)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_clone_to_sandbox_non_member(
+        self, authenticated_client_for_secondary_user, active_game_with_phase_state
+    ):
+        url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
+        response = authenticated_client_for_secondary_user.post(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_clone_to_sandbox_pending_game(
+        self, authenticated_client, pending_game_created_by_primary_user
+    ):
+        url = reverse(clone_to_sandbox_viewname, args=[pending_game_created_by_primary_user.id])
+        response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_clone_to_sandbox_game_not_found(self, authenticated_client):
+        url = reverse(clone_to_sandbox_viewname, args=["non-existent-game"])
+        response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_404_NOT_FOUND

@@ -2,8 +2,10 @@ from rest_framework import serializers
 from django.db import transaction
 from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
-from common.constants import NationAssignment, MovementPhaseDuration
+from common.constants import NationAssignment, MovementPhaseDuration, PhaseStatus
 from member.serializers import MemberSerializer
+from unit.models import Unit
+from supply_center.models import SupplyCenter
 
 from victory.serializers import VictorySerializer
 from variant.models import Variant
@@ -177,6 +179,42 @@ class GameCreateSandboxSerializer(serializers.Serializer):
 
             if hasattr(game, "_created_phase"):
                 delattr(game, "_created_phase")
+
+        return Game.objects.all().with_related_data().get(id=game.id)
+
+    def to_representation(self, instance):
+        return GameRetrieveSerializer(instance, context=self.context).data
+
+
+class GameCloneToSandboxSerializer(serializers.Serializer):
+    id = serializers.CharField(read_only=True)
+
+    def create(self, validated_data):
+        request = self.context["request"]
+        source_game = self.context["game"]
+        source_phase = source_game.current_phase
+        user = request.user
+
+        with transaction.atomic():
+            user_sandboxes = Game.objects.filter(
+                sandbox=True,
+                members__user=user
+            ).distinct().order_by("created_at")
+
+            if user_sandboxes.count() >= 3:
+                oldest_sandbox = user_sandboxes.first()
+                oldest_sandbox.delete()
+
+            game = Game.objects.clone_from_phase(
+                source_phase,
+                name=f"{source_game.name} (Sandbox)",
+            )
+
+            nations_list = list(source_game.variant.nations.all())
+            members_to_create = [Member(game=game, user=user) for _ in nations_list]
+            created_members = Member.objects.bulk_create(members_to_create)
+
+            game.start(current_phase=game._created_phase, members=created_members)
 
         return Game.objects.all().with_related_data().get(id=game.id)
 
