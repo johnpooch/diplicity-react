@@ -1,217 +1,145 @@
 import React from "react";
-import { Box, Button, Link, Skeleton, Stack, Typography } from "@mui/material";
 import { useNavigate } from "react-router";
-import { service } from "../store";
-import { GameMenu } from "./GameMenu";
-import { InteractiveMap } from "./InteractiveMap/InteractiveMap";
-import { formatDateTime } from "../util";
-import { createUseStyles } from "./utils/styles";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Variant } from "../api/generated/endpoints";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
+import { GameDropdownMenu } from "./GameDropdownMenu";
+import { UserPlus, Lock } from "lucide-react";
 import { MemberAvatarGroup } from "./MemberAvatarGroup";
-import { Icon, IconName } from "./Icon";
-import { IconButton } from "./Button";
-import { useVariantById, useCurrentPhase } from "../hooks";
+import { formatDateTime } from "../util";
+import {
+  GameList,
+  useGameJoinCreate,
+  useGamePhaseRetrieve,
+  getGamesListQueryKey,
+} from "../api/generated/endpoints";
+import { Skeleton } from "./ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
-type GameCardProps = {
-  game?: (typeof service.endpoints.gamesList.Types.ResultType)[number];
-};
+export interface GameCardProps {
+  game: GameList;
+  variant: Pick<Variant, "name" | "id">;
+  phaseId: number;
+  map: React.ReactNode;
+  className?: string;
+}
 
-const useStyles = createUseStyles<GameCardProps>(() => ({
-  mainContainer: theme => ({
-    borderBottom: `1px solid ${theme.palette.divider}`,
-  }),
-  mapWrapper: {
-    maxWidth: 60,
-    minWidth: 60,
-    maxHeight: 54,
-  },
-  gameName: theme => ({
-    fontSize: 15,
-    lineHeight: "1.8",
-    color: theme.palette.text.primary,
-    "&:hover": {
-      color: theme.palette.text.primary,
-    },
-  }),
-  gameNameLink: theme => ({
-    color: theme.palette.text.primary,
-    "&:hover": {
-      color: theme.palette.text.primary,
-    },
-    "&:after": {
-      borderBottomColor: theme.palette.text.primary,
-    },
-  }),
-  lockIcon: {
-    fontSize: 12,
-    opacity: 0.6,
-  },
-  phaseInfo: theme => ({
-    color: theme.palette.text.primary,
-  }),
-  memberButton: {
-    padding: 0,
-    width: "fit-content",
-    justifyContent: "flex-start",
-  },
-  memberContainer: {
-    paddingBottom: "4px",
-    paddingLeft: "6px",
-  },
-}));
-
-const GameCard: React.FC<GameCardProps> = props => {
+const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
   const navigate = useNavigate();
-  const styles = useStyles(props);
-  const variant = useVariantById(props.game?.variantId ?? "");
-  const currentPhaseQuery = useCurrentPhase(props.game);
-
-  const [joinGame, joinGameMutation] =
-    service.endpoints.gameJoinCreate.useMutation();
-
-  const handleClickJoinGame = async () => {
-    if (!props.game) return;
-    await joinGame({ gameId: props.game.id, member: {} });
-    navigate(`/game-info/${props.game.id}`);
-  };
-
-  const handleClickGameInfo = () => {
-    if (!props.game) return;
-    navigate(`/game-info/${props.game.id}`);
-  };
-
-  const handleClickPlayerInfo = () => {
-    if (!props.game) return;
-    navigate(`/player-info/${props.game.id}`);
-  };
+  const queryClient = useQueryClient();
+  const { data: phase } = useGamePhaseRetrieve(game.id, phaseId);
+  const joinGameMutation = useGameJoinCreate();
 
   const handleClickGame = () => {
-    if (!props.game) return;
-    if (props.game.status === "active") {
-      navigate(`/game/${props.game.id}`);
+    if (game.status === "active") {
+      navigate(`/game/${game.id}`);
     } else {
-      navigate(`/game-info/${props.game.id}`);
+      navigate(`/game-info/${game.id}`);
     }
   };
 
+  const handleClickGameInfo = () => {
+    navigate(`/game-info/${game.id}`);
+  };
+
+  const handleClickPlayerInfo = () => {
+    navigate(`/player-info/${game.id}`);
+  };
+
+  const handleJoinGame = async () => {
+    try {
+      await joinGameMutation.mutateAsync({ gameId: game.id, data: {} });
+      toast.success("Successfully joined game");
+      queryClient.invalidateQueries({ queryKey: getGamesListQueryKey() });
+    } catch {
+      toast.error("Failed to join game");
+    }
+  };
+
+  const joinGameButton = game.canJoin && (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          onClick={handleJoinGame}
+          variant="outline"
+          aria-label="Join game"
+        >
+          <UserPlus className="size-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>Join game</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+
   return (
-    <Stack p={1} gap={1} direction="row" sx={styles.mainContainer}>
-      <Stack gap={1} flex={1}>
-        <Stack direction="row" gap={1}>
-          <Stack sx={styles.mapWrapper}>
-            {props.game ? (
-              <Link
+    <Card className="w-full flex  flex-col md:flex-row overflow-hidden p-0">
+      <button
+        onClick={handleClickGame}
+        className="cursor-pointer hover:opacity-90 transition-opacity md:max-w-xs lg:max-w-sm"
+      >
+        {map}
+      </button>
+
+      <div className="flex flex-col justify-between flex-grow p-4">
+        <CardHeader className="p-0">
+          <div className="flex flex-col">
+            <div className="flex justify-between items-center">
+              <button
                 onClick={handleClickGame}
-                style={{ width: "100%", height: "100%" }}
+                className="text-left hover:underline"
               >
-                <Box sx={{ width: "100%", height: "100%" }}>
-                  {currentPhaseQuery.data && variant ? (
-                    <InteractiveMap
-                      style={{ borderRadius: 5, width: "100%", height: "100%" }}
-                      variant={variant}
-                      phase={currentPhaseQuery.data}
-                      orders={[]}
-                      selected={[]}
-                    />
-                  ) : (
-                    <Skeleton variant="rectangular" width={60} height={52} />
-                  )}
-                </Box>
-              </Link>
-            ) : (
-              <Skeleton variant="rectangular" width={60} height={52} />
-            )}
-          </Stack>
-          <Stack>
-            {props.game ? (
-              <>
-                <Stack direction="row" gap={1} alignItems="center">
-                  <Link
-                    onClick={handleClickGame}
-                    underline="hover"
-                    sx={styles.gameNameLink}
-                  >
-                    <Typography variant="body2" sx={styles.gameName}>
-                      {props.game.name}
-                    </Typography>
-                  </Link>
-                </Stack>
-                <Stack direction="row" gap={1} alignItems="center">
-                  {props.game.private && (
-                    <Icon name={IconName.Lock} sx={styles.lockIcon} />
-                  )}
-                  {variant ? (
-                    <Typography variant="caption">
-                      {variant.name} •{" "}
-                      {props.game.movementPhaseDuration
-                        ? props.game.movementPhaseDuration
-                        : "Resolve when ready"}
-                    </Typography>
-                  ) : (
-                    <Skeleton variant="text" width={80} height={18} />
-                  )}
-                </Stack>
-              </>
-            ) : (
-              <>
-                <Stack direction="row" gap={1} alignItems="center">
-                  <Skeleton variant="text" width={200} height={27} />
-                </Stack>
-                <Stack direction="row" gap={1} alignItems="center">
-                  <Skeleton variant="text" width={80} height={18} />
-                </Stack>
-              </>
-            )}
-          </Stack>
-        </Stack>
-        <Stack>
-          {currentPhaseQuery.data ? (
-            <Typography variant="caption" sx={styles.phaseInfo}>
-              {currentPhaseQuery.data?.season} {currentPhaseQuery.data?.year} •{" "}
-              {currentPhaseQuery.data?.type}{" "}
-              {currentPhaseQuery.data?.scheduledResolution
-                ? `• Resolves ${formatDateTime(currentPhaseQuery.data?.scheduledResolution)}`
-                : ""}
-            </Typography>
-          ) : (
-            <Skeleton variant="text" width={300} height={18} />
-          )}
-        </Stack>
-        {props.game && variant && !props.game.sandbox ? (
-          <Button onClick={handleClickPlayerInfo} sx={styles.memberButton}>
-            <Stack direction="row" gap={1} sx={styles.memberContainer}>
-              <MemberAvatarGroup
-                members={props.game.members}
-                variant={variant.id}
-                victory={props.game.victory}
-              />
-            </Stack>
-          </Button>
-        ) : !props.game ? (
-          <Skeleton variant="rectangular" width={150} height={32} />
-        ) : null}
-      </Stack>
-      <Stack justifyContent="space-between">
-        {props.game ? (
-          <>
-            <GameMenu
-              game={props.game}
-              onClickGameInfo={handleClickGameInfo}
-              onClickPlayerInfo={handleClickPlayerInfo}
-            />
-            {props.game.canJoin && (
-              <IconButton
-                icon={IconName.Join}
-                color="primary"
-                disabled={joinGameMutation.isLoading}
-                onClick={handleClickJoinGame}
-              />
-            )}
-          </>
-        ) : (
-          <Skeleton variant="circular" width={24} height={24} />
-        )}
-      </Stack>
-    </Stack>
+                <CardTitle>{game.name}</CardTitle>
+              </button>
+              <div className="flex items-center gap-2">
+                {joinGameButton}
+                <GameDropdownMenu
+                  gameId={game.id}
+                  canLeave={game.canLeave}
+                  onNavigateToGameInfo={handleClickGameInfo}
+                  onNavigateToPlayerInfo={handleClickPlayerInfo}
+                />
+              </div>
+            </div>
+
+            <CardDescription className="text-sm text-muted-foreground">
+              <div className="flex items-center gap-1">
+                {game.private && <Lock className="h-3 w-3" />}
+                <span>
+                  {variant.name} •{" "}
+                  {game.movementPhaseDuration || "Resolve when ready"}
+                </span>
+              </div>
+              {phase ? (
+                <p>
+                  {phase.season} {phase.year} • {phase.type}
+                  {phase.scheduledResolution &&
+                    ` • Resolves ${formatDateTime(phase.scheduledResolution)}`}
+                </p>
+              ) : (
+                <Skeleton className="w-24 h-4" />
+              )}
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardFooter className="p-0 flex justify-between items-center">
+          <MemberAvatarGroup
+            members={game.members}
+            variant={variant.id}
+            onClick={handleClickPlayerInfo}
+          />
+        </CardFooter>
+      </div>
+    </Card>
   );
 };
 

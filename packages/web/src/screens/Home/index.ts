@@ -1,17 +1,21 @@
-import { MyGames } from "./MyGames";
-import { FindGames } from "./FindGames";
-import { CreateGame } from "./CreateGame";
-import { Profile } from "./Profile";
-import { GameInfo } from "./GameInfo";
-import { PlayerInfo } from "./PlayerInfo";
-import { SandboxGames } from "./SandboxGames";
+import { lazy } from "react";
 
 export const Home = {
-  MyGames: MyGames,
-  FindGames: FindGames,
-  CreateGame: CreateGame,
-  Profile: Profile,
-  GameInfo: GameInfo,
-  PlayerInfo: PlayerInfo,
-  SandboxGames: SandboxGames,
+  MyGames: lazy(() => import("./MyGames").then((m) => ({ default: m.MyGames }))),
+  FindGames: lazy(() =>
+    import("./FindGames").then((m) => ({ default: m.FindGames }))
+  ),
+  CreateGame: lazy(() =>
+    import("./CreateGame").then((m) => ({ default: m.CreateGame }))
+  ),
+  Profile: lazy(() => import("./Profile").then((m) => ({ default: m.Profile }))),
+  GameInfoScreen: lazy(() =>
+    import("./GameInfo").then((m) => ({ default: m.GameInfoScreen }))
+  ),
+  PlayerInfoScreen: lazy(() =>
+    import("./PlayerInfo").then((m) => ({ default: m.PlayerInfoScreen }))
+  ),
+  SandboxGames: lazy(() =>
+    import("./SandboxGames").then((m) => ({ default: m.SandboxGames }))
+  ),
 };

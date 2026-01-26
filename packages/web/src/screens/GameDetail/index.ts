@@ -1,17 +1,27 @@
-import { MapScreen } from "./MapScreen";
-import { OrdersScreen } from "./OrdersScreen";
-import { ChannelListScreen } from "./ChannelListScreen";
-import { ChannelCreateScreen } from "./ChannelCreateScreen";
-import { ChannelScreen } from "./ChannelScreen";
-import { GameInfoScreen } from "./GameInfoScreen";
-import { PlayerInfoScreen } from "./PlayerInfoScreen";
+import { lazy } from "react";
 
 export const GameDetail = {
-  MapScreen: MapScreen,
-  OrdersScreen: OrdersScreen,
-  ChannelListScreen: ChannelListScreen,
-  ChannelCreateScreen: ChannelCreateScreen,
-  ChannelScreen: ChannelScreen,
-  GameInfoScreen: GameInfoScreen,
-  PlayerInfoScreen: PlayerInfoScreen,
+  MapScreen: lazy(() =>
+    import("./MapScreen").then((m) => ({ default: m.MapScreen }))
+  ),
+  OrdersScreen: lazy(() =>
+    import("./OrdersScreen").then((m) => ({ default: m.OrdersScreen }))
+  ),
+  ChannelListScreen: lazy(() =>
+    import("./ChannelListScreen").then((m) => ({ default: m.ChannelListScreen }))
+  ),
+  ChannelCreateScreen: lazy(() =>
+    import("./ChannelCreateScreen").then((m) => ({
+      default: m.ChannelCreateScreen,
+    }))
+  ),
+  ChannelScreen: lazy(() =>
+    import("./ChannelScreen").then((m) => ({ default: m.ChannelScreen }))
+  ),
+  GameInfoScreen: lazy(() =>
+    import("./GameInfoScreen").then((m) => ({ default: m.GameInfoScreen }))
+  ),
+  PlayerInfoScreen: lazy(() =>
+    import("./PlayerInfoScreen").then((m) => ({ default: m.PlayerInfoScreen }))
+  ),
 };

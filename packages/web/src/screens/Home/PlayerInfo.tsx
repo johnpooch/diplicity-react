@@ -1,101 +1,114 @@
-import React from "react";
+import React, { Suspense } from "react";
+import { useNavigate } from "react-router";
+import { useRequiredParams } from "@/hooks";
+import { UserPlus, UserMinus } from "lucide-react";
+
+import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
+import { ScreenHeader } from "@/components/ui/screen-header";
+import { ScreenContainer } from "@/components/ui/screen-container";
+import { GameDropdownMenu } from "@/components/GameDropdownMenu";
 import {
-  Alert,
-  ListItem,
-  ListItemAvatar,
-  Skeleton,
-  Stack,
-} from "@mui/material";
-import { HomeLayout } from "./Layout";
-import { service } from "../../store";
-import { HomeAppBar } from "./AppBar";
-import { useNavigate, useParams } from "react-router";
-import { GameMenu } from "../../components/GameMenu";
-import { PlayerCard } from "../../components";
-import { getCurrentPhaseId } from "../../util";
+  useGameRetrieveSuspense,
+  useGameJoinCreate,
+  useGameLeaveDestroy,
+} from "@/api/generated/endpoints";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
+import { PlayerInfoContent } from "@/components/PlayerInfoContent";
 
 const PlayerInfo: React.FC = () => {
-  const { gameId } = useParams<{ gameId: string }>();
-  if (!gameId) throw new Error("gameId is required");
-
-  const query = service.endpoints.gameRetrieve.useQuery({ gameId });
-
-  const listVariantsQuery = service.endpoints.variantsList.useQuery();
-
-  const currentPhaseId = query.data ? getCurrentPhaseId(query.data) : undefined;
-
-  const currentPhaseQuery = service.endpoints.gamePhaseRetrieve.useQuery(
-    { gameId, phaseId: currentPhaseId ?? 0 },
-    { skip: !currentPhaseId || !gameId }
-  );
+  const { gameId } = useRequiredParams<{ gameId: string }>();
 
   const navigate = useNavigate();
+  const { data: game } = useGameRetrieveSuspense(gameId);
+  const joinGameMutation = useGameJoinCreate();
+  const leaveGameMutation = useGameLeaveDestroy();
 
-  if (query.isError || listVariantsQuery.isError) {
-    return <div>Error</div>;
-  }
+  const handleJoinGame = async () => {
+    await joinGameMutation.mutateAsync({ gameId, data: {} });
+  };
 
-  const variant = listVariantsQuery.data?.find(
-    v => v.id === query.data?.variantId
+  const handleLeaveGame = async () => {
+    await leaveGameMutation.mutateAsync({ gameId });
+  };
+
+  const handlePlayerInfo = () => {
+    navigate(`/player-info/${gameId}`);
+  };
+
+  const handleGameInfo = () => {
+    navigate(`/game-info/${gameId}`);
+  };
+
+  const joinLeaveButton = game.canJoin ? (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          onClick={handleJoinGame}
+          disabled={joinGameMutation.isPending}
+          variant="outline"
+          aria-label="Join game"
+        >
+          <UserPlus className="size-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>Join game</p>
+      </TooltipContent>
+    </Tooltip>
+  ) : (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          onClick={handleLeaveGame}
+          disabled={leaveGameMutation.isPending}
+          variant="outline"
+          aria-label="Leave game"
+        >
+          <UserMinus className="size-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>Leave game</p>
+      </TooltipContent>
+    </Tooltip>
   );
 
   return (
-    <HomeLayout
-      appBar={
-        <HomeAppBar
-          title="Player Info"
-          onNavigateBack={() => navigate("/")}
-          rightButton={
-            query.data && (
-              <GameMenu
-                game={query.data}
-                onClickGameInfo={() => navigate(`/game-info/${gameId}`)}
-                onClickPlayerInfo={() => navigate(`/player-info/${gameId}`)}
-              />
-            )
-          }
-        />
-      }
-      bottomNavigation={<div></div>}
-      content={
-        <Stack>
+    <ScreenContainer>
+      <ScreenHeader
+        title="Player Info"
+        actions={
           <>
-            {query.data && query.data.status === "pending" && (
-              <Alert severity="info">
-                This game has not started yet. The game will start once{" "}
-                {variant?.nations.length} players have joined.
-              </Alert>
-            )}
-            {query.data && query.data.victory && (
-              <Alert severity="success">
-                {query.data.victory.type === "solo"
-                  ? `${query.data.victory.members[0]?.name} has won the game!`
-                  : `The game ended in a draw between ${query.data.victory.members.length} players.`}
-              </Alert>
-            )}
-            {query.data && variant
-              ? query.data.members.map(member => (
-                  <PlayerCard
-                    key={member.id}
-                    member={member}
-                    variant={variant.id}
-                    phase={currentPhaseQuery.data}
-                    victory={query.data.victory}
-                  />
-                ))
-              : Array.from({ length: 3 }, (_, index) => (
-                  <ListItem key={index}>
-                    <ListItemAvatar>
-                      <Skeleton variant="circular" width={40} height={40} />
-                    </ListItemAvatar>
-                    <Skeleton variant="text" width={150} />
-                  </ListItem>
-                ))}
+            {joinLeaveButton}
+            <GameDropdownMenu
+              gameId={game.id}
+              canLeave={game.canLeave}
+              onNavigateToGameInfo={handleGameInfo}
+              onNavigateToPlayerInfo={handlePlayerInfo}
+            />
           </>
-        </Stack>
-      }
-    />
+        }
+      />
+      <PlayerInfoContent />
+    </ScreenContainer>
   );
 };
 
-export { PlayerInfo };
+const PlayerInfoSuspense: React.FC = () => {
+  return (
+    <div className="w-full">
+      <QueryErrorBoundary>
+        <Suspense fallback={<div></div>}>
+          <PlayerInfo />
+        </Suspense>
+      </QueryErrorBoundary>
+    </div>
+  );
+};
+
+export { PlayerInfoSuspense as PlayerInfoScreen };

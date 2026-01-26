@@ -1,35 +1,36 @@
-import React, { useState } from "react";
+import React, { Suspense, useState } from "react";
+import { Check, X, Pencil, MoreHorizontal } from "lucide-react";
+
+import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
+import { ScreenHeader } from "@/components/ui/screen-header";
+import { ScreenContainer } from "@/components/ui/screen-container";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
-  Avatar,
-  Grid2,
-  FormControl,
-  FormControlLabel,
-  Menu,
-  MenuItem,
-  Stack,
-  Switch,
-  Typography,
-  Divider,
-  Skeleton,
-  Alert,
-  TextField,
-} from "@mui/material";
-import { HomeLayout } from "./Layout";
-import { authSlice, service } from "../../store";
-import { NotificationBanner } from "../../components/NotificationBanner";
-import { HomeAppBar } from "./AppBar";
-import { IconName } from "../../components/Icon";
-import { IconButton } from "../../components/Button";
-import { useMessaging } from "../../context";
-import { useDispatch } from "react-redux";
-import { useNavigate } from "react-router";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/auth";
+import { useMessaging } from "@/context";
+import {
+  useUserRetrieveSuspense,
+  useUserUpdatePartialUpdate,
+  getUserRetrieveQueryKey,
+} from "@/api/generated/endpoints";
+import { useQueryClient } from "@tanstack/react-query";
 
 const Profile: React.FC = () => {
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const query = service.endpoints.userRetrieve.useQuery();
-  const [updateProfile, updateProfileMutation] =
-    service.endpoints.userUpdatePartialUpdate.useMutation();
+  const queryClient = useQueryClient();
+  const { data: userProfile } = useUserRetrieveSuspense();
+  const updateProfileMutation = useUserUpdatePartialUpdate();
+
   const {
     enableMessaging,
     enabled,
@@ -37,178 +38,185 @@ const Profile: React.FC = () => {
     permissionDenied,
     error,
   } = useMessaging();
-
-  const [editedName, setEditedName] = useState<string | null>(null);
-
-  const handleLogout = () => {
-    dispatch(authSlice.actions.logout());
-  };
-
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-
-  const open = Boolean(anchorEl);
-
-  const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const withMenuClose = (fn: () => void) => {
-    return () => {
-      fn();
-      handleMenuClose();
-    };
-  };
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState("");
+  const [saveNameError, setSaveNameError] = useState(false);
 
   const handleStartEditName = () => {
-    setEditedName(query.data?.name || "");
+    setEditedName(userProfile?.name || "");
+    setSaveNameError(false);
+    setIsEditingName(true);
   };
 
   const handleCancelEditName = () => {
-    setEditedName(null);
+    setIsEditingName(false);
+    setEditedName("");
+    setSaveNameError(false);
   };
 
   const handleSaveName = async () => {
-    if (editedName && editedName.trim().length >= 2) {
+    const trimmedName = editedName.trim();
+    if (trimmedName.length >= 2) {
       try {
-        await updateProfile({
-          patchedUserProfile: { name: editedName.trim() },
-        }).unwrap();
-        setEditedName(null);
+        await updateProfileMutation.mutateAsync({
+          data: { name: trimmedName },
+        });
+        queryClient.invalidateQueries({ queryKey: getUserRetrieveQueryKey() });
+        setIsEditingName(false);
+        setEditedName("");
+        setSaveNameError(false);
       } catch {
-        // Error will be shown via updateProfileMutation.error
+        setSaveNameError(true);
       }
     }
   };
 
-  if (query.isError) {
-    return <div>Error</div>;
-  }
+  const handleTogglePushNotifications = (checked: boolean) => {
+    if (checked) {
+      enableMessaging();
+    } else {
+      disableMessaging();
+    }
+  };
 
   return (
-    <HomeLayout
-      appBar={
-        <HomeAppBar title="Profile" onNavigateBack={() => navigate("/")} />
-      }
-      content={
-        <Stack>
-          <NotificationBanner />
-          <Grid2 container p={2} alignItems="center" gap={2}>
-            <Grid2 size="auto">
-              {query.isLoading ? (
-                <Skeleton variant="circular" width={40} height={40} />
-              ) : (
-                <Avatar
-                  src={query.data?.picture ?? undefined}
-                  alt={query.data?.name}
+    <ScreenCard>
+      <ScreenCardContent className="space-y-4">
+        <h2 className="text-lg font-semibold">User</h2>
+        <div className="flex items-center gap-4">
+          <div>
+            <Avatar className="size-12">
+              <AvatarImage src={userProfile?.picture ?? undefined} />
+              <AvatarFallback>
+                {userProfile?.name?.[0]?.toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </div>
+
+          <div className="flex-1">
+            {isEditingName ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  value={editedName}
+                  onChange={e => setEditedName(e.target.value)}
+                  autoFocus
+                  disabled={updateProfileMutation.isPending}
+                  className="max-w-xs"
+                  onKeyDown={e => {
+                    if (e.key === "Enter") {
+                      handleSaveName();
+                    } else if (e.key === "Escape") {
+                      handleCancelEditName();
+                    }
+                  }}
                 />
-              )}
-            </Grid2>
-            <Grid2 size="grow">
-              {query.isLoading ? (
-                <Skeleton variant="text" width={150} height={24} />
-              ) : editedName !== null ? (
-                <Stack direction="row" alignItems="center" gap={1}>
-                  <TextField
-                    value={editedName}
-                    onChange={e => setEditedName(e.target.value)}
-                    autoFocus
-                    size="small"
-                    disabled={updateProfileMutation.isLoading}
-                    error={updateProfileMutation.isError}
-                    helperText={
-                      updateProfileMutation.isError
-                        ? "Failed to update name. Please try again."
-                        : ""
-                    }
-                    onKeyDown={e => {
-                      if (e.key === "Enter") {
-                        handleSaveName();
-                      } else if (e.key === "Escape") {
-                        handleCancelEditName();
-                      }
-                    }}
-                  />
-                  <IconButton
-                    aria-label="save"
-                    onClick={handleSaveName}
-                    icon={IconName.Success}
-                    disabled={
-                      updateProfileMutation.isLoading ||
-                      !editedName ||
-                      editedName.trim().length < 2
-                    }
-                  />
-                  <IconButton
-                    aria-label="cancel"
-                    onClick={handleCancelEditName}
-                    icon={IconName.Close}
-                    disabled={updateProfileMutation.isLoading}
-                  />
-                </Stack>
-              ) : (
-                <Stack direction="row" alignItems="center" gap={1}>
-                  <Typography variant="body1">{query.data?.name}</Typography>
-                  <IconButton
-                    aria-label="edit name"
-                    onClick={handleStartEditName}
-                    icon={IconName.Edit}
-                  />
-                </Stack>
-              )}
-            </Grid2>
-            <Grid2 size="auto">
-              <IconButton
-                aria-label="menu"
-                onClick={handleMenuClick}
-                icon={IconName.Menu}
-              />
-              <Menu anchorEl={anchorEl} open={open} onClose={handleMenuClose}>
-                <MenuItem onClick={withMenuClose(handleLogout)}>
-                  Logout
-                </MenuItem>
-              </Menu>
-            </Grid2>
-          </Grid2>
-          <Divider />
-          <Stack p={2} gap={2}>
-            <Typography variant="h4">Notifications</Typography>
-            <Stack gap={2}>
-              {error && <Alert severity="error">{error}</Alert>}
-              {permissionDenied && !error && (
-                <Alert severity="warning">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={handleSaveName}
+                  disabled={
+                    updateProfileMutation.isPending ||
+                    !editedName ||
+                    editedName.trim().length < 2
+                  }
+                  aria-label="Save"
+                >
+                  <Check className="size-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={handleCancelEditName}
+                  disabled={updateProfileMutation.isPending}
+                  aria-label="Cancel"
+                >
+                  <X className="size-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-medium">{userProfile?.name}</span>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={handleStartEditName}
+                  aria-label="Edit name"
+                >
+                  <Pencil className="size-4" />
+                </Button>
+              </div>
+            )}
+            {saveNameError && (
+              <p className="text-sm text-destructive mt-1">
+                Failed to update name. Please try again.
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Notifications</h2>
+
+          <div className="space-y-2">
+            {permissionDenied && (
+              <Alert>
+                <AlertDescription>
                   Notifications are blocked in your browser. To enable them,
                   click the icon in your address bar and allow notifications.
-                </Alert>
-              )}
-              <FormControl>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={enabled}
-                      disabled={permissionDenied}
-                      onChange={(_, checked) => {
-                        if (checked) {
-                          enableMessaging();
-                        } else {
-                          disableMessaging();
-                        }
-                      }}
-                      name="pushNotifications"
-                    />
-                  }
-                  label="Push Notifications"
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="push-notifications"
+                  checked={enabled}
+                  disabled={permissionDenied}
+                  onCheckedChange={handleTogglePushNotifications}
                 />
-              </FormControl>
-            </Stack>
-          </Stack>
-        </Stack>
-      }
-    />
+                <Label htmlFor="push-notifications">Push Notifications</Label>
+              </div>
+              {error && <p className="text-sm text-destructive">{error}</p>}
+            </div>
+          </div>
+        </div>
+      </ScreenCardContent>
+    </ScreenCard>
   );
 };
 
-export { Profile };
+const ProfileSuspense: React.FC = () => {
+  const { logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+  };
+
+  return (
+    <ScreenContainer>
+      <ScreenHeader
+        title="Profile"
+        actions={
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" aria-label="Menu">
+                <MoreHorizontal className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        }
+      />
+      <QueryErrorBoundary>
+        <Suspense fallback={<div></div>}>
+          <Profile />
+        </Suspense>
+      </QueryErrorBoundary>
+    </ScreenContainer>
+  );
+};
+
+export { ProfileSuspense as Profile };

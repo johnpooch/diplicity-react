@@ -1,198 +1,215 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { Suspense, useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { Send, MessageCircle } from "lucide-react";
+import { useRequiredParams } from "@/hooks";
+import { toast } from "sonner";
+
+import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 import {
-  Box,
-  List,
-  Stack,
-  TextField,
-  IconButton,
-  Typography,
-  Divider,
-} from "@mui/material";
-import { Send as SendIcon } from "@mui/icons-material";
-import { service } from "../../store";
+  Message,
+  MessageContent,
+  MessageTimestamp,
+} from "@/components/ui/message";
+import { Notice } from "@/components/Notice";
+import { MemberAvatar } from "@/components/MemberAvatar";
 import { GameDetailAppBar } from "./AppBar";
-import { GameDetailLayout } from "./Layout";
-import { useNavigate, useParams } from "react-router";
-import { Icon, IconName } from "../../components/Icon";
-import { createUseStyles } from "../../components/utils/styles";
-import { Panel } from "../../components/Panel";
-import { GameMap } from "../../components/GameMap";
-import { ChannelMessage } from "../../components/ChannelMessage";
-import { useSelectedGameContext } from "../../context";
+import { Panel } from "@/components/Panel";
+import {
+  useGameRetrieveSuspense,
+  useGamesChannelsListSuspense,
+  useVariantsListSuspense,
+  useGamesChannelsMessagesCreateCreate,
+  getGamesChannelsListQueryKey,
+  ChannelMessage as ChannelMessageType,
+} from "@/api/generated/endpoints";
 
-const useStyles = createUseStyles(() => ({
-  root: {
-    height: "100%",
-    display: "flex",
-    flexDirection: "column",
-  },
-  messagesContainer: {
-    flexGrow: 1,
-    padding: 1,
-    minHeight: 0, // Allow container to shrink
-  },
-  inputContainer: {
-    width: "100%",
-    gap: 1,
-  },
-  iconButton: {
-    width: 56,
-  },
-  emptyContainer: {
-    height: "100%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-}));
+type MessageDisplayItem = {
+  id: number;
+  body: string;
+  createdAt: string;
+  sender: {
+    nationName: string;
+    picture: string | null;
+  };
+  isCurrentUser: boolean;
+  showAvatar: boolean;
+  formattedTime: string;
+};
 
-const ChannelScreen: React.FC = props => {
-  const { gameId, gameRetrieveQuery } = useSelectedGameContext();
-  const { channelId } = useParams<{ channelId: string }>();
-  if (!channelId) throw new Error("Channel ID is required");
+const buildMessageItems = (
+  messages: readonly ChannelMessageType[]
+): MessageDisplayItem[] => {
+  return messages.map((msg, index) => {
+    const showAvatar =
+      index === 0 ||
+      messages[index - 1].sender.nation.name !== msg.sender.nation.name;
 
-  const styles = useStyles(props);
+    return {
+      id: msg.id,
+      body: msg.body,
+      createdAt: msg.createdAt,
+      sender: {
+        nationName: msg.sender.nation.name,
+        picture: msg.sender.picture,
+      },
+      isCurrentUser: msg.sender.isCurrentUser,
+      showAvatar,
+      formattedTime: new Date(msg.createdAt).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    };
+  });
+};
+
+const ChannelScreen: React.FC = () => {
+  const { gameId, phaseId, channelId } = useRequiredParams<{
+    gameId: string;
+    phaseId: string;
+    channelId: string;
+  }>();
+
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
 
-  const listVariantsQuery = service.endpoints.variantsList.useQuery();
+  const { data: game } = useGameRetrieveSuspense(gameId);
+  const { data: channels } = useGamesChannelsListSuspense(gameId);
+  const { data: variants } = useVariantsListSuspense();
+  const createMessageMutation = useGamesChannelsMessagesCreateCreate();
 
-  const channelsQuery = service.endpoints.gamesChannelsList.useQuery({
-    gameId,
-  });
-  const [createMessage, createMessageMutation] =
-    service.endpoints.gamesChannelsMessagesCreateCreate.useMutation();
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  // Scroll to the bottom of the list when data is fetched
-  const listRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (listRef.current) {
-      listRef.current.scrollTop = listRef.current.scrollHeight;
-    }
-  }, [channelsQuery.data]);
-
-  const handleSubmit = async () => {
-    const result = await createMessage({
-      gameId,
-      channelId: parseInt(channelId),
-      channelMessage: {
-        body: message,
-      },
-    });
-    if (result.data) {
-      setMessage("");
-    }
-  };
-
-  const displayTime = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  if (
-    channelsQuery.isError ||
-    !channelsQuery.data ||
-    gameRetrieveQuery.isError ||
-    !gameRetrieveQuery.data ||
-    listVariantsQuery.isError ||
-    !listVariantsQuery.data
-  ) {
-    return null;
-  }
-
-  const channels = channelsQuery.data;
   const channel = channels.find(c => c.id === parseInt(channelId));
   if (!channel) throw new Error("Channel not found");
 
-  const isSubmitting = createMessageMutation.isLoading;
-  const variant = listVariantsQuery.data.find(
-    v => v.id === gameRetrieveQuery.data?.variantId
-  );
+  useEffect(() => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop =
+        messagesContainerRef.current.scrollHeight;
+    }
+  }, [channel.messages]);
+
+  const handleSubmit = async () => {
+    if (!message.trim()) return;
+
+    try {
+      await createMessageMutation.mutateAsync({
+        gameId,
+        channelId: parseInt(channelId),
+        data: { body: message },
+      });
+      setMessage("");
+      queryClient.invalidateQueries({
+        queryKey: getGamesChannelsListQueryKey(gameId),
+      });
+    } catch {
+      toast.error("Failed to send message");
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
+  const variant = variants.find(v => v.id === game.variantId);
   const variantId = variant?.id;
 
+  const messageItems = buildMessageItems(channel.messages);
+
   return (
-    <GameDetailLayout
-      appBar={
-        <GameDetailAppBar
-          title={channel.name}
-          onNavigateBack={() => navigate(`/game/${gameId}/chat`)}
-          variant="secondary"
-        />
-      }
-      rightPanel={<GameMap />}
-      content={
+    <div className="flex flex-col flex-1 min-h-0">
+      <GameDetailAppBar
+        title={channel.name}
+        onNavigateBack={() => navigate(`/game/${gameId}/phase/${phaseId}/chat`)}
+        variant="secondary"
+      />
+      <div className="flex-1 overflow-y-auto">
         <Panel>
           <Panel.Content>
-            <Stack sx={styles.root}>
+            <div className="h-full flex flex-col">
               {channel.messages.length === 0 ? (
-                <Box sx={styles.emptyContainer}>
-                  <Stack spacing={2} alignItems="center">
-                    <Icon
-                      name={IconName.Chat}
-                      sx={{ fontSize: 48, color: "text.secondary" }}
-                    />
-                    <Typography variant="h6" color="text.secondary">
-                      No messages yet
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Start the conversation by sending a message
-                    </Typography>
-                  </Stack>
-                </Box>
+                <Notice
+                  icon={MessageCircle}
+                  title="No messages yet"
+                  message="Start the conversation by sending a message"
+                  className="h-full"
+                />
               ) : (
-                <Stack ref={listRef} sx={styles.messagesContainer}>
-                  <List disablePadding>
-                    {channel.messages.map((message, index) => {
-                      const showAvatar =
-                        index === 0 ||
-                        channel.messages[index - 1].sender.nation.name !==
-                          message.sender.nation.name;
-
-                      return (
-                        <ChannelMessage
-                          key={message.id}
-                          name={message.sender.nation.name}
-                          message={message.body}
-                          date={displayTime(message.createdAt)}
-                          showAvatar={showAvatar}
-                          member={message.sender}
+                <div
+                  ref={messagesContainerRef}
+                  className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 p-2"
+                >
+                  {messageItems.map(item => (
+                    <Message
+                      key={item.id}
+                      className={
+                        item.isCurrentUser ? "flex-row-reverse" : undefined
+                      }
+                    >
+                      {item.showAvatar ? (
+                        <MemberAvatar
+                          member={{
+                            picture: item.sender.picture,
+                            nation: item.sender.nationName,
+                          }}
                           variant={variantId!}
-                          color={message.sender.nation.color || "#a9a9a9"}
-                          isUser={message.sender.isCurrentUser}
+                          size="medium"
                         />
-                      );
-                    })}
-                  </List>
-                </Stack>
+                      ) : (
+                        <div className="w-8" />
+                      )}
+                      <MessageContent>
+                        {item.body}
+                        <MessageTimestamp>
+                          {item.formattedTime}
+                        </MessageTimestamp>
+                      </MessageContent>
+                    </Message>
+                  ))}
+                </div>
               )}
-            </Stack>
+            </div>
           </Panel.Content>
-          <Divider />
+          <Separator />
           <Panel.Footer>
-            <Stack sx={styles.inputContainer} direction="row">
-              <TextField
-                label="Type a message"
+            <div className="flex gap-2 w-full">
+              <Input
+                placeholder="Type a message"
                 value={message}
                 onChange={e => setMessage(e.target.value)}
-                fullWidth
-                disabled={isSubmitting}
+                onKeyDown={handleKeyDown}
+                disabled={createMessageMutation.isPending}
+                className="flex-1"
               />
-              <IconButton
-                sx={styles.iconButton}
-                disabled={message === "" || isSubmitting}
+              <Button
                 onClick={handleSubmit}
+                disabled={!message.trim() || createMessageMutation.isPending}
+                size="icon"
               >
-                <SendIcon />
-              </IconButton>
-            </Stack>
+                <Send className="size-4" />
+              </Button>
+            </div>
           </Panel.Footer>
         </Panel>
-      }
-    />
+      </div>
+    </div>
   );
 };
 
-export { ChannelScreen };
+const ChannelScreenSuspense: React.FC = () => (
+  <QueryErrorBoundary>
+    <Suspense fallback={<div></div>}>
+      <ChannelScreen />
+    </Suspense>
+  </QueryErrorBoundary>
+);
+
+export { ChannelScreenSuspense as ChannelScreen };

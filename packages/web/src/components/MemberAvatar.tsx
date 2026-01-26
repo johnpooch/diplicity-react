@@ -1,124 +1,73 @@
-import { Avatar, AvatarProps, Badge, Box } from "@mui/material";
-
+import React from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Flags } from "../assets/flags";
-import { MemberRead } from "../store/service";
-import { Icon, IconName } from "./Icon";
+import { cn } from "../lib/utils";
+import { Member } from "../api/generated/endpoints";
 
-const AVATAR_SIZE = {
-  small: 24,
-  medium: 32,
-};
-
-const BADGE_SIZE = {
-  small: 16,
-  medium: 24,
-};
-
-const BORDER_SIZE = {
-  small: 1,
-  medium: 2,
-};
-
-const TROPHY_SIZE = {
-  small: 16,
-  medium: 20,
-};
-
-type MemberAvatarProps = Pick<AvatarProps, "key"> & {
-  size: "small" | "medium";
+type MemberAvatarProps = {
+  member: Pick<Member, "picture" | "nation">;
   variant: string;
-  member: Pick<MemberRead, "picture" | "nation">;
+  size?: "small" | "medium";
   isWinner?: boolean;
 };
 
+const SIZE_CONFIG = {
+  small: {
+    avatar: "h-6 w-6",
+    badge: "size-3",
+    border: "border",
+    ring: "ring-2",
+  },
+  medium: {
+    avatar: "h-8 w-8",
+    badge: "size-4",
+    border: "border-2",
+    ring: "ring-2",
+  },
+};
+
 const MemberAvatar: React.FC<MemberAvatarProps> = ({
-  variant,
   member,
-  size,
+  variant,
+  size = "medium",
   isWinner = false,
-  ...rest
 }) => {
-  const avatarSize = AVATAR_SIZE[size];
-  const badgeSize = BADGE_SIZE[size];
-  const borderSize = BORDER_SIZE[size];
-  const trophySize = TROPHY_SIZE[size];
-
-  const mainAvatar = (
-    <Avatar
-      {...rest}
-      src={member.picture ?? undefined}
-      sx={{ width: avatarSize, height: avatarSize }}
-    />
-  );
-
+  const config = SIZE_CONFIG[size];
   const nationFlag =
     Flags[variant as keyof typeof Flags]?.[
       member.nation?.toLowerCase() as keyof (typeof Flags)[keyof typeof Flags]
     ];
 
-  // Create trophy badge for winners
-  const trophyBadge = isWinner ? (
-    <Box
-      sx={{
-        bgcolor: "warning.main",
-        borderRadius: "50%",
-        width: trophySize,
-        height: trophySize,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        border: `${borderSize}px solid white`,
-      }}
-    >
-      <Icon
-        name={IconName.Trophy}
-        sx={{ fontSize: 12, color: "warning.contrastText" }}
-      />
-    </Box>
-  ) : null;
-
-  // Create nation flag badge
-  const nationBadge = member.nation ? (
-    <Avatar
-      src={nationFlag}
-      sx={{
-        width: badgeSize,
-        height: badgeSize,
-        border: `${borderSize}px solid white`,
-      }}
-    />
-  ) : null;
-
-  // Build avatar with nested badges
-  let avatar = mainAvatar;
-
-  // Add nation badge at bottom-right if present
-  if (nationBadge) {
-    avatar = (
-      <Badge
-        overlap="circular"
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-        badgeContent={nationBadge}
+  return (
+    <div className="relative w-fit">
+      <Avatar
+        className={cn(
+          config.avatar,
+          isWinner
+            ? `ring-offset-background ${config.ring} ring-yellow-500`
+            : `${config.border} border-white`
+        )}
       >
-        {avatar}
-      </Badge>
-    );
-  }
+        <AvatarImage src={member.picture ?? undefined} />
+        <AvatarFallback>{member.nation?.toUpperCase()[0]}</AvatarFallback>
+      </Avatar>
 
-  // Add trophy badge at top-right if present (only when player has won)
-  if (trophyBadge) {
-    avatar = (
-      <Badge
-        overlap="circular"
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
-        badgeContent={trophyBadge}
-      >
-        {avatar}
-      </Badge>
-    );
-  }
-
-  return avatar;
+      {member.nation && nationFlag && (
+        <span
+          className={cn(
+            "absolute -right-1.5 -bottom-1.5 inline-flex items-center justify-center rounded-full bg-white z-10",
+            config.badge
+          )}
+        >
+          <img
+            src={nationFlag}
+            alt={member.nation}
+            className="h-full w-full rounded-full object-cover"
+          />
+        </span>
+      )}
+    </div>
+  );
 };
 
 export { MemberAvatar };

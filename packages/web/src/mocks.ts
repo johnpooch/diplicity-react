@@ -1,0 +1,574 @@
+import type {
+  GameList,
+  Variant,
+  PhaseRetrieve,
+  Member,
+  Nation,
+  Order,
+  PhaseState,
+  Province,
+  StatusEnum,
+  UserProfile,
+} from "@/api/generated/endpoints";
+
+export const mockNations: Nation[] = [
+  { name: "Austria", color: "#FF0000" },
+  { name: "England", color: "#0000FF" },
+  { name: "France", color: "#00FFFF" },
+  { name: "Germany", color: "#000000" },
+  { name: "Italy", color: "#00FF00" },
+  { name: "Russia", color: "#FFFFFF" },
+  { name: "Turkey", color: "#FFFF00" },
+];
+
+export const mockMembers: Member[] = [
+  {
+    id: 1,
+    name: "Alice",
+    picture: null,
+    nation: "Austria",
+    isCurrentUser: false,
+  },
+  {
+    id: 2,
+    name: "Bob",
+    picture: null,
+    nation: "England",
+    isCurrentUser: false,
+  },
+  {
+    id: 3,
+    name: "Charlie",
+    picture: null,
+    nation: "France",
+    isCurrentUser: false,
+  },
+  {
+    id: 4,
+    name: "Diana",
+    picture: null,
+    nation: "Germany",
+    isCurrentUser: false,
+  },
+  {
+    id: 5,
+    name: "Eve",
+    picture: null,
+    nation: "Italy",
+    isCurrentUser: false,
+  },
+  {
+    id: 6,
+    name: "Frank",
+    picture: null,
+    nation: "Russia",
+    isCurrentUser: false,
+  },
+  {
+    id: 7,
+    name: "You",
+    picture: null,
+    nation: "Turkey",
+    isCurrentUser: true,
+  },
+];
+
+export const mockProvinces: Province[] = [
+  {
+    id: "vie",
+    name: "Vienna",
+    type: "land",
+    supplyCenter: true,
+    parentId: null,
+    namedCoastIds: [],
+  },
+  {
+    id: "lon",
+    name: "London",
+    type: "land",
+    supplyCenter: true,
+    parentId: null,
+    namedCoastIds: [],
+  },
+  {
+    id: "par",
+    name: "Paris",
+    type: "land",
+    supplyCenter: true,
+    parentId: null,
+    namedCoastIds: [],
+  },
+  {
+    id: "ber",
+    name: "Berlin",
+    type: "land",
+    supplyCenter: true,
+    parentId: null,
+    namedCoastIds: [],
+  },
+  {
+    id: "rom",
+    name: "Rome",
+    type: "land",
+    supplyCenter: true,
+    parentId: null,
+    namedCoastIds: [],
+  },
+  {
+    id: "mos",
+    name: "Moscow",
+    type: "land",
+    supplyCenter: true,
+    parentId: null,
+    namedCoastIds: [],
+  },
+  {
+    id: "con",
+    name: "Constantinople",
+    type: "land",
+    supplyCenter: true,
+    parentId: null,
+    namedCoastIds: [],
+  },
+];
+
+export const mockPhaseMovement: PhaseRetrieve = {
+  id: 1,
+  ordinal: 1,
+  season: "Spring",
+  year: 1901,
+  name: "Spring 1901 Movement",
+  type: "Movement",
+  remainingTime: 86400,
+  scheduledResolution: "2024-01-15T12:00:00Z",
+  status: "active" as StatusEnum,
+  previousPhaseId: null,
+  nextPhaseId: 2,
+  units: [
+    {
+      type: "Army",
+      nation: mockNations[0],
+      province: mockProvinces[0],
+      dislodged: false,
+      dislodgedBy: null,
+    },
+    {
+      type: "Fleet",
+      nation: mockNations[1],
+      province: mockProvinces[1],
+      dislodged: false,
+      dislodgedBy: null,
+    },
+    {
+      type: "Army",
+      nation: mockNations[2],
+      province: mockProvinces[2],
+      dislodged: false,
+      dislodgedBy: null,
+    },
+    {
+      type: "Army",
+      nation: mockNations[3],
+      province: mockProvinces[3],
+      dislodged: false,
+      dislodgedBy: null,
+    },
+    {
+      type: "Fleet",
+      nation: mockNations[4],
+      province: mockProvinces[4],
+      dislodged: false,
+      dislodgedBy: null,
+    },
+    {
+      type: "Army",
+      nation: mockNations[5],
+      province: mockProvinces[5],
+      dislodged: false,
+      dislodgedBy: null,
+    },
+    {
+      type: "Fleet",
+      nation: mockNations[6],
+      province: mockProvinces[6],
+      dislodged: false,
+      dislodgedBy: null,
+    },
+  ],
+  supplyCenters: mockProvinces.map((province, index) => ({
+    province,
+    nation: mockNations[index],
+  })),
+};
+
+export const mockPhaseRetreat: PhaseRetrieve = {
+  id: 2,
+  ordinal: 2,
+  season: "Spring",
+  year: 1901,
+  name: "Spring 1901 Retreat",
+  type: "Retreat",
+  remainingTime: 43200,
+  scheduledResolution: "2024-01-16T00:00:00Z",
+  status: "active" as StatusEnum,
+  previousPhaseId: 1,
+  nextPhaseId: 3,
+  units: [
+    {
+      type: "Army",
+      nation: mockNations[0],
+      province: mockProvinces[0],
+      dislodged: true,
+      dislodgedBy: null,
+    },
+  ],
+  supplyCenters: mockProvinces.map((province, index) => ({
+    province,
+    nation: mockNations[index],
+  })),
+};
+
+export const mockPhaseAdjustment: PhaseRetrieve = {
+  id: 3,
+  ordinal: 3,
+  season: "Fall",
+  year: 1901,
+  name: "Fall 1901 Adjustment",
+  type: "Adjustment",
+  remainingTime: 172800,
+  scheduledResolution: "2024-01-18T12:00:00Z",
+  status: "active" as StatusEnum,
+  previousPhaseId: 2,
+  nextPhaseId: null,
+  units: mockPhaseMovement.units,
+  supplyCenters: mockProvinces.map((province, index) => ({
+    province,
+    nation: mockNations[index % mockNations.length],
+  })),
+};
+
+export const mockGames: GameList[] = [
+  {
+    id: "game-1",
+    name: "European Diplomacy Championship",
+    status: "active",
+    canJoin: false,
+    canLeave: true,
+    variantId: "Classical",
+    phases: [1, 2, 3, 4, 5],
+    currentPhaseId: 5,
+    private: false,
+    movementPhaseDuration: "24 hours",
+    nationAssignment: "manual",
+    members: mockMembers,
+    victory: null,
+    sandbox: false,
+  },
+  {
+    id: "game-2",
+    name: "Quick Evening Game",
+    status: "active",
+    canJoin: false,
+    canLeave: true,
+    variantId: "Classical",
+    phases: [1, 2],
+    currentPhaseId: 2,
+    private: false,
+    movementPhaseDuration: "12 hours",
+    nationAssignment: "random",
+    members: mockMembers,
+    victory: null,
+    sandbox: false,
+  },
+  {
+    id: "game-3",
+    name: "New Game - Need Players!",
+    status: "pending",
+    canJoin: true,
+    canLeave: false,
+    variantId: "Classical",
+    phases: [1],
+    currentPhaseId: null,
+    private: false,
+    movementPhaseDuration: "48 hours",
+    nationAssignment: "random",
+    members: mockMembers.slice(0, 2),
+    victory: null,
+    sandbox: false,
+  },
+  {
+    id: "game-4",
+    name: "Weekend Tournament",
+    status: "pending",
+    canJoin: false,
+    canLeave: true,
+    variantId: "Classical",
+    phases: [1],
+    currentPhaseId: null,
+    private: true,
+    movementPhaseDuration: "24 hours",
+    nationAssignment: "manual",
+    members: mockMembers.slice(0, 3),
+    victory: null,
+    sandbox: false,
+  },
+  {
+    id: "game-5",
+    name: "Historic Battle - Finished",
+    status: "completed",
+    canJoin: false,
+    canLeave: false,
+    variantId: "Classical",
+    phases: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    currentPhaseId: null,
+    private: false,
+    movementPhaseDuration: "24 hours",
+    nationAssignment: "manual",
+    members: mockMembers,
+    victory: {
+      id: 1,
+      type: "solo",
+      winningPhaseId: 10,
+      members: [mockMembers[0]],
+    },
+    sandbox: false,
+  },
+  {
+    id: "game-6",
+    name: "Three-Way Draw",
+    status: "completed",
+    canJoin: false,
+    canLeave: false,
+    variantId: "Italy vs Germany",
+    phases: [1, 2, 3, 4, 5, 6, 7, 8],
+    currentPhaseId: null,
+    private: false,
+    movementPhaseDuration: "48 hours",
+    nationAssignment: "random",
+    members: mockMembers,
+    victory: {
+      id: 2,
+      type: "draw",
+      winningPhaseId: 8,
+      members: [mockMembers[0], mockMembers[1], mockMembers[2]],
+    },
+    sandbox: false,
+  },
+];
+
+export const mockActiveGames = mockGames.filter(g => g.status === "active");
+export const mockPendingGames = mockGames.filter(g => g.status === "pending");
+export const mockCompletedGames = mockGames.filter(
+  g => g.status === "completed"
+);
+
+export const mockSandboxGames: GameList[] = [
+  {
+    id: "sandbox-1",
+    name: "Practice Game - Classical",
+    status: "active",
+    canJoin: false,
+    canLeave: true,
+    variantId: "Classical",
+    phases: [1, 2, 3],
+    currentPhaseId: 3,
+    private: false,
+    movementPhaseDuration: "manual",
+    nationAssignment: "random",
+    members: mockMembers,
+    victory: null,
+    sandbox: true,
+  },
+  {
+    id: "sandbox-2",
+    name: "Testing New Strategies",
+    status: "active",
+    canJoin: false,
+    canLeave: true,
+    variantId: "Classical",
+    phases: [1],
+    currentPhaseId: 1,
+    private: false,
+    movementPhaseDuration: "manual",
+    nationAssignment: "random",
+    members: mockMembers,
+    victory: null,
+    sandbox: true,
+  },
+];
+
+export const mockVariants: Variant[] = [
+  {
+    id: "Classical",
+    name: "Classical Diplomacy",
+    description: "The original Diplomacy game",
+    author: "Allan B. Calhamer",
+    nations: mockNations,
+    provinces: mockProvinces,
+    templatePhase: {
+      id: 1,
+      ordinal: 1,
+      season: "Spring",
+      year: 1901,
+      name: "Spring 1901 Movement",
+      type: "Movement",
+      remainingTime: 0,
+      scheduledResolution: "1901-01-01T00:00:00Z",
+      status: "template" as StatusEnum,
+      previousPhaseId: null,
+      nextPhaseId: null,
+      units: [],
+      supplyCenters: [],
+    },
+  },
+  {
+    id: "Italy vs Germany",
+    name: "Italy vs Germany",
+    description: "A 2-player variant",
+    author: "Unknown",
+    nations: [mockNations[4], mockNations[3]],
+    provinces: mockProvinces.slice(3, 5),
+    templatePhase: {
+      id: 2,
+      ordinal: 1,
+      season: "Spring",
+      year: 1901,
+      name: "Spring 1901 Movement",
+      type: "Movement",
+      remainingTime: 0,
+      scheduledResolution: "1901-01-01T00:00:00Z",
+      status: "template" as StatusEnum,
+      previousPhaseId: null,
+      nextPhaseId: null,
+      units: [],
+      supplyCenters: [],
+    },
+  },
+];
+
+export const mockUserProfile: UserProfile = {
+  id: 1,
+  name: "John Doe",
+  picture: null,
+  email: "john.doe@example.com",
+};
+
+export const mockOrders: Order[] = [
+  {
+    source: mockProvinces[0], // Vienna
+    target: mockProvinces[3], // Berlin
+    aux: mockProvinces[0],
+    namedCoast: mockProvinces[0],
+    resolution: { status: "Succeeded", by: null },
+    options: [],
+    orderType: "Move",
+    unitType: "Army",
+    nation: mockNations[0], // Austria
+    complete: true,
+    step: null,
+    title: "A Vienna - Berlin",
+    summary: "A Vienna - Berlin",
+  },
+  {
+    source: mockProvinces[1], // London
+    target: mockProvinces[1], // London
+    aux: mockProvinces[1],
+    namedCoast: mockProvinces[1],
+    resolution: { status: "Succeeded", by: null },
+    options: [],
+    orderType: "Hold",
+    unitType: "Fleet",
+    nation: mockNations[1], // England
+    complete: true,
+    step: null,
+    title: "F London Hold",
+    summary: "F London Hold",
+  },
+  {
+    source: mockProvinces[2], // Paris
+    target: mockProvinces[3], // Berlin
+    aux: mockProvinces[2],
+    namedCoast: mockProvinces[2],
+    resolution: { status: "Failed", by: mockProvinces[0] },
+    options: [],
+    orderType: "Move",
+    unitType: "Army",
+    nation: mockNations[2], // France
+    complete: true,
+    step: null,
+    title: "A Paris - Berlin",
+    summary: "A Paris - Berlin",
+  },
+  {
+    source: mockProvinces[6], // Constantinople
+    target: mockProvinces[5], // Moscow
+    aux: mockProvinces[6],
+    namedCoast: mockProvinces[6],
+    resolution: { status: "Succeeded", by: null },
+    options: [],
+    orderType: "Move",
+    unitType: "Fleet",
+    nation: mockNations[6], // Turkey
+    complete: true,
+    step: null,
+    title: "F Constantinople - Moscow",
+    summary: "F Constantinople - Moscow",
+  },
+];
+
+export const mockPhaseStates: PhaseState[] = [
+  {
+    id: "ps-1",
+    ordersConfirmed: false,
+    eliminated: false,
+    orderableProvinces: [mockProvinces[0]], // Vienna
+    member: mockMembers[0], // Austria
+  },
+  {
+    id: "ps-2",
+    ordersConfirmed: true,
+    eliminated: false,
+    orderableProvinces: [mockProvinces[1]], // London
+    member: mockMembers[1], // England
+  },
+  {
+    id: "ps-3",
+    ordersConfirmed: false,
+    eliminated: false,
+    orderableProvinces: [mockProvinces[2]], // Paris
+    member: mockMembers[2], // France
+  },
+  {
+    id: "ps-4",
+    ordersConfirmed: false,
+    eliminated: false,
+    orderableProvinces: [mockProvinces[3]], // Berlin
+    member: mockMembers[3], // Germany
+  },
+  {
+    id: "ps-5",
+    ordersConfirmed: false,
+    eliminated: false,
+    orderableProvinces: [mockProvinces[4]], // Rome
+    member: mockMembers[4], // Italy
+  },
+  {
+    id: "ps-6",
+    ordersConfirmed: false,
+    eliminated: false,
+    orderableProvinces: [mockProvinces[5]], // Moscow
+    member: mockMembers[5], // Russia
+  },
+  {
+    id: "ps-7",
+    ordersConfirmed: false,
+    eliminated: false,
+    orderableProvinces: [mockProvinces[6]], // Constantinople
+    member: mockMembers[6], // Turkey (current user)
+  },
+];
+
+export const mockPhaseStatesNoOrders: PhaseState[] = mockPhaseStates.map(ps => ({
+  ...ps,
+  orderableProvinces: [],
+}));

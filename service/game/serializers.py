@@ -21,6 +21,7 @@ class GameListSerializer(serializers.Serializer):
     can_leave = serializers.SerializerMethodField()
     variant_id = serializers.CharField(source="variant.id", read_only=True)
     phases = serializers.SerializerMethodField()
+    current_phase_id = serializers.SerializerMethodField()
     private = serializers.BooleanField(read_only=True)
     movement_phase_duration = serializers.CharField(read_only=True)
     nation_assignment = serializers.CharField(read_only=True)
@@ -42,6 +43,11 @@ class GameListSerializer(serializers.Serializer):
     def get_phases(self, obj):
         return [phase.id for phase in obj.phases.all()]
 
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
+    def get_current_phase_id(self, obj):
+        current = obj.current_phase
+        return current.id if current else None
+
 
 class GameRetrieveSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
@@ -50,6 +56,7 @@ class GameRetrieveSerializer(serializers.Serializer):
     can_join = serializers.SerializerMethodField()
     can_leave = serializers.SerializerMethodField()
     phases = serializers.SerializerMethodField()
+    current_phase_id = serializers.SerializerMethodField()
     members = MemberSerializer(many=True, read_only=True)
     sandbox = serializers.BooleanField(read_only=True)
     victory = VictorySerializer(read_only=True, allow_null=True)
@@ -73,6 +80,11 @@ class GameRetrieveSerializer(serializers.Serializer):
     def get_phases(self, obj):
         return [phase.id for phase in obj.phases.all()]
 
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
+    def get_current_phase_id(self, obj):
+        current = obj.current_phase
+        return current.id if current else None
+
     @extend_schema_field(serializers.BooleanField)
     def get_phase_confirmed(self, obj):
         with tracer.start_as_current_span("game.serializers.get_phase_confirmed"):
@@ -86,6 +98,7 @@ class GameRetrieveSerializer(serializers.Serializer):
 
 
 class GameCreateSerializer(serializers.Serializer):
+    id = serializers.CharField(read_only=True)
     name = serializers.CharField()
     variant_id = serializers.CharField()
     nation_assignment = serializers.ChoiceField(choices=NationAssignment.NATION_ASSIGNMENT_CHOICES)
@@ -129,6 +142,7 @@ class GameCreateSerializer(serializers.Serializer):
 
 
 class GameCreateSandboxSerializer(serializers.Serializer):
+    id = serializers.CharField(read_only=True)
     name = serializers.CharField()
     variant_id = serializers.CharField()
 

@@ -78,8 +78,9 @@ class PhaseManager(models.Manager):
             span.set_attribute("phase.id", phase.id)
             span.set_attribute("game.id", str(phase.game.id))
             logger.info(f"Manually resolving phase {phase.id} ({phase.name}) for game {phase.game.id}")
-            self.resolve(phase)
+            new_phase = self.resolve(phase)
             logger.info(f"Successfully resolved phase {phase.id}")
+            return new_phase
 
     def get_phases_to_resolve(self):
         with tracer.start_as_current_span("phase.manager.get_phases_to_resolve") as span:
@@ -148,6 +149,8 @@ class PhaseManager(models.Manager):
                         new_phase.status = PhaseStatus.COMPLETED
                         new_phase.scheduled_resolution = None
                         new_phase.save()
+
+                    return new_phase
 
     def create_from_adjudication_data(self, previous_phase, adjudication_data):
         with tracer.start_as_current_span("phase.create_from_adjudication_data") as span:
@@ -425,6 +428,28 @@ class Phase(BaseModel):
     def should_resolve_immediately(self):
         logger.info(f"Checking if phase {self.id} should resolve immediately")
         return all(phase_state.orders_confirmed for phase_state in self.phase_states_with_possible_orders)
+
+    @property
+    def previous_phase_id(self):
+        if not self.game:
+            return None
+        return (
+            Phase.objects.filter(game=self.game, ordinal__lt=self.ordinal)
+            .order_by("-ordinal")
+            .values_list("id", flat=True)
+            .first()
+        )
+
+    @property
+    def next_phase_id(self):
+        if not self.game:
+            return None
+        return (
+            Phase.objects.filter(game=self.game, ordinal__gt=self.ordinal)
+            .order_by("ordinal")
+            .values_list("id", flat=True)
+            .first()
+        )
 
     def revert_to_this_phase(self):
 

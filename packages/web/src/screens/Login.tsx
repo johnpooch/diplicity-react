@@ -1,80 +1,63 @@
 import React from "react";
-import { Typography, Box, Stack, Avatar } from "@mui/material";
 import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
-import { service } from "../store";
-
-const styles: Styles = {
-  background: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    height: "100vh",
-    backgroundImage: "url('/login_background.jpg')",
-    backgroundSize: "cover",
-    backgroundPosition: "54%",
-    backgroundRepeat: "no-repeat",
-  },
-  stack: theme => ({
-    padding: 4,
-    bgcolor: theme.palette.background.paper,
-    borderRadius: "4px",
-  }),
-  logo: {
-    height: 48,
-    width: 48,
-  },
-  title: {
-    variant: "h1",
-    component: "div",
-    align: "left",
-  },
-  subtitle: {
-    variant: "body1",
-  },
-  buttonContainer: {
-    display: "flex",
-    justifyContent: "center",
-    mt: 2,
-  },
-};
+import { toast } from "sonner";
+import { useAuth } from "../auth";
+import { useAuthLoginCreate } from "../api/generated/endpoints";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
 
 const Login: React.FC = () => {
-  const [trigger] = service.useAuthLoginCreateMutation();
+  const { login } = useAuth();
+  const loginMutation = useAuthLoginCreate();
 
   const handleLoginSuccess = async (credentialResponse: CredentialResponse) => {
     if (!credentialResponse.credential) {
       console.error("No credential response received");
       return;
     }
-    trigger({
-      auth: {
-        idToken: credentialResponse.credential,
-      },
-    });
+    try {
+      const result = await loginMutation.mutateAsync({
+        data: {
+          idToken: credentialResponse.credential,
+        },
+      });
+      login({
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        email: result.email,
+        name: result.name,
+      });
+      toast.success(`Logged in as ${result.name}`);
+    } catch {
+      toast.error("Login failed");
+    }
   };
 
   const handleLoginError = () => {
     console.error("Login failed");
+    toast.error("Login failed");
   };
 
   return (
-    <Box sx={styles.background}>
-      <Stack sx={styles.stack} spacing={2} alignItems="center">
-        <Avatar sx={styles.logo} src="/otto.png" alt="Diplicity Logo" />
-        <Typography component="h1" variant="body1">
-          Welcome to Diplicity!
-        </Typography>
-        <Typography variant="body2">
+    <div
+      className="flex justify-center items-center h-screen bg-cover bg-no-repeat"
+      style={{ backgroundImage: "url('/login_background.jpg')", backgroundPosition: "54%" }}
+    >
+      <div className="flex flex-col items-center gap-4 p-8 bg-background rounded">
+        <Avatar className="size-12">
+          <AvatarImage src="/otto.png" alt="Diplicity Logo" />
+        </Avatar>
+        <h1 className="text-base">Welcome to Diplicity!</h1>
+        <p className="text-sm text-muted-foreground">
           A digital adaptation of the game of Diplomacy.
-        </Typography>
-        <Box sx={styles.buttonContainer}>
+        </p>
+        <div className="flex justify-center mt-2">
           <GoogleLogin
             onSuccess={handleLoginSuccess}
             onError={handleLoginError}
           />
-        </Box>
-      </Stack>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 };
 

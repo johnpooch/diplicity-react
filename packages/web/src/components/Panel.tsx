@@ -1,53 +1,47 @@
-import { Box, Divider, Stack } from "@mui/material";
-
-const styles: Styles = {
-  root: {
-    flexGrow: 1,
-    height: "100%",
-    maxHeight: "100%",
-    overflow: "hidden",
-  },
-  content: {
-    flexGrow: 1,
-    minHeight: 0,
-    overflowY: "auto",
-  },
-  footer: {
-    height: "auto",
-    padding: 1,
-    alignItems: "flex-end",
-  },
-};
+import React from "react";
+import { cn } from "@/lib/utils";
+import { Separator } from "@/components/ui/separator";
 
 type PanelProps = {
   children: React.ReactNode;
+  className?: string;
 };
 
 type ContentProps = {
   children: React.ReactNode;
+  className?: string;
 };
 
 type FooterProps = {
   children: React.ReactNode;
   divider?: boolean;
+  className?: string;
 };
 
 const Panel: React.FC<PanelProps> & {
   Content: React.FC<ContentProps>;
   Footer: React.FC<FooterProps>;
-} = props => {
-  return <Stack sx={styles.root}>{props.children}</Stack>;
+} = ({ children, className }) => {
+  return (
+    <div className={cn("flex flex-col flex-1 h-full overflow-hidden", className)}>
+      {children}
+    </div>
+  );
 };
 
-const Content: React.FC<ContentProps> = props => {
-  return <Box sx={styles.content}>{props.children}</Box>;
+const Content: React.FC<ContentProps> = ({ children, className }) => {
+  return (
+    <div className={cn("flex-1 min-h-0 overflow-y-auto", className)}>
+      {children}
+    </div>
+  );
 };
 
-const Footer: React.FC<FooterProps> = props => {
+const Footer: React.FC<FooterProps> = ({ children, divider = false, className }) => {
   return (
     <>
-      {props.divider && <Divider />}
-      <Stack sx={styles.footer}>{props.children}</Stack>
+      {divider && <Separator />}
+      <div className={cn("flex items-end p-2", className)}>{children}</div>
     </>
   );
 };

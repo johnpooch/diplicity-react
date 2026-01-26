@@ -1,178 +1,186 @@
-import { useSelectedGameContext, useSelectedPhaseContext } from "../context";
-import { service } from "../store";
-import { MenuItem, Stack } from "@mui/material";
-import { createUseStyles } from "./utils/styles";
-import { FloatingMenu } from "./FloatingMenu";
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useRequiredParams } from "../hooks";
+import { useState, useRef, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { determineRenderableProvinces } from "../utils/provinces";
 import { InteractiveMapZoomWrapper } from "./InteractiveMap/InteractiveMapZoomWrapper";
+import { FloatingMenu, FloatingMenuItem } from "./FloatingMenu";
+import {
+  useGameRetrieve,
+  useVariantsList,
+  useGamePhaseRetrieve,
+  useGamePhaseStatesList,
+  useGameOrdersList,
+  useGameOrdersCreate,
+  getGameOrdersListQueryKey,
+  Order,
+  OrderOption,
+} from "../api/generated/endpoints";
 
-const useStyles = createUseStyles(() => ({
-  mapContainer: {
-    position: "relative",
-    width: "100%",
-    height: "100%",
-  },
-}));
+type OrderState = {
+  selected: string[];
+  options: readonly OrderOption[];
+  step: string | null;
+  complete: boolean;
+  title: string | null;
+};
 
 const GameMap: React.FC = () => {
-  const styles = useStyles({});
+  const { gameId, phaseId } = useRequiredParams<{
+    gameId: string;
+    phaseId: string;
+  }>();
+  const selectedPhase = Number(phaseId);
 
-  const { gameId, gameRetrieveQuery } = useSelectedGameContext();
-  const { selectedPhase } = useSelectedPhaseContext();
+  const queryClient = useQueryClient();
 
-  const [menuPosition, setMenuPosition] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
+  const { data: game } = useGameRetrieve(gameId);
+  const { data: variants } = useVariantsList();
+  const { data: phase } = useGamePhaseRetrieve(gameId, selectedPhase);
+  const { data: phaseStates } = useGamePhaseStatesList(gameId);
+  const { data: orders } = useGameOrdersList(gameId, selectedPhase);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const [createOrder, createOrderQuery] =
-    service.endpoints.gameOrdersCreate.useMutation({
-      fixedCacheKey: "create-interactive",
-    });
+  const [orderState, setOrderState] = useState<OrderState | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
+  const createOrderMutation = useGameOrdersCreate();
 
-  const listVariantsQuery = service.endpoints.variantsList.useQuery();
-
-  const phaseQuery = service.endpoints.gamePhaseRetrieve.useQuery({
-    gameId,
-    phaseId: selectedPhase,
-  });
-
-  const phaseStatesListQuery = service.endpoints.gamePhaseStatesList.useQuery({
-    gameId: gameId,
-  });
-
-  const ordersListQuery = service.endpoints.gameOrdersList.useQuery({
-    gameId,
-    phaseId: selectedPhase,
-  });
-
-  useEffect(() => {
-    if (createOrderQuery.data?.complete) {
-      createOrderQuery.reset();
-    }
-  }, [createOrderQuery.data]);
-
-  const variant = listVariantsQuery.data?.find(
-    v => v.id === gameRetrieveQuery.data?.variantId
-  );
-
-  // Calculate which provinces should be rendered based on highlighted options
-  const renderableProvinces = useMemo(() => {
-    if (!variant) return [];
-
-    const allProvinces = variant.provinces;
-    const highlightedProvinceIds =
-      createOrderQuery.data?.options?.map(o => o.value) ?? [];
-
-    return determineRenderableProvinces(allProvinces, highlightedProvinceIds);
-  }, [variant?.provinces, createOrderQuery.data?.options]);
-
-  const handleProvinceClick = (
-    province: string,
-    event: React.MouseEvent<SVGPathElement>
-  ) => {
-    // Only process clicks for renderable provinces
-    if (!renderableProvinces.includes(province)) {
-      return;
-    }
-    // Always calculate and store the click position first, regardless of order state
-    let x = 0,
-      y = 0;
-    if (containerRef.current) {
-      const containerRect = containerRef.current.getBoundingClientRect();
-      x = event.clientX - containerRect.left;
-      y = event.clientY - containerRect.top;
-    }
-
-    const orderableProvince = phaseStatesListQuery.data
-      ?.flatMap(ps => ps.orderableProvinces)
-      .find(p => p.id === province);
-    const options = createOrderQuery.data?.options;
-
-    // If the createInteractive query has data, only allow options to be selected. If not, allow orderable provinces to be selected.
-    if (createOrderQuery.data) {
-      if (options?.some(o => o.value === province)) {
-        createOrder({
-          gameId,
-          order: {
-            selected: [...(createOrderQuery.data?.selected ?? []), province],
-          },
-        });
+  const handleOrderResult = (result: Order) => {
+    if (result.complete) {
+      if (result.title) {
+        toast.success(result.title);
       }
+      setOrderState(null);
+      setMenuPosition(null);
+      queryClient.invalidateQueries({
+        queryKey: getGameOrdersListQueryKey(gameId, selectedPhase),
+      });
     } else {
-      if (orderableProvince) {
-        // Only update position if coordinates are reasonable (not 0,0 from a bad calculation)
-        if (x > 0 && y > 0) {
-          setMenuPosition({ x, y });
-        }
-        createOrder({
-          gameId,
-          order: {
-            selected: [province],
-          },
-        });
-      }
-    }
-  };
-
-  const handleSelectOrderOption = (option: string) => {
-    if (createOrderQuery.data) {
-      createOrder({
-        gameId,
-        order: {
-          selected: [...(createOrderQuery.data.selected ?? []), option],
-        },
+      setOrderState({
+        selected: result.selected ?? [],
+        options: result.options ?? [],
+        step: result.step ?? null,
+        complete: result.complete ?? false,
+        title: result.title ?? null,
       });
     }
   };
 
+  const variant = variants?.find(v => v.id === game?.variantId);
+
+  const renderableProvinces = useMemo(() => {
+    if (!variant) return [];
+
+    const allProvinces = variant.provinces;
+    const highlightedProvinceIds = orderState?.options?.map(o => o.value) ?? [];
+
+    return determineRenderableProvinces(allProvinces, highlightedProvinceIds);
+  }, [variant, orderState?.options]);
+
+  const handleProvinceClick = async (
+    province: string,
+    event: React.MouseEvent<SVGPathElement>
+  ) => {
+    if (!renderableProvinces.includes(province)) {
+      return;
+    }
+
+    const orderableProvince = phaseStates
+      ?.flatMap(ps => ps.orderableProvinces)
+      .find(p => p.id === province);
+    const options = orderState?.options;
+
+    if (orderState) {
+      if (options?.some(o => o.value === province)) {
+        const result = await createOrderMutation.mutateAsync({
+          gameId,
+          data: {
+            selected: [...(orderState.selected ?? []), province],
+          },
+        });
+        handleOrderResult(result);
+      }
+    } else {
+      if (orderableProvince) {
+        // Capture click position for the floating menu
+        if (containerRef.current) {
+          const containerRect = containerRef.current.getBoundingClientRect();
+          const x = event.clientX - containerRect.left;
+          const y = event.clientY - containerRect.top;
+          if (x > 0 && y > 0) {
+            setMenuPosition({ x, y });
+          }
+        }
+
+        const result = await createOrderMutation.mutateAsync({
+          gameId,
+          data: {
+            selected: [province],
+          },
+        });
+        handleOrderResult(result);
+      }
+    }
+  };
+
+  const handleSelectOrderOption = async (option: string) => {
+    if (orderState) {
+      const result = await createOrderMutation.mutateAsync({
+        gameId,
+        data: {
+          selected: [...(orderState.selected ?? []), option],
+        },
+      });
+      handleOrderResult(result);
+    }
+  };
+
+  const handleCloseMenu = () => {
+    setOrderState(null);
+    setMenuPosition(null);
+  };
+
+  const showMenu =
+    (orderState?.step === "select-order-type" ||
+      orderState?.step === "select-unit-type") &&
+    menuPosition !== null;
+
   return (
-    <Stack ref={containerRef} sx={styles.mapContainer}>
-      {gameRetrieveQuery.data && variant && phaseQuery.data && ordersListQuery.data && (
+    <div ref={containerRef} className="relative w-full h-full">
+      {game && variant && phase && orders && (
         <>
           <InteractiveMapZoomWrapper
             interactiveMapProps={{
               interactive: true,
-              // style: { width: "100%", height: "100%" },
               variant: variant,
-              phase: phaseQuery.data,
-              orders: ordersListQuery.data,
-              selected: createOrderQuery.data?.selected ?? [],
+              phase: phase,
+              orders: orders,
+              selected: orderState?.selected ?? [],
               onClickProvince: handleProvinceClick,
               renderableProvinces: renderableProvinces,
-              highlighted:
-                createOrderQuery.data?.options?.map(o => o.value) ?? [],
+              highlighted: orderState?.options?.map(o => o.value) ?? [],
             }}
           />
           <FloatingMenu
-            open={
-              (createOrderQuery.data?.step === "select-order-type" ||
-                createOrderQuery.data?.step === "select-unit-type") &&
-              menuPosition !== null
-            }
-            onClose={() => {
-              createOrderQuery.reset();
-              setMenuPosition(null);
-            }}
+            open={showMenu}
             x={menuPosition?.x ?? 0}
             y={menuPosition?.y ?? 0}
             container={containerRef.current}
+            onClose={handleCloseMenu}
           >
-            {createOrderQuery.data?.options.map(o => (
-              <MenuItem
+            {orderState?.options?.map(o => (
+              <FloatingMenuItem
                 key={o.value}
                 onClick={() => handleSelectOrderOption(o.value)}
               >
                 {o.label}
-              </MenuItem>
+              </FloatingMenuItem>
             ))}
           </FloatingMenu>
         </>
       )}
-    </Stack>
+    </div>
   );
 };
 

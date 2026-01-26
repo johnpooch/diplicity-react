@@ -1,16 +1,73 @@
 import React from "react";
-import { AvatarGroup, Button } from "@mui/material";
-import { MemberRead, VictoryRead } from "../store/service";
-import { MemberAvatar } from "./MemberAvatar";
-import { Icon, IconName } from "./Icon";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Flags } from "../assets/flags";
+import { Plus } from "lucide-react";
+import { cn } from "../lib/utils";
+import { Victory, Member } from "../api/generated/endpoints";
 
 type MemberAvatarGroupProps = {
-  members: MemberRead[];
+  members: readonly Member[];
   variant: string;
-  victory?: VictoryRead | null;
+  victory?: Victory;
   max?: number;
   size?: "small" | "medium";
   onClick?: () => void;
+};
+
+const SIZE_CONFIG = {
+  small: {
+    avatar: "h-6 w-6",
+    badge: "size-3",
+    border: "border",
+    ring: "ring-2",
+  },
+  medium: {
+    avatar: "h-8 w-8",
+    badge: "size-4",
+    border: "border-2",
+    ring: "ring-2",
+  },
+};
+
+const MemberAvatar: React.FC<{
+  member: Member;
+  variant: string;
+  size: "small" | "medium";
+  isWinner: boolean;
+}> = ({ member, variant, size, isWinner }) => {
+  const config = SIZE_CONFIG[size];
+  const nationFlag =
+    Flags[variant as keyof typeof Flags]?.[
+      member.nation?.toLowerCase() as keyof (typeof Flags)[keyof typeof Flags]
+    ];
+
+  return (
+    <div className="relative w-fit">
+      <Avatar
+        className={`${config.avatar} ${isWinner ? `ring-offset-background ${config.ring} ring-yellow-500` : `${config.border} border-white`}`}
+      >
+        <AvatarImage src={member.picture ?? undefined} />
+        <AvatarFallback>{member.nation?.toUpperCase()[0]}</AvatarFallback>
+      </Avatar>
+
+      {member.nation && nationFlag && (
+        <span
+          className={cn(
+            // FIX: Added z-10 to ensure the flag is rendered above other Avatars
+            "absolute -right-1.5 -bottom-1.5 inline-flex items-center justify-center rounded-full bg-white",
+            config.badge,
+            "z-10" // <-- **CRITICAL FIX: Renders the flag above overlapping elements**
+          )}
+        >
+          <img
+            src={nationFlag}
+            alt={member.nation}
+            className="h-full w-full rounded-full object-cover"
+          />
+        </span>
+      )}
+    </div>
+  );
 };
 
 const MemberAvatarGroup: React.FC<MemberAvatarGroupProps> = ({
@@ -18,28 +75,17 @@ const MemberAvatarGroup: React.FC<MemberAvatarGroupProps> = ({
   variant,
   victory,
   max = 7,
-  size = "small",
+  size = "medium",
   onClick,
 }) => {
-  const avatarSize = size === "small" ? 24 : 32;
-  const iconSize = size === "small" ? 16 : 20;
+  const config = SIZE_CONFIG[size];
+  const winnerIds = victory?.members?.map(m => m.id) || [];
+  const displayMembers = members.slice(0, max);
+  const remainingCount = members.length - max;
 
-  const winnerIds = victory?.members?.map((m) => m.id) || [];
-
-  const avatarGroup = (
-    <AvatarGroup
-      total={members.length}
-      max={max}
-      slotProps={{
-        surplus: {
-          sx: { width: `${avatarSize}px`, height: `${avatarSize}px` },
-        },
-      }}
-      renderSurplus={() => (
-        <Icon sx={{ width: iconSize, height: iconSize }} name={IconName.Add} />
-      )}
-    >
-      {members.map(member => (
+  const content = (
+    <div className="flex -space-x-2">
+      {displayMembers.map(member => (
         <MemberAvatar
           key={member.id}
           member={member}
@@ -48,25 +94,28 @@ const MemberAvatarGroup: React.FC<MemberAvatarGroupProps> = ({
           isWinner={winnerIds.includes(member.id)}
         />
       ))}
-    </AvatarGroup>
+      {remainingCount > 0 && (
+        <div
+          className={`${config.avatar} rounded-full bg-muted border-2 border-background flex items-center justify-center`}
+        >
+          <Plus className="h-full w-full p-1" />
+        </div>
+      )}
+    </div>
   );
 
   if (onClick) {
     return (
-      <Button
-        sx={{
-          justifyContent: "flex-start",
-          width: "fit-content",
-          padding: "8px 0px 8px 0px",
-        }}
+      <button
         onClick={onClick}
+        className="p-0 hover:opacity-80 transition-opacity"
       >
-        {avatarGroup}
-      </Button>
+        {content}
+      </button>
     );
   }
 
-  return avatarGroup;
+  return content;
 };
 
 export { MemberAvatarGroup };

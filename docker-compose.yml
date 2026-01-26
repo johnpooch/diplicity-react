@@ -17,7 +17,7 @@ services:
     depends_on:
       - service
     command: >
-      sh -c " python3 service/manage.py spectacular --file service/openapi-schema.yaml && npx --yes @rtk-query/codegen-openapi openapi-config.cjs"
+      sh -c "python3 service/manage.py spectacular --file service/openapi-schema.yaml && cd /app/packages/web && npx orval --config orval.config.ts"
 
   web:
     build:

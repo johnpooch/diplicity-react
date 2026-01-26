@@ -1,120 +1,61 @@
-import React from "react";
-import {
-  Stack,
-  IconButton,
-  FormControl,
-  Select,
-  MenuItem,
-  InputBase,
-} from "@mui/material";
-import {
-  ArrowLeft as PreviousIcon,
-  ArrowRight as NextIcon,
-} from "@mui/icons-material";
-import { useSelectedGameContext, useSelectedPhaseContext } from "../context";
-import { createUseStyles } from "./utils/styles";
-import { useResponsiveness } from "./utils/responsive";
-import { service } from "../store";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useNavigate, useLocation } from "react-router";
+import { Button } from "@/components/ui/button";
+import { useRequiredParams } from "@/hooks";
+import { useGamePhaseRetrieveSuspense } from "@/api/generated/endpoints";
 
-const useStyles = createUseStyles(() => ({
-  root: {
-    alignItems: "center",
-    borderRadius: 5,
-    paddingLeft: 1,
-    paddingRight: 1,
-    border: theme => `1px solid ${theme.palette.divider}`,
-    flexGrow: 1,
-  },
-  formControl: {},
-  iconButton: {
-    height: "fit-content",
-  },
-}));
+export const PhaseSelect: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { gameId, phaseId } = useRequiredParams<{
+    gameId: string;
+    phaseId: string;
+  }>();
+  const { data: phase } = useGamePhaseRetrieveSuspense(gameId, Number(phaseId));
 
-const PhaseSelect: React.FC = () => {
-  const styles = useStyles({});
-  const responsiveness = useResponsiveness();
-  const isMobile = responsiveness.device === "mobile";
+  const goToPreviousPhase = () => {
+    if (phase.previousPhaseId) {
+      const newPath = location.pathname.replace(
+        `/phase/${phaseId}/`,
+        `/phase/${phase.previousPhaseId}/`
+      );
+      navigate(newPath);
+    }
+  };
 
-  const { gameId } = useSelectedGameContext();
-  const { selectedPhase, setPhase, setPreviousPhase, setNextPhase } =
-    useSelectedPhaseContext();
-
-  const phasesQuery = service.endpoints.gamePhasesList.useQuery(
-    { gameId: gameId ?? "" },
-    { skip: !gameId }
-  );
-
-  if (phasesQuery.isLoading) {
-    return null;
-  }
-
-  if (phasesQuery.isError || !phasesQuery.data) {
-    return null;
-  }
-
-  const phases = phasesQuery.data;
-  const phase = phases.find(p => p.id === selectedPhase);
-  if (!phase) throw new Error("Phase not found");
-
-  // Sort phases by ordinal to ensure proper ordering
-  const sortedPhases = [...phases].sort((a, b) => a.ordinal - b.ordinal);
-  const currentPhaseIndex = sortedPhases.findIndex(p => p.id === selectedPhase);
-
-  const previousDisabled = currentPhaseIndex === 0;
-  const nextDisabled = currentPhaseIndex === sortedPhases.length - 1;
-
-  const handlePhaseSelect = (phaseId: number) => {
-    setPhase(phaseId);
+  const goToNextPhase = () => {
+    if (phase.nextPhaseId) {
+      const newPath = location.pathname.replace(
+        `/phase/${phaseId}/`,
+        `/phase/${phase.nextPhaseId}/`
+      );
+      navigate(newPath);
+    }
   };
 
   return (
-    <Stack direction="row" alignItems="center" sx={styles.root}>
-      {!isMobile && (
-        <Stack>
-          <IconButton
-            edge="start"
-            color="inherit"
-            aria-label="back"
-            onClick={setPreviousPhase}
-            disabled={previousDisabled}
-            sx={styles.iconButton}
-          >
-            <PreviousIcon />
-          </IconButton>
-        </Stack>
-      )}
-      <Stack flexGrow={1}>
-        <FormControl sx={styles.formControl}>
-          <Select
-            value={selectedPhase}
-            onChange={event => handlePhaseSelect(event.target.value as number)}
-            input={<InputBase />}
-          >
-            {phases.map(phase => (
-              <MenuItem key={phase.id} value={phase.id}>
-                {phase.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Stack>
-      {!isMobile && (
-        <Stack>
-          <IconButton
-            edge="end"
-            color="inherit"
-            aria-label="forward"
-            onClick={setNextPhase}
-            disabled={nextDisabled}
-            sx={styles.iconButton}
-          >
-            <NextIcon />
-          </IconButton>
-        </Stack>
-      )}
-    </Stack>
+    <div className="flex items-center gap-1">
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={goToPreviousPhase}
+        disabled={phase.previousPhaseId === null}
+        aria-label="Previous phase"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </Button>
+      <span className="text-sm font-medium min-w-32 text-center">
+        {phase.name}
+      </span>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={goToNextPhase}
+        disabled={phase.nextPhaseId === null}
+        aria-label="Next phase"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+    </div>
   );
 };
-
-export { PhaseSelect };

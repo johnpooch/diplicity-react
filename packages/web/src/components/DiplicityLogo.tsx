@@ -3,7 +3,7 @@ const DiplicityLogo: React.FC = () => {
         <img
             src="/otto.png"
             alt="Diplicity"
-            style={{ height: 48, width: 48 }}
+            style={{ height: 32, width: 32 }}
         />
     );
 };

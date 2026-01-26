@@ -1,6 +1,9 @@
-import React from "react";
-import { Paper, MenuList, Portal, useMediaQuery, useTheme, Drawer, ClickAwayListener } from "@mui/material";
-import { createUseStyles } from "./utils/styles";
+import * as React from "react";
+import { Portal } from "@radix-ui/react-portal";
+import { DismissableLayer } from "@radix-ui/react-dismissable-layer";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
 
 export interface FloatingMenuProps {
   open: boolean;
@@ -9,107 +12,131 @@ export interface FloatingMenuProps {
   container?: Element | null;
   children: React.ReactNode;
   onClose?: () => void;
-  PaperProps?: React.ComponentProps<typeof Paper>;
-  DrawerProps?: React.ComponentProps<typeof Drawer>;
+  className?: string;
 }
 
-const useStyles = createUseStyles<FloatingMenuProps>(() => ({
-  paper: {
-    position: "fixed",
-    zIndex: 1300,
-    minWidth: 200,
-    maxWidth: 300,
-  },
-  drawer: {
-    "& .MuiDrawer-paper": {
-      borderTopLeftRadius: (theme) => theme.shape.borderRadius * 2,
-      borderTopRightRadius: (theme) => theme.shape.borderRadius * 2,
-    },
-  },
-  menuList: {
-    py: 1,
-  },
-}));
+const getPosition = (x: number, y: number, container?: Element | null) => {
+  const menuWidth = 200;
+  const menuHeight = 200;
 
-const FloatingMenu: React.FC<FloatingMenuProps> = (props) => {
-  const theme = useTheme();
-  const styles = useStyles(props);
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  let left = x;
+  let top = y;
 
-  const getPosition = () => {
-    const menuWidth = 200; // Approximate width
-    const menuHeight = 200; // Approximate height
+  if (container) {
+    const rect = container.getBoundingClientRect();
+    left = rect.left + x;
+    top = rect.top + y;
+  }
 
-    let left: number;
-    let top: number;
+  // Adjust for right edge
+  if (left + menuWidth > window.innerWidth) {
+    left = left - menuWidth;
+  }
 
-    if (props.container) {
-      // Position relative to container
-      const rect = props.container.getBoundingClientRect();
-      left = rect.left + props.x;
-      top = rect.top + props.y;
-    } else {
-      left = props.x;
-      top = props.y;
-    }
+  // Adjust for bottom edge
+  if (top + menuHeight > window.innerHeight) {
+    top = top - menuHeight;
+  }
 
-    // Adjust for screen edges
-    if (left + menuWidth > window.innerWidth) {
-      left = left - menuWidth;
-    }
+  // Ensure minimum padding from edges
+  left = Math.max(8, left);
+  top = Math.max(8, top);
 
-    if (top + menuHeight > window.innerHeight) {
-      top = top - menuHeight;
-    }
+  return { top, left };
+};
 
-    // Ensure we don't go off the left or top edges
-    left = Math.max(8, left);
-    top = Math.max(8, top);
+function FloatingMenu({
+  open,
+  x,
+  y,
+  container,
+  children,
+  onClose,
+  className,
+}: FloatingMenuProps) {
+  const isMobile = useIsMobile();
 
-    return { top, left };
+  if (!open) return null;
 
-  };
-
-  if (!props.open) return null;
-
-  // Mobile: Bottom drawer
+  // Mobile: Bottom sheet
   if (isMobile) {
     return (
-      <Drawer
-        anchor="bottom"
-        open={props.open}
-        onClose={props.onClose}
-        sx={styles.drawer}
-        {...props.DrawerProps}
-      >
-        <MenuList sx={styles.menuList}>
-          {props.children}
-        </MenuList>
-      </Drawer>
+      <Sheet open={open} onOpenChange={open => !open && onClose?.()}>
+        <SheetContent side="bottom" className="rounded-t-lg">
+          <div role="menu" className="flex flex-col py-1">
+            {children}
+          </div>
+        </SheetContent>
+      </Sheet>
     );
   }
 
   // Desktop: Floating positioned menu
-  const position = getPosition();
+  const position = getPosition(x, y, container);
 
   return (
     <Portal>
-      <ClickAwayListener onClickAway={props.onClose || (() => { })}>
-        <Paper
-          sx={{
-            ...styles.paper,
+      <DismissableLayer
+        onEscapeKeyDown={onClose}
+        onPointerDownOutside={onClose}
+        onFocusOutside={onClose}
+      >
+        <div
+          role="menu"
+          className={cn(
+            "bg-popover text-popover-foreground fixed z-50 min-w-[8rem] rounded-md border p-1 shadow-md",
+            "animate-in fade-in-0 zoom-in-95",
+            className
+          )}
+          style={{
             top: position.top,
             left: position.left,
           }}
-          {...props.PaperProps}
         >
-          <MenuList sx={styles.menuList}>
-            {props.children}
-          </MenuList>
-        </Paper>
-      </ClickAwayListener>
+          {children}
+        </div>
+      </DismissableLayer>
     </Portal>
   );
-};
+}
 
-export { FloatingMenu };
+interface FloatingMenuItemProps extends React.ComponentProps<"div"> {
+  variant?: "default" | "destructive";
+}
+
+function FloatingMenuItem({
+  className,
+  variant = "default",
+  ...props
+}: FloatingMenuItemProps) {
+  return (
+    <div
+      role="menuitem"
+      data-variant={variant}
+      className={cn(
+        "relative flex cursor-default select-none items-center gap-2 rounded-sm px-3 py-2 text-sm outline-none",
+        "hover:bg-accent hover:text-accent-foreground",
+        "focus:bg-accent focus:text-accent-foreground",
+        "data-[variant=destructive]:text-destructive data-[variant=destructive]:hover:bg-destructive/10 data-[variant=destructive]:focus:bg-destructive/10",
+        "[&_svg:not([class*='text-'])]:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        className
+      )}
+      {...props}
+    />
+  );
+}
+
+function FloatingMenuSeparator({
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
+  return (
+    <div
+      role="separator"
+      className={cn("bg-border -mx-1 my-1 h-px", className)}
+      {...props}
+    />
+  );
+}
+
+export { FloatingMenu, FloatingMenuItem, FloatingMenuSeparator };

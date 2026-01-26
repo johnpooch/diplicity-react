@@ -1,7 +1,7 @@
 import { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
-import { Button, MenuItem, Box, Typography } from "@mui/material";
-import { FloatingMenu } from "./FloatingMenu";
+import { FloatingMenu, FloatingMenuItem } from "./FloatingMenu";
+import { Button } from "@/components/ui/button";
 
 export default {
   title: "Components/FloatingMenu",
@@ -14,7 +14,9 @@ export default {
 type Story = StoryObj<typeof FloatingMenu>;
 
 // Template for interactive stories
-const InteractiveTemplate = (args: any) => {
+const InteractiveTemplate = (
+  args: React.ComponentProps<typeof FloatingMenu>
+) => {
   const [open, setOpen] = useState(false);
   const [anchorPoint, setAnchorPoint] = useState({ x: 200, y: 150 });
 
@@ -31,70 +33,52 @@ const InteractiveTemplate = (args: any) => {
     setOpen(false);
   };
 
-  const handleMenuItemClick = (_option: string) => {
+  const handleMenuItemClick = () => {
     setOpen(false);
   };
 
   return (
-    <Box sx={{ height: "100vh", width: "100vw", position: "relative", bgcolor: "grey.100" }}>
+    <div className="relative h-screen w-screen bg-muted">
       {/* Simulated map area */}
-      <Box
+      <div
         onClick={handleMapClick}
-        sx={{
-          width: "100%",
-          height: "100%",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexDirection: "column",
-          gap: 2,
-        }}
+        className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-2"
       >
-        <Typography variant="h4" color="textSecondary">
+        <h4 className="text-2xl text-muted-foreground">
           Click anywhere to open menu
-        </Typography>
-        <Typography variant="body1" color="textSecondary">
+        </h4>
+        <p className="text-muted-foreground">
           (Resize browser to test mobile behavior)
-        </Typography>
+        </p>
 
         {/* Visual indicator of click position */}
-        <Box
-          sx={{
-            position: "absolute",
+        <div
+          className="bg-primary absolute size-5 rounded-full transition-opacity"
+          style={{
             left: anchorPoint.x - 10,
             top: anchorPoint.y - 10,
-            width: 20,
-            height: 20,
-            borderRadius: "50%",
-            bgcolor: "primary.main",
             opacity: open ? 1 : 0.3,
-            transition: "opacity 0.2s",
           }}
         />
-      </Box>
+      </div>
 
       <FloatingMenu
+        {...args}
         open={open}
         x={anchorPoint.x}
         y={anchorPoint.y}
         onClose={handleClose}
-        {...args}
       >
-        <MenuItem onClick={() => handleMenuItemClick("Hold")}>
-          <Typography>Hold</Typography>
-        </MenuItem>
-        <MenuItem onClick={() => handleMenuItemClick("Move")}>
-          <Typography>Move</Typography>
-        </MenuItem>
-        <MenuItem onClick={() => handleMenuItemClick("Support")}>
-          <Typography>Support</Typography>
-        </MenuItem>
-        <MenuItem onClick={() => handleMenuItemClick("Convoy")}>
-          <Typography>Convoy</Typography>
-        </MenuItem>
+        <FloatingMenuItem onClick={handleMenuItemClick}>Hold</FloatingMenuItem>
+        <FloatingMenuItem onClick={handleMenuItemClick}>Move</FloatingMenuItem>
+        <FloatingMenuItem onClick={handleMenuItemClick}>
+          Support
+        </FloatingMenuItem>
+        <FloatingMenuItem onClick={handleMenuItemClick}>
+          Convoy
+        </FloatingMenuItem>
       </FloatingMenu>
-    </Box>
+    </div>
   );
 };
 
@@ -104,8 +88,10 @@ export const Interactive: Story = {
 };
 
 // Test positioning near edges
-const EdgeTestTemplate = (args: any) => {
-  const [menus, setMenus] = useState<Array<{ x: number, y: number, id: number }>>([]);
+const EdgeTestTemplate = (args: React.ComponentProps<typeof FloatingMenu>) => {
+  const [menus, setMenus] = useState<
+    Array<{ x: number; y: number; id: number }>
+  >([]);
 
   const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -123,45 +109,32 @@ const EdgeTestTemplate = (args: any) => {
     { x: 50, y: 50, label: "Top-left" },
     { x: window.innerWidth - 50, y: 50, label: "Top-right" },
     { x: 50, y: window.innerHeight - 50, label: "Bottom-left" },
-    { x: window.innerWidth - 50, y: window.innerHeight - 50, label: "Bottom-right" },
+    {
+      x: window.innerWidth - 50,
+      y: window.innerHeight - 50,
+      label: "Bottom-right",
+    },
   ];
 
   return (
-    <Box sx={{ height: "100vh", width: "100vw", position: "relative", bgcolor: "grey.50" }}>
-      <Box
-        onClick={handleClick}
-        sx={{
-          width: "100%",
-          height: "100%",
-          position: "relative",
-        }}
-      >
-        <Typography
-          variant="h5"
-          sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            textAlign: "center"
-          }}
-        >
+    <div className="relative h-screen w-screen bg-background">
+      <div onClick={handleClick} className="relative h-full w-full">
+        <h5 className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center text-xl">
           Click anywhere to test positioning
-        </Typography>
+        </h5>
 
         {/* Corner markers */}
         {corners.map((corner, index) => (
           <Button
             key={index}
-            variant="outlined"
-            size="small"
-            sx={{
-              position: "absolute",
+            variant="outline"
+            size="sm"
+            className="absolute min-w-20"
+            style={{
               left: corner.x - 40,
               top: corner.y - 20,
-              minWidth: 80,
             }}
-            onClick={(e) => {
+            onClick={e => {
               e.stopPropagation();
               setMenus([{ x: corner.x, y: corner.y, id: Date.now() }]);
             }}
@@ -169,29 +142,23 @@ const EdgeTestTemplate = (args: any) => {
             {corner.label}
           </Button>
         ))}
-      </Box>
+      </div>
 
-      {menus.map((menu) => (
+      {menus.map(menu => (
         <FloatingMenu
           key={menu.id}
+          {...args}
           open={true}
           x={menu.x}
           y={menu.y}
           onClose={handleClose}
-          {...args}
         >
-          <MenuItem onClick={handleClose}>
-            <Typography>Option 1</Typography>
-          </MenuItem>
-          <MenuItem onClick={handleClose}>
-            <Typography>Option 2</Typography>
-          </MenuItem>
-          <MenuItem onClick={handleClose}>
-            <Typography>Option 3</Typography>
-          </MenuItem>
+          <FloatingMenuItem onClick={handleClose}>Option 1</FloatingMenuItem>
+          <FloatingMenuItem onClick={handleClose}>Option 2</FloatingMenuItem>
+          <FloatingMenuItem onClick={handleClose}>Option 3</FloatingMenuItem>
         </FloatingMenu>
       ))}
-    </Box>
+    </div>
   );
 };
 
@@ -201,7 +168,7 @@ export const EdgePositioning: Story = {
 };
 
 // Test with container element
-const ContainerTemplate = (args: any) => {
+const ContainerTemplate = (args: React.ComponentProps<typeof FloatingMenu>) => {
   const [open, setOpen] = useState(false);
   const [anchorPoint, setAnchorPoint] = useState({ x: 100, y: 100 });
   const [container, setContainer] = useState<HTMLElement | null>(null);
@@ -216,60 +183,40 @@ const ContainerTemplate = (args: any) => {
   };
 
   return (
-    <Box sx={{ height: "100vh", width: "100vw", p: 4, bgcolor: "grey.50" }}>
-      <Typography variant="h5" sx={{ mb: 2 }}>
-        Container-relative positioning
-      </Typography>
-
-      <Box
-        ref={(el) => setContainer(el as HTMLElement)}
+    <div className="h-screen w-screen bg-muted p-4">
+      <h5 className="mb-2 text-xl">Container-relative positioning</h5>
+      <div
+        ref={setContainer}
         onClick={handleContainerClick}
-        sx={{
-          width: 600,
-          height: 400,
-          bgcolor: "white",
-          border: 2,
-          borderColor: "primary.main",
-          borderRadius: 1,
-          position: "relative",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
+        className="relative flex h-96 w-[600px] cursor-pointer items-center justify-center rounded border-2 border-primary bg-background"
       >
-        <Typography>Click inside this container</Typography>
+        <span>Click inside this container</span>
 
-        <Box
-          sx={{
-            position: "absolute",
+        <div
+          className="bg-secondary absolute size-2.5 rounded-full"
+          style={{
             left: anchorPoint.x - 5,
             top: anchorPoint.y - 5,
-            width: 10,
-            height: 10,
-            borderRadius: "50%",
-            bgcolor: "secondary.main",
             opacity: open ? 1 : 0.3,
           }}
         />
-      </Box>
-
+      </div>
       <FloatingMenu
+        {...args}
         open={open}
         x={anchorPoint.x}
         y={anchorPoint.y}
         container={container}
         onClose={() => setOpen(false)}
-        {...args}
       >
-        <MenuItem onClick={() => setOpen(false)}>
-          <Typography>Container Option 1</Typography>
-        </MenuItem>
-        <MenuItem onClick={() => setOpen(false)}>
-          <Typography>Container Option 2</Typography>
-        </MenuItem>
+        <FloatingMenuItem onClick={() => setOpen(false)}>
+          Container Option 1
+        </FloatingMenuItem>
+        <FloatingMenuItem onClick={() => setOpen(false)}>
+          Container Option 2
+        </FloatingMenuItem>
       </FloatingMenu>
-    </Box>
+    </div>
   );
 };
 
@@ -284,23 +231,14 @@ export const Default: Story = {
     open: true,
     x: 200,
     y: 150,
-    children: (
-      <>
-        <MenuItem>
-          <Typography>Hold</Typography>
-        </MenuItem>
-        <MenuItem>
-          <Typography>Move</Typography>
-        </MenuItem>
-        <MenuItem>
-          <Typography>Support</Typography>
-        </MenuItem>
-      </>
-    ),
   },
-  render: (args) => (
-    <Box sx={{ height: "100vh", width: "100vw", bgcolor: "grey.100" }}>
-      <FloatingMenu {...args} />
-    </Box>
+  render: args => (
+    <div className="h-screen w-screen bg-muted">
+      <FloatingMenu {...args}>
+        <FloatingMenuItem>Hold</FloatingMenuItem>
+        <FloatingMenuItem>Move</FloatingMenuItem>
+        <FloatingMenuItem>Support</FloatingMenuItem>
+      </FloatingMenu>
+    </div>
   ),
 };

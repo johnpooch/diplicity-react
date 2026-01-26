@@ -1,7 +1,7 @@
 import React from "react";
 import * as Sentry from "@sentry/react";
-import { Box, Container, Typography, Button } from "@mui/material";
 import { DiplicityLogo } from "./DiplicityLogo";
+import { Button } from "@/components/ui/button";
 
 interface ErrorFallbackUIProps {
   error: Error;
@@ -9,45 +9,24 @@ interface ErrorFallbackUIProps {
 
 export const ErrorFallbackUI: React.FC<ErrorFallbackUIProps> = ({ error }) => {
   return (
-    <Container maxWidth="sm">
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          minHeight: "100vh",
-          textAlign: "center",
-          gap: 3,
-        }}
-      >
+    <div className="max-w-sm mx-auto">
+      <div className="flex flex-col items-center justify-center min-h-screen text-center gap-6">
         <DiplicityLogo />
-        <Typography variant="h1">Something went wrong</Typography>
-        <Typography variant="body1" color="text.secondary">
+        <h1 className="text-2xl font-bold">Something went wrong</h1>
+        <p className="text-muted-foreground">
           We've been notified of the issue and are working to fix it.
           Please try refreshing the page or returning to the home screen.
-        </Typography>
+        </p>
         {import.meta.env.MODE === "development" && (
-          <Box
-            sx={{
-              mt: 2,
-              p: 2,
-              bgcolor: "error.light",
-              borderRadius: 1,
-              textAlign: "left",
-              width: "100%",
-            }}
-          >
-            <Typography variant="caption" component="pre" sx={{ whiteSpace: "pre-wrap" }}>
-              {error.toString()}
-            </Typography>
-          </Box>
+          <div className="mt-2 p-4 bg-destructive/20 rounded text-left w-full">
+            <pre className="text-xs whitespace-pre-wrap">{error.toString()}</pre>
+          </div>
         )}
-        <Button variant="outlined" onClick={() => window.location.href = "/"}>
+        <Button variant="outline" onClick={() => window.location.href = "/"}>
           Go Home
         </Button>
-      </Box>
-    </Container>
+      </div>
+    </div>
   );
 };
 

@@ -1,5 +1,29 @@
 # Diplicity React - Release Notes
 
+## UI Overhaul and Supply Center Display (January 24, 2026)
+
+**Release Date:** January 24, 2026
+
+### Major UI Migration: Material UI to ShadCN
+
+We've completed a significant migration of the entire UI framework from Material UI to ShadCN. This brings a more modern, consistent look and feel across the app, along with improved performance and accessibility.
+
+**Please note:** Due to the scope of this migration, there may be visual bugs or unexpected behavior in some areas of the app. We've tested extensively, but with so many changes, some issues may have slipped through. If you encounter any problems, please let us know on Discord. We appreciate your patience as we iron out any remaining issues!
+
+### New Feature: Supply Center Count on Orders Screen
+
+The Orders screen now displays each nation's supply center count directly in the accordion header, making it easier to see standings at a glance without navigating to Player Info.
+
+### New Feature: Phase Guidance Text
+
+A new guidance line appears below the phase selector showing what actions are required and your progress. Messages like "2 of 3 orders submitted · not confirmed" help you understand exactly what's needed to advance to the next phase.
+
+### Improvement: Game Creation Redirect
+
+After creating a game, you're now taken directly to the game instead of back to the home screen. Standard games redirect to the Game Info screen where you can share the link and wait for players, while Sandbox games take you straight into the game.
+
+---
+
 ## Map Improvements and New Variant (October 25, 2025)
 
 **Release Date:** October 25, 2025

@@ -1,4 +1,4 @@
-import { GameRead } from "./store";
+import { GameRetrieve } from "./api/generated/endpoints";
 import { adjectives, conflictSynonyms, nouns } from "./terms";
 
 function capitalize(s: string) {
@@ -9,7 +9,7 @@ function randomOf(ary: string[]) {
   return ary[Math.floor(Math.random() * ary.length)];
 }
 
-const getCurrentPhaseId = (game: GameRead) => {
+const getCurrentPhaseId = (game: GameRetrieve) => {
   return game.phases[game.phases.length - 1];
 };
 

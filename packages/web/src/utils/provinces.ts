@@ -1,23 +1,23 @@
-import { ProvinceRead } from "../store";
+import { Province } from "../api/generated/endpoints";
 
 /**
  * Check if a province has named coasts
  */
-export function hasNamedCoasts(province: ProvinceRead): boolean {
+export function hasNamedCoasts(province: Province): boolean {
   return province.namedCoastIds.length > 0;
 }
 
 /**
  * Check if a province is a named coast
  */
-export function isNamedCoast(province: ProvinceRead): boolean {
+export function isNamedCoast(province: Province): boolean {
   return province.parentId !== null;
 }
 
 /**
  * Get the main province for a given province (returns self if already main province)
  */
-export function getMainProvince(provinces: ProvinceRead[], provinceId: string): ProvinceRead | undefined {
+export function getMainProvince(provinces: Province[], provinceId: string): Province | undefined {
   const province = provinces.find(p => p.id === provinceId);
   if (!province) return undefined;
 
@@ -31,7 +31,7 @@ export function getMainProvince(provinces: ProvinceRead[], provinceId: string): 
 /**
  * Get all provinces in the same group (main province + its named coasts)
  */
-export function getProvinceGroup(provinces: ProvinceRead[], provinceId: string): ProvinceRead[] {
+export function getProvinceGroup(provinces: Province[], provinceId: string): Province[] {
   const province = provinces.find(p => p.id === provinceId);
   if (!province) return [];
 
@@ -60,13 +60,13 @@ export function getProvinceGroup(provinces: ProvinceRead[], provinceId: string):
  * - When main provinces are highlighted: Show main provinces only
  */
 export function determineRenderableProvinces(
-  allProvinces: ProvinceRead[],
+  allProvinces: Province[],
   highlightedProvinceIds: string[]
 ): string[] {
   const renderableProvinces = new Set<string>();
 
   // Group all provinces by their main province ID
-  const provinceGroups = new Map<string, ProvinceRead[]>();
+  const provinceGroups = new Map<string, Province[]>();
 
   for (const province of allProvinces) {
     const mainProvinceId = province.parentId || province.id;

@@ -8,6 +8,7 @@
   "prettier.requireConfig": true,
   "typescript.preferences.importModuleSpecifier": "relative",
   "[typescriptreact]": {
+    "editor.rulers": [80],
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[python]": {

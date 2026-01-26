@@ -1,2 +1,2 @@
-export { useVariantById } from "./useVariantById";
-export { useCurrentPhase } from "./useCurrentPhase";
+export { useRequiredParams } from "./useRequiredParams";
+export { useMapData, type MapData } from "./useMapData";

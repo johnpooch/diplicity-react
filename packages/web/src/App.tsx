@@ -1,22 +1,21 @@
 import "./App.css";
-import { CssBaseline, ThemeProvider } from "@mui/material";
-import { Provider, useSelector } from "react-redux";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Router from "./Router";
-import theme from "./theme";
-import { Feedback } from "./components/Feedback";
 import { MaintenanceMode } from "./components/MaintenanceMode";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { MessagingContextProvider } from "./context";
-import { store, selectAuth } from "./store";
+import { AuthProvider, useAuth } from "./auth";
+import { Toaster } from "./components/ui/sonner";
+
+const queryClient = new QueryClient();
 
 function AppContent() {
-  const { loggedIn } = useSelector(selectAuth);
+  const { loggedIn } = useAuth();
 
   return (
     <MessagingContextProvider>
-      <Router loggedIn={loggedIn} />
-      <Feedback />
+      <Router loggedIn={loggedIn} queryClient={queryClient} />
     </MessagingContextProvider>
   );
 }
@@ -27,18 +26,15 @@ function App() {
   return (
     <ErrorBoundary>
       {isMaintenanceMode ? (
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <MaintenanceMode />
-        </ThemeProvider>
+        <MaintenanceMode />
       ) : (
         <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
-          <Provider store={store}>
-            <CssBaseline />
-            <ThemeProvider theme={theme}>
+          <QueryClientProvider client={queryClient}>
+            <AuthProvider>
               <AppContent />
-            </ThemeProvider>
-          </Provider>
+              <Toaster position="top-center" closeButton richColors />
+            </AuthProvider>
+          </QueryClientProvider>
         </GoogleOAuthProvider>
       )}
     </ErrorBoundary>

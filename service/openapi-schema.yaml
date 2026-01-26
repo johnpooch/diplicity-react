@@ -263,7 +263,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Game'
+              $ref: '#/components/schemas/GameCreate'
         required: true
       security:
       - jwtAuth: []
@@ -272,7 +272,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Game'
+                $ref: '#/components/schemas/GameCreate'
           description: ''
   /game/{gameId}/:
     get:
@@ -292,7 +292,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Game'
+                $ref: '#/components/schemas/GameRetrieve'
           description: ''
   /game/{gameId}/confirm-phase/:
     put:
@@ -571,7 +571,11 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhaseList'
+          description: ''
   /games/:
     get:
       operationId: gamesList
@@ -708,7 +712,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SandboxGame'
+              $ref: '#/components/schemas/GameCreateSandbox'
         required: true
       security:
       - jwtAuth: []
@@ -717,7 +721,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SandboxGame'
+                $ref: '#/components/schemas/GameCreateSandbox'
           description: ''
   /user/:
     get:
@@ -938,48 +942,18 @@ components:
       - id
       - registrationId
       - type
-    Game:
+    GameCreate:
       type: object
       properties:
         id:
           type: string
           readOnly: true
-        status:
-          type: string
-          readOnly: true
-        canJoin:
-          type: boolean
-          readOnly: true
-        canLeave:
-          type: boolean
-          readOnly: true
-        phases:
-          type: array
-          items:
-            type: integer
-          readOnly: true
-        members:
-          type: array
-          items:
-            $ref: '#/components/schemas/Member'
-          readOnly: true
-        sandbox:
-          type: boolean
-          readOnly: true
-        victory:
-          allOf:
-          - $ref: '#/components/schemas/Victory'
-          readOnly: true
-          nullable: true
         name:
           type: string
         variantId:
           type: string
         nationAssignment:
           $ref: '#/components/schemas/NationAssignmentEnum'
-        phaseConfirmed:
-          type: boolean
-          readOnly: true
         movementPhaseDuration:
           allOf:
           - $ref: '#/components/schemas/MovementPhaseDurationEnum'
@@ -987,19 +961,25 @@ components:
         private:
           type: boolean
       required:
-      - canJoin
-      - canLeave
       - id
-      - members
       - name
       - nationAssignment
-      - phaseConfirmed
-      - phases
       - private
-      - sandbox
-      - status
       - variantId
-      - victory
+    GameCreateSandbox:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        name:
+          type: string
+        variantId:
+          type: string
+      required:
+      - id
+      - name
+      - variantId
     GameList:
       type: object
       properties:
@@ -1026,6 +1006,10 @@ components:
           items:
             type: integer
           readOnly: true
+        currentPhaseId:
+          type: integer
+          nullable: true
+          readOnly: true
         private:
           type: boolean
           readOnly: true
@@ -1051,11 +1035,83 @@ components:
       required:
       - canJoin
       - canLeave
+      - currentPhaseId
       - id
       - members
       - movementPhaseDuration
       - name
       - nationAssignment
+      - phases
+      - private
+      - sandbox
+      - status
+      - variantId
+      - victory
+    GameRetrieve:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        status:
+          type: string
+          readOnly: true
+        canJoin:
+          type: boolean
+          readOnly: true
+        canLeave:
+          type: boolean
+          readOnly: true
+        phases:
+          type: array
+          items:
+            type: integer
+          readOnly: true
+        currentPhaseId:
+          type: integer
+          nullable: true
+          readOnly: true
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/Member'
+          readOnly: true
+        sandbox:
+          type: boolean
+          readOnly: true
+        victory:
+          allOf:
+          - $ref: '#/components/schemas/Victory'
+          readOnly: true
+          nullable: true
+        variantId:
+          type: string
+          readOnly: true
+        nationAssignment:
+          type: string
+          readOnly: true
+        phaseConfirmed:
+          type: boolean
+          readOnly: true
+        movementPhaseDuration:
+          type: string
+          readOnly: true
+        private:
+          type: boolean
+          readOnly: true
+      required:
+      - canJoin
+      - canLeave
+      - currentPhaseId
+      - id
+      - members
+      - movementPhaseDuration
+      - name
+      - nationAssignment
+      - phaseConfirmed
       - phases
       - private
       - sandbox
@@ -1328,10 +1384,18 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SupplyCenter'
+        previousPhaseId:
+          type: integer
+          nullable: true
+        nextPhaseId:
+          type: integer
+          nullable: true
       required:
       - id
       - name
+      - nextPhaseId
       - ordinal
+      - previousPhaseId
       - remainingTime
       - scheduledResolution
       - season
@@ -1393,68 +1457,6 @@ components:
       - parentId
       - supplyCenter
       - type
-    SandboxGame:
-      type: object
-      properties:
-        id:
-          type: string
-          readOnly: true
-        status:
-          type: string
-          readOnly: true
-        canJoin:
-          type: boolean
-          readOnly: true
-        canLeave:
-          type: boolean
-          readOnly: true
-        phases:
-          type: array
-          items:
-            type: integer
-          readOnly: true
-        members:
-          type: array
-          items:
-            $ref: '#/components/schemas/Member'
-          readOnly: true
-        sandbox:
-          type: boolean
-          readOnly: true
-        victory:
-          allOf:
-          - $ref: '#/components/schemas/Victory'
-          readOnly: true
-          nullable: true
-        name:
-          type: string
-        variantId:
-          type: string
-        nationAssignment:
-          allOf:
-          - $ref: '#/components/schemas/NationAssignmentEnum'
-          readOnly: true
-        movementPhaseDuration:
-          allOf:
-          - $ref: '#/components/schemas/MovementPhaseDurationEnum'
-          readOnly: true
-        private:
-          type: boolean
-          readOnly: true
-      required:
-      - canJoin
-      - canLeave
-      - id
-      - members
-      - movementPhaseDuration
-      - name
-      - nationAssignment
-      - phases
-      - private
-      - sandbox
-      - status
-      - variantId
-      - victory
     StatusEnum:
       enum:
       - pending
