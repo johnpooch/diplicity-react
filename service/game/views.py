@@ -5,7 +5,15 @@ from django_filters.rest_framework import DjangoFilterBackend
 from opentelemetry import trace
 
 from .models import Game
-from .serializers import GameCreateSerializer, GameCreateSandboxSerializer, GameListSerializer, GameRetrieveSerializer
+from .serializers import (
+    GameCreateSerializer,
+    GameCreateSandboxSerializer,
+    GameCloneToSandboxSerializer,
+    GameListSerializer,
+    GameRetrieveSerializer,
+)
+from common.views import SelectedGameMixin
+from common.permissions import IsGameMember
 from .filters import GameFilter
 
 tracer = trace.get_tracer(__name__)
@@ -59,3 +67,13 @@ class GameCreateView(generics.CreateAPIView):
 class CreateSandboxGameView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = GameCreateSandboxSerializer
+
+
+class GameCloneToSandboxView(SelectedGameMixin, generics.CreateAPIView):
+    permission_classes = [permissions.IsAuthenticated, IsGameMember]
+    serializer_class = GameCloneToSandboxSerializer
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["source_game"] = self.get_game()
+        return context

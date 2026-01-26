@@ -129,6 +129,10 @@ export interface FCMDevice {
   type: TypeEnum;
 }
 
+export interface GameCloneToSandbox {
+  readonly id: string;
+}
+
 /**
  * * `random` - Random
  * `ordered` - Ordered
@@ -1971,6 +1975,93 @@ export function useGameRetrieveSuspense<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * Used by views that have a game parameter in the URL. Provides a get_game
+method that returns the game object. Also adds game to the serializer context.
+ */
+export const gameCloneToSandboxCreate = (
+  gameId: string,
+  gameCloneToSandbox: NonReadonly<GameCloneToSandbox>,
+  signal?: AbortSignal
+) => {
+  return customInstance<GameCloneToSandbox>({
+    url: `/game/${gameId}/clone-to-sandbox/`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: gameCloneToSandbox,
+    signal,
+  });
+};
+
+export const getGameCloneToSandboxCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gameCloneToSandboxCreate>>,
+    TError,
+    { gameId: string; data: NonReadonly<GameCloneToSandbox> },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gameCloneToSandboxCreate>>,
+  TError,
+  { gameId: string; data: NonReadonly<GameCloneToSandbox> },
+  TContext
+> => {
+  const mutationKey = ["gameCloneToSandboxCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gameCloneToSandboxCreate>>,
+    { gameId: string; data: NonReadonly<GameCloneToSandbox> }
+  > = props => {
+    const { gameId, data } = props ?? {};
+
+    return gameCloneToSandboxCreate(gameId, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GameCloneToSandboxCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gameCloneToSandboxCreate>>
+>;
+export type GameCloneToSandboxCreateMutationBody =
+  NonReadonly<GameCloneToSandbox>;
+export type GameCloneToSandboxCreateMutationError = unknown;
+
+export const useGameCloneToSandboxCreate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gameCloneToSandboxCreate>>,
+      TError,
+      { gameId: string; data: NonReadonly<GameCloneToSandbox> },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gameCloneToSandboxCreate>>,
+  TError,
+  { gameId: string; data: NonReadonly<GameCloneToSandbox> },
+  TContext
+> => {
+  return useMutation(
+    getGameCloneToSandboxCreateMutationOptions(options),
+    queryClient
+  );
+};
 
 /**
  * Used by views that have a game parameter in the URL. Provides a get_game
@@ -5586,6 +5677,13 @@ export const getGameRetrieveResponseMock = (
   ...overrideResponse,
 });
 
+export const getGameCloneToSandboxCreateResponseMock = (
+  overrideResponse: Partial<GameCloneToSandbox> = {}
+): GameCloneToSandbox => ({
+  id: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  ...overrideResponse,
+});
+
 export const getGameConfirmPhaseUpdateResponseMock = (
   overrideResponse: Partial<PhaseState> = {}
 ): PhaseState => ({
@@ -6784,6 +6882,32 @@ export const getGameRetrieveMockHandler = (
   );
 };
 
+export const getGameCloneToSandboxCreateMockHandler = (
+  overrideResponse?:
+    | GameCloneToSandbox
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0]
+      ) => Promise<GameCloneToSandbox> | GameCloneToSandbox),
+  options?: RequestHandlerOptions
+) => {
+  return http.post(
+    "*/game/:gameId/clone-to-sandbox/",
+    async info => {
+      return new HttpResponse(
+        JSON.stringify(
+          overrideResponse !== undefined
+            ? typeof overrideResponse === "function"
+              ? await overrideResponse(info)
+              : overrideResponse
+            : getGameCloneToSandboxCreateResponseMock()
+        ),
+        { status: 201, headers: { "Content-Type": "application/json" } }
+      );
+    },
+    options
+  );
+};
+
 export const getGameConfirmPhaseUpdateMockHandler = (
   overrideResponse?:
     | PhaseState
@@ -7347,6 +7471,7 @@ export const getMock = () => [
   getDevicesUpdateMockHandler(),
   getGameCreateMockHandler(),
   getGameRetrieveMockHandler(),
+  getGameCloneToSandboxCreateMockHandler(),
   getGameConfirmPhaseUpdateMockHandler(),
   getGameConfirmPhasePartialUpdateMockHandler(),
   getGameJoinCreateMockHandler(),

@@ -10,5 +10,10 @@ urlpatterns = [
         views.GameRetrieveView.as_view(),
         name="game-retrieve",
     ),
+    path(
+        "game/<str:game_id>/clone-to-sandbox/",
+        views.GameCloneToSandboxView.as_view(),
+        name="game-clone-to-sandbox",
+    ),
     path("games/", views.GameListView.as_view(), name="game-list"),
 ]

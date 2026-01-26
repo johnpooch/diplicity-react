@@ -86,8 +86,7 @@ const PlayerInfo: React.FC = () => {
           <>
             {joinLeaveButton}
             <GameDropdownMenu
-              gameId={game.id}
-              canLeave={game.canLeave}
+              game={game}
               onNavigateToGameInfo={handleGameInfo}
               onNavigateToPlayerInfo={handlePlayerInfo}
             />

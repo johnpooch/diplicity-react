@@ -103,8 +103,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
               <div className="flex items-center gap-2">
                 {joinGameButton}
                 <GameDropdownMenu
-                  gameId={game.id}
-                  canLeave={game.canLeave}
+                  game={game}
                   onNavigateToGameInfo={handleClickGameInfo}
                   onNavigateToPlayerInfo={handleClickPlayerInfo}
                 />

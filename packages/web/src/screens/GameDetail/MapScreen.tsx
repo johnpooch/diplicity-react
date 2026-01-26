@@ -38,8 +38,7 @@ const MapScreen: React.FC = () => {
               </Suspense>
             </div>
             <GameDropdownMenu
-              gameId={gameId}
-              canLeave={game.canLeave}
+              game={game}
               onNavigateToGameInfo={handleNavigateToGameInfo}
               onNavigateToPlayerInfo={handleNavigateToPlayerInfo}
             />
