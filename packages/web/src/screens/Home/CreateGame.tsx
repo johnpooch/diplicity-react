@@ -406,9 +406,9 @@ const CreateGame: React.FC = () => {
 
   const handleStandardGameSubmit = async (data: StandardGameFormValues) => {
     try {
-      await createGameMutation.mutateAsync({ data });
+      const game = await createGameMutation.mutateAsync({ data });
       toast.success("Game created successfully");
-      navigate("/");
+      navigate(`/game-info/${game.id}`);
     } catch {
       toast.error("Failed to create game");
     }
@@ -416,9 +416,11 @@ const CreateGame: React.FC = () => {
 
   const handleSandboxGameSubmit = async (data: SandboxGameFormValues) => {
     try {
-      await createSandboxGameMutation.mutateAsync({ data: data.sandboxGame });
+      const game = await createSandboxGameMutation.mutateAsync({
+        data: data.sandboxGame,
+      });
       toast.success("Sandbox game created successfully");
-      navigate("/");
+      navigate(`/game/${game.id}`);
     } catch {
       toast.error("Failed to create sandbox game");
     }

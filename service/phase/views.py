@@ -1,4 +1,5 @@
 from rest_framework import permissions, generics, views, status
+from drf_spectacular.utils import extend_schema
 from opentelemetry import trace
 from common.permissions import (
     IsActiveGame,
@@ -95,11 +96,13 @@ class PhaseResolveView(SelectedGameMixin, views.APIView):
         IsSandboxGame,
     ]
 
+    @extend_schema(request=None, responses=PhaseListSerializer)
     def post(self, request, *args, **kwargs):
         game = self.get_game()
         current_phase = Phase.objects.with_adjudication_data().get(pk=game.current_phase.pk)
         with tracer.start_as_current_span("phase.resolve_view") as span:
             span.set_attribute("phase.id", current_phase.id)
             span.set_attribute("game.id", str(game.id))
-            Phase.objects.resolve_phase(current_phase)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+            new_phase = Phase.objects.resolve_phase(current_phase)
+        serializer = PhaseListSerializer(new_phase)
+        return Response(serializer.data, status=status.HTTP_200_OK)

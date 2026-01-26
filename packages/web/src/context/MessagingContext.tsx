@@ -65,7 +65,8 @@ const MessagingContextProvider: React.FC<MessagingContextProviderProps> = (
     if (token && loggedIn) {
       createDeviceFromToken(token);
     }
-  }, [token, loggedIn, createDeviceMutation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mutateAsync is stable, including the mutation object causes infinite loops
+  }, [token, loggedIn]);
 
   useEffect(() => {
     // Register the service worker for Firebase messaging

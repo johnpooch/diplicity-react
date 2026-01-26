@@ -173,8 +173,9 @@ const OrdersScreen: React.FC = () => {
 
   const handleResolvePhase = async () => {
     try {
-      await resolvePhaseMutation.mutateAsync({ gameId });
+      const result = await resolvePhaseMutation.mutateAsync({ gameId });
       toast.success("Phase resolved");
+      navigate(`/game/${gameId}/phase/${result.id}/orders`);
     } catch {
       toast.error("Failed to resolve phase");
     }

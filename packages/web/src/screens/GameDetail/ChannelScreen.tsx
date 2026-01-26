@@ -1,4 +1,4 @@
-import React, { Suspense, useState } from "react";
+import React, { Suspense, useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Send, MessageCircle } from "lucide-react";
@@ -82,6 +82,18 @@ const ChannelScreen: React.FC = () => {
   const { data: variants } = useVariantsListSuspense();
   const createMessageMutation = useGamesChannelsMessagesCreateCreate();
 
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  const channel = channels.find(c => c.id === parseInt(channelId));
+  if (!channel) throw new Error("Channel not found");
+
+  useEffect(() => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop =
+        messagesContainerRef.current.scrollHeight;
+    }
+  }, [channel.messages]);
+
   const handleSubmit = async () => {
     if (!message.trim()) return;
 
@@ -107,9 +119,6 @@ const ChannelScreen: React.FC = () => {
     }
   };
 
-  const channel = channels.find(c => c.id === parseInt(channelId));
-  if (!channel) throw new Error("Channel not found");
-
   const variant = variants.find(v => v.id === game.variantId);
   const variantId = variant?.id;
 
@@ -134,7 +143,10 @@ const ChannelScreen: React.FC = () => {
                   className="h-full"
                 />
               ) : (
-                <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 p-2">
+                <div
+                  ref={messagesContainerRef}
+                  className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 p-2"
+                >
                   {messageItems.map(item => (
                     <Message
                       key={item.id}

@@ -252,6 +252,7 @@ def test_resolve_due_phases_skips_sandbox_games(db, classical_variant, primary_u
 def test_sandbox_game_resolve_phase_success(authenticated_client, db, classical_variant, primary_user):
     from game.models import Game
     from common.constants import NationAssignment
+    from unittest.mock import MagicMock
 
     game = Game.objects.create_from_template(
         classical_variant,
@@ -265,11 +266,21 @@ def test_sandbox_game_resolve_phase_success(authenticated_client, db, classical_
         game.members.create(user=primary_user)
     game.start()
 
+    mock_new_phase = MagicMock()
+    mock_new_phase.id = 12345
+    mock_new_phase.ordinal = 2
+    mock_new_phase.season = "Fall"
+    mock_new_phase.year = 1901
+    mock_new_phase.name = "Fall 1901, Movement"
+    mock_new_phase.type = "Movement"
+    mock_new_phase.status = "active"
+
     url = reverse("game-resolve-phase", args=[game.id])
-    with patch.object(Phase.objects, "resolve") as mock_resolve:
+    with patch.object(Phase.objects, "resolve_phase", return_value=mock_new_phase) as mock_resolve_phase:
         response = authenticated_client.post(url)
-        assert response.status_code == status.HTTP_204_NO_CONTENT
-        mock_resolve.assert_called_once()
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["id"] == 12345
+        mock_resolve_phase.assert_called_once()
 
 
 @pytest.mark.django_db

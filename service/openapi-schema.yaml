@@ -571,7 +571,11 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhaseList'
+          description: ''
   /games/:
     get:
       operationId: gamesList

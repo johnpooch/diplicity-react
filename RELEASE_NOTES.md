@@ -18,6 +18,10 @@ The Orders screen now displays each nation's supply center count directly in the
 
 A new guidance line appears below the phase selector showing what actions are required and your progress. Messages like "2 of 3 orders submitted · not confirmed" help you understand exactly what's needed to advance to the next phase.
 
+### Improvement: Game Creation Redirect
+
+After creating a game, you're now taken directly to the game instead of back to the home screen. Standard games redirect to the Game Info screen where you can share the link and wait for players, while Sandbox games take you straight into the game.
+
 ---
 
 ## Map Improvements and New Variant (October 25, 2025)
