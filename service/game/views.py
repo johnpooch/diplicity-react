@@ -72,8 +72,3 @@ class CreateSandboxGameView(generics.CreateAPIView):
 class GameCloneToSandboxView(SelectedGameMixin, generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated, IsGameMember]
     serializer_class = GameCloneToSandboxSerializer
-
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context["source_game"] = self.get_game()
-        return context

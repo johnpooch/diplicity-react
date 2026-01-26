@@ -4,6 +4,8 @@ from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
 from common.constants import NationAssignment, MovementPhaseDuration, PhaseStatus
 from member.serializers import MemberSerializer
+from unit.models import Unit
+from supply_center.models import SupplyCenter
 
 from victory.serializers import VictorySerializer
 from variant.models import Variant
@@ -188,7 +190,7 @@ class GameCloneToSandboxSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
 
     def validate(self, attrs):
-        source_game = self.context["source_game"]
+        source_game = self.context["game"]
         source_phase = source_game.current_phase
 
         if source_phase is None:
@@ -197,11 +199,8 @@ class GameCloneToSandboxSerializer(serializers.Serializer):
         return attrs
 
     def create(self, validated_data):
-        from unit.models import Unit
-        from supply_center.models import SupplyCenter
-
         request = self.context["request"]
-        source_game = self.context["source_game"]
+        source_game = self.context["game"]
         source_phase = source_game.current_phase
         user = request.user
 
