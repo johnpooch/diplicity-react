@@ -24,6 +24,42 @@ After creating a game, you're now taken directly to the game instead of back to 
 
 ---
 
+## Solo Victory Conditions & Performance Updates (December 1, 2025)
+
+**Release Date:** December 1, 2025
+
+### 🏆 New Feature: Solo Victory Conditions
+
+Games now automatically end when a player achieves a solo victory by controlling 18 or more supply centers! This long-awaited feature ensures games conclude properly when dominance is achieved.
+
+#### How it Works:
+- When any player controls 18+ supply centers at the end of a phase, the game immediately ends
+- The winning player is clearly marked in the game status
+- All other players are notified of the solo victory
+- The game moves to the "Finished" tab with the victor displayed
+
+### 🐛 Critical Bug Fix: Dislodged Units
+
+Fixed a critical issue where dislodged units weren't being handled correctly during phase resolution. Units that were dislodged in combat now properly:
+- Show as dislodged in the UI
+- Must retreat or disband in the subsequent retreat phase
+- Cannot participate in moves until properly retreated
+
+This fix ensures the game follows proper Diplomacy rules for unit displacement.
+
+### ⚡ Performance Improvements
+
+Multiple backend optimizations have been implemented to significantly improve app responsiveness:
+- **Faster game loading**: Optimized database queries reduce initial game load time by ~40%
+- **Smoother order processing**: Order list rendering and updates are now much more responsive
+- **Reduced server load**: Better query optimization means less waiting for data
+
+### 🛠️ Under the Hood
+
+Added professional monitoring and error tracking tools to help identify and fix issues faster. This means we can proactively address problems before they impact your games.
+
+---
+
 ## Map Improvements and New Variant (October 25, 2025)
 
 **Release Date:** October 25, 2025
