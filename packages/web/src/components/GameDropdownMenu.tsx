@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -25,8 +25,8 @@ import {
   useGameLeaveDestroy,
   useGameCloneToSandboxCreate,
   getGamesListQueryKey,
+  GameList,
 } from "@/api/generated/endpoints";
-import type { GameList } from "@/api/generated/model";
 
 interface GameDropdownMenuProps {
   game: Pick<GameList, "id" | "sandbox" | "canLeave">;
@@ -60,6 +60,7 @@ export function GameDropdownMenu({
     try {
       const result = await cloneToSandboxMutation.mutateAsync({
         gameId: game.id,
+        data: {},
       });
       toast.success("Sandbox created");
       queryClient.invalidateQueries({ queryKey: getGamesListQueryKey() });
