@@ -1706,7 +1706,8 @@ class TestGameCloneToSandbox:
 
     @pytest.mark.django_db
     def test_clone_to_sandbox_deletes_oldest_when_at_limit(
-        self, authenticated_client, primary_user, classical_variant, adjudication_data_classical
+        self, authenticated_client, primary_user, classical_variant, adjudication_data_classical,
+        active_game_with_phase_state
     ):
         sandboxes = []
         for i in range(3):
@@ -1723,14 +1724,7 @@ class TestGameCloneToSandbox:
 
         oldest_sandbox_id = sandboxes[0].id
 
-        source_game = Game.objects.create_from_template(
-            classical_variant,
-            name="Source Game",
-            nation_assignment=NationAssignment.RANDOM,
-        )
-        source_game.members.create(user=primary_user)
-
-        url = reverse(clone_to_sandbox_viewname, args=[source_game.id])
+        url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
         with patch("adjudication.service.start") as mock_start:
             mock_start.return_value = adjudication_data_classical
             response = authenticated_client.post(url)
@@ -1748,10 +1742,18 @@ class TestGameCloneToSandbox:
 
     @pytest.mark.django_db
     def test_clone_to_sandbox_non_member(
-        self, authenticated_client_for_secondary_user, pending_game_created_by_primary_user
+        self, authenticated_client_for_secondary_user, active_game_with_phase_state
+    ):
+        url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
+        response = authenticated_client_for_secondary_user.post(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_clone_to_sandbox_pending_game(
+        self, authenticated_client, pending_game_created_by_primary_user
     ):
         url = reverse(clone_to_sandbox_viewname, args=[pending_game_created_by_primary_user.id])
-        response = authenticated_client_for_secondary_user.post(url)
+        response = authenticated_client.post(url)
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.django_db

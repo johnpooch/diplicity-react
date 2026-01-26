@@ -189,15 +189,6 @@ class GameCreateSandboxSerializer(serializers.Serializer):
 class GameCloneToSandboxSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
 
-    def validate(self, attrs):
-        source_game = self.context["game"]
-        source_phase = source_game.current_phase
-
-        if source_phase is None:
-            raise serializers.ValidationError("Source game has no phases to clone from.")
-
-        return attrs
-
     def create(self, validated_data):
         request = self.context["request"]
         source_game = self.context["game"]
@@ -214,52 +205,16 @@ class GameCloneToSandboxSerializer(serializers.Serializer):
                 oldest_sandbox = user_sandboxes.first()
                 oldest_sandbox.delete()
 
-            game = Game.objects.create(
-                variant=source_game.variant,
+            game = Game.objects.clone_from_phase(
+                source_phase,
                 name=f"{source_game.name} (Sandbox)",
-                sandbox=True,
-                private=True,
-                nation_assignment=NationAssignment.ORDERED,
-                movement_phase_duration=None,
             )
-
-            phase = game.phases.create(
-                game=game,
-                variant=source_game.variant,
-                season=source_phase.season,
-                year=source_phase.year,
-                type=source_phase.type,
-                status=PhaseStatus.PENDING,
-                ordinal=1,
-            )
-
-            units_to_create = [
-                Unit(
-                    phase=phase,
-                    type=unit.type,
-                    nation=unit.nation,
-                    province=unit.province,
-                    dislodged=unit.dislodged,
-                )
-                for unit in source_phase.units.all()
-            ]
-            Unit.objects.bulk_create(units_to_create)
-
-            supply_centers_to_create = [
-                SupplyCenter(
-                    phase=phase,
-                    nation=sc.nation,
-                    province=sc.province,
-                )
-                for sc in source_phase.supply_centers.all()
-            ]
-            SupplyCenter.objects.bulk_create(supply_centers_to_create)
 
             nations_list = list(source_game.variant.nations.all())
             members_to_create = [Member(game=game, user=user) for _ in nations_list]
             created_members = Member.objects.bulk_create(members_to_create)
 
-            game.start(current_phase=phase, members=created_members)
+            game.start(current_phase=game._created_phase, members=created_members)
 
         return Game.objects.all().with_related_data().get(id=game.id)
 
