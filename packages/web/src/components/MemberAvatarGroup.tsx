@@ -3,12 +3,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Flags } from "../assets/flags";
 import { Plus } from "lucide-react";
 import { cn } from "../lib/utils";
-import { GameRetrieveVictory, Member } from "../api/generated/endpoints";
+import { Victory, Member } from "../api/generated/endpoints";
 
 type MemberAvatarGroupProps = {
   members: readonly Member[];
   variant: string;
-  victory?: GameRetrieveVictory;
+  victory?: Victory;
   max?: number;
   size?: "small" | "medium";
   onClick?: () => void;

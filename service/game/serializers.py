@@ -98,6 +98,7 @@ class GameRetrieveSerializer(serializers.Serializer):
 
 
 class GameCreateSerializer(serializers.Serializer):
+    id = serializers.CharField(read_only=True)
     name = serializers.CharField()
     variant_id = serializers.CharField()
     nation_assignment = serializers.ChoiceField(choices=NationAssignment.NATION_ASSIGNMENT_CHOICES)
@@ -141,6 +142,7 @@ class GameCreateSerializer(serializers.Serializer):
 
 
 class GameCreateSandboxSerializer(serializers.Serializer):
+    id = serializers.CharField(read_only=True)
     name = serializers.CharField()
     variant_id = serializers.CharField()
 

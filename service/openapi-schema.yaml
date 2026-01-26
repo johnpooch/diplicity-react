@@ -945,6 +945,9 @@ components:
     GameCreate:
       type: object
       properties:
+        id:
+          type: string
+          readOnly: true
         name:
           type: string
         variantId:
@@ -958,6 +961,7 @@ components:
         private:
           type: boolean
       required:
+      - id
       - name
       - nationAssignment
       - private
@@ -965,11 +969,15 @@ components:
     GameCreateSandbox:
       type: object
       properties:
+        id:
+          type: string
+          readOnly: true
         name:
           type: string
         variantId:
           type: string
       required:
+      - id
       - name
       - variantId
     GameList:
