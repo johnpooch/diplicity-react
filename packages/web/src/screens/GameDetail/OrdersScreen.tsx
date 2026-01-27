@@ -132,6 +132,8 @@ const OrdersScreen: React.FC = () => {
   const variant = variants.find(v => v.id === game.variantId)!;
 
   const isActivePhase = phase.status === "active";
+  const isGameCompleted = game.status === "completed";
+  const canModifyOrders = isActivePhase && !isGameCompleted;
 
   const getSupplyCenterCount = (nation: string) => {
     return phase.supplyCenters.filter(sc => sc.nation.name === nation).length;
@@ -276,7 +278,7 @@ const OrdersScreen: React.FC = () => {
                                     : "Order not provided"}
                                 </ItemDescription>
                               </ItemContent>
-                              {isActivePhase && item.order && (
+                              {canModifyOrders && item.order && (
                                 <ItemActions>
                                   <Button
                                     variant="ghost"
@@ -317,7 +319,7 @@ const OrdersScreen: React.FC = () => {
             )}
           </Panel.Content>
 
-          {isActivePhase && (
+          {canModifyOrders && (
             <>
               <Separator />
               <Panel.Footer>

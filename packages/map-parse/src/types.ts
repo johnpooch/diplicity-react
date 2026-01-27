@@ -1,5 +1,8 @@
 import { CSSProperties } from "react";
 
+// LSP TEST: This should show a type error - assigning number to string
+const lspTestError: string = 123;
+
 interface IPoint {
     x: number;
     y: number;

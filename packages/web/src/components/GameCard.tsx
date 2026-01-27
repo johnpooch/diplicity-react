@@ -39,10 +39,10 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
   const joinGameMutation = useGameJoinCreate();
 
   const handleClickGame = () => {
-    if (game.status === "active") {
-      navigate(`/game/${game.id}`);
-    } else {
+    if (game.status === "pending") {
       navigate(`/game-info/${game.id}`);
+    } else {
+      navigate(`/game/${game.id}`);
     }
   };
 

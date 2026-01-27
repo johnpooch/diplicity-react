@@ -17,6 +17,16 @@ class IsActiveGame(BasePermission):
         return game.status == GameStatus.ACTIVE
 
 
+class IsActiveOrCompletedGame(BasePermission):
+
+    message = "This game is not active or completed."
+
+    def has_permission(self, request, view):
+        game_id = view.kwargs.get("game_id")
+        game = get_object_or_404(Game, id=game_id)
+        return game.status in (GameStatus.ACTIVE, GameStatus.COMPLETED)
+
+
 class IsGameMember(BasePermission):
     message = "User is not a member of the game."
 

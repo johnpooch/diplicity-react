@@ -9,6 +9,7 @@ class VariantSerializer(serializers.Serializer):
     name = serializers.CharField()
     description = serializers.CharField()
     author = serializers.CharField(required=False)
+    solo_victory_sc_count = serializers.IntegerField()
     nations = NationSerializer(many=True)
     provinces = ProvinceSerializer(many=True)
     template_phase = PhaseRetrieveSerializer()

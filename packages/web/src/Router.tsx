@@ -198,6 +198,22 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
                             </Suspense>
                           ),
                         },
+                        {
+                          path: "propose-draw",
+                          element: (
+                            <Suspense fallback={<RouteFallback />}>
+                              <GameDetail.ProposeDrawScreen />
+                            </Suspense>
+                          ),
+                        },
+                        {
+                          path: "draw-proposals",
+                          element: (
+                            <Suspense fallback={<RouteFallback />}>
+                              <GameDetail.DrawProposalsScreen />
+                            </Suspense>
+                          ),
+                        },
                       ],
                     },
                   ],
