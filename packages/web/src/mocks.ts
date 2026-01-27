@@ -28,6 +28,8 @@ export const mockMembers: Member[] = [
     picture: null,
     nation: "Austria",
     isCurrentUser: false,
+    eliminated: false,
+    kicked: false,
   },
   {
     id: 2,
@@ -35,6 +37,8 @@ export const mockMembers: Member[] = [
     picture: null,
     nation: "England",
     isCurrentUser: false,
+    eliminated: false,
+    kicked: false,
   },
   {
     id: 3,
@@ -42,6 +46,8 @@ export const mockMembers: Member[] = [
     picture: null,
     nation: "France",
     isCurrentUser: false,
+    eliminated: false,
+    kicked: false,
   },
   {
     id: 4,
@@ -49,6 +55,8 @@ export const mockMembers: Member[] = [
     picture: null,
     nation: "Germany",
     isCurrentUser: false,
+    eliminated: false,
+    kicked: false,
   },
   {
     id: 5,
@@ -56,6 +64,8 @@ export const mockMembers: Member[] = [
     picture: null,
     nation: "Italy",
     isCurrentUser: false,
+    eliminated: false,
+    kicked: false,
   },
   {
     id: 6,
@@ -63,6 +73,8 @@ export const mockMembers: Member[] = [
     picture: null,
     nation: "Russia",
     isCurrentUser: false,
+    eliminated: false,
+    kicked: false,
   },
   {
     id: 7,
@@ -70,6 +82,8 @@ export const mockMembers: Member[] = [
     picture: null,
     nation: "Turkey",
     isCurrentUser: true,
+    eliminated: false,
+    kicked: false,
   },
 ];
 
@@ -405,6 +419,7 @@ export const mockVariants: Variant[] = [
     author: "Allan B. Calhamer",
     nations: mockNations,
     provinces: mockProvinces,
+    soloVictoryScCount: 18,
     templatePhase: {
       id: 1,
       ordinal: 1,
@@ -428,6 +443,7 @@ export const mockVariants: Variant[] = [
     author: "Unknown",
     nations: [mockNations[4], mockNations[3]],
     provinces: mockProvinces.slice(3, 5),
+    soloVictoryScCount: 4,
     templatePhase: {
       id: 2,
       ordinal: 1,
