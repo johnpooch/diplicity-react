@@ -88,6 +88,7 @@ INSTALLED_APPS = [
     "integration",
     "health",
     "victory",
+    "draw_proposal",
     "drf_spectacular",
 ]
 

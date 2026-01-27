@@ -1,5 +1,5 @@
 from rest_framework import permissions, generics
-from common.permissions import IsActiveGame, IsGameMember, IsChannelMember, IsNotSandboxGame
+from common.permissions import IsActiveOrCompletedGame, IsGameMember, IsChannelMember, IsNotSandboxGame
 
 from .models import Channel
 from .serializers import ChannelSerializer, ChannelMessageSerializer
@@ -7,17 +7,17 @@ from common.views import SelectedGameMixin, SelectedChannelMixin, CurrentGameMem
 
 
 class ChannelCreateView(SelectedGameMixin, CurrentGameMemberMixin, generics.CreateAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsGameMember, IsNotSandboxGame]
+    permission_classes = [permissions.IsAuthenticated, IsActiveOrCompletedGame, IsGameMember, IsNotSandboxGame]
     serializer_class = ChannelSerializer
 
 
 class ChannelMessageCreateView(SelectedGameMixin, SelectedChannelMixin, CurrentGameMemberMixin, generics.CreateAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsGameMember, IsChannelMember, IsNotSandboxGame]
+    permission_classes = [permissions.IsAuthenticated, IsActiveOrCompletedGame, IsGameMember, IsChannelMember, IsNotSandboxGame]
     serializer_class = ChannelMessageSerializer
 
 
 class ChannelListView(SelectedGameMixin, generics.ListAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsActiveGame]
+    permission_classes = [permissions.IsAuthenticated, IsActiveOrCompletedGame]
     serializer_class = ChannelSerializer
 
     def get_queryset(self):

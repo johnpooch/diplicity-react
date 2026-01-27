@@ -95,6 +95,41 @@ export interface Channel {
   memberIds: number[];
 }
 
+export interface DrawVoteMember {
+  id: number;
+  name: string;
+  /** @nullable */
+  picture: string | null;
+  /** @nullable */
+  nation: string | null;
+  readonly isCurrentUser: boolean;
+}
+
+export interface DrawVote {
+  readonly id: number;
+  readonly member: DrawVoteMember;
+  readonly included: boolean;
+  /** @nullable */
+  readonly accepted: boolean | null;
+  readonly isCurrentUser: boolean;
+}
+
+export interface DrawProposal {
+  readonly id: number;
+  readonly createdBy: DrawVoteMember;
+  readonly status: string;
+  readonly combinedScCount: number;
+  readonly victoryThreshold: number;
+  readonly votes: readonly DrawVote[];
+  readonly phaseId: number;
+  readonly createdAt: string;
+  includedMemberIds: number[];
+}
+
+export interface DrawVoteUpdate {
+  accepted: boolean;
+}
+
 /**
  * * `ios` - ios
  * `android` - android
@@ -182,6 +217,8 @@ export interface Member {
   /** @nullable */
   readonly nation: string | null;
   readonly isCurrentUser: boolean;
+  readonly eliminated: boolean;
+  readonly kicked: boolean;
 }
 
 export interface Victory {
@@ -323,6 +360,10 @@ export interface Order {
   selected?: string[];
 }
 
+export interface PatchedDrawVoteUpdate {
+  accepted?: boolean;
+}
+
 export interface PatchedPhaseState {
   readonly id?: string;
   readonly ordersConfirmed?: boolean;
@@ -435,6 +476,7 @@ export interface Variant {
   name: string;
   description: string;
   author?: string;
+  soloVictoryScCount: number;
   nations: Nation[];
   provinces: Province[];
   templatePhase: PhaseRetrieve;
@@ -4440,6 +4482,635 @@ export const useGamesChannelsCreateCreate = <
   );
 };
 
+/**
+ * Used by views that have a game parameter in the URL. Provides a get_game
+method that returns the game object. Also adds game to the serializer context.
+ */
+export const gamesDrawProposalsList = (
+  gameId: string,
+  signal?: AbortSignal
+) => {
+  return customInstance<DrawProposal[]>({
+    url: `/games/${gameId}/draw-proposals/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getGamesDrawProposalsListQueryKey = (gameId: string) => {
+  return [`/games/${gameId}/draw-proposals/`] as const;
+};
+
+export const getGamesDrawProposalsListQueryOptions = <
+  TData = Awaited<ReturnType<typeof gamesDrawProposalsList>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesDrawProposalsList>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGamesDrawProposalsListQueryKey(gameId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof gamesDrawProposalsList>>
+  > = ({ signal }) => gamesDrawProposalsList(gameId, signal);
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!gameId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof gamesDrawProposalsList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GamesDrawProposalsListQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gamesDrawProposalsList>>
+>;
+export type GamesDrawProposalsListQueryError = unknown;
+
+export function useGamesDrawProposalsList<
+  TData = Awaited<ReturnType<typeof gamesDrawProposalsList>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesDrawProposalsList>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gamesDrawProposalsList>>,
+          TError,
+          Awaited<ReturnType<typeof gamesDrawProposalsList>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesDrawProposalsList<
+  TData = Awaited<ReturnType<typeof gamesDrawProposalsList>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesDrawProposalsList>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gamesDrawProposalsList>>,
+          TError,
+          Awaited<ReturnType<typeof gamesDrawProposalsList>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesDrawProposalsList<
+  TData = Awaited<ReturnType<typeof gamesDrawProposalsList>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesDrawProposalsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGamesDrawProposalsList<
+  TData = Awaited<ReturnType<typeof gamesDrawProposalsList>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesDrawProposalsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGamesDrawProposalsListQueryOptions(gameId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getGamesDrawProposalsListSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof gamesDrawProposalsList>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesDrawProposalsList>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGamesDrawProposalsListQueryKey(gameId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof gamesDrawProposalsList>>
+  > = ({ signal }) => gamesDrawProposalsList(gameId, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof gamesDrawProposalsList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GamesDrawProposalsListSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gamesDrawProposalsList>>
+>;
+export type GamesDrawProposalsListSuspenseQueryError = unknown;
+
+export function useGamesDrawProposalsListSuspense<
+  TData = Awaited<ReturnType<typeof gamesDrawProposalsList>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesDrawProposalsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesDrawProposalsListSuspense<
+  TData = Awaited<ReturnType<typeof gamesDrawProposalsList>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesDrawProposalsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesDrawProposalsListSuspense<
+  TData = Awaited<ReturnType<typeof gamesDrawProposalsList>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesDrawProposalsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGamesDrawProposalsListSuspense<
+  TData = Awaited<ReturnType<typeof gamesDrawProposalsList>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesDrawProposalsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGamesDrawProposalsListSuspenseQueryOptions(
+    gameId,
+    options
+  );
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Used by views that have a game parameter in the URL. Provides a get_game
+method that returns the game object. Also adds game to the serializer context.
+ */
+export const gamesDrawProposalsCancelDestroy = (
+  gameId: string,
+  proposalId: number,
+  signal?: AbortSignal
+) => {
+  return customInstance<void>({
+    url: `/games/${gameId}/draw-proposals/${proposalId}/cancel/`,
+    method: "DELETE",
+    signal,
+  });
+};
+
+export const getGamesDrawProposalsCancelDestroyMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gamesDrawProposalsCancelDestroy>>,
+    TError,
+    { gameId: string; proposalId: number },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gamesDrawProposalsCancelDestroy>>,
+  TError,
+  { gameId: string; proposalId: number },
+  TContext
+> => {
+  const mutationKey = ["gamesDrawProposalsCancelDestroy"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gamesDrawProposalsCancelDestroy>>,
+    { gameId: string; proposalId: number }
+  > = props => {
+    const { gameId, proposalId } = props ?? {};
+
+    return gamesDrawProposalsCancelDestroy(gameId, proposalId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GamesDrawProposalsCancelDestroyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gamesDrawProposalsCancelDestroy>>
+>;
+
+export type GamesDrawProposalsCancelDestroyMutationError = unknown;
+
+export const useGamesDrawProposalsCancelDestroy = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gamesDrawProposalsCancelDestroy>>,
+      TError,
+      { gameId: string; proposalId: number },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gamesDrawProposalsCancelDestroy>>,
+  TError,
+  { gameId: string; proposalId: number },
+  TContext
+> => {
+  return useMutation(
+    getGamesDrawProposalsCancelDestroyMutationOptions(options),
+    queryClient
+  );
+};
+
+/**
+ * Used by views that have a game parameter in the URL. Provides a get_game
+method that returns the game object. Also adds game to the serializer context.
+ */
+export const gamesDrawProposalsVoteUpdate = (
+  gameId: string,
+  proposalId: number,
+  drawVoteUpdate: DrawVoteUpdate,
+  signal?: AbortSignal
+) => {
+  return customInstance<DrawVoteUpdate>({
+    url: `/games/${gameId}/draw-proposals/${proposalId}/vote/`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: drawVoteUpdate,
+    signal,
+  });
+};
+
+export const getGamesDrawProposalsVoteUpdateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gamesDrawProposalsVoteUpdate>>,
+    TError,
+    { gameId: string; proposalId: number; data: DrawVoteUpdate },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gamesDrawProposalsVoteUpdate>>,
+  TError,
+  { gameId: string; proposalId: number; data: DrawVoteUpdate },
+  TContext
+> => {
+  const mutationKey = ["gamesDrawProposalsVoteUpdate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gamesDrawProposalsVoteUpdate>>,
+    { gameId: string; proposalId: number; data: DrawVoteUpdate }
+  > = props => {
+    const { gameId, proposalId, data } = props ?? {};
+
+    return gamesDrawProposalsVoteUpdate(gameId, proposalId, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GamesDrawProposalsVoteUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gamesDrawProposalsVoteUpdate>>
+>;
+export type GamesDrawProposalsVoteUpdateMutationBody = DrawVoteUpdate;
+export type GamesDrawProposalsVoteUpdateMutationError = unknown;
+
+export const useGamesDrawProposalsVoteUpdate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gamesDrawProposalsVoteUpdate>>,
+      TError,
+      { gameId: string; proposalId: number; data: DrawVoteUpdate },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gamesDrawProposalsVoteUpdate>>,
+  TError,
+  { gameId: string; proposalId: number; data: DrawVoteUpdate },
+  TContext
+> => {
+  return useMutation(
+    getGamesDrawProposalsVoteUpdateMutationOptions(options),
+    queryClient
+  );
+};
+
+/**
+ * Used by views that have a game parameter in the URL. Provides a get_game
+method that returns the game object. Also adds game to the serializer context.
+ */
+export const gamesDrawProposalsVotePartialUpdate = (
+  gameId: string,
+  proposalId: number,
+  patchedDrawVoteUpdate: PatchedDrawVoteUpdate,
+  signal?: AbortSignal
+) => {
+  return customInstance<DrawVoteUpdate>({
+    url: `/games/${gameId}/draw-proposals/${proposalId}/vote/`,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    data: patchedDrawVoteUpdate,
+    signal,
+  });
+};
+
+export const getGamesDrawProposalsVotePartialUpdateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gamesDrawProposalsVotePartialUpdate>>,
+    TError,
+    { gameId: string; proposalId: number; data: PatchedDrawVoteUpdate },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gamesDrawProposalsVotePartialUpdate>>,
+  TError,
+  { gameId: string; proposalId: number; data: PatchedDrawVoteUpdate },
+  TContext
+> => {
+  const mutationKey = ["gamesDrawProposalsVotePartialUpdate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gamesDrawProposalsVotePartialUpdate>>,
+    { gameId: string; proposalId: number; data: PatchedDrawVoteUpdate }
+  > = props => {
+    const { gameId, proposalId, data } = props ?? {};
+
+    return gamesDrawProposalsVotePartialUpdate(gameId, proposalId, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GamesDrawProposalsVotePartialUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gamesDrawProposalsVotePartialUpdate>>
+>;
+export type GamesDrawProposalsVotePartialUpdateMutationBody =
+  PatchedDrawVoteUpdate;
+export type GamesDrawProposalsVotePartialUpdateMutationError = unknown;
+
+export const useGamesDrawProposalsVotePartialUpdate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gamesDrawProposalsVotePartialUpdate>>,
+      TError,
+      { gameId: string; proposalId: number; data: PatchedDrawVoteUpdate },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gamesDrawProposalsVotePartialUpdate>>,
+  TError,
+  { gameId: string; proposalId: number; data: PatchedDrawVoteUpdate },
+  TContext
+> => {
+  return useMutation(
+    getGamesDrawProposalsVotePartialUpdateMutationOptions(options),
+    queryClient
+  );
+};
+
+/**
+ * Used by views that have a game parameter in the URL. Provides a get_game
+method that returns the game object. Also adds game to the serializer context.
+ */
+export const gamesDrawProposalsCreateCreate = (
+  gameId: string,
+  drawProposal: NonReadonly<DrawProposal>,
+  signal?: AbortSignal
+) => {
+  return customInstance<DrawProposal>({
+    url: `/games/${gameId}/draw-proposals/create/`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: drawProposal,
+    signal,
+  });
+};
+
+export const getGamesDrawProposalsCreateCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gamesDrawProposalsCreateCreate>>,
+    TError,
+    { gameId: string; data: NonReadonly<DrawProposal> },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gamesDrawProposalsCreateCreate>>,
+  TError,
+  { gameId: string; data: NonReadonly<DrawProposal> },
+  TContext
+> => {
+  const mutationKey = ["gamesDrawProposalsCreateCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gamesDrawProposalsCreateCreate>>,
+    { gameId: string; data: NonReadonly<DrawProposal> }
+  > = props => {
+    const { gameId, data } = props ?? {};
+
+    return gamesDrawProposalsCreateCreate(gameId, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GamesDrawProposalsCreateCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gamesDrawProposalsCreateCreate>>
+>;
+export type GamesDrawProposalsCreateCreateMutationBody =
+  NonReadonly<DrawProposal>;
+export type GamesDrawProposalsCreateCreateMutationError = unknown;
+
+export const useGamesDrawProposalsCreateCreate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gamesDrawProposalsCreateCreate>>,
+      TError,
+      { gameId: string; data: NonReadonly<DrawProposal> },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gamesDrawProposalsCreateCreate>>,
+  TError,
+  { gameId: string; data: NonReadonly<DrawProposal> },
+  TContext
+> => {
+  return useMutation(
+    getGamesDrawProposalsCreateCreateMutationOptions(options),
+    queryClient
+  );
+};
+
 export const phaseResolveCreate = (signal?: AbortSignal) => {
   return customInstance<void>({
     url: `/phase/resolve/`,
@@ -5638,6 +6309,8 @@ export const getGameRetrieveResponseMock = (
       null,
     ]),
     isCurrentUser: faker.datatype.boolean(),
+    eliminated: faker.datatype.boolean(),
+    kicked: faker.datatype.boolean(),
   })),
   sandbox: faker.datatype.boolean(),
   victory: {
@@ -5666,6 +6339,8 @@ export const getGameRetrieveResponseMock = (
           null,
         ]),
         isCurrentUser: faker.datatype.boolean(),
+        eliminated: faker.datatype.boolean(),
+        kicked: faker.datatype.boolean(),
       })),
     },
   },
@@ -5729,6 +6404,8 @@ export const getGameConfirmPhaseUpdateResponseMock = (
         null,
       ]),
       isCurrentUser: faker.datatype.boolean(),
+      eliminated: faker.datatype.boolean(),
+      kicked: faker.datatype.boolean(),
     },
   },
   ...overrideResponse,
@@ -5779,6 +6456,8 @@ export const getGameConfirmPhasePartialUpdateResponseMock = (
         null,
       ]),
       isCurrentUser: faker.datatype.boolean(),
+      eliminated: faker.datatype.boolean(),
+      kicked: faker.datatype.boolean(),
     },
   },
   ...overrideResponse,
@@ -5804,6 +6483,8 @@ export const getGameJoinCreateResponseMock = (
     null,
   ]),
   isCurrentUser: faker.datatype.boolean(),
+  eliminated: faker.datatype.boolean(),
+  kicked: faker.datatype.boolean(),
   ...overrideResponse,
 });
 
@@ -6149,6 +6830,8 @@ export const getGamePhaseStatesListResponseMock = (): PhaseState[] =>
           null,
         ]),
         isCurrentUser: faker.datatype.boolean(),
+        eliminated: faker.datatype.boolean(),
+        kicked: faker.datatype.boolean(),
       },
     },
   }));
@@ -6313,6 +6996,8 @@ export const getGamesListResponseMock = (): GameList[] =>
         null,
       ]),
       isCurrentUser: faker.datatype.boolean(),
+      eliminated: faker.datatype.boolean(),
+      kicked: faker.datatype.boolean(),
     })),
     victory: {
       ...{
@@ -6340,6 +7025,8 @@ export const getGamesListResponseMock = (): GameList[] =>
             null,
           ]),
           isCurrentUser: faker.datatype.boolean(),
+          eliminated: faker.datatype.boolean(),
+          kicked: faker.datatype.boolean(),
         })),
       },
     },
@@ -6452,6 +7139,155 @@ export const getGamesChannelsCreateCreateResponseMock = (
   ...overrideResponse,
 });
 
+export const getGamesDrawProposalsListResponseMock = (): DrawProposal[] =>
+  Array.from(
+    { length: faker.number.int({ min: 1, max: 10 }) },
+    (_, i) => i + 1
+  ).map(() => ({
+    id: faker.number.int({ min: undefined, max: undefined }),
+    createdBy: {
+      ...{
+        id: faker.number.int({ min: undefined, max: undefined }),
+        name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+        picture: faker.helpers.arrayElement([
+          faker.helpers.arrayElement([
+            faker.string.alpha({ length: { min: 10, max: 20 } }),
+            null,
+          ]),
+          null,
+        ]),
+        nation: faker.helpers.arrayElement([
+          faker.helpers.arrayElement([
+            faker.string.alpha({ length: { min: 10, max: 20 } }),
+            null,
+          ]),
+          null,
+        ]),
+        isCurrentUser: faker.datatype.boolean(),
+      },
+    },
+    status: faker.string.alpha({ length: { min: 10, max: 20 } }),
+    combinedScCount: faker.number.int({ min: undefined, max: undefined }),
+    victoryThreshold: faker.number.int({ min: undefined, max: undefined }),
+    votes: Array.from(
+      { length: faker.number.int({ min: 1, max: 10 }) },
+      (_, i) => i + 1
+    ).map(() => ({
+      id: faker.number.int({ min: undefined, max: undefined }),
+      member: {
+        ...{
+          id: faker.number.int({ min: undefined, max: undefined }),
+          name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+          picture: faker.helpers.arrayElement([
+            faker.helpers.arrayElement([
+              faker.string.alpha({ length: { min: 10, max: 20 } }),
+              null,
+            ]),
+            null,
+          ]),
+          nation: faker.helpers.arrayElement([
+            faker.helpers.arrayElement([
+              faker.string.alpha({ length: { min: 10, max: 20 } }),
+              null,
+            ]),
+            null,
+          ]),
+          isCurrentUser: faker.datatype.boolean(),
+        },
+      },
+      included: faker.datatype.boolean(),
+      accepted: faker.helpers.arrayElement([faker.datatype.boolean(), null]),
+      isCurrentUser: faker.datatype.boolean(),
+    })),
+    phaseId: faker.number.int({ min: undefined, max: undefined }),
+    createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+    includedMemberIds: Array.from(
+      { length: faker.number.int({ min: 1, max: 10 }) },
+      (_, i) => i + 1
+    ).map(() => faker.number.int({ min: undefined, max: undefined })),
+  }));
+
+export const getGamesDrawProposalsVoteUpdateResponseMock = (
+  overrideResponse: Partial<DrawVoteUpdate> = {}
+): DrawVoteUpdate => ({
+  accepted: faker.datatype.boolean(),
+  ...overrideResponse,
+});
+
+export const getGamesDrawProposalsVotePartialUpdateResponseMock = (
+  overrideResponse: Partial<DrawVoteUpdate> = {}
+): DrawVoteUpdate => ({
+  accepted: faker.datatype.boolean(),
+  ...overrideResponse,
+});
+
+export const getGamesDrawProposalsCreateCreateResponseMock = (
+  overrideResponse: Partial<DrawProposal> = {}
+): DrawProposal => ({
+  id: faker.number.int({ min: undefined, max: undefined }),
+  createdBy: {
+    ...{
+      id: faker.number.int({ min: undefined, max: undefined }),
+      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      picture: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          null,
+        ]),
+        null,
+      ]),
+      nation: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          null,
+        ]),
+        null,
+      ]),
+      isCurrentUser: faker.datatype.boolean(),
+    },
+  },
+  status: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  combinedScCount: faker.number.int({ min: undefined, max: undefined }),
+  victoryThreshold: faker.number.int({ min: undefined, max: undefined }),
+  votes: Array.from(
+    { length: faker.number.int({ min: 1, max: 10 }) },
+    (_, i) => i + 1
+  ).map(() => ({
+    id: faker.number.int({ min: undefined, max: undefined }),
+    member: {
+      ...{
+        id: faker.number.int({ min: undefined, max: undefined }),
+        name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+        picture: faker.helpers.arrayElement([
+          faker.helpers.arrayElement([
+            faker.string.alpha({ length: { min: 10, max: 20 } }),
+            null,
+          ]),
+          null,
+        ]),
+        nation: faker.helpers.arrayElement([
+          faker.helpers.arrayElement([
+            faker.string.alpha({ length: { min: 10, max: 20 } }),
+            null,
+          ]),
+          null,
+        ]),
+        isCurrentUser: faker.datatype.boolean(),
+      },
+    },
+    included: faker.datatype.boolean(),
+    accepted: faker.helpers.arrayElement([faker.datatype.boolean(), null]),
+    isCurrentUser: faker.datatype.boolean(),
+  })),
+  phaseId: faker.number.int({ min: undefined, max: undefined }),
+  createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+  includedMemberIds: Array.from(
+    { length: faker.number.int({ min: 1, max: 10 }) },
+    (_, i) => i + 1
+  ).map(() => faker.number.int({ min: undefined, max: undefined })),
+  ...overrideResponse,
+});
+
 export const getSandboxGameCreateResponseMock = (
   overrideResponse: Partial<GameCreateSandbox> = {}
 ): GameCreateSandbox => ({
@@ -6521,6 +7357,7 @@ export const getVariantsListResponseMock = (): Variant[] =>
       faker.string.alpha({ length: { min: 10, max: 20 } }),
       undefined,
     ]),
+    soloVictoryScCount: faker.number.int({ min: undefined, max: undefined }),
     nations: Array.from(
       { length: faker.number.int({ min: 1, max: 10 }) },
       (_, i) => i + 1
@@ -7286,6 +8123,130 @@ export const getGamesChannelsCreateCreateMockHandler = (
   );
 };
 
+export const getGamesDrawProposalsListMockHandler = (
+  overrideResponse?:
+    | DrawProposal[]
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0]
+      ) => Promise<DrawProposal[]> | DrawProposal[]),
+  options?: RequestHandlerOptions
+) => {
+  return http.get(
+    "*/games/:gameId/draw-proposals/",
+    async info => {
+      return new HttpResponse(
+        JSON.stringify(
+          overrideResponse !== undefined
+            ? typeof overrideResponse === "function"
+              ? await overrideResponse(info)
+              : overrideResponse
+            : getGamesDrawProposalsListResponseMock()
+        ),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    },
+    options
+  );
+};
+
+export const getGamesDrawProposalsCancelDestroyMockHandler = (
+  overrideResponse?:
+    | void
+    | ((
+        info: Parameters<Parameters<typeof http.delete>[1]>[0]
+      ) => Promise<void> | void),
+  options?: RequestHandlerOptions
+) => {
+  return http.delete(
+    "*/games/:gameId/draw-proposals/:proposalId/cancel/",
+    async info => {
+      if (typeof overrideResponse === "function") {
+        await overrideResponse(info);
+      }
+      return new HttpResponse(null, { status: 204 });
+    },
+    options
+  );
+};
+
+export const getGamesDrawProposalsVoteUpdateMockHandler = (
+  overrideResponse?:
+    | DrawVoteUpdate
+    | ((
+        info: Parameters<Parameters<typeof http.put>[1]>[0]
+      ) => Promise<DrawVoteUpdate> | DrawVoteUpdate),
+  options?: RequestHandlerOptions
+) => {
+  return http.put(
+    "*/games/:gameId/draw-proposals/:proposalId/vote/",
+    async info => {
+      return new HttpResponse(
+        JSON.stringify(
+          overrideResponse !== undefined
+            ? typeof overrideResponse === "function"
+              ? await overrideResponse(info)
+              : overrideResponse
+            : getGamesDrawProposalsVoteUpdateResponseMock()
+        ),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    },
+    options
+  );
+};
+
+export const getGamesDrawProposalsVotePartialUpdateMockHandler = (
+  overrideResponse?:
+    | DrawVoteUpdate
+    | ((
+        info: Parameters<Parameters<typeof http.patch>[1]>[0]
+      ) => Promise<DrawVoteUpdate> | DrawVoteUpdate),
+  options?: RequestHandlerOptions
+) => {
+  return http.patch(
+    "*/games/:gameId/draw-proposals/:proposalId/vote/",
+    async info => {
+      return new HttpResponse(
+        JSON.stringify(
+          overrideResponse !== undefined
+            ? typeof overrideResponse === "function"
+              ? await overrideResponse(info)
+              : overrideResponse
+            : getGamesDrawProposalsVotePartialUpdateResponseMock()
+        ),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    },
+    options
+  );
+};
+
+export const getGamesDrawProposalsCreateCreateMockHandler = (
+  overrideResponse?:
+    | DrawProposal
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0]
+      ) => Promise<DrawProposal> | DrawProposal),
+  options?: RequestHandlerOptions
+) => {
+  return http.post(
+    "*/games/:gameId/draw-proposals/create/",
+    async info => {
+      return new HttpResponse(
+        JSON.stringify(
+          overrideResponse !== undefined
+            ? typeof overrideResponse === "function"
+              ? await overrideResponse(info)
+              : overrideResponse
+            : getGamesDrawProposalsCreateCreateResponseMock()
+        ),
+        { status: 201, headers: { "Content-Type": "application/json" } }
+      );
+    },
+    options
+  );
+};
+
 export const getPhaseResolveCreateMockHandler = (
   overrideResponse?:
     | void
@@ -7487,6 +8448,11 @@ export const getMock = () => [
   getGamesChannelsListMockHandler(),
   getGamesChannelsMessagesCreateCreateMockHandler(),
   getGamesChannelsCreateCreateMockHandler(),
+  getGamesDrawProposalsListMockHandler(),
+  getGamesDrawProposalsCancelDestroyMockHandler(),
+  getGamesDrawProposalsVoteUpdateMockHandler(),
+  getGamesDrawProposalsVotePartialUpdateMockHandler(),
+  getGamesDrawProposalsCreateCreateMockHandler(),
   getPhaseResolveCreateMockHandler(),
   getSandboxGameCreateMockHandler(),
   getUserRetrieveMockHandler(),

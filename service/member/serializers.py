@@ -8,6 +8,8 @@ class MemberSerializer(serializers.Serializer):
     picture = serializers.CharField(source="user.profile.picture", read_only=True, allow_null=True)
     nation = serializers.CharField(allow_null=True, read_only=True, source="nation.name")
     is_current_user = serializers.SerializerMethodField()
+    eliminated = serializers.BooleanField(read_only=True)
+    kicked = serializers.BooleanField(read_only=True)
 
     @extend_schema_field(serializers.BooleanField)
     def get_is_current_user(self, obj):

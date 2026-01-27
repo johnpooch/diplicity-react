@@ -3,11 +3,13 @@ from drf_spectacular.utils import extend_schema
 from opentelemetry import trace
 from common.permissions import (
     IsActiveGame,
+    IsActiveOrCompletedGame,
     IsActiveGameMember,
     IsCurrentPhaseActive,
     IsUserPhaseStateExists,
     IsNotSandboxGame,
     IsSandboxGame,
+    IsGameMember,
 )
 from common.serializers import EmptySerializer
 from common.views import SelectedGameMixin, CurrentGameMemberMixin
@@ -39,8 +41,8 @@ class PhaseStateUpdateView(SelectedGameMixin, CurrentGameMemberMixin, generics.U
 class PhaseStateListView(SelectedGameMixin, generics.ListAPIView):
     permission_classes = [
         permissions.IsAuthenticated,
-        IsActiveGame,
-        IsActiveGameMember,
+        IsActiveOrCompletedGame,
+        IsGameMember,
     ]
     serializer_class = PhaseStateSerializer
 
@@ -65,8 +67,8 @@ class PhaseResolveAllView(views.APIView):
 class PhaseListView(SelectedGameMixin, generics.ListAPIView):
     permission_classes = [
         permissions.IsAuthenticated,
-        IsActiveGame,
-        IsActiveGameMember,
+        IsActiveOrCompletedGame,
+        IsGameMember,
     ]
     serializer_class = PhaseListSerializer
 

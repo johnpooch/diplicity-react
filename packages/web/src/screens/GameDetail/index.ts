@@ -24,4 +24,14 @@ export const GameDetail = {
   PlayerInfoScreen: lazy(() =>
     import("./PlayerInfoScreen").then((m) => ({ default: m.PlayerInfoScreen }))
   ),
+  ProposeDrawScreen: lazy(() =>
+    import("./ProposeDrawScreen").then((m) => ({
+      default: m.ProposeDrawScreen,
+    }))
+  ),
+  DrawProposalsScreen: lazy(() =>
+    import("./DrawProposalsScreen").then((m) => ({
+      default: m.DrawProposalsScreen,
+    }))
+  ),
 };

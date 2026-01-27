@@ -721,6 +721,150 @@ paths:
               schema:
                 $ref: '#/components/schemas/Channel'
           description: ''
+  /games/{gameId}/draw-proposals/:
+    get:
+      operationId: gamesDrawProposalsList
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - games
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DrawProposal'
+          description: ''
+  /games/{gameId}/draw-proposals/{proposalId}/cancel/:
+    delete:
+      operationId: gamesDrawProposalsCancelDestroy
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: proposalId
+        schema:
+          type: integer
+        required: true
+      tags:
+      - games
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /games/{gameId}/draw-proposals/{proposalId}/vote/:
+    put:
+      operationId: gamesDrawProposalsVoteUpdate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: proposalId
+        schema:
+          type: integer
+        required: true
+      tags:
+      - games
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DrawVoteUpdate'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DrawVoteUpdate'
+          description: ''
+    patch:
+      operationId: gamesDrawProposalsVotePartialUpdate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: proposalId
+        schema:
+          type: integer
+        required: true
+      tags:
+      - games
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedDrawVoteUpdate'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DrawVoteUpdate'
+          description: ''
+  /games/{gameId}/draw-proposals/create/:
+    post:
+      operationId: gamesDrawProposalsCreateCreate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - games
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DrawProposal'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DrawProposal'
+          description: ''
   /phase/resolve/:
     post:
       operationId: phaseResolveCreate
@@ -934,6 +1078,107 @@ components:
       - createdAt
       - id
       - sender
+    DrawProposal:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        createdBy:
+          allOf:
+          - $ref: '#/components/schemas/DrawVoteMember'
+          readOnly: true
+        status:
+          type: string
+          readOnly: true
+        combinedScCount:
+          type: integer
+          readOnly: true
+        victoryThreshold:
+          type: integer
+          readOnly: true
+        votes:
+          type: array
+          items:
+            $ref: '#/components/schemas/DrawVote'
+          readOnly: true
+        phaseId:
+          type: integer
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+        includedMemberIds:
+          type: array
+          items:
+            type: integer
+          writeOnly: true
+      required:
+      - combinedScCount
+      - createdAt
+      - createdBy
+      - id
+      - includedMemberIds
+      - phaseId
+      - status
+      - victoryThreshold
+      - votes
+    DrawVote:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        member:
+          allOf:
+          - $ref: '#/components/schemas/DrawVoteMember'
+          readOnly: true
+        included:
+          type: boolean
+          readOnly: true
+        accepted:
+          type: boolean
+          readOnly: true
+          nullable: true
+        isCurrentUser:
+          type: boolean
+          readOnly: true
+      required:
+      - accepted
+      - id
+      - included
+      - isCurrentUser
+      - member
+    DrawVoteMember:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        picture:
+          type: string
+          nullable: true
+        nation:
+          type: string
+          nullable: true
+        isCurrentUser:
+          type: boolean
+          readOnly: true
+      required:
+      - id
+      - isCurrentUser
+      - name
+      - nation
+      - picture
+    DrawVoteUpdate:
+      type: object
+      properties:
+        accepted:
+          type: boolean
+      required:
+      - accepted
     FCMDevice:
       type: object
       properties:
@@ -1174,9 +1419,17 @@ components:
         isCurrentUser:
           type: boolean
           readOnly: true
+        eliminated:
+          type: boolean
+          readOnly: true
+        kicked:
+          type: boolean
+          readOnly: true
       required:
+      - eliminated
       - id
       - isCurrentUser
+      - kicked
       - name
       - nation
       - picture
@@ -1327,6 +1580,11 @@ components:
         * `Convoy` - Convoy
         * `Build` - Build
         * `Disband` - Disband
+    PatchedDrawVoteUpdate:
+      type: object
+      properties:
+        accepted:
+          type: boolean
     PatchedPhaseState:
       type: object
       properties:
@@ -1616,6 +1874,8 @@ components:
           type: string
         author:
           type: string
+        soloVictoryScCount:
+          type: integer
         nations:
           type: array
           items:
@@ -1632,6 +1892,7 @@ components:
       - name
       - nations
       - provinces
+      - soloVictoryScCount
       - templatePhase
     Version:
       type: object
