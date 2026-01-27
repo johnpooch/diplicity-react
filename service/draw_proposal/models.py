@@ -2,6 +2,7 @@ from django.db import models, transaction
 from common.models import BaseModel
 from common.constants import GameStatus
 from draw_proposal.constants import DrawProposalStatus
+from victory.models import Victory
 
 
 class DrawProposalQuerySet(models.QuerySet):
@@ -43,8 +44,6 @@ class DrawProposalManager(models.Manager):
         return self.get_queryset().with_related_data()
 
     def create_proposal(self, game, created_by, included_member_ids):
-        from member.models import Member
-
         phase = game.current_phase
 
         all_active_members = list(game.members.filter(
@@ -56,8 +55,6 @@ class DrawProposalManager(models.Manager):
             created_by=created_by,
             phase=phase,
         )
-
-        from draw_proposal.models import DrawVote
 
         votes_to_create = []
         for member in all_active_members:
@@ -117,9 +114,11 @@ class DrawProposal(BaseModel):
     def included_members(self):
         return [vote.member for vote in self.votes.all() if vote.included]
 
-    def process_acceptance(self):
-        from victory.models import Victory
+    @property
+    def victory_threshold(self):
+        return self.game.variant.solo_victory_sc_count
 
+    def process_acceptance(self):
         if self.status != DrawProposalStatus.ACCEPTED:
             return None
 

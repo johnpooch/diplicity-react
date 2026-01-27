@@ -4,7 +4,7 @@ from draw_proposal.models import DrawProposal, DrawVote
 
 @admin.register(DrawProposal)
 class DrawProposalAdmin(admin.ModelAdmin):
-    list_display = ["id", "game", "created_by", "phase", "status", "cancelled", "created_at"]
+    list_display = ["id", "game", "created_by", "phase", "cancelled", "created_at"]
     list_filter = ["cancelled", "created_at"]
     raw_id_fields = ["game", "created_by", "phase"]
 

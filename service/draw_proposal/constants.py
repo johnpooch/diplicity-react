@@ -8,5 +8,4 @@ class DrawProposalStatus:
         (PENDING, "Pending"),
         (ACCEPTED, "Accepted"),
         (REJECTED, "Rejected"),
-        (EXPIRED, "Expired"),
     )

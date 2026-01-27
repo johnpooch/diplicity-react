@@ -1,4 +1,5 @@
 from rest_framework import permissions, generics
+from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from common.permissions import (
     IsActiveGame,
@@ -44,22 +45,13 @@ class DrawProposalVoteView(SelectedGameMixin, CurrentGameMemberMixin, generics.U
     serializer_class = DrawVoteUpdateSerializer
 
     def get_object(self):
-        game = self.get_game()
         proposal_id = self.kwargs.get("proposal_id")
         return get_object_or_404(
             DrawProposal.objects.with_related_data(),
             id=proposal_id,
-            game=game,
         )
 
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context["proposal"] = self.get_object()
-        return context
-
     def update(self, request, *args, **kwargs):
-        from rest_framework.response import Response
-
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -82,13 +74,11 @@ class DrawProposalCancelView(SelectedGameMixin, CurrentGameMemberMixin, generics
     serializer_class = DrawProposalSerializer
 
     def get_object(self):
-        game = self.get_game()
         current_member = self.get_current_game_member()
         proposal_id = self.kwargs.get("proposal_id")
         return get_object_or_404(
             DrawProposal,
             id=proposal_id,
-            game=game,
             created_by=current_member,
             cancelled=False,
         )

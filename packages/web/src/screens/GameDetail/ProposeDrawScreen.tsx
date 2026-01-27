@@ -49,7 +49,7 @@ const ProposeDrawScreen: React.FC = () => {
   const victoryThreshold = variant?.soloVictoryScCount ?? 18;
 
   const currentMember = game.members.find(m => m.isCurrentUser);
-  const activeMembers = game.members;
+  const activeMembers = game.members.filter(m => !m.eliminated && !m.kicked);
 
   React.useEffect(() => {
     if (currentMember && !selectedMembers.includes(currentMember.id)) {

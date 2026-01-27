@@ -69,7 +69,7 @@ const ProposalItem: React.FC<ProposalItemProps> = ({
   isVoting,
   isCancelling,
 }) => {
-  const currentUserVote = proposal.votes.find(v => v.isCurrentUser);
+  const currentUserVote = proposal.votes.find(v => v.member.isCurrentUser);
   const canVote =
     proposal.status === "pending" &&
     currentUserVote &&
@@ -189,7 +189,7 @@ const DrawProposalsScreen: React.FC = () => {
         proposalId: proposalId,
         data: { accepted },
       });
-      toast.success(accepted ? "Vote accepted" : "Vote rejected");
+      toast.success(accepted ? "Draw proposal accepted" : "Draw proposal rejected");
       queryClient.invalidateQueries({
         queryKey: getGamesDrawProposalsListQueryKey(gameId),
       });

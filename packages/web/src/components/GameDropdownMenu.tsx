@@ -38,6 +38,7 @@ import {
   GameList,
   GameRetrieve,
   useGamesDrawProposalsListSuspense,
+  DrawProposal,
 } from "@/api/generated/endpoints";
 import { Suspense } from "react";
 
@@ -53,22 +54,47 @@ interface DrawProposalBadgeProps {
   currentMemberId?: number;
 }
 
+const getPendingVotesCount = (
+  proposals: DrawProposal[],
+  currentMemberId?: number
+) => {
+  return proposals.filter(p => {
+    if (p.status !== "pending") return false;
+    const userVote = p.votes.find(v => v.member.id === currentMemberId);
+    return userVote && userVote.accepted === null;
+  }).length;
+};
+
 const DrawProposalBadge: React.FC<DrawProposalBadgeProps> = ({
   gameId,
   currentMemberId,
 }) => {
   const { data: proposals } = useGamesDrawProposalsListSuspense(gameId);
-
-  const pendingVotesCount = proposals.filter((p: typeof proposals[number]) => {
-    if (p.status !== "pending") return false;
-    const userVote = p.votes.find((v: typeof p.votes[number]) => v.member.id === currentMemberId);
-    return userVote && userVote.accepted === null;
-  }).length;
+  const pendingVotesCount = getPendingVotesCount(proposals, currentMemberId);
 
   if (pendingVotesCount === 0) return null;
 
   return (
     <Badge variant="destructive" className="ml-auto h-5 w-5 p-0 justify-center">
+      {pendingVotesCount}
+    </Badge>
+  );
+};
+
+const DrawProposalTriggerBadge: React.FC<DrawProposalBadgeProps> = ({
+  gameId,
+  currentMemberId,
+}) => {
+  const { data: proposals } = useGamesDrawProposalsListSuspense(gameId);
+  const pendingVotesCount = getPendingVotesCount(proposals, currentMemberId);
+
+  if (pendingVotesCount === 0) return null;
+
+  return (
+    <Badge
+      variant="destructive"
+      className="absolute -top-1 -right-1 h-4 w-4 p-0 justify-center text-[10px]"
+    >
       {pendingVotesCount}
     </Badge>
   );
@@ -128,8 +154,16 @@ export function GameDropdownMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon" aria-label="Game menu">
+        <Button variant="outline" size="icon" aria-label="Game menu" className="relative">
           <MoreHorizontal />
+          {canViewDrawProposals && phaseId && (
+            <Suspense fallback={null}>
+              <DrawProposalTriggerBadge
+                gameId={game.id}
+                currentMemberId={currentMember?.id}
+              />
+            </Suspense>
+          )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

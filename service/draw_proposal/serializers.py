@@ -24,14 +24,6 @@ class DrawVoteSerializer(serializers.Serializer):
     member = DrawVoteMemberSerializer(read_only=True)
     included = serializers.BooleanField(read_only=True)
     accepted = serializers.BooleanField(read_only=True, allow_null=True)
-    is_current_user = serializers.SerializerMethodField()
-
-    @extend_schema_field(serializers.BooleanField)
-    def get_is_current_user(self, obj):
-        request = self.context.get("request")
-        if request and hasattr(request, "user"):
-            return obj.member.user == request.user
-        return False
 
 
 class DrawProposalSerializer(serializers.Serializer):
@@ -39,7 +31,7 @@ class DrawProposalSerializer(serializers.Serializer):
     created_by = DrawVoteMemberSerializer(read_only=True)
     status = serializers.CharField(read_only=True)
     combined_sc_count = serializers.IntegerField(read_only=True)
-    victory_threshold = serializers.SerializerMethodField()
+    victory_threshold = serializers.IntegerField(read_only=True)
     votes = DrawVoteSerializer(many=True, read_only=True)
     phase_id = serializers.IntegerField(source="phase.id", read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
@@ -49,10 +41,6 @@ class DrawProposalSerializer(serializers.Serializer):
         required=True,
         write_only=True,
     )
-
-    @extend_schema_field(serializers.IntegerField)
-    def get_victory_threshold(self, obj):
-        return obj.game.variant.solo_victory_sc_count
 
     def validate_included_member_ids(self, value):
         game = self.context["game"]
@@ -133,7 +121,7 @@ class DrawVoteUpdateSerializer(serializers.Serializer):
     accepted = serializers.BooleanField(required=True)
 
     def validate(self, attrs):
-        proposal = self.context["proposal"]
+        proposal = self.instance
         current_member = self.context["current_game_member"]
 
         if proposal.status != DrawProposalStatus.PENDING:
@@ -144,7 +132,7 @@ class DrawVoteUpdateSerializer(serializers.Serializer):
         vote = proposal.votes.filter(member=current_member).first()
         if not vote:
             raise serializers.ValidationError(
-                "You are not eligible to vote on this proposal."
+                "No vote record found for your membership."
             )
 
         if vote.accepted is not None:
