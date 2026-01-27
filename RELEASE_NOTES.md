@@ -1,5 +1,45 @@
 # Diplicity React - Release Notes
 
+## Draw Proposals (January 27, 2026)
+
+**Release Date:** January 27, 2026
+
+### 🤝 New Feature: Draw Proposals
+
+Players can now propose and vote on draw agreements directly in the app! This long-requested feature brings the full diplomatic endgame to Diplicity.
+
+#### How it Works:
+
+**Proposing a Draw:**
+1. Open the game menu (three dots) and select "Propose draw"
+2. Select which players to include in the draw (you must include yourself)
+3. The combined supply center count must meet the victory threshold (18 for Classical)
+4. Submit your proposal - all included players will be notified
+
+**Voting on Proposals:**
+- A badge appears on the game menu when you have pending proposals to vote on
+- View all active proposals from the "Draw proposals" menu option
+- Accept or reject each proposal with a single tap
+- If ALL included players accept, the game ends in a draw victory
+- If ANY player rejects, the proposal fails
+
+**Important Notes:**
+- Each player can only have one active proposal per phase
+- Proposals expire when the phase changes
+- Only active (non-eliminated, non-kicked) players can propose or vote
+- The proposer automatically votes "accept" on their own proposal
+- Draw proposals are not available in sandbox games
+
+#### What Happens When a Draw Passes:
+
+When all included players accept a draw proposal:
+- The game immediately ends
+- Only the included players receive a draw victory
+- Players not included in the draw do not get credit for the win
+- The game moves to the "Completed" tab
+
+---
+
 ## UI Overhaul and Supply Center Display (January 24, 2026)
 
 **Release Date:** January 24, 2026
