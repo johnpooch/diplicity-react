@@ -2491,3 +2491,134 @@ def test_phase_retrieve_last_phase_has_null_next(
     assert response.status_code == status.HTTP_200_OK
     assert response.data["previous_phase_id"] == phase2.id
     assert response.data["next_phase_id"] is None
+
+
+class TestAbandonmentDetection:
+
+    @pytest.mark.django_db
+    def test_check_abandonment_returns_true_when_no_orders_for_two_phases(
+        self, game_with_two_phases_no_orders
+    ):
+        game = game_with_two_phases_no_orders
+        result = Phase.objects._check_abandonment(game)
+        assert result is True
+
+    @pytest.mark.django_db
+    def test_check_abandonment_returns_false_with_orders_in_first_phase(
+        self, game_with_three_phases
+    ):
+        game = game_with_three_phases
+        result = Phase.objects._check_abandonment(game)
+        assert result is False
+
+    @pytest.mark.django_db
+    def test_check_abandonment_returns_false_for_sandbox_games(
+        self, sandbox_game_with_two_phases_no_orders
+    ):
+        game = sandbox_game_with_two_phases_no_orders
+        result = Phase.objects._check_abandonment(game)
+        assert result is False
+
+    @pytest.mark.django_db
+    def test_check_abandonment_returns_false_with_only_one_completed_phase(
+        self,
+        db,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        primary_user,
+        secondary_user,
+    ):
+        from member.models import Member
+
+        game = Game.objects.create(
+            variant=italy_vs_germany_variant,
+            name="Game with one completed phase",
+            status=GameStatus.ACTIVE,
+        )
+
+        member_italy = Member.objects.create(
+            nation=italy_vs_germany_italy_nation,
+            user=primary_user,
+            game=game,
+        )
+
+        member_germany = Member.objects.create(
+            nation=italy_vs_germany_germany_nation,
+            user=secondary_user,
+            game=game,
+        )
+
+        phase1 = Phase.objects.create(
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type="Movement",
+            ordinal=1,
+            status=PhaseStatus.COMPLETED,
+        )
+        phase1.phase_states.create(member=member_italy)
+        phase1.phase_states.create(member=member_germany)
+
+        phase2 = Phase.objects.create(
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type="Movement",
+            ordinal=2,
+            status=PhaseStatus.ACTIVE,
+        )
+        phase2.phase_states.create(member=member_italy)
+        phase2.phase_states.create(member=member_germany)
+
+        result = Phase.objects._check_abandonment(game)
+        assert result is False
+
+    @pytest.mark.django_db
+    def test_abandoned_game_excluded_from_filter_due_phases(
+        self,
+        db,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        primary_user,
+        secondary_user,
+    ):
+        from member.models import Member
+
+        game = Game.objects.create(
+            variant=italy_vs_germany_variant,
+            name="Abandoned Game",
+            status=GameStatus.ABANDONED,
+        )
+
+        member_italy = Member.objects.create(
+            nation=italy_vs_germany_italy_nation,
+            user=primary_user,
+            game=game,
+        )
+
+        member_germany = Member.objects.create(
+            nation=italy_vs_germany_germany_nation,
+            user=secondary_user,
+            game=game,
+        )
+
+        phase = Phase.objects.create(
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type="Movement",
+            ordinal=1,
+            status=PhaseStatus.ACTIVE,
+            scheduled_resolution=timezone.now() - timedelta(hours=1),
+        )
+        phase.phase_states.create(member=member_italy, orders_confirmed=True, has_possible_orders=True)
+        phase.phase_states.create(member=member_germany, orders_confirmed=True, has_possible_orders=True)
+
+        due_phases = Phase.objects.filter_due_phases()
+        assert phase not in due_phases

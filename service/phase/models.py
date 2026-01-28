@@ -51,6 +51,8 @@ class PhaseQuerySet(models.QuerySet):
         return self.filter(
             Q(status=PhaseStatus.ACTIVE)
             & Q(game__sandbox=False)
+            & ~Q(game__status=GameStatus.COMPLETED)
+            & ~Q(game__status=GameStatus.ABANDONED)
             & (
                 (Q(scheduled_resolution__isnull=False) & Q(scheduled_resolution__lte=timezone.now()))
                 | ~Exists(
@@ -130,6 +132,24 @@ class PhaseManager(models.Manager):
             )
             return result
 
+    def _check_abandonment(self, game):
+        if game.sandbox:
+            return False
+
+        completed_phases = list(
+            game.phases.filter(status=PhaseStatus.COMPLETED)
+            .order_by('-ordinal')[:2]
+        )
+
+        if len(completed_phases) < 2:
+            return False
+
+        for phase in completed_phases:
+            if len(phase.all_orders) > 0:
+                return False
+
+        return True
+
     def resolve(self, phase):
         with tracer.start_as_current_span("phase.manager.resolve") as span:
             span.set_attribute("phase.id", phase.id)
@@ -149,6 +169,13 @@ class PhaseManager(models.Manager):
                         new_phase.status = PhaseStatus.COMPLETED
                         new_phase.scheduled_resolution = None
                         new_phase.save()
+                    elif self._check_abandonment(new_phase.game):
+                        new_phase.game.status = GameStatus.ABANDONED
+                        new_phase.game.save()
+
+                        new_phase.status = PhaseStatus.COMPLETED
+                        new_phase.scheduled_resolution = None
+                        new_phase.save()
 
                     return new_phase
 
@@ -157,8 +184,8 @@ class PhaseManager(models.Manager):
             span.set_attribute("previous_phase.id", previous_phase.id)
             span.set_attribute("new_phase.ordinal", previous_phase.ordinal + 1)
 
-            if previous_phase.game.status == GameStatus.COMPLETED:
-                logger.warning(f"Skipping phase creation - game {previous_phase.game.id} is already completed")
+            if previous_phase.game.status in (GameStatus.COMPLETED, GameStatus.ABANDONED):
+                logger.warning(f"Skipping phase creation - game {previous_phase.game.id} is {previous_phase.game.status}")
                 return previous_phase
 
             logger.info(

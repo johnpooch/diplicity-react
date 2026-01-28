@@ -114,9 +114,12 @@ export function GameDropdownMenu({
 
   const currentMember = game.members?.find(m => m.isCurrentUser);
   const isActiveGame = game.status === "active";
-  const isActiveOrCompletedGame = game.status === "active" || game.status === "completed";
+  const isActiveOrFinishedGame =
+    game.status === "active" ||
+    game.status === "completed" ||
+    game.status === "abandoned";
   const canProposeDraw = !game.sandbox && isActiveGame;
-  const canViewDrawProposals = !game.sandbox && isActiveOrCompletedGame;
+  const canViewDrawProposals = !game.sandbox && isActiveOrFinishedGame;
 
   const handleLeaveGame = async () => {
     try {

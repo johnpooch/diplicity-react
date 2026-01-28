@@ -1,4 +1,4 @@
-import { Info, Trophy } from "lucide-react";
+import { Info, Trophy, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface GameStatusAlertsProps {
@@ -40,6 +40,15 @@ export function GameStatusAlerts({ game, variant }: GameStatusAlertsProps) {
             {game.victory.type === "solo"
               ? `${game.victory.members[0]?.name} has won the game!`
               : `The game ended in a draw between ${game.victory.members.length} players.`}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {game.status === "abandoned" && (
+        <Alert variant="destructive">
+          <AlertTriangle className="size-4" />
+          <AlertDescription>
+            This game was abandoned due to inactivity.
           </AlertDescription>
         </Alert>
       )}

@@ -30,7 +30,7 @@ const getStatusMessage = (status: Status) => {
     case "active":
       return "You are not a member of any started games. When you join a game, it will be in a pending state until the required number of players have joined.";
     case "completed":
-      return "You have not finished any games. When a game is finished, it will appear here.";
+      return "You have not finished any games. When a game ends by victory, draw, or abandonment, it will appear here.";
   }
 };
 
@@ -39,9 +39,14 @@ const MyGames: React.FC = () => {
   const { data: variants } = useVariantsListSuspense();
 
   const [selectedStatus, setSelectedStatus] = useState<Status>(() => {
-    const firstStatusWithGames = statusPriority.find(status =>
-      games.some(game => game.status === status)
-    );
+    const firstStatusWithGames = statusPriority.find(status => {
+      if (status === "completed") {
+        return games.some(
+          game => game.status === "completed" || game.status === "abandoned"
+        );
+      }
+      return games.some(game => game.status === status);
+    });
     return firstStatusWithGames ?? "active";
   });
 
@@ -73,9 +78,12 @@ const MyGames: React.FC = () => {
         </TabsList>
 
         {statuses.map(status => {
-          const filteredGames = games?.filter(
-            game => game.status === status.value
-          );
+          const filteredGames = games?.filter(game => {
+            if (status.value === "completed") {
+              return game.status === "completed" || game.status === "abandoned";
+            }
+            return game.status === status.value;
+          });
           return (
             <TabsContent key={status.value} value={status.value}>
               <div className="space-y-4">
