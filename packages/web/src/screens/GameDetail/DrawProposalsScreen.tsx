@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { NationFlag } from "@/components/NationFlag";
 import {
   Item,
   ItemContent,
@@ -33,8 +33,9 @@ import {
   useGamesDrawProposalsCancelDestroy,
   getGamesDrawProposalsListQueryKey,
   getGameRetrieveQueryKey,
+  useVariantsListSuspense,
 } from "@/api/generated/endpoints";
-import type { DrawProposal, Member } from "@/api/generated/endpoints";
+import type { DrawProposal, Member, Variant } from "@/api/generated/endpoints";
 
 interface VoteStatusIconProps {
   accepted: boolean | null;
@@ -55,6 +56,7 @@ type TabValue = "active" | "rejected";
 interface ProposalItemProps {
   proposal: DrawProposal;
   currentMember: Member | undefined;
+  variant: Variant | undefined;
   onVote: (proposalId: number, accepted: boolean) => void;
   onCancel: (proposalId: number) => void;
   isVoting: boolean;
@@ -64,6 +66,7 @@ interface ProposalItemProps {
 const ProposalItem: React.FC<ProposalItemProps> = ({
   proposal,
   currentMember,
+  variant,
   onVote,
   onCancel,
   isVoting,
@@ -79,10 +82,12 @@ const ProposalItem: React.FC<ProposalItemProps> = ({
 
   return (
     <Item className="border-b border-b-border">
-      <Avatar className="h-8 w-8 self-start">
-        <AvatarImage src={proposal.createdBy.picture ?? undefined} />
-        <AvatarFallback>{proposal.createdBy.nation?.[0]}</AvatarFallback>
-      </Avatar>
+      <NationFlag
+        nation={proposal.createdBy.nation ?? ""}
+        variantId={variant?.id ?? ""}
+        size="md"
+        className="size-8 self-start"
+      />
       <ItemContent>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -124,12 +129,11 @@ const ProposalItem: React.FC<ProposalItemProps> = ({
         <div className="flex flex-wrap gap-2 mt-2">
           {proposal.votes.map(vote => (
             <div key={vote.member.id} className="flex items-center gap-1">
-              <Avatar className="h-5 w-5">
-                <AvatarImage src={vote.member.picture ?? undefined} />
-                <AvatarFallback className="text-[10px]">
-                  {vote.member.nation?.[0]}
-                </AvatarFallback>
-              </Avatar>
+              <NationFlag
+                nation={vote.member.nation ?? ""}
+                variantId={variant?.id ?? ""}
+                size="sm"
+              />
               <VoteStatusIcon accepted={vote.accepted} />
             </div>
           ))}
@@ -177,9 +181,11 @@ const DrawProposalsScreen: React.FC = () => {
 
   const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: proposals } = useGamesDrawProposalsListSuspense(gameId);
+  const { data: variants } = useVariantsListSuspense();
   const voteMutation = useGamesDrawProposalsVotePartialUpdate();
   const cancelMutation = useGamesDrawProposalsCancelDestroy();
 
+  const variant = variants.find(v => v.id === game.variantId);
   const currentMember = game.members.find(m => m.isCurrentUser);
 
   const handleVote = async (proposalId: number, accepted: boolean) => {
@@ -275,6 +281,7 @@ const DrawProposalsScreen: React.FC = () => {
                         key={proposal.id}
                         proposal={proposal}
                         currentMember={currentMember}
+                        variant={variant}
                         onVote={handleVote}
                         onCancel={handleCancel}
                         isVoting={voteMutation.isPending}
@@ -298,6 +305,7 @@ const DrawProposalsScreen: React.FC = () => {
                         key={proposal.id}
                         proposal={proposal}
                         currentMember={currentMember}
+                        variant={variant}
                         onVote={handleVote}
                         onCancel={handleCancel}
                         isVoting={voteMutation.isPending}

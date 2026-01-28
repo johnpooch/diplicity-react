@@ -8,7 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { NationFlag } from "@/components/NationFlag";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -139,10 +139,12 @@ const ProposeDrawScreen: React.FC = () => {
                       onClick={() => handleToggle(member.id)}
                     >
                       <ItemMedia>
-                        <Avatar>
-                          <AvatarImage src={member.picture ?? undefined} />
-                          <AvatarFallback>{member.nation?.[0]}</AvatarFallback>
-                        </Avatar>
+                        <NationFlag
+                          nation={member.nation ?? ""}
+                          variantId={variant?.id ?? ""}
+                          size="md"
+                          className="size-10"
+                        />
                       </ItemMedia>
                       <ItemContent>
                         <ItemTitle>{member.nation}</ItemTitle>

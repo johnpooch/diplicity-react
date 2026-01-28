@@ -1,5 +1,15 @@
 # Diplicity React - Release Notes
 
+## Draw Screens Now Display Nation Flags (January 28, 2026)
+
+**Release Date:** January 28, 2026
+
+### Improvement: Nation Flags in Draw Proposals
+
+The Draw Proposals and Propose Draw screens now display nation flags instead of user profile pictures. This maintains consistency with the rest of the in-game experience where players are represented by their nation's flag rather than their personal avatar.
+
+---
+
 ## UI Overhaul and Supply Center Display (January 24, 2026)
 
 **Release Date:** January 24, 2026

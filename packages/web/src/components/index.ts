@@ -11,3 +11,4 @@ export * from "./GameStatusAlerts";
 export * from "./GameDropdownMenu";
 export * from "./GameInfoContent";
 export * from "./PlayerInfoContent";
+export * from "./NationFlag";
