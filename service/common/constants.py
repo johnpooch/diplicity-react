@@ -5,11 +5,13 @@ class GameStatus:
     PENDING = "pending"
     ACTIVE = "active"
     COMPLETED = "completed"
+    ABANDONED = "abandoned"
 
     STATUS_CHOICES = (
         (PENDING, "Pending"),
         (ACTIVE, "Active"),
         (COMPLETED, "Completed"),
+        (ABANDONED, "Abandoned"),
     )
 
 

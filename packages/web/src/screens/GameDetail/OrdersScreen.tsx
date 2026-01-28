@@ -132,8 +132,9 @@ const OrdersScreen: React.FC = () => {
   const variant = variants.find(v => v.id === game.variantId)!;
 
   const isActivePhase = phase.status === "active";
-  const isGameCompleted = game.status === "completed";
-  const canModifyOrders = isActivePhase && !isGameCompleted;
+  const isGameFinished =
+    game.status === "completed" || game.status === "abandoned";
+  const canModifyOrders = isActivePhase && !isGameFinished;
 
   const getSupplyCenterCount = (nation: string) => {
     return phase.supplyCenters.filter(sc => sc.nation.name === nation).length;

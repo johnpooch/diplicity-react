@@ -1141,14 +1141,10 @@ components:
           type: boolean
           readOnly: true
           nullable: true
-        isCurrentUser:
-          type: boolean
-          readOnly: true
       required:
       - accepted
       - id
       - included
-      - isCurrentUser
       - member
     DrawVoteMember:
       type: object

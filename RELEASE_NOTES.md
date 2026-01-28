@@ -1,5 +1,22 @@
 # Diplicity React - Release Notes
 
+## Auto-detect Abandoned Games (January 28, 2026)
+
+**Release Date:** January 28, 2026
+
+### New Feature: Abandoned Game Detection
+
+Games are now automatically marked as abandoned when no orders are submitted by any player for 2 consecutive phases. This helps keep the game list clean and provides closure for games where players have stopped participating.
+
+#### How it Works:
+- After 2 consecutive phases with zero orders from any player, the game is marked as "Abandoned"
+- Abandoned games appear in the "Finished" tab alongside completed games
+- An alert is displayed in abandoned games explaining they were ended due to inactivity
+- Sandbox games are excluded from abandonment detection (you can take as long as you want)
+- If any player submits even one order in either of the two most recent phases, the game continues
+
+---
+
 ## Draw Screens Now Display Nation Flags (January 28, 2026)
 
 **Release Date:** January 28, 2026

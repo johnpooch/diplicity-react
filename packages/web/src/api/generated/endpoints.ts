@@ -111,7 +111,6 @@ export interface DrawVote {
   readonly included: boolean;
   /** @nullable */
   readonly accepted: boolean | null;
-  readonly isCurrentUser: boolean;
 }
 
 export interface DrawProposal {
@@ -7197,7 +7196,6 @@ export const getGamesDrawProposalsListResponseMock = (): DrawProposal[] =>
       },
       included: faker.datatype.boolean(),
       accepted: faker.helpers.arrayElement([faker.datatype.boolean(), null]),
-      isCurrentUser: faker.datatype.boolean(),
     })),
     phaseId: faker.number.int({ min: undefined, max: undefined }),
     createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
@@ -7277,7 +7275,6 @@ export const getGamesDrawProposalsCreateCreateResponseMock = (
     },
     included: faker.datatype.boolean(),
     accepted: faker.helpers.arrayElement([faker.datatype.boolean(), null]),
-    isCurrentUser: faker.datatype.boolean(),
   })),
   phaseId: faker.number.int({ min: undefined, max: undefined }),
   createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
