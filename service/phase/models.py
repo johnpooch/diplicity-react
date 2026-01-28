@@ -136,15 +136,18 @@ class PhaseManager(models.Manager):
         if game.sandbox:
             return False
 
-        completed_phases = list(
-            game.phases.filter(status=PhaseStatus.COMPLETED)
+        completed_movement_phases = list(
+            game.phases.filter(
+                status=PhaseStatus.COMPLETED,
+                type=PhaseType.MOVEMENT,
+            )
             .order_by('-ordinal')[:2]
         )
 
-        if len(completed_phases) < 2:
+        if len(completed_movement_phases) < 2:
             return False
 
-        for phase in completed_phases:
+        for phase in completed_movement_phases:
             if len(phase.all_orders) > 0:
                 return False
 
