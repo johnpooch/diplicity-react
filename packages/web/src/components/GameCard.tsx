@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import { GameDropdownMenu } from "./GameDropdownMenu";
 import { UserPlus, Lock } from "lucide-react";
-import { MemberAvatarGroup } from "./MemberAvatarGroup";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDateTime } from "../util";
 import {
   GameList,
@@ -131,11 +131,27 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
           </div>
         </CardHeader>
         <CardFooter className="p-0 flex justify-between items-center">
-          <MemberAvatarGroup
-            members={game.members}
-            variant={variant.id}
+          <button
             onClick={handleClickPlayerInfo}
-          />
+            className="flex -space-x-2"
+          >
+            {game.members.slice(0, 7).map(member => (
+              <Avatar
+                key={member.id}
+                className="h-8 w-8 border-2 border-background"
+              >
+                <AvatarImage src={member.picture ?? undefined} />
+                <AvatarFallback>
+                  {member.name?.[0]?.toUpperCase() ?? "?"}
+                </AvatarFallback>
+              </Avatar>
+            ))}
+            {game.members.length > 7 && (
+              <div className="h-8 w-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs">
+                +{game.members.length - 7}
+              </div>
+            )}
+          </button>
         </CardFooter>
       </div>
     </Card>

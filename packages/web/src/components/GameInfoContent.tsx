@@ -1,7 +1,8 @@
 import React from "react";
-import { Calendar, Users, Lock, Unlock, User, Map } from "lucide-react";
+import { Calendar, Users, Lock, Unlock, User, Map, Trophy } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
 import {
   useGameRetrieveSuspense,
@@ -10,7 +11,6 @@ import {
 } from "@/api/generated/endpoints";
 import { getCurrentPhaseId } from "@/util";
 import { InteractiveMap } from "@/components/InteractiveMap/InteractiveMap";
-import { MemberAvatarGroup } from "@/components/MemberAvatarGroup";
 import { CardTitle } from "@/components/ui/card";
 import {
   ScreenCard,
@@ -89,17 +89,39 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
             label="Visibility"
             value={game.private ? "Private" : "Public"}
           />
+          {game.status === "completed" && game.victory && (
+            <MetadataRow
+              icon={<Trophy className="size-4" />}
+              label={game.victory.type === "solo" ? "Winner" : "Draw"}
+              value={game.victory.members.map(m => m.name).join(", ")}
+            />
+          )}
           <MetadataRow
             icon={<Users className="size-4" />}
             label="Players"
             value={
               variant ? (
-                <MemberAvatarGroup
-                  members={game.members}
-                  variant={variant.id}
-                  victory={game.victory ?? undefined}
+                <button
                   onClick={onNavigateToPlayerInfo}
-                />
+                  className="flex -space-x-2"
+                >
+                  {game.members.slice(0, 7).map(member => (
+                    <Avatar
+                      key={member.id}
+                      className="h-8 w-8 border-2 border-background"
+                    >
+                      <AvatarImage src={member.picture ?? undefined} />
+                      <AvatarFallback>
+                        {member.name?.[0]?.toUpperCase() ?? "?"}
+                      </AvatarFallback>
+                    </Avatar>
+                  ))}
+                  {game.members.length > 7 && (
+                    <div className="h-8 w-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs">
+                      +{game.members.length - 7}
+                    </div>
+                  )}
+                </button>
               ) : (
                 <Skeleton className="h-8 w-24" />
               )

@@ -31,7 +31,7 @@ import {
   ItemSeparator,
 } from "@/components/ui/item";
 import { Notice } from "@/components/Notice";
-import { MemberAvatar } from "@/components/MemberAvatar";
+import { NationFlag } from "@/components/NationFlag";
 import { GameDropdownMenu } from "@/components/GameDropdownMenu";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
@@ -249,11 +249,15 @@ const OrdersScreen: React.FC = () => {
                   nationGroups.find(g => g.member.isCurrentUser)?.nation ?? "",
                 ]}
               >
-                {nationGroups.map(({ nation, member, items }) => (
+                {nationGroups.map(({ nation, items }) => (
                   <AccordionItem key={nation} value={nation}>
                     <AccordionTrigger className="p-2 items-center">
                       <div className="flex items-center gap-2">
-                        <MemberAvatar member={member} variant={variant.id} />
+                        <NationFlag
+                          nation={nation}
+                          variantId={variant.id}
+                          size="md"
+                        />
                         <span>{nation}</span>
                         <span className="text-muted-foreground">•</span>
                         <span className="inline-flex items-center gap-1 text-muted-foreground">

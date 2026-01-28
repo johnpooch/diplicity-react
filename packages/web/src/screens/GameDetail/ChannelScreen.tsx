@@ -15,7 +15,7 @@ import {
   MessageTimestamp,
 } from "@/components/ui/message";
 import { Notice } from "@/components/Notice";
-import { MemberAvatar } from "@/components/MemberAvatar";
+import { NationFlag } from "@/components/NationFlag";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
 import {
@@ -155,14 +155,16 @@ const ChannelScreen: React.FC = () => {
                       }
                     >
                       {item.showAvatar ? (
-                        <MemberAvatar
-                          member={{
-                            picture: item.sender.picture,
-                            nation: item.sender.nationName,
-                          }}
-                          variant={variantId!}
-                          size="medium"
-                        />
+                        <div className="flex flex-col items-center gap-0.5">
+                          <NationFlag
+                            nation={item.sender.nationName}
+                            variantId={variantId!}
+                            size="lg"
+                          />
+                          <span className="text-xs text-muted-foreground">
+                            {item.sender.nationName}
+                          </span>
+                        </div>
                       ) : (
                         <div className="w-8" />
                       )}

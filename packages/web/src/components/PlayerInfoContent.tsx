@@ -2,7 +2,7 @@ import React from "react";
 import { Star, Trophy } from "lucide-react";
 
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { NationFlag } from "@/components/NationFlag";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
@@ -13,7 +13,6 @@ import {
   Member,
 } from "@/api/generated/endpoints";
 import { getCurrentPhaseId } from "@/util";
-import { Flags } from "@/assets/flags";
 import { useRequiredParams } from "@/hooks";
 
 export const PlayerInfoContent: React.FC = () => {
@@ -47,11 +46,6 @@ export const PlayerInfoContent: React.FC = () => {
       <ScreenCard>
         <ScreenCardContent className="divide-y">
           {game.members.map(member => {
-            const nationFlag =
-              Flags[(variant?.id ?? "") as keyof typeof Flags]?.[
-                member.nation?.toLowerCase() as keyof (typeof Flags)[keyof typeof Flags]
-              ];
-
             const supplyCenterCount = getSupplyCenterCount(member);
             const isWinner = winnerIds.includes(member.id);
 
@@ -60,23 +54,14 @@ export const PlayerInfoContent: React.FC = () => {
                 key={member.id}
                 className="flex items-center gap-4 py-4 first:pt-0 last:pb-0"
               >
-                <div className="relative">
-                  <Avatar className="size-12">
-                    <AvatarImage src={member.picture ?? undefined} />
-                    <AvatarFallback>
-                      {member.nation?.toUpperCase()[0]}
-                    </AvatarFallback>
-                  </Avatar>
-                  {member.nation && nationFlag && (
-                    <span className="absolute -right-1 -bottom-1 inline-flex size-4 items-center justify-center rounded-full bg-white border-2 border-background">
-                      <img
-                        src={nationFlag}
-                        alt={member.nation}
-                        className="h-full w-full rounded-full object-cover"
-                      />
-                    </span>
-                  )}
-                </div>
+                {member.nation && variant && (
+                  <NationFlag
+                    nation={member.nation}
+                    variantId={variant.id}
+                    size="lg"
+                    className="size-8"
+                  />
+                )}
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
