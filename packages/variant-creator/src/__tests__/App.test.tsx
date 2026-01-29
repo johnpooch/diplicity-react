@@ -7,10 +7,10 @@ describe("App", () => {
     expect(screen.getByText("Diplicity Variant Creator")).toBeInTheDocument();
   });
 
-  it("renders the Get Started button", () => {
+  it("renders the file upload zone", () => {
     render(<App />);
     expect(
-      screen.getByRole("button", { name: /get started/i })
+      screen.getByText("Drop SVG file here or click to upload")
     ).toBeInTheDocument();
   });
 });
