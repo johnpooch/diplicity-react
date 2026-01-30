@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <!-- Background layer - decorative -->
+  <g id="background">
+    <rect width="800" height="600" fill="#8BA5D0"/>
+  </g>
+
+  <!-- Provinces layer - required -->
+  <g id="provinces">
+    <!-- Land provinces -->
+    <path id="par" d="M100,200 L200,180 L250,220 L240,300 L180,320 L100,280 Z" fill="#C8B896"/>
+    <path id="bur" d="M250,220 L340,200 L380,260 L360,340 L240,300 Z" fill="#C8B896"/>
+    <path id="gas" d="M100,280 L180,320 L160,420 L80,400 Z" fill="#C8B896"/>
+    <path id="mar" d="M240,300 L360,340 L340,440 L220,420 L160,420 L180,320 Z" fill="#C8B896"/>
+    <path id="pie" d="M360,340 L450,320 L480,400 L420,460 L340,440 Z" fill="#C8B896"/>
+    <path id="ven" d="M450,320 L540,300 L580,380 L520,440 L480,400 Z" fill="#C8B896"/>
+    <path id="tus" d="M420,460 L480,400 L520,440 L500,520 L440,540 Z" fill="#C8B896"/>
+
+    <!-- Coastal provinces -->
+    <path id="bre" d="M50,150 L100,200 L100,280 L80,400 L20,380 L10,200 Z" fill="#D4C4A8"/>
+    <path id="pic" d="M100,200 L200,180 L220,120 L140,100 L50,150 Z" fill="#D4C4A8"/>
+    <path id="spa" d="M80,400 L160,420 L140,550 L40,540 L20,450 Z" fill="#D4C4A8"/>
+
+    <!-- Sea provinces -->
+    <path id="eng" d="M10,50 L200,30 L220,120 L140,100 L50,150 L10,200 Z" fill="#6B8BB8"/>
+    <path id="mao" d="M10,200 L20,380 L20,450 L0,450 L0,200 Z" fill="#6B8BB8"/>
+    <path id="gol" d="M140,550 L220,420 L340,440 L420,460 L440,540 L300,580 Z" fill="#6B8BB8"/>
+    <path id="tyn" d="M440,540 L500,520 L580,560 L500,600 L300,580 Z" fill="#6B8BB8"/>
+    <path id="adr" d="M520,440 L580,380 L650,420 L620,520 L580,560 L500,520 Z" fill="#6B8BB8"/>
+  </g>
+
+  <!-- Named coasts layer - optional -->
+  <g id="named-coasts">
+    <path id="spa-nc" d="M40,540 L80,400" fill="none" stroke="#333" stroke-width="2"/>
+    <path id="spa-sc" d="M140,550 L160,420" fill="none" stroke="#333" stroke-width="2"/>
+  </g>
+
+  <!-- Text layer - optional -->
+  <g id="text">
+    <text x="150" y="250" font-size="14" font-family="Arial" fill="#333">Paris</text>
+    <text x="290" y="270" font-size="14" font-family="Arial" fill="#333">Burgundy</text>
+    <text x="110" y="350" font-size="14" font-family="Arial" fill="#333">Gascony</text>
+    <text x="240" y="380" font-size="14" font-family="Arial" fill="#333">Marseilles</text>
+    <text x="390" y="390" font-size="14" font-family="Arial" fill="#333">Piedmont</text>
+    <text x="490" y="360" font-size="14" font-family="Arial" fill="#333">Venice</text>
+    <text x="450" y="490" font-size="14" font-family="Arial" fill="#333">Tuscany</text>
+    <text x="40" y="280" font-size="14" font-family="Arial" fill="#333">Brest</text>
+    <text x="140" y="160" font-size="14" font-family="Arial" fill="#333">Picardy</text>
+    <text x="70" y="480" font-size="14" font-family="Arial" fill="#333">Spain</text>
+    <text x="100" y="80" font-size="12" font-family="Arial" fill="#fff">English Channel</text>
+    <text x="5" y="320" font-size="10" font-family="Arial" fill="#fff" transform="rotate(-90 15 320)">MAO</text>
+    <text x="280" y="520" font-size="12" font-family="Arial" fill="#fff">Gulf of Lyon</text>
+    <text x="460" y="570" font-size="12" font-family="Arial" fill="#fff">Tyrrhenian Sea</text>
+    <text x="570" y="480" font-size="12" font-family="Arial" fill="#fff">Adriatic</text>
+  </g>
+
+  <!-- Borders layer - decorative -->
+  <g id="borders">
+    <path d="M100,200 L200,180 L250,220 L240,300 L180,320 L100,280 Z" fill="none" stroke="#333" stroke-width="1"/>
+    <path d="M250,220 L340,200 L380,260 L360,340 L240,300 Z" fill="none" stroke="#333" stroke-width="1"/>
+    <path d="M100,280 L180,320 L160,420 L80,400 Z" fill="none" stroke="#333" stroke-width="1"/>
+    <path d="M240,300 L360,340 L340,440 L220,420 L160,420 L180,320 Z" fill="none" stroke="#333" stroke-width="1"/>
+    <path d="M360,340 L450,320 L480,400 L420,460 L340,440 Z" fill="none" stroke="#333" stroke-width="1"/>
+    <path d="M450,320 L540,300 L580,380 L520,440 L480,400 Z" fill="none" stroke="#333" stroke-width="1"/>
+    <path d="M420,460 L480,400 L520,440 L500,520 L440,540 Z" fill="none" stroke="#333" stroke-width="1"/>
+    <path d="M50,150 L100,200 L100,280 L80,400 L20,380 L10,200 Z" fill="none" stroke="#333" stroke-width="1"/>
+    <path d="M100,200 L200,180 L220,120 L140,100 L50,150 Z" fill="none" stroke="#333" stroke-width="1"/>
+    <path d="M80,400 L160,420 L140,550 L40,540 L20,450 Z" fill="none" stroke="#333" stroke-width="1"/>
+  </g>
+</svg>

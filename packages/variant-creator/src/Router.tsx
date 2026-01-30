@@ -2,9 +2,11 @@ import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 import { LandingPage } from "@/components/LandingPage";
 import { WizardLayout } from "@/components/wizard/WizardLayout";
 import { PhaseSetup } from "@/components/wizard/PhaseSetup";
+import { PhaseProvinces } from "@/components/wizard/PhaseProvinces";
 
 const WIZARD_PHASES = [
   { path: "0", title: "Variant Setup", component: PhaseSetup },
+  { path: "1", title: "Province Details", component: PhaseProvinces },
 ];
 
 function WizardOutlet() {
