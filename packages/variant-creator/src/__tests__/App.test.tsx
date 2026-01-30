@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import App from "../App";
 import { STORAGE_KEY } from "@/hooks/useVariant";
+import * as exportModule from "@/utils/export";
 
 vi.mock("@/utils/geometry", () => ({
   calculateCentroid: vi.fn(() => ({ x: 20, y: 20 })),
@@ -214,6 +215,65 @@ describe("App", () => {
       expect(
         screen.queryByRole("button", { name: /clear draft/i })
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("JSON download", () => {
+    beforeEach(() => {
+      localStorage.clear();
+      vi.spyOn(exportModule, "downloadVariantJson").mockImplementation(() => {});
+    });
+
+    it("shows Download JSON button when variant exists", async () => {
+      render(<App />);
+
+      const input = document.querySelector(
+        'input[type="file"]'
+      ) as HTMLInputElement;
+      const file = createValidSvgFile(2);
+
+      fireEvent.change(input, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole("button", { name: /download json/i })
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("does not show Download JSON button when no variant exists", () => {
+      render(<App />);
+
+      expect(
+        screen.queryByRole("button", { name: /download json/i })
+      ).not.toBeInTheDocument();
+    });
+
+    it("calls downloadVariantJson when Download JSON is clicked", async () => {
+      render(<App />);
+
+      const input = document.querySelector(
+        'input[type="file"]'
+      ) as HTMLInputElement;
+      const file = createValidSvgFile(2);
+
+      fireEvent.change(input, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(screen.getByText("2 provinces detected")).toBeInTheDocument();
+      });
+
+      const downloadButton = screen.getByRole("button", {
+        name: /download json/i,
+      });
+      fireEvent.click(downloadButton);
+
+      expect(exportModule.downloadVariantJson).toHaveBeenCalledTimes(1);
+      expect(exportModule.downloadVariantJson).toHaveBeenCalledWith(
+        expect.objectContaining({
+          provinces: expect.any(Array),
+        })
+      );
     });
   });
 });
