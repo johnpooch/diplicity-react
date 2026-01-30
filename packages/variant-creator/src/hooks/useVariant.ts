@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import type { VariantDefinition, Nation } from "@/types/variant";
+import type { VariantDefinition, Nation, Province } from "@/types/variant";
 
 const STORAGE_KEY = "variant-creator-draft";
 
@@ -85,6 +85,28 @@ export function useVariant() {
     });
   }, []);
 
+  const updateProvince = useCallback(
+    (id: string, updates: Partial<Omit<Province, "elementId" | "path">>) => {
+      setVariant((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          provinces: prev.provinces.map((p) =>
+            p.id === id ? { ...p, ...updates } : p
+          ),
+        };
+      });
+    },
+    []
+  );
+
+  const setProvinces = useCallback((provinces: Province[]) => {
+    setVariant((prev) => {
+      if (!prev) return null;
+      return { ...prev, provinces };
+    });
+  }, []);
+
   return {
     variant,
     setVariant,
@@ -94,6 +116,8 @@ export function useVariant() {
     updateNation,
     removeNation,
     setNations,
+    updateProvince,
+    setProvinces,
   };
 }
 
