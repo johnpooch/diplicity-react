@@ -20,3 +20,10 @@ export function calculatePositions(centroid: Position): {
     supplyCenterPosition: { x: centroid.x - 12, y: centroid.y - 12 },
   };
 }
+
+export function detectPathIntersections(pathA: string, pathB: string): boolean {
+  const paperPathA = new paper.Path(pathA);
+  const paperPathB = new paper.Path(pathB);
+  const intersections = paperPathA.getIntersections(paperPathB);
+  return intersections.length >= 2;
+}

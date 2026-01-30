@@ -5,27 +5,38 @@ vi.mock("paper", () => {
     const coordMatch = pathD.match(/M(\d+),(\d+)/);
     const sizeMatch = pathD.match(/L(\d+),\d+ L\d+,(\d+)/);
 
+    const pathObj = {
+      pathD,
+      bounds: {
+        center: { x: 50, y: 50 },
+      },
+      getIntersections: vi.fn().mockImplementation((other: { pathD: string }) => {
+        const thisPath = pathD;
+        const otherPath = other.pathD;
+
+        if (thisPath.includes("adjacent") && otherPath.includes("adjacent")) {
+          return [{}, {}];
+        }
+        if (thisPath.includes("corner") && otherPath.includes("corner")) {
+          return [{}];
+        }
+        return [];
+      }),
+    };
+
     if (coordMatch && sizeMatch) {
       const x1 = parseInt(coordMatch[1], 10);
       const y1 = parseInt(coordMatch[2], 10);
       const x2 = parseInt(sizeMatch[1], 10);
       const y2 = parseInt(sizeMatch[2], 10);
 
-      return {
-        bounds: {
-          center: {
-            x: (x1 + x2) / 2,
-            y: (y1 + y2) / 2,
-          },
-        },
+      pathObj.bounds.center = {
+        x: (x1 + x2) / 2,
+        y: (y1 + y2) / 2,
       };
     }
 
-    return {
-      bounds: {
-        center: { x: 50, y: 50 },
-      },
-    };
+    return pathObj;
   });
 
   return {
@@ -37,7 +48,11 @@ vi.mock("paper", () => {
   };
 });
 
-import { calculateCentroid, calculatePositions } from "../geometry";
+import {
+  calculateCentroid,
+  calculatePositions,
+  detectPathIntersections,
+} from "../geometry";
 
 describe("calculateCentroid", () => {
   beforeEach(() => {
@@ -81,5 +96,32 @@ describe("calculatePositions", () => {
     const positions = calculatePositions(centroid);
 
     expect(positions.unitPosition).toEqual(centroid);
+  });
+});
+
+describe("detectPathIntersections", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns true for paths that share a border (2+ intersections)", () => {
+    const pathA = "M0,0 adjacent L10,0 L10,10 L0,10 Z";
+    const pathB = "M10,0 adjacent L20,0 L20,10 L10,10 Z";
+    const result = detectPathIntersections(pathA, pathB);
+    expect(result).toBe(true);
+  });
+
+  it("returns false for paths that only touch at a corner (1 intersection)", () => {
+    const pathA = "M0,0 corner L10,0 L10,10 L0,10 Z";
+    const pathB = "M10,10 corner L20,10 L20,20 L10,20 Z";
+    const result = detectPathIntersections(pathA, pathB);
+    expect(result).toBe(false);
+  });
+
+  it("returns false for non-touching paths (0 intersections)", () => {
+    const pathA = "M0,0 L10,0 L10,10 L0,10 Z";
+    const pathB = "M100,100 L110,100 L110,110 L100,110 Z";
+    const result = detectPathIntersections(pathA, pathB);
+    expect(result).toBe(false);
   });
 });
