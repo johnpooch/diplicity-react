@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 400 400">
   <!-- Background layer - decorative -->
-  <g inkscape:label="background">
+  <g id="background" inkscape:label="background">
     <rect x="0" y="0" width="400" height="400" fill="#8BA5D0"/>
   </g>
 
   <!-- Provinces layer - 7 provinces with shared borders -->
-  <g inkscape:label="provinces">
+  <g id="provinces" inkscape:label="provinces">
     <!-- NOR (north) - top center, hexagonal shape -->
     <path id="nor" d="M150,20 L250,20 L280,80 L200,120 L120,80 Z" fill="#C8B896"/>
 
@@ -30,7 +30,7 @@
   </g>
 
   <!-- Text layer - province labels -->
-  <g inkscape:label="text">
+  <g id="text" inkscape:label="text">
     <text x="200" y="70" text-anchor="middle" font-family="Arial" font-size="16" fill="#333">NOR</text>
     <text x="100" y="160" text-anchor="middle" font-family="Arial" font-size="16" fill="#333">WES</text>
     <text x="300" y="160" text-anchor="middle" font-family="Arial" font-size="16" fill="#333">EAS</text>
@@ -41,7 +41,7 @@
   </g>
 
   <!-- Borders layer - decorative stroke for visibility -->
-  <g inkscape:label="borders">
+  <g id="borders" inkscape:label="borders">
     <path d="M150,20 L250,20 L280,80 L200,120 L120,80 Z" fill="none" stroke="#333" stroke-width="1"/>
     <path d="M20,80 L120,80 L200,120 L200,200 L120,240 L20,200 Z" fill="none" stroke="#333" stroke-width="1"/>
     <path d="M280,80 L380,80 L380,200 L280,240 L200,200 L200,120 Z" fill="none" stroke="#333" stroke-width="1"/>
