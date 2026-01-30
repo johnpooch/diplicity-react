@@ -6,4 +6,5 @@ expect.extend(matchers);
 
 afterEach(() => {
   cleanup();
+  localStorage.clear();
 });

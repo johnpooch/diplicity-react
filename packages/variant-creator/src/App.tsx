@@ -1,13 +1,13 @@
-import { useState } from "react";
 import { FileUpload } from "@/components/common/FileUpload";
 import { MapCanvas } from "@/components/map/MapCanvas";
+import { Button } from "@/components/ui/button";
+import { useVariant } from "@/hooks/useVariant";
 import { parseSvg } from "@/utils/svg";
 import { createInitialVariant } from "@/utils/variantFactory";
 import type { SvgValidationResult } from "@/types/svg";
-import type { VariantDefinition } from "@/types/variant";
 
 function App() {
-  const [variant, setVariant] = useState<VariantDefinition | null>(null);
+  const { variant, setVariant, clearDraft } = useVariant();
 
   const handleFileValidated = (
     result: SvgValidationResult,
@@ -17,8 +17,6 @@ function App() {
       const parsed = parseSvg(svgContent);
       const initialVariant = createInitialVariant(parsed);
       setVariant(initialVariant);
-    } else {
-      setVariant(null);
     }
   };
 
@@ -35,9 +33,14 @@ function App() {
 
         {variant && (
           <div className="mt-8 w-full">
-            <p className="mb-4 text-lg font-medium">
-              {variant.provinces.length} provinces detected
-            </p>
+            <div className="mb-4 flex items-center justify-between">
+              <p className="text-lg font-medium">
+                {variant.provinces.length} provinces detected
+              </p>
+              <Button variant="outline" onClick={clearDraft}>
+                Clear Draft
+              </Button>
+            </div>
             <MapCanvas variant={variant} />
           </div>
         )}
