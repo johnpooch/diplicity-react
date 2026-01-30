@@ -122,11 +122,11 @@ describe("PhaseVisualEditor", () => {
       expect(paths.length).toBeGreaterThanOrEqual(2);
     });
 
-    it("renders unit markers for provinces with starting units", () => {
+    it("renders unit markers for all provinces", () => {
       renderWithRouter();
 
       const circles = document.querySelectorAll("circle");
-      expect(circles.length).toBeGreaterThan(0);
+      expect(circles.length).toBeGreaterThanOrEqual(2);
     });
 
     it("renders supply center markers for SC provinces", () => {

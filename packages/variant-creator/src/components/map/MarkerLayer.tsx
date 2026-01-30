@@ -35,9 +35,9 @@ function getMarkerPosition(
 function shouldShowMarker(province: Province, markerType: MarkerType): boolean {
   switch (markerType) {
     case "unit":
-      return province.startingUnit !== null;
+      return true;
     case "dislodged":
-      return province.startingUnit !== null;
+      return true;
     case "supplyCenter":
       return province.supplyCenter;
   }
