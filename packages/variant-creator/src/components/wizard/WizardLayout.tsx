@@ -1,4 +1,4 @@
-import { useNavigate, useParams, Navigate } from "react-router-dom";
+import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useVariant } from "@/hooks/useVariant";
@@ -19,10 +19,11 @@ interface WizardLayoutProps {
 
 export function WizardLayout({ children }: WizardLayoutProps) {
   const navigate = useNavigate();
-  const { "*": phaseParam } = useParams();
+  const location = useLocation();
   const { variant } = useVariant();
 
-  const currentPhase = parseInt(phaseParam || "0", 10);
+  const phaseMatch = location.pathname.match(/\/phase\/(\d+)/);
+  const currentPhase = phaseMatch ? parseInt(phaseMatch[1], 10) : 0;
   const totalPhases = PHASE_TITLES.length;
 
   if (!variant) {
