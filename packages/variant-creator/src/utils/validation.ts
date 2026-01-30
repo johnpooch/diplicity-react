@@ -69,6 +69,14 @@ const DimensionsSchema = z.object({
   height: z.number().positive(),
 });
 
+const TextElementSchema = z.object({
+  content: z.string(),
+  x: z.number(),
+  y: z.number(),
+  rotation: z.number().optional(),
+  styles: LabelStylesSchema.optional(),
+});
+
 export const VariantDefinitionSchema = z.object({
   name: z.string(),
   description: z.string(),
@@ -80,6 +88,7 @@ export const VariantDefinitionSchema = z.object({
   namedCoasts: z.array(NamedCoastSchema),
   decorativeElements: z.array(DecorativeElementSchema),
   dimensions: DimensionsSchema,
+  textElements: z.array(TextElementSchema),
 });
 
 export type JsonValidationErrorCode =

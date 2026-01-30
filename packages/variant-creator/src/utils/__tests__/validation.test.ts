@@ -47,6 +47,7 @@ const createValidVariant = (): VariantDefinition => ({
   namedCoasts: [],
   decorativeElements: [],
   dimensions: { width: 100, height: 100 },
+  textElements: [],
 });
 
 describe("validateVariantJson", () => {
