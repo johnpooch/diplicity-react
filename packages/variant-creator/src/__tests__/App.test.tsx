@@ -1,6 +1,7 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import App from "../App";
+import { STORAGE_KEY } from "@/hooks/useVariant";
 
 vi.mock("@/utils/geometry", () => ({
   calculateCentroid: vi.fn(() => ({ x: 20, y: 20 })),
@@ -91,5 +92,128 @@ describe("App", () => {
     });
 
     expect(screen.queryByText(/provinces detected/)).not.toBeInTheDocument();
+  });
+
+  describe("persistence", () => {
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    it("persists variant to localStorage after SVG upload", async () => {
+      render(<App />);
+
+      const input = document.querySelector(
+        'input[type="file"]'
+      ) as HTMLInputElement;
+      const file = createValidSvgFile(3);
+
+      fireEvent.change(input, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(screen.getByText("3 provinces detected")).toBeInTheDocument();
+      });
+
+      const saved = localStorage.getItem(STORAGE_KEY);
+      expect(saved).not.toBeNull();
+      const parsed = JSON.parse(saved!);
+      expect(parsed.provinces).toHaveLength(3);
+    });
+
+    it("restores variant from localStorage on mount", () => {
+      const mockVariant = {
+        name: "test",
+        description: "",
+        author: "",
+        version: "1.0.0",
+        soloVictorySCCount: 0,
+        nations: [],
+        provinces: [
+          {
+            id: "p1",
+            elementId: "p1",
+            name: "",
+            type: "land",
+            path: "M0,0",
+            homeNation: null,
+            supplyCenter: false,
+            startingUnit: null,
+            adjacencies: [],
+            labels: [],
+            unitPosition: { x: 0, y: 0 },
+            dislodgedUnitPosition: { x: 0, y: 0 },
+          },
+          {
+            id: "p2",
+            elementId: "p2",
+            name: "",
+            type: "land",
+            path: "M0,0",
+            homeNation: null,
+            supplyCenter: false,
+            startingUnit: null,
+            adjacencies: [],
+            labels: [],
+            unitPosition: { x: 0, y: 0 },
+            dislodgedUnitPosition: { x: 0, y: 0 },
+          },
+        ],
+        namedCoasts: [],
+        decorativeElements: [],
+        dimensions: { width: 100, height: 100 },
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(mockVariant));
+
+      render(<App />);
+
+      expect(screen.getByText("2 provinces detected")).toBeInTheDocument();
+    });
+
+    it("shows Clear Draft button when variant exists", async () => {
+      render(<App />);
+
+      const input = document.querySelector(
+        'input[type="file"]'
+      ) as HTMLInputElement;
+      const file = createValidSvgFile(2);
+
+      fireEvent.change(input, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole("button", { name: /clear draft/i })
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("clears variant when Clear Draft is clicked", async () => {
+      render(<App />);
+
+      const input = document.querySelector(
+        'input[type="file"]'
+      ) as HTMLInputElement;
+      const file = createValidSvgFile(2);
+
+      fireEvent.change(input, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(screen.getByText("2 provinces detected")).toBeInTheDocument();
+      });
+
+      const clearButton = screen.getByRole("button", { name: /clear draft/i });
+      fireEvent.click(clearButton);
+
+      expect(
+        screen.queryByText("2 provinces detected")
+      ).not.toBeInTheDocument();
+      expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+    });
+
+    it("does not show Clear Draft button when no variant exists", () => {
+      render(<App />);
+
+      expect(
+        screen.queryByRole("button", { name: /clear draft/i })
+      ).not.toBeInTheDocument();
+    });
   });
 });
