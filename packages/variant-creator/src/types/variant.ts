@@ -71,6 +71,7 @@ export interface VariantDefinition {
   namedCoasts: NamedCoast[];
   decorativeElements: DecorativeElement[];
   dimensions: Dimensions;
+  textElements: TextElement[];
 }
 
 export interface ProvincePath {

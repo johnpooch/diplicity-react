@@ -3,10 +3,12 @@ import { LandingPage } from "@/components/LandingPage";
 import { WizardLayout } from "@/components/wizard/WizardLayout";
 import { PhaseSetup } from "@/components/wizard/PhaseSetup";
 import { PhaseProvinces } from "@/components/wizard/PhaseProvinces";
+import { PhaseTextAssoc } from "@/components/wizard/PhaseTextAssoc";
 
 const WIZARD_PHASES = [
   { path: "0", title: "Variant Setup", component: PhaseSetup },
   { path: "1", title: "Province Details", component: PhaseProvinces },
+  { path: "2", title: "Text Association", component: PhaseTextAssoc },
 ];
 
 function WizardOutlet() {

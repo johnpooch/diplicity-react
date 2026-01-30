@@ -35,5 +35,6 @@ export function createInitialVariant(parsedSvg: ParsedSvg): VariantDefinition {
     namedCoasts: [],
     decorativeElements: parsedSvg.decorativeElements,
     dimensions: parsedSvg.dimensions,
+    textElements: parsedSvg.textElements,
   };
 }

@@ -15,6 +15,7 @@ const createMockVariant = (
   namedCoasts: [],
   decorativeElements: [],
   dimensions: { width: 1000, height: 800 },
+  textElements: [],
   ...overrides,
 });
 
