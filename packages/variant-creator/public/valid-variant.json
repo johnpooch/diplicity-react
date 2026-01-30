@@ -1,0 +1,67 @@
+{
+  "name": "Test Variant",
+  "description": "A simple test variant for validation testing",
+  "author": "Test Author",
+  "version": "1.0.0",
+  "soloVictorySCCount": 3,
+  "nations": [
+    { "id": "red", "name": "Red Nation", "color": "#FF0000" },
+    { "id": "blue", "name": "Blue Nation", "color": "#0000FF" }
+  ],
+  "provinces": [
+    {
+      "id": "lon",
+      "elementId": "path1",
+      "name": "London",
+      "type": "coastal",
+      "path": "M100,100 L200,100 L200,200 L100,200 Z",
+      "homeNation": "red",
+      "supplyCenter": true,
+      "startingUnit": { "type": "Fleet" },
+      "adjacencies": ["eng", "wal"],
+      "labels": [{ "text": "London", "position": { "x": 150, "y": 150 }, "source": "svg" }],
+      "unitPosition": { "x": 150, "y": 150 },
+      "dislodgedUnitPosition": { "x": 165, "y": 165 },
+      "supplyCenterPosition": { "x": 138, "y": 138 }
+    },
+    {
+      "id": "par",
+      "elementId": "path2",
+      "name": "Paris",
+      "type": "land",
+      "path": "M300,100 L400,100 L400,200 L300,200 Z",
+      "homeNation": "blue",
+      "supplyCenter": true,
+      "startingUnit": { "type": "Army" },
+      "adjacencies": ["bur", "pic"],
+      "labels": [{ "text": "Paris", "position": { "x": 350, "y": 150 }, "source": "svg" }],
+      "unitPosition": { "x": 350, "y": 150 },
+      "dislodgedUnitPosition": { "x": 365, "y": 165 },
+      "supplyCenterPosition": { "x": 338, "y": 138 }
+    },
+    {
+      "id": "eng",
+      "elementId": "path3",
+      "name": "English Channel",
+      "type": "sea",
+      "path": "M100,250 L400,250 L400,350 L100,350 Z",
+      "homeNation": null,
+      "supplyCenter": false,
+      "startingUnit": null,
+      "adjacencies": ["lon", "bre"],
+      "labels": [{ "text": "English Channel", "position": { "x": 250, "y": 300 }, "source": "svg" }],
+      "unitPosition": { "x": 250, "y": 300 },
+      "dislodgedUnitPosition": { "x": 265, "y": 315 }
+    }
+  ],
+  "namedCoasts": [],
+  "decorativeElements": [
+    {
+      "id": "background",
+      "type": "path",
+      "content": "M0,0 L500,0 L500,400 L0,400 Z",
+      "styles": { "fill": "#8BA5D0" }
+    }
+  ],
+  "dimensions": { "width": 500, "height": 400 }
+}

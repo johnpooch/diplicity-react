@@ -1,0 +1,29 @@
+{
+  "name": "Invalid Variant",
+  "description": "This variant has validation errors",
+  "author": "Test Author",
+  "version": "1.0.0",
+  "soloVictorySCCount": -5,
+  "nations": [
+    { "id": "red", "name": "Red Nation", "color": "#FF0000" }
+  ],
+  "provinces": [
+    {
+      "id": "lon",
+      "elementId": "path1",
+      "name": "London",
+      "type": "invalid_type",
+      "path": "M100,100 L200,100 L200,200 L100,200 Z",
+      "homeNation": "red",
+      "supplyCenter": "yes",
+      "startingUnit": { "type": "Tank" },
+      "adjacencies": ["eng"],
+      "labels": [{ "text": "London", "position": { "x": 150, "y": 150 }, "source": "manual" }],
+      "unitPosition": { "x": 150, "y": 150 },
+      "dislodgedUnitPosition": { "x": 165, "y": 165 }
+    }
+  ],
+  "namedCoasts": [],
+  "decorativeElements": [],
+  "dimensions": { "width": -100, "height": 400 }
+}
