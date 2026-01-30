@@ -125,53 +125,49 @@ export function PhaseProvinces() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-6 lg:grid-cols-2">
-            <div className="order-2 lg:order-1">
-              <ProvinceTable
-                provinces={provinces}
-                nations={nations}
-                selectedProvinceId={selectedProvinceId}
-                onProvinceSelect={handleProvinceClick}
-                onProvinceHover={setHoveredProvinceId}
-                onProvinceUpdate={handleProvinceUpdate}
-                validationErrors={validationErrors}
-              />
-            </div>
-
-            <div className="order-1 lg:order-2">
-              <div className="sticky top-4">
-                <svg
-                  viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
-                  className="w-full h-auto border rounded-lg bg-muted"
-                  style={{ maxHeight: "50vh" }}
-                >
-                  {decorativeElements.map((element) => (
-                    <g
-                      key={element.id}
-                      dangerouslySetInnerHTML={{ __html: element.content }}
-                    />
-                  ))}
-
-                  <ProvinceLayer
-                    provinces={provinces}
-                    nations={nations}
-                    selectedProvinceId={selectedProvinceId}
-                    hoveredProvinceId={hoveredProvinceId}
-                    onProvinceClick={handleProvinceClick}
-                    onProvinceMouseEnter={setHoveredProvinceId}
-                    onProvinceMouseLeave={() => setHoveredProvinceId(null)}
+          <div className="space-y-6">
+            <div>
+              <svg
+                viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
+                className="w-full h-auto border rounded-lg bg-muted"
+                style={{ maxHeight: "40vh" }}
+              >
+                {decorativeElements.map((element) => (
+                  <g
+                    key={element.id}
+                    dangerouslySetInnerHTML={{ __html: element.content }}
                   />
-                </svg>
+                ))}
 
-                {selectedProvinceId && (
-                  <div className="mt-2 p-2 bg-muted rounded text-sm">
-                    <strong>Selected:</strong>{" "}
-                    {provinces.find((p) => p.id === selectedProvinceId)?.name ||
-                      selectedProvinceId}
-                  </div>
-                )}
-              </div>
+                <ProvinceLayer
+                  provinces={provinces}
+                  nations={nations}
+                  selectedProvinceId={selectedProvinceId}
+                  hoveredProvinceId={hoveredProvinceId}
+                  onProvinceClick={handleProvinceClick}
+                  onProvinceMouseEnter={setHoveredProvinceId}
+                  onProvinceMouseLeave={() => setHoveredProvinceId(null)}
+                />
+              </svg>
+
+              {selectedProvinceId && (
+                <div className="mt-2 p-2 bg-muted rounded text-sm">
+                  <strong>Selected:</strong>{" "}
+                  {provinces.find((p) => p.id === selectedProvinceId)?.name ||
+                    selectedProvinceId}
+                </div>
+              )}
             </div>
+
+            <ProvinceTable
+              provinces={provinces}
+              nations={nations}
+              selectedProvinceId={selectedProvinceId}
+              onProvinceSelect={handleProvinceClick}
+              onProvinceHover={setHoveredProvinceId}
+              onProvinceUpdate={handleProvinceUpdate}
+              validationErrors={validationErrors}
+            />
           </div>
         </CardContent>
       </Card>

@@ -8,7 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Province, Nation } from "@/types/variant";
-import { suggestId, validateProvinceId } from "@/utils/idSuggestion";
+import { validateProvinceId } from "@/utils/idSuggestion";
 
 interface ProvinceTableProps {
   provinces: Province[];
@@ -35,17 +35,7 @@ export const ProvinceTable: React.FC<ProvinceTableProps> = ({
   validationErrors,
 }) => {
   const handleNameChange = (province: Province, newName: string) => {
-    const updates: Partial<Province> = { name: newName };
-
-    if (!province.id || province.id === province.elementId) {
-      const suggestedId = suggestId(newName);
-      const idAlreadyExists = provinces.some((p) => p.id === suggestedId && p.elementId !== province.elementId);
-      if (suggestedId && !idAlreadyExists) {
-        updates.id = suggestedId;
-      }
-    }
-
-    onProvinceUpdate(province.id, updates);
+    onProvinceUpdate(province.id, { name: newName });
   };
 
   const handleIdChange = (province: Province, newId: string) => {
