@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import App from "../App";
+import { MemoryRouter } from "react-router-dom";
+import { LandingPage } from "@/components/LandingPage";
 import { STORAGE_KEY } from "@/hooks/useVariant";
 import * as exportModule from "@/utils/export";
 
@@ -12,6 +13,10 @@ vi.mock("@/utils/geometry", () => ({
     supplyCenterPosition: { x: 8, y: 8 },
   })),
 }));
+
+function renderWithRouter(ui: React.ReactElement, { route = "/" } = {}) {
+  return render(<MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>);
+}
 
 const createMockFile = (content: string, name: string) => {
   const file = new File([content], name, { type: "image/svg+xml" });
@@ -49,23 +54,29 @@ const createInvalidSvgFile = () => {
   return createMockFile(svgContent, "test.svg");
 };
 
-describe("App", () => {
+describe("LandingPage", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   it("renders the Diplicity Variant Creator heading", () => {
-    render(<App />);
+    renderWithRouter(<LandingPage />);
     expect(screen.getByText("Diplicity Variant Creator")).toBeInTheDocument();
   });
 
   it("renders the file upload zone", () => {
-    render(<App />);
+    renderWithRouter(<LandingPage />);
     expect(
       screen.getByText("Drop SVG file here or click to upload")
     ).toBeInTheDocument();
   });
 
   it("shows map preview after valid SVG upload", async () => {
-    render(<App />);
+    renderWithRouter(<LandingPage />);
 
-    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const input = document.querySelector(
+      'input[type="file"]'
+    ) as HTMLInputElement;
     const file = createValidSvgFile(3);
 
     fireEvent.change(input, { target: { files: [file] } });
@@ -79,9 +90,11 @@ describe("App", () => {
   });
 
   it("does not show map after invalid SVG upload", async () => {
-    render(<App />);
+    renderWithRouter(<LandingPage />);
 
-    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const input = document.querySelector(
+      'input[type="file"]'
+    ) as HTMLInputElement;
     const file = createInvalidSvgFile();
 
     fireEvent.change(input, { target: { files: [file] } });
@@ -96,12 +109,8 @@ describe("App", () => {
   });
 
   describe("persistence", () => {
-    beforeEach(() => {
-      localStorage.clear();
-    });
-
     it("persists variant to localStorage after SVG upload", async () => {
-      render(<App />);
+      renderWithRouter(<LandingPage />);
 
       const input = document.querySelector(
         'input[type="file"]'
@@ -164,13 +173,13 @@ describe("App", () => {
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(mockVariant));
 
-      render(<App />);
+      renderWithRouter(<LandingPage />);
 
       expect(screen.getByText("2 provinces detected")).toBeInTheDocument();
     });
 
     it("shows Clear Draft button when variant exists", async () => {
-      render(<App />);
+      renderWithRouter(<LandingPage />);
 
       const input = document.querySelector(
         'input[type="file"]'
@@ -187,7 +196,7 @@ describe("App", () => {
     });
 
     it("clears variant when Clear Draft is clicked", async () => {
-      render(<App />);
+      renderWithRouter(<LandingPage />);
 
       const input = document.querySelector(
         'input[type="file"]'
@@ -210,7 +219,7 @@ describe("App", () => {
     });
 
     it("does not show Clear Draft button when no variant exists", () => {
-      render(<App />);
+      renderWithRouter(<LandingPage />);
 
       expect(
         screen.queryByRole("button", { name: /clear draft/i })
@@ -220,12 +229,13 @@ describe("App", () => {
 
   describe("JSON download", () => {
     beforeEach(() => {
-      localStorage.clear();
-      vi.spyOn(exportModule, "downloadVariantJson").mockImplementation(() => {});
+      vi.spyOn(exportModule, "downloadVariantJson").mockImplementation(
+        () => {}
+      );
     });
 
     it("shows Download JSON button when variant exists", async () => {
-      render(<App />);
+      renderWithRouter(<LandingPage />);
 
       const input = document.querySelector(
         'input[type="file"]'
@@ -242,7 +252,7 @@ describe("App", () => {
     });
 
     it("does not show Download JSON button when no variant exists", () => {
-      render(<App />);
+      renderWithRouter(<LandingPage />);
 
       expect(
         screen.queryByRole("button", { name: /download json/i })
@@ -250,7 +260,7 @@ describe("App", () => {
     });
 
     it("calls downloadVariantJson when Download JSON is clicked", async () => {
-      render(<App />);
+      renderWithRouter(<LandingPage />);
 
       const input = document.querySelector(
         'input[type="file"]'
@@ -274,6 +284,45 @@ describe("App", () => {
           provinces: expect.any(Array),
         })
       );
+    });
+  });
+
+  describe("Continue Editing", () => {
+    it("shows Continue Editing button when variant exists", () => {
+      const mockVariant = {
+        name: "test",
+        description: "",
+        author: "",
+        version: "1.0.0",
+        soloVictorySCCount: 18,
+        nations: [],
+        provinces: [
+          {
+            id: "p1",
+            elementId: "p1",
+            name: "",
+            type: "land",
+            path: "M0,0",
+            homeNation: null,
+            supplyCenter: false,
+            startingUnit: null,
+            adjacencies: [],
+            labels: [],
+            unitPosition: { x: 0, y: 0 },
+            dislodgedUnitPosition: { x: 0, y: 0 },
+          },
+        ],
+        namedCoasts: [],
+        decorativeElements: [],
+        dimensions: { width: 100, height: 100 },
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(mockVariant));
+
+      renderWithRouter(<LandingPage />);
+
+      expect(
+        screen.getByRole("button", { name: /continue editing/i })
+      ).toBeInTheDocument();
     });
   });
 });

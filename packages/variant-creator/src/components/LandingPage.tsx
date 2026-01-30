@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { FileUpload } from "@/components/common/FileUpload";
 import { JsonUpload } from "@/components/common/JsonUpload";
 import { MapCanvas } from "@/components/map/MapCanvas";
@@ -21,9 +22,11 @@ import type { SvgValidationResult } from "@/types/svg";
 import type { JsonValidationResult } from "@/utils/validation";
 import type { VariantDefinition } from "@/types/variant";
 
-function App() {
+export function LandingPage() {
+  const navigate = useNavigate();
   const { variant, setVariant, clearDraft } = useVariant();
-  const [pendingVariant, setPendingVariant] = useState<VariantDefinition | null>(null);
+  const [pendingVariant, setPendingVariant] =
+    useState<VariantDefinition | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   const applyVariant = (newVariant: VariantDefinition) => {
@@ -32,6 +35,7 @@ function App() {
       setShowConfirmDialog(true);
     } else {
       setVariant(newVariant);
+      navigate("/phase/0");
     }
   };
 
@@ -59,6 +63,7 @@ function App() {
     if (pendingVariant) {
       setVariant(pendingVariant);
       setPendingVariant(null);
+      navigate("/phase/0");
     }
     setShowConfirmDialog(false);
   };
@@ -66,6 +71,10 @@ function App() {
   const handleCancelReplace = () => {
     setPendingVariant(null);
     setShowConfirmDialog(false);
+  };
+
+  const handleContinueDraft = () => {
+    navigate("/phase/0");
   };
 
   return (
@@ -80,7 +89,9 @@ function App() {
 
         <div className="flex w-full flex-col items-center gap-6 sm:flex-row sm:justify-center">
           <div className="flex flex-col items-center gap-2">
-            <h2 className="text-sm font-medium text-muted-foreground">Start from SVG</h2>
+            <h2 className="text-sm font-medium text-muted-foreground">
+              Start from SVG
+            </h2>
             <FileUpload onFileValidated={handleSvgFileValidated} />
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
@@ -89,7 +100,9 @@ function App() {
             <div className="h-px w-8 bg-border sm:h-8 sm:w-px" />
           </div>
           <div className="flex flex-col items-center gap-2">
-            <h2 className="text-sm font-medium text-muted-foreground">Resume from JSON</h2>
+            <h2 className="text-sm font-medium text-muted-foreground">
+              Resume from JSON
+            </h2>
             <JsonUpload onFileValidated={handleJsonFileValidated} />
           </div>
         </div>
@@ -101,7 +114,11 @@ function App() {
                 {variant.provinces.length} provinces detected
               </p>
               <div className="flex gap-2">
-                <Button onClick={() => downloadVariantJson(variant)}>
+                <Button onClick={handleContinueDraft}>Continue Editing</Button>
+                <Button
+                  variant="outline"
+                  onClick={() => downloadVariantJson(variant)}
+                >
                   Download JSON
                 </Button>
                 <Button variant="outline" onClick={clearDraft}>
@@ -119,18 +136,21 @@ function App() {
           <AlertDialogHeader>
             <AlertDialogTitle>Replace current draft?</AlertDialogTitle>
             <AlertDialogDescription>
-              You have an existing draft with {variant?.provinces.length} provinces.
-              This will replace it with the new upload. This action cannot be undone.
+              You have an existing draft with {variant?.provinces.length}{" "}
+              provinces. This will replace it with the new upload. This action
+              cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCancelReplace}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmReplace}>Replace</AlertDialogAction>
+            <AlertDialogCancel onClick={handleCancelReplace}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmReplace}>
+              Replace
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
   );
 }
-
-export default App;

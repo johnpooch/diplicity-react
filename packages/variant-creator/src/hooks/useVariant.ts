@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import type { VariantDefinition } from "@/types/variant";
+import type { VariantDefinition, Nation } from "@/types/variant";
 
 const STORAGE_KEY = "variant-creator-draft";
 
@@ -13,6 +13,11 @@ function loadFromStorage(): VariantDefinition | null {
     return null;
   }
 }
+
+type VariantMetadata = Pick<
+  VariantDefinition,
+  "name" | "description" | "author" | "soloVictorySCCount"
+>;
 
 export function useVariant() {
   const [variant, setVariant] = useState<VariantDefinition | null>(() => {
@@ -34,7 +39,62 @@ export function useVariant() {
     setVariant(null);
   }, []);
 
-  return { variant, setVariant, clearDraft };
+  const updateMetadata = useCallback((updates: Partial<VariantMetadata>) => {
+    setVariant((prev) => {
+      if (!prev) return null;
+      return { ...prev, ...updates };
+    });
+  }, []);
+
+  const addNation = useCallback((nation: Nation) => {
+    setVariant((prev) => {
+      if (!prev) return null;
+      return { ...prev, nations: [...prev.nations, nation] };
+    });
+  }, []);
+
+  const updateNation = useCallback(
+    (id: string, updates: Partial<Omit<Nation, "id">>) => {
+      setVariant((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          nations: prev.nations.map((n) =>
+            n.id === id ? { ...n, ...updates } : n
+          ),
+        };
+      });
+    },
+    []
+  );
+
+  const removeNation = useCallback((id: string) => {
+    setVariant((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        nations: prev.nations.filter((n) => n.id !== id),
+      };
+    });
+  }, []);
+
+  const setNations = useCallback((nations: Nation[]) => {
+    setVariant((prev) => {
+      if (!prev) return null;
+      return { ...prev, nations };
+    });
+  }, []);
+
+  return {
+    variant,
+    setVariant,
+    clearDraft,
+    updateMetadata,
+    addNation,
+    updateNation,
+    removeNation,
+    setNations,
+  };
 }
 
 export { STORAGE_KEY };
