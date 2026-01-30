@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 400 400">
+  <!-- Background layer - decorative -->
+  <g id="background" inkscape:label="background">
+    <rect x="0" y="0" width="400" height="400" fill="#8BA5D0"/>
+  </g>
+
+  <!-- Provinces layer - 7 provinces with shared borders -->
+  <g id="provinces" inkscape:label="provinces">
+    <!-- NOR (north) - top center, hexagonal shape -->
+    <path id="nor" d="M150,20 L250,20 L280,80 L200,120 L120,80 Z" fill="#C8B896"/>
+
+    <!-- WES (west) - left side, shares border with NOR and CEN -->
+    <path id="wes" d="M20,80 L120,80 L200,120 L200,200 L120,240 L20,200 Z" fill="#C8B896"/>
+
+    <!-- EAS (east) - right side, shares border with NOR and MID -->
+    <path id="eas" d="M280,80 L380,80 L380,200 L280,240 L200,200 L200,120 Z" fill="#C8B896"/>
+
+    <!-- CEN (center) - center-left, shares border with WES, MID, SOU -->
+    <path id="cen" d="M120,240 L200,200 L200,280 L120,320 L40,280 L40,260 Z" fill="#C8B896"/>
+
+    <!-- MID (middle-east) - center-right, shares border with EAS, CEN, ISL -->
+    <path id="mid" d="M200,200 L280,240 L360,260 L360,280 L280,320 L200,280 Z" fill="#C8B896"/>
+
+    <!-- SOU (south) - bottom left, shares border with CEN only -->
+    <path id="sou" d="M40,280 L120,320 L120,380 L40,380 Z" fill="#C8B896"/>
+
+    <!-- ISL (island) - bottom right, shares border with MID only -->
+    <path id="isl" d="M280,320 L360,280 L380,320 L380,380 L280,380 Z" fill="#C8B896"/>
+  </g>
+
+  <!-- Text layer - province labels -->
+  <g id="text" inkscape:label="text">
+    <text x="200" y="70" text-anchor="middle" font-family="Arial" font-size="16" fill="#333">NOR</text>
+    <text x="100" y="160" text-anchor="middle" font-family="Arial" font-size="16" fill="#333">WES</text>
+    <text x="300" y="160" text-anchor="middle" font-family="Arial" font-size="16" fill="#333">EAS</text>
+    <text x="120" y="280" text-anchor="middle" font-family="Arial" font-size="16" fill="#333">CEN</text>
+    <text x="280" y="280" text-anchor="middle" font-family="Arial" font-size="16" fill="#333">MID</text>
+    <text x="80" y="350" text-anchor="middle" font-family="Arial" font-size="16" fill="#333">SOU</text>
+    <text x="330" y="350" text-anchor="middle" font-family="Arial" font-size="16" fill="#333">ISL</text>
+  </g>
+
+  <!-- Borders layer - decorative stroke for visibility -->
+  <g id="borders" inkscape:label="borders">
+    <path d="M150,20 L250,20 L280,80 L200,120 L120,80 Z" fill="none" stroke="#333" stroke-width="1"/>
+    <path d="M20,80 L120,80 L200,120 L200,200 L120,240 L20,200 Z" fill="none" stroke="#333" stroke-width="1"/>
+    <path d="M280,80 L380,80 L380,200 L280,240 L200,200 L200,120 Z" fill="none" stroke="#333" stroke-width="1"/>
+    <path d="M120,240 L200,200 L200,280 L120,320 L40,280 L40,260 Z" fill="none" stroke="#333" stroke-width="1"/>
+    <path d="M200,200 L280,240 L360,260 L360,280 L280,320 L200,280 Z" fill="none" stroke="#333" stroke-width="1"/>
+    <path d="M40,280 L120,320 L120,380 L40,380 Z" fill="none" stroke="#333" stroke-width="1"/>
+    <path d="M280,320 L360,280 L380,320 L380,380 L280,380 Z" fill="none" stroke="#333" stroke-width="1"/>
+  </g>
+</svg>

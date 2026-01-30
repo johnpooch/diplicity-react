@@ -5,6 +5,7 @@ interface ProvinceLayerProps {
   nations: Nation[];
   selectedProvinceId: string | null;
   hoveredProvinceId: string | null;
+  adjacentProvinceIds?: string[];
   onProvinceClick?: (provinceId: string) => void;
   onProvinceMouseEnter?: (provinceId: string) => void;
   onProvinceMouseLeave?: () => void;
@@ -14,10 +15,15 @@ function getProvinceFill(
   province: Province,
   nations: Nation[],
   isSelected: boolean,
-  isHovered: boolean
+  isHovered: boolean,
+  isAdjacent: boolean
 ): string {
   if (isSelected) {
     return "#FFD700";
+  }
+
+  if (isAdjacent) {
+    return "#90EE90";
   }
 
   if (isHovered) {
@@ -43,6 +49,7 @@ export const ProvinceLayer: React.FC<ProvinceLayerProps> = ({
   nations,
   selectedProvinceId,
   hoveredProvinceId,
+  adjacentProvinceIds = [],
   onProvinceClick,
   onProvinceMouseEnter,
   onProvinceMouseLeave,
@@ -52,7 +59,14 @@ export const ProvinceLayer: React.FC<ProvinceLayerProps> = ({
       {provinces.map((province) => {
         const isSelected = province.id === selectedProvinceId;
         const isHovered = province.id === hoveredProvinceId;
-        const fill = getProvinceFill(province, nations, isSelected, isHovered);
+        const isAdjacent = adjacentProvinceIds.includes(province.id);
+        const fill = getProvinceFill(
+          province,
+          nations,
+          isSelected,
+          isHovered,
+          isAdjacent
+        );
 
         return (
           <path
