@@ -2,6 +2,7 @@ import { FileUpload } from "@/components/common/FileUpload";
 import { MapCanvas } from "@/components/map/MapCanvas";
 import { Button } from "@/components/ui/button";
 import { useVariant } from "@/hooks/useVariant";
+import { downloadVariantJson } from "@/utils/export";
 import { parseSvg } from "@/utils/svg";
 import { createInitialVariant } from "@/utils/variantFactory";
 import type { SvgValidationResult } from "@/types/svg";
@@ -37,9 +38,14 @@ function App() {
               <p className="text-lg font-medium">
                 {variant.provinces.length} provinces detected
               </p>
-              <Button variant="outline" onClick={clearDraft}>
-                Clear Draft
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={() => downloadVariantJson(variant)}>
+                  Download JSON
+                </Button>
+                <Button variant="outline" onClick={clearDraft}>
+                  Clear Draft
+                </Button>
+              </div>
             </div>
             <MapCanvas variant={variant} />
           </div>
