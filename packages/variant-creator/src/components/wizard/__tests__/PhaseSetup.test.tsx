@@ -85,10 +85,10 @@ describe("PhaseSetup", () => {
     expect(screen.getByLabelText(/solo victory sc count/i)).toBeInTheDocument();
   });
 
-  it("starts with 2 nation rows by default", () => {
+  it("starts with 7 classical nation rows by default", () => {
     renderWithRouter();
     const nationInputs = screen.getAllByPlaceholderText(/nation name/i);
-    expect(nationInputs).toHaveLength(2);
+    expect(nationInputs).toHaveLength(7);
   });
 
   it("allows adding new nations", async () => {
@@ -98,29 +98,35 @@ describe("PhaseSetup", () => {
     fireEvent.click(addButton);
 
     const nationInputs = screen.getAllByPlaceholderText(/nation name/i);
-    expect(nationInputs).toHaveLength(3);
+    expect(nationInputs).toHaveLength(8);
   });
 
   it("allows removing nations when more than 2 exist", async () => {
     renderWithRouter();
 
-    const addButton = screen.getByRole("button", { name: /add nation/i });
-    fireEvent.click(addButton);
-
     const removeButtons = screen.getAllByRole("button", {
       name: /remove nation/i,
     });
-    expect(removeButtons).toHaveLength(3);
+    expect(removeButtons).toHaveLength(7);
 
     fireEvent.click(removeButtons[0]);
 
     await waitFor(() => {
       const nationInputs = screen.getAllByPlaceholderText(/nation name/i);
-      expect(nationInputs).toHaveLength(2);
+      expect(nationInputs).toHaveLength(6);
     });
   });
 
   it("disables remove button when only 2 nations exist", () => {
+    const existingVariant = {
+      ...mockVariant,
+      nations: [
+        { id: "nation-1", name: "Nation 1", color: "#F44336" },
+        { id: "nation-2", name: "Nation 2", color: "#2196F3" },
+      ],
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(existingVariant));
+
     renderWithRouter();
 
     const removeButtons = screen.getAllByRole("button", {

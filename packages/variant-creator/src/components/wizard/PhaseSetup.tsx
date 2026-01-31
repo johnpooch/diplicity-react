@@ -18,14 +18,23 @@ import { NationColorPicker } from "@/components/common/NationColorPicker";
 import { useVariant } from "@/hooks/useVariant";
 
 const DEFAULT_COLORS = [
-  "#2196F3",
-  "#F44336",
-  "#4CAF50",
-  "#FFC107",
-  "#9C27B0",
-  "#00BCD4",
-  "#607D8B",
-  "#FF5722",
+  "#F44336", // Austria - Material Red
+  "#2196F3", // England - Material Blue
+  "#80DEEA", // France - Material Cyan
+  "#90A4AE", // Germany - Material Blue Grey
+  "#4CAF50", // Italy - Material Green
+  "#F5F5F5", // Russia - Material White/Grey
+  "#FFC107", // Turkey - Material Amber
+];
+
+const DEFAULT_NATIONS = [
+  { id: "austria", name: "Austria", color: "#F44336" },
+  { id: "england", name: "England", color: "#2196F3" },
+  { id: "france", name: "France", color: "#80DEEA" },
+  { id: "germany", name: "Germany", color: "#90A4AE" },
+  { id: "italy", name: "Italy", color: "#4CAF50" },
+  { id: "russia", name: "Russia", color: "#F5F5F5" },
+  { id: "turkey", name: "Turkey", color: "#FFC107" },
 ];
 
 const nationSchema = z.object({
@@ -77,12 +86,7 @@ export function PhaseSetup() {
       description: variant?.description || "",
       author: variant?.author || "",
       soloVictorySCCount: variant?.soloVictorySCCount || 18,
-      nations: variant?.nations?.length
-        ? variant.nations
-        : [
-            { id: "nation-1", name: "", color: DEFAULT_COLORS[0] },
-            { id: "nation-2", name: "", color: DEFAULT_COLORS[1] },
-          ],
+      nations: variant?.nations?.length ? variant.nations : DEFAULT_NATIONS,
     },
     mode: "onChange",
   });
