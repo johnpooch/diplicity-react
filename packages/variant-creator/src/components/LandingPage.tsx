@@ -82,7 +82,7 @@ export function LandingPage() {
       <div className="flex w-full max-w-4xl flex-col items-center text-center">
         <h1 className="mb-4 text-4xl font-bold">Diplicity Variant Creator</h1>
         <p className="mb-8 text-lg text-muted-foreground">
-          Create custom Diplomacy variants using Inkscape SVG files. Upload your
+          Create custom Diplomacy variants using SVG files. Upload your
           map, define provinces and nations, and export a complete variant
           definition.
         </p>
