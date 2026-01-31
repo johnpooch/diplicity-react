@@ -62,10 +62,6 @@ export const ProvinceTable: React.FC<ProvinceTableProps> = ({
       updates.startingUnit = null;
     }
 
-    if (!nationId && province.supplyCenter) {
-      updates.supplyCenter = false;
-    }
-
     onProvinceUpdate(province.id, updates);
   };
 
@@ -224,7 +220,6 @@ export const ProvinceTable: React.FC<ProvinceTableProps> = ({
                       handleSupplyCenterChange(province, checked === true)
                     }
                     onClick={(e) => e.stopPropagation()}
-                    disabled={!province.homeNation && !province.supplyCenter}
                   />
                 </td>
                 <td className="px-3 py-2">

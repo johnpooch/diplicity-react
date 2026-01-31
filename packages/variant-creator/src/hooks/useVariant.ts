@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import type { VariantDefinition, Nation, Province } from "@/types/variant";
+import type { VariantDefinition, Nation, Province, Position, Label } from "@/types/variant";
 
 const STORAGE_KEY = "variant-creator-draft";
 
@@ -107,6 +107,46 @@ export function useVariant() {
     });
   }, []);
 
+  const updateProvincePosition = useCallback(
+    (
+      provinceId: string,
+      positionType: "unitPosition" | "dislodgedUnitPosition" | "supplyCenterPosition",
+      position: Position
+    ) => {
+      setVariant((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          provinces: prev.provinces.map((p) =>
+            p.id === provinceId ? { ...p, [positionType]: position } : p
+          ),
+        };
+      });
+    },
+    []
+  );
+
+  const updateProvinceLabel = useCallback(
+    (provinceId: string, labelIndex: number, updates: Partial<Label>) => {
+      setVariant((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          provinces: prev.provinces.map((p) => {
+            if (p.id !== provinceId) return p;
+            return {
+              ...p,
+              labels: p.labels.map((label, idx) =>
+                idx === labelIndex ? { ...label, ...updates } : label
+              ),
+            };
+          }),
+        };
+      });
+    },
+    []
+  );
+
   return {
     variant,
     setVariant,
@@ -118,6 +158,8 @@ export function useVariant() {
     setNations,
     updateProvince,
     setProvinces,
+    updateProvincePosition,
+    updateProvinceLabel,
   };
 }
 
