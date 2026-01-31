@@ -9,8 +9,8 @@ import { PhaseVisualEditor } from "@/components/wizard/PhaseVisualEditor";
 
 const WIZARD_PHASES = [
   { path: "0", title: "Variant Setup", component: PhaseSetup },
-  { path: "1", title: "Province Details", component: PhaseProvinces },
-  { path: "2", title: "Text Association", component: PhaseTextAssoc },
+  { path: "1", title: "Text Association", component: PhaseTextAssoc },
+  { path: "2", title: "Province Details", component: PhaseProvinces },
   { path: "3", title: "Adjacencies", component: PhaseAdjacencies },
   { path: "4", title: "Visual Editor", component: PhaseVisualEditor },
 ];

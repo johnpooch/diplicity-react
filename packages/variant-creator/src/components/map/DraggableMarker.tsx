@@ -14,14 +14,38 @@ interface DraggableMarkerProps {
   svgRef: React.RefObject<SVGSVGElement | null>;
 }
 
+const FALLBACK_COLORS = {
+  unit: { fill: "#4A90D9", innerDot: "#2563EB" },
+  dislodged: { fill: "#EF4444", xMark: "#FFFFFF" },
+  supplyCenter: { fill: "#F59E0B" },
+} as const;
+
+const DEFAULT_GRAY_COLORS = ["#666666", "#888888"];
+
+function isUsingFallbackColor(color: string): boolean {
+  return DEFAULT_GRAY_COLORS.includes(color.toLowerCase());
+}
+
+function darkenColor(hex: string, factor: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+
+  const darkerR = Math.round(r * (1 - factor));
+  const darkerG = Math.round(g * (1 - factor));
+  const darkerB = Math.round(b * (1 - factor));
+
+  return `#${darkerR.toString(16).padStart(2, "0")}${darkerG.toString(16).padStart(2, "0")}${darkerB.toString(16).padStart(2, "0")}`;
+}
+
 function getMarkerRadius(markerType: MarkerType): number {
   switch (markerType) {
     case "unit":
-      return 12;
+      return 14;
     case "dislodged":
-      return 10;
+      return 12;
     case "supplyCenter":
-      return 8;
+      return 12;
   }
 }
 
@@ -53,7 +77,7 @@ export const DraggableMarker: React.FC<DraggableMarkerProps> = ({
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragPosition, setDragPosition] = useState<Position | null>(null);
-  const circleRef = useRef<SVGCircleElement>(null);
+  const markerRef = useRef<SVGGElement>(null);
   const polygonRef = useRef<SVGPolygonElement>(null);
 
   const handlePointerDown = useCallback(
@@ -64,7 +88,7 @@ export const DraggableMarker: React.FC<DraggableMarkerProps> = ({
       if (!svgRef.current) return;
 
       setIsDragging(true);
-      const ref = markerType === "supplyCenter" ? polygonRef : circleRef;
+      const ref = markerType === "supplyCenter" ? polygonRef : markerRef;
       ref.current?.setPointerCapture(e.pointerId);
 
       const svgCoords = screenToSvgCoords(svgRef.current, e.clientX, e.clientY);
@@ -93,7 +117,7 @@ export const DraggableMarker: React.FC<DraggableMarkerProps> = ({
       e.preventDefault();
       e.stopPropagation();
 
-      const ref = markerType === "supplyCenter" ? polygonRef : circleRef;
+      const ref = markerType === "supplyCenter" ? polygonRef : markerRef;
       ref.current?.releasePointerCapture(e.pointerId);
       setIsDragging(false);
 
@@ -139,13 +163,16 @@ export const DraggableMarker: React.FC<DraggableMarkerProps> = ({
   const displayX = dragPosition?.x ?? x;
   const displayY = dragPosition?.y ?? y;
 
+  const useFallback = isUsingFallbackColor(color);
+
   if (markerType === "supplyCenter") {
+    const fillColor = useFallback ? FALLBACK_COLORS.supplyCenter.fill : color;
     const starPoints = generateStarPoints(displayX, displayY, radius, radius / 2, 5);
     return (
       <polygon
         ref={polygonRef}
         points={starPoints}
-        fill={color}
+        fill={fillColor}
         stroke={selected ? "#FFD700" : "#333"}
         strokeWidth={selected ? 2 : 1}
         style={{
@@ -160,16 +187,63 @@ export const DraggableMarker: React.FC<DraggableMarkerProps> = ({
     );
   }
 
+  if (markerType === "dislodged") {
+    const fillColor = useFallback ? FALLBACK_COLORS.dislodged.fill : color;
+    const xMarkColor = useFallback
+      ? FALLBACK_COLORS.dislodged.xMark
+      : darkenColor(color, 0.4);
+    const xSize = radius * 0.5;
+
+    return (
+      <g
+        ref={markerRef}
+        style={{
+          cursor: isDragging ? "grabbing" : "grab",
+          touchAction: "none",
+        }}
+        onClick={handleClick}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+      >
+        <circle
+          cx={displayX}
+          cy={displayY}
+          r={radius}
+          fill={fillColor}
+          stroke={selected ? "#FFD700" : "#333"}
+          strokeWidth={selected ? 2 : 1}
+        />
+        <line
+          x1={displayX - xSize}
+          y1={displayY - xSize}
+          x2={displayX + xSize}
+          y2={displayY + xSize}
+          stroke={xMarkColor}
+          strokeWidth={2}
+          strokeLinecap="round"
+        />
+        <line
+          x1={displayX + xSize}
+          y1={displayY - xSize}
+          x2={displayX - xSize}
+          y2={displayY + xSize}
+          stroke={xMarkColor}
+          strokeWidth={2}
+          strokeLinecap="round"
+        />
+      </g>
+    );
+  }
+
+  const fillColor = useFallback ? FALLBACK_COLORS.unit.fill : color;
+  const innerDotColor = useFallback
+    ? FALLBACK_COLORS.unit.innerDot
+    : darkenColor(color, 0.3);
+
   return (
-    <circle
-      ref={circleRef}
-      cx={displayX}
-      cy={displayY}
-      r={radius}
-      fill={color}
-      stroke={selected ? "#FFD700" : "#333"}
-      strokeWidth={selected ? 2 : 1}
-      strokeDasharray={markerType === "dislodged" ? "3,2" : undefined}
+    <g
+      ref={markerRef}
       style={{
         cursor: isDragging ? "grabbing" : "grab",
         touchAction: "none",
@@ -178,7 +252,17 @@ export const DraggableMarker: React.FC<DraggableMarkerProps> = ({
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-    />
+    >
+      <circle
+        cx={displayX}
+        cy={displayY}
+        r={radius}
+        fill={fillColor}
+        stroke={selected ? "#FFD700" : "#333"}
+        strokeWidth={selected ? 2 : 1}
+      />
+      <circle cx={displayX} cy={displayY} r={radius * 0.35} fill={innerDotColor} />
+    </g>
   );
 };
 

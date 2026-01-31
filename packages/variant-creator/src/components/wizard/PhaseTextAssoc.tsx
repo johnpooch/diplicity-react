@@ -23,6 +23,7 @@ import {
   buildAssociationsFromProvinces,
 } from "@/utils/textAssociation";
 import { Wand2, X } from "lucide-react";
+import { calculateMapMaxHeight } from "@/utils/mapSizing";
 
 export function PhaseTextAssoc() {
   const { variant, setProvinces } = useVariant();
@@ -161,7 +162,7 @@ export function PhaseTextAssoc() {
               <svg
                 viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
                 className="w-full h-auto border rounded-lg bg-muted"
-                style={{ maxHeight: "40vh" }}
+                style={{ maxHeight: calculateMapMaxHeight(dimensions) }}
               >
                 {decorativeElements.map((element) => (
                   <g

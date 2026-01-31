@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -11,6 +11,7 @@ import { ProvinceLayer } from "@/components/map/ProvinceLayer";
 import { useVariant } from "@/hooks/useVariant";
 import type { Province } from "@/types/variant";
 import { validateProvinceId, isUniqueId } from "@/utils/idSuggestion";
+import { calculateMapMaxHeight } from "@/utils/mapSizing";
 
 function validateProvinces(provinces: Province[]): Map<string, string[]> {
   const errors = new Map<string, string[]>();
@@ -72,6 +73,29 @@ export function PhaseProvinces() {
     return validateProvinces(variant.provinces);
   }, [variant]);
 
+  const hasInitialized = useRef(false);
+
+  useEffect(() => {
+    if (hasInitialized.current || !variant) return;
+    hasInitialized.current = true;
+
+    const provincesToUpdate = variant.provinces.filter((province) => {
+      const svgLabels = province.labels.filter((label) => label.source === "svg");
+      return !province.name && svgLabels.length > 0;
+    });
+
+    if (provincesToUpdate.length > 0) {
+      const updatedProvinces = variant.provinces.map((province) => {
+        const svgLabels = province.labels.filter((label) => label.source === "svg");
+        if (!province.name && svgLabels.length > 0) {
+          return { ...province, name: svgLabels[0].text };
+        }
+        return province;
+      });
+      setProvinces(updatedProvinces);
+    }
+  }, [variant, setProvinces]);
+
   if (!variant) {
     return null;
   }
@@ -130,7 +154,7 @@ export function PhaseProvinces() {
               <svg
                 viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
                 className="w-full h-auto border rounded-lg bg-muted"
-                style={{ maxHeight: "40vh" }}
+                style={{ maxHeight: calculateMapMaxHeight(dimensions) }}
               >
                 {decorativeElements.map((element) => (
                   <g
