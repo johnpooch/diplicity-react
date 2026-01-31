@@ -125,8 +125,11 @@ describe("PhaseVisualEditor", () => {
     it("renders unit markers for all provinces", () => {
       renderWithRouter();
 
+      // Unit markers now render as <g> elements containing circles (outer + inner dot)
+      // and dislodged markers render as <g> elements containing circles + X lines
+      // With 2 provinces: 2 units × 2 circles + 2 dislodged × 1 circle = 6 circles
       const circles = document.querySelectorAll("circle");
-      expect(circles.length).toBeGreaterThanOrEqual(2);
+      expect(circles.length).toBeGreaterThanOrEqual(4);
     });
 
     it("renders supply center markers for SC provinces", () => {
@@ -153,7 +156,9 @@ describe("PhaseVisualEditor", () => {
 
       await waitFor(() => {
         const newCircleCount = document.querySelectorAll("circle").length;
+        // Each unit marker has 2 circles (outer + inner dot), so hiding units removes at least 4 circles
         expect(newCircleCount).toBeLessThan(initialCircleCount);
+        expect(initialCircleCount - newCircleCount).toBeGreaterThanOrEqual(4);
       });
     });
 

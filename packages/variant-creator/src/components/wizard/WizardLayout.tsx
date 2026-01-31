@@ -6,8 +6,8 @@ import { WIZARD_PHASES } from "@/Router";
 
 const PHASE_TITLES = [
   "Variant Setup",
-  "Province Details",
   "Text Association",
+  "Province Details",
   "Adjacencies",
   "Visual Editor",
   "Review & Export",

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <!-- Background layer -->
+  <g id="background">
+    <rect width="800" height="600" fill="#8BA5D0"/>
+  </g>
+
+  <!-- Provinces layer - required -->
+  <g id="provinces">
+    <!-- Land provinces -->
+    <path id="ber" d="M100,100 L200,100 L200,200 L100,200 Z" fill="#C8B896"/>
+    <path id="mun" d="M220,100 L320,100 L320,200 L220,200 Z" fill="#C8B896"/>
+    <path id="vie" d="M340,100 L440,100 L440,200 L340,200 Z" fill="#C8B896"/>
+
+    <!-- Coastal provinces -->
+    <path id="kie" d="M100,220 L200,220 L200,320 L100,320 Z" fill="#D4C4A8"/>
+    <path id="hol" d="M220,220 L320,220 L320,320 L220,320 Z" fill="#D4C4A8"/>
+
+    <!-- Sea provinces -->
+    <path id="nth" d="M100,340 L200,340 L200,440 L100,440 Z" fill="#8BA5D0"/>
+    <path id="bal" d="M220,340 L320,340 L320,440 L220,440 Z" fill="#8BA5D0"/>
+    <path id="ska" d="M340,340 L440,340 L440,440 L340,440 Z" fill="#8BA5D0"/>
+
+    <!-- More land provinces -->
+    <path id="par" d="M500,100 L600,100 L600,200 L500,200 Z" fill="#C8B896"/>
+    <path id="mar" d="M620,100 L720,100 L720,200 L620,200 Z" fill="#C8B896"/>
+    <path id="spa" d="M500,220 L600,220 L600,320 L500,320 Z" fill="#C8B896"/>
+    <path id="por" d="M620,220 L720,220 L720,320 L620,320 Z" fill="#C8B896"/>
+  </g>
+
+  <!-- Text layer - for association testing -->
+  <g id="text">
+    <!-- Close to provinces (should auto-associate) -->
+    <text x="150" y="160" font-size="14" font-family="sans-serif" fill="#333">Berlin</text>
+    <text x="270" y="160" font-size="14" font-family="sans-serif" fill="#333">Munich</text>
+    <text x="390" y="160" font-size="14" font-family="sans-serif" fill="#333">Vienna</text>
+
+    <text x="150" y="280" font-size="14" font-family="sans-serif" fill="#333">Kiel</text>
+    <text x="270" y="280" font-size="14" font-family="sans-serif" fill="#333">Holland</text>
+
+    <!-- Sea province labels -->
+    <text x="130" y="400" font-size="12" font-family="sans-serif" fill="#1a1a5e">North Sea</text>
+    <text x="250" y="400" font-size="12" font-family="sans-serif" fill="#1a1a5e">Baltic Sea</text>
+    <text x="370" y="400" font-size="12" font-family="sans-serif" fill="#1a1a5e">Skagerrak</text>
+
+    <!-- More province labels -->
+    <text x="550" y="160" font-size="14" font-family="sans-serif" fill="#333">Paris</text>
+    <text x="670" y="160" font-size="14" font-family="sans-serif" fill="#333">Marseilles</text>
+    <text x="550" y="280" font-size="14" font-family="sans-serif" fill="#333">Spain</text>
+    <text x="670" y="280" font-size="14" font-family="sans-serif" fill="#333">Portugal</text>
+
+    <!-- Multiple labels for same province (Spain has NC/SC) -->
+    <text x="510" y="310" font-size="10" font-family="sans-serif" fill="#666">NC</text>
+    <text x="580" y="310" font-size="10" font-family="sans-serif" fill="#666">SC</text>
+
+    <!-- Far from all provinces (should NOT auto-associate - decorative) -->
+    <text x="400" y="550" font-size="18" font-family="serif" fill="#444">Test Variant Map</text>
+    <text x="650" y="580" font-size="10" font-family="sans-serif" fill="#888">v1.0</text>
+
+    <!-- Rotated text example -->
+    <text x="460" y="270" font-size="12" font-family="sans-serif" fill="#555" transform="rotate(-45, 460, 270)">Pyrenees</text>
+  </g>
+
+  <!-- Borders layer - decorative -->
+  <g id="borders">
+    <path d="M100,100 L200,100 L200,200 L100,200 Z" fill="none" stroke="#333" stroke-width="1"/>
+    <path d="M220,100 L320,100 L320,200 L220,200 Z" fill="none" stroke="#333" stroke-width="1"/>
+    <path d="M340,100 L440,100 L440,200 L340,200 Z" fill="none" stroke="#333" stroke-width="1"/>
+    <path d="M100,220 L200,220 L200,320 L100,320 Z" fill="none" stroke="#333" stroke-width="1"/>
+    <path d="M220,220 L320,220 L320,320 L220,320 Z" fill="none" stroke="#333" stroke-width="1"/>
+    <path d="M100,340 L200,340 L200,440 L100,440 Z" fill="none" stroke="#666" stroke-width="1" stroke-dasharray="4,2"/>
+    <path d="M220,340 L320,340 L320,440 L220,440 Z" fill="none" stroke="#666" stroke-width="1" stroke-dasharray="4,2"/>
+    <path d="M340,340 L440,340 L440,440 L340,440 Z" fill="none" stroke="#666" stroke-width="1" stroke-dasharray="4,2"/>
+    <path d="M500,100 L600,100 L600,200 L500,200 Z" fill="none" stroke="#333" stroke-width="1"/>
+    <path d="M620,100 L720,100 L720,200 L620,200 Z" fill="none" stroke="#333" stroke-width="1"/>
+    <path d="M500,220 L600,220 L600,320 L500,320 Z" fill="none" stroke="#333" stroke-width="1"/>
+    <path d="M620,220 L720,220 L720,320 L620,320 Z" fill="none" stroke="#333" stroke-width="1"/>
+  </g>
+</svg>

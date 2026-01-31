@@ -18,6 +18,7 @@ import { resetToAutoPosition, resetLabelToAutoPosition } from "@/utils/positionR
 import type { Position } from "@/types/variant";
 import type { MarkerType } from "@/components/map/DraggableMarker";
 import { RotateCcw, Check } from "lucide-react";
+import { calculateMapMaxHeight } from "@/utils/mapSizing";
 
 interface VisibilityState {
   units: boolean;
@@ -258,7 +259,7 @@ export function PhaseVisualEditor() {
                 ref={svgRef}
                 viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
                 className="w-full h-auto border rounded-lg bg-muted"
-                style={{ maxHeight: "50vh" }}
+                style={{ maxHeight: calculateMapMaxHeight(dimensions) }}
                 onClick={handleSvgClick}
               >
                 {decorativeElements.map((element) => (
