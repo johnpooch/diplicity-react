@@ -181,31 +181,31 @@ export function PhaseAdjacencies() {
                 />
               </svg>
 
-              <div className="mt-2 flex items-center justify-between">
-                <Button variant="outline" size="sm" onClick={handlePrevious}>
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
-                </Button>
+              <div className="mt-2 space-y-2">
+                <div className="flex justify-center gap-1">
+                  <Button
+                    variant={!isEditMode ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setIsEditMode(false)}
+                  >
+                    <MousePointer className="h-4 w-4 mr-1" />
+                    Select
+                  </Button>
+                  <Button
+                    variant={isEditMode ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setIsEditMode(true)}
+                  >
+                    <Pencil className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
+                </div>
 
-                <div className="flex items-center gap-4">
-                  <div className="flex gap-1">
-                    <Button
-                      variant={!isEditMode ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setIsEditMode(false)}
-                    >
-                      <MousePointer className="h-4 w-4 mr-1" />
-                      Select
-                    </Button>
-                    <Button
-                      variant={isEditMode ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setIsEditMode(true)}
-                    >
-                      <Pencil className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
-                  </div>
+                <div className="flex items-center justify-between">
+                  <Button variant="outline" size="sm" onClick={handlePrevious}>
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
 
                   <div className="text-sm text-center">
                     <div className="font-medium">
@@ -217,12 +217,12 @@ export function PhaseAdjacencies() {
                       {currentAdjacencies.length} adjacencies
                     </div>
                   </div>
-                </div>
 
-                <Button variant="outline" size="sm" onClick={handleNext}>
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
+                  <Button variant="outline" size="sm" onClick={handleNext}>
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
               </div>
             </div>
 
