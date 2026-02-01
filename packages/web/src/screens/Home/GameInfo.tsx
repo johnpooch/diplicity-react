@@ -93,6 +93,7 @@ const GameInfo: React.FC = () => {
     <ScreenContainer>
       <ScreenHeader
         title="Game Info"
+        showUserAvatar
         actions={
           <>
             {joinLeaveButton}

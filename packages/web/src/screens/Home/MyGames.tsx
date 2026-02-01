@@ -116,7 +116,7 @@ const MyGames: React.FC = () => {
 const MyGamesSuspense: React.FC = () => {
   return (
     <ScreenContainer>
-      <ScreenHeader title="My Games" />
+      <ScreenHeader title="My Games" showUserAvatar />
       <QueryErrorBoundary>
         <Suspense fallback={<div></div>}>
           <MyGames />

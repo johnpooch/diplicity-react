@@ -123,6 +123,14 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
                       ),
                     },
                     {
+                      path: "community",
+                      element: (
+                        <Suspense fallback={<RouteFallback />}>
+                          <Home.Community />
+                        </Suspense>
+                      ),
+                    },
+                    {
                       path: "game-info/:gameId",
                       element: (
                         <Suspense fallback={<RouteFallback />}>
