@@ -17,7 +17,7 @@ import {
   getIsolatedProvinces,
   type AdjacencyMap,
 } from "@/utils/adjacency";
-import { Wand2, ChevronLeft, ChevronRight, AlertTriangle, X } from "lucide-react";
+import { Wand2, ChevronLeft, ChevronRight, AlertTriangle, X, MousePointer, Pencil } from "lucide-react";
 import { calculateMapMaxHeight } from "@/utils/mapSizing";
 
 export function PhaseAdjacencies() {
@@ -26,6 +26,7 @@ export function PhaseAdjacencies() {
   const [hoveredProvinceId, setHoveredProvinceId] = useState<string | null>(
     null
   );
+  const [isEditMode, setIsEditMode] = useState(false);
   const [adjacencyMap, setAdjacencyMap] = useState<AdjacencyMap>(() => ({}));
   const hasInitialized = useRef(false);
 
@@ -64,6 +65,16 @@ export function PhaseAdjacencies() {
   };
 
   const handleProvinceClick = (provinceId: string) => {
+    if (!isEditMode) {
+      // Select mode: change current province
+      const index = provinces.findIndex((p) => p.id === provinceId);
+      if (index !== -1) {
+        setSelectedProvinceIndex(index);
+      }
+      return;
+    }
+
+    // Edit mode: toggle adjacency
     if (!selectedProvinceId || provinceId === selectedProvinceId) {
       return;
     }
@@ -136,8 +147,8 @@ export function PhaseAdjacencies() {
         <CardHeader>
           <CardTitle>Province Adjacencies</CardTitle>
           <CardDescription>
-            Define which provinces connect to each other. Select a province,
-            then click neighboring provinces to toggle adjacencies.
+            Define which provinces connect to each other. Use Select mode to choose a province,
+            then switch to Edit mode and click neighboring provinces to toggle adjacencies.
             <span className="ml-2 text-muted-foreground">
               {Math.round(totalAdjacencies)} connections defined
             </span>
@@ -170,27 +181,48 @@ export function PhaseAdjacencies() {
                 />
               </svg>
 
-              <div className="mt-2 flex items-center justify-between">
-                <Button variant="outline" size="sm" onClick={handlePrevious}>
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
-                </Button>
-
-                <div className="text-sm text-center">
-                  <div className="font-medium">
-                    {selectedProvince?.name || selectedProvince?.id || "—"}
-                  </div>
-                  <div className="text-muted-foreground">
-                    Province {selectedProvinceIndex + 1} of {provinces.length}
-                    {" • "}
-                    {currentAdjacencies.length} adjacencies
-                  </div>
+              <div className="mt-2 space-y-2">
+                <div className="flex justify-center gap-1">
+                  <Button
+                    variant={!isEditMode ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setIsEditMode(false)}
+                  >
+                    <MousePointer className="h-4 w-4 mr-1" />
+                    Select
+                  </Button>
+                  <Button
+                    variant={isEditMode ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setIsEditMode(true)}
+                  >
+                    <Pencil className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
                 </div>
 
-                <Button variant="outline" size="sm" onClick={handleNext}>
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
+                <div className="flex items-center justify-between">
+                  <Button variant="outline" size="sm" onClick={handlePrevious}>
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+
+                  <div className="text-sm text-center">
+                    <div className="font-medium">
+                      {selectedProvince?.name || selectedProvince?.id || "—"}
+                    </div>
+                    <div className="text-muted-foreground">
+                      Province {selectedProvinceIndex + 1} of {provinces.length}
+                      {" • "}
+                      {currentAdjacencies.length} adjacencies
+                    </div>
+                  </div>
+
+                  <Button variant="outline" size="sm" onClick={handleNext}>
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
               </div>
             </div>
 
