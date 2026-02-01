@@ -45,7 +45,7 @@ const SidebarUserArea: React.FC = () => {
         </SidebarMenuButton>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <SidebarMenuAction aria-label="Menu">
+            <SidebarMenuAction aria-label="Menu" className="top-1/2 -translate-y-1/2">
               <MoreHorizontal />
             </SidebarMenuAction>
           </DropdownMenuTrigger>
