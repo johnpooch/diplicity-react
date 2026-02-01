@@ -22,8 +22,8 @@ const Community: React.FC = () => {
           <h2 className="text-lg font-semibold">GitHub Discussions</h2>
         </div>
         <p className="text-sm text-muted-foreground">
-          Have your say about the future of Diplicity. Suggest features. Ask
-          questions. And connect with the developers directly.
+          Have your say about the future of Diplicity — suggest features, ask
+          questions, and connect with the developers directly.
         </p>
         <p className="text-sm text-muted-foreground">
           Creating a GitHub account is easy — just sign up with your email. It
