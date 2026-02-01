@@ -142,13 +142,19 @@ function extractTextElements(textLayer: Element | null): TextElement[] {
   if (!textLayer) return [];
 
   const texts = textLayer.querySelectorAll("text");
-  return Array.from(texts).map(text => ({
-    content: text.textContent ?? "",
-    x: parseFloat(text.getAttribute("x") ?? "0"),
-    y: parseFloat(text.getAttribute("y") ?? "0"),
-    rotation: extractTextRotation(text),
-    styles: extractTextStyles(text),
-  }));
+  return Array.from(texts).map(text => {
+    const firstTspan = text.querySelector("tspan");
+    const x = text.getAttribute("x") ?? firstTspan?.getAttribute("x") ?? "0";
+    const y = text.getAttribute("y") ?? firstTspan?.getAttribute("y") ?? "0";
+
+    return {
+      content: text.textContent ?? "",
+      x: parseFloat(x),
+      y: parseFloat(y),
+      rotation: extractTextRotation(text),
+      styles: extractTextStyles(text),
+    };
+  });
 }
 
 function getLayerName(group: Element): string | null {
