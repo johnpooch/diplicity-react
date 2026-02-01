@@ -18,4 +18,7 @@ export const Home = {
   SandboxGames: lazy(() =>
     import("./SandboxGames").then((m) => ({ default: m.SandboxGames }))
   ),
+  Community: lazy(() =>
+    import("./Community").then((m) => ({ default: m.Community }))
+  ),
 };

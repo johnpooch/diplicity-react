@@ -1,9 +1,10 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { cn } from "@/lib/utils";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarHeader,
   SidebarInset,
   SidebarProvider,
@@ -12,14 +13,15 @@ import { Item, ItemMedia, ItemContent, ItemTitle } from "@/components/ui/item";
 import { DiplicityLogo } from "@/components/DiplicityLogo";
 import { Navigation } from "@/components/Navigation";
 import { InfoPanel } from "@/components/InfoPanel";
-import { Home, Search, PlusCircle, Blocks, User } from "lucide-react";
+import { SidebarUserArea } from "@/components/SidebarUserArea";
+import { Home, Search, PlusCircle, Blocks, MessageCircle } from "lucide-react";
 
 const navigationItems = [
   { label: "My Games", icon: Home, path: "/" },
   { label: "Find Games", icon: Search, path: "/find-games" },
   { label: "Create Game", icon: PlusCircle, path: "/create-game" },
   { label: "Sandbox", icon: Blocks, path: "/sandbox" },
-  { label: "Profile", icon: User, path: "/profile" },
+  { label: "Community", icon: MessageCircle, path: "/community", badge: "New" },
 ];
 
 interface HomeLayoutProps {
@@ -90,6 +92,11 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
                 onItemClick={path => navigate(path)}
               />
             </SidebarContent>
+            <SidebarFooter>
+              <Suspense fallback={null}>
+                <SidebarUserArea />
+              </Suspense>
+            </SidebarFooter>
           </Sidebar>
 
           {/* Main Content Area */}

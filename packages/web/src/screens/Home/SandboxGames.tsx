@@ -63,7 +63,7 @@ const SandboxGames: React.FC = () => {
 const SandboxGamesSuspense: React.FC = () => {
   return (
     <ScreenContainer>
-      <ScreenHeader title="Sandbox Games" />
+      <ScreenHeader title="Sandbox Games" showUserAvatar />
       <QueryErrorBoundary>
         <Suspense fallback={<div></div>}>
           <SandboxGames />
