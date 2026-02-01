@@ -22,8 +22,12 @@ const Community: React.FC = () => {
           <h2 className="text-lg font-semibold">GitHub Discussions</h2>
         </div>
         <p className="text-sm text-muted-foreground">
-          Join the conversation! Ask questions, share strategies, report bugs,
-          and connect with other Diplicity players.
+          Have your say about the future of Diplicity. Suggest features. Ask
+          questions. And connect with the developers directly.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Creating a GitHub account is easy — just sign up with your email. It
+          takes only a few seconds.
         </p>
         <Button onClick={handleOpenDiscussions} className="w-full">
           <ExternalLink className="size-4" />
