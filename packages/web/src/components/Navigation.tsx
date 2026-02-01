@@ -13,6 +13,7 @@ export interface NavigationItemType {
   icon: LucideIcon;
   path: string;
   isActive?: boolean;
+  badge?: string;
 }
 
 interface NavigationProps {
@@ -28,6 +29,7 @@ interface NavigationItemProps {
   isActive: boolean;
   onClick: () => void;
   variant: "sidebar" | "compact" | "bottom";
+  badge?: string;
 }
 
 const NavigationItem: React.FC<NavigationItemProps> = ({
@@ -36,6 +38,7 @@ const NavigationItem: React.FC<NavigationItemProps> = ({
   isActive,
   onClick,
   variant,
+  badge,
 }) => {
   const baseClasses =
     "flex items-center cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -63,6 +66,12 @@ const NavigationItem: React.FC<NavigationItemProps> = ({
 
   const IconComponent = icon;
 
+  const badgeElement = badge && (
+    <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground">
+      {badge}
+    </span>
+  );
+
   const content = (
     <button
       onClick={onClick}
@@ -71,7 +80,10 @@ const NavigationItem: React.FC<NavigationItemProps> = ({
     >
       <IconComponent className="size-5" strokeWidth={isActive ? 2.5 : 1.5} />
       {variant === "sidebar" && (
-        <span className="text-sm font-medium">{label}</span>
+        <>
+          <span className="text-sm font-medium">{label}</span>
+          {badgeElement}
+        </>
       )}
       {variant === "bottom" && (
         <span className="text-[10px] font-medium">{label}</span>
@@ -120,6 +132,7 @@ const Navigation: React.FC<NavigationProps> = ({
           isActive={item.isActive || false}
           onClick={() => onItemClick(item.path)}
           variant={variant}
+          badge={item.badge}
         />
       ))}
     </nav>

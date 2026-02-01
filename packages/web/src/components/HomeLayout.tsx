@@ -21,7 +21,7 @@ const navigationItems = [
   { label: "Find Games", icon: Search, path: "/find-games" },
   { label: "Create Game", icon: PlusCircle, path: "/create-game" },
   { label: "Sandbox", icon: Blocks, path: "/sandbox" },
-  { label: "Community", icon: MessageCircle, path: "/community" },
+  { label: "Community", icon: MessageCircle, path: "/community", badge: "New" },
 ];
 
 interface HomeLayoutProps {
