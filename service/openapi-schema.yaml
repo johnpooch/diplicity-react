@@ -1438,10 +1438,14 @@ components:
         kicked:
           type: boolean
           readOnly: true
+        isGameMaster:
+          type: boolean
+          readOnly: true
       required:
       - eliminated
       - id
       - isCurrentUser
+      - isGameMaster
       - kicked
       - name
       - nation

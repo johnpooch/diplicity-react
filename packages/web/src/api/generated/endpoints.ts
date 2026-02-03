@@ -257,6 +257,7 @@ export interface Member {
   readonly isCurrentUser: boolean;
   readonly eliminated: boolean;
   readonly kicked: boolean;
+  readonly isGameMaster: boolean;
 }
 
 export interface Victory {
@@ -6358,6 +6359,7 @@ export const getGameRetrieveResponseMock = (
     isCurrentUser: faker.datatype.boolean(),
     eliminated: faker.datatype.boolean(),
     kicked: faker.datatype.boolean(),
+    isGameMaster: faker.datatype.boolean(),
   })),
   sandbox: faker.datatype.boolean(),
   victory: {
@@ -6388,6 +6390,7 @@ export const getGameRetrieveResponseMock = (
         isCurrentUser: faker.datatype.boolean(),
         eliminated: faker.datatype.boolean(),
         kicked: faker.datatype.boolean(),
+        isGameMaster: faker.datatype.boolean(),
       })),
     },
   },
@@ -6466,6 +6469,7 @@ export const getGameConfirmPhaseUpdateResponseMock = (
       isCurrentUser: faker.datatype.boolean(),
       eliminated: faker.datatype.boolean(),
       kicked: faker.datatype.boolean(),
+      isGameMaster: faker.datatype.boolean(),
     },
   },
   ...overrideResponse,
@@ -6518,6 +6522,7 @@ export const getGameConfirmPhasePartialUpdateResponseMock = (
       isCurrentUser: faker.datatype.boolean(),
       eliminated: faker.datatype.boolean(),
       kicked: faker.datatype.boolean(),
+      isGameMaster: faker.datatype.boolean(),
     },
   },
   ...overrideResponse,
@@ -6545,6 +6550,7 @@ export const getGameJoinCreateResponseMock = (
   isCurrentUser: faker.datatype.boolean(),
   eliminated: faker.datatype.boolean(),
   kicked: faker.datatype.boolean(),
+  isGameMaster: faker.datatype.boolean(),
   ...overrideResponse,
 });
 
@@ -6892,6 +6898,7 @@ export const getGamePhaseStatesListResponseMock = (): PhaseState[] =>
         isCurrentUser: faker.datatype.boolean(),
         eliminated: faker.datatype.boolean(),
         kicked: faker.datatype.boolean(),
+        isGameMaster: faker.datatype.boolean(),
       },
     },
   }));
@@ -7071,6 +7078,7 @@ export const getGamesListResponseMock = (): GameList[] =>
       isCurrentUser: faker.datatype.boolean(),
       eliminated: faker.datatype.boolean(),
       kicked: faker.datatype.boolean(),
+      isGameMaster: faker.datatype.boolean(),
     })),
     victory: {
       ...{
@@ -7100,6 +7108,7 @@ export const getGamesListResponseMock = (): GameList[] =>
           isCurrentUser: faker.datatype.boolean(),
           eliminated: faker.datatype.boolean(),
           kicked: faker.datatype.boolean(),
+          isGameMaster: faker.datatype.boolean(),
         })),
       },
     },

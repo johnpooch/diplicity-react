@@ -1747,6 +1747,80 @@ class TestGameAdminQueryPerformance:
         assert query_count <= 7
 
 
+class TestGameMaster:
+
+    @pytest.mark.django_db
+    def test_create_game_sets_creator_as_game_master(self, authenticated_client, classical_variant, primary_user):
+        url = reverse(create_viewname)
+        payload = {
+            "name": "Game Master Test Game",
+            "variant_id": classical_variant.id,
+            "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        game = Game.objects.get(id=response.data["id"])
+        creator_member = game.members.get(user=primary_user)
+        assert creator_member.is_game_master is True
+
+    @pytest.mark.django_db
+    def test_create_game_api_response_includes_is_game_master(self, authenticated_client, classical_variant):
+        url = reverse(create_viewname)
+        payload = {
+            "name": "Game Master API Test",
+            "variant_id": classical_variant.id,
+            "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        assert len(response.data["members"]) == 1
+        assert response.data["members"][0]["is_game_master"] is True
+
+    @pytest.mark.django_db
+    def test_retrieve_game_shows_game_master_in_members(
+        self, authenticated_client, pending_game_created_by_primary_user
+    ):
+        url = reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+
+        assert len(response.data["members"]) == 1
+        assert response.data["members"][0]["is_game_master"] is True
+
+    @pytest.mark.django_db
+    def test_sandbox_game_has_no_game_master(self, authenticated_client, classical_variant, primary_user):
+        url = reverse(sandbox_create_viewname)
+        payload = {
+            "name": "Sandbox No GM Test",
+            "variant_id": classical_variant.id,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        game = Game.objects.get(id=response.data["id"])
+        assert game.members.filter(is_game_master=True).count() == 0
+        assert all(member.is_game_master is False for member in game.members.all())
+
+    @pytest.mark.django_db
+    def test_clone_to_sandbox_has_no_game_master(
+        self, authenticated_client, active_game_with_phase_state, adjudication_data_classical, primary_user
+    ):
+        from unittest.mock import patch
+        url = reverse("game-clone-to-sandbox", args=[active_game_with_phase_state.id])
+        with patch("adjudication.service.start") as mock_start:
+            mock_start.return_value = adjudication_data_classical
+            response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_201_CREATED
+
+        game = Game.objects.get(id=response.data["id"])
+        assert game.members.filter(is_game_master=True).count() == 0
+        assert all(member.is_game_master is False for member in game.members.all())
+
+
 clone_to_sandbox_viewname = "game-clone-to-sandbox"
 
 

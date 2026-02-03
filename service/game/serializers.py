@@ -140,7 +140,7 @@ class GameCreateSerializer(serializers.Serializer):
                 private=validated_data["private"],
             )
 
-            game.members.create(user=request.user)
+            game.members.create(user=request.user, is_game_master=True)
             game.channels.create(name="Public Press", private=False)
 
             if hasattr(game, "_created_phase"):

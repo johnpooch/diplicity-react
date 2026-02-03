@@ -30,6 +30,7 @@ export const mockMembers: Member[] = [
     isCurrentUser: false,
     eliminated: false,
     kicked: false,
+    isGameMaster: true,
   },
   {
     id: 2,
@@ -39,6 +40,7 @@ export const mockMembers: Member[] = [
     isCurrentUser: false,
     eliminated: false,
     kicked: false,
+    isGameMaster: false,
   },
   {
     id: 3,
@@ -48,6 +50,7 @@ export const mockMembers: Member[] = [
     isCurrentUser: false,
     eliminated: false,
     kicked: false,
+    isGameMaster: false,
   },
   {
     id: 4,
@@ -57,6 +60,7 @@ export const mockMembers: Member[] = [
     isCurrentUser: false,
     eliminated: false,
     kicked: false,
+    isGameMaster: false,
   },
   {
     id: 5,
@@ -66,6 +70,7 @@ export const mockMembers: Member[] = [
     isCurrentUser: false,
     eliminated: false,
     kicked: false,
+    isGameMaster: false,
   },
   {
     id: 6,
@@ -75,6 +80,7 @@ export const mockMembers: Member[] = [
     isCurrentUser: false,
     eliminated: false,
     kicked: false,
+    isGameMaster: false,
   },
   {
     id: 7,
@@ -84,6 +90,7 @@ export const mockMembers: Member[] = [
     isCurrentUser: true,
     eliminated: false,
     kicked: false,
+    isGameMaster: false,
   },
 ];
 
@@ -273,6 +280,7 @@ export const mockGames: GameList[] = [
     currentPhaseId: 5,
     private: false,
     movementPhaseDuration: "24 hours",
+    retreatPhaseDuration: null,
     nationAssignment: "manual",
     members: mockMembers,
     victory: null,
@@ -289,6 +297,7 @@ export const mockGames: GameList[] = [
     currentPhaseId: 2,
     private: false,
     movementPhaseDuration: "12 hours",
+    retreatPhaseDuration: null,
     nationAssignment: "random",
     members: mockMembers,
     victory: null,
@@ -305,6 +314,7 @@ export const mockGames: GameList[] = [
     currentPhaseId: null,
     private: false,
     movementPhaseDuration: "48 hours",
+    retreatPhaseDuration: null,
     nationAssignment: "random",
     members: mockMembers.slice(0, 2),
     victory: null,
@@ -321,6 +331,7 @@ export const mockGames: GameList[] = [
     currentPhaseId: null,
     private: true,
     movementPhaseDuration: "24 hours",
+    retreatPhaseDuration: "12 hours",
     nationAssignment: "manual",
     members: mockMembers.slice(0, 3),
     victory: null,
@@ -337,6 +348,7 @@ export const mockGames: GameList[] = [
     currentPhaseId: null,
     private: false,
     movementPhaseDuration: "24 hours",
+    retreatPhaseDuration: null,
     nationAssignment: "manual",
     members: mockMembers,
     victory: {
@@ -358,6 +370,7 @@ export const mockGames: GameList[] = [
     currentPhaseId: null,
     private: false,
     movementPhaseDuration: "48 hours",
+    retreatPhaseDuration: null,
     nationAssignment: "random",
     members: mockMembers,
     victory: {
@@ -388,6 +401,7 @@ export const mockSandboxGames: GameList[] = [
     currentPhaseId: 3,
     private: false,
     movementPhaseDuration: "manual",
+    retreatPhaseDuration: null,
     nationAssignment: "random",
     members: mockMembers,
     victory: null,
@@ -404,6 +418,7 @@ export const mockSandboxGames: GameList[] = [
     currentPhaseId: 1,
     private: false,
     movementPhaseDuration: "manual",
+    retreatPhaseDuration: null,
     nationAssignment: "random",
     members: mockMembers,
     victory: null,
