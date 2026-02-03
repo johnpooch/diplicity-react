@@ -1154,6 +1154,115 @@ class TestGameDurationOptions:
         assert game.movement_phase_duration_seconds == expected_seconds
 
 
+class TestRetreatPhaseDuration:
+
+    @pytest.mark.django_db
+    def test_create_game_with_retreat_phase_duration(self, authenticated_client, classical_variant):
+        url = reverse(create_viewname)
+        payload = {
+            "name": "Game with Retreat Duration",
+            "variant_id": classical_variant.id,
+            "nation_assignment": NationAssignment.RANDOM,
+            "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            "retreat_phase_duration": MovementPhaseDuration.TWELVE_HOURS,
+            "private": False,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        game = Game.objects.get(id=response.data["id"])
+        assert game.movement_phase_duration == MovementPhaseDuration.TWENTY_FOUR_HOURS
+        assert game.retreat_phase_duration == MovementPhaseDuration.TWELVE_HOURS
+        assert response.data["retreat_phase_duration"] == MovementPhaseDuration.TWELVE_HOURS
+
+    @pytest.mark.django_db
+    def test_create_game_retreat_duration_defaults_to_none(self, authenticated_client, classical_variant):
+        url = reverse(create_viewname)
+        payload = {
+            "name": "Game without Retreat Duration",
+            "variant_id": classical_variant.id,
+            "nation_assignment": NationAssignment.RANDOM,
+            "movement_phase_duration": MovementPhaseDuration.FORTY_EIGHT_HOURS,
+            "private": False,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        game = Game.objects.get(id=response.data["id"])
+        assert game.retreat_phase_duration is None
+        assert game.retreat_phase_duration_seconds == game.movement_phase_duration_seconds
+
+    @pytest.mark.django_db
+    def test_retreat_phase_duration_seconds_fallback(self, classical_variant):
+        game = Game.objects.create(
+            name="Fallback Test Game",
+            variant=classical_variant,
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            retreat_phase_duration=None,
+        )
+        assert game.retreat_phase_duration_seconds == game.movement_phase_duration_seconds
+        assert game.retreat_phase_duration_seconds == 24 * 60 * 60
+
+    @pytest.mark.django_db
+    def test_retreat_phase_duration_seconds_override(self, classical_variant):
+        game = Game.objects.create(
+            name="Override Test Game",
+            variant=classical_variant,
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            retreat_phase_duration=MovementPhaseDuration.TWELVE_HOURS,
+        )
+        assert game.movement_phase_duration_seconds == 24 * 60 * 60
+        assert game.retreat_phase_duration_seconds == 12 * 60 * 60
+
+    @pytest.mark.django_db
+    def test_get_phase_duration_seconds_movement(self, classical_variant):
+        from common.constants import PhaseType
+        game = Game.objects.create(
+            name="Phase Duration Test",
+            variant=classical_variant,
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            retreat_phase_duration=MovementPhaseDuration.TWELVE_HOURS,
+        )
+        assert game.get_phase_duration_seconds(PhaseType.MOVEMENT) == 24 * 60 * 60
+
+    @pytest.mark.django_db
+    def test_get_phase_duration_seconds_retreat(self, classical_variant):
+        from common.constants import PhaseType
+        game = Game.objects.create(
+            name="Phase Duration Test",
+            variant=classical_variant,
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            retreat_phase_duration=MovementPhaseDuration.TWELVE_HOURS,
+        )
+        assert game.get_phase_duration_seconds(PhaseType.RETREAT) == 12 * 60 * 60
+
+    @pytest.mark.django_db
+    def test_get_phase_duration_seconds_adjustment(self, classical_variant):
+        from common.constants import PhaseType
+        game = Game.objects.create(
+            name="Phase Duration Test",
+            variant=classical_variant,
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            retreat_phase_duration=MovementPhaseDuration.TWELVE_HOURS,
+        )
+        assert game.get_phase_duration_seconds(PhaseType.ADJUSTMENT) == 12 * 60 * 60
+
+    @pytest.mark.django_db
+    def test_retreat_phase_duration_in_api_response(self, authenticated_client, classical_variant):
+        game = Game.objects.create_from_template(
+            classical_variant,
+            name="API Response Test",
+            nation_assignment=NationAssignment.RANDOM,
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            retreat_phase_duration=MovementPhaseDuration.TWELVE_HOURS,
+            private=False,
+        )
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["retreat_phase_duration"] == MovementPhaseDuration.TWELVE_HOURS
+
+
 class TestGameInfinitePhaseDuration:
 
     @pytest.mark.django_db

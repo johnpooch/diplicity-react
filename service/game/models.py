@@ -6,7 +6,14 @@ from django.db import models
 from django.utils import timezone
 from django.db.models import Prefetch
 from opentelemetry import trace
-from common.constants import GameStatus, MovementPhaseDuration, NationAssignment, PhaseStatus
+from common.constants import (
+    GameStatus,
+    MovementPhaseDuration,
+    NationAssignment,
+    PhaseStatus,
+    PhaseType,
+    duration_to_seconds,
+)
 from common.models import BaseModel
 from phase.models import Phase, PhaseState
 from member.models import Member
@@ -255,6 +262,12 @@ class Game(BaseModel):
         blank=True,
         default=MovementPhaseDuration.TWENTY_FOUR_HOURS,
     )
+    retreat_phase_duration = models.CharField(
+        max_length=20,
+        choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES,
+        null=True,
+        blank=True,
+    )
     nation_assignment = models.CharField(
         max_length=20,
         choices=NationAssignment.NATION_ASSIGNMENT_CHOICES,
@@ -287,19 +300,18 @@ class Game(BaseModel):
 
     @property
     def movement_phase_duration_seconds(self):
-        if self.movement_phase_duration is None:
-            return None
-        duration_map = {
-            MovementPhaseDuration.ONE_HOUR: 1 * 60 * 60,
-            MovementPhaseDuration.TWELVE_HOURS: 12 * 60 * 60,
-            MovementPhaseDuration.TWENTY_FOUR_HOURS: 24 * 60 * 60,
-            MovementPhaseDuration.FORTY_EIGHT_HOURS: 48 * 60 * 60,
-            MovementPhaseDuration.THREE_DAYS: 3 * 24 * 60 * 60,
-            MovementPhaseDuration.FOUR_DAYS: 4 * 24 * 60 * 60,
-            MovementPhaseDuration.ONE_WEEK: 7 * 24 * 60 * 60,
-            MovementPhaseDuration.TWO_WEEKS: 14 * 24 * 60 * 60,
-        }
-        return duration_map.get(self.movement_phase_duration, 0)
+        return duration_to_seconds(self.movement_phase_duration)
+
+    @property
+    def retreat_phase_duration_seconds(self):
+        duration = self.retreat_phase_duration or self.movement_phase_duration
+        return duration_to_seconds(duration)
+
+    def get_phase_duration_seconds(self, phase_type):
+        if phase_type == PhaseType.MOVEMENT:
+            return self.movement_phase_duration_seconds
+        else:
+            return self.retreat_phase_duration_seconds
 
     def can_join(self, user):
         with tracer.start_as_current_span("game.models.can_join"):
@@ -337,9 +349,13 @@ class Game(BaseModel):
 
         current_phase.status = PhaseStatus.ACTIVE
         current_phase.options = adjudication_data["options"]
+        # Note: The first phase is always Movement, but we use get_phase_duration_seconds
+        # for architectural consistency with other resolution paths (create_from_adjudication_data,
+        # revert_to_this_phase). This allows the same pattern everywhere.
         if self.movement_phase_duration is not None:
+            phase_duration_seconds = self.get_phase_duration_seconds(current_phase.type)
             current_phase.scheduled_resolution = timezone.now() + timedelta(
-                seconds=self.movement_phase_duration_seconds
+                seconds=phase_duration_seconds
             )
         else:
             current_phase.scheduled_resolution = None

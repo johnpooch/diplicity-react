@@ -25,7 +25,8 @@ class GameListSerializer(serializers.Serializer):
     phases = serializers.SerializerMethodField()
     current_phase_id = serializers.SerializerMethodField()
     private = serializers.BooleanField(read_only=True)
-    movement_phase_duration = serializers.CharField(read_only=True)
+    movement_phase_duration = serializers.CharField(read_only=True, allow_null=True)
+    retreat_phase_duration = serializers.CharField(read_only=True, allow_null=True)
     nation_assignment = serializers.CharField(read_only=True)
     members = MemberSerializer(many=True, read_only=True)
     victory = VictorySerializer(read_only=True, allow_null=True)
@@ -65,7 +66,8 @@ class GameRetrieveSerializer(serializers.Serializer):
     variant_id = serializers.CharField(source="variant.id", read_only=True)
     nation_assignment = serializers.CharField(read_only=True)
     phase_confirmed = serializers.SerializerMethodField()
-    movement_phase_duration = serializers.CharField(read_only=True)
+    movement_phase_duration = serializers.CharField(read_only=True, allow_null=True)
+    retreat_phase_duration = serializers.CharField(read_only=True, allow_null=True)
     private = serializers.BooleanField(read_only=True)
 
     @extend_schema_field(serializers.BooleanField)
@@ -107,6 +109,12 @@ class GameCreateSerializer(serializers.Serializer):
     movement_phase_duration = serializers.ChoiceField(
         choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES, default=MovementPhaseDuration.TWENTY_FOUR_HOURS
     )
+    retreat_phase_duration = serializers.ChoiceField(
+        choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES,
+        required=False,
+        allow_null=True,
+        default=None,
+    )
     private = serializers.BooleanField()
 
     def validate_variant_id(self, value):
@@ -128,6 +136,7 @@ class GameCreateSerializer(serializers.Serializer):
                 movement_phase_duration=validated_data.get(
                     "movement_phase_duration", MovementPhaseDuration.TWENTY_FOUR_HOURS
                 ),
+                retreat_phase_duration=validated_data.get("retreat_phase_duration"),
                 private=validated_data["private"],
             )
 

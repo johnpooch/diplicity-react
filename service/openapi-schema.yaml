@@ -1235,6 +1235,11 @@ components:
           allOf:
           - $ref: '#/components/schemas/MovementPhaseDurationEnum'
           default: 24 hours
+        retreatPhaseDuration:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/RetreatPhaseDurationEnum'
+          - $ref: '#/components/schemas/NullEnum'
         private:
           type: boolean
       required:
@@ -1293,6 +1298,11 @@ components:
         movementPhaseDuration:
           type: string
           readOnly: true
+          nullable: true
+        retreatPhaseDuration:
+          type: string
+          readOnly: true
+          nullable: true
         nationAssignment:
           type: string
           readOnly: true
@@ -1320,6 +1330,7 @@ components:
       - nationAssignment
       - phases
       - private
+      - retreatPhaseDuration
       - sandbox
       - status
       - variantId
@@ -1376,6 +1387,11 @@ components:
         movementPhaseDuration:
           type: string
           readOnly: true
+          nullable: true
+        retreatPhaseDuration:
+          type: string
+          readOnly: true
+          nullable: true
         private:
           type: boolean
           readOnly: true
@@ -1391,6 +1407,7 @@ components:
       - phaseConfirmed
       - phases
       - private
+      - retreatPhaseDuration
       - sandbox
       - status
       - variantId
@@ -1757,6 +1774,26 @@ components:
       - parentId
       - supplyCenter
       - type
+    RetreatPhaseDurationEnum:
+      enum:
+      - 1 hour
+      - 12 hours
+      - 24 hours
+      - 48 hours
+      - 3 days
+      - 4 days
+      - 1 week
+      - 2 weeks
+      type: string
+      description: |-
+        * `1 hour` - 1 hour
+        * `12 hours` - 12 hours
+        * `24 hours` - 24 hours
+        * `48 hours` - 48 hours
+        * `3 days` - 3 days
+        * `4 days` - 4 days
+        * `1 week` - 1 week
+        * `2 weeks` - 2 weeks
     StatusEnum:
       enum:
       - pending

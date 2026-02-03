@@ -1,5 +1,22 @@
 # Diplicity React - Release Notes
 
+## Separate Retreat/Adjustment Phase Deadlines (February 3, 2026)
+
+**Release Date:** February 3, 2026
+
+### Improved: Flexible Deadline Configuration
+
+Games can now have different deadlines for retreat and adjustment phases compared to movement phases. This allows for faster-paced games where retreats and adjustments resolve more quickly than movement phases.
+
+#### How to Use:
+- When creating a game, click "Advanced duration options" in the Deadlines section
+- Set a separate deadline for Retreat/Adjustment phases
+- If not set, retreat and adjustment phases use the same deadline as movement phases
+
+This is the first step in a series of deadline improvements planned for Diplicity.
+
+---
+
 ## Auto-detect Abandoned Games (January 28, 2026)
 
 **Release Date:** January 28, 2026

@@ -203,12 +203,41 @@ export const MovementPhaseDurationEnum = {
   "2_weeks": "2 weeks",
 } as const;
 
+/**
+ * * `1 hour` - 1 hour
+ * `12 hours` - 12 hours
+ * `24 hours` - 24 hours
+ * `48 hours` - 48 hours
+ * `3 days` - 3 days
+ * `4 days` - 4 days
+ * `1 week` - 1 week
+ * `2 weeks` - 2 weeks
+ */
+export type RetreatPhaseDurationEnum =
+  (typeof RetreatPhaseDurationEnum)[keyof typeof RetreatPhaseDurationEnum];
+
+export const RetreatPhaseDurationEnum = {
+  "1_hour": "1 hour",
+  "12_hours": "12 hours",
+  "24_hours": "24 hours",
+  "48_hours": "48 hours",
+  "3_days": "3 days",
+  "4_days": "4 days",
+  "1_week": "1 week",
+  "2_weeks": "2 weeks",
+} as const;
+
+export type NullEnum = (typeof NullEnum)[keyof typeof NullEnum];
+
+export const NullEnum = {} as const;
+
 export interface GameCreate {
   readonly id: string;
   name: string;
   variantId: string;
   nationAssignment: NationAssignmentEnum;
   movementPhaseDuration?: MovementPhaseDurationEnum;
+  retreatPhaseDuration?: RetreatPhaseDurationEnum | NullEnum | null;
   private: boolean;
 }
 
@@ -248,7 +277,10 @@ export interface GameList {
   /** @nullable */
   readonly currentPhaseId: number | null;
   readonly private: boolean;
-  readonly movementPhaseDuration: string;
+  /** @nullable */
+  readonly movementPhaseDuration: string | null;
+  /** @nullable */
+  readonly retreatPhaseDuration: string | null;
   readonly nationAssignment: string;
   readonly members: readonly Member[];
   readonly victory: Victory | null;
@@ -270,13 +302,12 @@ export interface GameRetrieve {
   readonly variantId: string;
   readonly nationAssignment: string;
   readonly phaseConfirmed: boolean;
-  readonly movementPhaseDuration: string;
+  /** @nullable */
+  readonly movementPhaseDuration: string | null;
+  /** @nullable */
+  readonly retreatPhaseDuration: string | null;
   readonly private: boolean;
 }
-
-export type NullEnum = (typeof NullEnum)[keyof typeof NullEnum];
-
-export const NullEnum = {} as const;
 
 export interface Province {
   id: string;
@@ -6274,6 +6305,13 @@ export const getGameCreateResponseMock = (
     faker.helpers.arrayElement(Object.values(MovementPhaseDurationEnum)),
     undefined,
   ]),
+  retreatPhaseDuration: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([
+      faker.helpers.arrayElement(Object.values(RetreatPhaseDurationEnum)),
+      faker.helpers.arrayElement([] as const),
+    ]),
+    undefined,
+  ]),
   private: faker.datatype.boolean(),
   ...overrideResponse,
 });
@@ -6356,7 +6394,20 @@ export const getGameRetrieveResponseMock = (
   variantId: faker.string.alpha({ length: { min: 10, max: 20 } }),
   nationAssignment: faker.string.alpha({ length: { min: 10, max: 20 } }),
   phaseConfirmed: faker.datatype.boolean(),
-  movementPhaseDuration: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  movementPhaseDuration: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      null,
+    ]),
+    null,
+  ]),
+  retreatPhaseDuration: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      null,
+    ]),
+    null,
+  ]),
   private: faker.datatype.boolean(),
   ...overrideResponse,
 });
@@ -6982,7 +7033,20 @@ export const getGamesListResponseMock = (): GameList[] =>
       null,
     ]),
     private: faker.datatype.boolean(),
-    movementPhaseDuration: faker.string.alpha({ length: { min: 10, max: 20 } }),
+    movementPhaseDuration: faker.helpers.arrayElement([
+      faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        null,
+      ]),
+      null,
+    ]),
+    retreatPhaseDuration: faker.helpers.arrayElement([
+      faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        null,
+      ]),
+      null,
+    ]),
     nationAssignment: faker.string.alpha({ length: { min: 10, max: 20 } }),
     members: Array.from(
       { length: faker.number.int({ min: 1, max: 10 }) },

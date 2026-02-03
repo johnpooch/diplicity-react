@@ -3,8 +3,14 @@ import { useNavigate, useSearchParams } from "react-router";
 import { useForm, Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Users, Calendar, User } from "lucide-react";
+import { Users, Calendar, User, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
+
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CardDescription } from "@/components/ui/card";
@@ -56,6 +62,17 @@ const DURATION_OPTIONS = [
   { value: "2 weeks", label: "2 weeks" },
 ] as const;
 
+const DURATION_ENUM_VALUES = [
+  "1 hour",
+  "12 hours",
+  "24 hours",
+  "48 hours",
+  "3 days",
+  "4 days",
+  "1 week",
+  "2 weeks",
+] as const;
+
 const standardGameSchema = z.object({
   name: z
     .string()
@@ -63,18 +80,8 @@ const standardGameSchema = z.object({
     .max(100, "Game name must be less than 100 characters"),
   variantId: z.string().min(1, "Please select a variant"),
   nationAssignment: z.enum(["random", "ordered"] as const),
-  movementPhaseDuration: z
-    .enum([
-      "1 hour",
-      "12 hours",
-      "24 hours",
-      "48 hours",
-      "3 days",
-      "4 days",
-      "1 week",
-      "2 weeks",
-    ] as const)
-    .optional(),
+  movementPhaseDuration: z.enum(DURATION_ENUM_VALUES).optional(),
+  retreatPhaseDuration: z.enum(DURATION_ENUM_VALUES).optional().nullable(),
   private: z.boolean(),
 });
 
@@ -216,6 +223,7 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
       variantId: variants[0].id,
       nationAssignment: "random" as NationAssignmentEnum,
       movementPhaseDuration: "24 hours" as MovementPhaseDurationEnum,
+      retreatPhaseDuration: null,
       private: false,
     },
   });
@@ -274,7 +282,7 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
             name="movementPhaseDuration"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Phase Deadline</FormLabel>
+                <FormLabel>Movement Phase Deadline</FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   value={field.value}
@@ -294,17 +302,66 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
                   </SelectContent>
                 </Select>
                 <FormDescription>
-                  After the deadline, the phase will be automatically resolved
+                  Deadline for movement phases
                 </FormDescription>
-                <div className="text-sm text-muted-foreground pt-2">
-                  <DeadlineSummary
-                    movementPhaseDuration={field.value ?? null}
-                  />
-                </div>
                 <FormMessage />
               </FormItem>
             )}
           />
+
+          <Collapsible>
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                type="button"
+                className="gap-2 p-0 h-auto font-normal text-muted-foreground hover:text-foreground"
+              >
+                <ChevronDown className="h-4 w-4" />
+                Advanced duration options
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-4">
+              <FormField
+                control={form.control}
+                name="retreatPhaseDuration"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Retreat/Adjustment Phase Deadline</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value ?? undefined}
+                      disabled={isSubmitting}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Same as movement phase" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {DURATION_OPTIONS.map(option => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      If not set, uses the same deadline as movement phases
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CollapsibleContent>
+          </Collapsible>
+
+          <div className="text-sm text-muted-foreground pt-2">
+            <DeadlineSummary
+              movementPhaseDuration={form.watch("movementPhaseDuration") ?? null}
+              retreatPhaseDuration={form.watch("retreatPhaseDuration") ?? null}
+            />
+          </div>
         </div>
 
         <div className="space-y-4">

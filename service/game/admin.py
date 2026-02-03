@@ -8,7 +8,7 @@ from common.constants import PhaseStatus
 
 @admin.register(Game)
 class GameAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "variant", "status", "current_phase", "view_phases", "private", "movement_phase_duration")
+    list_display = ("id", "name", "variant", "status", "current_phase", "view_phases", "private", "movement_phase_duration", "retreat_phase_duration")
     list_filter = ("status", "private", "variant")
     search_fields = ("name", "id")
     actions = ["start_game", "resolve_game"]

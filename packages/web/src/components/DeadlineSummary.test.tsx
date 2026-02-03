@@ -56,4 +56,28 @@ describe("DeadlineSummary", () => {
       screen.getByText(`Phases resolve every ${duration}`)
     ).toBeInTheDocument();
   });
+
+  it("renders simple message when retreatPhaseDuration is null", () => {
+    render(
+      <DeadlineSummary
+        movementPhaseDuration="24 hours"
+        retreatPhaseDuration={null}
+      />
+    );
+    expect(
+      screen.getByText("Phases resolve every 24 hours")
+    ).toBeInTheDocument();
+  });
+
+  it("renders simple message when retreatPhaseDuration is undefined", () => {
+    render(
+      <DeadlineSummary
+        movementPhaseDuration="24 hours"
+        retreatPhaseDuration={undefined}
+      />
+    );
+    expect(
+      screen.getByText("Phases resolve every 24 hours")
+    ).toBeInTheDocument();
+  });
 });
