@@ -4,6 +4,7 @@ import { Calendar, Users, Lock, Unlock, User, Map, Trophy } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
+import { DeadlineSummary } from "@/components/DeadlineSummary";
 import {
   useGameRetrieveSuspense,
   useGamePhaseRetrieve,
@@ -75,7 +76,9 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
             icon={<Calendar className="size-4" />}
             label="Phase deadlines"
             value={
-              game.movementPhaseDuration ?? <Skeleton className="h-4 w-24" />
+              <DeadlineSummary
+                movementPhaseDuration={game.movementPhaseDuration ?? null}
+              />
             }
           />
           <MetadataRow

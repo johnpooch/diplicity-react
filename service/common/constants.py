@@ -16,14 +16,24 @@ class GameStatus:
 
 
 class MovementPhaseDuration:
+    ONE_HOUR = "1 hour"
+    TWELVE_HOURS = "12 hours"
     TWENTY_FOUR_HOURS = "24 hours"
     FORTY_EIGHT_HOURS = "48 hours"
+    THREE_DAYS = "3 days"
+    FOUR_DAYS = "4 days"
     ONE_WEEK = "1 week"
+    TWO_WEEKS = "2 weeks"
 
     MOVEMENT_PHASE_DURATION_CHOICES = (
+        (ONE_HOUR, "1 hour"),
+        (TWELVE_HOURS, "12 hours"),
         (TWENTY_FOUR_HOURS, "24 hours"),
         (FORTY_EIGHT_HOURS, "48 hours"),
+        (THREE_DAYS, "3 days"),
+        (FOUR_DAYS, "4 days"),
         (ONE_WEEK, "1 week"),
+        (TWO_WEEKS, "2 weeks"),
     )
 
 

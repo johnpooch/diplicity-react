@@ -44,6 +44,17 @@ import {
   NationAssignmentEnum,
 } from "@/api/generated/endpoints";
 
+const DURATION_OPTIONS = [
+  { value: "1 hour", label: "1 hour" },
+  { value: "12 hours", label: "12 hours" },
+  { value: "24 hours", label: "24 hours" },
+  { value: "48 hours", label: "48 hours" },
+  { value: "3 days", label: "3 days" },
+  { value: "4 days", label: "4 days" },
+  { value: "1 week", label: "1 week" },
+  { value: "2 weeks", label: "2 weeks" },
+] as const;
+
 const standardGameSchema = z.object({
   name: z
     .string()
@@ -52,7 +63,16 @@ const standardGameSchema = z.object({
   variantId: z.string().min(1, "Please select a variant"),
   nationAssignment: z.enum(["random", "ordered"] as const),
   movementPhaseDuration: z
-    .enum(["24 hours", "48 hours", "1 week"] as const)
+    .enum([
+      "1 hour",
+      "12 hours",
+      "24 hours",
+      "48 hours",
+      "3 days",
+      "4 days",
+      "1 week",
+      "2 weeks",
+    ] as const)
     .optional(),
   private: z.boolean(),
 });
@@ -265,9 +285,11 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="24 hours">24 hours</SelectItem>
-                    <SelectItem value="48 hours">48 hours</SelectItem>
-                    <SelectItem value="1 week">1 week</SelectItem>
+                    {DURATION_OPTIONS.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <FormDescription>

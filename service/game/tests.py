@@ -1124,6 +1124,36 @@ class TestGamePrivateFiltering:
         assert response.data["movement_phase_duration"] == "1 week"
 
 
+class TestGameDurationOptions:
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("duration,expected_seconds", [
+        ("1 hour", 3600),
+        ("12 hours", 43200),
+        ("24 hours", 86400),
+        ("48 hours", 172800),
+        ("3 days", 259200),
+        ("4 days", 345600),
+        ("1 week", 604800),
+        ("2 weeks", 1209600),
+    ])
+    def test_game_duration_options(self, authenticated_client, classical_variant, duration, expected_seconds):
+        url = reverse(create_viewname)
+        payload = {
+            "name": f"Test Game {duration}",
+            "variant_id": classical_variant.id,
+            "nation_assignment": NationAssignment.RANDOM,
+            "movement_phase_duration": duration,
+            "private": False,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        game = Game.objects.get(id=response.data["id"])
+        assert game.movement_phase_duration == duration
+        assert game.movement_phase_duration_seconds == expected_seconds
+
+
 class TestGameInfinitePhaseDuration:
 
     @pytest.mark.django_db

@@ -180,17 +180,27 @@ export const NationAssignmentEnum = {
 } as const;
 
 /**
- * * `24 hours` - 24 hours
+ * * `1 hour` - 1 hour
+ * `12 hours` - 12 hours
+ * `24 hours` - 24 hours
  * `48 hours` - 48 hours
+ * `3 days` - 3 days
+ * `4 days` - 4 days
  * `1 week` - 1 week
+ * `2 weeks` - 2 weeks
  */
 export type MovementPhaseDurationEnum =
   (typeof MovementPhaseDurationEnum)[keyof typeof MovementPhaseDurationEnum];
 
 export const MovementPhaseDurationEnum = {
+  "1_hour": "1 hour",
+  "12_hours": "12 hours",
   "24_hours": "24 hours",
   "48_hours": "48 hours",
+  "3_days": "3 days",
+  "4_days": "4 days",
   "1_week": "1 week",
+  "2_weeks": "2 weeks",
 } as const;
 
 export interface GameCreate {

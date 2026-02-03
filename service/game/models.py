@@ -289,13 +289,17 @@ class Game(BaseModel):
     def movement_phase_duration_seconds(self):
         if self.movement_phase_duration is None:
             return None
-        if self.movement_phase_duration == MovementPhaseDuration.TWENTY_FOUR_HOURS:
-            return 24 * 60 * 60
-        elif self.movement_phase_duration == MovementPhaseDuration.FORTY_EIGHT_HOURS:
-            return 48 * 60 * 60
-        elif self.movement_phase_duration == MovementPhaseDuration.ONE_WEEK:
-            return 7 * 24 * 60 * 60
-        return 0
+        duration_map = {
+            MovementPhaseDuration.ONE_HOUR: 1 * 60 * 60,
+            MovementPhaseDuration.TWELVE_HOURS: 12 * 60 * 60,
+            MovementPhaseDuration.TWENTY_FOUR_HOURS: 24 * 60 * 60,
+            MovementPhaseDuration.FORTY_EIGHT_HOURS: 48 * 60 * 60,
+            MovementPhaseDuration.THREE_DAYS: 3 * 24 * 60 * 60,
+            MovementPhaseDuration.FOUR_DAYS: 4 * 24 * 60 * 60,
+            MovementPhaseDuration.ONE_WEEK: 7 * 24 * 60 * 60,
+            MovementPhaseDuration.TWO_WEEKS: 14 * 24 * 60 * 60,
+        }
+        return duration_map.get(self.movement_phase_duration, 0)
 
     def can_join(self, user):
         with tracer.start_as_current_span("game.models.can_join"):
