@@ -35,6 +35,7 @@ import {
 
 import { randomGameName } from "@/util";
 import { InteractiveMap } from "@/components/InteractiveMap/InteractiveMap";
+import { DeadlineSummary } from "@/components/DeadlineSummary";
 import {
   useVariantsListSuspense,
   useGameCreate,
@@ -295,6 +296,11 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
                 <FormDescription>
                   After the deadline, the phase will be automatically resolved
                 </FormDescription>
+                <div className="text-sm text-muted-foreground pt-2">
+                  <DeadlineSummary
+                    movementPhaseDuration={field.value ?? null}
+                  />
+                </div>
                 <FormMessage />
               </FormItem>
             )}
