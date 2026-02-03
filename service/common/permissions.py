@@ -141,3 +141,23 @@ class IsNotSandboxGame(BasePermission):
         game_id = view.kwargs.get("game_id")
         game = get_object_or_404(Game, id=game_id)
         return not game.sandbox
+
+
+class IsGameMaster(BasePermission):
+    """
+    Permission that verifies the user is the Game Master of the game.
+    Note: This also implicitly verifies membership - no need to combine with IsGameMember.
+    """
+    message = "Only the Game Master can perform this action."
+
+    def has_permission(self, request, view):
+        game_id = view.kwargs.get("game_id")
+        game = get_object_or_404(Game, id=game_id)
+        member = game.members.filter(user=request.user).first()
+        if not member:
+            self.message = "User is not a member of the game."
+            return False
+        if not member.is_game_master:
+            self.message = "Only the Game Master can perform this action."
+            return False
+        return True

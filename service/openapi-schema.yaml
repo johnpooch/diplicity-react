@@ -506,6 +506,43 @@ paths:
       responses:
         '204':
           description: No response body
+  /game/{gameId}/pause/:
+    put:
+      operationId: gamePauseUpdate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+    patch:
+      operationId: gamePausePartialUpdate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
   /game/{gameId}/phase-states/:
     get:
       operationId: gamePhaseStatesList
@@ -604,6 +641,43 @@ paths:
               schema:
                 $ref: '#/components/schemas/PhaseList'
           description: ''
+  /game/{gameId}/unpause/:
+    put:
+      operationId: gameUnpauseUpdate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+    patch:
+      operationId: gameUnpausePartialUpdate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
   /games/:
     get:
       operationId: gamesList
@@ -1319,15 +1393,25 @@ components:
         sandbox:
           type: boolean
           readOnly: true
+        isPaused:
+          type: boolean
+          readOnly: true
+        pausedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
       required:
       - canJoin
       - canLeave
       - currentPhaseId
       - id
+      - isPaused
       - members
       - movementPhaseDuration
       - name
       - nationAssignment
+      - pausedAt
       - phases
       - private
       - retreatPhaseDuration
@@ -1395,15 +1479,25 @@ components:
         private:
           type: boolean
           readOnly: true
+        isPaused:
+          type: boolean
+          readOnly: true
+        pausedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
       required:
       - canJoin
       - canLeave
       - currentPhaseId
       - id
+      - isPaused
       - members
       - movementPhaseDuration
       - name
       - nationAssignment
+      - pausedAt
       - phaseConfirmed
       - phases
       - private

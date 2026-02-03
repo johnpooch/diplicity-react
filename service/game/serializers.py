@@ -31,6 +31,8 @@ class GameListSerializer(serializers.Serializer):
     members = MemberSerializer(many=True, read_only=True)
     victory = VictorySerializer(read_only=True, allow_null=True)
     sandbox = serializers.BooleanField(read_only=True)
+    is_paused = serializers.BooleanField(read_only=True)
+    paused_at = serializers.DateTimeField(read_only=True, allow_null=True)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):
@@ -69,6 +71,8 @@ class GameRetrieveSerializer(serializers.Serializer):
     movement_phase_duration = serializers.CharField(read_only=True, allow_null=True)
     retreat_phase_duration = serializers.CharField(read_only=True, allow_null=True)
     private = serializers.BooleanField(read_only=True)
+    is_paused = serializers.BooleanField(read_only=True)
+    paused_at = serializers.DateTimeField(read_only=True, allow_null=True)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):
@@ -226,6 +230,34 @@ class GameCloneToSandboxSerializer(serializers.Serializer):
             game.start(current_phase=game._created_phase, members=created_members)
 
         return Game.objects.all().with_related_data().get(id=game.id)
+
+    def to_representation(self, instance):
+        return GameRetrieveSerializer(instance, context=self.context).data
+
+
+class GamePauseSerializer(serializers.Serializer):
+    def validate(self, attrs):
+        if self.instance.is_paused:
+            raise serializers.ValidationError("Game is already paused")
+        return attrs
+
+    def update(self, instance, validated_data):
+        instance.pause()
+        return instance
+
+    def to_representation(self, instance):
+        return GameRetrieveSerializer(instance, context=self.context).data
+
+
+class GameUnpauseSerializer(serializers.Serializer):
+    def validate(self, attrs):
+        if not self.instance.is_paused:
+            raise serializers.ValidationError("Game is not paused")
+        return attrs
+
+    def update(self, instance, validated_data):
+        instance.unpause()
+        return instance
 
     def to_representation(self, instance):
         return GameRetrieveSerializer(instance, context=self.context).data

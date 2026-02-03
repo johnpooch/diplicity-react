@@ -51,6 +51,7 @@ class PhaseQuerySet(models.QuerySet):
         return self.filter(
             Q(status=PhaseStatus.ACTIVE)
             & Q(game__sandbox=False)
+            & Q(game__paused_at__isnull=True)
             & ~Q(game__status=GameStatus.COMPLETED)
             & ~Q(game__status=GameStatus.ABANDONED)
             & (

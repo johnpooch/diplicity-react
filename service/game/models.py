@@ -2,7 +2,7 @@ from datetime import timedelta
 import re
 import uuid
 
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from django.db.models import Prefetch
 from opentelemetry import trace
@@ -273,6 +273,7 @@ class Game(BaseModel):
         choices=NationAssignment.NATION_ASSIGNMENT_CHOICES,
         default=NationAssignment.RANDOM,
     )
+    paused_at = models.DateTimeField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
         if not self.id:
@@ -306,6 +307,10 @@ class Game(BaseModel):
     def retreat_phase_duration_seconds(self):
         duration = self.retreat_phase_duration or self.movement_phase_duration
         return duration_to_seconds(duration)
+
+    @property
+    def is_paused(self):
+        return self.paused_at is not None
 
     def get_phase_duration_seconds(self, phase_type):
         if phase_type == PhaseType.MOVEMENT:
@@ -393,6 +398,31 @@ class Game(BaseModel):
         PhaseState.objects.bulk_create(phase_states_to_create)
 
         self.status = GameStatus.ACTIVE
+        self.save()
+
+    def pause(self):
+        if self.status != GameStatus.ACTIVE:
+            raise ValueError("Can only pause an active game")
+        if self.is_paused:
+            raise ValueError("Game is already paused")
+        self.paused_at = timezone.now()
+        self.save()
+
+    @transaction.atomic
+    def unpause(self):
+        if self.status != GameStatus.ACTIVE:
+            raise ValueError("Can only unpause an active game")
+        if not self.is_paused:
+            raise ValueError("Game is not paused")
+
+        pause_duration = timezone.now() - self.paused_at
+        current_phase = self.current_phase
+
+        if current_phase and current_phase.scheduled_resolution:
+            current_phase.scheduled_resolution += pause_duration
+            current_phase.save()
+
+        self.paused_at = None
         self.save()
 
     class Meta:

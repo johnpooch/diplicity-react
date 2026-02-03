@@ -286,6 +286,9 @@ export interface GameList {
   readonly members: readonly Member[];
   readonly victory: Victory | null;
   readonly sandbox: boolean;
+  readonly isPaused: boolean;
+  /** @nullable */
+  readonly pausedAt: string | null;
 }
 
 export interface GameRetrieve {
@@ -308,6 +311,9 @@ export interface GameRetrieve {
   /** @nullable */
   readonly retreatPhaseDuration: string | null;
   readonly private: boolean;
+  readonly isPaused: boolean;
+  /** @nullable */
+  readonly pausedAt: string | null;
 }
 
 export interface Province {
@@ -2913,6 +2919,160 @@ export const useGameOrdersDeleteDestroy = <
  * Used by views that have a game parameter in the URL. Provides a get_game
 method that returns the game object. Also adds game to the serializer context.
  */
+export const gamePauseUpdate = (gameId: string, signal?: AbortSignal) => {
+  return customInstance<void>({
+    url: `/game/${gameId}/pause/`,
+    method: "PUT",
+    signal,
+  });
+};
+
+export const getGamePauseUpdateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gamePauseUpdate>>,
+    TError,
+    { gameId: string },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gamePauseUpdate>>,
+  TError,
+  { gameId: string },
+  TContext
+> => {
+  const mutationKey = ["gamePauseUpdate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gamePauseUpdate>>,
+    { gameId: string }
+  > = props => {
+    const { gameId } = props ?? {};
+
+    return gamePauseUpdate(gameId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GamePauseUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gamePauseUpdate>>
+>;
+
+export type GamePauseUpdateMutationError = unknown;
+
+export const useGamePauseUpdate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gamePauseUpdate>>,
+      TError,
+      { gameId: string },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gamePauseUpdate>>,
+  TError,
+  { gameId: string },
+  TContext
+> => {
+  return useMutation(getGamePauseUpdateMutationOptions(options), queryClient);
+};
+
+/**
+ * Used by views that have a game parameter in the URL. Provides a get_game
+method that returns the game object. Also adds game to the serializer context.
+ */
+export const gamePausePartialUpdate = (
+  gameId: string,
+  signal?: AbortSignal
+) => {
+  return customInstance<void>({
+    url: `/game/${gameId}/pause/`,
+    method: "PATCH",
+    signal,
+  });
+};
+
+export const getGamePausePartialUpdateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gamePausePartialUpdate>>,
+    TError,
+    { gameId: string },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gamePausePartialUpdate>>,
+  TError,
+  { gameId: string },
+  TContext
+> => {
+  const mutationKey = ["gamePausePartialUpdate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gamePausePartialUpdate>>,
+    { gameId: string }
+  > = props => {
+    const { gameId } = props ?? {};
+
+    return gamePausePartialUpdate(gameId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GamePausePartialUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gamePausePartialUpdate>>
+>;
+
+export type GamePausePartialUpdateMutationError = unknown;
+
+export const useGamePausePartialUpdate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gamePausePartialUpdate>>,
+      TError,
+      { gameId: string },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gamePausePartialUpdate>>,
+  TError,
+  { gameId: string },
+  TContext
+> => {
+  return useMutation(
+    getGamePausePartialUpdateMutationOptions(options),
+    queryClient
+  );
+};
+
+/**
+ * Used by views that have a game parameter in the URL. Provides a get_game
+method that returns the game object. Also adds game to the serializer context.
+ */
 export const gamePhaseStatesList = (gameId: string, signal?: AbortSignal) => {
   return customInstance<PhaseState[]>({
     url: `/game/${gameId}/phase-states/`,
@@ -3818,6 +3978,163 @@ export const useGameResolvePhaseCreate = <TError = unknown, TContext = unknown>(
 > => {
   return useMutation(
     getGameResolvePhaseCreateMutationOptions(options),
+    queryClient
+  );
+};
+
+/**
+ * Used by views that have a game parameter in the URL. Provides a get_game
+method that returns the game object. Also adds game to the serializer context.
+ */
+export const gameUnpauseUpdate = (gameId: string, signal?: AbortSignal) => {
+  return customInstance<void>({
+    url: `/game/${gameId}/unpause/`,
+    method: "PUT",
+    signal,
+  });
+};
+
+export const getGameUnpauseUpdateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gameUnpauseUpdate>>,
+    TError,
+    { gameId: string },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gameUnpauseUpdate>>,
+  TError,
+  { gameId: string },
+  TContext
+> => {
+  const mutationKey = ["gameUnpauseUpdate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gameUnpauseUpdate>>,
+    { gameId: string }
+  > = props => {
+    const { gameId } = props ?? {};
+
+    return gameUnpauseUpdate(gameId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GameUnpauseUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gameUnpauseUpdate>>
+>;
+
+export type GameUnpauseUpdateMutationError = unknown;
+
+export const useGameUnpauseUpdate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gameUnpauseUpdate>>,
+      TError,
+      { gameId: string },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gameUnpauseUpdate>>,
+  TError,
+  { gameId: string },
+  TContext
+> => {
+  return useMutation(getGameUnpauseUpdateMutationOptions(options), queryClient);
+};
+
+/**
+ * Used by views that have a game parameter in the URL. Provides a get_game
+method that returns the game object. Also adds game to the serializer context.
+ */
+export const gameUnpausePartialUpdate = (
+  gameId: string,
+  signal?: AbortSignal
+) => {
+  return customInstance<void>({
+    url: `/game/${gameId}/unpause/`,
+    method: "PATCH",
+    signal,
+  });
+};
+
+export const getGameUnpausePartialUpdateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gameUnpausePartialUpdate>>,
+    TError,
+    { gameId: string },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gameUnpausePartialUpdate>>,
+  TError,
+  { gameId: string },
+  TContext
+> => {
+  const mutationKey = ["gameUnpausePartialUpdate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gameUnpausePartialUpdate>>,
+    { gameId: string }
+  > = props => {
+    const { gameId } = props ?? {};
+
+    return gameUnpausePartialUpdate(gameId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GameUnpausePartialUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gameUnpausePartialUpdate>>
+>;
+
+export type GameUnpausePartialUpdateMutationError = unknown;
+
+export const useGameUnpausePartialUpdate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gameUnpausePartialUpdate>>,
+      TError,
+      { gameId: string },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gameUnpausePartialUpdate>>,
+  TError,
+  { gameId: string },
+  TContext
+> => {
+  return useMutation(
+    getGameUnpausePartialUpdateMutationOptions(options),
     queryClient
   );
 };
@@ -6412,6 +6729,14 @@ export const getGameRetrieveResponseMock = (
     null,
   ]),
   private: faker.datatype.boolean(),
+  isPaused: faker.datatype.boolean(),
+  pausedAt: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([
+      faker.date.past().toISOString().slice(0, 19) + "Z",
+      null,
+    ]),
+    null,
+  ]),
   ...overrideResponse,
 });
 
@@ -7113,6 +7438,14 @@ export const getGamesListResponseMock = (): GameList[] =>
       },
     },
     sandbox: faker.datatype.boolean(),
+    isPaused: faker.datatype.boolean(),
+    pausedAt: faker.helpers.arrayElement([
+      faker.helpers.arrayElement([
+        faker.date.past().toISOString().slice(0, 19) + "Z",
+        null,
+      ]),
+      null,
+    ]),
   }));
 
 export const getGamesChannelsListResponseMock = (): Channel[] =>
@@ -7995,6 +8328,46 @@ export const getGameOrdersDeleteDestroyMockHandler = (
   );
 };
 
+export const getGamePauseUpdateMockHandler = (
+  overrideResponse?:
+    | void
+    | ((
+        info: Parameters<Parameters<typeof http.put>[1]>[0]
+      ) => Promise<void> | void),
+  options?: RequestHandlerOptions
+) => {
+  return http.put(
+    "*/game/:gameId/pause/",
+    async info => {
+      if (typeof overrideResponse === "function") {
+        await overrideResponse(info);
+      }
+      return new HttpResponse(null, { status: 200 });
+    },
+    options
+  );
+};
+
+export const getGamePausePartialUpdateMockHandler = (
+  overrideResponse?:
+    | void
+    | ((
+        info: Parameters<Parameters<typeof http.patch>[1]>[0]
+      ) => Promise<void> | void),
+  options?: RequestHandlerOptions
+) => {
+  return http.patch(
+    "*/game/:gameId/pause/",
+    async info => {
+      if (typeof overrideResponse === "function") {
+        await overrideResponse(info);
+      }
+      return new HttpResponse(null, { status: 200 });
+    },
+    options
+  );
+};
+
 export const getGamePhaseStatesListMockHandler = (
   overrideResponse?:
     | PhaseState[]
@@ -8094,6 +8467,46 @@ export const getGameResolvePhaseCreateMockHandler = (
         ),
         { status: 200, headers: { "Content-Type": "application/json" } }
       );
+    },
+    options
+  );
+};
+
+export const getGameUnpauseUpdateMockHandler = (
+  overrideResponse?:
+    | void
+    | ((
+        info: Parameters<Parameters<typeof http.put>[1]>[0]
+      ) => Promise<void> | void),
+  options?: RequestHandlerOptions
+) => {
+  return http.put(
+    "*/game/:gameId/unpause/",
+    async info => {
+      if (typeof overrideResponse === "function") {
+        await overrideResponse(info);
+      }
+      return new HttpResponse(null, { status: 200 });
+    },
+    options
+  );
+};
+
+export const getGameUnpausePartialUpdateMockHandler = (
+  overrideResponse?:
+    | void
+    | ((
+        info: Parameters<Parameters<typeof http.patch>[1]>[0]
+      ) => Promise<void> | void),
+  options?: RequestHandlerOptions
+) => {
+  return http.patch(
+    "*/game/:gameId/unpause/",
+    async info => {
+      if (typeof overrideResponse === "function") {
+        await overrideResponse(info);
+      }
+      return new HttpResponse(null, { status: 200 });
     },
     options
   );
@@ -8520,10 +8933,14 @@ export const getMock = () => [
   getGameOrdersCreateMockHandler(),
   getGameOrdersListMockHandler(),
   getGameOrdersDeleteDestroyMockHandler(),
+  getGamePauseUpdateMockHandler(),
+  getGamePausePartialUpdateMockHandler(),
   getGamePhaseStatesListMockHandler(),
   getGamePhaseRetrieveMockHandler(),
   getGamePhasesListMockHandler(),
   getGameResolvePhaseCreateMockHandler(),
+  getGameUnpauseUpdateMockHandler(),
+  getGameUnpausePartialUpdateMockHandler(),
   getGamesListMockHandler(),
   getGamesChannelsListMockHandler(),
   getGamesChannelsMessagesCreateCreateMockHandler(),

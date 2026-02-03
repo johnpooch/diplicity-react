@@ -1974,3 +1974,168 @@ class TestGameCloneToSandbox:
         url = reverse(clone_to_sandbox_viewname, args=["non-existent-game"])
         response = authenticated_client.post(url)
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+pause_viewname = "game-pause"
+unpause_viewname = "game-unpause"
+
+
+class TestGamePauseUnpause:
+
+    @pytest.mark.django_db
+    def test_pause_game_success(self, authenticated_client, active_game_with_gm):
+        game = active_game_with_gm()
+        url = reverse(pause_viewname, args=[game.id])
+        response = authenticated_client.patch(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["is_paused"] is True
+        assert response.data["paused_at"] is not None
+
+    @pytest.mark.django_db
+    def test_pause_game_non_game_master_forbidden(self, api_client, active_game_with_gm, secondary_user):
+        game = active_game_with_gm()
+        game.members.create(user=secondary_user)
+        api_client.force_authenticate(user=secondary_user)
+        url = reverse(pause_viewname, args=[game.id])
+        response = api_client.patch(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_pause_game_non_member_forbidden(self, api_client, active_game_with_gm, secondary_user):
+        game = active_game_with_gm()
+        api_client.force_authenticate(user=secondary_user)
+        url = reverse(pause_viewname, args=[game.id])
+        response = api_client.patch(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_pause_game_unauthenticated(self, unauthenticated_client, active_game_with_gm):
+        game = active_game_with_gm()
+        url = reverse(pause_viewname, args=[game.id])
+        response = unauthenticated_client.patch(url)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_pause_pending_game_forbidden(self, authenticated_client, pending_game_with_gm):
+        game = pending_game_with_gm()
+        url = reverse(pause_viewname, args=[game.id])
+        response = authenticated_client.patch(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_pause_already_paused_game_returns_400(self, authenticated_client, active_game_with_gm):
+        game = active_game_with_gm()
+        url = reverse(pause_viewname, args=[game.id])
+        authenticated_client.patch(url)
+        response = authenticated_client.patch(url)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    def test_unpause_game_success(self, authenticated_client, active_game_with_gm):
+        game = active_game_with_gm()
+        pause_url = reverse(pause_viewname, args=[game.id])
+        authenticated_client.patch(pause_url)
+        unpause_url = reverse(unpause_viewname, args=[game.id])
+        response = authenticated_client.patch(unpause_url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["is_paused"] is False
+        assert response.data["paused_at"] is None
+
+    @pytest.mark.django_db
+    def test_unpause_game_recalculates_deadline(self, authenticated_client, active_game_with_gm):
+        game = active_game_with_gm()
+        phase = game.current_phase
+        original_deadline = phase.scheduled_resolution
+
+        pause_url = reverse(pause_viewname, args=[game.id])
+        authenticated_client.patch(pause_url)
+
+        game.refresh_from_db()
+        paused_time = game.paused_at
+
+        simulated_unpause_time = paused_time + timedelta(hours=2)
+        with patch("game.models.timezone.now") as mock_now:
+            mock_now.return_value = simulated_unpause_time
+            unpause_url = reverse(unpause_viewname, args=[game.id])
+            authenticated_client.patch(unpause_url)
+
+        phase.refresh_from_db()
+        expected_deadline = original_deadline + timedelta(hours=2)
+        assert abs((phase.scheduled_resolution - expected_deadline).total_seconds()) < 1
+
+    @pytest.mark.django_db
+    def test_unpause_not_paused_game_returns_400(self, authenticated_client, active_game_with_gm):
+        game = active_game_with_gm()
+        url = reverse(unpause_viewname, args=[game.id])
+        response = authenticated_client.patch(url)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    def test_unpause_game_non_game_master_forbidden(
+        self, authenticated_client, api_client, active_game_with_gm, secondary_user
+    ):
+        game = active_game_with_gm()
+        pause_url = reverse(pause_viewname, args=[game.id])
+        authenticated_client.patch(pause_url)
+        game.members.create(user=secondary_user)
+        api_client.force_authenticate(user=secondary_user)
+        unpause_url = reverse(unpause_viewname, args=[game.id])
+        response = api_client.patch(unpause_url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_paused_game_excluded_from_due_phases(self, db, active_game_with_gm):
+        from phase.models import Phase
+
+        game = active_game_with_gm()
+        phase = game.current_phase
+        phase.scheduled_resolution = timezone.now() - timedelta(minutes=5)
+        phase.save()
+
+        assert phase in Phase.objects.filter_due_phases()
+
+        game.paused_at = timezone.now()
+        game.save()
+
+        assert phase not in Phase.objects.filter_due_phases()
+
+    @pytest.mark.django_db
+    def test_is_paused_property(self, db, classical_variant):
+        game = Game.objects.create_from_template(
+            classical_variant,
+            name="Pause Property Test",
+        )
+        assert game.is_paused is False
+
+        game.paused_at = timezone.now()
+        game.save()
+        assert game.is_paused is True
+
+        game.paused_at = None
+        game.save()
+        assert game.is_paused is False
+
+    @pytest.mark.django_db
+    def test_pause_fields_in_game_list_response(self, authenticated_client, active_game_with_gm):
+        game = active_game_with_gm()
+        url = reverse(list_viewname)
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+
+        game_data = next((g for g in response.data if g["id"] == game.id), None)
+        assert game_data is not None
+        assert "is_paused" in game_data
+        assert "paused_at" in game_data
+        assert game_data["is_paused"] is False
+        assert game_data["paused_at"] is None
+
+    @pytest.mark.django_db
+    def test_pause_fields_in_game_retrieve_response(self, authenticated_client, active_game_with_gm):
+        game = active_game_with_gm()
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert "is_paused" in response.data
+        assert "paused_at" in response.data
+        assert response.data["is_paused"] is False
+        assert response.data["paused_at"] is None
