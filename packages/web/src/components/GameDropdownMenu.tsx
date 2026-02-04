@@ -22,6 +22,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Info,
   Users,
   Share,
@@ -30,20 +37,35 @@ import {
   Copy,
   Handshake,
   Vote,
+  Clock,
 } from "lucide-react";
 import {
   useGameLeaveDestroy,
   useGameCloneToSandboxCreate,
+  useGameExtendDeadlineUpdate,
   getGamesListQueryKey,
+  getGameRetrieveQueryKey,
   GameList,
   GameRetrieve,
   useGamesDrawProposalsListSuspense,
   DrawProposal,
+  DurationEnum,
 } from "@/api/generated/endpoints";
 import { Suspense } from "react";
 
+const DURATION_OPTIONS = [
+  { value: DurationEnum["1_hour"], label: "1 hour" },
+  { value: DurationEnum["12_hours"], label: "12 hours" },
+  { value: DurationEnum["24_hours"], label: "24 hours" },
+  { value: DurationEnum["48_hours"], label: "48 hours" },
+  { value: DurationEnum["3_days"], label: "3 days" },
+  { value: DurationEnum["4_days"], label: "4 days" },
+  { value: DurationEnum["1_week"], label: "1 week" },
+  { value: DurationEnum["2_weeks"], label: "2 weeks" },
+] as const;
+
 interface GameDropdownMenuProps {
-  game: Pick<GameList, "id" | "sandbox" | "canLeave"> &
+  game: Pick<GameList, "id" | "sandbox" | "canLeave" | "isPaused"> &
     Partial<Pick<GameRetrieve, "status" | "members">>;
   onNavigateToGameInfo: () => void;
   onNavigateToPlayerInfo: () => void;
@@ -106,14 +128,23 @@ export function GameDropdownMenu({
   onNavigateToPlayerInfo,
 }: GameDropdownMenuProps) {
   const [showCloneConfirmation, setShowCloneConfirmation] = useState(false);
+  const [showExtendDeadlineDialog, setShowExtendDeadlineDialog] =
+    useState(false);
+  const [selectedDuration, setSelectedDuration] = useState<DurationEnum>(
+    DurationEnum["24_hours"]
+  );
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { phaseId } = useParams<{ phaseId: string }>();
   const leaveGameMutation = useGameLeaveDestroy();
   const cloneToSandboxMutation = useGameCloneToSandboxCreate();
+  const extendDeadlineMutation = useGameExtendDeadlineUpdate();
 
   const currentMember = game.members?.find(m => m.isCurrentUser);
   const isActiveGame = game.status === "active";
+  const isCurrentUserGameMaster = currentMember?.isGameMaster ?? false;
+  const canExtendDeadline =
+    isCurrentUserGameMaster && isActiveGame && !game.isPaused;
   const isActiveOrFinishedGame =
     game.status === "active" ||
     game.status === "completed" ||
@@ -152,6 +183,22 @@ export function GameDropdownMenu({
 
   const handleNavigateToDrawProposals = () => {
     navigate(`/game/${game.id}/phase/${phaseId}/draw-proposals`);
+  };
+
+  const handleExtendDeadline = async () => {
+    setShowExtendDeadlineDialog(false);
+    try {
+      await extendDeadlineMutation.mutateAsync({
+        gameId: game.id,
+        data: { duration: selectedDuration },
+      });
+      toast.success("Deadline extended");
+      queryClient.invalidateQueries({
+        queryKey: getGameRetrieveQueryKey(game.id),
+      });
+    } catch {
+      toast.error("Failed to extend deadline");
+    }
   };
 
   return (
@@ -195,6 +242,15 @@ export function GameDropdownMenu({
             <Copy />
             Clone to sandbox
           </DropdownMenuItem>
+        )}
+        {canExtendDeadline && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setShowExtendDeadlineDialog(true)}>
+              <Clock />
+              Extend deadline
+            </DropdownMenuItem>
+          </>
         )}
         {canProposeDraw && phaseId && (
           <>
@@ -248,6 +304,41 @@ export function GameDropdownMenu({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleClone}>
               Create sandbox
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={showExtendDeadlineDialog}
+        onOpenChange={setShowExtendDeadlineDialog}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Extend deadline</AlertDialogTitle>
+            <AlertDialogDescription>
+              Select how long to extend the current phase deadline.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Select
+            value={selectedDuration}
+            onValueChange={value => setSelectedDuration(value as DurationEnum)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DURATION_OPTIONS.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleExtendDeadline}>
+              Extend
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
