@@ -25,5 +25,10 @@ urlpatterns = [
         views.GameUnpauseView.as_view(),
         name="game-unpause",
     ),
+    path(
+        "game/<str:game_id>/extend-deadline/",
+        views.GameExtendDeadlineView.as_view(),
+        name="game-extend-deadline",
+    ),
     path("games/", views.GameListView.as_view(), name="game-list"),
 ]

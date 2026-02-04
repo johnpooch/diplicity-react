@@ -261,3 +261,26 @@ class GameUnpauseSerializer(serializers.Serializer):
 
     def to_representation(self, instance):
         return GameRetrieveSerializer(instance, context=self.context).data
+
+
+class GameExtendDeadlineSerializer(serializers.Serializer):
+    duration = serializers.ChoiceField(
+        choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES,
+    )
+
+    def validate(self, attrs):
+        if "duration" not in attrs:
+            raise serializers.ValidationError({"duration": ["This field is required."]})
+        if self.instance.is_paused:
+            raise serializers.ValidationError("Cannot extend deadline while game is paused")
+        current_phase = self.instance.current_phase
+        if not current_phase or not current_phase.scheduled_resolution:
+            raise serializers.ValidationError("No active phase with a scheduled resolution")
+        return attrs
+
+    def update(self, instance, validated_data):
+        instance.extend_deadline(validated_data["duration"])
+        return instance
+
+    def to_representation(self, instance):
+        return GameRetrieveSerializer(instance, context=self.context).data

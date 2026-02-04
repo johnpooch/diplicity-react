@@ -377,6 +377,62 @@ paths:
               schema:
                 $ref: '#/components/schemas/PhaseState'
           description: ''
+  /game/{gameId}/extend-deadline/:
+    put:
+      operationId: gameExtendDeadlineUpdate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameExtendDeadline'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameExtendDeadline'
+          description: ''
+    patch:
+      operationId: gameExtendDeadlinePartialUpdate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedGameExtendDeadline'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameExtendDeadline'
+          description: ''
   /game/{gameId}/join/:
     post:
       operationId: gameJoinCreate
@@ -1249,6 +1305,26 @@ components:
           type: boolean
       required:
       - accepted
+    DurationEnum:
+      enum:
+      - 1 hour
+      - 12 hours
+      - 24 hours
+      - 48 hours
+      - 3 days
+      - 4 days
+      - 1 week
+      - 2 weeks
+      type: string
+      description: |-
+        * `1 hour` - 1 hour
+        * `12 hours` - 12 hours
+        * `24 hours` - 24 hours
+        * `48 hours` - 48 hours
+        * `3 days` - 3 days
+        * `4 days` - 4 days
+        * `1 week` - 1 week
+        * `2 weeks` - 2 weeks
     FCMDevice:
       type: object
       properties:
@@ -1307,12 +1383,12 @@ components:
           $ref: '#/components/schemas/NationAssignmentEnum'
         movementPhaseDuration:
           allOf:
-          - $ref: '#/components/schemas/MovementPhaseDurationEnum'
+          - $ref: '#/components/schemas/DurationEnum'
           default: 24 hours
         retreatPhaseDuration:
           nullable: true
           oneOf:
-          - $ref: '#/components/schemas/RetreatPhaseDurationEnum'
+          - $ref: '#/components/schemas/DurationEnum'
           - $ref: '#/components/schemas/NullEnum'
         private:
           type: boolean
@@ -1336,6 +1412,13 @@ components:
       - id
       - name
       - variantId
+    GameExtendDeadline:
+      type: object
+      properties:
+        duration:
+          $ref: '#/components/schemas/DurationEnum'
+      required:
+      - duration
     GameList:
       type: object
       properties:
@@ -1544,26 +1627,6 @@ components:
       - name
       - nation
       - picture
-    MovementPhaseDurationEnum:
-      enum:
-      - 1 hour
-      - 12 hours
-      - 24 hours
-      - 48 hours
-      - 3 days
-      - 4 days
-      - 1 week
-      - 2 weeks
-      type: string
-      description: |-
-        * `1 hour` - 1 hour
-        * `12 hours` - 12 hours
-        * `24 hours` - 24 hours
-        * `48 hours` - 48 hours
-        * `3 days` - 3 days
-        * `4 days` - 4 days
-        * `1 week` - 1 week
-        * `2 weeks` - 2 weeks
     Nation:
       type: object
       properties:
@@ -1706,6 +1769,11 @@ components:
       properties:
         accepted:
           type: boolean
+    PatchedGameExtendDeadline:
+      type: object
+      properties:
+        duration:
+          $ref: '#/components/schemas/DurationEnum'
     PatchedPhaseState:
       type: object
       properties:
@@ -1872,26 +1940,6 @@ components:
       - parentId
       - supplyCenter
       - type
-    RetreatPhaseDurationEnum:
-      enum:
-      - 1 hour
-      - 12 hours
-      - 24 hours
-      - 48 hours
-      - 3 days
-      - 4 days
-      - 1 week
-      - 2 weeks
-      type: string
-      description: |-
-        * `1 hour` - 1 hour
-        * `12 hours` - 12 hours
-        * `24 hours` - 24 hours
-        * `48 hours` - 48 hours
-        * `3 days` - 3 days
-        * `4 days` - 4 days
-        * `1 week` - 1 week
-        * `2 weeks` - 2 weeks
     StatusEnum:
       enum:
       - pending

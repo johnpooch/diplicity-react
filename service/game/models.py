@@ -425,6 +425,23 @@ class Game(BaseModel):
         self.paused_at = None
         self.save()
 
+    def extend_deadline(self, duration):
+        if self.status != GameStatus.ACTIVE:
+            raise ValueError("Can only extend deadline for an active game")
+        if self.is_paused:
+            raise ValueError("Cannot extend deadline while game is paused")
+
+        current_phase = self.current_phase
+        if not current_phase or not current_phase.scheduled_resolution:
+            raise ValueError("No active phase with a scheduled resolution")
+
+        extension_seconds = duration_to_seconds(duration)
+        if not extension_seconds:
+            raise ValueError("Invalid duration")
+
+        current_phase.scheduled_resolution += timedelta(seconds=extension_seconds)
+        current_phase.save()
+
     class Meta:
         indexes = [
             models.Index(fields=["status"]),

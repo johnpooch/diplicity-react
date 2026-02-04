@@ -13,6 +13,7 @@ from .serializers import (
     GameRetrieveSerializer,
     GamePauseSerializer,
     GameUnpauseSerializer,
+    GameExtendDeadlineSerializer,
 )
 from common.views import SelectedGameMixin
 from common.permissions import IsActiveGame, IsGameMember, IsGameMaster
@@ -87,6 +88,14 @@ class GamePauseView(SelectedGameMixin, generics.UpdateAPIView):
 class GameUnpauseView(SelectedGameMixin, generics.UpdateAPIView):
     permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsGameMaster]
     serializer_class = GameUnpauseSerializer
+
+    def get_object(self):
+        return self.get_game()
+
+
+class GameExtendDeadlineView(SelectedGameMixin, generics.UpdateAPIView):
+    permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsGameMaster]
+    serializer_class = GameExtendDeadlineSerializer
 
     def get_object(self):
         return self.get_game()

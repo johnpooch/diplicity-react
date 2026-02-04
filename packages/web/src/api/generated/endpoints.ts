@@ -130,6 +130,29 @@ export interface DrawVoteUpdate {
 }
 
 /**
+ * * `1 hour` - 1 hour
+ * `12 hours` - 12 hours
+ * `24 hours` - 24 hours
+ * `48 hours` - 48 hours
+ * `3 days` - 3 days
+ * `4 days` - 4 days
+ * `1 week` - 1 week
+ * `2 weeks` - 2 weeks
+ */
+export type DurationEnum = (typeof DurationEnum)[keyof typeof DurationEnum];
+
+export const DurationEnum = {
+  "1_hour": "1 hour",
+  "12_hours": "12 hours",
+  "24_hours": "24 hours",
+  "48_hours": "48 hours",
+  "3_days": "3 days",
+  "4_days": "4 days",
+  "1_week": "1 week",
+  "2_weeks": "2 weeks",
+} as const;
+
+/**
  * * `ios` - ios
  * `android` - android
  * `web` - web
@@ -179,54 +202,6 @@ export const NationAssignmentEnum = {
   ordered: "ordered",
 } as const;
 
-/**
- * * `1 hour` - 1 hour
- * `12 hours` - 12 hours
- * `24 hours` - 24 hours
- * `48 hours` - 48 hours
- * `3 days` - 3 days
- * `4 days` - 4 days
- * `1 week` - 1 week
- * `2 weeks` - 2 weeks
- */
-export type MovementPhaseDurationEnum =
-  (typeof MovementPhaseDurationEnum)[keyof typeof MovementPhaseDurationEnum];
-
-export const MovementPhaseDurationEnum = {
-  "1_hour": "1 hour",
-  "12_hours": "12 hours",
-  "24_hours": "24 hours",
-  "48_hours": "48 hours",
-  "3_days": "3 days",
-  "4_days": "4 days",
-  "1_week": "1 week",
-  "2_weeks": "2 weeks",
-} as const;
-
-/**
- * * `1 hour` - 1 hour
- * `12 hours` - 12 hours
- * `24 hours` - 24 hours
- * `48 hours` - 48 hours
- * `3 days` - 3 days
- * `4 days` - 4 days
- * `1 week` - 1 week
- * `2 weeks` - 2 weeks
- */
-export type RetreatPhaseDurationEnum =
-  (typeof RetreatPhaseDurationEnum)[keyof typeof RetreatPhaseDurationEnum];
-
-export const RetreatPhaseDurationEnum = {
-  "1_hour": "1 hour",
-  "12_hours": "12 hours",
-  "24_hours": "24 hours",
-  "48_hours": "48 hours",
-  "3_days": "3 days",
-  "4_days": "4 days",
-  "1_week": "1 week",
-  "2_weeks": "2 weeks",
-} as const;
-
 export type NullEnum = (typeof NullEnum)[keyof typeof NullEnum];
 
 export const NullEnum = {} as const;
@@ -236,8 +211,8 @@ export interface GameCreate {
   name: string;
   variantId: string;
   nationAssignment: NationAssignmentEnum;
-  movementPhaseDuration?: MovementPhaseDurationEnum;
-  retreatPhaseDuration?: RetreatPhaseDurationEnum | NullEnum | null;
+  movementPhaseDuration?: DurationEnum;
+  retreatPhaseDuration?: DurationEnum | NullEnum | null;
   private: boolean;
 }
 
@@ -245,6 +220,10 @@ export interface GameCreateSandbox {
   readonly id: string;
   name: string;
   variantId: string;
+}
+
+export interface GameExtendDeadline {
+  duration: DurationEnum;
 }
 
 export interface Member {
@@ -409,6 +388,10 @@ export interface Order {
 
 export interface PatchedDrawVoteUpdate {
   accepted?: boolean;
+}
+
+export interface PatchedGameExtendDeadline {
+  duration?: DurationEnum;
 }
 
 export interface PatchedPhaseState {
@@ -2318,6 +2301,179 @@ export const useGameConfirmPhasePartialUpdate = <
 > => {
   return useMutation(
     getGameConfirmPhasePartialUpdateMutationOptions(options),
+    queryClient
+  );
+};
+
+/**
+ * Used by views that have a game parameter in the URL. Provides a get_game
+method that returns the game object. Also adds game to the serializer context.
+ */
+export const gameExtendDeadlineUpdate = (
+  gameId: string,
+  gameExtendDeadline: GameExtendDeadline,
+  signal?: AbortSignal
+) => {
+  return customInstance<GameExtendDeadline>({
+    url: `/game/${gameId}/extend-deadline/`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: gameExtendDeadline,
+    signal,
+  });
+};
+
+export const getGameExtendDeadlineUpdateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gameExtendDeadlineUpdate>>,
+    TError,
+    { gameId: string; data: GameExtendDeadline },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gameExtendDeadlineUpdate>>,
+  TError,
+  { gameId: string; data: GameExtendDeadline },
+  TContext
+> => {
+  const mutationKey = ["gameExtendDeadlineUpdate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gameExtendDeadlineUpdate>>,
+    { gameId: string; data: GameExtendDeadline }
+  > = props => {
+    const { gameId, data } = props ?? {};
+
+    return gameExtendDeadlineUpdate(gameId, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GameExtendDeadlineUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gameExtendDeadlineUpdate>>
+>;
+export type GameExtendDeadlineUpdateMutationBody = GameExtendDeadline;
+export type GameExtendDeadlineUpdateMutationError = unknown;
+
+export const useGameExtendDeadlineUpdate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gameExtendDeadlineUpdate>>,
+      TError,
+      { gameId: string; data: GameExtendDeadline },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gameExtendDeadlineUpdate>>,
+  TError,
+  { gameId: string; data: GameExtendDeadline },
+  TContext
+> => {
+  return useMutation(
+    getGameExtendDeadlineUpdateMutationOptions(options),
+    queryClient
+  );
+};
+
+/**
+ * Used by views that have a game parameter in the URL. Provides a get_game
+method that returns the game object. Also adds game to the serializer context.
+ */
+export const gameExtendDeadlinePartialUpdate = (
+  gameId: string,
+  patchedGameExtendDeadline: PatchedGameExtendDeadline,
+  signal?: AbortSignal
+) => {
+  return customInstance<GameExtendDeadline>({
+    url: `/game/${gameId}/extend-deadline/`,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    data: patchedGameExtendDeadline,
+    signal,
+  });
+};
+
+export const getGameExtendDeadlinePartialUpdateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gameExtendDeadlinePartialUpdate>>,
+    TError,
+    { gameId: string; data: PatchedGameExtendDeadline },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gameExtendDeadlinePartialUpdate>>,
+  TError,
+  { gameId: string; data: PatchedGameExtendDeadline },
+  TContext
+> => {
+  const mutationKey = ["gameExtendDeadlinePartialUpdate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gameExtendDeadlinePartialUpdate>>,
+    { gameId: string; data: PatchedGameExtendDeadline }
+  > = props => {
+    const { gameId, data } = props ?? {};
+
+    return gameExtendDeadlinePartialUpdate(gameId, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GameExtendDeadlinePartialUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gameExtendDeadlinePartialUpdate>>
+>;
+export type GameExtendDeadlinePartialUpdateMutationBody =
+  PatchedGameExtendDeadline;
+export type GameExtendDeadlinePartialUpdateMutationError = unknown;
+
+export const useGameExtendDeadlinePartialUpdate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gameExtendDeadlinePartialUpdate>>,
+      TError,
+      { gameId: string; data: PatchedGameExtendDeadline },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gameExtendDeadlinePartialUpdate>>,
+  TError,
+  { gameId: string; data: PatchedGameExtendDeadline },
+  TContext
+> => {
+  return useMutation(
+    getGameExtendDeadlinePartialUpdateMutationOptions(options),
     queryClient
   );
 };
@@ -6620,12 +6776,12 @@ export const getGameCreateResponseMock = (
     Object.values(NationAssignmentEnum)
   ),
   movementPhaseDuration: faker.helpers.arrayElement([
-    faker.helpers.arrayElement(Object.values(MovementPhaseDurationEnum)),
+    faker.helpers.arrayElement(Object.values(DurationEnum)),
     undefined,
   ]),
   retreatPhaseDuration: faker.helpers.arrayElement([
     faker.helpers.arrayElement([
-      faker.helpers.arrayElement(Object.values(RetreatPhaseDurationEnum)),
+      faker.helpers.arrayElement(Object.values(DurationEnum)),
       faker.helpers.arrayElement([] as const),
     ]),
     undefined,
@@ -6850,6 +7006,20 @@ export const getGameConfirmPhasePartialUpdateResponseMock = (
       isGameMaster: faker.datatype.boolean(),
     },
   },
+  ...overrideResponse,
+});
+
+export const getGameExtendDeadlineUpdateResponseMock = (
+  overrideResponse: Partial<GameExtendDeadline> = {}
+): GameExtendDeadline => ({
+  duration: faker.helpers.arrayElement(Object.values(DurationEnum)),
+  ...overrideResponse,
+});
+
+export const getGameExtendDeadlinePartialUpdateResponseMock = (
+  overrideResponse: Partial<GameExtendDeadline> = {}
+): GameExtendDeadline => ({
+  duration: faker.helpers.arrayElement(Object.values(DurationEnum)),
   ...overrideResponse,
 });
 
@@ -8210,6 +8380,58 @@ export const getGameConfirmPhasePartialUpdateMockHandler = (
   );
 };
 
+export const getGameExtendDeadlineUpdateMockHandler = (
+  overrideResponse?:
+    | GameExtendDeadline
+    | ((
+        info: Parameters<Parameters<typeof http.put>[1]>[0]
+      ) => Promise<GameExtendDeadline> | GameExtendDeadline),
+  options?: RequestHandlerOptions
+) => {
+  return http.put(
+    "*/game/:gameId/extend-deadline/",
+    async info => {
+      return new HttpResponse(
+        JSON.stringify(
+          overrideResponse !== undefined
+            ? typeof overrideResponse === "function"
+              ? await overrideResponse(info)
+              : overrideResponse
+            : getGameExtendDeadlineUpdateResponseMock()
+        ),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    },
+    options
+  );
+};
+
+export const getGameExtendDeadlinePartialUpdateMockHandler = (
+  overrideResponse?:
+    | GameExtendDeadline
+    | ((
+        info: Parameters<Parameters<typeof http.patch>[1]>[0]
+      ) => Promise<GameExtendDeadline> | GameExtendDeadline),
+  options?: RequestHandlerOptions
+) => {
+  return http.patch(
+    "*/game/:gameId/extend-deadline/",
+    async info => {
+      return new HttpResponse(
+        JSON.stringify(
+          overrideResponse !== undefined
+            ? typeof overrideResponse === "function"
+              ? await overrideResponse(info)
+              : overrideResponse
+            : getGameExtendDeadlinePartialUpdateResponseMock()
+        ),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    },
+    options
+  );
+};
+
 export const getGameJoinCreateMockHandler = (
   overrideResponse?:
     | Member
@@ -8928,6 +9150,8 @@ export const getMock = () => [
   getGameCloneToSandboxCreateMockHandler(),
   getGameConfirmPhaseUpdateMockHandler(),
   getGameConfirmPhasePartialUpdateMockHandler(),
+  getGameExtendDeadlineUpdateMockHandler(),
+  getGameExtendDeadlinePartialUpdateMockHandler(),
   getGameJoinCreateMockHandler(),
   getGameLeaveDestroyMockHandler(),
   getGameOrdersCreateMockHandler(),

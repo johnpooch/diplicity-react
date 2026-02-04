@@ -2139,3 +2139,126 @@ class TestGamePauseUnpause:
         assert "paused_at" in response.data
         assert response.data["is_paused"] is False
         assert response.data["paused_at"] is None
+
+
+extend_deadline_viewname = "game-extend-deadline"
+
+
+class TestGameExtendDeadline:
+
+    @pytest.mark.django_db
+    def test_extend_deadline_success(self, authenticated_client, active_game_with_gm):
+        game = active_game_with_gm()
+        phase = game.current_phase
+        original_deadline = phase.scheduled_resolution
+
+        url = reverse(extend_deadline_viewname, args=[game.id])
+        response = authenticated_client.patch(
+            url, {"duration": MovementPhaseDuration.ONE_HOUR}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        phase.refresh_from_db()
+        expected_deadline = original_deadline + timedelta(hours=1)
+        assert abs((phase.scheduled_resolution - expected_deadline).total_seconds()) < 1
+
+    @pytest.mark.django_db
+    def test_extend_deadline_24_hours(self, authenticated_client, active_game_with_gm):
+        game = active_game_with_gm()
+        phase = game.current_phase
+        original_deadline = phase.scheduled_resolution
+
+        url = reverse(extend_deadline_viewname, args=[game.id])
+        response = authenticated_client.patch(
+            url, {"duration": MovementPhaseDuration.TWENTY_FOUR_HOURS}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        phase.refresh_from_db()
+        expected_deadline = original_deadline + timedelta(hours=24)
+        assert abs((phase.scheduled_resolution - expected_deadline).total_seconds()) < 1
+
+    @pytest.mark.django_db
+    def test_extend_deadline_non_game_master_forbidden(self, api_client, active_game_with_gm, secondary_user):
+        game = active_game_with_gm()
+        game.members.create(user=secondary_user)
+        api_client.force_authenticate(user=secondary_user)
+        url = reverse(extend_deadline_viewname, args=[game.id])
+        response = api_client.patch(
+            url, {"duration": MovementPhaseDuration.ONE_HOUR}, format="json"
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_extend_deadline_non_member_forbidden(self, api_client, active_game_with_gm, secondary_user):
+        game = active_game_with_gm()
+        api_client.force_authenticate(user=secondary_user)
+        url = reverse(extend_deadline_viewname, args=[game.id])
+        response = api_client.patch(
+            url, {"duration": MovementPhaseDuration.ONE_HOUR}, format="json"
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_extend_deadline_unauthenticated(self, unauthenticated_client, active_game_with_gm):
+        game = active_game_with_gm()
+        url = reverse(extend_deadline_viewname, args=[game.id])
+        response = unauthenticated_client.patch(
+            url, {"duration": MovementPhaseDuration.ONE_HOUR}, format="json"
+        )
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_extend_deadline_pending_game_forbidden(self, authenticated_client, pending_game_with_gm):
+        game = pending_game_with_gm()
+        url = reverse(extend_deadline_viewname, args=[game.id])
+        response = authenticated_client.patch(
+            url, {"duration": MovementPhaseDuration.ONE_HOUR}, format="json"
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_extend_deadline_paused_game_returns_400(self, authenticated_client, active_game_with_gm):
+        game = active_game_with_gm()
+        pause_url = reverse(pause_viewname, args=[game.id])
+        authenticated_client.patch(pause_url)
+
+        url = reverse(extend_deadline_viewname, args=[game.id])
+        response = authenticated_client.patch(
+            url, {"duration": MovementPhaseDuration.ONE_HOUR}, format="json"
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    def test_extend_deadline_invalid_duration_returns_400(self, authenticated_client, active_game_with_gm):
+        game = active_game_with_gm()
+        url = reverse(extend_deadline_viewname, args=[game.id])
+        response = authenticated_client.patch(
+            url, {"duration": "invalid_duration"}, format="json"
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    def test_extend_deadline_missing_duration_returns_400(self, authenticated_client, active_game_with_gm):
+        game = active_game_with_gm()
+        url = reverse(extend_deadline_viewname, args=[game.id])
+        response = authenticated_client.patch(url, {}, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    def test_extend_deadline_multiple_times(self, authenticated_client, active_game_with_gm):
+        game = active_game_with_gm()
+        phase = game.current_phase
+        original_deadline = phase.scheduled_resolution
+
+        url = reverse(extend_deadline_viewname, args=[game.id])
+        authenticated_client.patch(
+            url, {"duration": MovementPhaseDuration.ONE_HOUR}, format="json"
+        )
+        authenticated_client.patch(
+            url, {"duration": MovementPhaseDuration.ONE_HOUR}, format="json"
+        )
+
+        phase.refresh_from_db()
+        expected_deadline = original_deadline + timedelta(hours=2)
+        assert abs((phase.scheduled_resolution - expected_deadline).total_seconds()) < 1
