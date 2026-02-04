@@ -2262,3 +2262,82 @@ class TestGameExtendDeadline:
         phase.refresh_from_db()
         expected_deadline = original_deadline + timedelta(hours=2)
         assert abs((phase.scheduled_resolution - expected_deadline).total_seconds()) < 1
+
+
+pause_viewname = "game-pause"
+unpause_viewname = "game-unpause"
+
+
+class TestGamePauseNotification:
+
+    @pytest.mark.django_db
+    def test_pause_game_sends_notification(
+        self,
+        authenticated_client,
+        active_game_with_gm,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
+    ):
+        game = active_game_with_gm()
+        mock_send_notification_to_users.reset_mock()
+
+        url = reverse(pause_viewname, args=[game.id])
+        response = authenticated_client.patch(url)
+        assert response.status_code == status.HTTP_200_OK
+
+        mock_send_notification_to_users.assert_called_once()
+        call_kwargs = mock_send_notification_to_users.call_args[1]
+        assert call_kwargs["notification_type"] == "game_paused"
+        assert "Game paused by Game Master" in call_kwargs["body"]
+        assert call_kwargs["data"]["game_id"] == str(game.id)
+
+
+class TestGameUnpauseNotification:
+
+    @pytest.mark.django_db
+    def test_unpause_game_sends_notification(
+        self,
+        authenticated_client,
+        active_game_with_gm,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
+    ):
+        game = active_game_with_gm()
+        game.pause()
+        game.save()
+        mock_send_notification_to_users.reset_mock()
+
+        url = reverse(unpause_viewname, args=[game.id])
+        response = authenticated_client.patch(url)
+        assert response.status_code == status.HTTP_200_OK
+
+        mock_send_notification_to_users.assert_called_once()
+        call_kwargs = mock_send_notification_to_users.call_args[1]
+        assert call_kwargs["notification_type"] == "game_resumed"
+        assert "Game resumed by Game Master" in call_kwargs["body"]
+        assert "New deadline:" in call_kwargs["body"]
+
+
+class TestGameExtendDeadlineNotification:
+
+    @pytest.mark.django_db
+    def test_extend_deadline_sends_notification(
+        self,
+        authenticated_client,
+        active_game_with_gm,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
+    ):
+        game = active_game_with_gm()
+        mock_send_notification_to_users.reset_mock()
+
+        url = reverse(extend_deadline_viewname, args=[game.id])
+        response = authenticated_client.patch(
+            url, {"duration": MovementPhaseDuration.ONE_HOUR}, format="json"
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        mock_send_notification_to_users.assert_called_once()
+        call_kwargs = mock_send_notification_to_users.call_args[1]
+        assert call_kwargs["notification_type"] == "game_deadline_extended"
+        assert "Deadline extended by Game Master" in call_kwargs["body"]
