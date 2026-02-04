@@ -185,6 +185,13 @@ export function GameDropdownMenu({
     navigate(`/game/${game.id}/phase/${phaseId}/draw-proposals`);
   };
 
+  const handleExtendDeadlineDialogChange = (open: boolean) => {
+    setShowExtendDeadlineDialog(open);
+    if (!open) {
+      setSelectedDuration(DurationEnum["24_hours"]);
+    }
+  };
+
   const handleExtendDeadline = async () => {
     setShowExtendDeadlineDialog(false);
     try {
@@ -196,6 +203,7 @@ export function GameDropdownMenu({
       queryClient.invalidateQueries({
         queryKey: getGameRetrieveQueryKey(game.id),
       });
+      queryClient.invalidateQueries({ queryKey: getGamesListQueryKey() });
     } catch {
       toast.error("Failed to extend deadline");
     }
@@ -246,7 +254,9 @@ export function GameDropdownMenu({
         {canExtendDeadline && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setShowExtendDeadlineDialog(true)}>
+            <DropdownMenuItem
+              onClick={() => handleExtendDeadlineDialogChange(true)}
+            >
               <Clock />
               Extend deadline
             </DropdownMenuItem>
@@ -311,7 +321,7 @@ export function GameDropdownMenu({
 
       <AlertDialog
         open={showExtendDeadlineDialog}
-        onOpenChange={setShowExtendDeadlineDialog}
+        onOpenChange={handleExtendDeadlineDialogChange}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
