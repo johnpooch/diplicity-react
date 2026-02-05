@@ -1208,6 +1208,14 @@ components:
       - createdAt
       - id
       - sender
+    DeadlineModeEnum:
+      enum:
+      - duration
+      - fixed_time
+      type: string
+      description: |-
+        * `duration` - Duration
+        * `fixed_time` - Fixed Time
     DrawProposal:
       type: object
       properties:
@@ -1392,6 +1400,33 @@ components:
           - $ref: '#/components/schemas/NullEnum'
         private:
           type: boolean
+        deadlineMode:
+          allOf:
+          - $ref: '#/components/schemas/DeadlineModeEnum'
+          default: duration
+        fixedDeadlineTime:
+          type: string
+          format: time
+          nullable: true
+        fixedDeadlineTimezone:
+          type: string
+          nullable: true
+          maxLength: 50
+        movementFrequency:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/MovementFrequencyEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        retreatFrequency:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/RetreatFrequencyEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        nmrExtensionsAllowed:
+          type: integer
+          maximum: 2
+          minimum: 0
+          default: 0
       required:
       - id
       - name
@@ -1484,19 +1519,48 @@ components:
           format: date-time
           readOnly: true
           nullable: true
+        nmrExtensionsAllowed:
+          type: integer
+          readOnly: true
+        deadlineMode:
+          type: string
+          readOnly: true
+        fixedDeadlineTime:
+          type: string
+          format: time
+          readOnly: true
+          nullable: true
+        fixedDeadlineTimezone:
+          type: string
+          readOnly: true
+          nullable: true
+        movementFrequency:
+          type: string
+          readOnly: true
+          nullable: true
+        retreatFrequency:
+          type: string
+          readOnly: true
+          nullable: true
       required:
       - canJoin
       - canLeave
       - currentPhaseId
+      - deadlineMode
+      - fixedDeadlineTime
+      - fixedDeadlineTimezone
       - id
       - isPaused
       - members
+      - movementFrequency
       - movementPhaseDuration
       - name
       - nationAssignment
+      - nmrExtensionsAllowed
       - pausedAt
       - phases
       - private
+      - retreatFrequency
       - retreatPhaseDuration
       - sandbox
       - status
@@ -1570,20 +1634,49 @@ components:
           format: date-time
           readOnly: true
           nullable: true
+        nmrExtensionsAllowed:
+          type: integer
+          readOnly: true
+        deadlineMode:
+          type: string
+          readOnly: true
+        fixedDeadlineTime:
+          type: string
+          format: time
+          readOnly: true
+          nullable: true
+        fixedDeadlineTimezone:
+          type: string
+          readOnly: true
+          nullable: true
+        movementFrequency:
+          type: string
+          readOnly: true
+          nullable: true
+        retreatFrequency:
+          type: string
+          readOnly: true
+          nullable: true
       required:
       - canJoin
       - canLeave
       - currentPhaseId
+      - deadlineMode
+      - fixedDeadlineTime
+      - fixedDeadlineTimezone
       - id
       - isPaused
       - members
+      - movementFrequency
       - movementPhaseDuration
       - name
       - nationAssignment
+      - nmrExtensionsAllowed
       - pausedAt
       - phaseConfirmed
       - phases
       - private
+      - retreatFrequency
       - retreatPhaseDuration
       - sandbox
       - status
@@ -1618,6 +1711,9 @@ components:
         isGameMaster:
           type: boolean
           readOnly: true
+        nmrExtensionsRemaining:
+          type: integer
+          readOnly: true
       required:
       - eliminated
       - id
@@ -1626,7 +1722,20 @@ components:
       - kicked
       - name
       - nation
+      - nmrExtensionsRemaining
       - picture
+    MovementFrequencyEnum:
+      enum:
+      - hourly
+      - daily
+      - every_2_days
+      - weekly
+      type: string
+      description: |-
+        * `hourly` - Hourly
+        * `daily` - Daily
+        * `every_2_days` - Every 2 days
+        * `weekly` - Weekly
     Nation:
       type: object
       properties:
@@ -1940,6 +2049,18 @@ components:
       - parentId
       - supplyCenter
       - type
+    RetreatFrequencyEnum:
+      enum:
+      - hourly
+      - daily
+      - every_2_days
+      - weekly
+      type: string
+      description: |-
+        * `hourly` - Hourly
+        * `daily` - Daily
+        * `every_2_days` - Every 2 days
+        * `weekly` - Weekly
     StatusEnum:
       enum:
       - pending

@@ -39,6 +39,30 @@ class MovementPhaseDuration:
     )
 
 
+class DeadlineMode:
+    DURATION = "duration"
+    FIXED_TIME = "fixed_time"
+
+    DEADLINE_MODE_CHOICES = (
+        (DURATION, "Duration"),
+        (FIXED_TIME, "Fixed Time"),
+    )
+
+
+class PhaseFrequency:
+    HOURLY = "hourly"
+    DAILY = "daily"
+    EVERY_2_DAYS = "every_2_days"
+    WEEKLY = "weekly"
+
+    PHASE_FREQUENCY_CHOICES = (
+        (HOURLY, "Hourly"),
+        (DAILY, "Daily"),
+        (EVERY_2_DAYS, "Every 2 days"),
+        (WEEKLY, "Weekly"),
+    )
+
+
 def duration_to_seconds(duration: Optional[str]) -> Optional[int]:
     if duration is None:
         return None

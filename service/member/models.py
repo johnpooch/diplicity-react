@@ -14,6 +14,7 @@ class Member(BaseModel):
     eliminated = models.BooleanField(default=False)
     kicked = models.BooleanField(default=False)
     is_game_master = models.BooleanField(default=False)
+    nmr_extensions_remaining = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
         indexes = [

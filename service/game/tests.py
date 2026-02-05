@@ -5,9 +5,9 @@ from django.urls import reverse
 from django.test.utils import override_settings
 from django.db import connection
 from django.utils import timezone
-from datetime import timedelta
+from datetime import time, timedelta
 from rest_framework import status
-from common.constants import PhaseStatus, GameStatus, NationAssignment, MovementPhaseDuration
+from common.constants import PhaseStatus, GameStatus, NationAssignment, MovementPhaseDuration, DeadlineMode, PhaseFrequency
 
 from .models import Game
 
@@ -940,6 +940,190 @@ class TestGameCreateView:
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["private"] is False
+
+    @pytest.mark.django_db
+    def test_create_game_default_deadline_mode_is_duration(self, authenticated_client, classical_variant):
+        url = reverse(create_viewname)
+        payload = {
+            "name": "Default Deadline Mode Game",
+            "variant_id": classical_variant.id,
+            "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["deadline_mode"] == DeadlineMode.DURATION
+
+        game = Game.objects.get(id=response.data["id"])
+        assert game.deadline_mode == DeadlineMode.DURATION
+        assert game.fixed_deadline_time is None
+        assert game.fixed_deadline_timezone is None
+        assert game.movement_frequency is None
+        assert game.retreat_frequency is None
+
+    @pytest.mark.django_db
+    def test_create_game_fixed_time_mode_requires_time(self, authenticated_client, classical_variant):
+        url = reverse(create_viewname)
+        payload = {
+            "name": "Fixed Time Game Missing Time",
+            "variant_id": classical_variant.id,
+            "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
+            "deadline_mode": DeadlineMode.FIXED_TIME,
+            "fixed_deadline_timezone": "America/New_York",
+            "movement_frequency": PhaseFrequency.DAILY,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "fixed_deadline_time" in response.data
+
+    @pytest.mark.django_db
+    def test_create_game_fixed_time_mode_requires_timezone(self, authenticated_client, classical_variant):
+        url = reverse(create_viewname)
+        payload = {
+            "name": "Fixed Time Game Missing Timezone",
+            "variant_id": classical_variant.id,
+            "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
+            "deadline_mode": DeadlineMode.FIXED_TIME,
+            "fixed_deadline_time": "21:00:00",
+            "movement_frequency": PhaseFrequency.DAILY,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "fixed_deadline_timezone" in response.data
+
+    @pytest.mark.django_db
+    def test_create_game_fixed_time_mode_requires_movement_frequency(self, authenticated_client, classical_variant):
+        url = reverse(create_viewname)
+        payload = {
+            "name": "Fixed Time Game Missing Frequency",
+            "variant_id": classical_variant.id,
+            "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
+            "deadline_mode": DeadlineMode.FIXED_TIME,
+            "fixed_deadline_time": "21:00:00",
+            "fixed_deadline_timezone": "America/New_York",
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "movement_frequency" in response.data
+
+    @pytest.mark.django_db
+    def test_create_game_fixed_time_mode_invalid_timezone(self, authenticated_client, classical_variant):
+        url = reverse(create_viewname)
+        payload = {
+            "name": "Fixed Time Game Invalid Timezone",
+            "variant_id": classical_variant.id,
+            "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
+            "deadline_mode": DeadlineMode.FIXED_TIME,
+            "fixed_deadline_time": "21:00:00",
+            "fixed_deadline_timezone": "Invalid/Timezone",
+            "movement_frequency": PhaseFrequency.DAILY,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "fixed_deadline_timezone" in response.data
+
+    @pytest.mark.django_db
+    def test_create_game_fixed_time_mode_success(self, authenticated_client, classical_variant):
+        url = reverse(create_viewname)
+        payload = {
+            "name": "Fixed Time Game Success",
+            "variant_id": classical_variant.id,
+            "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
+            "deadline_mode": DeadlineMode.FIXED_TIME,
+            "fixed_deadline_time": "21:00:00",
+            "fixed_deadline_timezone": "America/New_York",
+            "movement_frequency": PhaseFrequency.DAILY,
+            "retreat_frequency": PhaseFrequency.HOURLY,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["deadline_mode"] == DeadlineMode.FIXED_TIME
+        assert response.data["fixed_deadline_time"] == "21:00:00"
+        assert response.data["fixed_deadline_timezone"] == "America/New_York"
+        assert response.data["movement_frequency"] == PhaseFrequency.DAILY
+        assert response.data["retreat_frequency"] == PhaseFrequency.HOURLY
+
+        game = Game.objects.get(id=response.data["id"])
+        assert game.deadline_mode == DeadlineMode.FIXED_TIME
+        assert game.fixed_deadline_time == time(21, 0, 0)
+        assert game.fixed_deadline_timezone == "America/New_York"
+        assert game.movement_frequency == PhaseFrequency.DAILY
+        assert game.retreat_frequency == PhaseFrequency.HOURLY
+
+    @pytest.mark.django_db
+    def test_create_game_duration_mode_clears_fixed_time_fields(self, authenticated_client, classical_variant):
+        url = reverse(create_viewname)
+        payload = {
+            "name": "Duration Mode Clears Fixed Fields",
+            "variant_id": classical_variant.id,
+            "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
+            "fixed_deadline_time": "21:00:00",
+            "fixed_deadline_timezone": "America/New_York",
+            "movement_frequency": PhaseFrequency.DAILY,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["deadline_mode"] == DeadlineMode.DURATION
+        assert response.data["fixed_deadline_time"] is None
+        assert response.data["fixed_deadline_timezone"] is None
+        assert response.data["movement_frequency"] is None
+        assert response.data["retreat_frequency"] is None
+
+        game = Game.objects.get(id=response.data["id"])
+        assert game.fixed_deadline_time is None
+        assert game.fixed_deadline_timezone is None
+        assert game.movement_frequency is None
+        assert game.retreat_frequency is None
+
+    @pytest.mark.django_db
+    def test_retrieve_game_includes_fixed_deadline_fields(self, authenticated_client, classical_variant):
+        url = reverse(create_viewname)
+        payload = {
+            "name": "Test Fixed Deadline Fields In Response",
+            "variant_id": classical_variant.id,
+            "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
+            "deadline_mode": DeadlineMode.FIXED_TIME,
+            "fixed_deadline_time": "09:00:00",
+            "fixed_deadline_timezone": "Europe/London",
+            "movement_frequency": PhaseFrequency.WEEKLY,
+        }
+        create_response = authenticated_client.post(url, payload, format="json")
+        assert create_response.status_code == status.HTTP_201_CREATED
+        game_id = create_response.data["id"]
+
+        retrieve_url = reverse(retrieve_viewname, args=[game_id])
+        response = authenticated_client.get(retrieve_url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["deadline_mode"] == DeadlineMode.FIXED_TIME
+        assert response.data["fixed_deadline_time"] == "09:00:00"
+        assert response.data["fixed_deadline_timezone"] == "Europe/London"
+        assert response.data["movement_frequency"] == PhaseFrequency.WEEKLY
+        assert response.data["retreat_frequency"] is None
+
+    @pytest.mark.django_db
+    def test_effective_retreat_frequency_property_fallback(self, classical_variant, db):
+        game = Game.objects.create(
+            name="Test Effective Retreat Frequency",
+            variant=classical_variant,
+            deadline_mode=DeadlineMode.FIXED_TIME,
+            fixed_deadline_time=time(21, 0, 0),
+            fixed_deadline_timezone="America/New_York",
+            movement_frequency=PhaseFrequency.DAILY,
+            retreat_frequency=None,
+        )
+        assert game.effective_retreat_frequency == PhaseFrequency.DAILY
+
+        game.retreat_frequency = PhaseFrequency.HOURLY
+        game.save()
+        assert game.effective_retreat_frequency == PhaseFrequency.HOURLY
 
 
 class TestGameCreateViewPerformance:
@@ -2341,3 +2525,93 @@ class TestGameExtendDeadlineNotification:
         call_kwargs = mock_send_notification_to_users.call_args[1]
         assert call_kwargs["notification_type"] == "game_deadline_extended"
         assert "Deadline extended by Game Master" in call_kwargs["body"]
+
+
+class TestGameNmrExtensions:
+
+    @pytest.mark.django_db
+    def test_create_game_with_nmr_extensions(self, authenticated_client, classical_variant):
+        url = reverse(create_viewname)
+        response = authenticated_client.post(url, {
+            "name": "Test Game",
+            "variant_id": classical_variant.id,
+            "nation_assignment": "random",
+            "movement_phase_duration": "24 hours",
+            "private": False,
+            "nmr_extensions_allowed": 2,
+        }, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["nmr_extensions_allowed"] == 2
+
+    @pytest.mark.django_db
+    def test_create_game_without_nmr_extensions_defaults_to_zero(
+        self, authenticated_client, classical_variant
+    ):
+        url = reverse(create_viewname)
+        response = authenticated_client.post(url, {
+            "name": "Test Game",
+            "variant_id": classical_variant.id,
+            "nation_assignment": "random",
+            "movement_phase_duration": "24 hours",
+            "private": False,
+        }, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["nmr_extensions_allowed"] == 0
+
+    @pytest.mark.django_db
+    def test_create_game_nmr_extensions_over_max_rejected(
+        self, authenticated_client, classical_variant
+    ):
+        url = reverse(create_viewname)
+        response = authenticated_client.post(url, {
+            "name": "Test Game",
+            "variant_id": classical_variant.id,
+            "nation_assignment": "random",
+            "movement_phase_duration": "24 hours",
+            "private": False,
+            "nmr_extensions_allowed": 3,
+        }, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    def test_create_game_nmr_extensions_negative_rejected(
+        self, authenticated_client, classical_variant
+    ):
+        url = reverse(create_viewname)
+        response = authenticated_client.post(url, {
+            "name": "Test Game",
+            "variant_id": classical_variant.id,
+            "nation_assignment": "random",
+            "movement_phase_duration": "24 hours",
+            "private": False,
+            "nmr_extensions_allowed": -1,
+        }, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    def test_game_start_initializes_member_extensions(
+        self, authenticated_client, active_game_with_gm
+    ):
+        game = active_game_with_gm(nmr_extensions_allowed=2)
+        for member in game.members.all():
+            assert member.nmr_extensions_remaining == 2
+
+    @pytest.mark.django_db
+    def test_game_start_with_zero_extensions(
+        self, authenticated_client, active_game_with_gm
+    ):
+        game = active_game_with_gm(nmr_extensions_allowed=0)
+        for member in game.members.all():
+            assert member.nmr_extensions_remaining == 0
+
+    @pytest.mark.django_db
+    def test_member_serializer_includes_extensions_remaining(
+        self, authenticated_client, active_game_with_gm
+    ):
+        game = active_game_with_gm(nmr_extensions_allowed=1)
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        for member in response.data["members"]:
+            assert "nmr_extensions_remaining" in member
+            assert member["nmr_extensions_remaining"] == 1

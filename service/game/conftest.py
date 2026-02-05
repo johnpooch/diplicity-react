@@ -32,13 +32,14 @@ def pending_game_with_gm(db, primary_user, classical_variant, base_pending_phase
 
 @pytest.fixture
 def active_game_with_gm(db, primary_user, classical_variant, adjudication_data_classical):
-    def _create(gm_user=None):
+    def _create(gm_user=None, nmr_extensions_allowed=0):
         if gm_user is None:
             gm_user = primary_user
         game = models.Game.objects.create_from_template(
             classical_variant,
             name="Test Active Game with GM",
             movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            nmr_extensions_allowed=nmr_extensions_allowed,
         )
         game.members.create(user=gm_user, is_game_master=True)
 

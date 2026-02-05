@@ -7,9 +7,11 @@ from django.utils import timezone
 from django.db.models import Prefetch
 from opentelemetry import trace
 from common.constants import (
+    DeadlineMode,
     GameStatus,
     MovementPhaseDuration,
     NationAssignment,
+    PhaseFrequency,
     PhaseStatus,
     PhaseType,
     duration_to_seconds,
@@ -274,6 +276,26 @@ class Game(BaseModel):
         default=NationAssignment.RANDOM,
     )
     paused_at = models.DateTimeField(null=True, blank=True)
+    nmr_extensions_allowed = models.PositiveSmallIntegerField(default=0)
+    deadline_mode = models.CharField(
+        max_length=20,
+        choices=DeadlineMode.DEADLINE_MODE_CHOICES,
+        default=DeadlineMode.DURATION,
+    )
+    fixed_deadline_time = models.TimeField(null=True, blank=True)
+    fixed_deadline_timezone = models.CharField(max_length=50, null=True, blank=True)
+    movement_frequency = models.CharField(
+        max_length=20,
+        choices=PhaseFrequency.PHASE_FREQUENCY_CHOICES,
+        null=True,
+        blank=True,
+    )
+    retreat_frequency = models.CharField(
+        max_length=20,
+        choices=PhaseFrequency.PHASE_FREQUENCY_CHOICES,
+        null=True,
+        blank=True,
+    )
 
     def save(self, *args, **kwargs):
         if not self.id:
@@ -307,6 +329,10 @@ class Game(BaseModel):
     def retreat_phase_duration_seconds(self):
         duration = self.retreat_phase_duration or self.movement_phase_duration
         return duration_to_seconds(duration)
+
+    @property
+    def effective_retreat_frequency(self):
+        return self.retreat_frequency or self.movement_frequency
 
     @property
     def is_paused(self):
@@ -381,10 +407,11 @@ class Game(BaseModel):
         now = timezone.now()
         for member, nation in zip(members, nations):
             member.nation = nation
+            member.nmr_extensions_remaining = self.nmr_extensions_allowed
             member.updated_at = now
 
         # Use bulk_update to avoid n+1 queries
-        Member.objects.bulk_update(members, ["nation", "updated_at"])
+        Member.objects.bulk_update(members, ["nation", "nmr_extensions_remaining", "updated_at"])
 
         nations_with_orders = current_phase.nations_with_possible_orders
         phase_states_to_create = [

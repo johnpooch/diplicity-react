@@ -11,6 +11,7 @@ class MemberSerializer(serializers.Serializer):
     eliminated = serializers.BooleanField(read_only=True)
     kicked = serializers.BooleanField(read_only=True)
     is_game_master = serializers.BooleanField(read_only=True)
+    nmr_extensions_remaining = serializers.IntegerField(read_only=True)
 
     @extend_schema_field(serializers.BooleanField)
     def get_is_current_user(self, obj):

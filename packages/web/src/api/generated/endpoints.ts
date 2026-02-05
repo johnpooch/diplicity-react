@@ -95,6 +95,18 @@ export interface Channel {
   memberIds: number[];
 }
 
+/**
+ * * `duration` - Duration
+ * `fixed_time` - Fixed Time
+ */
+export type DeadlineModeEnum =
+  (typeof DeadlineModeEnum)[keyof typeof DeadlineModeEnum];
+
+export const DeadlineModeEnum = {
+  duration: "duration",
+  fixed_time: "fixed_time",
+} as const;
+
 export interface DrawVoteMember {
   id: number;
   name: string;
@@ -206,6 +218,38 @@ export type NullEnum = (typeof NullEnum)[keyof typeof NullEnum];
 
 export const NullEnum = {} as const;
 
+/**
+ * * `hourly` - Hourly
+ * `daily` - Daily
+ * `every_2_days` - Every 2 days
+ * `weekly` - Weekly
+ */
+export type MovementFrequencyEnum =
+  (typeof MovementFrequencyEnum)[keyof typeof MovementFrequencyEnum];
+
+export const MovementFrequencyEnum = {
+  hourly: "hourly",
+  daily: "daily",
+  every_2_days: "every_2_days",
+  weekly: "weekly",
+} as const;
+
+/**
+ * * `hourly` - Hourly
+ * `daily` - Daily
+ * `every_2_days` - Every 2 days
+ * `weekly` - Weekly
+ */
+export type RetreatFrequencyEnum =
+  (typeof RetreatFrequencyEnum)[keyof typeof RetreatFrequencyEnum];
+
+export const RetreatFrequencyEnum = {
+  hourly: "hourly",
+  daily: "daily",
+  every_2_days: "every_2_days",
+  weekly: "weekly",
+} as const;
+
 export interface GameCreate {
   readonly id: string;
   name: string;
@@ -214,6 +258,21 @@ export interface GameCreate {
   movementPhaseDuration?: DurationEnum;
   retreatPhaseDuration?: DurationEnum | NullEnum | null;
   private: boolean;
+  deadlineMode?: DeadlineModeEnum;
+  /** @nullable */
+  fixedDeadlineTime?: string | null;
+  /**
+   * @maxLength 50
+   * @nullable
+   */
+  fixedDeadlineTimezone?: string | null;
+  movementFrequency?: MovementFrequencyEnum | NullEnum | null;
+  retreatFrequency?: RetreatFrequencyEnum | NullEnum | null;
+  /**
+   * @minimum 0
+   * @maximum 2
+   */
+  nmrExtensionsAllowed?: number;
 }
 
 export interface GameCreateSandbox {
@@ -237,6 +296,7 @@ export interface Member {
   readonly eliminated: boolean;
   readonly kicked: boolean;
   readonly isGameMaster: boolean;
+  readonly nmrExtensionsRemaining: number;
 }
 
 export interface Victory {
@@ -268,6 +328,16 @@ export interface GameList {
   readonly isPaused: boolean;
   /** @nullable */
   readonly pausedAt: string | null;
+  readonly nmrExtensionsAllowed: number;
+  readonly deadlineMode: string;
+  /** @nullable */
+  readonly fixedDeadlineTime: string | null;
+  /** @nullable */
+  readonly fixedDeadlineTimezone: string | null;
+  /** @nullable */
+  readonly movementFrequency: string | null;
+  /** @nullable */
+  readonly retreatFrequency: string | null;
 }
 
 export interface GameRetrieve {
@@ -293,6 +363,16 @@ export interface GameRetrieve {
   readonly isPaused: boolean;
   /** @nullable */
   readonly pausedAt: string | null;
+  readonly nmrExtensionsAllowed: number;
+  readonly deadlineMode: string;
+  /** @nullable */
+  readonly fixedDeadlineTime: string | null;
+  /** @nullable */
+  readonly fixedDeadlineTimezone: string | null;
+  /** @nullable */
+  readonly movementFrequency: string | null;
+  /** @nullable */
+  readonly retreatFrequency: string | null;
 }
 
 export interface Province {
@@ -6787,6 +6867,42 @@ export const getGameCreateResponseMock = (
     undefined,
   ]),
   private: faker.datatype.boolean(),
+  deadlineMode: faker.helpers.arrayElement([
+    faker.helpers.arrayElement(Object.values(DeadlineModeEnum)),
+    undefined,
+  ]),
+  fixedDeadlineTime: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      null,
+    ]),
+    undefined,
+  ]),
+  fixedDeadlineTimezone: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 50 } }),
+      null,
+    ]),
+    undefined,
+  ]),
+  movementFrequency: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([
+      faker.helpers.arrayElement(Object.values(MovementFrequencyEnum)),
+      faker.helpers.arrayElement([] as const),
+    ]),
+    undefined,
+  ]),
+  retreatFrequency: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([
+      faker.helpers.arrayElement(Object.values(RetreatFrequencyEnum)),
+      faker.helpers.arrayElement([] as const),
+    ]),
+    undefined,
+  ]),
+  nmrExtensionsAllowed: faker.helpers.arrayElement([
+    faker.number.int({ min: 0, max: 2 }),
+    undefined,
+  ]),
   ...overrideResponse,
 });
 
@@ -6833,6 +6949,10 @@ export const getGameRetrieveResponseMock = (
     eliminated: faker.datatype.boolean(),
     kicked: faker.datatype.boolean(),
     isGameMaster: faker.datatype.boolean(),
+    nmrExtensionsRemaining: faker.number.int({
+      min: undefined,
+      max: undefined,
+    }),
   })),
   sandbox: faker.datatype.boolean(),
   victory: {
@@ -6864,6 +6984,10 @@ export const getGameRetrieveResponseMock = (
         eliminated: faker.datatype.boolean(),
         kicked: faker.datatype.boolean(),
         isGameMaster: faker.datatype.boolean(),
+        nmrExtensionsRemaining: faker.number.int({
+          min: undefined,
+          max: undefined,
+        }),
       })),
     },
   },
@@ -6889,6 +7013,36 @@ export const getGameRetrieveResponseMock = (
   pausedAt: faker.helpers.arrayElement([
     faker.helpers.arrayElement([
       faker.date.past().toISOString().slice(0, 19) + "Z",
+      null,
+    ]),
+    null,
+  ]),
+  nmrExtensionsAllowed: faker.number.int({ min: undefined, max: undefined }),
+  deadlineMode: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  fixedDeadlineTime: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      null,
+    ]),
+    null,
+  ]),
+  fixedDeadlineTimezone: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      null,
+    ]),
+    null,
+  ]),
+  movementFrequency: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      null,
+    ]),
+    null,
+  ]),
+  retreatFrequency: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
       null,
     ]),
     null,
@@ -6951,6 +7105,10 @@ export const getGameConfirmPhaseUpdateResponseMock = (
       eliminated: faker.datatype.boolean(),
       kicked: faker.datatype.boolean(),
       isGameMaster: faker.datatype.boolean(),
+      nmrExtensionsRemaining: faker.number.int({
+        min: undefined,
+        max: undefined,
+      }),
     },
   },
   ...overrideResponse,
@@ -7004,6 +7162,10 @@ export const getGameConfirmPhasePartialUpdateResponseMock = (
       eliminated: faker.datatype.boolean(),
       kicked: faker.datatype.boolean(),
       isGameMaster: faker.datatype.boolean(),
+      nmrExtensionsRemaining: faker.number.int({
+        min: undefined,
+        max: undefined,
+      }),
     },
   },
   ...overrideResponse,
@@ -7046,6 +7208,7 @@ export const getGameJoinCreateResponseMock = (
   eliminated: faker.datatype.boolean(),
   kicked: faker.datatype.boolean(),
   isGameMaster: faker.datatype.boolean(),
+  nmrExtensionsRemaining: faker.number.int({ min: undefined, max: undefined }),
   ...overrideResponse,
 });
 
@@ -7394,6 +7557,10 @@ export const getGamePhaseStatesListResponseMock = (): PhaseState[] =>
         eliminated: faker.datatype.boolean(),
         kicked: faker.datatype.boolean(),
         isGameMaster: faker.datatype.boolean(),
+        nmrExtensionsRemaining: faker.number.int({
+          min: undefined,
+          max: undefined,
+        }),
       },
     },
   }));
@@ -7574,6 +7741,10 @@ export const getGamesListResponseMock = (): GameList[] =>
       eliminated: faker.datatype.boolean(),
       kicked: faker.datatype.boolean(),
       isGameMaster: faker.datatype.boolean(),
+      nmrExtensionsRemaining: faker.number.int({
+        min: undefined,
+        max: undefined,
+      }),
     })),
     victory: {
       ...{
@@ -7604,6 +7775,10 @@ export const getGamesListResponseMock = (): GameList[] =>
           eliminated: faker.datatype.boolean(),
           kicked: faker.datatype.boolean(),
           isGameMaster: faker.datatype.boolean(),
+          nmrExtensionsRemaining: faker.number.int({
+            min: undefined,
+            max: undefined,
+          }),
         })),
       },
     },
@@ -7612,6 +7787,36 @@ export const getGamesListResponseMock = (): GameList[] =>
     pausedAt: faker.helpers.arrayElement([
       faker.helpers.arrayElement([
         faker.date.past().toISOString().slice(0, 19) + "Z",
+        null,
+      ]),
+      null,
+    ]),
+    nmrExtensionsAllowed: faker.number.int({ min: undefined, max: undefined }),
+    deadlineMode: faker.string.alpha({ length: { min: 10, max: 20 } }),
+    fixedDeadlineTime: faker.helpers.arrayElement([
+      faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        null,
+      ]),
+      null,
+    ]),
+    fixedDeadlineTimezone: faker.helpers.arrayElement([
+      faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        null,
+      ]),
+      null,
+    ]),
+    movementFrequency: faker.helpers.arrayElement([
+      faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        null,
+      ]),
+      null,
+    ]),
+    retreatFrequency: faker.helpers.arrayElement([
+      faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
         null,
       ]),
       null,
