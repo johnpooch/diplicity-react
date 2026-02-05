@@ -3,14 +3,10 @@ import { useNavigate, useSearchParams } from "react-router";
 import { useForm, Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Users, Calendar, User, ChevronDown } from "lucide-react";
+import { Users, Calendar, User, Clock } from "lucide-react";
 import { toast } from "sonner";
 
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CardDescription } from "@/components/ui/card";
@@ -88,6 +84,7 @@ const TIMEZONE_OPTIONS = [
   { value: "America/Anchorage", label: "Alaska Time" },
   { value: "Pacific/Honolulu", label: "Hawaii Time" },
   { value: "Europe/London", label: "London (GMT/BST)" },
+  { value: "Europe/Dublin", label: "Dublin (GMT/BST)" },
   { value: "Europe/Paris", label: "Central European Time" },
   { value: "Europe/Berlin", label: "Berlin (CET)" },
   { value: "Europe/Moscow", label: "Moscow Time" },
@@ -140,7 +137,8 @@ const standardGameSchema = z
       return true;
     },
     {
-      message: "Time, timezone, and frequency are required for fixed-time deadlines",
+      message:
+        "Time, timezone, and frequency are required for fixed-time deadlines",
       path: ["fixedDeadlineTime"],
     }
   )
@@ -279,7 +277,7 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
 
 function getBrowserTimezone(): string {
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const validTimezones = TIMEZONE_OPTIONS.map(o => o.value);
+  const validTimezones = TIMEZONE_OPTIONS.map(o => o.value) as readonly string[];
   return validTimezones.includes(tz) ? tz : "America/New_York";
 }
 
@@ -301,7 +299,7 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
       variantId: variants[0].id,
       nationAssignment: "random" as NationAssignmentEnum,
       private: false,
-      deadlineMode: "duration",
+      deadlineMode: "fixed_time",
       movementPhaseDuration: "24 hours" as MovementPhaseDurationEnum,
       retreatPhaseDuration: null,
       fixedDeadlineTime: "21:00",
@@ -359,6 +357,8 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
           />
         </div>
 
+        <hr className="border-t" />
+
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Deadlines</h2>
 
@@ -373,311 +373,230 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
                   className="w-full"
                 >
                   <TabsList className="w-full">
-                    <TabsTrigger value="duration" className="flex-1">
-                      Duration
-                    </TabsTrigger>
                     <TabsTrigger value="fixed_time" className="flex-1">
                       Fixed Time
+                    </TabsTrigger>
+                    <TabsTrigger value="duration" className="flex-1">
+                      Duration
                     </TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="duration" className="space-y-4 pt-4">
-                    <FormField
-                      control={form.control}
-                      name="movementPhaseDuration"
-                      render={({ field: durationField }) => (
-                        <FormItem>
-                          <FormLabel>Movement Phase Deadline</FormLabel>
-                          <Select
-                            onValueChange={durationField.onChange}
-                            value={durationField.value}
-                            disabled={isSubmitting}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {DURATION_OPTIONS.map(option => (
-                                <SelectItem
-                                  key={option.value}
-                                  value={option.value}
-                                >
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormDescription>
-                            Deadline for movement phases
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="grid w-full grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="movementPhaseDuration"
+                        render={({ field: durationField }) => (
+                          <FormItem>
+                            <FormLabel>Movement</FormLabel>
+                            <Select
+                              onValueChange={durationField.onChange}
+                              value={durationField.value}
+                              disabled={isSubmitting}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {DURATION_OPTIONS.map(option => (
+                                  <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                  >
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                    <Collapsible>
-                      <CollapsibleTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          type="button"
-                          className="gap-2 p-0 h-auto font-normal text-muted-foreground hover:text-foreground"
-                        >
-                          <ChevronDown className="h-4 w-4" />
-                          Advanced duration options
-                        </Button>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="pt-4">
-                        <FormField
-                          control={form.control}
-                          name="retreatPhaseDuration"
-                          render={({ field: retreatField }) => (
-                            <FormItem>
-                              <FormLabel>
-                                Retreat/Adjustment Phase Deadline
-                              </FormLabel>
-                              <Select
-                                onValueChange={retreatField.onChange}
-                                value={retreatField.value ?? undefined}
-                                disabled={isSubmitting}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Same as movement phase" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {DURATION_OPTIONS.map(option => (
-                                    <SelectItem
-                                      key={option.value}
-                                      value={option.value}
-                                    >
-                                      {option.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormDescription>
-                                If not set, uses the same deadline as movement
-                                phases
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </CollapsibleContent>
-                    </Collapsible>
+                      <FormField
+                        control={form.control}
+                        name="retreatPhaseDuration"
+                        render={({ field: retreatField }) => (
+                          <FormItem>
+                            <FormLabel>Retreat/Adjustment</FormLabel>
+                            <Select
+                              onValueChange={retreatField.onChange}
+                              value={retreatField.value ?? undefined}
+                              disabled={isSubmitting}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Same as movement phase" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {DURATION_OPTIONS.map(option => (
+                                  <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                  >
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </TabsContent>
 
                   <TabsContent value="fixed_time" className="space-y-4 pt-4">
-                    <FormField
-                      control={form.control}
-                      name="fixedDeadlineTime"
-                      render={({ field: timeField }) => (
-                        <FormItem>
-                          <FormLabel>Deadline Time</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="time"
-                              value={timeField.value ?? ""}
-                              onChange={timeField.onChange}
-                              disabled={isSubmitting}
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            The time of day when phases resolve
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="fixedDeadlineTimezone"
-                      render={({ field: tzField }) => (
-                        <FormItem>
-                          <FormLabel>Timezone</FormLabel>
-                          <Select
-                            onValueChange={tzField.onChange}
-                            value={tzField.value ?? undefined}
-                            disabled={isSubmitting}
-                          >
+                    <div className="grid w-full grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="fixedDeadlineTime"
+                        render={({ field: timeField }) => (
+                          <FormItem>
+                            <FormLabel>Time</FormLabel>
                             <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select timezone" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {TIMEZONE_OPTIONS.map(option => (
-                                <SelectItem
-                                  key={option.value}
-                                  value={option.value}
-                                >
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="movementFrequency"
-                      render={({ field: freqField }) => (
-                        <FormItem>
-                          <FormLabel>Movement Phase Frequency</FormLabel>
-                          <Select
-                            onValueChange={freqField.onChange}
-                            value={freqField.value ?? undefined}
-                            disabled={isSubmitting}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {FREQUENCY_OPTIONS.map(option => (
-                                <SelectItem
-                                  key={option.value}
-                                  value={option.value}
-                                >
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormDescription>
-                            How often movement phases resolve
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <Collapsible>
-                      <CollapsibleTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          type="button"
-                          className="gap-2 p-0 h-auto font-normal text-muted-foreground hover:text-foreground"
-                        >
-                          <ChevronDown className="h-4 w-4" />
-                          Advanced frequency options
-                        </Button>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="pt-4">
-                        <FormField
-                          control={form.control}
-                          name="retreatFrequency"
-                          render={({ field: retreatFreqField }) => (
-                            <FormItem>
-                              <FormLabel>
-                                Retreat/Adjustment Phase Frequency
-                              </FormLabel>
-                              <Select
-                                onValueChange={retreatFreqField.onChange}
-                                value={retreatFreqField.value ?? undefined}
+                              <Input
+                                type="time"
+                                value={timeField.value ?? ""}
+                                onChange={timeField.onChange}
                                 disabled={isSubmitting}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Same as movement phase" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {FREQUENCY_OPTIONS.map(option => (
-                                    <SelectItem
-                                      key={option.value}
-                                      value={option.value}
-                                    >
-                                      {option.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormDescription>
-                                If not set, uses the same frequency as movement
-                                phases
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </CollapsibleContent>
-                    </Collapsible>
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="fixedDeadlineTimezone"
+                        render={({ field: tzField }) => (
+                          <FormItem>
+                            <FormLabel>Timezone</FormLabel>
+                            <Select
+                              onValueChange={tzField.onChange}
+                              value={tzField.value ?? undefined}
+                              disabled={isSubmitting}
+                            >
+                            <FormControl>
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                            </FormControl>
+                              <SelectContent>
+                                {TIMEZONE_OPTIONS.map(option => (
+                                  <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                  >
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="grid w-full grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="movementFrequency"
+                        render={({ field: freqField }) => (
+                          <FormItem>
+                            <FormLabel>Movement</FormLabel>
+                            <Select
+                              onValueChange={freqField.onChange}
+                              value={freqField.value ?? undefined}
+                              disabled={isSubmitting}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {FREQUENCY_OPTIONS.map(option => (
+                                  <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                  >
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="retreatFrequency"
+                        render={({ field: retreatFreqField }) => (
+                          <FormItem>
+                            <FormLabel>Retreat/Adjustment</FormLabel>
+                            <Select
+                              onValueChange={retreatFreqField.onChange}
+                              value={retreatFreqField.value ?? undefined}
+                              disabled={isSubmitting}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Same as movement phase" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {FREQUENCY_OPTIONS.map(option => (
+                                  <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                  >
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </TabsContent>
                 </Tabs>
               </FormItem>
             )}
           />
 
-          <div className="text-sm text-muted-foreground pt-2">
-            <DeadlineSummary
-              movementPhaseDuration={form.watch("movementPhaseDuration") ?? null}
-              retreatPhaseDuration={form.watch("retreatPhaseDuration") ?? null}
-              deadlineMode={deadlineMode}
-              fixedDeadlineTime={form.watch("fixedDeadlineTime") ?? null}
-              fixedDeadlineTimezone={form.watch("fixedDeadlineTimezone") ?? null}
-              movementFrequency={form.watch("movementFrequency") ?? null}
-              retreatFrequency={form.watch("retreatFrequency") ?? null}
-            />
-          </div>
-
-          <Collapsible>
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                type="button"
-                className="gap-2 p-0 h-auto font-normal text-muted-foreground hover:text-foreground"
-              >
-                <ChevronDown className="h-4 w-4" />
-                NMR protection options
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="pt-4">
-              <FormField
-                control={form.control}
-                name="nmrExtensionsAllowed"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Automatic Extensions</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      disabled={isSubmitting}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {NMR_EXTENSION_OPTIONS.map(option => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Automatic extensions when players miss the deadline
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+          <Alert className="mt-4">
+            <Clock className="h-4 w-4" />
+            <AlertDescription>
+              <DeadlineSummary
+                movementPhaseDuration={
+                  form.watch("movementPhaseDuration") ?? null
+                }
+                retreatPhaseDuration={
+                  form.watch("retreatPhaseDuration") ?? null
+                }
+                deadlineMode={deadlineMode}
+                fixedDeadlineTime={form.watch("fixedDeadlineTime") ?? null}
+                fixedDeadlineTimezone={
+                  form.watch("fixedDeadlineTimezone") ?? null
+                }
+                movementFrequency={form.watch("movementFrequency") ?? null}
+                retreatFrequency={form.watch("retreatFrequency") ?? null}
               />
-            </CollapsibleContent>
-          </Collapsible>
+            </AlertDescription>
+          </Alert>
         </div>
+
+        <hr className="border-t" />
 
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Variant</h2>
@@ -688,6 +607,44 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
             disabled={isSubmitting}
             variants={variants}
             selectedVariant={selectedVariant}
+          />
+        </div>
+
+        <hr className="border-t" />
+
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Advanced</h2>
+
+          <FormField
+            control={form.control}
+            name="nmrExtensionsAllowed"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Automatic Extensions</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                  disabled={isSubmitting}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {NMR_EXTENSION_OPTIONS.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  Automatic extensions when players miss the deadline
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
           />
         </div>
 
@@ -749,6 +706,8 @@ const CreateSandboxGameForm: React.FC<CreateSandboxGameFormProps> = ({
             )}
           />
         </div>
+
+        <hr className="border-t" />
 
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Variant</h2>
@@ -832,9 +791,7 @@ const CreateGame: React.FC = () => {
               ? data.fixedDeadlineTimezone
               : null,
           movementFrequency:
-            data.deadlineMode === "fixed_time"
-              ? data.movementFrequency
-              : null,
+            data.deadlineMode === "fixed_time" ? data.movementFrequency : null,
           retreatFrequency:
             data.deadlineMode === "fixed_time" ? data.retreatFrequency : null,
           nmrExtensionsAllowed: parseInt(data.nmrExtensionsAllowed, 10),

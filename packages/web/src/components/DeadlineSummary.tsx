@@ -25,6 +25,7 @@ const TIMEZONE_ABBREVS: Record<string, string> = {
   "America/Anchorage": "AKT",
   "Pacific/Honolulu": "HT",
   "Europe/London": "GMT",
+  "Europe/Dublin": "GMT",
   "Europe/Paris": "CET",
   "Europe/Berlin": "CET",
   "Europe/Moscow": "MSK",
@@ -65,7 +66,7 @@ export const DeadlineSummary: React.FC<DeadlineSummaryProps> = ({
     if (!retreatFrequency || retreatFrequency === movementFrequency) {
       return (
         <span>
-          {freq} at {time} {tz}
+          Phases resolve {freq.toLowerCase()} at {time} {tz}
         </span>
       );
     }
@@ -73,7 +74,7 @@ export const DeadlineSummary: React.FC<DeadlineSummaryProps> = ({
     const retreatFreq = FREQUENCY_LABELS[retreatFrequency] ?? retreatFrequency;
     return (
       <span>
-        Movement: {freq} at {time} {tz}, Retreat: {retreatFreq}
+        Phases resolve Movement: {freq.toLowerCase()} at {time} {tz}, Retreat: {retreatFreq.toLowerCase()}
       </span>
     );
   }
