@@ -124,7 +124,7 @@ class TestCalculateNextFixedDeadline:
 
         local_result = result.astimezone(ZoneInfo(tz_name))
         days_diff = (local_result.date() - reference.date()).days
-        assert days_diff >= 6
+        assert days_diff >= 7
 
     def test_weekly_uses_target_time(self):
         target_time = time(18, 45)

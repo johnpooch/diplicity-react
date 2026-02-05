@@ -18,6 +18,7 @@ from common.constants import (
 )
 from common.models import BaseModel
 from phase.models import Phase, PhaseState
+from phase.utils import calculate_next_fixed_deadline
 from member.models import Member
 from unit.models import Unit
 from supply_center.models import SupplyCenter
@@ -351,8 +352,6 @@ class Game(BaseModel):
             return self.effective_retreat_frequency
 
     def get_scheduled_resolution(self, phase_type):
-        from phase.utils import calculate_next_fixed_deadline
-
         if self.deadline_mode == DeadlineMode.FIXED_TIME:
             frequency = self.get_phase_frequency(phase_type)
             if not frequency or not self.fixed_deadline_time or not self.fixed_deadline_timezone:

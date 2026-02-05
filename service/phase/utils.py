@@ -353,7 +353,7 @@ def calculate_next_fixed_deadline(
         )
         if candidate <= local_now:
             candidate += timedelta(days=1)
-        min_deadline = local_now + timedelta(days=6)
+        min_deadline = local_now + timedelta(days=7)
         while candidate < min_deadline:
             candidate += timedelta(days=1)
         next_deadline = candidate

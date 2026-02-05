@@ -15,7 +15,9 @@ export const RemainingTimeDisplay: React.FC<RemainingTimeDisplayProps> = ({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className={className}>{formatRemainingTime(remainingTime)}</span>
+        <span className={className} tabIndex={0}>
+          {formatRemainingTime(remainingTime)}
+        </span>
       </TooltipTrigger>
       <TooltipContent>
         <p>{formatDateTime(scheduledResolution)}</p>
