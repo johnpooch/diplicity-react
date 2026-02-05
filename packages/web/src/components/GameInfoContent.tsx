@@ -78,6 +78,12 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
             value={
               <DeadlineSummary
                 movementPhaseDuration={game.movementPhaseDuration ?? null}
+                retreatPhaseDuration={game.retreatPhaseDuration}
+                deadlineMode={game.deadlineMode as "duration" | "fixed_time"}
+                fixedDeadlineTime={game.fixedDeadlineTime}
+                fixedDeadlineTimezone={game.fixedDeadlineTimezone}
+                movementFrequency={game.movementFrequency}
+                retreatFrequency={game.retreatFrequency}
               />
             }
           />
