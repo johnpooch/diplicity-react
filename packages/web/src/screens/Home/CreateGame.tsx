@@ -73,17 +73,82 @@ const DURATION_ENUM_VALUES = [
   "2 weeks",
 ] as const;
 
-const standardGameSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Game name is required")
-    .max(100, "Game name must be less than 100 characters"),
-  variantId: z.string().min(1, "Please select a variant"),
-  nationAssignment: z.enum(["random", "ordered"] as const),
-  movementPhaseDuration: z.enum(DURATION_ENUM_VALUES).optional(),
-  retreatPhaseDuration: z.enum(DURATION_ENUM_VALUES).optional().nullable(),
-  private: z.boolean(),
-});
+const FREQUENCY_OPTIONS = [
+  { value: "hourly", label: "Hourly" },
+  { value: "daily", label: "Daily" },
+  { value: "every_2_days", label: "Every 2 days" },
+  { value: "weekly", label: "Weekly" },
+] as const;
+
+const TIMEZONE_OPTIONS = [
+  { value: "America/New_York", label: "Eastern Time (US)" },
+  { value: "America/Chicago", label: "Central Time (US)" },
+  { value: "America/Denver", label: "Mountain Time (US)" },
+  { value: "America/Los_Angeles", label: "Pacific Time (US)" },
+  { value: "America/Anchorage", label: "Alaska Time" },
+  { value: "Pacific/Honolulu", label: "Hawaii Time" },
+  { value: "Europe/London", label: "London (GMT/BST)" },
+  { value: "Europe/Paris", label: "Central European Time" },
+  { value: "Europe/Berlin", label: "Berlin (CET)" },
+  { value: "Europe/Moscow", label: "Moscow Time" },
+  { value: "Asia/Tokyo", label: "Japan Time" },
+  { value: "Asia/Shanghai", label: "China Time" },
+  { value: "Asia/Kolkata", label: "India Time" },
+  { value: "Australia/Sydney", label: "Sydney Time" },
+  { value: "UTC", label: "UTC" },
+] as const;
+
+const standardGameSchema = z
+  .object({
+    name: z
+      .string()
+      .min(1, "Game name is required")
+      .max(100, "Game name must be less than 100 characters"),
+    variantId: z.string().min(1, "Please select a variant"),
+    nationAssignment: z.enum(["random", "ordered"] as const),
+    private: z.boolean(),
+    deadlineMode: z.enum(["duration", "fixed_time"] as const),
+    movementPhaseDuration: z.enum(DURATION_ENUM_VALUES).optional(),
+    retreatPhaseDuration: z.enum(DURATION_ENUM_VALUES).optional().nullable(),
+    fixedDeadlineTime: z.string().optional().nullable(),
+    fixedDeadlineTimezone: z.string().optional().nullable(),
+    movementFrequency: z
+      .enum(["hourly", "daily", "every_2_days", "weekly"] as const)
+      .optional()
+      .nullable(),
+    retreatFrequency: z
+      .enum(["hourly", "daily", "every_2_days", "weekly"] as const)
+      .optional()
+      .nullable(),
+  })
+  .refine(
+    data => {
+      if (data.deadlineMode === "fixed_time") {
+        return (
+          !!data.fixedDeadlineTime &&
+          !!data.fixedDeadlineTimezone &&
+          !!data.movementFrequency
+        );
+      }
+      return true;
+    },
+    {
+      message: "Time, timezone, and frequency are required for fixed-time deadlines",
+      path: ["fixedDeadlineTime"],
+    }
+  )
+  .refine(
+    data => {
+      if (data.deadlineMode === "duration") {
+        return !!data.movementPhaseDuration;
+      }
+      return true;
+    },
+    {
+      message: "Movement phase duration is required",
+      path: ["movementPhaseDuration"],
+    }
+  );
 
 const sandboxGameSchema = z.object({
   sandboxGame: z.object({
@@ -205,6 +270,12 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
   );
 };
 
+function getBrowserTimezone(): string {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const validTimezones = TIMEZONE_OPTIONS.map(o => o.value);
+  return validTimezones.includes(tz) ? tz : "America/New_York";
+}
+
 interface CreateStandardGameFormProps {
   onSubmit: (data: StandardGameFormValues) => Promise<void>;
   isSubmitting: boolean;
@@ -222,13 +293,19 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
       name: randomGameName(),
       variantId: variants[0].id,
       nationAssignment: "random" as NationAssignmentEnum,
+      private: false,
+      deadlineMode: "duration",
       movementPhaseDuration: "24 hours" as MovementPhaseDurationEnum,
       retreatPhaseDuration: null,
-      private: false,
+      fixedDeadlineTime: "21:00",
+      fixedDeadlineTimezone: getBrowserTimezone(),
+      movementFrequency: "daily",
+      retreatFrequency: null,
     },
   });
 
   const selectedVariant = variants?.find(v => v.id === form.watch("variantId"));
+  const deadlineMode = form.watch("deadlineMode");
 
   return (
     <Form {...form}>
@@ -279,87 +356,270 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
 
           <FormField
             control={form.control}
-            name="movementPhaseDuration"
+            name="deadlineMode"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Movement Phase Deadline</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
+                <Tabs
                   value={field.value}
-                  disabled={isSubmitting}
+                  onValueChange={field.onChange}
+                  className="w-full"
                 >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {DURATION_OPTIONS.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormDescription>
-                  Deadline for movement phases
-                </FormDescription>
-                <FormMessage />
+                  <TabsList className="w-full">
+                    <TabsTrigger value="duration" className="flex-1">
+                      Duration
+                    </TabsTrigger>
+                    <TabsTrigger value="fixed_time" className="flex-1">
+                      Fixed Time
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="duration" className="space-y-4 pt-4">
+                    <FormField
+                      control={form.control}
+                      name="movementPhaseDuration"
+                      render={({ field: durationField }) => (
+                        <FormItem>
+                          <FormLabel>Movement Phase Deadline</FormLabel>
+                          <Select
+                            onValueChange={durationField.onChange}
+                            value={durationField.value}
+                            disabled={isSubmitting}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {DURATION_OPTIONS.map(option => (
+                                <SelectItem
+                                  key={option.value}
+                                  value={option.value}
+                                >
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>
+                            Deadline for movement phases
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <Collapsible>
+                      <CollapsibleTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          type="button"
+                          className="gap-2 p-0 h-auto font-normal text-muted-foreground hover:text-foreground"
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                          Advanced duration options
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="pt-4">
+                        <FormField
+                          control={form.control}
+                          name="retreatPhaseDuration"
+                          render={({ field: retreatField }) => (
+                            <FormItem>
+                              <FormLabel>
+                                Retreat/Adjustment Phase Deadline
+                              </FormLabel>
+                              <Select
+                                onValueChange={retreatField.onChange}
+                                value={retreatField.value ?? undefined}
+                                disabled={isSubmitting}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Same as movement phase" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {DURATION_OPTIONS.map(option => (
+                                    <SelectItem
+                                      key={option.value}
+                                      value={option.value}
+                                    >
+                                      {option.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormDescription>
+                                If not set, uses the same deadline as movement
+                                phases
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </TabsContent>
+
+                  <TabsContent value="fixed_time" className="space-y-4 pt-4">
+                    <FormField
+                      control={form.control}
+                      name="fixedDeadlineTime"
+                      render={({ field: timeField }) => (
+                        <FormItem>
+                          <FormLabel>Deadline Time</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="time"
+                              value={timeField.value ?? ""}
+                              onChange={timeField.onChange}
+                              disabled={isSubmitting}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            The time of day when phases resolve
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="fixedDeadlineTimezone"
+                      render={({ field: tzField }) => (
+                        <FormItem>
+                          <FormLabel>Timezone</FormLabel>
+                          <Select
+                            onValueChange={tzField.onChange}
+                            value={tzField.value ?? undefined}
+                            disabled={isSubmitting}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select timezone" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {TIMEZONE_OPTIONS.map(option => (
+                                <SelectItem
+                                  key={option.value}
+                                  value={option.value}
+                                >
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="movementFrequency"
+                      render={({ field: freqField }) => (
+                        <FormItem>
+                          <FormLabel>Movement Phase Frequency</FormLabel>
+                          <Select
+                            onValueChange={freqField.onChange}
+                            value={freqField.value ?? undefined}
+                            disabled={isSubmitting}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {FREQUENCY_OPTIONS.map(option => (
+                                <SelectItem
+                                  key={option.value}
+                                  value={option.value}
+                                >
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>
+                            How often movement phases resolve
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <Collapsible>
+                      <CollapsibleTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          type="button"
+                          className="gap-2 p-0 h-auto font-normal text-muted-foreground hover:text-foreground"
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                          Advanced frequency options
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="pt-4">
+                        <FormField
+                          control={form.control}
+                          name="retreatFrequency"
+                          render={({ field: retreatFreqField }) => (
+                            <FormItem>
+                              <FormLabel>
+                                Retreat/Adjustment Phase Frequency
+                              </FormLabel>
+                              <Select
+                                onValueChange={retreatFreqField.onChange}
+                                value={retreatFreqField.value ?? undefined}
+                                disabled={isSubmitting}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Same as movement phase" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {FREQUENCY_OPTIONS.map(option => (
+                                    <SelectItem
+                                      key={option.value}
+                                      value={option.value}
+                                    >
+                                      {option.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormDescription>
+                                If not set, uses the same frequency as movement
+                                phases
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </TabsContent>
+                </Tabs>
               </FormItem>
             )}
           />
-
-          <Collapsible>
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                type="button"
-                className="gap-2 p-0 h-auto font-normal text-muted-foreground hover:text-foreground"
-              >
-                <ChevronDown className="h-4 w-4" />
-                Advanced duration options
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="pt-4">
-              <FormField
-                control={form.control}
-                name="retreatPhaseDuration"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Retreat/Adjustment Phase Deadline</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value ?? undefined}
-                      disabled={isSubmitting}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Same as movement phase" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {DURATION_OPTIONS.map(option => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      If not set, uses the same deadline as movement phases
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CollapsibleContent>
-          </Collapsible>
 
           <div className="text-sm text-muted-foreground pt-2">
             <DeadlineSummary
               movementPhaseDuration={form.watch("movementPhaseDuration") ?? null}
               retreatPhaseDuration={form.watch("retreatPhaseDuration") ?? null}
+              deadlineMode={deadlineMode}
+              fixedDeadlineTime={form.watch("fixedDeadlineTime") ?? null}
+              fixedDeadlineTimezone={form.watch("fixedDeadlineTimezone") ?? null}
+              movementFrequency={form.watch("movementFrequency") ?? null}
+              retreatFrequency={form.watch("retreatFrequency") ?? null}
             />
           </div>
         </div>
@@ -491,7 +751,39 @@ const CreateGame: React.FC = () => {
 
   const handleStandardGameSubmit = async (data: StandardGameFormValues) => {
     try {
-      const game = await createGameMutation.mutateAsync({ data });
+      const formattedTime = data.fixedDeadlineTime
+        ? `${data.fixedDeadlineTime}:00`
+        : null;
+
+      const game = await createGameMutation.mutateAsync({
+        data: {
+          name: data.name,
+          variantId: data.variantId,
+          nationAssignment: data.nationAssignment,
+          private: data.private,
+          deadlineMode: data.deadlineMode,
+          movementPhaseDuration:
+            data.deadlineMode === "duration"
+              ? data.movementPhaseDuration
+              : undefined,
+          retreatPhaseDuration:
+            data.deadlineMode === "duration"
+              ? data.retreatPhaseDuration
+              : undefined,
+          fixedDeadlineTime:
+            data.deadlineMode === "fixed_time" ? formattedTime : null,
+          fixedDeadlineTimezone:
+            data.deadlineMode === "fixed_time"
+              ? data.fixedDeadlineTimezone
+              : null,
+          movementFrequency:
+            data.deadlineMode === "fixed_time"
+              ? data.movementFrequency
+              : null,
+          retreatFrequency:
+            data.deadlineMode === "fixed_time" ? data.retreatFrequency : null,
+        },
+      });
       toast.success("Game created successfully");
       navigate(`/game-info/${game.id}`);
     } catch {
