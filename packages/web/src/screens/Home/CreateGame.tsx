@@ -43,7 +43,6 @@ import {
   useGameCreate,
   useSandboxGameCreate,
   Variant,
-  MovementPhaseDurationEnum,
   NationAssignmentEnum,
 } from "@/api/generated/endpoints";
 
@@ -300,7 +299,7 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
       nationAssignment: "random" as NationAssignmentEnum,
       private: false,
       deadlineMode: "fixed_time",
-      movementPhaseDuration: "24 hours" as MovementPhaseDurationEnum,
+      movementPhaseDuration: "24 hours",
       retreatPhaseDuration: null,
       fixedDeadlineTime: "21:00",
       fixedDeadlineTimezone: getBrowserTimezone(),

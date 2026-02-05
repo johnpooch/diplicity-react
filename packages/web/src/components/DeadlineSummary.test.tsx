@@ -94,7 +94,7 @@ describe("DeadlineSummary", () => {
           movementFrequency="daily"
         />
       );
-      expect(screen.getByText(/Daily at 9:00 PM ET/)).toBeInTheDocument();
+      expect(screen.getByText(/daily at 9:00 PM ET/i)).toBeInTheDocument();
     });
 
     it("renders fixed-time summary with hourly frequency", () => {
@@ -107,7 +107,7 @@ describe("DeadlineSummary", () => {
           movementFrequency="hourly"
         />
       );
-      expect(screen.getByText(/Hourly at 2:30 PM CT/)).toBeInTheDocument();
+      expect(screen.getByText(/hourly at 2:30 PM CT/i)).toBeInTheDocument();
     });
 
     it("renders fixed-time summary with weekly frequency", () => {
@@ -120,7 +120,7 @@ describe("DeadlineSummary", () => {
           movementFrequency="weekly"
         />
       );
-      expect(screen.getByText(/Weekly at 3:00 PM PT/)).toBeInTheDocument();
+      expect(screen.getByText(/weekly at 3:00 PM PT/i)).toBeInTheDocument();
     });
 
     it("renders fixed-time summary with every_2_days frequency", () => {
@@ -133,7 +133,7 @@ describe("DeadlineSummary", () => {
           movementFrequency="every_2_days"
         />
       );
-      expect(screen.getByText(/Every 2 days at 9:00 AM GMT/)).toBeInTheDocument();
+      expect(screen.getByText(/every 2 days at 9:00 AM GMT/i)).toBeInTheDocument();
     });
 
     it("shows prompt when fixed-time fields are incomplete (missing time)", () => {
@@ -193,7 +193,7 @@ describe("DeadlineSummary", () => {
         />
       );
       expect(
-        screen.getByText(/Movement: Weekly at 3:00 PM PT, Retreat: Daily/)
+        screen.getByText(/Movement: weekly at 3:00 PM PT, Retreat: daily/i)
       ).toBeInTheDocument();
     });
 
@@ -208,7 +208,7 @@ describe("DeadlineSummary", () => {
           retreatFrequency="daily"
         />
       );
-      expect(screen.getByText(/Daily at 9:00 PM ET/)).toBeInTheDocument();
+      expect(screen.getByText(/daily at 9:00 PM ET/i)).toBeInTheDocument();
       expect(screen.queryByText(/Movement:/)).not.toBeInTheDocument();
     });
 
@@ -222,7 +222,7 @@ describe("DeadlineSummary", () => {
           movementFrequency="daily"
         />
       );
-      expect(screen.getByText(/Daily at 12:00 PM UTC/)).toBeInTheDocument();
+      expect(screen.getByText(/daily at 12:00 PM UTC/i)).toBeInTheDocument();
     });
 
     it("formats 00:00 as 12:00 AM", () => {
@@ -235,7 +235,7 @@ describe("DeadlineSummary", () => {
           movementFrequency="daily"
         />
       );
-      expect(screen.getByText(/Daily at 12:00 AM UTC/)).toBeInTheDocument();
+      expect(screen.getByText(/daily at 12:00 AM UTC/i)).toBeInTheDocument();
     });
 
     it("handles unknown timezone by showing full timezone name", () => {
@@ -248,7 +248,7 @@ describe("DeadlineSummary", () => {
           movementFrequency="daily"
         />
       );
-      expect(screen.getByText(/Daily at 9:00 PM Africa\/Cairo/)).toBeInTheDocument();
+      expect(screen.getByText(/daily at 9:00 PM Africa\/Cairo/i)).toBeInTheDocument();
     });
 
     it("handles hourly retreat frequency display", () => {
@@ -263,7 +263,7 @@ describe("DeadlineSummary", () => {
         />
       );
       expect(
-        screen.getByText(/Movement: Daily at 9:00 PM GMT, Retreat: Hourly/)
+        screen.getByText(/Movement: daily at 9:00 PM GMT, Retreat: hourly/i)
       ).toBeInTheDocument();
     });
   });

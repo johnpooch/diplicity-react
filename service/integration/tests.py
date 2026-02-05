@@ -333,11 +333,12 @@ def test_active_game_create_orders_and_confirm(
     first_phase.refresh_from_db()
     assert first_phase.status == PhaseStatus.COMPLETED
 
-    # Notification is sent to both users
+    # Notification is sent to both users (combined notification for skipped phases)
+    third_phase = active_game.current_phase
     mock_send_notification_to_users.assert_called_with(
         user_ids=[germany_member.user.id, italy_member.user.id],
         title="Phase Resolved",
-        body=f"Phase '{second_phase.name}' has been resolved!",
+        body=f"{second_phase.name} resolved. No retreats needed. Next: {third_phase.name}.",
         notification_type="phase_resolved",
         data={"game_id": str(active_game.id)},
     )
