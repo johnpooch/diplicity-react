@@ -192,6 +192,83 @@ class PhaseManager(models.Manager):
 
         return members_with_extensions
 
+    def send_deadline_warnings(self):
+        from notification.signals import send_notification_to_users
+
+        WARNING_THRESHOLDS = {
+            3600: 900,
+            12 * 3600: 3600,
+            24 * 3600: 3600,
+            48 * 3600: 7200,
+            72 * 3600: 7200,
+            96 * 3600: 7200,
+            168 * 3600: 14400,
+            336 * 3600: 14400,
+        }
+
+        def get_warning_threshold(duration_seconds):
+            if not duration_seconds:
+                return 3600
+            for phase_duration, warning in sorted(WARNING_THRESHOLDS.items()):
+                if duration_seconds <= phase_duration:
+                    return warning
+            return 14400
+
+        with tracer.start_as_current_span("phase.manager.send_deadline_warnings") as span:
+            now = timezone.now()
+
+            active_phases = self.filter(
+                status=PhaseStatus.ACTIVE,
+                game__sandbox=False,
+                game__paused_at__isnull=True,
+                scheduled_resolution__isnull=False,
+            ).exclude(
+                Q(game__status=GameStatus.COMPLETED) | Q(game__status=GameStatus.ABANDONED)
+            ).select_related('game').prefetch_related(
+                'phase_states__member__user',
+                'game__members'
+            )
+
+            notifications_sent = 0
+
+            for phase in active_phases:
+                if not phase.scheduled_resolution:
+                    continue
+
+                duration_seconds = phase.game.get_phase_duration_seconds(phase.type)
+                warning_threshold = get_warning_threshold(duration_seconds)
+
+                time_until_deadline = (phase.scheduled_resolution - now).total_seconds()
+
+                if time_until_deadline <= 0 or time_until_deadline > warning_threshold:
+                    continue
+
+                unconfirmed_members = [
+                    ps.member for ps in phase.phase_states.all()
+                    if ps.has_possible_orders and not ps.orders_confirmed
+                ]
+
+                if not unconfirmed_members:
+                    continue
+
+                user_ids = [m.user.id for m in unconfirmed_members]
+
+                send_notification_to_users(
+                    user_ids=user_ids,
+                    title="Deadline Approaching",
+                    body=f"You haven't confirmed your orders in {phase.game.name}.",
+                    notification_type="deadline_warning",
+                    data={"game_id": str(phase.game.id)},
+                )
+
+                notifications_sent += len(user_ids)
+                logger.info(f"Sent deadline warning to {len(user_ids)} player(s) for game {phase.game.name}")
+
+            span.set_attribute("notifications.sent", notifications_sent)
+            logger.info(f"Sent {notifications_sent} deadline warning notification(s)")
+
+            return {"notifications_sent": notifications_sent}
+
     def _check_abandonment(self, game):
         if game.sandbox:
             return False
