@@ -98,6 +98,12 @@ const TIMEZONE_OPTIONS = [
   { value: "UTC", label: "UTC" },
 ] as const;
 
+const NMR_EXTENSION_OPTIONS = [
+  { value: "0", label: "None" },
+  { value: "1", label: "1 per player" },
+  { value: "2", label: "2 per player" },
+] as const;
+
 const standardGameSchema = z
   .object({
     name: z
@@ -120,6 +126,7 @@ const standardGameSchema = z
       .enum(["hourly", "daily", "every_2_days", "weekly"] as const)
       .optional()
       .nullable(),
+    nmrExtensionsAllowed: z.enum(["0", "1", "2"] as const),
   })
   .refine(
     data => {
@@ -301,6 +308,7 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
       fixedDeadlineTimezone: getBrowserTimezone(),
       movementFrequency: "daily",
       retreatFrequency: null,
+      nmrExtensionsAllowed: "0",
     },
   });
 
@@ -622,6 +630,53 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
               retreatFrequency={form.watch("retreatFrequency") ?? null}
             />
           </div>
+
+          <Collapsible>
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                type="button"
+                className="gap-2 p-0 h-auto font-normal text-muted-foreground hover:text-foreground"
+              >
+                <ChevronDown className="h-4 w-4" />
+                NMR protection options
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-4">
+              <FormField
+                control={form.control}
+                name="nmrExtensionsAllowed"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Automatic Extensions</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={isSubmitting}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {NMR_EXTENSION_OPTIONS.map(option => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Automatic extensions when players miss the deadline
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CollapsibleContent>
+          </Collapsible>
         </div>
 
         <div className="space-y-4">
@@ -782,6 +837,7 @@ const CreateGame: React.FC = () => {
               : null,
           retreatFrequency:
             data.deadlineMode === "fixed_time" ? data.retreatFrequency : null,
+          nmrExtensionsAllowed: parseInt(data.nmrExtensionsAllowed, 10),
         },
       });
       toast.success("Game created successfully");

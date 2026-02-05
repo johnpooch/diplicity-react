@@ -1,5 +1,5 @@
 import React from "react";
-import { Calendar, Users, Lock, Unlock, User, Map, Trophy } from "lucide-react";
+import { Calendar, Users, Lock, Unlock, User, Map, Trophy, Pause, Shield } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,7 +10,7 @@ import {
   useGamePhaseRetrieve,
   useVariantsListSuspense,
 } from "@/api/generated/endpoints";
-import { getCurrentPhaseId } from "@/util";
+import { getCurrentPhaseId, formatDateTime } from "@/util";
 import { InteractiveMap } from "@/components/InteractiveMap/InteractiveMap";
 import { CardTitle } from "@/components/ui/card";
 import {
@@ -103,6 +103,20 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
               icon={<Trophy className="size-4" />}
               label={game.victory.type === "solo" ? "Winner" : "Draw"}
               value={game.victory.members.map(m => m.name).join(", ")}
+            />
+          )}
+          {game.isPaused && game.pausedAt && (
+            <MetadataRow
+              icon={<Pause className="size-4" />}
+              label="Paused since"
+              value={formatDateTime(game.pausedAt)}
+            />
+          )}
+          {game.nmrExtensionsAllowed > 0 && (
+            <MetadataRow
+              icon={<Shield className="size-4" />}
+              label="NMR extensions"
+              value={`${game.nmrExtensionsAllowed} per player`}
             />
           )}
           <MetadataRow

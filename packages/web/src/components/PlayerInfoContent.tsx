@@ -104,6 +104,12 @@ export const PlayerInfoContent: React.FC = () => {
                             <Skeleton className="h-3 w-4" />
                           )}
                         </span>
+                        {member.nmrExtensionsRemaining > 0 && (
+                          <>
+                            <span>•</span>
+                            <span>{member.nmrExtensionsRemaining} ext. remaining</span>
+                          </>
+                        )}
                       </span>
                     </div>
                   )}

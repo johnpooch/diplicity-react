@@ -38,11 +38,15 @@ import {
   Handshake,
   Vote,
   Clock,
+  Pause,
+  Play,
 } from "lucide-react";
 import {
   useGameLeaveDestroy,
   useGameCloneToSandboxCreate,
   useGameExtendDeadlineUpdate,
+  useGamePauseUpdate,
+  useGameUnpausePartialUpdate,
   getGamesListQueryKey,
   getGameRetrieveQueryKey,
   GameList,
@@ -139,12 +143,18 @@ export function GameDropdownMenu({
   const leaveGameMutation = useGameLeaveDestroy();
   const cloneToSandboxMutation = useGameCloneToSandboxCreate();
   const extendDeadlineMutation = useGameExtendDeadlineUpdate();
+  const pauseGameMutation = useGamePauseUpdate();
+  const unpauseGameMutation = useGameUnpausePartialUpdate();
 
   const currentMember = game.members?.find(m => m.isCurrentUser);
   const isActiveGame = game.status === "active";
   const isCurrentUserGameMaster = currentMember?.isGameMaster ?? false;
   const canExtendDeadline =
     isCurrentUserGameMaster && isActiveGame && !game.isPaused;
+  const canPauseGame =
+    isCurrentUserGameMaster && isActiveGame && !game.isPaused;
+  const canUnpauseGame =
+    isCurrentUserGameMaster && isActiveGame && game.isPaused;
   const isActiveOrFinishedGame =
     game.status === "active" ||
     game.status === "completed" ||
@@ -209,6 +219,32 @@ export function GameDropdownMenu({
     }
   };
 
+  const handlePauseGame = async () => {
+    try {
+      await pauseGameMutation.mutateAsync({ gameId: game.id });
+      toast.success("Game paused");
+      queryClient.invalidateQueries({
+        queryKey: getGameRetrieveQueryKey(game.id),
+      });
+      queryClient.invalidateQueries({ queryKey: getGamesListQueryKey() });
+    } catch {
+      toast.error("Failed to pause game");
+    }
+  };
+
+  const handleUnpauseGame = async () => {
+    try {
+      await unpauseGameMutation.mutateAsync({ gameId: game.id });
+      toast.success("Game resumed");
+      queryClient.invalidateQueries({
+        queryKey: getGameRetrieveQueryKey(game.id),
+      });
+      queryClient.invalidateQueries({ queryKey: getGamesListQueryKey() });
+    } catch {
+      toast.error("Failed to resume game");
+    }
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -261,6 +297,18 @@ export function GameDropdownMenu({
               Extend deadline
             </DropdownMenuItem>
           </>
+        )}
+        {canPauseGame && (
+          <DropdownMenuItem onClick={handlePauseGame}>
+            <Pause />
+            Pause game
+          </DropdownMenuItem>
+        )}
+        {canUnpauseGame && (
+          <DropdownMenuItem onClick={handleUnpauseGame}>
+            <Play />
+            Resume game
+          </DropdownMenuItem>
         )}
         {canProposeDraw && phaseId && (
           <>

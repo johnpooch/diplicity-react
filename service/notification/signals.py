@@ -6,7 +6,7 @@ from fcm_django.models import FCMDevice
 from firebase_admin.messaging import Message, Notification
 from channel.models import ChannelMessage
 from game.models import Game
-from common.constants import GameStatus, PhaseStatus
+from common.constants import GameStatus, PhaseStatus, PhaseType
 from phase.models import Phase
 
 logger = logging.getLogger(__name__)
@@ -121,10 +121,23 @@ def send_phase_resolved_notification(sender, instance, created, **kwargs):  # no
         def send_notification():
             user_ids = [member.user.id for member in instance.game.members.all()]
 
+            had_orders = len(instance.phase_states_with_possible_orders) > 0
+            new_phase = instance.game.current_phase
+
+            if not had_orders and new_phase:
+                if instance.type == PhaseType.RETREAT:
+                    body = f"{instance.name} resolved. No retreats needed. Next: {new_phase.name}."
+                elif instance.type == PhaseType.ADJUSTMENT:
+                    body = f"{instance.name} resolved. No builds/disbands needed. Next: {new_phase.name}."
+                else:
+                    body = f"Phase '{instance.name}' has been resolved!"
+            else:
+                body = f"Phase '{instance.name}' has been resolved!"
+
             send_notification_to_users(
                 user_ids=user_ids,
                 title="Phase Resolved",
-                body=f"Phase '{instance.name}' has been resolved!",
+                body=body,
                 notification_type="phase_resolved",
                 data={"game_id": str(instance.game.id)},
             )

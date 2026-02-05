@@ -133,6 +133,65 @@ class PhaseManager(models.Manager):
             )
             return result
 
+    def _check_and_apply_nmr_extensions(self, phase):
+        from member.models import Member
+        from notification.signals import send_notification_to_users
+
+        unconfirmed = phase.phase_states.filter(
+            has_possible_orders=True, orders_confirmed=False
+        ).select_related('member')
+
+        members_with_extensions = [
+            ps.member for ps in unconfirmed
+            if ps.member.nmr_extensions_remaining > 0
+        ]
+
+        if not members_with_extensions:
+            return None
+
+        duration = phase.game.get_phase_duration_seconds(phase.type)
+        if not duration:
+            return None
+
+        phase.scheduled_resolution = timezone.now() + timedelta(seconds=duration)
+        phase.save()
+
+        for member in members_with_extensions:
+            member.nmr_extensions_remaining -= 1
+        Member.objects.bulk_update(members_with_extensions, ['nmr_extensions_remaining'])
+
+        logger.info(
+            f"Applied NMR extensions for {len(members_with_extensions)} members in phase {phase.id}"
+        )
+
+        def send_notifications():
+            for member in members_with_extensions:
+                send_notification_to_users(
+                    user_ids=[member.user.id],
+                    title="Extension Used",
+                    body=f"You used an automatic extension. {member.nmr_extensions_remaining} remaining.",
+                    notification_type="nmr_extension_used",
+                    data={"game_id": str(phase.game.id)},
+                )
+
+            extension_ids = {m.user.id for m in members_with_extensions}
+            other_ids = [
+                m.user.id for m in phase.game.members.all()
+                if m.user.id not in extension_ids
+            ]
+            if other_ids:
+                send_notification_to_users(
+                    user_ids=other_ids,
+                    title="Deadline Extended",
+                    body="Some player(s) did not submit orders. Deadline extended.",
+                    notification_type="nmr_extension_applied",
+                    data={"game_id": str(phase.game.id)},
+                )
+
+        transaction.on_commit(send_notifications)
+
+        return members_with_extensions
+
     def _check_abandonment(self, game):
         if game.sandbox:
             return False
@@ -158,6 +217,11 @@ class PhaseManager(models.Manager):
         with tracer.start_as_current_span("phase.manager.resolve") as span:
             span.set_attribute("phase.id", phase.id)
             span.set_attribute("game.id", str(phase.game.id))
+
+            extension_members = self._check_and_apply_nmr_extensions(phase)
+            if extension_members:
+                return phase
+
             adjudication_data = resolve(phase)
 
             with tracer.start_as_current_span("phase.transaction_atomic"):
