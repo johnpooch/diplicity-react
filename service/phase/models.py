@@ -242,11 +242,8 @@ class PhaseManager(models.Manager):
                     logger.info(f"Created {resolutions_count} order resolutions")
 
                 # Calculate next phase details
-                phase_duration_seconds = previous_phase.game.get_phase_duration_seconds(
+                scheduled_resolution = previous_phase.game.get_scheduled_resolution(
                     adjudication_data["type"]
-                )
-                scheduled_resolution = (
-                    timezone.now() + timedelta(seconds=phase_duration_seconds) if phase_duration_seconds else None
                 )
                 new_ordinal = previous_phase.ordinal + 1
 
@@ -503,8 +500,7 @@ class Phase(BaseModel):
 
         logger.info(f"Reactivating phase {self.id} with new scheduled resolution")
         self.status = PhaseStatus.ACTIVE
-        phase_duration_seconds = self.game.get_phase_duration_seconds(self.type)
-        self.scheduled_resolution = timezone.now() + timedelta(seconds=phase_duration_seconds)
+        self.scheduled_resolution = self.game.get_scheduled_resolution(self.type)
         self.save()
 
         phase_states_count = self.phase_states.count()

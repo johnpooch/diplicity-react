@@ -2615,3 +2615,124 @@ class TestGameNmrExtensions:
         for member in response.data["members"]:
             assert "nmr_extensions_remaining" in member
             assert member["nmr_extensions_remaining"] == 1
+
+
+class TestFixedTimeDeadlines:
+
+    @pytest.mark.django_db
+    def test_fixed_time_game_start_sets_scheduled_resolution(
+        self, authenticated_client, active_game_with_fixed_time
+    ):
+        from zoneinfo import ZoneInfo
+        game = active_game_with_fixed_time()
+        current_phase = game.current_phase
+        assert current_phase.scheduled_resolution is not None
+        local_deadline = current_phase.scheduled_resolution.astimezone(
+            ZoneInfo("America/New_York")
+        )
+        assert local_deadline.hour == 21
+        assert local_deadline.minute == 0
+
+    @pytest.mark.django_db
+    def test_fixed_time_game_with_custom_time(
+        self, authenticated_client, active_game_with_fixed_time
+    ):
+        from datetime import time
+        from zoneinfo import ZoneInfo
+        game = active_game_with_fixed_time(target_time=time(15, 30))
+        current_phase = game.current_phase
+        local_deadline = current_phase.scheduled_resolution.astimezone(
+            ZoneInfo("America/New_York")
+        )
+        assert local_deadline.hour == 15
+        assert local_deadline.minute == 30
+
+    @pytest.mark.django_db
+    def test_fixed_time_game_with_hourly_frequency(
+        self, authenticated_client, active_game_with_fixed_time
+    ):
+        from common.constants import PhaseFrequency
+        game = active_game_with_fixed_time(movement_frequency=PhaseFrequency.HOURLY)
+        current_phase = game.current_phase
+        assert current_phase.scheduled_resolution is not None
+        assert current_phase.scheduled_resolution.minute == 0
+
+    @pytest.mark.django_db
+    def test_fixed_time_game_respects_timezone(
+        self, authenticated_client, active_game_with_fixed_time
+    ):
+        from zoneinfo import ZoneInfo
+        game = active_game_with_fixed_time(timezone_name="Europe/London")
+        current_phase = game.current_phase
+        local_deadline = current_phase.scheduled_resolution.astimezone(
+            ZoneInfo("Europe/London")
+        )
+        assert local_deadline.hour == 21
+
+    @pytest.mark.django_db
+    def test_duration_mode_game_still_works(
+        self, authenticated_client, active_game_with_gm
+    ):
+        from datetime import timedelta
+        from django.utils import timezone
+        game = active_game_with_gm()
+        current_phase = game.current_phase
+        assert current_phase.scheduled_resolution is not None
+        expected = timezone.now() + timedelta(hours=24)
+        diff = abs((current_phase.scheduled_resolution - expected).total_seconds())
+        assert diff < 60
+
+    @pytest.mark.django_db
+    def test_get_scheduled_resolution_returns_none_for_sandbox(
+        self, db, classical_variant
+    ):
+        game = Game.objects.create_from_template(
+            classical_variant,
+            name="Sandbox Game",
+            movement_phase_duration=None,
+            deadline_mode=DeadlineMode.DURATION,
+        )
+        result = game.get_scheduled_resolution("Movement")
+        assert result is None
+
+    @pytest.mark.django_db
+    def test_get_phase_frequency_returns_movement_for_movement_phase(
+        self, db, classical_variant
+    ):
+        from common.constants import PhaseType
+        game = Game.objects.create_from_template(
+            classical_variant,
+            name="Fixed Time Game",
+            deadline_mode=DeadlineMode.FIXED_TIME,
+            movement_frequency=PhaseFrequency.DAILY,
+            retreat_frequency=PhaseFrequency.WEEKLY,
+        )
+        assert game.get_phase_frequency(PhaseType.MOVEMENT) == PhaseFrequency.DAILY
+
+    @pytest.mark.django_db
+    def test_get_phase_frequency_returns_retreat_for_retreat_phase(
+        self, db, classical_variant
+    ):
+        from common.constants import PhaseType
+        game = Game.objects.create_from_template(
+            classical_variant,
+            name="Fixed Time Game",
+            deadline_mode=DeadlineMode.FIXED_TIME,
+            movement_frequency=PhaseFrequency.DAILY,
+            retreat_frequency=PhaseFrequency.WEEKLY,
+        )
+        assert game.get_phase_frequency(PhaseType.RETREAT) == PhaseFrequency.WEEKLY
+
+    @pytest.mark.django_db
+    def test_get_phase_frequency_falls_back_to_movement_for_retreat(
+        self, db, classical_variant
+    ):
+        from common.constants import PhaseType
+        game = Game.objects.create_from_template(
+            classical_variant,
+            name="Fixed Time Game",
+            deadline_mode=DeadlineMode.FIXED_TIME,
+            movement_frequency=PhaseFrequency.DAILY,
+            retreat_frequency=None,
+        )
+        assert game.get_phase_frequency(PhaseType.RETREAT) == PhaseFrequency.DAILY

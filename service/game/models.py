@@ -344,6 +344,30 @@ class Game(BaseModel):
         else:
             return self.retreat_phase_duration_seconds
 
+    def get_phase_frequency(self, phase_type):
+        if phase_type == PhaseType.MOVEMENT:
+            return self.movement_frequency
+        else:
+            return self.effective_retreat_frequency
+
+    def get_scheduled_resolution(self, phase_type):
+        from phase.utils import calculate_next_fixed_deadline
+
+        if self.deadline_mode == DeadlineMode.FIXED_TIME:
+            frequency = self.get_phase_frequency(phase_type)
+            if not frequency or not self.fixed_deadline_time or not self.fixed_deadline_timezone:
+                return None
+            return calculate_next_fixed_deadline(
+                target_time=self.fixed_deadline_time,
+                frequency=frequency,
+                tz_name=self.fixed_deadline_timezone,
+            )
+        else:
+            phase_duration_seconds = self.get_phase_duration_seconds(phase_type)
+            if phase_duration_seconds:
+                return timezone.now() + timedelta(seconds=phase_duration_seconds)
+            return None
+
     def can_join(self, user):
         with tracer.start_as_current_span("game.models.can_join"):
             user_is_member = any(member.user.id == user.id for member in self.members.all())
@@ -380,16 +404,7 @@ class Game(BaseModel):
 
         current_phase.status = PhaseStatus.ACTIVE
         current_phase.options = adjudication_data["options"]
-        # Note: The first phase is always Movement, but we use get_phase_duration_seconds
-        # for architectural consistency with other resolution paths (create_from_adjudication_data,
-        # revert_to_this_phase). This allows the same pattern everywhere.
-        if self.movement_phase_duration is not None:
-            phase_duration_seconds = self.get_phase_duration_seconds(current_phase.type)
-            current_phase.scheduled_resolution = timezone.now() + timedelta(
-                seconds=phase_duration_seconds
-            )
-        else:
-            current_phase.scheduled_resolution = None
+        current_phase.scheduled_resolution = self.get_scheduled_resolution(current_phase.type)
         current_phase.save()
 
         # Use prefetched nations if available, otherwise fetch

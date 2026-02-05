@@ -110,6 +110,19 @@ const formatOrderText = (order: {
   return `${order.source} ${order.orderType} to ${order.target}`;
 };
 
+function formatRemainingTime(seconds: number): string {
+  if (seconds <= 0) return "Deadline passed";
+  if (seconds < 60) return "< 1m remaining";
+
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+
+  if (days >= 1) return `${days}d ${hours}h remaining`;
+  if (hours >= 1) return `${hours}h ${minutes}m remaining`;
+  return `${minutes}m remaining`;
+}
+
 function formatDateTime(djangoDatetime: string) {
   const date = new Date(djangoDatetime);
   const now = new Date();
@@ -147,4 +160,4 @@ function formatDateTime(djangoDatetime: string) {
   }
 }
 
-export { formatOrderText, formatDateTime, getCurrentPhaseId };
+export { formatOrderText, formatDateTime, formatRemainingTime, getCurrentPhaseId };
