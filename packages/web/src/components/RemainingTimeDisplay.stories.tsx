@@ -53,3 +53,11 @@ export const DeadlinePassed: Story = {
     scheduledResolution: new Date(Date.now() - 60000).toISOString(),
   },
 };
+
+export const Paused: Story = {
+  args: {
+    remainingTime: 19800,
+    scheduledResolution: new Date(Date.now() + 19800000).toISOString(),
+    isPaused: true,
+  },
+};

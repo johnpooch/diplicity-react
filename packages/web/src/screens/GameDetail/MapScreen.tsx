@@ -32,7 +32,7 @@ const MapScreen: React.FC = () => {
         title={
           <div className="flex items-center gap-2">
             <div className="flex-1 flex flex-col items-center gap-0.5">
-              <PhaseSelect />
+              <PhaseSelect isPaused={game.isPaused} />
               <Suspense fallback={null}>
                 <PhaseGuidance />
               </Suspense>

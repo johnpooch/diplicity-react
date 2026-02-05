@@ -54,6 +54,8 @@ import {
   useGamesDrawProposalsListSuspense,
   DrawProposal,
   DurationEnum,
+  getGamePhasesListQueryKey,
+  getGamePhaseRetrieveQueryKey,
 } from "@/api/generated/endpoints";
 import { Suspense } from "react";
 
@@ -214,6 +216,12 @@ export function GameDropdownMenu({
         queryKey: getGameRetrieveQueryKey(game.id),
       });
       queryClient.invalidateQueries({ queryKey: getGamesListQueryKey() });
+      queryClient.invalidateQueries({
+        queryKey: getGamePhasesListQueryKey(game.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: getGamePhaseRetrieveQueryKey(game.id, Number(phaseId)),
+      });
     } catch {
       toast.error("Failed to extend deadline");
     }
@@ -248,7 +256,12 @@ export function GameDropdownMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon" aria-label="Game menu" className="relative">
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label="Game menu"
+          className="relative"
+        >
           <MoreHorizontal />
           {canViewDrawProposals && phaseId && (
             <Suspense fallback={null}>
@@ -374,7 +387,7 @@ export function GameDropdownMenu({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Extend deadline</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-left">
               Select how long to extend the current phase deadline.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -382,7 +395,7 @@ export function GameDropdownMenu({
             value={selectedDuration}
             onValueChange={value => setSelectedDuration(value as DurationEnum)}
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

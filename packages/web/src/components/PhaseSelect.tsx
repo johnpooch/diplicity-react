@@ -5,7 +5,11 @@ import { useRequiredParams } from "@/hooks";
 import { useGamePhaseRetrieveSuspense } from "@/api/generated/endpoints";
 import { RemainingTimeDisplay } from "./RemainingTimeDisplay";
 
-export const PhaseSelect: React.FC = () => {
+interface PhaseSelectProps {
+  isPaused?: boolean;
+}
+
+export const PhaseSelect: React.FC<PhaseSelectProps> = ({ isPaused }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { gameId, phaseId } = useRequiredParams<{
@@ -51,6 +55,7 @@ export const PhaseSelect: React.FC = () => {
           <RemainingTimeDisplay
             remainingTime={phase.remainingTime}
             scheduledResolution={phase.scheduledResolution}
+            isPaused={isPaused}
             className="text-xs text-muted-foreground"
           />
         )}

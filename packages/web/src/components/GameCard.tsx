@@ -127,6 +127,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
                       <RemainingTimeDisplay
                         remainingTime={phase.remainingTime}
                         scheduledResolution={phase.scheduledResolution}
+                        isPaused={game.isPaused}
                       />
                     </>
                   )}
