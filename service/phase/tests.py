@@ -9,7 +9,7 @@ from django.db import connection
 from datetime import timedelta
 from unittest.mock import patch, Mock
 from rest_framework import status
-from common.constants import PhaseStatus, PhaseType, OrderType, UnitType, GameStatus
+from common.constants import PhaseStatus, PhaseType, OrderType, UnitType, GameStatus, DeadlineMode
 from game.models import Game
 from .models import Phase, PhaseState
 from .serializers import PhaseStateSerializer
@@ -2641,6 +2641,7 @@ class TestPhaseDurationByPhaseType:
             name="Retreat Duration Test",
             variant=classical_variant,
             status=GameStatus.ACTIVE,
+            deadline_mode=DeadlineMode.DURATION,
             movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
             retreat_phase_duration=MovementPhaseDuration.TWELVE_HOURS,
         )
@@ -2696,6 +2697,7 @@ class TestPhaseDurationByPhaseType:
             name="Movement Duration Test",
             variant=classical_variant,
             status=GameStatus.ACTIVE,
+            deadline_mode=DeadlineMode.DURATION,
             movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
             retreat_phase_duration=MovementPhaseDuration.TWELVE_HOURS,
         )
@@ -2751,6 +2753,7 @@ class TestPhaseDurationByPhaseType:
             name="Fallback Duration Test",
             variant=classical_variant,
             status=GameStatus.ACTIVE,
+            deadline_mode=DeadlineMode.DURATION,
             movement_phase_duration=MovementPhaseDuration.FORTY_EIGHT_HOURS,
             retreat_phase_duration=None,
         )

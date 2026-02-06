@@ -2,7 +2,7 @@ import pytest
 from datetime import timedelta
 from django.utils import timezone
 from phase.models import Phase
-from common.constants import PhaseStatus, UnitType, OrderType, GameStatus, MovementPhaseDuration
+from common.constants import PhaseStatus, UnitType, OrderType, GameStatus, MovementPhaseDuration, DeadlineMode
 
 
 @pytest.fixture
@@ -27,6 +27,7 @@ def italy_vs_germany_phase_with_orders(
         variant=italy_vs_germany_variant,
         name="Test Game",
         status=GameStatus.ACTIVE,
+        deadline_mode=DeadlineMode.DURATION,
         movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
     )
 
@@ -163,6 +164,7 @@ def game_with_three_phases(
         variant=italy_vs_germany_variant,
         name="Test Game with Multiple Phases",
         status=GameStatus.ACTIVE,
+        deadline_mode=DeadlineMode.DURATION,
         movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
     )
 
@@ -305,6 +307,7 @@ def phase_factory(db, classical_variant, primary_user, secondary_user):
                 variant=classical_variant,
                 name=f"Test Game {Phase.objects.count()}",
                 status=GameStatus.ACTIVE,
+                deadline_mode=DeadlineMode.DURATION,
                 movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
             )
 
@@ -368,6 +371,7 @@ def game_with_two_phases_no_orders(
         variant=italy_vs_germany_variant,
         name="Game with no orders",
         status=GameStatus.ACTIVE,
+        deadline_mode=DeadlineMode.DURATION,
         movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
     )
 
@@ -488,6 +492,7 @@ def sandbox_game_with_two_phases_no_orders(
         variant=italy_vs_germany_variant,
         name="Sandbox with no orders",
         status=GameStatus.ACTIVE,
+        deadline_mode=DeadlineMode.DURATION,
         movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
         sandbox=True,
     )
@@ -607,6 +612,7 @@ def multiple_games_with_phases(
             variant=classical_variant,
             name=f"Multi Game {i}",
             status=GameStatus.ACTIVE,
+            deadline_mode=DeadlineMode.DURATION,
             movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
         )
 
