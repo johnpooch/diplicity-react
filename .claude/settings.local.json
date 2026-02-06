@@ -43,7 +43,9 @@
       "Bash(node -e:*)",
       "Bash(gh issue create:*)",
       "WebFetch(domain:orval.dev)",
-      "WebFetch(domain:drf-spectacular.readthedocs.io)"
+      "WebFetch(domain:drf-spectacular.readthedocs.io)",
+      "Bash(railway:*)",
+      "Bash(nslookup:*)"
     ],
     "deny": [],
     "ask": []
