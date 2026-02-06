@@ -38,21 +38,10 @@ export const PlayerInfoContent: React.FC = () => {
   };
 
   const winnerIds = game.victory?.members?.map(m => m.id) || [];
-  const currentUserMember = game.members.find(m => m.isCurrentUser);
-  const isCurrentUserGameMaster = currentUserMember?.isGameMaster ?? false;
 
   return (
     <>
       <GameStatusAlerts game={game} variant={variant} />
-
-      {isCurrentUserGameMaster && (
-        <ScreenCard>
-          <ScreenCardContent className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Shield className="size-4" />
-            <span>You are the Game Master.</span>
-          </ScreenCardContent>
-        </ScreenCard>
-      )}
 
       <ScreenCard>
         <ScreenCardContent className="divide-y">
@@ -104,7 +93,7 @@ export const PlayerInfoContent: React.FC = () => {
                             <Skeleton className="h-3 w-4" />
                           )}
                         </span>
-                        {member.nmrExtensionsRemaining > 0 && (
+                        {game.nmrExtensionsAllowed > 0 && (
                           <>
                             <span>•</span>
                             <span>{member.nmrExtensionsRemaining} ext. remaining</span>

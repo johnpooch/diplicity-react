@@ -9,6 +9,7 @@ from common.models import BaseModel
 from datetime import timedelta
 from common.constants import PhaseStatus, PhaseType, GameStatus
 from adjudication.service import resolve
+from member.models import Member
 from order.models import OrderResolution, Order
 from phase.utils import transform_options
 from province.models import Province
@@ -134,7 +135,6 @@ class PhaseManager(models.Manager):
             return result
 
     def _check_and_apply_nmr_extensions(self, phase):
-        from member.models import Member
         from notification.signals import send_notification_to_users
 
         unconfirmed = phase.phase_states.filter(

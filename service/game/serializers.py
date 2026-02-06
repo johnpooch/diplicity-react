@@ -137,7 +137,7 @@ class GameCreateSerializer(serializers.Serializer):
     private = serializers.BooleanField()
     deadline_mode = serializers.ChoiceField(
         choices=DeadlineMode.DEADLINE_MODE_CHOICES,
-        default=DeadlineMode.DURATION,
+        default=DeadlineMode.FIXED_TIME,
     )
     fixed_deadline_time = serializers.TimeField(required=False, allow_null=True, default=None)
     fixed_deadline_timezone = serializers.CharField(required=False, allow_null=True, default=None, max_length=50)
@@ -319,7 +319,7 @@ class GamePauseSerializer(serializers.Serializer):
         instance.pause()
 
         def send_notification():
-            user_ids = [member.user.id for member in instance.members.all()]
+            user_ids = [member.user.id for member in instance.members.all() if not member.is_game_master]
             notification_signals.send_notification_to_users(
                 user_ids=user_ids,
                 title="Game Paused",
@@ -346,7 +346,7 @@ class GameUnpauseSerializer(serializers.Serializer):
         instance.unpause()
 
         def send_notification():
-            user_ids = [member.user.id for member in instance.members.all()]
+            user_ids = [member.user.id for member in instance.members.all() if not member.is_game_master]
             new_deadline = instance.current_phase.scheduled_resolution if instance.current_phase else None
             deadline_str = new_deadline.strftime("%b %d, %Y at %I:%M %p") if new_deadline else "N/A"
             notification_signals.send_notification_to_users(
@@ -384,7 +384,7 @@ class GameExtendDeadlineSerializer(serializers.Serializer):
         instance.extend_deadline(validated_data["duration"])
 
         def send_notification():
-            user_ids = [member.user.id for member in instance.members.all()]
+            user_ids = [member.user.id for member in instance.members.all() if not member.is_game_master]
             notification_signals.send_notification_to_users(
                 user_ids=user_ids,
                 title="Deadline Extended",

@@ -2,20 +2,20 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate, useLocation } from "react-router";
 import { Button } from "@/components/ui/button";
 import { useRequiredParams } from "@/hooks";
-import { useGamePhaseRetrieveSuspense } from "@/api/generated/endpoints";
+import {
+  useGamePhaseRetrieveSuspense,
+  useGameRetrieveSuspense,
+} from "@/api/generated/endpoints";
 import { RemainingTimeDisplay } from "./RemainingTimeDisplay";
 
-interface PhaseSelectProps {
-  isPaused?: boolean;
-}
-
-export const PhaseSelect: React.FC<PhaseSelectProps> = ({ isPaused }) => {
+export const PhaseSelect: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { gameId, phaseId } = useRequiredParams<{
     gameId: string;
     phaseId: string;
   }>();
+  const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: phase } = useGamePhaseRetrieveSuspense(gameId, Number(phaseId));
 
   const goToPreviousPhase = () => {
@@ -55,7 +55,7 @@ export const PhaseSelect: React.FC<PhaseSelectProps> = ({ isPaused }) => {
           <RemainingTimeDisplay
             remainingTime={phase.remainingTime}
             scheduledResolution={phase.scheduledResolution}
-            isPaused={isPaused}
+            isPaused={game.isPaused}
             className="text-xs text-muted-foreground"
           />
         )}

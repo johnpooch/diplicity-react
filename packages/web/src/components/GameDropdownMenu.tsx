@@ -57,18 +57,8 @@ import {
   getGamePhasesListQueryKey,
   getGamePhaseRetrieveQueryKey,
 } from "@/api/generated/endpoints";
+import { EXTEND_DURATION_OPTIONS } from "@/constants";
 import { Suspense } from "react";
-
-const DURATION_OPTIONS = [
-  { value: DurationEnum["1_hour"], label: "1 hour" },
-  { value: DurationEnum["12_hours"], label: "12 hours" },
-  { value: DurationEnum["24_hours"], label: "24 hours" },
-  { value: DurationEnum["48_hours"], label: "48 hours" },
-  { value: DurationEnum["3_days"], label: "3 days" },
-  { value: DurationEnum["4_days"], label: "4 days" },
-  { value: DurationEnum["1_week"], label: "1 week" },
-  { value: DurationEnum["2_weeks"], label: "2 weeks" },
-] as const;
 
 interface GameDropdownMenuProps {
   game: Pick<GameList, "id" | "sandbox" | "canLeave" | "isPaused"> &
@@ -399,7 +389,7 @@ export function GameDropdownMenu({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {DURATION_OPTIONS.map(option => (
+              {EXTEND_DURATION_OPTIONS.map(option => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>

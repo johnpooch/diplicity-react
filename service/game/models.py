@@ -281,7 +281,7 @@ class Game(BaseModel):
     deadline_mode = models.CharField(
         max_length=20,
         choices=DeadlineMode.DEADLINE_MODE_CHOICES,
-        default=DeadlineMode.DURATION,
+        default=DeadlineMode.FIXED_TIME,
     )
     fixed_deadline_time = models.TimeField(null=True, blank=True)
     fixed_deadline_timezone = models.CharField(max_length=50, null=True, blank=True)

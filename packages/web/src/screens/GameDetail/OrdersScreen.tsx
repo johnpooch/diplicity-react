@@ -219,7 +219,7 @@ const OrdersScreen: React.FC = () => {
         title={
           <div className="flex items-center gap-2">
             <div className="flex-1 flex flex-col items-center gap-0.5">
-              <PhaseSelect isPaused={game.isPaused} />
+              <PhaseSelect />
               <Suspense fallback={null}>
                 <PhaseGuidance />
               </Suspense>

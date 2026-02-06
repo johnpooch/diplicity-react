@@ -144,10 +144,6 @@ class IsNotSandboxGame(BasePermission):
 
 
 class IsGameMaster(BasePermission):
-    """
-    Permission that verifies the user is the Game Master of the game.
-    Note: This also implicitly verifies membership - no need to combine with IsGameMember.
-    """
     message = "Only the Game Master can perform this action."
 
     def has_permission(self, request, view):

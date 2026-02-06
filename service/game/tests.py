@@ -6,8 +6,9 @@ from django.test.utils import override_settings
 from django.db import connection
 from django.utils import timezone
 from datetime import time, timedelta
+from zoneinfo import ZoneInfo
 from rest_framework import status
-from common.constants import PhaseStatus, GameStatus, NationAssignment, MovementPhaseDuration, DeadlineMode, PhaseFrequency
+from common.constants import PhaseStatus, PhaseType, GameStatus, NationAssignment, MovementPhaseDuration, DeadlineMode, PhaseFrequency
 
 from .models import Game
 
@@ -641,6 +642,7 @@ class TestGameCreateView:
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
@@ -672,6 +674,7 @@ class TestGameCreateView:
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }
         response = unauthenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -684,6 +687,7 @@ class TestGameCreateView:
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.ORDERED,
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
@@ -698,6 +702,7 @@ class TestGameCreateView:
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -710,6 +715,7 @@ class TestGameCreateView:
             "name": "Test Game",
             "nation_assignment": NationAssignment.RANDOM,
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -722,6 +728,7 @@ class TestGameCreateView:
             "name": "Test Game",
             "variant_id": classical_variant.id,
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -735,6 +742,7 @@ class TestGameCreateView:
             "variant_id": "non-existent-variant",
             "nation_assignment": NationAssignment.RANDOM,
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -748,6 +756,7 @@ class TestGameCreateView:
             "variant_id": classical_variant.id,
             "nation_assignment": "invalid-assignment",
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -760,6 +769,7 @@ class TestGameCreateView:
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -772,6 +782,7 @@ class TestGameCreateView:
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
@@ -788,6 +799,7 @@ class TestGameCreateView:
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
@@ -805,6 +817,7 @@ class TestGameCreateView:
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
@@ -824,6 +837,7 @@ class TestGameCreateView:
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }
 
         response1 = authenticated_client.post(url, payload, format="json")
@@ -841,6 +855,7 @@ class TestGameCreateView:
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
@@ -854,6 +869,7 @@ class TestGameCreateView:
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
@@ -868,12 +884,14 @@ class TestGameCreateView:
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }
         payload2 = {
             "name": "Game 2",
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }
 
         response1 = authenticated_client.post(url, payload1, format="json")
@@ -900,6 +918,7 @@ class TestGameCreateView:
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
@@ -919,6 +938,7 @@ class TestGameCreateView:
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
             "private": True,
+            "deadline_mode": DeadlineMode.DURATION,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
@@ -936,30 +956,33 @@ class TestGameCreateView:
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["private"] is False
 
     @pytest.mark.django_db
-    def test_create_game_default_deadline_mode_is_duration(self, authenticated_client, classical_variant):
+    def test_create_game_default_deadline_mode_is_fixed_time(self, authenticated_client, classical_variant):
         url = reverse(create_viewname)
         payload = {
             "name": "Default Deadline Mode Game",
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
             "private": False,
+            "fixed_deadline_time": "21:00:00",
+            "fixed_deadline_timezone": "America/New_York",
+            "movement_frequency": PhaseFrequency.DAILY,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
-        assert response.data["deadline_mode"] == DeadlineMode.DURATION
+        assert response.data["deadline_mode"] == DeadlineMode.FIXED_TIME
 
         game = Game.objects.get(id=response.data["id"])
-        assert game.deadline_mode == DeadlineMode.DURATION
-        assert game.fixed_deadline_time is None
-        assert game.fixed_deadline_timezone is None
-        assert game.movement_frequency is None
-        assert game.retreat_frequency is None
+        assert game.deadline_mode == DeadlineMode.FIXED_TIME
+        assert game.fixed_deadline_time == time(21, 0, 0)
+        assert game.fixed_deadline_timezone == "America/New_York"
+        assert game.movement_frequency == PhaseFrequency.DAILY
 
     @pytest.mark.django_db
     def test_create_game_fixed_time_mode_requires_time(self, authenticated_client, classical_variant):
@@ -1136,6 +1159,7 @@ class TestGameCreateViewPerformance:
             "variant_id": italy_vs_germany_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }
 
         connection.queries_log.clear()
@@ -1160,6 +1184,7 @@ class TestGameCreateViewPerformance:
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }
 
         connection.queries_log.clear()
@@ -1247,10 +1272,6 @@ class TestGamePrivateFiltering:
 
     @pytest.mark.django_db
     def test_game_with_48_hour_phase_duration(self, authenticated_client, classical_variant, primary_user):
-        from common.constants import MovementPhaseDuration
-        from datetime import timedelta
-        from django.utils import timezone
-
         game = Game.objects.create(
             name="48 Hour Game",
             variant=classical_variant,
@@ -1329,6 +1350,7 @@ class TestGameDurationOptions:
             "nation_assignment": NationAssignment.RANDOM,
             "movement_phase_duration": duration,
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
@@ -1350,6 +1372,7 @@ class TestRetreatPhaseDuration:
             "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS,
             "retreat_phase_duration": MovementPhaseDuration.TWELVE_HOURS,
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
@@ -1368,6 +1391,7 @@ class TestRetreatPhaseDuration:
             "nation_assignment": NationAssignment.RANDOM,
             "movement_phase_duration": MovementPhaseDuration.FORTY_EIGHT_HOURS,
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
@@ -1400,7 +1424,6 @@ class TestRetreatPhaseDuration:
 
     @pytest.mark.django_db
     def test_get_phase_duration_seconds_movement(self, classical_variant):
-        from common.constants import PhaseType
         game = Game.objects.create(
             name="Phase Duration Test",
             variant=classical_variant,
@@ -1411,7 +1434,6 @@ class TestRetreatPhaseDuration:
 
     @pytest.mark.django_db
     def test_get_phase_duration_seconds_retreat(self, classical_variant):
-        from common.constants import PhaseType
         game = Game.objects.create(
             name="Phase Duration Test",
             variant=classical_variant,
@@ -1422,7 +1444,6 @@ class TestRetreatPhaseDuration:
 
     @pytest.mark.django_db
     def test_get_phase_duration_seconds_adjustment(self, classical_variant):
-        from common.constants import PhaseType
         game = Game.objects.create(
             name="Phase Duration Test",
             variant=classical_variant,
@@ -1941,6 +1962,7 @@ class TestGameMaster:
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
@@ -1957,6 +1979,7 @@ class TestGameMaster:
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
@@ -2539,6 +2562,7 @@ class TestGameNmrExtensions:
             "movement_phase_duration": "24 hours",
             "private": False,
             "nmr_extensions_allowed": 2,
+            "deadline_mode": DeadlineMode.DURATION,
         }, format="json")
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["nmr_extensions_allowed"] == 2
@@ -2554,6 +2578,7 @@ class TestGameNmrExtensions:
             "nation_assignment": "random",
             "movement_phase_duration": "24 hours",
             "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
         }, format="json")
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["nmr_extensions_allowed"] == 0
@@ -2570,6 +2595,7 @@ class TestGameNmrExtensions:
             "movement_phase_duration": "24 hours",
             "private": False,
             "nmr_extensions_allowed": 3,
+            "deadline_mode": DeadlineMode.DURATION,
         }, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -2585,6 +2611,7 @@ class TestGameNmrExtensions:
             "movement_phase_duration": "24 hours",
             "private": False,
             "nmr_extensions_allowed": -1,
+            "deadline_mode": DeadlineMode.DURATION,
         }, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -2623,7 +2650,6 @@ class TestFixedTimeDeadlines:
     def test_fixed_time_game_start_sets_scheduled_resolution(
         self, authenticated_client, active_game_with_fixed_time
     ):
-        from zoneinfo import ZoneInfo
         game = active_game_with_fixed_time()
         current_phase = game.current_phase
         assert current_phase.scheduled_resolution is not None
@@ -2637,8 +2663,6 @@ class TestFixedTimeDeadlines:
     def test_fixed_time_game_with_custom_time(
         self, authenticated_client, active_game_with_fixed_time
     ):
-        from datetime import time
-        from zoneinfo import ZoneInfo
         game = active_game_with_fixed_time(target_time=time(15, 30))
         current_phase = game.current_phase
         local_deadline = current_phase.scheduled_resolution.astimezone(
@@ -2651,7 +2675,6 @@ class TestFixedTimeDeadlines:
     def test_fixed_time_game_with_hourly_frequency(
         self, authenticated_client, active_game_with_fixed_time
     ):
-        from common.constants import PhaseFrequency
         game = active_game_with_fixed_time(movement_frequency=PhaseFrequency.HOURLY)
         current_phase = game.current_phase
         assert current_phase.scheduled_resolution is not None
@@ -2661,7 +2684,6 @@ class TestFixedTimeDeadlines:
     def test_fixed_time_game_respects_timezone(
         self, authenticated_client, active_game_with_fixed_time
     ):
-        from zoneinfo import ZoneInfo
         game = active_game_with_fixed_time(timezone_name="Europe/London")
         current_phase = game.current_phase
         local_deadline = current_phase.scheduled_resolution.astimezone(
@@ -2673,8 +2695,6 @@ class TestFixedTimeDeadlines:
     def test_duration_mode_game_still_works(
         self, authenticated_client, active_game_with_gm
     ):
-        from datetime import timedelta
-        from django.utils import timezone
         game = active_game_with_gm()
         current_phase = game.current_phase
         assert current_phase.scheduled_resolution is not None
@@ -2699,7 +2719,6 @@ class TestFixedTimeDeadlines:
     def test_get_phase_frequency_returns_movement_for_movement_phase(
         self, db, classical_variant
     ):
-        from common.constants import PhaseType
         game = Game.objects.create_from_template(
             classical_variant,
             name="Fixed Time Game",
@@ -2713,7 +2732,6 @@ class TestFixedTimeDeadlines:
     def test_get_phase_frequency_returns_retreat_for_retreat_phase(
         self, db, classical_variant
     ):
-        from common.constants import PhaseType
         game = Game.objects.create_from_template(
             classical_variant,
             name="Fixed Time Game",
@@ -2727,7 +2745,6 @@ class TestFixedTimeDeadlines:
     def test_get_phase_frequency_falls_back_to_movement_for_retreat(
         self, db, classical_variant
     ):
-        from common.constants import PhaseType
         game = Game.objects.create_from_template(
             classical_variant,
             name="Fixed Time Game",

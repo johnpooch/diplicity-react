@@ -42,6 +42,7 @@ def active_game_with_gm(db, primary_user, classical_variant, adjudication_data_c
             name="Test Active Game with GM",
             movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
             nmr_extensions_allowed=nmr_extensions_allowed,
+            deadline_mode=DeadlineMode.DURATION,
         )
         game.members.create(user=gm_user, is_game_master=True)
 

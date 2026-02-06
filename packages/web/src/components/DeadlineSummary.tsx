@@ -3,7 +3,7 @@ import React from "react";
 interface DeadlineSummaryProps {
   movementPhaseDuration: string | null;
   retreatPhaseDuration?: string | null;
-  deadlineMode?: "duration" | "fixed_time";
+  deadlineMode?: string;
   fixedDeadlineTime?: string | null;
   fixedDeadlineTimezone?: string | null;
   movementFrequency?: string | null;

@@ -1,3 +1,11 @@
+from datetime import timedelta
+from zoneinfo import ZoneInfo
+
+from django.utils import timezone
+
+from common.constants import PhaseFrequency
+
+
 def transform_options(raw_options):
     """
     Transform godip options into simplified structure.
@@ -302,13 +310,6 @@ def calculate_next_fixed_deadline(
     tz_name,
     reference_time=None,
 ):
-    from datetime import timedelta
-    from zoneinfo import ZoneInfo
-
-    from django.utils import timezone
-
-    from common.constants import PhaseFrequency
-
     if reference_time is None:
         reference_time = timezone.now()
 

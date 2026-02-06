@@ -39,6 +39,13 @@ import { randomGameName } from "@/util";
 import { InteractiveMap } from "@/components/InteractiveMap/InteractiveMap";
 import { DeadlineSummary } from "@/components/DeadlineSummary";
 import {
+  DURATION_OPTIONS,
+  DURATION_ENUM_VALUES,
+  FREQUENCY_OPTIONS,
+  TIMEZONE_OPTIONS,
+  NMR_EXTENSION_OPTIONS,
+} from "@/constants";
+import {
   useVariantsListSuspense,
   useGameCreate,
   useSandboxGameCreate,
@@ -46,113 +53,29 @@ import {
   NationAssignmentEnum,
 } from "@/api/generated/endpoints";
 
-const DURATION_OPTIONS = [
-  { value: "1 hour", label: "1 hour" },
-  { value: "12 hours", label: "12 hours" },
-  { value: "24 hours", label: "24 hours" },
-  { value: "48 hours", label: "48 hours" },
-  { value: "3 days", label: "3 days" },
-  { value: "4 days", label: "4 days" },
-  { value: "1 week", label: "1 week" },
-  { value: "2 weeks", label: "2 weeks" },
-] as const;
-
-const DURATION_ENUM_VALUES = [
-  "1 hour",
-  "12 hours",
-  "24 hours",
-  "48 hours",
-  "3 days",
-  "4 days",
-  "1 week",
-  "2 weeks",
-] as const;
-
-const FREQUENCY_OPTIONS = [
-  { value: "hourly", label: "Hourly" },
-  { value: "daily", label: "Daily" },
-  { value: "every_2_days", label: "Every 2 days" },
-  { value: "weekly", label: "Weekly" },
-] as const;
-
-const TIMEZONE_OPTIONS = [
-  { value: "America/New_York", label: "Eastern Time (US)" },
-  { value: "America/Chicago", label: "Central Time (US)" },
-  { value: "America/Denver", label: "Mountain Time (US)" },
-  { value: "America/Los_Angeles", label: "Pacific Time (US)" },
-  { value: "America/Anchorage", label: "Alaska Time" },
-  { value: "Pacific/Honolulu", label: "Hawaii Time" },
-  { value: "Europe/London", label: "London (GMT/BST)" },
-  { value: "Europe/Dublin", label: "Dublin (GMT/BST)" },
-  { value: "Europe/Paris", label: "Central European Time" },
-  { value: "Europe/Berlin", label: "Berlin (CET)" },
-  { value: "Europe/Moscow", label: "Moscow Time" },
-  { value: "Asia/Tokyo", label: "Japan Time" },
-  { value: "Asia/Shanghai", label: "China Time" },
-  { value: "Asia/Kolkata", label: "India Time" },
-  { value: "Australia/Sydney", label: "Sydney Time" },
-  { value: "UTC", label: "UTC" },
-] as const;
-
-const NMR_EXTENSION_OPTIONS = [
-  { value: "0", label: "None" },
-  { value: "1", label: "1 per player" },
-  { value: "2", label: "2 per player" },
-] as const;
-
-const standardGameSchema = z
-  .object({
-    name: z
-      .string()
-      .min(1, "Game name is required")
-      .max(100, "Game name must be less than 100 characters"),
-    variantId: z.string().min(1, "Please select a variant"),
-    nationAssignment: z.enum(["random", "ordered"] as const),
-    private: z.boolean(),
-    deadlineMode: z.enum(["duration", "fixed_time"] as const),
-    movementPhaseDuration: z.enum(DURATION_ENUM_VALUES).optional(),
-    retreatPhaseDuration: z.enum(DURATION_ENUM_VALUES).optional().nullable(),
-    fixedDeadlineTime: z.string().optional().nullable(),
-    fixedDeadlineTimezone: z.string().optional().nullable(),
-    movementFrequency: z
-      .enum(["hourly", "daily", "every_2_days", "weekly"] as const)
-      .optional()
-      .nullable(),
-    retreatFrequency: z
-      .enum(["hourly", "daily", "every_2_days", "weekly"] as const)
-      .optional()
-      .nullable(),
-    nmrExtensionsAllowed: z.enum(["0", "1", "2"] as const),
-  })
-  .refine(
-    data => {
-      if (data.deadlineMode === "fixed_time") {
-        return (
-          !!data.fixedDeadlineTime &&
-          !!data.fixedDeadlineTimezone &&
-          !!data.movementFrequency
-        );
-      }
-      return true;
-    },
-    {
-      message:
-        "Time, timezone, and frequency are required for fixed-time deadlines",
-      path: ["fixedDeadlineTime"],
-    }
-  )
-  .refine(
-    data => {
-      if (data.deadlineMode === "duration") {
-        return !!data.movementPhaseDuration;
-      }
-      return true;
-    },
-    {
-      message: "Movement phase duration is required",
-      path: ["movementPhaseDuration"],
-    }
-  );
+const standardGameSchema = z.object({
+  name: z
+    .string()
+    .min(1, "Game name is required")
+    .max(100, "Game name must be less than 100 characters"),
+  variantId: z.string().min(1, "Please select a variant"),
+  nationAssignment: z.enum(["random", "ordered"] as const),
+  private: z.boolean(),
+  deadlineMode: z.enum(["duration", "fixed_time"] as const),
+  movementPhaseDuration: z.enum(DURATION_ENUM_VALUES).optional(),
+  retreatPhaseDuration: z.enum(DURATION_ENUM_VALUES).optional().nullable(),
+  fixedDeadlineTime: z.string().optional().nullable(),
+  fixedDeadlineTimezone: z.string().optional().nullable(),
+  movementFrequency: z
+    .enum(["hourly", "daily", "every_2_days", "weekly"] as const)
+    .optional()
+    .nullable(),
+  retreatFrequency: z
+    .enum(["hourly", "daily", "every_2_days", "weekly"] as const)
+    .optional()
+    .nullable(),
+  nmrExtensionsAllowed: z.enum(["0", "1", "2"] as const),
+});
 
 const sandboxGameSchema = z.object({
   sandboxGame: z.object({

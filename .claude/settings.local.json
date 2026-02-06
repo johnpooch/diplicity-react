@@ -45,7 +45,8 @@
       "WebFetch(domain:orval.dev)",
       "WebFetch(domain:drf-spectacular.readthedocs.io)",
       "Bash(railway:*)",
-      "Bash(nslookup:*)"
+      "Bash(nslookup:*)",
+      "Bash(kill:*)"
     ],
     "deny": [],
     "ask": []
