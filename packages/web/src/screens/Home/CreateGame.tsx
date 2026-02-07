@@ -500,19 +500,21 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
             <Clock className="h-4 w-4" />
             <AlertDescription>
               <DeadlineSummary
-                movementPhaseDuration={
-                  form.watch("movementPhaseDuration") ?? null
-                }
-                retreatPhaseDuration={
-                  form.watch("retreatPhaseDuration") ?? null
-                }
-                deadlineMode={deadlineMode}
-                fixedDeadlineTime={form.watch("fixedDeadlineTime") ?? null}
-                fixedDeadlineTimezone={
-                  form.watch("fixedDeadlineTimezone") ?? null
-                }
-                movementFrequency={form.watch("movementFrequency") ?? null}
-                retreatFrequency={form.watch("retreatFrequency") ?? null}
+                game={{
+                  movementPhaseDuration:
+                    form.watch("movementPhaseDuration") ?? null,
+                  retreatPhaseDuration:
+                    form.watch("retreatPhaseDuration") ?? null,
+                  deadlineMode,
+                  fixedDeadlineTime:
+                    form.watch("fixedDeadlineTime") ?? null,
+                  fixedDeadlineTimezone:
+                    form.watch("fixedDeadlineTimezone") ?? null,
+                  movementFrequency:
+                    form.watch("movementFrequency") ?? null,
+                  retreatFrequency:
+                    form.watch("retreatFrequency") ?? null,
+                }}
               />
             </AlertDescription>
           </Alert>

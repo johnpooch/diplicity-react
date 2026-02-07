@@ -8,7 +8,7 @@ from common.constants import DeadlineMode, NationAssignment, MovementPhaseDurati
 from member.serializers import MemberSerializer
 from unit.models import Unit
 from supply_center.models import SupplyCenter
-from notification import signals as notification_signals
+from notification import utils as notification_utils
 
 from victory.serializers import VictorySerializer
 from variant.models import Variant
@@ -16,6 +16,22 @@ from member.models import Member
 from .models import Game
 
 tracer = trace.get_tracer(__name__)
+
+
+def send_gm_action_notification(game, title, body, notification_type):
+    def _send():
+        user_ids = [
+            m.user_id for m in game.members.select_related('user').all()
+            if not m.is_game_master
+        ]
+        notification_utils.send_notification_to_users(
+            user_ids=user_ids,
+            title=title,
+            body=body,
+            notification_type=notification_type,
+            data={"game_id": str(game.id)},
+        )
+    transaction.on_commit(_send)
 
 
 class GameListSerializer(serializers.Serializer):
@@ -174,7 +190,7 @@ class GameCreateSerializer(serializers.Serializer):
         return value
 
     def validate(self, attrs):
-        deadline_mode = attrs.get("deadline_mode", DeadlineMode.DURATION)
+        deadline_mode = attrs["deadline_mode"]
 
         if deadline_mode == DeadlineMode.FIXED_TIME:
             if not attrs.get("fixed_deadline_time"):
@@ -317,18 +333,12 @@ class GamePauseSerializer(serializers.Serializer):
     def update(self, instance, validated_data):
         gm_username = self.context["request"].user.username
         instance.pause()
-
-        def send_notification():
-            user_ids = [member.user.id for member in instance.members.all() if not member.is_game_master]
-            notification_signals.send_notification_to_users(
-                user_ids=user_ids,
-                title="Game Paused",
-                body=f"Game paused by Game Master ({gm_username})",
-                notification_type="game_paused",
-                data={"game_id": str(instance.id)},
-            )
-
-        transaction.on_commit(send_notification)
+        send_gm_action_notification(
+            instance,
+            title="Game Paused",
+            body=f"Game paused by Game Master ({gm_username})",
+            notification_type="game_paused",
+        )
         return instance
 
     def to_representation(self, instance):
@@ -344,20 +354,14 @@ class GameUnpauseSerializer(serializers.Serializer):
     def update(self, instance, validated_data):
         gm_username = self.context["request"].user.username
         instance.unpause()
-
-        def send_notification():
-            user_ids = [member.user.id for member in instance.members.all() if not member.is_game_master]
-            new_deadline = instance.current_phase.scheduled_resolution if instance.current_phase else None
-            deadline_str = new_deadline.strftime("%b %d, %Y at %I:%M %p") if new_deadline else "N/A"
-            notification_signals.send_notification_to_users(
-                user_ids=user_ids,
-                title="Game Resumed",
-                body=f"Game resumed by Game Master ({gm_username}). New deadline: {deadline_str}",
-                notification_type="game_resumed",
-                data={"game_id": str(instance.id)},
-            )
-
-        transaction.on_commit(send_notification)
+        new_deadline = instance.current_phase.scheduled_resolution if instance.current_phase else None
+        deadline_str = new_deadline.strftime("%b %d, %Y at %I:%M %p") if new_deadline else "N/A"
+        send_gm_action_notification(
+            instance,
+            title="Game Resumed",
+            body=f"Game resumed by Game Master ({gm_username}). New deadline: {deadline_str}",
+            notification_type="game_resumed",
+        )
         return instance
 
     def to_representation(self, instance):
@@ -382,18 +386,12 @@ class GameExtendDeadlineSerializer(serializers.Serializer):
     def update(self, instance, validated_data):
         gm_username = self.context["request"].user.username
         instance.extend_deadline(validated_data["duration"])
-
-        def send_notification():
-            user_ids = [member.user.id for member in instance.members.all() if not member.is_game_master]
-            notification_signals.send_notification_to_users(
-                user_ids=user_ids,
-                title="Deadline Extended",
-                body=f"Deadline extended by Game Master ({gm_username})",
-                notification_type="game_deadline_extended",
-                data={"game_id": str(instance.id)},
-            )
-
-        transaction.on_commit(send_notification)
+        send_gm_action_notification(
+            instance,
+            title="Deadline Extended",
+            body=f"Deadline extended by Game Master ({gm_username})",
+            notification_type="game_deadline_extended",
+        )
         return instance
 
     def to_representation(self, instance):

@@ -46,7 +46,8 @@
       "WebFetch(domain:drf-spectacular.readthedocs.io)",
       "Bash(railway:*)",
       "Bash(nslookup:*)",
-      "Bash(kill:*)"
+      "Bash(kill:*)",
+      "WebFetch(domain:jpcaparas.medium.com)"
     ],
     "deny": [],
     "ask": []

@@ -76,15 +76,7 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
             icon={<Calendar className="size-4" />}
             label="Phase deadlines"
             value={
-              <DeadlineSummary
-                movementPhaseDuration={game.movementPhaseDuration ?? null}
-                retreatPhaseDuration={game.retreatPhaseDuration}
-                deadlineMode={game.deadlineMode}
-                fixedDeadlineTime={game.fixedDeadlineTime}
-                fixedDeadlineTimezone={game.fixedDeadlineTimezone}
-                movementFrequency={game.movementFrequency}
-                retreatFrequency={game.retreatFrequency}
-              />
+              <DeadlineSummary game={game} />
             }
           />
           <MetadataRow

@@ -5,14 +5,16 @@ import { DeadlineSummary } from "./DeadlineSummary";
 describe("DeadlineSummary", () => {
   describe("Duration Mode", () => {
     it("renders sandbox message when movementPhaseDuration is null", () => {
-      render(<DeadlineSummary movementPhaseDuration={null} />);
+      render(<DeadlineSummary game={{ movementPhaseDuration: null }} />);
       expect(
         screen.getByText("No automatic deadlines (sandbox)")
       ).toBeInTheDocument();
     });
 
     it("renders simple message when only movementPhaseDuration is set", () => {
-      render(<DeadlineSummary movementPhaseDuration="24 hours" />);
+      render(
+        <DeadlineSummary game={{ movementPhaseDuration: "24 hours" }} />
+      );
       expect(
         screen.getByText("Phases resolve every 24 hours")
       ).toBeInTheDocument();
@@ -21,8 +23,10 @@ describe("DeadlineSummary", () => {
     it("renders simple message when retreatPhaseDuration equals movementPhaseDuration", () => {
       render(
         <DeadlineSummary
-          movementPhaseDuration="48 hours"
-          retreatPhaseDuration="48 hours"
+          game={{
+            movementPhaseDuration: "48 hours",
+            retreatPhaseDuration: "48 hours",
+          }}
         />
       );
       expect(
@@ -33,8 +37,10 @@ describe("DeadlineSummary", () => {
     it("renders both durations when they differ", () => {
       render(
         <DeadlineSummary
-          movementPhaseDuration="48 hours"
-          retreatPhaseDuration="12 hours"
+          game={{
+            movementPhaseDuration: "48 hours",
+            retreatPhaseDuration: "12 hours",
+          }}
         />
       );
       expect(
@@ -52,7 +58,9 @@ describe("DeadlineSummary", () => {
       "1 week",
       "2 weeks",
     ])("renders correctly for %s duration", duration => {
-      render(<DeadlineSummary movementPhaseDuration={duration} />);
+      render(
+        <DeadlineSummary game={{ movementPhaseDuration: duration }} />
+      );
       expect(
         screen.getByText(`Phases resolve every ${duration}`)
       ).toBeInTheDocument();
@@ -61,8 +69,10 @@ describe("DeadlineSummary", () => {
     it("renders simple message when retreatPhaseDuration is null", () => {
       render(
         <DeadlineSummary
-          movementPhaseDuration="24 hours"
-          retreatPhaseDuration={null}
+          game={{
+            movementPhaseDuration: "24 hours",
+            retreatPhaseDuration: null,
+          }}
         />
       );
       expect(
@@ -73,8 +83,10 @@ describe("DeadlineSummary", () => {
     it("renders simple message when retreatPhaseDuration is undefined", () => {
       render(
         <DeadlineSummary
-          movementPhaseDuration="24 hours"
-          retreatPhaseDuration={undefined}
+          game={{
+            movementPhaseDuration: "24 hours",
+            retreatPhaseDuration: undefined,
+          }}
         />
       );
       expect(
@@ -87,11 +99,13 @@ describe("DeadlineSummary", () => {
     it("renders fixed-time summary with daily frequency", () => {
       render(
         <DeadlineSummary
-          movementPhaseDuration={null}
-          deadlineMode="fixed_time"
-          fixedDeadlineTime="21:00"
-          fixedDeadlineTimezone="America/New_York"
-          movementFrequency="daily"
+          game={{
+            movementPhaseDuration: null,
+            deadlineMode: "fixed_time",
+            fixedDeadlineTime: "21:00",
+            fixedDeadlineTimezone: "America/New_York",
+            movementFrequency: "daily",
+          }}
         />
       );
       expect(screen.getByText(/daily at 9:00 PM ET/i)).toBeInTheDocument();
@@ -100,11 +114,13 @@ describe("DeadlineSummary", () => {
     it("renders fixed-time summary with hourly frequency", () => {
       render(
         <DeadlineSummary
-          movementPhaseDuration={null}
-          deadlineMode="fixed_time"
-          fixedDeadlineTime="14:30"
-          fixedDeadlineTimezone="America/Chicago"
-          movementFrequency="hourly"
+          game={{
+            movementPhaseDuration: null,
+            deadlineMode: "fixed_time",
+            fixedDeadlineTime: "14:30",
+            fixedDeadlineTimezone: "America/Chicago",
+            movementFrequency: "hourly",
+          }}
         />
       );
       expect(screen.getByText(/hourly at 2:30 PM CT/i)).toBeInTheDocument();
@@ -113,11 +129,13 @@ describe("DeadlineSummary", () => {
     it("renders fixed-time summary with weekly frequency", () => {
       render(
         <DeadlineSummary
-          movementPhaseDuration={null}
-          deadlineMode="fixed_time"
-          fixedDeadlineTime="15:00"
-          fixedDeadlineTimezone="America/Los_Angeles"
-          movementFrequency="weekly"
+          game={{
+            movementPhaseDuration: null,
+            deadlineMode: "fixed_time",
+            fixedDeadlineTime: "15:00",
+            fixedDeadlineTimezone: "America/Los_Angeles",
+            movementFrequency: "weekly",
+          }}
         />
       );
       expect(screen.getByText(/weekly at 3:00 PM PT/i)).toBeInTheDocument();
@@ -126,11 +144,13 @@ describe("DeadlineSummary", () => {
     it("renders fixed-time summary with every_2_days frequency", () => {
       render(
         <DeadlineSummary
-          movementPhaseDuration={null}
-          deadlineMode="fixed_time"
-          fixedDeadlineTime="09:00"
-          fixedDeadlineTimezone="Europe/London"
-          movementFrequency="every_2_days"
+          game={{
+            movementPhaseDuration: null,
+            deadlineMode: "fixed_time",
+            fixedDeadlineTime: "09:00",
+            fixedDeadlineTimezone: "Europe/London",
+            movementFrequency: "every_2_days",
+          }}
         />
       );
       expect(screen.getByText(/every 2 days at 9:00 AM GMT/i)).toBeInTheDocument();
@@ -139,11 +159,13 @@ describe("DeadlineSummary", () => {
     it("shows prompt when fixed-time fields are incomplete (missing time)", () => {
       render(
         <DeadlineSummary
-          movementPhaseDuration={null}
-          deadlineMode="fixed_time"
-          fixedDeadlineTime={null}
-          fixedDeadlineTimezone="America/New_York"
-          movementFrequency="daily"
+          game={{
+            movementPhaseDuration: null,
+            deadlineMode: "fixed_time",
+            fixedDeadlineTime: null,
+            fixedDeadlineTimezone: "America/New_York",
+            movementFrequency: "daily",
+          }}
         />
       );
       expect(
@@ -154,11 +176,13 @@ describe("DeadlineSummary", () => {
     it("shows prompt when fixed-time fields are incomplete (missing timezone)", () => {
       render(
         <DeadlineSummary
-          movementPhaseDuration={null}
-          deadlineMode="fixed_time"
-          fixedDeadlineTime="21:00"
-          fixedDeadlineTimezone={null}
-          movementFrequency="daily"
+          game={{
+            movementPhaseDuration: null,
+            deadlineMode: "fixed_time",
+            fixedDeadlineTime: "21:00",
+            fixedDeadlineTimezone: null,
+            movementFrequency: "daily",
+          }}
         />
       );
       expect(
@@ -169,11 +193,13 @@ describe("DeadlineSummary", () => {
     it("shows prompt when fixed-time fields are incomplete (missing frequency)", () => {
       render(
         <DeadlineSummary
-          movementPhaseDuration={null}
-          deadlineMode="fixed_time"
-          fixedDeadlineTime="21:00"
-          fixedDeadlineTimezone="America/New_York"
-          movementFrequency={null}
+          game={{
+            movementPhaseDuration: null,
+            deadlineMode: "fixed_time",
+            fixedDeadlineTime: "21:00",
+            fixedDeadlineTimezone: "America/New_York",
+            movementFrequency: null,
+          }}
         />
       );
       expect(
@@ -184,12 +210,14 @@ describe("DeadlineSummary", () => {
     it("shows different retreat frequency when specified", () => {
       render(
         <DeadlineSummary
-          movementPhaseDuration={null}
-          deadlineMode="fixed_time"
-          fixedDeadlineTime="15:00"
-          fixedDeadlineTimezone="America/Los_Angeles"
-          movementFrequency="weekly"
-          retreatFrequency="daily"
+          game={{
+            movementPhaseDuration: null,
+            deadlineMode: "fixed_time",
+            fixedDeadlineTime: "15:00",
+            fixedDeadlineTimezone: "America/Los_Angeles",
+            movementFrequency: "weekly",
+            retreatFrequency: "daily",
+          }}
         />
       );
       expect(
@@ -200,12 +228,14 @@ describe("DeadlineSummary", () => {
     it("shows single summary when retreat frequency matches movement frequency", () => {
       render(
         <DeadlineSummary
-          movementPhaseDuration={null}
-          deadlineMode="fixed_time"
-          fixedDeadlineTime="21:00"
-          fixedDeadlineTimezone="America/New_York"
-          movementFrequency="daily"
-          retreatFrequency="daily"
+          game={{
+            movementPhaseDuration: null,
+            deadlineMode: "fixed_time",
+            fixedDeadlineTime: "21:00",
+            fixedDeadlineTimezone: "America/New_York",
+            movementFrequency: "daily",
+            retreatFrequency: "daily",
+          }}
         />
       );
       expect(screen.getByText(/daily at 9:00 PM ET/i)).toBeInTheDocument();
@@ -215,11 +245,13 @@ describe("DeadlineSummary", () => {
     it("formats 12:00 as 12:00 PM", () => {
       render(
         <DeadlineSummary
-          movementPhaseDuration={null}
-          deadlineMode="fixed_time"
-          fixedDeadlineTime="12:00"
-          fixedDeadlineTimezone="UTC"
-          movementFrequency="daily"
+          game={{
+            movementPhaseDuration: null,
+            deadlineMode: "fixed_time",
+            fixedDeadlineTime: "12:00",
+            fixedDeadlineTimezone: "UTC",
+            movementFrequency: "daily",
+          }}
         />
       );
       expect(screen.getByText(/daily at 12:00 PM UTC/i)).toBeInTheDocument();
@@ -228,11 +260,13 @@ describe("DeadlineSummary", () => {
     it("formats 00:00 as 12:00 AM", () => {
       render(
         <DeadlineSummary
-          movementPhaseDuration={null}
-          deadlineMode="fixed_time"
-          fixedDeadlineTime="00:00"
-          fixedDeadlineTimezone="UTC"
-          movementFrequency="daily"
+          game={{
+            movementPhaseDuration: null,
+            deadlineMode: "fixed_time",
+            fixedDeadlineTime: "00:00",
+            fixedDeadlineTimezone: "UTC",
+            movementFrequency: "daily",
+          }}
         />
       );
       expect(screen.getByText(/daily at 12:00 AM UTC/i)).toBeInTheDocument();
@@ -241,11 +275,13 @@ describe("DeadlineSummary", () => {
     it("handles unknown timezone by showing full timezone name", () => {
       render(
         <DeadlineSummary
-          movementPhaseDuration={null}
-          deadlineMode="fixed_time"
-          fixedDeadlineTime="21:00"
-          fixedDeadlineTimezone="Africa/Cairo"
-          movementFrequency="daily"
+          game={{
+            movementPhaseDuration: null,
+            deadlineMode: "fixed_time",
+            fixedDeadlineTime: "21:00",
+            fixedDeadlineTimezone: "Africa/Cairo",
+            movementFrequency: "daily",
+          }}
         />
       );
       expect(screen.getByText(/daily at 9:00 PM Africa\/Cairo/i)).toBeInTheDocument();
@@ -254,12 +290,14 @@ describe("DeadlineSummary", () => {
     it("handles hourly retreat frequency display", () => {
       render(
         <DeadlineSummary
-          movementPhaseDuration={null}
-          deadlineMode="fixed_time"
-          fixedDeadlineTime="21:00"
-          fixedDeadlineTimezone="Europe/London"
-          movementFrequency="daily"
-          retreatFrequency="hourly"
+          game={{
+            movementPhaseDuration: null,
+            deadlineMode: "fixed_time",
+            fixedDeadlineTime: "21:00",
+            fixedDeadlineTimezone: "Europe/London",
+            movementFrequency: "daily",
+            retreatFrequency: "hourly",
+          }}
         />
       );
       expect(

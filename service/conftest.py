@@ -545,8 +545,9 @@ def game_with_options(active_game, sample_options):
 
 @pytest.fixture
 def mock_send_notification_to_users():
-    with patch("notification.signals.send_notification_to_users") as mock_send_notification_to_users:
-        yield mock_send_notification_to_users
+    with patch("notification.utils.send_notification_to_users") as mock_fn, \
+         patch("notification.signals.send_notification_to_users", mock_fn):
+        yield mock_fn
 
 
 @pytest.fixture

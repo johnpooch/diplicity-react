@@ -1,6 +1,6 @@
 import React from "react";
 
-interface DeadlineSummaryProps {
+interface DeadlineSummaryGame {
   movementPhaseDuration: string | null;
   retreatPhaseDuration?: string | null;
   deadlineMode?: string;
@@ -8,6 +8,10 @@ interface DeadlineSummaryProps {
   fixedDeadlineTimezone?: string | null;
   movementFrequency?: string | null;
   retreatFrequency?: string | null;
+}
+
+interface DeadlineSummaryProps {
+  game: DeadlineSummaryGame;
 }
 
 const FREQUENCY_LABELS: Record<string, string> = {
@@ -45,15 +49,17 @@ function formatTime12Hour(time: string): string {
   return `${hour12}:${minutes.toString().padStart(2, "0")} ${ampm}`;
 }
 
-export const DeadlineSummary: React.FC<DeadlineSummaryProps> = ({
-  movementPhaseDuration,
-  retreatPhaseDuration,
-  deadlineMode = "duration",
-  fixedDeadlineTime,
-  fixedDeadlineTimezone,
-  movementFrequency,
-  retreatFrequency,
-}) => {
+export const DeadlineSummary: React.FC<DeadlineSummaryProps> = ({ game }) => {
+  const {
+    movementPhaseDuration,
+    retreatPhaseDuration,
+    deadlineMode = "duration",
+    fixedDeadlineTime,
+    fixedDeadlineTimezone,
+    movementFrequency,
+    retreatFrequency,
+  } = game;
+
   if (deadlineMode === "fixed_time") {
     if (!fixedDeadlineTime || !fixedDeadlineTimezone || !movementFrequency) {
       return <span>Select time, timezone, and frequency</span>;

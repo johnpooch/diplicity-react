@@ -10,6 +10,8 @@ from zoneinfo import ZoneInfo
 from rest_framework import status
 from common.constants import PhaseStatus, PhaseType, GameStatus, NationAssignment, MovementPhaseDuration, DeadlineMode, PhaseFrequency
 
+from phase.models import Phase
+from user_profile.models import UserProfile
 from .models import Game
 
 retrieve_viewname = "game-retrieve"
@@ -298,8 +300,6 @@ class TestGameRetrieveViewQueryPerformance:
         classical_russia_nation,
         classical_turkey_nation,
     ):
-        from user_profile.models import UserProfile
-
         users = [primary_user, secondary_user]
         for i in range(5):
             user = type(primary_user).objects.create_user(
@@ -2016,7 +2016,6 @@ class TestGameMaster:
     def test_clone_to_sandbox_has_no_game_master(
         self, authenticated_client, active_game_with_phase_state, adjudication_data_classical, primary_user
     ):
-        from unittest.mock import patch
         url = reverse("game-clone-to-sandbox", args=[active_game_with_phase_state.id])
         with patch("adjudication.service.start") as mock_start:
             mock_start.return_value = adjudication_data_classical
@@ -2292,8 +2291,6 @@ class TestGamePauseUnpause:
 
     @pytest.mark.django_db
     def test_paused_game_excluded_from_due_phases(self, db, active_game_with_gm):
-        from phase.models import Phase
-
         game = active_game_with_gm()
         phase = game.current_phase
         phase.scheduled_resolution = timezone.now() - timedelta(minutes=5)

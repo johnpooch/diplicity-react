@@ -17,6 +17,7 @@ from supply_center.models import SupplyCenter
 from unit.models import Unit
 from victory.utils import check_for_solo_winner
 from victory.models import Victory
+from notification import utils as notification_utils
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
@@ -135,8 +136,6 @@ class PhaseManager(models.Manager):
             return result
 
     def _check_and_apply_nmr_extensions(self, phase):
-        from notification.signals import send_notification_to_users
-
         unconfirmed = phase.phase_states.filter(
             has_possible_orders=True, orders_confirmed=False
         ).select_related('member')
@@ -166,7 +165,7 @@ class PhaseManager(models.Manager):
 
         def send_notifications():
             for member in members_with_extensions:
-                send_notification_to_users(
+                notification_utils.send_notification_to_users(
                     user_ids=[member.user.id],
                     title="Extension Used",
                     body=f"You used an automatic extension. {member.nmr_extensions_remaining} remaining.",
@@ -180,7 +179,7 @@ class PhaseManager(models.Manager):
                 if m.user.id not in extension_ids
             ]
             if other_ids:
-                send_notification_to_users(
+                notification_utils.send_notification_to_users(
                     user_ids=other_ids,
                     title="Deadline Extended",
                     body="Some player(s) did not submit orders. Deadline extended.",
@@ -193,8 +192,6 @@ class PhaseManager(models.Manager):
         return members_with_extensions
 
     def send_deadline_warnings(self):
-        from notification.signals import send_notification_to_users
-
         WARNING_THRESHOLDS = {
             3600: 900,
             12 * 3600: 3600,
@@ -253,7 +250,7 @@ class PhaseManager(models.Manager):
 
                 user_ids = [m.user.id for m in unconfirmed_members]
 
-                send_notification_to_users(
+                notification_utils.send_notification_to_users(
                     user_ids=user_ids,
                     title="Deadline Approaching",
                     body=f"You haven't confirmed your orders in {phase.game.name}.",
