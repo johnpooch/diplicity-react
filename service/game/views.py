@@ -11,9 +11,12 @@ from .serializers import (
     GameCloneToSandboxSerializer,
     GameListSerializer,
     GameRetrieveSerializer,
+    GamePauseSerializer,
+    GameUnpauseSerializer,
+    GameExtendDeadlineSerializer,
 )
 from common.views import SelectedGameMixin
-from common.permissions import IsActiveGame, IsGameMember
+from common.permissions import IsActiveGame, IsGameMember, IsGameMaster
 from .filters import GameFilter
 
 tracer = trace.get_tracer(__name__)
@@ -72,3 +75,27 @@ class CreateSandboxGameView(generics.CreateAPIView):
 class GameCloneToSandboxView(SelectedGameMixin, generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsGameMember]
     serializer_class = GameCloneToSandboxSerializer
+
+
+class GamePauseView(SelectedGameMixin, generics.UpdateAPIView):
+    permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsGameMaster]
+    serializer_class = GamePauseSerializer
+
+    def get_object(self):
+        return self.get_game()
+
+
+class GameUnpauseView(SelectedGameMixin, generics.UpdateAPIView):
+    permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsGameMaster]
+    serializer_class = GameUnpauseSerializer
+
+    def get_object(self):
+        return self.get_game()
+
+
+class GameExtendDeadlineView(SelectedGameMixin, generics.UpdateAPIView):
+    permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsGameMaster]
+    serializer_class = GameExtendDeadlineSerializer
+
+    def get_object(self):
+        return self.get_game()

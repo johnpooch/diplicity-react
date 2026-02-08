@@ -377,6 +377,62 @@ paths:
               schema:
                 $ref: '#/components/schemas/PhaseState'
           description: ''
+  /game/{gameId}/extend-deadline/:
+    put:
+      operationId: gameExtendDeadlineUpdate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameExtendDeadline'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameExtendDeadline'
+          description: ''
+    patch:
+      operationId: gameExtendDeadlinePartialUpdate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedGameExtendDeadline'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameExtendDeadline'
+          description: ''
   /game/{gameId}/join/:
     post:
       operationId: gameJoinCreate
@@ -506,6 +562,43 @@ paths:
       responses:
         '204':
           description: No response body
+  /game/{gameId}/pause/:
+    put:
+      operationId: gamePauseUpdate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+    patch:
+      operationId: gamePausePartialUpdate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
   /game/{gameId}/phase-states/:
     get:
       operationId: gamePhaseStatesList
@@ -604,6 +697,43 @@ paths:
               schema:
                 $ref: '#/components/schemas/PhaseList'
           description: ''
+  /game/{gameId}/unpause/:
+    put:
+      operationId: gameUnpauseUpdate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+    patch:
+      operationId: gameUnpausePartialUpdate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
   /games/:
     get:
       operationId: gamesList
@@ -1078,6 +1208,14 @@ components:
       - createdAt
       - id
       - sender
+    DeadlineModeEnum:
+      enum:
+      - duration
+      - fixed_time
+      type: string
+      description: |-
+        * `duration` - Duration
+        * `fixed_time` - Fixed Time
     DrawProposal:
       type: object
       properties:
@@ -1175,6 +1313,26 @@ components:
           type: boolean
       required:
       - accepted
+    DurationEnum:
+      enum:
+      - 1 hour
+      - 12 hours
+      - 24 hours
+      - 48 hours
+      - 3 days
+      - 4 days
+      - 1 week
+      - 2 weeks
+      type: string
+      description: |-
+        * `1 hour` - 1 hour
+        * `12 hours` - 12 hours
+        * `24 hours` - 24 hours
+        * `48 hours` - 48 hours
+        * `3 days` - 3 days
+        * `4 days` - 4 days
+        * `1 week` - 1 week
+        * `2 weeks` - 2 weeks
     FCMDevice:
       type: object
       properties:
@@ -1233,10 +1391,42 @@ components:
           $ref: '#/components/schemas/NationAssignmentEnum'
         movementPhaseDuration:
           allOf:
-          - $ref: '#/components/schemas/MovementPhaseDurationEnum'
+          - $ref: '#/components/schemas/DurationEnum'
           default: 24 hours
+        retreatPhaseDuration:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/DurationEnum'
+          - $ref: '#/components/schemas/NullEnum'
         private:
           type: boolean
+        deadlineMode:
+          allOf:
+          - $ref: '#/components/schemas/DeadlineModeEnum'
+          default: duration
+        fixedDeadlineTime:
+          type: string
+          format: time
+          nullable: true
+        fixedDeadlineTimezone:
+          type: string
+          nullable: true
+          maxLength: 50
+        movementFrequency:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/MovementFrequencyEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        retreatFrequency:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/RetreatFrequencyEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        nmrExtensionsAllowed:
+          type: integer
+          maximum: 2
+          minimum: 0
+          default: 0
       required:
       - id
       - name
@@ -1257,6 +1447,13 @@ components:
       - id
       - name
       - variantId
+    GameExtendDeadline:
+      type: object
+      properties:
+        duration:
+          $ref: '#/components/schemas/DurationEnum'
+      required:
+      - duration
     GameList:
       type: object
       properties:
@@ -1293,6 +1490,11 @@ components:
         movementPhaseDuration:
           type: string
           readOnly: true
+          nullable: true
+        retreatPhaseDuration:
+          type: string
+          readOnly: true
+          nullable: true
         nationAssignment:
           type: string
           readOnly: true
@@ -1309,17 +1511,57 @@ components:
         sandbox:
           type: boolean
           readOnly: true
+        isPaused:
+          type: boolean
+          readOnly: true
+        pausedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        nmrExtensionsAllowed:
+          type: integer
+          readOnly: true
+        deadlineMode:
+          type: string
+          readOnly: true
+        fixedDeadlineTime:
+          type: string
+          format: time
+          readOnly: true
+          nullable: true
+        fixedDeadlineTimezone:
+          type: string
+          readOnly: true
+          nullable: true
+        movementFrequency:
+          type: string
+          readOnly: true
+          nullable: true
+        retreatFrequency:
+          type: string
+          readOnly: true
+          nullable: true
       required:
       - canJoin
       - canLeave
       - currentPhaseId
+      - deadlineMode
+      - fixedDeadlineTime
+      - fixedDeadlineTimezone
       - id
+      - isPaused
       - members
+      - movementFrequency
       - movementPhaseDuration
       - name
       - nationAssignment
+      - nmrExtensionsAllowed
+      - pausedAt
       - phases
       - private
+      - retreatFrequency
+      - retreatPhaseDuration
       - sandbox
       - status
       - variantId
@@ -1376,21 +1618,66 @@ components:
         movementPhaseDuration:
           type: string
           readOnly: true
+          nullable: true
+        retreatPhaseDuration:
+          type: string
+          readOnly: true
+          nullable: true
         private:
           type: boolean
           readOnly: true
+        isPaused:
+          type: boolean
+          readOnly: true
+        pausedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        nmrExtensionsAllowed:
+          type: integer
+          readOnly: true
+        deadlineMode:
+          type: string
+          readOnly: true
+        fixedDeadlineTime:
+          type: string
+          format: time
+          readOnly: true
+          nullable: true
+        fixedDeadlineTimezone:
+          type: string
+          readOnly: true
+          nullable: true
+        movementFrequency:
+          type: string
+          readOnly: true
+          nullable: true
+        retreatFrequency:
+          type: string
+          readOnly: true
+          nullable: true
       required:
       - canJoin
       - canLeave
       - currentPhaseId
+      - deadlineMode
+      - fixedDeadlineTime
+      - fixedDeadlineTimezone
       - id
+      - isPaused
       - members
+      - movementFrequency
       - movementPhaseDuration
       - name
       - nationAssignment
+      - nmrExtensionsAllowed
+      - pausedAt
       - phaseConfirmed
       - phases
       - private
+      - retreatFrequency
+      - retreatPhaseDuration
       - sandbox
       - status
       - variantId
@@ -1421,24 +1708,34 @@ components:
         kicked:
           type: boolean
           readOnly: true
+        isGameMaster:
+          type: boolean
+          readOnly: true
+        nmrExtensionsRemaining:
+          type: integer
+          readOnly: true
       required:
       - eliminated
       - id
       - isCurrentUser
+      - isGameMaster
       - kicked
       - name
       - nation
+      - nmrExtensionsRemaining
       - picture
-    MovementPhaseDurationEnum:
+    MovementFrequencyEnum:
       enum:
-      - 24 hours
-      - 48 hours
-      - 1 week
+      - hourly
+      - daily
+      - every_2_days
+      - weekly
       type: string
       description: |-
-        * `24 hours` - 24 hours
-        * `48 hours` - 48 hours
-        * `1 week` - 1 week
+        * `hourly` - Hourly
+        * `daily` - Daily
+        * `every_2_days` - Every 2 days
+        * `weekly` - Weekly
     Nation:
       type: object
       properties:
@@ -1581,6 +1878,11 @@ components:
       properties:
         accepted:
           type: boolean
+    PatchedGameExtendDeadline:
+      type: object
+      properties:
+        duration:
+          $ref: '#/components/schemas/DurationEnum'
     PatchedPhaseState:
       type: object
       properties:
@@ -1747,6 +2049,18 @@ components:
       - parentId
       - supplyCenter
       - type
+    RetreatFrequencyEnum:
+      enum:
+      - hourly
+      - daily
+      - every_2_days
+      - weekly
+      type: string
+      description: |-
+        * `hourly` - Hourly
+        * `daily` - Daily
+        * `every_2_days` - Every 2 days
+        * `weekly` - Weekly
     StatusEnum:
       enum:
       - pending

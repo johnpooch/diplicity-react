@@ -64,6 +64,17 @@ class PhaseResolveAllView(views.APIView):
             return Response(result, status=status.HTTP_200_OK)
 
 
+class DeadlineWarningsView(views.APIView):
+    permission_classes = []
+    serializer_class = EmptySerializer
+
+    def post(self, request, *args, **kwargs):
+        with tracer.start_as_current_span("phase.deadline_warnings_view") as span:
+            result = Phase.objects.send_deadline_warnings()
+            span.set_attribute("notifications.sent", result["notifications_sent"])
+            return Response(result, status=status.HTTP_200_OK)
+
+
 class PhaseListView(SelectedGameMixin, generics.ListAPIView):
     permission_classes = [
         permissions.IsAuthenticated,

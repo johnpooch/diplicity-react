@@ -22,6 +22,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Info,
   Users,
   Share,
@@ -30,20 +37,31 @@ import {
   Copy,
   Handshake,
   Vote,
+  Clock,
+  Pause,
+  Play,
 } from "lucide-react";
 import {
   useGameLeaveDestroy,
   useGameCloneToSandboxCreate,
+  useGameExtendDeadlineUpdate,
+  useGamePauseUpdate,
+  useGameUnpausePartialUpdate,
   getGamesListQueryKey,
+  getGameRetrieveQueryKey,
   GameList,
   GameRetrieve,
   useGamesDrawProposalsListSuspense,
   DrawProposal,
+  DurationEnum,
+  getGamePhasesListQueryKey,
+  getGamePhaseRetrieveQueryKey,
 } from "@/api/generated/endpoints";
+import { EXTEND_DURATION_OPTIONS } from "@/constants";
 import { Suspense } from "react";
 
 interface GameDropdownMenuProps {
-  game: Pick<GameList, "id" | "sandbox" | "canLeave"> &
+  game: Pick<GameList, "id" | "sandbox" | "canLeave" | "isPaused"> &
     Partial<Pick<GameRetrieve, "status" | "members">>;
   onNavigateToGameInfo: () => void;
   onNavigateToPlayerInfo: () => void;
@@ -106,14 +124,29 @@ export function GameDropdownMenu({
   onNavigateToPlayerInfo,
 }: GameDropdownMenuProps) {
   const [showCloneConfirmation, setShowCloneConfirmation] = useState(false);
+  const [showExtendDeadlineDialog, setShowExtendDeadlineDialog] =
+    useState(false);
+  const [selectedDuration, setSelectedDuration] = useState<DurationEnum>(
+    DurationEnum["24_hours"]
+  );
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { phaseId } = useParams<{ phaseId: string }>();
   const leaveGameMutation = useGameLeaveDestroy();
   const cloneToSandboxMutation = useGameCloneToSandboxCreate();
+  const extendDeadlineMutation = useGameExtendDeadlineUpdate();
+  const pauseGameMutation = useGamePauseUpdate();
+  const unpauseGameMutation = useGameUnpausePartialUpdate();
 
   const currentMember = game.members?.find(m => m.isCurrentUser);
   const isActiveGame = game.status === "active";
+  const isCurrentUserGameMaster = currentMember?.isGameMaster ?? false;
+  const canExtendDeadline =
+    isCurrentUserGameMaster && isActiveGame && !game.isPaused;
+  const canPauseGame =
+    isCurrentUserGameMaster && isActiveGame && !game.isPaused;
+  const canUnpauseGame =
+    isCurrentUserGameMaster && isActiveGame && game.isPaused;
   const isActiveOrFinishedGame =
     game.status === "active" ||
     game.status === "completed" ||
@@ -154,10 +187,71 @@ export function GameDropdownMenu({
     navigate(`/game/${game.id}/phase/${phaseId}/draw-proposals`);
   };
 
+  const handleExtendDeadlineDialogChange = (open: boolean) => {
+    setShowExtendDeadlineDialog(open);
+    if (!open) {
+      setSelectedDuration(DurationEnum["24_hours"]);
+    }
+  };
+
+  const handleExtendDeadline = async () => {
+    setShowExtendDeadlineDialog(false);
+    try {
+      await extendDeadlineMutation.mutateAsync({
+        gameId: game.id,
+        data: { duration: selectedDuration },
+      });
+      toast.success("Deadline extended");
+      queryClient.invalidateQueries({
+        queryKey: getGameRetrieveQueryKey(game.id),
+      });
+      queryClient.invalidateQueries({ queryKey: getGamesListQueryKey() });
+      queryClient.invalidateQueries({
+        queryKey: getGamePhasesListQueryKey(game.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: getGamePhaseRetrieveQueryKey(game.id, Number(phaseId)),
+      });
+    } catch {
+      toast.error("Failed to extend deadline");
+    }
+  };
+
+  const handlePauseGame = async () => {
+    try {
+      await pauseGameMutation.mutateAsync({ gameId: game.id });
+      toast.success("Game paused");
+      queryClient.invalidateQueries({
+        queryKey: getGameRetrieveQueryKey(game.id),
+      });
+      queryClient.invalidateQueries({ queryKey: getGamesListQueryKey() });
+    } catch {
+      toast.error("Failed to pause game");
+    }
+  };
+
+  const handleUnpauseGame = async () => {
+    try {
+      await unpauseGameMutation.mutateAsync({ gameId: game.id });
+      toast.success("Game resumed");
+      queryClient.invalidateQueries({
+        queryKey: getGameRetrieveQueryKey(game.id),
+      });
+      queryClient.invalidateQueries({ queryKey: getGamesListQueryKey() });
+    } catch {
+      toast.error("Failed to resume game");
+    }
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon" aria-label="Game menu" className="relative">
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label="Game menu"
+          className="relative"
+        >
           <MoreHorizontal />
           {canViewDrawProposals && phaseId && (
             <Suspense fallback={null}>
@@ -194,6 +288,29 @@ export function GameDropdownMenu({
           <DropdownMenuItem onClick={() => setShowCloneConfirmation(true)}>
             <Copy />
             Clone to sandbox
+          </DropdownMenuItem>
+        )}
+        {canExtendDeadline && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => handleExtendDeadlineDialogChange(true)}
+            >
+              <Clock />
+              Extend deadline
+            </DropdownMenuItem>
+          </>
+        )}
+        {canPauseGame && (
+          <DropdownMenuItem onClick={handlePauseGame}>
+            <Pause />
+            Pause game
+          </DropdownMenuItem>
+        )}
+        {canUnpauseGame && (
+          <DropdownMenuItem onClick={handleUnpauseGame}>
+            <Play />
+            Resume game
           </DropdownMenuItem>
         )}
         {canProposeDraw && phaseId && (
@@ -248,6 +365,41 @@ export function GameDropdownMenu({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleClone}>
               Create sandbox
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={showExtendDeadlineDialog}
+        onOpenChange={handleExtendDeadlineDialogChange}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Extend deadline</AlertDialogTitle>
+            <AlertDialogDescription className="text-left">
+              Select how long to extend the current phase deadline.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Select
+            value={selectedDuration}
+            onValueChange={value => setSelectedDuration(value as DurationEnum)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {EXTEND_DURATION_OPTIONS.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleExtendDeadline}>
+              Extend
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -15,5 +15,20 @@ urlpatterns = [
         views.GameCloneToSandboxView.as_view(),
         name="game-clone-to-sandbox",
     ),
+    path(
+        "game/<str:game_id>/pause/",
+        views.GamePauseView.as_view(),
+        name="game-pause",
+    ),
+    path(
+        "game/<str:game_id>/unpause/",
+        views.GameUnpauseView.as_view(),
+        name="game-unpause",
+    ),
+    path(
+        "game/<str:game_id>/extend-deadline/",
+        views.GameExtendDeadlineView.as_view(),
+        name="game-extend-deadline",
+    ),
     path("games/", views.GameListView.as_view(), name="game-list"),
 ]

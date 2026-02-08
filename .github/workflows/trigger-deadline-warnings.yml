@@ -1,0 +1,22 @@
+name: Trigger Deadline Warnings
+on:
+  schedule:
+    - cron: '* * * * *'  # Every minute
+  workflow_dispatch:  # Allows manual triggering from GitHub UI
+
+jobs:
+  trigger-warnings:
+    runs-on: ubuntu-latest
+    # Stop cron during maintenance
+    if: vars.MAINTENANCE_MODE != 'true'
+    steps:
+      - name: Call deadline warnings endpoint
+        run: |
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            -f \
+            ${{ vars.SERVICE_BASE_URL }}/phase/deadline-warnings/
+        continue-on-error: true
+
+      - name: Log completion
+        run: echo "Deadline warnings triggered at $(date)"

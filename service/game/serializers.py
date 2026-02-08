@@ -1,11 +1,14 @@
+from zoneinfo import ZoneInfo
+
 from rest_framework import serializers
 from django.db import transaction
 from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
-from common.constants import NationAssignment, MovementPhaseDuration, PhaseStatus
+from common.constants import DeadlineMode, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus
 from member.serializers import MemberSerializer
 from unit.models import Unit
 from supply_center.models import SupplyCenter
+from notification import utils as notification_utils
 
 from victory.serializers import VictorySerializer
 from variant.models import Variant
@@ -13,6 +16,22 @@ from member.models import Member
 from .models import Game
 
 tracer = trace.get_tracer(__name__)
+
+
+def send_gm_action_notification(game, title, body, notification_type):
+    def _send():
+        user_ids = [
+            m.user_id for m in game.members.select_related('user').all()
+            if not m.is_game_master
+        ]
+        notification_utils.send_notification_to_users(
+            user_ids=user_ids,
+            title=title,
+            body=body,
+            notification_type=notification_type,
+            data={"game_id": str(game.id)},
+        )
+    transaction.on_commit(_send)
 
 
 class GameListSerializer(serializers.Serializer):
@@ -25,11 +44,20 @@ class GameListSerializer(serializers.Serializer):
     phases = serializers.SerializerMethodField()
     current_phase_id = serializers.SerializerMethodField()
     private = serializers.BooleanField(read_only=True)
-    movement_phase_duration = serializers.CharField(read_only=True)
+    movement_phase_duration = serializers.CharField(read_only=True, allow_null=True)
+    retreat_phase_duration = serializers.CharField(read_only=True, allow_null=True)
     nation_assignment = serializers.CharField(read_only=True)
     members = MemberSerializer(many=True, read_only=True)
     victory = VictorySerializer(read_only=True, allow_null=True)
     sandbox = serializers.BooleanField(read_only=True)
+    is_paused = serializers.BooleanField(read_only=True)
+    paused_at = serializers.DateTimeField(read_only=True, allow_null=True)
+    nmr_extensions_allowed = serializers.IntegerField(read_only=True)
+    deadline_mode = serializers.CharField(read_only=True)
+    fixed_deadline_time = serializers.TimeField(read_only=True, allow_null=True)
+    fixed_deadline_timezone = serializers.CharField(read_only=True, allow_null=True)
+    movement_frequency = serializers.CharField(read_only=True, allow_null=True)
+    retreat_frequency = serializers.CharField(read_only=True, allow_null=True)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):
@@ -65,8 +93,17 @@ class GameRetrieveSerializer(serializers.Serializer):
     variant_id = serializers.CharField(source="variant.id", read_only=True)
     nation_assignment = serializers.CharField(read_only=True)
     phase_confirmed = serializers.SerializerMethodField()
-    movement_phase_duration = serializers.CharField(read_only=True)
+    movement_phase_duration = serializers.CharField(read_only=True, allow_null=True)
+    retreat_phase_duration = serializers.CharField(read_only=True, allow_null=True)
     private = serializers.BooleanField(read_only=True)
+    is_paused = serializers.BooleanField(read_only=True)
+    paused_at = serializers.DateTimeField(read_only=True, allow_null=True)
+    nmr_extensions_allowed = serializers.IntegerField(read_only=True)
+    deadline_mode = serializers.CharField(read_only=True)
+    fixed_deadline_time = serializers.TimeField(read_only=True, allow_null=True)
+    fixed_deadline_timezone = serializers.CharField(read_only=True, allow_null=True)
+    movement_frequency = serializers.CharField(read_only=True, allow_null=True)
+    retreat_frequency = serializers.CharField(read_only=True, allow_null=True)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):
@@ -107,17 +144,77 @@ class GameCreateSerializer(serializers.Serializer):
     movement_phase_duration = serializers.ChoiceField(
         choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES, default=MovementPhaseDuration.TWENTY_FOUR_HOURS
     )
+    retreat_phase_duration = serializers.ChoiceField(
+        choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES,
+        required=False,
+        allow_null=True,
+        default=None,
+    )
     private = serializers.BooleanField()
+    deadline_mode = serializers.ChoiceField(
+        choices=DeadlineMode.DEADLINE_MODE_CHOICES,
+        default=DeadlineMode.FIXED_TIME,
+    )
+    fixed_deadline_time = serializers.TimeField(required=False, allow_null=True, default=None)
+    fixed_deadline_timezone = serializers.CharField(required=False, allow_null=True, default=None, max_length=50)
+    movement_frequency = serializers.ChoiceField(
+        choices=PhaseFrequency.PHASE_FREQUENCY_CHOICES,
+        required=False,
+        allow_null=True,
+        default=None,
+    )
+    retreat_frequency = serializers.ChoiceField(
+        choices=PhaseFrequency.PHASE_FREQUENCY_CHOICES,
+        required=False,
+        allow_null=True,
+        default=None,
+    )
+    nmr_extensions_allowed = serializers.IntegerField(
+        required=False,
+        default=0,
+        min_value=0,
+        max_value=2,
+    )
 
     def validate_variant_id(self, value):
         if not Variant.objects.filter(id=value).exists():
             raise serializers.ValidationError("Variant with this ID does not exist.")
         return value
 
+    def validate_fixed_deadline_timezone(self, value):
+        if value is not None:
+            try:
+                ZoneInfo(value)
+            except KeyError:
+                raise serializers.ValidationError(f"Invalid timezone: {value}")
+        return value
+
+    def validate(self, attrs):
+        deadline_mode = attrs["deadline_mode"]
+
+        if deadline_mode == DeadlineMode.FIXED_TIME:
+            if not attrs.get("fixed_deadline_time"):
+                raise serializers.ValidationError({
+                    "fixed_deadline_time": "Required when deadline_mode is 'fixed_time'."
+                })
+            if not attrs.get("fixed_deadline_timezone"):
+                raise serializers.ValidationError({
+                    "fixed_deadline_timezone": "Required when deadline_mode is 'fixed_time'."
+                })
+            if not attrs.get("movement_frequency"):
+                raise serializers.ValidationError({
+                    "movement_frequency": "Required when deadline_mode is 'fixed_time'."
+                })
+        else:
+            attrs["fixed_deadline_time"] = None
+            attrs["fixed_deadline_timezone"] = None
+            attrs["movement_frequency"] = None
+            attrs["retreat_frequency"] = None
+
+        return attrs
+
     def create(self, validated_data):
         request = self.context["request"]
-        print("validated_data")
-        print(validated_data)
         variant = Variant.objects.with_game_creation_data().get(id=validated_data["variant_id"])
 
         with transaction.atomic():
@@ -125,13 +222,18 @@ class GameCreateSerializer(serializers.Serializer):
                 variant,
                 name=validated_data["name"],
                 nation_assignment=validated_data["nation_assignment"],
-                movement_phase_duration=validated_data.get(
-                    "movement_phase_duration", MovementPhaseDuration.TWENTY_FOUR_HOURS
-                ),
+                movement_phase_duration=validated_data["movement_phase_duration"],
+                retreat_phase_duration=validated_data.get("retreat_phase_duration"),
                 private=validated_data["private"],
+                deadline_mode=validated_data["deadline_mode"],
+                fixed_deadline_time=validated_data.get("fixed_deadline_time"),
+                fixed_deadline_timezone=validated_data.get("fixed_deadline_timezone"),
+                movement_frequency=validated_data.get("movement_frequency"),
+                retreat_frequency=validated_data.get("retreat_frequency"),
+                nmr_extensions_allowed=validated_data["nmr_extensions_allowed"],
             )
 
-            game.members.create(user=request.user)
+            game.members.create(user=request.user, is_game_master=True)
             game.channels.create(name="Public Press", private=False)
 
             if hasattr(game, "_created_phase"):
@@ -217,6 +319,80 @@ class GameCloneToSandboxSerializer(serializers.Serializer):
             game.start(current_phase=game._created_phase, members=created_members)
 
         return Game.objects.all().with_related_data().get(id=game.id)
+
+    def to_representation(self, instance):
+        return GameRetrieveSerializer(instance, context=self.context).data
+
+
+class GamePauseSerializer(serializers.Serializer):
+    def validate(self, attrs):
+        if self.instance.is_paused:
+            raise serializers.ValidationError("Game is already paused")
+        return attrs
+
+    def update(self, instance, validated_data):
+        gm_username = self.context["request"].user.username
+        instance.pause()
+        send_gm_action_notification(
+            instance,
+            title="Game Paused",
+            body=f"Game paused by Game Master ({gm_username})",
+            notification_type="game_paused",
+        )
+        return instance
+
+    def to_representation(self, instance):
+        return GameRetrieveSerializer(instance, context=self.context).data
+
+
+class GameUnpauseSerializer(serializers.Serializer):
+    def validate(self, attrs):
+        if not self.instance.is_paused:
+            raise serializers.ValidationError("Game is not paused")
+        return attrs
+
+    def update(self, instance, validated_data):
+        gm_username = self.context["request"].user.username
+        instance.unpause()
+        new_deadline = instance.current_phase.scheduled_resolution if instance.current_phase else None
+        deadline_str = new_deadline.strftime("%b %d, %Y at %I:%M %p") if new_deadline else "N/A"
+        send_gm_action_notification(
+            instance,
+            title="Game Resumed",
+            body=f"Game resumed by Game Master ({gm_username}). New deadline: {deadline_str}",
+            notification_type="game_resumed",
+        )
+        return instance
+
+    def to_representation(self, instance):
+        return GameRetrieveSerializer(instance, context=self.context).data
+
+
+class GameExtendDeadlineSerializer(serializers.Serializer):
+    duration = serializers.ChoiceField(
+        choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES,
+    )
+
+    def validate(self, attrs):
+        if "duration" not in attrs:
+            raise serializers.ValidationError({"duration": ["This field is required."]})
+        if self.instance.is_paused:
+            raise serializers.ValidationError("Cannot extend deadline while game is paused")
+        current_phase = self.instance.current_phase
+        if not current_phase or not current_phase.scheduled_resolution:
+            raise serializers.ValidationError("No active phase with a scheduled resolution")
+        return attrs
+
+    def update(self, instance, validated_data):
+        gm_username = self.context["request"].user.username
+        instance.extend_deadline(validated_data["duration"])
+        send_gm_action_notification(
+            instance,
+            title="Deadline Extended",
+            body=f"Deadline extended by Game Master ({gm_username})",
+            notification_type="game_deadline_extended",
+        )
+        return instance
 
     def to_representation(self, instance):
         return GameRetrieveSerializer(instance, context=self.context).data

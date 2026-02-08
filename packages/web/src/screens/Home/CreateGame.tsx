@@ -3,8 +3,10 @@ import { useNavigate, useSearchParams } from "react-router";
 import { useForm, Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Users, Calendar, User } from "lucide-react";
+import { Users, Calendar, User, Clock } from "lucide-react";
 import { toast } from "sonner";
+
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CardDescription } from "@/components/ui/card";
@@ -35,12 +37,19 @@ import {
 
 import { randomGameName } from "@/util";
 import { InteractiveMap } from "@/components/InteractiveMap/InteractiveMap";
+import { DeadlineSummary } from "@/components/DeadlineSummary";
+import {
+  DURATION_OPTIONS,
+  DURATION_ENUM_VALUES,
+  FREQUENCY_OPTIONS,
+  TIMEZONE_OPTIONS,
+  NMR_EXTENSION_OPTIONS,
+} from "@/constants";
 import {
   useVariantsListSuspense,
   useGameCreate,
   useSandboxGameCreate,
   Variant,
-  MovementPhaseDurationEnum,
   NationAssignmentEnum,
 } from "@/api/generated/endpoints";
 
@@ -51,10 +60,21 @@ const standardGameSchema = z.object({
     .max(100, "Game name must be less than 100 characters"),
   variantId: z.string().min(1, "Please select a variant"),
   nationAssignment: z.enum(["random", "ordered"] as const),
-  movementPhaseDuration: z
-    .enum(["24 hours", "48 hours", "1 week"] as const)
-    .optional(),
   private: z.boolean(),
+  deadlineMode: z.enum(["duration", "fixed_time"] as const),
+  movementPhaseDuration: z.enum(DURATION_ENUM_VALUES).optional(),
+  retreatPhaseDuration: z.enum(DURATION_ENUM_VALUES).optional().nullable(),
+  fixedDeadlineTime: z.string().optional().nullable(),
+  fixedDeadlineTimezone: z.string().optional().nullable(),
+  movementFrequency: z
+    .enum(["hourly", "daily", "every_2_days", "weekly"] as const)
+    .optional()
+    .nullable(),
+  retreatFrequency: z
+    .enum(["hourly", "daily", "every_2_days", "weekly"] as const)
+    .optional()
+    .nullable(),
+  nmrExtensionsAllowed: z.enum(["0", "1", "2"] as const),
 });
 
 const sandboxGameSchema = z.object({
@@ -177,6 +197,12 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
   );
 };
 
+function getBrowserTimezone(): string {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const validTimezones = TIMEZONE_OPTIONS.map(o => o.value) as readonly string[];
+  return validTimezones.includes(tz) ? tz : "America/New_York";
+}
+
 interface CreateStandardGameFormProps {
   onSubmit: (data: StandardGameFormValues) => Promise<void>;
   isSubmitting: boolean;
@@ -194,12 +220,20 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
       name: randomGameName(),
       variantId: variants[0].id,
       nationAssignment: "random" as NationAssignmentEnum,
-      movementPhaseDuration: "24 hours" as MovementPhaseDurationEnum,
       private: false,
+      deadlineMode: "fixed_time",
+      movementPhaseDuration: "24 hours",
+      retreatPhaseDuration: null,
+      fixedDeadlineTime: "21:00",
+      fixedDeadlineTimezone: getBrowserTimezone(),
+      movementFrequency: "daily",
+      retreatFrequency: null,
+      nmrExtensionsAllowed: "0",
     },
   });
 
   const selectedVariant = variants?.find(v => v.id === form.watch("variantId"));
+  const deadlineMode = form.watch("deadlineMode");
 
   return (
     <Form {...form}>
@@ -245,15 +279,272 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
           />
         </div>
 
+        <hr className="border-t" />
+
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Deadlines</h2>
 
           <FormField
             control={form.control}
-            name="movementPhaseDuration"
+            name="deadlineMode"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Phase Deadline</FormLabel>
+                <Tabs
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  className="w-full"
+                >
+                  <TabsList className="w-full">
+                    <TabsTrigger value="fixed_time" className="flex-1">
+                      Fixed Time
+                    </TabsTrigger>
+                    <TabsTrigger value="duration" className="flex-1">
+                      Duration
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="duration" className="space-y-4 pt-4">
+                    <div className="grid w-full grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="movementPhaseDuration"
+                        render={({ field: durationField }) => (
+                          <FormItem>
+                            <FormLabel>Movement</FormLabel>
+                            <Select
+                              onValueChange={durationField.onChange}
+                              value={durationField.value}
+                              disabled={isSubmitting}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {DURATION_OPTIONS.map(option => (
+                                  <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                  >
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="retreatPhaseDuration"
+                        render={({ field: retreatField }) => (
+                          <FormItem>
+                            <FormLabel>Retreat/Adjustment</FormLabel>
+                            <Select
+                              onValueChange={retreatField.onChange}
+                              value={retreatField.value ?? undefined}
+                              disabled={isSubmitting}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Same as movement phase" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {DURATION_OPTIONS.map(option => (
+                                  <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                  >
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="fixed_time" className="space-y-4 pt-4">
+                    <div className="grid w-full grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="fixedDeadlineTime"
+                        render={({ field: timeField }) => (
+                          <FormItem>
+                            <FormLabel>Time</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="time"
+                                value={timeField.value ?? ""}
+                                onChange={timeField.onChange}
+                                disabled={isSubmitting}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="fixedDeadlineTimezone"
+                        render={({ field: tzField }) => (
+                          <FormItem>
+                            <FormLabel>Timezone</FormLabel>
+                            <Select
+                              onValueChange={tzField.onChange}
+                              value={tzField.value ?? undefined}
+                              disabled={isSubmitting}
+                            >
+                            <FormControl>
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                            </FormControl>
+                              <SelectContent>
+                                {TIMEZONE_OPTIONS.map(option => (
+                                  <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                  >
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="grid w-full grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="movementFrequency"
+                        render={({ field: freqField }) => (
+                          <FormItem>
+                            <FormLabel>Movement</FormLabel>
+                            <Select
+                              onValueChange={freqField.onChange}
+                              value={freqField.value ?? undefined}
+                              disabled={isSubmitting}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {FREQUENCY_OPTIONS.map(option => (
+                                  <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                  >
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="retreatFrequency"
+                        render={({ field: retreatFreqField }) => (
+                          <FormItem>
+                            <FormLabel>Retreat/Adjustment</FormLabel>
+                            <Select
+                              onValueChange={retreatFreqField.onChange}
+                              value={retreatFreqField.value ?? undefined}
+                              disabled={isSubmitting}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Same as movement phase" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {FREQUENCY_OPTIONS.map(option => (
+                                  <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                  >
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </FormItem>
+            )}
+          />
+
+          <Alert className="mt-4">
+            <Clock className="h-4 w-4" />
+            <AlertDescription>
+              <DeadlineSummary
+                game={{
+                  movementPhaseDuration:
+                    form.watch("movementPhaseDuration") ?? null,
+                  retreatPhaseDuration:
+                    form.watch("retreatPhaseDuration") ?? null,
+                  deadlineMode,
+                  fixedDeadlineTime:
+                    form.watch("fixedDeadlineTime") ?? null,
+                  fixedDeadlineTimezone:
+                    form.watch("fixedDeadlineTimezone") ?? null,
+                  movementFrequency:
+                    form.watch("movementFrequency") ?? null,
+                  retreatFrequency:
+                    form.watch("retreatFrequency") ?? null,
+                }}
+              />
+            </AlertDescription>
+          </Alert>
+        </div>
+
+        <hr className="border-t" />
+
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Variant</h2>
+
+          <VariantSelector
+            control={form.control}
+            name="variantId"
+            disabled={isSubmitting}
+            variants={variants}
+            selectedVariant={selectedVariant}
+          />
+        </div>
+
+        <hr className="border-t" />
+
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Advanced</h2>
+
+          <FormField
+            control={form.control}
+            name="nmrExtensionsAllowed"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Automatic Extensions</FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   value={field.value}
@@ -265,29 +556,19 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="24 hours">24 hours</SelectItem>
-                    <SelectItem value="48 hours">48 hours</SelectItem>
-                    <SelectItem value="1 week">1 week</SelectItem>
+                    {NMR_EXTENSION_OPTIONS.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <FormDescription>
-                  After the deadline, the phase will be automatically resolved
+                  Automatic extensions when players miss the deadline
                 </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
-          />
-        </div>
-
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold">Variant</h2>
-
-          <VariantSelector
-            control={form.control}
-            name="variantId"
-            disabled={isSubmitting}
-            variants={variants}
-            selectedVariant={selectedVariant}
           />
         </div>
 
@@ -350,6 +631,8 @@ const CreateSandboxGameForm: React.FC<CreateSandboxGameFormProps> = ({
           />
         </div>
 
+        <hr className="border-t" />
+
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Variant</h2>
 
@@ -406,7 +689,38 @@ const CreateGame: React.FC = () => {
 
   const handleStandardGameSubmit = async (data: StandardGameFormValues) => {
     try {
-      const game = await createGameMutation.mutateAsync({ data });
+      const formattedTime = data.fixedDeadlineTime
+        ? `${data.fixedDeadlineTime}:00`
+        : null;
+
+      const game = await createGameMutation.mutateAsync({
+        data: {
+          name: data.name,
+          variantId: data.variantId,
+          nationAssignment: data.nationAssignment,
+          private: data.private,
+          deadlineMode: data.deadlineMode,
+          movementPhaseDuration:
+            data.deadlineMode === "duration"
+              ? data.movementPhaseDuration
+              : undefined,
+          retreatPhaseDuration:
+            data.deadlineMode === "duration"
+              ? data.retreatPhaseDuration
+              : undefined,
+          fixedDeadlineTime:
+            data.deadlineMode === "fixed_time" ? formattedTime : null,
+          fixedDeadlineTimezone:
+            data.deadlineMode === "fixed_time"
+              ? data.fixedDeadlineTimezone
+              : null,
+          movementFrequency:
+            data.deadlineMode === "fixed_time" ? data.movementFrequency : null,
+          retreatFrequency:
+            data.deadlineMode === "fixed_time" ? data.retreatFrequency : null,
+          nmrExtensionsAllowed: parseInt(data.nmrExtensionsAllowed, 10),
+        },
+      });
       toast.success("Game created successfully");
       navigate(`/game-info/${game.id}`);
     } catch {

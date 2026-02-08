@@ -1,5 +1,39 @@
 # Diplicity React - Release Notes
 
+## Flexible Deadlines & Game Master Controls (February 6, 2026)
+
+**Release Date:** February 6, 2026
+
+### New Feature: Game Master Role
+
+The player who creates a game is now the Game Master. Game Masters have exclusive access to game management controls including pausing, resuming, and extending deadlines.
+
+### New Feature: Pause & Resume Games
+
+Game Masters can pause an active game, freezing the deadline timer. When resumed, the deadline adjusts to account for the paused time. All players are notified when a game is paused or resumed.
+
+### New Feature: Extend Deadlines
+
+Game Masters can extend the current phase deadline by a chosen duration (1 hour to 2 weeks). All players are notified when a deadline is extended.
+
+### New Feature: NMR Automatic Extensions
+
+Games can be configured with automatic extensions (1 or 2 per player) that activate when a player misses the deadline. This gives players a safety net for unexpected absences. The extension count is visible in Player Info.
+
+### New Feature: Fixed-Time Deadline Mode
+
+In addition to duration-based deadlines, games can now use fixed-time deadlines that resolve at a specific time of day on a set frequency (hourly, daily, every 2 days, or weekly). This is ideal for games where players want a predictable daily deadline.
+
+### New Feature: Deadline Warning Notifications
+
+Players who haven't confirmed their orders receive a notification as the deadline approaches, helping prevent missed turns.
+
+### Improved: More Duration Options
+
+Game creation now supports durations from 1 hour to 2 weeks, giving more flexibility for both fast-paced and slow-paced games.
+
+---
+
 ## Auto-detect Abandoned Games (January 28, 2026)
 
 **Release Date:** January 28, 2026

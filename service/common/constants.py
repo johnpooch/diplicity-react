@@ -1,3 +1,5 @@
+from typing import Optional
+
 ADJUDICATION_BASE_URL = "https://godip-adjudication.appspot.com"
 
 
@@ -16,15 +18,65 @@ class GameStatus:
 
 
 class MovementPhaseDuration:
+    ONE_HOUR = "1 hour"
+    TWELVE_HOURS = "12 hours"
     TWENTY_FOUR_HOURS = "24 hours"
     FORTY_EIGHT_HOURS = "48 hours"
+    THREE_DAYS = "3 days"
+    FOUR_DAYS = "4 days"
     ONE_WEEK = "1 week"
+    TWO_WEEKS = "2 weeks"
 
     MOVEMENT_PHASE_DURATION_CHOICES = (
+        (ONE_HOUR, "1 hour"),
+        (TWELVE_HOURS, "12 hours"),
         (TWENTY_FOUR_HOURS, "24 hours"),
         (FORTY_EIGHT_HOURS, "48 hours"),
+        (THREE_DAYS, "3 days"),
+        (FOUR_DAYS, "4 days"),
         (ONE_WEEK, "1 week"),
+        (TWO_WEEKS, "2 weeks"),
     )
+
+
+class DeadlineMode:
+    DURATION = "duration"
+    FIXED_TIME = "fixed_time"
+
+    DEADLINE_MODE_CHOICES = (
+        (DURATION, "Duration"),
+        (FIXED_TIME, "Fixed Time"),
+    )
+
+
+class PhaseFrequency:
+    HOURLY = "hourly"
+    DAILY = "daily"
+    EVERY_2_DAYS = "every_2_days"
+    WEEKLY = "weekly"
+
+    PHASE_FREQUENCY_CHOICES = (
+        (HOURLY, "Hourly"),
+        (DAILY, "Daily"),
+        (EVERY_2_DAYS, "Every 2 days"),
+        (WEEKLY, "Weekly"),
+    )
+
+
+def duration_to_seconds(duration: Optional[str]) -> Optional[int]:
+    if duration is None:
+        return None
+    duration_map = {
+        MovementPhaseDuration.ONE_HOUR: 1 * 60 * 60,
+        MovementPhaseDuration.TWELVE_HOURS: 12 * 60 * 60,
+        MovementPhaseDuration.TWENTY_FOUR_HOURS: 24 * 60 * 60,
+        MovementPhaseDuration.FORTY_EIGHT_HOURS: 48 * 60 * 60,
+        MovementPhaseDuration.THREE_DAYS: 3 * 24 * 60 * 60,
+        MovementPhaseDuration.FOUR_DAYS: 4 * 24 * 60 * 60,
+        MovementPhaseDuration.ONE_WEEK: 7 * 24 * 60 * 60,
+        MovementPhaseDuration.TWO_WEEKS: 14 * 24 * 60 * 60,
+    }
+    return duration_map.get(duration, 0)
 
 
 class NationAssignment:

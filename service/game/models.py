@@ -2,13 +2,23 @@ from datetime import timedelta
 import re
 import uuid
 
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from django.db.models import Prefetch
 from opentelemetry import trace
-from common.constants import GameStatus, MovementPhaseDuration, NationAssignment, PhaseStatus
+from common.constants import (
+    DeadlineMode,
+    GameStatus,
+    MovementPhaseDuration,
+    NationAssignment,
+    PhaseFrequency,
+    PhaseStatus,
+    PhaseType,
+    duration_to_seconds,
+)
 from common.models import BaseModel
 from phase.models import Phase, PhaseState
+from phase.utils import calculate_next_fixed_deadline
 from member.models import Member
 from unit.models import Unit
 from supply_center.models import SupplyCenter
@@ -255,10 +265,37 @@ class Game(BaseModel):
         blank=True,
         default=MovementPhaseDuration.TWENTY_FOUR_HOURS,
     )
+    retreat_phase_duration = models.CharField(
+        max_length=20,
+        choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES,
+        null=True,
+        blank=True,
+    )
     nation_assignment = models.CharField(
         max_length=20,
         choices=NationAssignment.NATION_ASSIGNMENT_CHOICES,
         default=NationAssignment.RANDOM,
+    )
+    paused_at = models.DateTimeField(null=True, blank=True)
+    nmr_extensions_allowed = models.PositiveSmallIntegerField(default=0)
+    deadline_mode = models.CharField(
+        max_length=20,
+        choices=DeadlineMode.DEADLINE_MODE_CHOICES,
+        default=DeadlineMode.FIXED_TIME,
+    )
+    fixed_deadline_time = models.TimeField(null=True, blank=True)
+    fixed_deadline_timezone = models.CharField(max_length=50, null=True, blank=True)
+    movement_frequency = models.CharField(
+        max_length=20,
+        choices=PhaseFrequency.PHASE_FREQUENCY_CHOICES,
+        null=True,
+        blank=True,
+    )
+    retreat_frequency = models.CharField(
+        max_length=20,
+        choices=PhaseFrequency.PHASE_FREQUENCY_CHOICES,
+        null=True,
+        blank=True,
     )
 
     def save(self, *args, **kwargs):
@@ -287,15 +324,48 @@ class Game(BaseModel):
 
     @property
     def movement_phase_duration_seconds(self):
-        if self.movement_phase_duration is None:
+        return duration_to_seconds(self.movement_phase_duration)
+
+    @property
+    def retreat_phase_duration_seconds(self):
+        duration = self.retreat_phase_duration or self.movement_phase_duration
+        return duration_to_seconds(duration)
+
+    @property
+    def effective_retreat_frequency(self):
+        return self.retreat_frequency or self.movement_frequency
+
+    @property
+    def is_paused(self):
+        return self.paused_at is not None
+
+    def get_phase_duration_seconds(self, phase_type):
+        if phase_type == PhaseType.MOVEMENT:
+            return self.movement_phase_duration_seconds
+        else:
+            return self.retreat_phase_duration_seconds
+
+    def get_phase_frequency(self, phase_type):
+        if phase_type == PhaseType.MOVEMENT:
+            return self.movement_frequency
+        else:
+            return self.effective_retreat_frequency
+
+    def get_scheduled_resolution(self, phase_type):
+        if self.deadline_mode == DeadlineMode.FIXED_TIME:
+            frequency = self.get_phase_frequency(phase_type)
+            if not frequency or not self.fixed_deadline_time or not self.fixed_deadline_timezone:
+                return None
+            return calculate_next_fixed_deadline(
+                target_time=self.fixed_deadline_time,
+                frequency=frequency,
+                tz_name=self.fixed_deadline_timezone,
+            )
+        else:
+            phase_duration_seconds = self.get_phase_duration_seconds(phase_type)
+            if phase_duration_seconds:
+                return timezone.now() + timedelta(seconds=phase_duration_seconds)
             return None
-        if self.movement_phase_duration == MovementPhaseDuration.TWENTY_FOUR_HOURS:
-            return 24 * 60 * 60
-        elif self.movement_phase_duration == MovementPhaseDuration.FORTY_EIGHT_HOURS:
-            return 48 * 60 * 60
-        elif self.movement_phase_duration == MovementPhaseDuration.ONE_WEEK:
-            return 7 * 24 * 60 * 60
-        return 0
 
     def can_join(self, user):
         with tracer.start_as_current_span("game.models.can_join"):
@@ -333,12 +403,7 @@ class Game(BaseModel):
 
         current_phase.status = PhaseStatus.ACTIVE
         current_phase.options = adjudication_data["options"]
-        if self.movement_phase_duration is not None:
-            current_phase.scheduled_resolution = timezone.now() + timedelta(
-                seconds=self.movement_phase_duration_seconds
-            )
-        else:
-            current_phase.scheduled_resolution = None
+        current_phase.scheduled_resolution = self.get_scheduled_resolution(current_phase.type)
         current_phase.save()
 
         # Use prefetched nations if available, otherwise fetch
@@ -356,10 +421,11 @@ class Game(BaseModel):
         now = timezone.now()
         for member, nation in zip(members, nations):
             member.nation = nation
+            member.nmr_extensions_remaining = self.nmr_extensions_allowed
             member.updated_at = now
 
         # Use bulk_update to avoid n+1 queries
-        Member.objects.bulk_update(members, ["nation", "updated_at"])
+        Member.objects.bulk_update(members, ["nation", "nmr_extensions_remaining", "updated_at"])
 
         nations_with_orders = current_phase.nations_with_possible_orders
         phase_states_to_create = [
@@ -374,6 +440,48 @@ class Game(BaseModel):
 
         self.status = GameStatus.ACTIVE
         self.save()
+
+    def pause(self):
+        if self.status != GameStatus.ACTIVE:
+            raise ValueError("Can only pause an active game")
+        if self.is_paused:
+            raise ValueError("Game is already paused")
+        self.paused_at = timezone.now()
+        self.save()
+
+    @transaction.atomic
+    def unpause(self):
+        if self.status != GameStatus.ACTIVE:
+            raise ValueError("Can only unpause an active game")
+        if not self.is_paused:
+            raise ValueError("Game is not paused")
+
+        pause_duration = timezone.now() - self.paused_at
+        current_phase = self.current_phase
+
+        if current_phase and current_phase.scheduled_resolution:
+            current_phase.scheduled_resolution += pause_duration
+            current_phase.save()
+
+        self.paused_at = None
+        self.save()
+
+    def extend_deadline(self, duration):
+        if self.status != GameStatus.ACTIVE:
+            raise ValueError("Can only extend deadline for an active game")
+        if self.is_paused:
+            raise ValueError("Cannot extend deadline while game is paused")
+
+        current_phase = self.current_phase
+        if not current_phase or not current_phase.scheduled_resolution:
+            raise ValueError("No active phase with a scheduled resolution")
+
+        extension_seconds = duration_to_seconds(duration)
+        if not extension_seconds:
+            raise ValueError("Invalid duration")
+
+        current_phase.scheduled_resolution += timedelta(seconds=extension_seconds)
+        current_phase.save()
 
     class Meta:
         indexes = [

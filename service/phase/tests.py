@@ -9,7 +9,7 @@ from django.db import connection
 from datetime import timedelta
 from unittest.mock import patch, Mock
 from rest_framework import status
-from common.constants import PhaseStatus, PhaseType, OrderType, UnitType, GameStatus
+from common.constants import PhaseStatus, PhaseType, OrderType, UnitType, GameStatus, DeadlineMode
 from game.models import Game
 from .models import Phase, PhaseState
 from .serializers import PhaseStateSerializer
@@ -2622,3 +2622,174 @@ class TestAbandonmentDetection:
 
         due_phases = Phase.objects.filter_due_phases()
         assert phase not in due_phases
+
+
+class TestPhaseDurationByPhaseType:
+
+    @pytest.mark.django_db
+    def test_phase_resolution_uses_retreat_duration_for_retreat_phase(
+        self,
+        primary_user,
+        classical_variant,
+        classical_england_nation,
+        classical_edinburgh_province,
+    ):
+        from common.constants import MovementPhaseDuration
+        from member.models import Member
+
+        game = Game.objects.create(
+            name="Retreat Duration Test",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+            deadline_mode=DeadlineMode.DURATION,
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            retreat_phase_duration=MovementPhaseDuration.TWELVE_HOURS,
+        )
+
+        member = Member.objects.create(
+            nation=classical_england_nation,
+            user=primary_user,
+            game=game,
+        )
+
+        movement_phase = Phase.objects.create(
+            game=game,
+            variant=classical_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.ACTIVE,
+        )
+        movement_phase.phase_states.create(member=member, orders_confirmed=True, has_possible_orders=True)
+        movement_phase.units.create(type=UnitType.FLEET, nation=classical_england_nation, province=classical_edinburgh_province)
+        movement_phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+
+        adjudication_data = {
+            "season": "Spring",
+            "year": 1901,
+            "type": PhaseType.RETREAT,
+            "options": {},
+            "resolutions": [],
+            "supply_centers": [{"province": "Edi", "nation": "England"}],
+            "units": [{"type": UnitType.FLEET, "nation": "England", "province": "Edi"}],
+        }
+
+        now = timezone.now()
+        new_phase = Phase.objects.create_from_adjudication_data(movement_phase, adjudication_data)
+
+        expected_seconds = 12 * 60 * 60
+        actual_seconds = (new_phase.scheduled_resolution - now).total_seconds()
+        assert abs(actual_seconds - expected_seconds) < 5
+
+    @pytest.mark.django_db
+    def test_phase_resolution_uses_movement_duration_for_movement_phase(
+        self,
+        primary_user,
+        classical_variant,
+        classical_england_nation,
+        classical_edinburgh_province,
+    ):
+        from common.constants import MovementPhaseDuration
+        from member.models import Member
+
+        game = Game.objects.create(
+            name="Movement Duration Test",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+            deadline_mode=DeadlineMode.DURATION,
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            retreat_phase_duration=MovementPhaseDuration.TWELVE_HOURS,
+        )
+
+        member = Member.objects.create(
+            nation=classical_england_nation,
+            user=primary_user,
+            game=game,
+        )
+
+        prev_phase = Phase.objects.create(
+            game=game,
+            variant=classical_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.ADJUSTMENT,
+            ordinal=1,
+            status=PhaseStatus.ACTIVE,
+        )
+        prev_phase.phase_states.create(member=member, orders_confirmed=True, has_possible_orders=True)
+        prev_phase.units.create(type=UnitType.FLEET, nation=classical_england_nation, province=classical_edinburgh_province)
+        prev_phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+
+        adjudication_data = {
+            "season": "Spring",
+            "year": 1902,
+            "type": PhaseType.MOVEMENT,
+            "options": {},
+            "resolutions": [],
+            "supply_centers": [{"province": "Edi", "nation": "England"}],
+            "units": [{"type": UnitType.FLEET, "nation": "England", "province": "Edi"}],
+        }
+
+        now = timezone.now()
+        new_phase = Phase.objects.create_from_adjudication_data(prev_phase, adjudication_data)
+
+        expected_seconds = 24 * 60 * 60
+        actual_seconds = (new_phase.scheduled_resolution - now).total_seconds()
+        assert abs(actual_seconds - expected_seconds) < 5
+
+    @pytest.mark.django_db
+    def test_phase_resolution_retreat_duration_fallback(
+        self,
+        primary_user,
+        classical_variant,
+        classical_england_nation,
+        classical_edinburgh_province,
+    ):
+        from common.constants import MovementPhaseDuration
+        from member.models import Member
+
+        game = Game.objects.create(
+            name="Fallback Duration Test",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+            deadline_mode=DeadlineMode.DURATION,
+            movement_phase_duration=MovementPhaseDuration.FORTY_EIGHT_HOURS,
+            retreat_phase_duration=None,
+        )
+
+        member = Member.objects.create(
+            nation=classical_england_nation,
+            user=primary_user,
+            game=game,
+        )
+
+        movement_phase = Phase.objects.create(
+            game=game,
+            variant=classical_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.ACTIVE,
+        )
+        movement_phase.phase_states.create(member=member, orders_confirmed=True, has_possible_orders=True)
+        movement_phase.units.create(type=UnitType.FLEET, nation=classical_england_nation, province=classical_edinburgh_province)
+        movement_phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+
+        adjudication_data = {
+            "season": "Spring",
+            "year": 1901,
+            "type": PhaseType.RETREAT,
+            "options": {},
+            "resolutions": [],
+            "supply_centers": [{"province": "Edi", "nation": "England"}],
+            "units": [{"type": UnitType.FLEET, "nation": "England", "province": "Edi"}],
+        }
+
+        now = timezone.now()
+        new_phase = Phase.objects.create_from_adjudication_data(movement_phase, adjudication_data)
+
+        expected_seconds = 48 * 60 * 60
+        actual_seconds = (new_phase.scheduled_resolution - now).total_seconds()
+        assert abs(actual_seconds - expected_seconds) < 5

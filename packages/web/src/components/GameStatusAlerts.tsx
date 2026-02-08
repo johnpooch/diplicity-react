@@ -1,9 +1,10 @@
-import { Info, Trophy, AlertTriangle } from "lucide-react";
+import { Info, Trophy, AlertTriangle, Pause } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface GameStatusAlertsProps {
   game: {
     status: string;
+    isPaused?: boolean;
     victory?: {
       type: string;
       members: readonly { name: string }[];
@@ -29,6 +30,15 @@ export function GameStatusAlerts({ game, variant }: GameStatusAlertsProps) {
           <AlertDescription>
             This game has not started yet. The game will start once{" "}
             {nationCount} players have joined.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {game.isPaused && (
+        <Alert>
+          <Pause className="size-4" />
+          <AlertDescription>
+            This game is currently paused.
           </AlertDescription>
         </Alert>
       )}

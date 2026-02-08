@@ -1,5 +1,5 @@
 import React from "react";
-import { Star, Trophy } from "lucide-react";
+import { Shield, Star, Trophy } from "lucide-react";
 
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
 import { NationFlag } from "@/components/NationFlag";
@@ -66,6 +66,12 @@ export const PlayerInfoContent: React.FC = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium">{member.name}</span>
+                    {member.isGameMaster && (
+                      <Badge variant="secondary" className="gap-1">
+                        <Shield className="size-3" />
+                        Game Master
+                      </Badge>
+                    )}
                     {isWinner && (
                       <Badge variant="default" className="gap-1">
                         <Trophy className="size-3" />
@@ -87,6 +93,12 @@ export const PlayerInfoContent: React.FC = () => {
                             <Skeleton className="h-3 w-4" />
                           )}
                         </span>
+                        {game.nmrExtensionsAllowed > 0 && (
+                          <>
+                            <span>•</span>
+                            <span>{member.nmrExtensionsRemaining} ext. remaining</span>
+                          </>
+                        )}
                       </span>
                     </div>
                   )}

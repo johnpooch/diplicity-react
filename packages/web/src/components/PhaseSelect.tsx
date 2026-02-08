@@ -2,7 +2,11 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate, useLocation } from "react-router";
 import { Button } from "@/components/ui/button";
 import { useRequiredParams } from "@/hooks";
-import { useGamePhaseRetrieveSuspense } from "@/api/generated/endpoints";
+import {
+  useGamePhaseRetrieveSuspense,
+  useGameRetrieveSuspense,
+} from "@/api/generated/endpoints";
+import { RemainingTimeDisplay } from "./RemainingTimeDisplay";
 
 export const PhaseSelect: React.FC = () => {
   const navigate = useNavigate();
@@ -11,6 +15,7 @@ export const PhaseSelect: React.FC = () => {
     gameId: string;
     phaseId: string;
   }>();
+  const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: phase } = useGamePhaseRetrieveSuspense(gameId, Number(phaseId));
 
   const goToPreviousPhase = () => {
@@ -44,9 +49,17 @@ export const PhaseSelect: React.FC = () => {
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
-      <span className="text-sm font-medium min-w-32 text-center">
-        {phase.name}
-      </span>
+      <div className="flex flex-col items-center min-w-32">
+        <span className="text-sm font-medium">{phase.name}</span>
+        {phase.status === "active" && phase.scheduledResolution && (
+          <RemainingTimeDisplay
+            remainingTime={phase.remainingTime}
+            scheduledResolution={phase.scheduledResolution}
+            isPaused={game.isPaused}
+            className="text-xs text-muted-foreground"
+          />
+        )}
+      </div>
       <Button
         variant="ghost"
         size="icon"

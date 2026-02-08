@@ -14,7 +14,7 @@ import {
 import { GameDropdownMenu } from "./GameDropdownMenu";
 import { UserPlus, Lock } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { formatDateTime } from "../util";
+import { RemainingTimeDisplay } from "./RemainingTimeDisplay";
 import {
   GameList,
   useGameJoinCreate,
@@ -121,8 +121,16 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
               {phase ? (
                 <p>
                   {phase.season} {phase.year} • {phase.type}
-                  {phase.scheduledResolution &&
-                    ` • Resolves ${formatDateTime(phase.scheduledResolution)}`}
+                  {phase.status === "active" && phase.scheduledResolution && (
+                    <>
+                      {" • "}
+                      <RemainingTimeDisplay
+                        remainingTime={phase.remainingTime}
+                        scheduledResolution={phase.scheduledResolution}
+                        isPaused={game.isPaused}
+                      />
+                    </>
+                  )}
                 </p>
               ) : (
                 <Skeleton className="w-24 h-4" />

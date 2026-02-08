@@ -2,37 +2,13 @@ import logging
 from django.db import transaction
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
-from fcm_django.models import FCMDevice
-from firebase_admin.messaging import Message, Notification
 from channel.models import ChannelMessage
 from game.models import Game
-from common.constants import GameStatus, PhaseStatus
+from common.constants import GameStatus, PhaseStatus, PhaseType
+from notification.utils import send_notification_to_users
 from phase.models import Phase
 
 logger = logging.getLogger(__name__)
-
-
-def send_notification_to_users(user_ids, title, body, notification_type, data=None):
-    if not user_ids:
-        return
-
-    devices = FCMDevice.objects.filter(user_id__in=user_ids, active=True)
-    if not devices.exists():
-        return
-
-    message_data = data or {}
-    message_data["type"] = notification_type
-
-    message = Message(
-        notification=Notification(title=title, body=body),
-        data=message_data,
-    )
-
-    try:
-        devices.send_message(message)
-        logger.info(f"Sent {notification_type} notification to {len(user_ids)} users")
-    except Exception as e:
-        logger.error(f"Failed to send {notification_type} notification: {str(e)}")
 
 
 _game_status_cache = {}
@@ -121,10 +97,23 @@ def send_phase_resolved_notification(sender, instance, created, **kwargs):  # no
         def send_notification():
             user_ids = [member.user.id for member in instance.game.members.all()]
 
+            had_orders = len(instance.phase_states_with_possible_orders) > 0
+            new_phase = instance.game.current_phase
+
+            if not had_orders and new_phase:
+                if instance.type == PhaseType.RETREAT:
+                    body = f"{instance.name} resolved. No retreats needed. Next: {new_phase.name}."
+                elif instance.type == PhaseType.ADJUSTMENT:
+                    body = f"{instance.name} resolved. No builds/disbands needed. Next: {new_phase.name}."
+                else:
+                    body = f"Phase '{instance.name}' has been resolved!"
+            else:
+                body = f"Phase '{instance.name}' has been resolved!"
+
             send_notification_to_users(
                 user_ids=user_ids,
                 title="Phase Resolved",
-                body=f"Phase '{instance.name}' has been resolved!",
+                body=body,
                 notification_type="phase_resolved",
                 data={"game_id": str(instance.game.id)},
             )

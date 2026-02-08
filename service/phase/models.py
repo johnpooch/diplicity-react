@@ -9,6 +9,7 @@ from common.models import BaseModel
 from datetime import timedelta
 from common.constants import PhaseStatus, PhaseType, GameStatus
 from adjudication.service import resolve
+from member.models import Member
 from order.models import OrderResolution, Order
 from phase.utils import transform_options
 from province.models import Province
@@ -16,6 +17,7 @@ from supply_center.models import SupplyCenter
 from unit.models import Unit
 from victory.utils import check_for_solo_winner
 from victory.models import Victory
+from notification import utils as notification_utils
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
@@ -51,6 +53,7 @@ class PhaseQuerySet(models.QuerySet):
         return self.filter(
             Q(status=PhaseStatus.ACTIVE)
             & Q(game__sandbox=False)
+            & Q(game__paused_at__isnull=True)
             & ~Q(game__status=GameStatus.COMPLETED)
             & ~Q(game__status=GameStatus.ABANDONED)
             & (
@@ -132,6 +135,137 @@ class PhaseManager(models.Manager):
             )
             return result
 
+    def _check_and_apply_nmr_extensions(self, phase):
+        unconfirmed = phase.phase_states.filter(
+            has_possible_orders=True, orders_confirmed=False
+        ).select_related('member')
+
+        members_with_extensions = [
+            ps.member for ps in unconfirmed
+            if ps.member.nmr_extensions_remaining > 0
+        ]
+
+        if not members_with_extensions:
+            return None
+
+        duration = phase.game.get_phase_duration_seconds(phase.type)
+        if not duration:
+            return None
+
+        phase.scheduled_resolution = timezone.now() + timedelta(seconds=duration)
+        phase.save()
+
+        for member in members_with_extensions:
+            member.nmr_extensions_remaining -= 1
+        Member.objects.bulk_update(members_with_extensions, ['nmr_extensions_remaining'])
+
+        logger.info(
+            f"Applied NMR extensions for {len(members_with_extensions)} members in phase {phase.id}"
+        )
+
+        def send_notifications():
+            for member in members_with_extensions:
+                notification_utils.send_notification_to_users(
+                    user_ids=[member.user.id],
+                    title="Extension Used",
+                    body=f"You used an automatic extension. {member.nmr_extensions_remaining} remaining.",
+                    notification_type="nmr_extension_used",
+                    data={"game_id": str(phase.game.id)},
+                )
+
+            extension_ids = {m.user.id for m in members_with_extensions}
+            other_ids = [
+                m.user.id for m in phase.game.members.all()
+                if m.user.id not in extension_ids
+            ]
+            if other_ids:
+                notification_utils.send_notification_to_users(
+                    user_ids=other_ids,
+                    title="Deadline Extended",
+                    body="Some player(s) did not submit orders. Deadline extended.",
+                    notification_type="nmr_extension_applied",
+                    data={"game_id": str(phase.game.id)},
+                )
+
+        transaction.on_commit(send_notifications)
+
+        return members_with_extensions
+
+    def send_deadline_warnings(self):
+        WARNING_THRESHOLDS = {
+            3600: 900,
+            12 * 3600: 3600,
+            24 * 3600: 3600,
+            48 * 3600: 7200,
+            72 * 3600: 7200,
+            96 * 3600: 7200,
+            168 * 3600: 14400,
+            336 * 3600: 14400,
+        }
+
+        def get_warning_threshold(duration_seconds):
+            if not duration_seconds:
+                return 3600
+            for phase_duration, warning in sorted(WARNING_THRESHOLDS.items()):
+                if duration_seconds <= phase_duration:
+                    return warning
+            return 14400
+
+        with tracer.start_as_current_span("phase.manager.send_deadline_warnings") as span:
+            now = timezone.now()
+
+            active_phases = self.filter(
+                status=PhaseStatus.ACTIVE,
+                game__sandbox=False,
+                game__paused_at__isnull=True,
+                scheduled_resolution__isnull=False,
+            ).exclude(
+                Q(game__status=GameStatus.COMPLETED) | Q(game__status=GameStatus.ABANDONED)
+            ).select_related('game').prefetch_related(
+                'phase_states__member__user',
+                'game__members'
+            )
+
+            notifications_sent = 0
+
+            for phase in active_phases:
+                if not phase.scheduled_resolution:
+                    continue
+
+                duration_seconds = phase.game.get_phase_duration_seconds(phase.type)
+                warning_threshold = get_warning_threshold(duration_seconds)
+
+                time_until_deadline = (phase.scheduled_resolution - now).total_seconds()
+
+                if time_until_deadline <= 0 or time_until_deadline > warning_threshold:
+                    continue
+
+                unconfirmed_members = [
+                    ps.member for ps in phase.phase_states.all()
+                    if ps.has_possible_orders and not ps.orders_confirmed
+                ]
+
+                if not unconfirmed_members:
+                    continue
+
+                user_ids = [m.user.id for m in unconfirmed_members]
+
+                notification_utils.send_notification_to_users(
+                    user_ids=user_ids,
+                    title="Deadline Approaching",
+                    body=f"You haven't confirmed your orders in {phase.game.name}.",
+                    notification_type="deadline_warning",
+                    data={"game_id": str(phase.game.id)},
+                )
+
+                notifications_sent += len(user_ids)
+                logger.info(f"Sent deadline warning to {len(user_ids)} player(s) for game {phase.game.name}")
+
+            span.set_attribute("notifications.sent", notifications_sent)
+            logger.info(f"Sent {notifications_sent} deadline warning notification(s)")
+
+            return {"notifications_sent": notifications_sent}
+
     def _check_abandonment(self, game):
         if game.sandbox:
             return False
@@ -157,6 +291,11 @@ class PhaseManager(models.Manager):
         with tracer.start_as_current_span("phase.manager.resolve") as span:
             span.set_attribute("phase.id", phase.id)
             span.set_attribute("game.id", str(phase.game.id))
+
+            extension_members = self._check_and_apply_nmr_extensions(phase)
+            if extension_members:
+                return phase
+
             adjudication_data = resolve(phase)
 
             with tracer.start_as_current_span("phase.transaction_atomic"):
@@ -241,9 +380,8 @@ class PhaseManager(models.Manager):
                     logger.info(f"Created {resolutions_count} order resolutions")
 
                 # Calculate next phase details
-                phase_duration_seconds = previous_phase.game.movement_phase_duration_seconds
-                scheduled_resolution = (
-                    timezone.now() + timedelta(seconds=phase_duration_seconds) if phase_duration_seconds else None
+                scheduled_resolution = previous_phase.game.get_scheduled_resolution(
+                    adjudication_data["type"]
                 )
                 new_ordinal = previous_phase.ordinal + 1
 
@@ -500,8 +638,7 @@ class Phase(BaseModel):
 
         logger.info(f"Reactivating phase {self.id} with new scheduled resolution")
         self.status = PhaseStatus.ACTIVE
-        phase_duration_seconds = self.game.movement_phase_duration_seconds
-        self.scheduled_resolution = timezone.now() + timedelta(seconds=phase_duration_seconds)
+        self.scheduled_resolution = self.game.get_scheduled_resolution(self.type)
         self.save()
 
         phase_states_count = self.phase_states.count()

@@ -83,7 +83,7 @@ def active_game_created_by_primary_user(db, primary_user, base_active_game_for_p
     Creates an active game created by the primary user.
     """
     base_active_phase(base_active_game_for_primary_user)
-    base_active_game_for_primary_user.members.create(user=primary_user)
+    base_active_game_for_primary_user.members.create(user=primary_user, is_game_master=True)
     return base_active_game_for_primary_user
 
 
@@ -119,7 +119,7 @@ def base_active_game_for_secondary_user(db, classical_variant):
 @pytest.fixture
 def active_game_created_by_secondary_user(db, secondary_user, base_active_game_for_secondary_user, base_active_phase):
     base_active_phase(base_active_game_for_secondary_user)
-    base_active_game_for_secondary_user.members.create(user=secondary_user)
+    base_active_game_for_secondary_user.members.create(user=secondary_user, is_game_master=True)
     return base_active_game_for_secondary_user
 
 
@@ -206,7 +206,7 @@ def pending_game_created_by_secondary_user(
     db, secondary_user, base_pending_game_for_secondary_user, base_pending_phase
 ):
     base_pending_phase(base_pending_game_for_secondary_user)
-    base_pending_game_for_secondary_user.members.create(user=secondary_user)
+    base_pending_game_for_secondary_user.members.create(user=secondary_user, is_game_master=True)
     return base_pending_game_for_secondary_user
 
 
@@ -219,7 +219,7 @@ def pending_game_created_by_secondary_user_joined_by_primary(db, primary_user, p
 @pytest.fixture
 def pending_game_created_by_primary_user(db, primary_user, base_pending_game_for_primary_user, base_pending_phase):
     base_pending_phase(base_pending_game_for_primary_user)
-    base_pending_game_for_primary_user.members.create(user=primary_user)
+    base_pending_game_for_primary_user.members.create(user=primary_user, is_game_master=True)
     return base_pending_game_for_primary_user
 
 
@@ -526,7 +526,7 @@ def active_game(
     phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
 
     # Create members and phase states
-    primary_member = game.members.create(user=primary_user, nation=classical_england_nation)
+    primary_member = game.members.create(user=primary_user, nation=classical_england_nation, is_game_master=True)
     secondary_member = game.members.create(user=secondary_user, nation=classical_france_nation)
     phase.phase_states.create(member=primary_member)
     phase.phase_states.create(member=secondary_member)
@@ -545,8 +545,9 @@ def game_with_options(active_game, sample_options):
 
 @pytest.fixture
 def mock_send_notification_to_users():
-    with patch("notification.signals.send_notification_to_users") as mock_send_notification_to_users:
-        yield mock_send_notification_to_users
+    with patch("notification.utils.send_notification_to_users") as mock_fn, \
+         patch("notification.signals.send_notification_to_users", mock_fn):
+        yield mock_fn
 
 
 @pytest.fixture
