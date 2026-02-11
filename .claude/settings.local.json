@@ -47,7 +47,9 @@
       "Bash(railway:*)",
       "Bash(nslookup:*)",
       "Bash(kill:*)",
-      "WebFetch(domain:jpcaparas.medium.com)"
+      "WebFetch(domain:jpcaparas.medium.com)",
+      "Bash(unset:*)",
+      "WebFetch(domain:status.railway.com)"
     ],
     "deny": [],
     "ask": []

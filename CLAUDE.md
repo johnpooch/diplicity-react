@@ -572,6 +572,41 @@ Follow this testing pattern:
 
 ---
 
+# Production Debugging
+
+The application is deployed on **Railway** (project: `devoted-rejoicing`, service: `diplicity-react`).
+
+## Railway CLI
+
+The Railway CLI authenticates via the login token stored in `~/.railway/config.json` (set by `railway login`). Do **not** set a `RAILWAY_TOKEN` env var — project tokens conflict with CLI commands and cause "Project Token not found" errors.
+
+### Common Commands
+
+```bash
+railway status                          # Deployment health and status
+railway logs --lines 50                 # Recent log output (default: 100 lines)
+railway logs --lines 200 | grep ERROR   # Filter for errors
+railway logs --lines 200 | grep "GET /api"  # Filter by endpoint
+railway ssh 'command'                   # Run command in production container
+```
+
+### Checking Postgres Health
+
+```bash
+railway ssh 'python3 manage.py dbshell -c "SELECT 1"'    # Quick connectivity check
+railway ssh 'python3 manage.py showmigrations --list'     # Verify DB is reachable
+```
+
+### Django ORM Queries
+
+Use the `/prod-query` command for read-only Django ORM queries against production. See `.claude/commands/prod-query.md`.
+
+### Railway Status Page
+
+Check https://status.railway.com for platform-wide incidents. Use WebFetch to check this during debugging.
+
+---
+
 # API Development
 
 The API schema is auto-generated using DRF Spectacular:
