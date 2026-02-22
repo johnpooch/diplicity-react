@@ -24,7 +24,8 @@
       "Bash(uniq:*)",
       "Bash(wc:*)",
       "Read(~/.claude/*)",
-      "Skill(react)"
+      "Skill(react)",
+      "mcp__XcodeBuildMCP"
     ],
     "deny": [],
     "defaultMode": "plan"
