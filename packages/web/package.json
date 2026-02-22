@@ -13,7 +13,8 @@
     "build-storybook": "storybook build",
     "test": "vitest",
     "codegen:react-query": "orval --config orval.config.ts",
-    "analyze": "ANALYZE=true npm run build"
+    "analyze": "ANALYZE=true npm run build",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@fontsource/roboto": "^5.1.0",
@@ -69,6 +70,7 @@
     "@chromatic-com/storybook": "^3.2.2",
     "@eslint/js": "^9.15.0",
     "@faker-js/faker": "^10.1.0",
+    "@playwright/test": "^1.58.2",
     "@storybook/addon-essentials": "^8.4.7",
     "@storybook/addon-interactions": "^8.4.7",
     "@storybook/addon-onboarding": "^8.4.7",
