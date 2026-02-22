@@ -23,6 +23,8 @@ dist-ssr
 
 *storybook.log
 .env
+client_secret*.json
+*.plist
 storybook-static
 
 service/game/tests/prof/

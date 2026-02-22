@@ -49,7 +49,17 @@
       "Bash(kill:*)",
       "WebFetch(domain:jpcaparas.medium.com)",
       "Bash(unset:*)",
-      "WebFetch(domain:status.railway.com)"
+      "WebFetch(domain:status.railway.com)",
+      "Bash(brew install railway)",
+      "Bash(test -f /Users/johnmcdowell/src/diplicity-react/.env && echo \"EXISTS\" || echo \"DOES NOT EXIST\")",
+      "WebFetch(domain:mcp.honeycomb.io)",
+      "WebSearch",
+      "WebFetch(domain:docs.sentry.io)",
+      "WebFetch(domain:docs.honeycomb.io)",
+      "mcp__sentry__find_organizations",
+      "mcp__sentry__find_projects",
+      "mcp__sentry__find_dsns",
+      "Bash(test -f /Users/johnmcdowell/src/diplicity-react/.env && echo \"EXISTS\" || echo \"NOT_FOUND\")"
     ],
     "deny": [],
     "ask": []
