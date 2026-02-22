@@ -36,3 +36,6 @@ dump.json
 .python_packages
 __pycache__
 .venv
+
+# Git worktrees (used by /implement-issue)
+.worktrees/
