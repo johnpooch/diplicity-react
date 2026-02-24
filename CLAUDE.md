@@ -71,6 +71,14 @@ docker compose up codegen      # Generate API client from OpenAPI schema
 docker compose up test-service # Run Django tests in container
 ```
 
+### Apple / Capacitor iOS Credentials
+
+The Team ID is `G76UP8FNMS` (stored in `.env` as `CAPACITOR_IOS_TEAM_ID`).
+
+**Code signing** uses Xcode automatic signing. The Apple Distribution certificate (created 2026-02-22, expires 2027-02-22) and its private key are in the local macOS Keychain. Xcode manages provisioning profiles automatically; there is no manually-created profile checked into the repo.
+
+**Push notifications** use the APNs authentication key `AuthKey_C6JM6K4J2X.p8` (Key ID: `C6JM6K4J2X`), which is in the repo root but gitignored. This key is independent of distribution certificates and does not need rotation when certificates change.
+
 ## General Development Guidelines
 
 1. **Follow existing code patterns and conventions** - Consistency is key

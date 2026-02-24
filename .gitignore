@@ -55,3 +55,7 @@ packages/web/ios/App/App/public/
 
 .claude/worktrees
 .claude/settings.local.json
+# Apple credentials (APNs keys, provisioning profiles, certificates)
+AuthKey_*.p8
+*.mobileprovision
+*.cer
