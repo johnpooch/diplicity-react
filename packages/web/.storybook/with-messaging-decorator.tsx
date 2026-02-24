@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import type { DecoratorFunction } from "@storybook/csf";
 import type { ReactRenderer } from "@storybook/react";
-import { MessagingContext } from "../src/context/MessagingContext";
+import { MessagingOverrideContext } from "../src/hooks/useMessaging";
 
 type MessagingWrapperProps = {
   children: React.ReactNode;
@@ -29,9 +29,9 @@ const MessagingWrapper: React.FC<MessagingWrapperProps> = ({
   );
 
   return (
-    <MessagingContext.Provider value={mockMessaging}>
+    <MessagingOverrideContext.Provider value={mockMessaging}>
       {children}
-    </MessagingContext.Provider>
+    </MessagingOverrideContext.Provider>
   );
 };
 

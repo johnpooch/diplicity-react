@@ -615,3 +615,54 @@ docker compose up codegen
 ```
 
 This generates OpenAPI schema and TypeScript client code for the frontend.
+
+---
+
+# iOS Development (Capacitor)
+
+## Real Device Testing (Preferred)
+
+**Always use the physical iPhone for iOS testing — do not use simulators.** Simulators consume too much RAM and the real device is the preferred testing target.
+
+The XcodeBuildMCP session defaults are pre-configured to target the real device (profile: `real-device`, persisted in `.xcodebuildmcp/config.yaml`).
+
+- **Bundle ID**: `com.diplicity.app`
+- **Xcode Project**: `packages/web/ios/App/App.xcodeproj` (there is no `.xcworkspace`)
+- **Scheme**: `App`
+
+### MCP Tools
+
+- **XcodeBuildMCP**: Only simulator workflow tools are enabled by default. Device workflows must be explicitly enabled in XcodeBuildMCP configuration. Until enabled, use `xcodebuild` CLI directly for device builds.
+- **mobile-mcp**: Use for UI interaction — screenshots, taps, swipes, text input on the real device
+
+### Build & Deploy Workflow
+
+**IMPORTANT**: `npx cap sync` must be run from `packages/web/` — it uses the `capacitor.config.ts` in that directory and will fail if run from the repo root.
+
+```bash
+# All commands run from packages/web/
+cd packages/web
+npm run build                # Build the web app
+npx cap sync ios             # Sync web assets to iOS project
+
+# Build for device via CLI (when XcodeBuildMCP device tools are unavailable)
+xcodebuild -project ios/App/App.xcodeproj -scheme App \
+  -destination 'id=<DEVICE_UDID>' \
+  -allowProvisioningUpdates \
+  DEVELOPMENT_TEAM=G76UP8FNMS CODE_SIGN_STYLE=Automatic \
+  build
+```
+
+## Credentials
+
+The following files are in the repo root but gitignored:
+
+- `AuthKey_C6JM6K4J2X.p8` — APNs authentication key (Key ID: `C6JM6K4J2X`). Used by Firebase to send push notifications to iOS.
+
+Code signing uses **Xcode automatic signing** — Xcode manages provisioning profiles automatically. No manual `.mobileprovision` file is needed in the repo (`.gitignore` still excludes `*.mobileprovision`).
+
+Signing certificates installed in the local macOS Keychain:
+- Apple Development: John McDowell (`P96LAJ7FF8`) — for device builds
+- Apple Distribution: John McDowell (`G76UP8FNMS`) — for App Store distribution (created Feb 2026)
+
+The Team ID is `G76UP8FNMS` (also stored in `.env` as `CAPACITOR_IOS_TEAM_ID`, though the `.env` value may be stale — the canonical source is the certificate's OU field, confirmed via `security find-certificate -c "Apple Development: John McDowell" -p | openssl x509 -noout -subject`).

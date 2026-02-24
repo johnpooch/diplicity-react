@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/auth";
-import { useMessaging } from "@/context";
+import { useMessaging } from "@/hooks/useMessaging";
 import {
   useUserRetrieveSuspense,
   useUserUpdatePartialUpdate,
