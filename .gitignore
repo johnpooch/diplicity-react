@@ -37,6 +37,10 @@ dump.json
 __pycache__
 .venv
 
+# Playwright
+/packages/web/test-results/
+/packages/web/playwright-report/
+
 # Git worktrees (used by /implement-issue)
 .worktrees/
 
