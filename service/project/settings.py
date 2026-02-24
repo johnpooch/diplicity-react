@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 import os
-import sys
+
 import dj_database_url
 from datetime import timedelta
 from firebase_admin import credentials, initialize_app
@@ -263,7 +263,7 @@ firebase_credentials = {
     "client_x509_cert_url": os.getenv("FIREBASE_CLIENT_X509_CERT_URL"),
 }
 
-if "pytest" not in sys.argv[0]:
+if os.getenv("FIREBASE_PROJECT_ID"):
     FIREBASE_APP = initialize_app(credentials.Certificate(firebase_credentials))
 
 SPECTACULAR_SETTINGS = {

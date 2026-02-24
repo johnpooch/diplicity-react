@@ -26,18 +26,20 @@ jobs:
     - name: Wait for database
       run: |
         for i in $(seq 1 30); do
-          docker compose exec -T db pg_isready -U postgres && break
+          docker compose exec -T db pg_isready -U postgres && exit 0
           echo "Waiting for database... ($i/30)"
           sleep 2
         done
+        echo "Database failed to start" && exit 1
 
     - name: Wait for service
       run: |
         for i in $(seq 1 60); do
-          curl -sf http://localhost:8000/health/ && break
+          curl -sf http://localhost:8000/health/ && exit 0
           echo "Waiting for service... ($i/60)"
           sleep 5
         done
+        echo "Service failed to start" && exit 1
 
     - name: Debug service logs on failure
       if: failure()
@@ -46,10 +48,11 @@ jobs:
     - name: Wait for web
       run: |
         for i in $(seq 1 30); do
-          curl -sf http://localhost:5173/ && break
+          curl -sf http://localhost:5173/ && exit 0
           echo "Waiting for web... ($i/30)"
           sleep 2
         done
+        echo "Web server failed to start" && exit 1
 
     - name: Set up Node.js
       uses: actions/setup-node@v4
