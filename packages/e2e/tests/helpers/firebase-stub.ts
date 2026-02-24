@@ -2,6 +2,14 @@ import { Page } from "@playwright/test";
 
 const FAKE_FCM_TOKEN = "e2e-fake-fcm-registration-token";
 
+/**
+ * Stub the two external API calls Firebase Messaging makes when obtaining a
+ * push token: Firebase Installations (creates/refreshes an installation ID)
+ * and FCM Registration (exchanges the installation auth for an FCM token).
+ *
+ * Intercepting these with Playwright route handlers prevents real network
+ * calls and returns deterministic fake tokens that tests can assert against.
+ */
 async function stubFirebaseNetwork(page: Page): Promise<void> {
   await page.route("**/firebaseinstallations.googleapis.com/**", (route) => {
     route.fulfill({

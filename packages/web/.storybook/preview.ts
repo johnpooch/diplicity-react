@@ -2,7 +2,6 @@ import type { Preview } from "@storybook/react";
 import "../src/index.css";
 import withRouter from "./with-router-decorator";
 import withQueryClient from "./with-query-client-decorator";
-import withMessaging from "./with-messaging-decorator";
 import { initialize, mswLoader } from "msw-storybook-addon";
 
 initialize({
@@ -31,7 +30,7 @@ const preview: Preview = {
       },
     },
   },
-  decorators: [withRouter, withQueryClient, withMessaging],
+  decorators: [withRouter, withQueryClient],
   loaders: [mswLoader],
 };
 

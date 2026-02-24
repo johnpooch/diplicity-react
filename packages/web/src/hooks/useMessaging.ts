@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   onMessageReceived,
   getToken,
@@ -16,19 +16,13 @@ type MessagingState = {
   enableMessaging: () => Promise<void>;
 };
 
-// Override context for Storybook mocking — no provider exists in production
-const MessagingOverrideContext = createContext<MessagingState | null>(null);
-
 const useMessaging = (): MessagingState => {
-  const override = useContext(MessagingOverrideContext);
-  const active = !override;
-
   const { loggedIn } = useAuth();
   const [token, setToken] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [isCheckingToken, setIsCheckingToken] = useState(true);
   const devicesListQuery = useDevicesList({
-    query: { enabled: active && loggedIn },
+    query: { enabled: loggedIn },
   });
   const createDeviceMutation = useDevicesCreate();
 
@@ -46,14 +40,12 @@ const useMessaging = (): MessagingState => {
   };
 
   useEffect(() => {
-    if (!active) return;
     onMessageReceived(() => {
       // Handle received message
     });
-  }, [active]);
+  }, []);
 
   useEffect(() => {
-    if (!active) return;
     const createDeviceFromToken = async (t: string) => {
       await createDeviceMutation.mutateAsync({
         data: {
@@ -68,10 +60,9 @@ const useMessaging = (): MessagingState => {
       createDeviceFromToken(token);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mutateAsync is stable, including the mutation object causes infinite loops
-  }, [active, token, loggedIn]);
+  }, [token, loggedIn]);
 
   useEffect(() => {
-    if (!active) return;
     registerServiceWorker();
 
     if (isNotificationSupported) {
@@ -85,9 +76,7 @@ const useMessaging = (): MessagingState => {
     } else {
       setIsCheckingToken(false);
     }
-  }, [active, isNotificationSupported]);
-
-  if (override) return override;
+  }, [isNotificationSupported]);
 
   const enableMessaging = async (): Promise<void> => {
     try {
@@ -170,5 +159,5 @@ const useMessaging = (): MessagingState => {
   };
 };
 
-export { useMessaging, MessagingOverrideContext };
+export { useMessaging };
 export type { MessagingState };

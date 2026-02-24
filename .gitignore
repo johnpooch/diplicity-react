@@ -38,8 +38,8 @@ __pycache__
 .venv
 
 # Playwright
-/packages/web/test-results/
-/packages/web/playwright-report/
+/packages/e2e/test-results/
+/packages/e2e/playwright-report/
 
 # Git worktrees (used by /implement-issue)
 .worktrees/
