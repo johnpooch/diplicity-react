@@ -11,6 +11,14 @@ const FAKE_FCM_TOKEN = "e2e-fake-fcm-registration-token";
  * calls and returns deterministic fake tokens that tests can assert against.
  */
 async function stubFirebaseNetwork(page: Page): Promise<void> {
+  // Bypass Firebase SDK entirely via test hook.
+  // pushManager.subscribe() fails in headless Chromium (no push service),
+  // so we inject a fake token that getFirebaseToken() returns immediately.
+  await page.addInitScript((token) => {
+    (window as unknown as Record<string, unknown>).__TEST_FCM_TOKEN = token;
+  }, FAKE_FCM_TOKEN);
+
+  // Keep route stubs for defense-in-depth (service worker may still attempt Firebase calls)
   await page.route("**/firebaseinstallations.googleapis.com/**", (route) => {
     route.fulfill({
       status: 200,

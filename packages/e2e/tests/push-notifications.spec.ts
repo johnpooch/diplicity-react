@@ -31,8 +31,8 @@ test.describe("Push Notifications", () => {
     await expect(toggle).toHaveAttribute("data-state", "checked");
   });
 
-  test("disable push notifications", async ({ page, context }) => {
-    await context.grantPermissions(["notifications"]);
+  test("disable push notifications", async ({ page }) => {
+    await stubNotificationPermission(page, { initial: "granted" });
     await stubFirebaseNetwork(page);
     await page.goto("/");
     await loginAsTestUser(page, tokens);
