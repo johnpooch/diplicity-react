@@ -38,25 +38,3 @@ export const WithAvatar: Story = {
     },
   },
 };
-
-export const NotificationsEnabled: Story = {
-  parameters: {
-    messaging: {
-      enabled: true,
-      permissionDenied: false,
-      error: null,
-      isLoading: false,
-    },
-  },
-};
-
-export const NotificationsError: Story = {
-  parameters: {
-    messaging: {
-      enabled: false,
-      permissionDenied: false,
-      error: "Failed to register service worker",
-      isLoading: false,
-    },
-  },
-};

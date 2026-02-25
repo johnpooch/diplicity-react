@@ -24,6 +24,11 @@ const app = initializeApp(firebaseConfig);
 const messaging = getMessaging(app);
 
 const getFirebaseToken = async () => {
+  // Test hook: bypass Firebase SDK in E2E tests
+  const testToken = (window as unknown as Record<string, unknown>).__TEST_FCM_TOKEN;
+  if (typeof testToken === "string") {
+    return testToken;
+  }
   return isSupported()
     .then(async supported => {
       if (supported) {

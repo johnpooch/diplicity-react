@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Router from "./Router";
 import { MaintenanceMode } from "./components/MaintenanceMode";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { MessagingContextProvider } from "./context";
 import { AuthProvider, useAuth } from "./auth";
 import { Toaster } from "./components/ui/sonner";
 
@@ -13,11 +12,7 @@ const queryClient = new QueryClient();
 function AppContent() {
   const { loggedIn } = useAuth();
 
-  return (
-    <MessagingContextProvider>
-      <Router loggedIn={loggedIn} queryClient={queryClient} />
-    </MessagingContextProvider>
-  );
+  return <Router loggedIn={loggedIn} queryClient={queryClient} />;
 }
 
 function App() {

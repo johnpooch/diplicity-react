@@ -3,6 +3,10 @@
     "XcodeBuildMCP": {
       "command": "npx",
       "args": ["-y", "xcodebuildmcp@latest", "mcp"]
+    },
+    "mobile-mcp": {
+      "command": "npx",
+      "args": ["-y", "@mobilenext/mobile-mcp@latest"]
     }
   }
 }

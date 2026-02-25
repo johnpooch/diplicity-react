@@ -37,9 +37,24 @@ dump.json
 __pycache__
 .venv
 
+# Playwright
+/packages/e2e/test-results/
+/packages/e2e/playwright-report/
+
 # Git worktrees (used by /implement-issue)
 .worktrees/
 
+# XcodeBuildMCP (machine-specific device/simulator defaults)
+.xcodebuildmcp/
+AuthKey*
+
+# iOS / Xcode
+**/xcuserdata/
+packages/web/ios/App/build/
+packages/web/ios/App/App/public/
+
+.claude/worktrees
+.claude/settings.local.json
 # Apple credentials (APNs keys, provisioning profiles, certificates)
 AuthKey_*.p8
 *.mobileprovision

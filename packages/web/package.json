@@ -13,7 +13,10 @@
     "build-storybook": "storybook build",
     "test": "vitest",
     "codegen:react-query": "orval --config orval.config.ts",
-    "analyze": "ANALYZE=true npm run build"
+    "analyze": "ANALYZE=true npm run build",
+    "cap:sync": "cap sync",
+    "cap:open": "cap open",
+    "cap:run": "cap run"
   },
   "dependencies": {
     "@fontsource/roboto": "^5.1.0",

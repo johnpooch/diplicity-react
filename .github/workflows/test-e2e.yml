@@ -1,0 +1,73 @@
+name: Test E2E
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Create .env file for docker-compose
+      run: |
+        echo 'VITE_DIPLICITY_API_BASE_URL=http://localhost:8000' > .env
+
+    - name: Build and start application stack
+      run: docker compose up -d --build db service web
+
+    - name: Wait for database
+      run: |
+        for i in $(seq 1 30); do
+          docker compose exec -T db pg_isready -U postgres && exit 0
+          echo "Waiting for database... ($i/30)"
+          sleep 2
+        done
+        echo "Database failed to start" && exit 1
+
+    - name: Wait for service
+      run: |
+        for i in $(seq 1 60); do
+          curl -sf http://localhost:8000/health/ && exit 0
+          echo "Waiting for service... ($i/60)"
+          sleep 5
+        done
+        echo "Service failed to start" && exit 1
+
+    - name: Debug service logs on failure
+      if: failure()
+      run: docker compose logs service
+
+    - name: Wait for web
+      run: |
+        for i in $(seq 1 30); do
+          curl -sf http://localhost:5173/ && exit 0
+          echo "Waiting for web... ($i/30)"
+          sleep 2
+        done
+        echo "Web server failed to start" && exit 1
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 24
+
+    - name: Install dependencies
+      run: npm ci
+      working-directory: packages/e2e
+
+    - name: Install Playwright Chromium
+      run: npx playwright install --with-deps chromium
+      working-directory: packages/e2e
+
+    - name: Run E2E tests
+      run: npm test
+      working-directory: packages/e2e
