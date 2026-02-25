@@ -25,7 +25,7 @@ const messaging = getMessaging(app);
 
 const getFirebaseToken = async () => {
   // Test hook: bypass Firebase SDK in E2E tests
-  const testToken = (window as Record<string, unknown>).__TEST_FCM_TOKEN;
+  const testToken = (window as unknown as Record<string, unknown>).__TEST_FCM_TOKEN;
   if (typeof testToken === "string") {
     return testToken;
   }
