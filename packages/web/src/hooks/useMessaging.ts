@@ -4,8 +4,13 @@ import {
   getToken,
   registerServiceWorker,
 } from "../messaging";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../auth";
-import { useDevicesList, useDevicesCreate } from "../api/generated/endpoints";
+import {
+  getDevicesListQueryKey,
+  useDevicesList,
+  useDevicesCreate,
+} from "../api/generated/endpoints";
 
 type MessagingState = {
   enabled: boolean;
@@ -25,6 +30,7 @@ const useMessaging = (): MessagingState => {
     query: { enabled: loggedIn },
   });
   const createDeviceMutation = useDevicesCreate();
+  const queryClient = useQueryClient();
 
   const isNotificationSupported = "Notification" in window;
 
@@ -54,7 +60,7 @@ const useMessaging = (): MessagingState => {
           active: true,
         },
       });
-      setToken(t);
+      queryClient.invalidateQueries({ queryKey: getDevicesListQueryKey() });
     };
     if (token && loggedIn) {
       createDeviceFromToken(token);
@@ -127,6 +133,7 @@ const useMessaging = (): MessagingState => {
             active: false,
           },
         });
+        queryClient.invalidateQueries({ queryKey: getDevicesListQueryKey() });
         setToken(undefined);
       }
     } catch (err) {
