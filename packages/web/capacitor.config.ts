@@ -10,6 +10,13 @@ const config: CapacitorConfig = {
   server: {
     iosScheme: "capacitor",
   },
+  plugins: {
+    SocialLogin: {
+      providers: {
+        google: true,
+      },
+    },
+  },
 };
 
 export default config;

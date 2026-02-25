@@ -4,37 +4,51 @@ import { toast } from "sonner";
 import { useAuth } from "../auth";
 import { useAuthLoginCreate } from "../api/generated/endpoints";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { isNativePlatform } from "@/utils/platform";
+import { nativeGoogleSignIn } from "@/auth/nativeGoogleAuth";
+import { Button } from "@/components/ui/button";
 
 const Login: React.FC = () => {
   const { login } = useAuth();
   const loginMutation = useAuthLoginCreate();
 
-  const handleLoginSuccess = async (credentialResponse: CredentialResponse) => {
+  const sendIdTokenToBackend = async (idToken: string) => {
+    const result = await loginMutation.mutateAsync({
+      data: { idToken },
+    });
+    login({
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      email: result.email,
+      name: result.name,
+    });
+    toast.success(`Logged in as ${result.name}`);
+  };
+
+  const handleWebLoginSuccess = async (credentialResponse: CredentialResponse) => {
     if (!credentialResponse.credential) {
       console.error("No credential response received");
       return;
     }
     try {
-      const result = await loginMutation.mutateAsync({
-        data: {
-          idToken: credentialResponse.credential,
-        },
-      });
-      login({
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
-        email: result.email,
-        name: result.name,
-      });
-      toast.success(`Logged in as ${result.name}`);
+      await sendIdTokenToBackend(credentialResponse.credential);
     } catch {
       toast.error("Login failed");
     }
   };
 
-  const handleLoginError = () => {
+  const handleWebLoginError = () => {
     console.error("Login failed");
     toast.error("Login failed");
+  };
+
+  const handleNativeLogin = async () => {
+    try {
+      const idToken = await nativeGoogleSignIn();
+      await sendIdTokenToBackend(idToken);
+    } catch {
+      toast.error("Login failed");
+    }
   };
 
   return (
@@ -51,10 +65,14 @@ const Login: React.FC = () => {
           A digital adaptation of the game of Diplomacy.
         </p>
         <div className="flex justify-center mt-2">
-          <GoogleLogin
-            onSuccess={handleLoginSuccess}
-            onError={handleLoginError}
-          />
+          {isNativePlatform() ? (
+            <Button onClick={handleNativeLogin}>Sign in with Google</Button>
+          ) : (
+            <GoogleLogin
+              onSuccess={handleWebLoginSuccess}
+              onError={handleWebLoginError}
+            />
+          )}
         </div>
       </div>
     </div>

@@ -3,10 +3,13 @@ from unittest.mock import patch
 
 
 @pytest.fixture
-def mock_google_auth():
+def mock_google_auth(settings):
+    settings.GOOGLE_CLIENT_ID = "web-client-id"
+    settings.GOOGLE_IOS_CLIENT_ID = "ios-client-id"
     with patch("login.utils.google_id_token.verify_oauth2_token") as mock:
         mock.return_value = {
             "iss": "accounts.google.com",
+            "aud": "web-client-id",
             "email": "test@example.com",
             "name": "Test User",
             "picture": "http://example.com/picture.jpg",
@@ -15,10 +18,13 @@ def mock_google_auth():
 
 
 @pytest.fixture
-def mock_google_auth_without_picture():
+def mock_google_auth_without_picture(settings):
+    settings.GOOGLE_CLIENT_ID = "web-client-id"
+    settings.GOOGLE_IOS_CLIENT_ID = "ios-client-id"
     with patch("login.utils.google_id_token.verify_oauth2_token") as mock:
         mock.return_value = {
             "iss": "accounts.google.com",
+            "aud": "web-client-id",
             "email": "test@example.com",
             "name": "Test User",
         }

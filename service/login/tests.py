@@ -35,7 +35,7 @@ def test_google_auth_value_error_returns_401(unauthenticated_client, mock_google
 
 @pytest.mark.django_db
 def test_google_auth_wrong_issuer_returns_401(unauthenticated_client, mock_google_auth):
-    mock_google_auth.return_value = {"iss": "wrong_issuer"}
+    mock_google_auth.return_value = {"iss": "wrong_issuer", "aud": "web-client-id"}
     url = reverse(viewname)
     response = unauthenticated_client.post(url, {"id_token": "token"}, format="json")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -114,3 +114,32 @@ def test_updates_existing_user_picture_to_null(unauthenticated_client, mock_goog
     assert user_profile.picture is None
     assert user_profile.name == "Test User"
     assert user_profile.user.email == "test@example.com"
+
+
+@pytest.mark.django_db
+def test_ios_client_id_audience_accepted(unauthenticated_client, mock_google_auth, mock_refresh_token):
+    mock_google_auth.return_value = {
+        "iss": "accounts.google.com",
+        "aud": "ios-client-id",
+        "email": "test@example.com",
+        "name": "iOS User",
+        "picture": "http://example.com/ios_picture.jpg",
+    }
+    url = reverse(viewname)
+    response = unauthenticated_client.post(url, {"id_token": "ios_token"}, format="json")
+    assert response.status_code == status.HTTP_201_CREATED
+    assert "access_token" in response.data
+    assert "refresh_token" in response.data
+
+
+@pytest.mark.django_db
+def test_unknown_audience_rejected(unauthenticated_client, mock_google_auth):
+    mock_google_auth.return_value = {
+        "iss": "accounts.google.com",
+        "aud": "unknown-client-id",
+        "email": "test@example.com",
+        "name": "Test User",
+    }
+    url = reverse(viewname)
+    response = unauthenticated_client.post(url, {"id_token": "bad_token"}, format="json")
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED

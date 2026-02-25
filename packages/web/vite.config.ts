@@ -8,6 +8,7 @@ import { visualizer } from "rollup-plugin-visualizer";
 
 // https://vite.dev/config/
 const config = defineConfig({
+  envDir: resolve(__dirname, "../.."),
   plugins: [
     react(),
     tailwindcss(),
