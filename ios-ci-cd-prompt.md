@@ -117,12 +117,29 @@ VITE_HONEYCOMB_API_KEY="..."
 - How does this interact with the Capacitor build process?
 - Is there anything Capacitor-specific I need to worry about for CI?
 
+## Previous iOS progress
+
+There's an existing planning document (`docs/capacitor-work-overview-draft.md`) that outlines the full Capacitor integration work. Key context:
+
+- **Previous App Store submission**: Before a machine wipe, an App Store Connect record was created with metadata, privacy labels, and at least one build was successfully uploaded. The distribution profile and provisioning profile were created. The source code changes were lost but the App Store Connect record should still exist.
+- **PR #189** (currently open) implements native Google Sign-In for iOS using `@capgo/capacitor-social-login`, which is one of the planned work items (C3/C4).
+- **Remaining iOS work items** from the plan include: push notification integration (C5), safe area styling (C6), deep linking (C7), and App Store preparation (D1).
+- The plan identifies **C1 (build pipeline)** as the key enabler that unlocks most downstream work — which is essentially what I'm asking about here.
+
+## Google OAuth URL scheme
+
+The Info.plist has a URL scheme registered for Google OAuth:
+```
+com.googleusercontent.apps.394867503899-gpu4vouhophf31hejbu0ovlsndobnp7u
+```
+
 ## Constraints
 
-- The app is not yet on the App Store (this would be the first submission)
+- The app is not yet publicly released on the App Store, but an App Store Connect record exists from a previous attempt
 - I'm an individual developer (not an organization), using personal Apple Developer account
 - The repo is on GitHub (github.com/johnpooch/diplicity-react)
 - Budget-conscious — prefer free/cheap solutions where possible
 - I use Xcode automatic signing locally and would like the CI approach to be as simple as possible
+- macOS runners on GitHub Actions cost 10x Linux runners ($0.08/min vs $0.008/min)
 
 Please help me think through the best approach for setting up iOS CI/CD for this project. I'm open to discussing trade-offs between different tools and approaches.
