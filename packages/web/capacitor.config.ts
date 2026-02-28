@@ -11,10 +11,20 @@ const config: CapacitorConfig = {
     iosScheme: "capacitor",
   },
   plugins: {
+    SplashScreen: {
+      launchAutoHide: true,
+      launchShowDuration: 2000,
+      launchFadeOutDuration: 500,
+      backgroundColor: "#291b1b",
+      showSpinner: false,
+    },
     SocialLogin: {
       providers: {
         google: true,
       },
+    },
+    FirebaseMessaging: {
+      presentationOptions: ["badge", "sound", "alert"],
     },
   },
 };

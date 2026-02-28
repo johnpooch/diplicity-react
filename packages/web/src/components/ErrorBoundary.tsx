@@ -2,6 +2,7 @@ import React from "react";
 import * as Sentry from "@sentry/react";
 import { DiplicityLogo } from "./DiplicityLogo";
 import { Button } from "@/components/ui/button";
+import { SafeAreaView } from "@/components/SafeAreaView";
 
 interface ErrorFallbackUIProps {
   error: Error;
@@ -10,7 +11,7 @@ interface ErrorFallbackUIProps {
 export const ErrorFallbackUI: React.FC<ErrorFallbackUIProps> = ({ error }) => {
   return (
     <div className="max-w-sm mx-auto">
-      <div className="flex flex-col items-center justify-center min-h-screen text-center gap-6">
+      <SafeAreaView className="flex flex-col items-center justify-center min-h-screen text-center gap-6">
         <DiplicityLogo />
         <h1 className="text-2xl font-bold">Something went wrong</h1>
         <p className="text-muted-foreground">
@@ -25,7 +26,7 @@ export const ErrorFallbackUI: React.FC<ErrorFallbackUIProps> = ({ error }) => {
         <Button variant="outline" onClick={() => window.location.href = "/"}>
           Go Home
         </Button>
-      </div>
+      </SafeAreaView>
     </div>
   );
 };

@@ -21,7 +21,14 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-const messaging = getMessaging(app);
+let messagingInstance: ReturnType<typeof getMessaging> | null = null;
+
+const getMessagingInstance = () => {
+  if (!messagingInstance) {
+    messagingInstance = getMessaging(app);
+  }
+  return messagingInstance;
+};
 
 const getFirebaseToken = async () => {
   // Test hook: bypass Firebase SDK in E2E tests
@@ -36,7 +43,7 @@ const getFirebaseToken = async () => {
         if (!registration) {
           throw new Error("Service worker registration not found");
         }
-        const token = await getToken(messaging, {
+        const token = await getToken(getMessagingInstance(), {
           vapidKey: VAPID_KEY,
           serviceWorkerRegistration: registration,
         });
@@ -59,7 +66,7 @@ const deleteFirebaseToken = async () => {
         if (!registration) {
           throw new Error("Service worker registration not found");
         }
-        await deleteToken(messaging);
+        await deleteToken(getMessagingInstance());
       }
     })
     .catch(error => {
@@ -84,8 +91,12 @@ const registerServiceWorker = () => {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const onMessageReceived = (callback: (payload: any) => void) => {
-  onMessage(messaging, payload => {
-    callback(payload);
+  isSupported().then(supported => {
+    if (supported) {
+      onMessage(getMessagingInstance(), payload => {
+        callback(payload);
+      });
+    }
   });
 };
 

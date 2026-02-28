@@ -288,10 +288,16 @@ const InteractiveMap = (props: InteractiveMapProps) => {
               fill={getFill(province.id)}
               stroke={getStroke(province.id)}
               strokeWidth={getStrokeWidth(province.id)}
-              onMouseEnter={() =>
-                props.interactive && setHoveredProvince(province.id)
-              }
-              onMouseLeave={() => props.interactive && setHoveredProvince(null)}
+              onPointerEnter={(e) => {
+                if (e.pointerType === "mouse" && props.interactive) {
+                  setHoveredProvince(province.id);
+                }
+              }}
+              onPointerLeave={(e) => {
+                if (e.pointerType === "mouse" && props.interactive) {
+                  setHoveredProvince(null);
+                }
+              }}
               onClick={event =>
                 props.interactive && props.onClickProvince?.(province.id, event)
               }
@@ -761,10 +767,16 @@ const InteractiveMap = (props: InteractiveMapProps) => {
               id={province.id}
               d={province.path.d}
               fill={"transparent"}
-              onMouseEnter={() =>
-                props.interactive && setHoveredProvince(province.id)
-              }
-              onMouseLeave={() => props.interactive && setHoveredProvince(null)}
+              onPointerEnter={(e) => {
+                if (e.pointerType === "mouse" && props.interactive) {
+                  setHoveredProvince(province.id);
+                }
+              }}
+              onPointerLeave={(e) => {
+                if (e.pointerType === "mouse" && props.interactive) {
+                  setHoveredProvince(null);
+                }
+              }}
               onClick={event =>
                 props.interactive && props.onClickProvince?.(province.id, event)
               }

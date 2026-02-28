@@ -53,6 +53,8 @@ AuthKey*
 packages/web/ios/App/build/
 packages/web/ios/App/App/public/
 
+screenshots/
+
 .claude/worktrees
 .claude/settings.local.json
 # Apple credentials (APNs keys, provisioning profiles, certificates)

@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Navigation } from "@/components/Navigation";
 import { GameMap } from "@/components/GameMap";
+import { SafeAreaView } from "@/components/SafeAreaView";
 
 const navigationItems = [
   { label: "Map", icon: Map, path: "/game/:gameId/phase/:phaseId" },
@@ -59,7 +60,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
 
   return (
     <SidebarProvider>
-      <div
+      <SafeAreaView
         className={cn(
           "flex flex-col h-screen w-full overflow-hidden",
           className
@@ -106,7 +107,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
             onItemClick={path => navigate(path)}
           />
         </div>
-      </div>
+      </SafeAreaView>
     </SidebarProvider>
   );
 };

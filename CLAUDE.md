@@ -666,6 +666,7 @@ xcodebuild -project ios/App/App.xcodeproj -scheme App \
 The following files are in the repo root but gitignored:
 
 - `AuthKey_C6JM6K4J2X.p8` — APNs authentication key (Key ID: `C6JM6K4J2X`). Used by Firebase to send push notifications to iOS.
+- `AuthKey_WVUV6626PT.p8` — App Store Connect API key (Key ID: `WVUV6626PT`, Issuer ID: `988659a4-ba96-4fb1-8ad7-bccc72aa219f`). Used by Fastlane for CI/CD TestFlight uploads. The key ID and issuer ID are also stored in `.env` as `ASC_KEY_ID` and `ASC_ISSUER_ID`.
 
 Code signing uses **Xcode automatic signing** — Xcode manages provisioning profiles automatically. No manual `.mobileprovision` file is needed in the repo (`.gitignore` still excludes `*.mobileprovision`).
 
@@ -673,4 +674,4 @@ Signing certificates installed in the local macOS Keychain:
 - Apple Development: John McDowell (`P96LAJ7FF8`) — for device builds
 - Apple Distribution: John McDowell (`G76UP8FNMS`) — for App Store distribution (created Feb 2026)
 
-The Team ID is `G76UP8FNMS` (also stored in `.env` as `CAPACITOR_IOS_TEAM_ID`, though the `.env` value may be stale — the canonical source is the certificate's OU field, confirmed via `security find-certificate -c "Apple Development: John McDowell" -p | openssl x509 -noout -subject`).
+The Team ID is `G76UP8FNMS` (stored in `.env` as `CAPACITOR_IOS_TEAM_ID`). The canonical source is the certificate's OU field, confirmed via `security find-certificate -c "Apple Development: John McDowell" -p | openssl x509 -noout -subject`.

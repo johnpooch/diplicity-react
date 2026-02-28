@@ -1,10 +1,19 @@
 {
+    "routes": [
+        {
+            "route": "/.well-known/apple-app-site-association",
+            "headers": {
+                "Content-Type": "application/json"
+            }
+        }
+    ],
     "navigationFallback": {
         "rewrite": "index.html",
         "exclude": [
             "*.{svg,png,jpg,gif}",
             "*.{css,scss}",
-            "*.js"
+            "*.js",
+            "/.well-known/*"
         ]
     }
 }

@@ -1,0 +1,9 @@
+git_url("https://github.com/johnpooch/ios-certificates.git")
+
+storage_mode("git")
+
+type("appstore")
+
+app_identifier("com.diplicity.app")
+
+team_id("G76UP8FNMS")
