@@ -19,6 +19,9 @@
     "cap:run": "cap run"
   },
   "dependencies": {
+    "@capacitor/core": "^8.1.0",
+    "@capacitor/ios": "^8.1.0",
+    "@capgo/capacitor-social-login": "^8.3.6",
     "@fontsource/roboto": "^5.1.0",
     "@hookform/resolvers": "^5.2.2",
     "@opentelemetry/api": "^1.9.0",
@@ -69,6 +72,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.1.0",
     "@chromatic-com/storybook": "^3.2.2",
     "@eslint/js": "^9.15.0",
     "@faker-js/faker": "^10.1.0",

@@ -1,4 +1,5 @@
 import "./App.css";
+import { useEffect } from "react";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Router from "./Router";
@@ -6,6 +7,8 @@ import { MaintenanceMode } from "./components/MaintenanceMode";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider, useAuth } from "./auth";
 import { Toaster } from "./components/ui/sonner";
+import { isNativePlatform } from "./utils/platform";
+import { initializeNativeGoogleAuth } from "./auth/nativeGoogleAuth";
 
 const queryClient = new QueryClient();
 
@@ -17,6 +20,12 @@ function AppContent() {
 
 function App() {
   const isMaintenanceMode = import.meta.env.VITE_MAINTENANCE_MODE === "true";
+
+  useEffect(() => {
+    if (isNativePlatform()) {
+      initializeNativeGoogleAuth();
+    }
+  }, []);
 
   return (
     <ErrorBoundary>

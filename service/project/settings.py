@@ -44,7 +44,7 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-gdnbe1&siif)1gsuv+f
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,service,allowed-health-check").split(",")
+ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,service,allowed-health-check,192.168.68.50").split(",")
 
 # CSRF Settings
 CSRF_TRUSTED_ORIGINS = os.getenv(
@@ -106,7 +106,7 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = os.getenv(
-    "DJANGO_CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173,http://diplicity-web:5173"
+    "DJANGO_CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173,http://diplicity-web:5173,capacitor://localhost"
 ).split(",")
 
 CORS_ALLOW_HEADERS = [
@@ -225,6 +225,7 @@ STORAGES = {
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_IOS_CLIENT_ID = os.getenv("GOOGLE_IOS_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 
 SOCIAL_AUTH_PASSWORD = os.getenv("SOCIAL_AUTH_PASSWORD", "default_social_password")
