@@ -349,8 +349,8 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
                               disabled={isSubmitting}
                             >
                               <FormControl>
-                                <SelectTrigger className="w-full">
-                                  <SelectValue placeholder="Same as movement phase" />
+                                <SelectTrigger className="w-full min-w-0 [&>[data-slot=select-value]]:min-w-0">
+                                  <SelectValue placeholder="Same as movement" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
@@ -382,6 +382,7 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
                             <FormControl>
                               <Input
                                 type="time"
+                                className="appearance-none"
                                 value={timeField.value ?? ""}
                                 onChange={timeField.onChange}
                                 disabled={isSubmitting}
@@ -470,8 +471,8 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
                               disabled={isSubmitting}
                             >
                               <FormControl>
-                                <SelectTrigger className="w-full">
-                                  <SelectValue placeholder="Same as movement phase" />
+                                <SelectTrigger className="w-full min-w-0 [&>[data-slot=select-value]]:min-w-0">
+                                  <SelectValue placeholder="Same as movement" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>

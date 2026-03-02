@@ -38,32 +38,11 @@
       "mcp__sentry__*"
     ],
     "deny": [
-      "Bash(gh pr merge:*)",
-      "Bash(gh pr merge)",
-      "Bash(gh pr close:*)",
-      "Bash(gh pr close)",
       "Bash(gh repo delete:*)",
       "Bash(gh repo delete)",
       "Bash(gh repo archive:*)",
       "Bash(gh repo archive)",
-      "Bash(gh secret:*)",
-      "Bash(gh secret)",
-      "Bash(gh auth logout:*)",
-      "Bash(gh auth logout)",
-      "Bash(gh auth token:*)",
-      "Bash(gh auth token)",
-      "Read(./.env)",
-      "Read(./.env.*)",
-      "Read(./secrets/**)",
-      "Read(./**/secrets/**)",
-      "Read(./**/*.pem)",
-      "Read(./**/*.key)",
-      "Edit(./.env)",
-      "Edit(./.env.*)",
-      "Edit(./secrets/**)",
-      "Bash(rm -rf:*)",
-      "Bash(sudo:*)",
-      "Bash(chmod 777:*)"
+      "Bash(rm -rf:*)"
     ],
     "defaultMode": "acceptEdits"
   },

@@ -12,6 +12,7 @@ import { ConvoyArrow } from "./orders/convoy";
 import { SupportHoldArrow } from "./orders/support-hold";
 import { Minus } from "./shapes/minus";
 import { useMapData, type MapData } from "../../hooks/useMapData";
+import { isNativePlatform } from "../../utils/platform";
 
 type VariantForMap = Pick<Variant, "id" | "nations">;
 
@@ -102,6 +103,7 @@ const SUPPLY_CENTER_OPACITY = 0.8;
 const SUPPLY_CENTER_STROKE_WIDTH = 2;
 
 const InteractiveMap = (props: InteractiveMapProps) => {
+  const isNative = isNativePlatform();
   const [hoveredProvince, setHoveredProvince] = useState<string | null>(null);
 
   // If mapData is provided, use it directly; otherwise load internally
@@ -289,7 +291,7 @@ const InteractiveMap = (props: InteractiveMapProps) => {
               stroke={getStroke(province.id)}
               strokeWidth={getStrokeWidth(province.id)}
               onPointerEnter={(e) => {
-                if (e.pointerType === "mouse" && props.interactive) {
+                if (e.pointerType === "mouse" && props.interactive && !isNative) {
                   setHoveredProvince(province.id);
                 }
               }}
@@ -768,7 +770,7 @@ const InteractiveMap = (props: InteractiveMapProps) => {
               d={province.path.d}
               fill={"transparent"}
               onPointerEnter={(e) => {
-                if (e.pointerType === "mouse" && props.interactive) {
+                if (e.pointerType === "mouse" && props.interactive && !isNative) {
                   setHoveredProvince(province.id);
                 }
               }}

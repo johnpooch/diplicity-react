@@ -675,3 +675,49 @@ Signing certificates installed in the local macOS Keychain:
 - Apple Distribution: John McDowell (`G76UP8FNMS`) — for App Store distribution (created Feb 2026)
 
 The Team ID is `G76UP8FNMS` (stored in `.env` as `CAPACITOR_IOS_TEAM_ID`). The canonical source is the certificate's OU field, confirmed via `security find-certificate -c "Apple Development: John McDowell" -p | openssl x509 -noout -subject`.
+
+## Fastlane CI/CD
+
+### Local Usage
+
+Run from `packages/web/`:
+```bash
+# Full release to TestFlight
+npm run build && npx cap sync ios && bundle exec fastlane ios release
+
+# PR validation build
+PR_NUMBER=42 PR_TITLE="My feature" bundle exec fastlane ios pr_build
+```
+
+Requires `ASC_KEY_ID` and `ASC_ISSUER_ID` in `.env`, and the `.p8` key file in the repo root.
+
+### Signing Strategy
+
+- **Local dev**: Xcode automatic signing (`CODE_SIGN_STYLE=Automatic`)
+- **CI / Fastlane**: Manual signing via `match` (`CODE_SIGN_STYLE=Manual` passed as `xcargs`)
+- **Certificates**: Stored in a private Git repo (`ios-certificates`), managed by `match`
+
+The Xcode project stays on Automatic signing — Fastlane overrides to Manual at build time via `xcargs`, so `project.pbxproj` is never modified by CI.
+
+### Version Management
+
+- `MARKETING_VERSION` is read from `packages/web/package.json` `version` field
+- `CURRENT_PROJECT_VERSION` (build number) is a Unix timestamp, auto-generated per build
+- Both are passed via `xcargs` — no `agvtool` or project file modification needed
+
+### GitHub Actions Workflows
+
+- **`ios-release.yml`**: Triggers on push to `main` when `packages/web/**` changes. Builds web, syncs Capacitor, runs `fastlane ios release` to upload to TestFlight.
+- **`ios-pr-build.yml`**: Manual `workflow_dispatch` with a `pr_number` input. Checks out the PR branch, builds, uploads to TestFlight with a changelog, and comments on the PR.
+
+### Required GitHub Secrets
+
+| Secret | Description |
+|--------|-------------|
+| `ASC_KEY_ID` | App Store Connect API key ID (`WVUV6626PT`) |
+| `ASC_ISSUER_ID` | App Store Connect issuer ID |
+| `ASC_KEY_CONTENT` | Base64-encoded `.p8` key file content |
+| `MATCH_GIT_URL` | URL to the `ios-certificates` Git repo |
+| `MATCH_PASSWORD` | Encryption password for match certificates |
+| `MATCH_GIT_BASIC_AUTHORIZATION` | Base64-encoded `user:token` for HTTPS Git auth |
+| `VITE_GOOGLE_IOS_CLIENT_ID` | Google OAuth iOS client ID |

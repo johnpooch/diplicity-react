@@ -180,6 +180,9 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
         centerOnInit={true}
         limitToBounds={true}
         centerZoomedOut={true}
+        disablePadding={true}
+        panning={{ velocityDisabled: true }}
+        velocityAnimation={{ disabled: true }}
       >
         <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
           <InteractiveMap

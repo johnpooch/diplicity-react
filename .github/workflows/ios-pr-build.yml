@@ -1,0 +1,83 @@
+name: iOS PR Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to build"
+        required: true
+        type: string
+
+concurrency:
+  group: ios-pr-build
+  cancel-in-progress: true
+
+jobs:
+  pr_build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: packages/web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch PR info and checkout PR branch
+        run: |
+          PR_INFO=$(gh pr view ${{ inputs.pr_number }} --json headRefName,title)
+          PR_BRANCH=$(echo "$PR_INFO" | jq -r '.headRefName')
+          PR_TITLE=$(echo "$PR_INFO" | jq -r '.title')
+          echo "PR_TITLE=$PR_TITLE" >> "$GITHUB_ENV"
+          git fetch origin "$PR_BRANCH"
+          git checkout "$PR_BRANCH"
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+          cache-dependency-path: packages/web/package-lock.json
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: true
+          working-directory: packages/web
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build web app
+        run: npm run build
+        env:
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          VITE_DIPLICITY_API_BASE_URL: ${{ vars.SERVICE_BASE_URL }}
+          VITE_MAINTENANCE_MODE: ${{ vars.MAINTENANCE_MODE }}
+          VITE_GOOGLE_IOS_CLIENT_ID: ${{ secrets.VITE_GOOGLE_IOS_CLIENT_ID }}
+
+      - name: Sync Capacitor
+        run: npx cap sync ios
+
+      - name: Build and upload to TestFlight
+        run: bundle exec fastlane ios pr_build
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
+          PR_TITLE: ${{ env.PR_TITLE }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+
+      - name: Comment on PR
+        if: success()
+        run: |
+          gh pr comment ${{ inputs.pr_number }} \
+            --body "iOS build uploaded to TestFlight for PR #${{ inputs.pr_number }}. Check the TestFlight app for the latest build."
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

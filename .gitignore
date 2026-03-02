@@ -61,3 +61,9 @@ screenshots/
 AuthKey_*.p8
 *.mobileprovision
 *.cer
+
+# Fastlane artifacts
+packages/web/fastlane/api_key.json
+packages/web/fastlane/report.xml
+packages/web/fastlane/README.md
+packages/web/build/
