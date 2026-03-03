@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: "Diplicity",
   webDir: "dist",
   ios: {
-    webContentsDebuggingEnabled: process.env.CAPACITOR_WEB_DEBUG === "true",
+    webContentsDebuggingEnabled: true,
   },
   server: {
     iosScheme: "capacitor",
