@@ -2,6 +2,7 @@ default_platform(:ios)
 
 REPO_ROOT = File.expand_path("../../..", __dir__)
 WEB_ROOT = File.expand_path("..", __dir__)
+XCODEPROJ = File.join(WEB_ROOT, "ios/App/App.xcodeproj")
 
 platform :ios do
   before_all do
@@ -40,60 +41,99 @@ platform :ios do
     )
   end
 
+  desc "Force regenerate provisioning profiles (run after adding entitlements)"
+  lane :regenerate_profiles do
+    load_api_key
+    match(
+      type: "appstore",
+      force: true,
+    )
+  end
+
+  desc "Set manual signing on the App target only (leaves SPM deps untouched)"
+  private_lane :configure_signing do
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: XCODEPROJ,
+      team_id: "G76UP8FNMS",
+      profile_name: "match AppStore com.diplicity.app",
+      code_sign_identity: "Apple Distribution",
+      targets: ["App"],
+    )
+  end
+
+  desc "Restore automatic signing for local dev"
+  private_lane :restore_signing do
+    update_code_signing_settings(
+      use_automatic_signing: true,
+      path: XCODEPROJ,
+      team_id: "G76UP8FNMS",
+      targets: ["App"],
+    )
+  end
+
   desc "Build and upload to TestFlight"
   lane :release do
     load_api_key
     sync_signing
+    configure_signing
 
-    version = JSON.parse(File.read(File.join(WEB_ROOT, "package.json")))["version"]
-    build_number = Time.now.to_i.to_s
+    begin
+      version = JSON.parse(File.read(File.join(WEB_ROOT, "package.json")))["version"]
+      build_number = Time.now.to_i.to_s
 
-    build_app(
-      project: File.join(WEB_ROOT, "ios/App/App.xcodeproj"),
-      scheme: "App",
-      output_directory: File.join(WEB_ROOT, "build"),
-      output_name: "Diplicity.ipa",
-      export_method: "app-store",
-      xcargs: [
-        "MARKETING_VERSION=#{version}",
-        "CURRENT_PROJECT_VERSION=#{build_number}",
-        "CODE_SIGN_STYLE=Manual",
-        "DEVELOPMENT_TEAM=G76UP8FNMS",
-      ].join(" "),
-    )
+      build_app(
+        project: XCODEPROJ,
+        scheme: "App",
+        output_directory: File.join(WEB_ROOT, "build"),
+        output_name: "Diplicity.ipa",
+        export_method: "app-store",
+        xcodebuild_formatter: "",
+        xcargs: [
+          "MARKETING_VERSION=#{version}",
+          "CURRENT_PROJECT_VERSION=#{build_number}",
+        ].join(" "),
+      )
 
-    upload_to_testflight(
-      skip_waiting_for_build_processing: true,
-    )
+      upload_to_testflight(
+        skip_waiting_for_build_processing: true,
+      )
+    ensure
+      restore_signing unless is_ci
+    end
   end
 
   desc "Build for PR validation (no upload)"
   lane :pr_build do
     load_api_key
     sync_signing
+    configure_signing
 
-    pr_number = ENV.fetch("PR_NUMBER", "0")
-    pr_title = ENV.fetch("PR_TITLE", "PR Build")
-    version = JSON.parse(File.read(File.join(WEB_ROOT, "package.json")))["version"]
-    build_number = Time.now.to_i.to_s
+    begin
+      pr_number = ENV.fetch("PR_NUMBER", "0")
+      pr_title = ENV.fetch("PR_TITLE", "PR Build")
+      version = JSON.parse(File.read(File.join(WEB_ROOT, "package.json")))["version"]
+      build_number = Time.now.to_i.to_s
 
-    build_app(
-      project: File.join(WEB_ROOT, "ios/App/App.xcodeproj"),
-      scheme: "App",
-      output_directory: File.join(WEB_ROOT, "build"),
-      output_name: "Diplicity-PR#{pr_number}.ipa",
-      export_method: "app-store",
-      xcargs: [
-        "MARKETING_VERSION=#{version}",
-        "CURRENT_PROJECT_VERSION=#{build_number}",
-        "CODE_SIGN_STYLE=Manual",
-        "DEVELOPMENT_TEAM=G76UP8FNMS",
-      ].join(" "),
-    )
+      build_app(
+        project: XCODEPROJ,
+        scheme: "App",
+        output_directory: File.join(WEB_ROOT, "build"),
+        output_name: "Diplicity-PR#{pr_number}.ipa",
+        export_method: "app-store",
+        xcodebuild_formatter: "",
+        xcargs: [
+          "MARKETING_VERSION=#{version}",
+          "CURRENT_PROJECT_VERSION=#{build_number}",
+        ].join(" "),
+      )
 
-    upload_to_testflight(
-      skip_waiting_for_build_processing: true,
-      changelog: "PR ##{pr_number}: #{pr_title}",
-    )
+      upload_to_testflight(
+        skip_waiting_for_build_processing: true,
+        changelog: "PR ##{pr_number}: #{pr_title}",
+      )
+    ensure
+      restore_signing unless is_ci
+    end
   end
 end

@@ -694,10 +694,10 @@ Requires `ASC_KEY_ID` and `ASC_ISSUER_ID` in `.env`, and the `.p8` key file in t
 ### Signing Strategy
 
 - **Local dev**: Xcode automatic signing (`CODE_SIGN_STYLE=Automatic`)
-- **CI / Fastlane**: Manual signing via `match` (`CODE_SIGN_STYLE=Manual` passed as `xcargs`)
+- **CI / Fastlane**: Manual signing via `match` + `update_code_signing_settings` (targets the App target only)
 - **Certificates**: Stored in a private Git repo (`ios-certificates`), managed by `match`
 
-The Xcode project stays on Automatic signing — Fastlane overrides to Manual at build time via `xcargs`, so `project.pbxproj` is never modified by CI.
+Fastlane uses `update_code_signing_settings` to switch the App target to Manual signing before building. This is target-scoped (unlike `xcargs` which applies globally to all targets including SPM dependencies). On local runs, signing is automatically restored to Automatic after the build via an `ensure` block.
 
 ### Version Management
 
