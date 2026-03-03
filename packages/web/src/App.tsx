@@ -9,6 +9,8 @@ import { AuthProvider, useAuth } from "./auth";
 import { Toaster } from "./components/ui/sonner";
 import { isNativePlatform } from "./utils/platform";
 import { initializeNativeGoogleAuth } from "./auth/nativeGoogleAuth";
+import { App as CapacitorApp } from "@capacitor/app";
+import { deepLinkStorage, parseDeepLinkUrl } from "./deepLink";
 
 const queryClient = new QueryClient();
 
@@ -17,6 +19,19 @@ function AppContent() {
 
   return <Router loggedIn={loggedIn} queryClient={queryClient} />;
 }
+
+const MaybeGoogleOAuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  if (isNativePlatform()) {
+    return <>{children}</>;
+  }
+  return (
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+      {children}
+    </GoogleOAuthProvider>
+  );
+};
 
 function App() {
   const isMaintenanceMode = import.meta.env.VITE_MAINTENANCE_MODE === "true";
@@ -27,19 +42,44 @@ function App() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!isNativePlatform()) return;
+
+    const listener = CapacitorApp.addListener("appUrlOpen", (event) => {
+      const path = parseDeepLinkUrl(event.url);
+      if (path) deepLinkStorage.setPendingPath(path);
+    });
+
+    CapacitorApp.getLaunchUrl().then((result) => {
+      if (result?.url) {
+        const path = parseDeepLinkUrl(result.url);
+        if (path) deepLinkStorage.setPendingPath(path);
+      }
+    });
+
+    return () => {
+      listener.then((handle) => handle.remove());
+    };
+  }, []);
+
   return (
     <ErrorBoundary>
       {isMaintenanceMode ? (
         <MaintenanceMode />
       ) : (
-        <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+        <MaybeGoogleOAuthProvider>
           <QueryClientProvider client={queryClient}>
             <AuthProvider>
               <AppContent />
-              <Toaster position="top-center" closeButton richColors />
+              <Toaster
+                position="top-center"
+                closeButton
+                richColors
+                mobileOffset={{ top: "calc(16px + env(safe-area-inset-top, 0px))" }}
+              />
             </AuthProvider>
           </QueryClientProvider>
-        </GoogleOAuthProvider>
+        </MaybeGoogleOAuthProvider>
       )}
     </ErrorBoundary>
   );

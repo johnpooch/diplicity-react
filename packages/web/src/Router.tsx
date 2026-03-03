@@ -15,6 +15,7 @@ import { GameDetailLayout } from "./components/GameDetailLayout";
 import { GamePhaseRedirect } from "./components/GamePhaseRedirect";
 import { getVariantsListQueryOptions } from "./api/generated/endpoints";
 import * as Sentry from "@sentry/react";
+import { useDeepLink } from "./deepLink";
 
 const RouteFallback: React.FC = () => (
   <div className="flex-1 flex items-center justify-center">
@@ -54,6 +55,11 @@ const GameDetailLayoutWrapper: React.FC = () => {
   );
 };
 
+const AuthenticatedRoot: React.FC = () => {
+  useDeepLink();
+  return <Outlet />;
+};
+
 const GameIndexRoute: React.FC = () => {
   const isMobile = window.innerWidth < 1024;
   return (
@@ -76,6 +82,7 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
             {
               id: "root",
               path: "/",
+              element: <AuthenticatedRoot />,
               errorElement: <RootErrorBoundary />,
               loader: createVariantsLoader(queryClient),
               children: [

@@ -53,9 +53,17 @@ AuthKey*
 packages/web/ios/App/build/
 packages/web/ios/App/App/public/
 
+screenshots/
+
 .claude/worktrees
 .claude/settings.local.json
 # Apple credentials (APNs keys, provisioning profiles, certificates)
 AuthKey_*.p8
 *.mobileprovision
 *.cer
+
+# Fastlane artifacts
+packages/web/fastlane/api_key.json
+packages/web/fastlane/report.xml
+packages/web/fastlane/README.md
+packages/web/build/

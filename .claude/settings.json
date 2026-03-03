@@ -3,9 +3,11 @@
     "allow": [
       "Bash(awk:*)",
       "Bash(cat:*)",
+      "Bash(curl:*)",
       "Bash(cut:*)",
       "Bash(docker:*)",
       "Bash(docker-compose:*)",
+      "Bash(file:*)",
       "Bash(find:*)",
       "Bash(gh:*)",
       "Bash(git:*)",
@@ -13,22 +15,36 @@
       "Bash(head:*)",
       "Bash(jq:*)",
       "Bash(ls:*)",
-      "Bash(node --version)",
-      "Bash(npm --version)",
-      "Bash(npm run:*)",
-      "Bash(npm test:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(pip3:*)",
+      "Bash(pwd:*)",
       "Bash(python3:*)",
+      "Bash(railway:*)",
+      "Bash(security:*)",
       "Bash(sort:*)",
       "Bash(tail:*)",
+      "Bash(touch:*)",
       "Bash(tr:*)",
       "Bash(uniq:*)",
       "Bash(wc:*)",
+      "Bash(xcodebuild:*)",
+      "Bash(xcrun:*)",
       "Read(~/.claude/*)",
       "Skill(react)",
-      "mcp__XcodeBuildMCP"
+      "mcp__XcodeBuildMCP__*",
+      "mcp__mobile-mcp__*",
+      "mcp__sentry__*"
     ],
-    "deny": [],
-    "defaultMode": "plan"
+    "deny": [
+      "Bash(gh repo delete:*)",
+      "Bash(gh repo delete)",
+      "Bash(gh repo archive:*)",
+      "Bash(gh repo archive)",
+      "Bash(rm -rf:*)"
+    ],
+    "defaultMode": "acceptEdits"
   },
   "hooks": {
     "PostToolUse": [

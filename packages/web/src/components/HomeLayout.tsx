@@ -14,6 +14,7 @@ import { DiplicityLogo } from "@/components/DiplicityLogo";
 import { Navigation } from "@/components/Navigation";
 import { InfoPanel } from "@/components/InfoPanel";
 import { SidebarUserArea } from "@/components/SidebarUserArea";
+import { SafeAreaView } from "@/components/SafeAreaView";
 import { Home, Search, PlusCircle, Blocks, MessageCircle } from "lucide-react";
 
 const navigationItems = [
@@ -66,7 +67,7 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
 
   return (
     <SidebarProvider>
-      <div
+      <SafeAreaView
         className={cn(
           "flex flex-col h-screen w-full overflow-hidden",
           className
@@ -125,7 +126,7 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
             onItemClick={path => navigate(path)}
           />
         </div>
-      </div>
+      </SafeAreaView>
     </SidebarProvider>
   );
 };

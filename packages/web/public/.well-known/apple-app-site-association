@@ -1,0 +1,20 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["G76UP8FNMS.com.diplicity.app"],
+        "components": [
+          { "/": "/game/*" },
+          { "/": "/game-info/*" },
+          { "/": "/player-info/*" },
+          { "/": "/find-games" },
+          { "/": "/create-game" },
+          { "/": "/sandbox" },
+          { "/": "/community" },
+          { "/": "/profile" }
+        ]
+      }
+    ]
+  }
+}

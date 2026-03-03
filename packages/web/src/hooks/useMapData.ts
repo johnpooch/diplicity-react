@@ -39,16 +39,20 @@ const isJsonResponse = (response: Response): boolean => {
 };
 
 const fetchMapData = async (variantId: string): Promise<MapData> => {
-  const response = await fetch(`/maps/${variantId}.json`);
-  if (!response.ok || !isJsonResponse(response)) {
-    // Fall back to classical if the variant map doesn't exist
-    const fallbackResponse = await fetch("/maps/classical.json");
-    if (!fallbackResponse.ok || !isJsonResponse(fallbackResponse)) {
-      throw new Error("Failed to load map data");
+  try {
+    const response = await fetch(`/maps/${variantId}.json`);
+    if (response.ok && isJsonResponse(response)) {
+      return response.json();
     }
-    return fallbackResponse.json();
+  } catch {
+    // Fetch can reject on Capacitor iOS for missing local files
   }
-  return response.json();
+  // Fall back to classical if the variant map doesn't exist
+  const fallbackResponse = await fetch("/maps/classical.json");
+  if (!fallbackResponse.ok || !isJsonResponse(fallbackResponse)) {
+    throw new Error("Failed to load map data");
+  }
+  return fallbackResponse.json();
 };
 
 export const useMapData = (variantId: string) => {

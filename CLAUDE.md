@@ -666,6 +666,7 @@ xcodebuild -project ios/App/App.xcodeproj -scheme App \
 The following files are in the repo root but gitignored:
 
 - `AuthKey_C6JM6K4J2X.p8` — APNs authentication key (Key ID: `C6JM6K4J2X`). Used by Firebase to send push notifications to iOS.
+- `AuthKey_WVUV6626PT.p8` — App Store Connect API key (Key ID: `WVUV6626PT`, Issuer ID: `988659a4-ba96-4fb1-8ad7-bccc72aa219f`). Used by Fastlane for CI/CD TestFlight uploads. The key ID and issuer ID are also stored in `.env` as `ASC_KEY_ID` and `ASC_ISSUER_ID`.
 
 Code signing uses **Xcode automatic signing** — Xcode manages provisioning profiles automatically. No manual `.mobileprovision` file is needed in the repo (`.gitignore` still excludes `*.mobileprovision`).
 
@@ -673,4 +674,50 @@ Signing certificates installed in the local macOS Keychain:
 - Apple Development: John McDowell (`P96LAJ7FF8`) — for device builds
 - Apple Distribution: John McDowell (`G76UP8FNMS`) — for App Store distribution (created Feb 2026)
 
-The Team ID is `G76UP8FNMS` (also stored in `.env` as `CAPACITOR_IOS_TEAM_ID`, though the `.env` value may be stale — the canonical source is the certificate's OU field, confirmed via `security find-certificate -c "Apple Development: John McDowell" -p | openssl x509 -noout -subject`).
+The Team ID is `G76UP8FNMS` (stored in `.env` as `CAPACITOR_IOS_TEAM_ID`). The canonical source is the certificate's OU field, confirmed via `security find-certificate -c "Apple Development: John McDowell" -p | openssl x509 -noout -subject`.
+
+## Fastlane CI/CD
+
+### Local Usage
+
+Run from `packages/web/`:
+```bash
+# Full release to TestFlight
+npm run build && npx cap sync ios && bundle exec fastlane ios release
+
+# PR validation build
+PR_NUMBER=42 PR_TITLE="My feature" bundle exec fastlane ios pr_build
+```
+
+Requires `ASC_KEY_ID` and `ASC_ISSUER_ID` in `.env`, and the `.p8` key file in the repo root.
+
+### Signing Strategy
+
+- **Local dev**: Xcode automatic signing (`CODE_SIGN_STYLE=Automatic`)
+- **CI / Fastlane**: Manual signing via `match` + `update_code_signing_settings` (targets the App target only)
+- **Certificates**: Stored in a private Git repo (`ios-certificates`), managed by `match`
+
+Fastlane uses `update_code_signing_settings` to switch the App target to Manual signing before building. This is target-scoped (unlike `xcargs` which applies globally to all targets including SPM dependencies). On local runs, signing is automatically restored to Automatic after the build via an `ensure` block.
+
+### Version Management
+
+- `MARKETING_VERSION` is read from `packages/web/package.json` `version` field
+- `CURRENT_PROJECT_VERSION` (build number) is a Unix timestamp, auto-generated per build
+- Both are passed via `xcargs` — no `agvtool` or project file modification needed
+
+### GitHub Actions Workflows
+
+- **`ios-release.yml`**: Triggers on push to `main` when `packages/web/**` changes. Builds web, syncs Capacitor, runs `fastlane ios release` to upload to TestFlight.
+- **`ios-pr-build.yml`**: Manual `workflow_dispatch` with a `pr_number` input. Checks out the PR branch, builds, uploads to TestFlight with a changelog, and comments on the PR.
+
+### Required GitHub Secrets
+
+| Secret | Description |
+|--------|-------------|
+| `ASC_KEY_ID` | App Store Connect API key ID (`WVUV6626PT`) |
+| `ASC_ISSUER_ID` | App Store Connect issuer ID |
+| `ASC_KEY_CONTENT` | Base64-encoded `.p8` key file content |
+| `MATCH_GIT_URL` | URL to the `ios-certificates` Git repo |
+| `MATCH_PASSWORD` | Encryption password for match certificates |
+| `MATCH_GIT_BASIC_AUTHORIZATION` | Base64-encoded `user:token` for HTTPS Git auth |
+| `VITE_GOOGLE_IOS_CLIENT_ID` | Google OAuth iOS client ID |

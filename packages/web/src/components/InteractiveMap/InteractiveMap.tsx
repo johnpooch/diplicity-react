@@ -12,6 +12,7 @@ import { ConvoyArrow } from "./orders/convoy";
 import { SupportHoldArrow } from "./orders/support-hold";
 import { Minus } from "./shapes/minus";
 import { useMapData, type MapData } from "../../hooks/useMapData";
+import { isNativePlatform } from "../../utils/platform";
 
 type VariantForMap = Pick<Variant, "id" | "nations">;
 
@@ -102,6 +103,7 @@ const SUPPLY_CENTER_OPACITY = 0.8;
 const SUPPLY_CENTER_STROKE_WIDTH = 2;
 
 const InteractiveMap = (props: InteractiveMapProps) => {
+  const isNative = isNativePlatform();
   const [hoveredProvince, setHoveredProvince] = useState<string | null>(null);
 
   // If mapData is provided, use it directly; otherwise load internally
@@ -288,10 +290,16 @@ const InteractiveMap = (props: InteractiveMapProps) => {
               fill={getFill(province.id)}
               stroke={getStroke(province.id)}
               strokeWidth={getStrokeWidth(province.id)}
-              onMouseEnter={() =>
-                props.interactive && setHoveredProvince(province.id)
-              }
-              onMouseLeave={() => props.interactive && setHoveredProvince(null)}
+              onPointerEnter={(e) => {
+                if (e.pointerType === "mouse" && props.interactive && !isNative) {
+                  setHoveredProvince(province.id);
+                }
+              }}
+              onPointerLeave={(e) => {
+                if (e.pointerType === "mouse" && props.interactive) {
+                  setHoveredProvince(null);
+                }
+              }}
               onClick={event =>
                 props.interactive && props.onClickProvince?.(province.id, event)
               }
@@ -761,10 +769,16 @@ const InteractiveMap = (props: InteractiveMapProps) => {
               id={province.id}
               d={province.path.d}
               fill={"transparent"}
-              onMouseEnter={() =>
-                props.interactive && setHoveredProvince(province.id)
-              }
-              onMouseLeave={() => props.interactive && setHoveredProvince(null)}
+              onPointerEnter={(e) => {
+                if (e.pointerType === "mouse" && props.interactive && !isNative) {
+                  setHoveredProvince(province.id);
+                }
+              }}
+              onPointerLeave={(e) => {
+                if (e.pointerType === "mouse" && props.interactive) {
+                  setHoveredProvince(null);
+                }
+              }}
               onClick={event =>
                 props.interactive && props.onClickProvince?.(province.id, event)
               }

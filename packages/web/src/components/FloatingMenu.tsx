@@ -114,7 +114,7 @@ function FloatingMenuItem({
       role="menuitem"
       data-variant={variant}
       className={cn(
-        "relative flex cursor-default select-none items-center gap-2 rounded-sm px-3 py-2 text-sm outline-none",
+        "relative flex cursor-default select-none items-center gap-2 rounded-sm px-4 py-3 text-base md:px-3 md:py-2 md:text-sm outline-none",
         "hover:bg-accent hover:text-accent-foreground",
         "focus:bg-accent focus:text-accent-foreground",
         "data-[variant=destructive]:text-destructive data-[variant=destructive]:hover:bg-destructive/10 data-[variant=destructive]:focus:bg-destructive/10",
