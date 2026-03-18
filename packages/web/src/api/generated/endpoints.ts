@@ -448,6 +448,8 @@ export const StepEnum = {
 
 export interface Order {
   readonly source: Province;
+  /** @nullable */
+  readonly sourceCoast: Province | null;
   readonly target: Province;
   readonly aux: Province;
   readonly namedCoast: Province;
@@ -7234,6 +7236,23 @@ export const getGameOrdersCreateResponseMock = (
       ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
     },
   },
+  sourceCoast: faker.helpers.arrayElement([
+    {
+      id: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      type: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      supplyCenter: faker.datatype.boolean(),
+      parentId: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        null,
+      ]),
+      namedCoastIds: Array.from(
+        { length: faker.number.int({ min: 1, max: 10 }) },
+        (_, i) => i + 1
+      ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
+    },
+    null,
+  ]),
   target: {
     ...{
       id: faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -7383,6 +7402,23 @@ export const getGameOrdersListResponseMock = (): Order[] =>
         ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
       },
     },
+    sourceCoast: faker.helpers.arrayElement([
+      {
+        id: faker.string.alpha({ length: { min: 10, max: 20 } }),
+        name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+        type: faker.string.alpha({ length: { min: 10, max: 20 } }),
+        supplyCenter: faker.datatype.boolean(),
+        parentId: faker.helpers.arrayElement([
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          null,
+        ]),
+        namedCoastIds: Array.from(
+          { length: faker.number.int({ min: 1, max: 10 }) },
+          (_, i) => i + 1
+        ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
+      },
+      null,
+    ]),
     target: {
       ...{
         id: faker.string.alpha({ length: { min: 10, max: 20 } }),

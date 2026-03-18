@@ -1,5 +1,6 @@
+from django.apps import apps
 from django.db import models
-from django.db.models import Q, ObjectDoesNotExist
+from django.db.models import Q, Prefetch, ObjectDoesNotExist
 from django.core import exceptions
 
 from common.constants import UnitType, OrderType, PhaseStatus, OrderResolutionStatus, OrderCreationStep, PhaseType
@@ -38,7 +39,10 @@ class OrderQuerySet(models.QuerySet):
             "named_coast__parent",
         ).prefetch_related(
             "phase_state__member__user__profile",
-            "phase_state__phase__units",
+            Prefetch(
+                "phase_state__phase__units",
+                queryset=apps.get_model("unit", "Unit").objects.select_related("province"),
+            ),
             "source__named_coasts",
             "target__named_coasts",
             "aux__named_coasts",
@@ -168,6 +172,15 @@ class Order(BaseModel):
     @property
     def options(self):
         return get_options_for_order(self.phase.transformed_options, self)
+
+    @property
+    def source_coast(self):
+        if not self.source:
+            return None
+        for unit in self.phase.units.all():
+            if unit.province.parent_id == self.source_id:
+                return unit.province
+        return None
 
     @property
     def source_unit(self):
