@@ -10,7 +10,7 @@ from rest_framework import status
 from common.constants import PhaseStatus, OrderType, UnitType, OrderCreationStep, OrderResolutionStatus, PhaseType
 
 from .models import Order, OrderResolution
-from .utils import get_options_for_order, get_order_data_from_selected
+from .utils import get_options_for_order, get_order_data_from_selected, flatten_options, FIELD_ORDER
 
 
 class TestOrderListView:
@@ -2584,3 +2584,264 @@ class TestOrderSourceUnit:
         result = order.source_unit
         assert result is not None
         assert result in [fleet_unit, army_unit]
+
+
+class MockProvince:
+    def __init__(self, name):
+        self.name = name
+
+
+MOCK_PROVINCES = {
+    "lon": MockProvince("London"),
+    "edi": MockProvince("Edinburgh"),
+    "eng": MockProvince("English Channel"),
+    "nth": MockProvince("North Sea"),
+    "wal": MockProvince("Wales"),
+    "yor": MockProvince("Yorkshire"),
+    "bel": MockProvince("Belgium"),
+    "mid": MockProvince("Mid-Atlantic Ocean"),
+    "spa": MockProvince("Spain"),
+    "spa/nc": MockProvince("Spain (NC)"),
+    "spa/sc": MockProvince("Spain (SC)"),
+    "mun": MockProvince("Munich"),
+    "bre": MockProvince("Brest"),
+    "stp": MockProvince("St. Petersburg"),
+    "stp/nc": MockProvince("St. Petersburg (NC)"),
+    "stp/sc": MockProvince("St. Petersburg (SC)"),
+    "par": MockProvince("Paris"),
+    "bur": MockProvince("Burgundy"),
+    "sev": MockProvince("Sevastopol"),
+    "rum": MockProvince("Rumania"),
+    "gal": MockProvince("Galicia"),
+    "tri": MockProvince("Trieste"),
+    "vie": MockProvince("Vienna"),
+    "bud": MockProvince("Budapest"),
+    "ser": MockProvince("Serbia"),
+}
+
+
+class TestFlattenOptions:
+
+    def test_hold(self):
+        options = {"lon": {"Hold": {}}}
+        result = flatten_options(options, MOCK_PROVINCES)
+        assert len(result) == 1
+        assert result[0]["source"] == {"id": "lon", "label": "London"}
+        assert result[0]["orderType"] == {"id": "Hold", "label": "Hold"}
+        assert result[0]["target"] is None
+        assert result[0]["aux"] is None
+        assert result[0]["unitType"] is None
+        assert result[0]["namedCoast"] is None
+
+    def test_disband(self):
+        options = {"lon": {"Disband": {}}}
+        result = flatten_options(options, MOCK_PROVINCES)
+        assert len(result) == 1
+        assert result[0]["orderType"] == {"id": "Disband", "label": "Disband"}
+        assert result[0]["target"] is None
+        assert result[0]["aux"] is None
+        assert result[0]["unitType"] is None
+        assert result[0]["namedCoast"] is None
+
+    def test_move_simple(self):
+        options = {"lon": {"Move": {"eng": {}}}}
+        result = flatten_options(options, MOCK_PROVINCES)
+        assert len(result) == 1
+        assert result[0]["source"] == {"id": "lon", "label": "London"}
+        assert result[0]["orderType"] == {"id": "Move", "label": "Move"}
+        assert result[0]["target"] == {"id": "eng", "label": "English Channel"}
+        assert result[0]["namedCoast"] is None
+
+    def test_move_to_named_coast(self):
+        options = {"mid": {"Move": {"spa": {"spa/nc": {}, "spa/sc": {}}}}}
+        result = flatten_options(options, MOCK_PROVINCES)
+        assert len(result) == 2
+        assert result[0]["target"] == {"id": "spa", "label": "Spain"}
+        assert result[0]["namedCoast"] == {"id": "spa/nc", "label": "Spain (NC)"}
+        assert result[1]["target"] == {"id": "spa", "label": "Spain"}
+        assert result[1]["namedCoast"] == {"id": "spa/sc", "label": "Spain (SC)"}
+
+    def test_move_via_convoy(self):
+        options = {"lon": {"MoveViaConvoy": {"bel": {}}}}
+        result = flatten_options(options, MOCK_PROVINCES)
+        assert len(result) == 1
+        assert result[0]["orderType"] == {"id": "MoveViaConvoy", "label": "MoveViaConvoy"}
+        assert result[0]["target"] == {"id": "bel", "label": "Belgium"}
+
+    def test_support(self):
+        options = {"lon": {"Support": {"wal": {"yor": {}}}}}
+        result = flatten_options(options, MOCK_PROVINCES)
+        assert len(result) == 1
+        assert result[0]["source"] == {"id": "lon", "label": "London"}
+        assert result[0]["orderType"] == {"id": "Support", "label": "Support"}
+        assert result[0]["aux"] == {"id": "wal", "label": "Wales"}
+        assert result[0]["target"] == {"id": "yor", "label": "Yorkshire"}
+
+    def test_convoy(self):
+        options = {"nth": {"Convoy": {"yor": {"bel": {}}}}}
+        result = flatten_options(options, MOCK_PROVINCES)
+        assert len(result) == 1
+        assert result[0]["aux"] == {"id": "yor", "label": "Yorkshire"}
+        assert result[0]["target"] == {"id": "bel", "label": "Belgium"}
+
+    def test_build_army(self):
+        options = {"mun": {"Build": {"Army": {}}}}
+        result = flatten_options(options, MOCK_PROVINCES)
+        assert len(result) == 1
+        assert result[0]["unitType"] == {"id": "Army", "label": "Army"}
+        assert result[0]["namedCoast"] is None
+
+    def test_build_fleet_no_coast(self):
+        options = {"bre": {"Build": {"Fleet": {}}}}
+        result = flatten_options(options, MOCK_PROVINCES)
+        assert len(result) == 1
+        assert result[0]["unitType"] == {"id": "Fleet", "label": "Fleet"}
+        assert result[0]["namedCoast"] is None
+
+    def test_build_fleet_with_coast(self):
+        options = {"stp": {"Build": {"Fleet": {"stp/nc": {}, "stp/sc": {}}}}}
+        result = flatten_options(options, MOCK_PROVINCES)
+        assert len(result) == 2
+        assert result[0]["unitType"] == {"id": "Fleet", "label": "Fleet"}
+        assert result[0]["namedCoast"] == {"id": "stp/nc", "label": "St. Petersburg (NC)"}
+        assert result[1]["namedCoast"] == {"id": "stp/sc", "label": "St. Petersburg (SC)"}
+
+    def test_multiple_order_types(self):
+        options = {"lon": {"Hold": {}, "Move": {"eng": {}}}}
+        result = flatten_options(options, MOCK_PROVINCES)
+        assert len(result) == 2
+        order_types = {r["orderType"]["id"] for r in result}
+        assert order_types == {"Hold", "Move"}
+
+    def test_labels_populated(self):
+        options = {"lon": {"Move": {"eng": {}}}}
+        result = flatten_options(options, MOCK_PROVINCES)
+        order = result[0]
+        for field in ["source", "orderType", "target"]:
+            assert "id" in order[field]
+            assert "label" in order[field]
+            assert isinstance(order[field]["id"], str)
+            assert isinstance(order[field]["label"], str)
+
+    def test_unknown_province_uses_id_as_label(self):
+        options = {"xyz": {"Hold": {}}}
+        result = flatten_options(options, MOCK_PROVINCES)
+        assert result[0]["source"] == {"id": "xyz", "label": "xyz"}
+
+    def test_multiple_sources(self):
+        options = {
+            "lon": {"Hold": {}},
+            "edi": {"Hold": {}},
+        }
+        result = flatten_options(options, MOCK_PROVINCES)
+        assert len(result) == 2
+        sources = {r["source"]["id"] for r in result}
+        assert sources == {"lon", "edi"}
+
+    def test_support_multiple_targets(self):
+        options = {"lon": {"Support": {"wal": {"yor": {}, "eng": {}}}}}
+        result = flatten_options(options, MOCK_PROVINCES)
+        assert len(result) == 2
+        targets = {r["target"]["id"] for r in result}
+        assert targets == {"yor", "eng"}
+
+    def test_all_fields_present(self):
+        options = {"lon": {"Hold": {}}}
+        result = flatten_options(options, MOCK_PROVINCES)
+        expected_keys = {"source", "orderType", "target", "aux", "unitType", "namedCoast"}
+        assert set(result[0].keys()) == expected_keys
+
+    def test_empty_options(self):
+        result = flatten_options({}, MOCK_PROVINCES)
+        assert result == []
+
+
+class TestOrderOptionsView:
+
+    @pytest.mark.django_db
+    def test_auth_required(self, unauthenticated_client, game_with_options):
+        url = reverse("order-options", args=[game_with_options.id])
+        response = unauthenticated_client.get(url)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_non_member_rejected(self, game_with_options, tertiary_user):
+        from rest_framework.test import APIClient
+        client = APIClient()
+        client.force_authenticate(user=tertiary_user)
+        url = reverse("order-options", args=[game_with_options.id])
+        response = client.get(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_returns_own_nation_options(self, authenticated_client, game_with_options):
+        url = reverse("order-options", args=[game_with_options.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert "orders" in response.data
+        assert "field_order" in response.data
+        assert isinstance(response.data["orders"], list)
+        assert len(response.data["orders"]) > 0
+        sources = {o["source"]["id"] for o in response.data["orders"]}
+        assert "bud" in sources
+
+    @pytest.mark.django_db
+    def test_response_shape(self, authenticated_client, game_with_options):
+        url = reverse("order-options", args=[game_with_options.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+
+        order = response.data["orders"][0]
+        expected_keys = {"source", "order_type", "target", "aux", "unit_type", "named_coast"}
+        assert set(order.keys()) == expected_keys
+
+        assert "id" in order["source"]
+        assert "label" in order["source"]
+
+    @pytest.mark.django_db
+    def test_null_fields_present(self, authenticated_client, game_with_options):
+        url = reverse("order-options", args=[game_with_options.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+
+        for order in response.data["orders"]:
+            assert "source" in order
+            assert "order_type" in order
+            assert "target" in order
+            assert "aux" in order
+            assert "unit_type" in order
+            assert "named_coast" in order
+
+    @pytest.mark.django_db
+    def test_field_order_present(self, authenticated_client, game_with_options):
+        url = reverse("order-options", args=[game_with_options.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+
+        field_order = response.data["field_order"]
+        assert "Hold" in field_order
+        assert "Move" in field_order
+        assert "Support" in field_order
+        assert "Build" in field_order
+
+    @pytest.mark.django_db
+    def test_labels_populated(self, authenticated_client, game_with_options):
+        url = reverse("order-options", args=[game_with_options.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+
+        for order in response.data["orders"]:
+            for field_name in ["source", "order_type", "target", "aux", "unit_type", "named_coast"]:
+                field = order[field_name]
+                if field is not None:
+                    assert "id" in field
+                    assert "label" in field
+                    assert isinstance(field["id"], str)
+                    assert isinstance(field["label"], str)
+
+    @pytest.mark.django_db
+    def test_sandbox_returns_all_nations(self, authenticated_client, sandbox_game_with_phase_options):
+        url = reverse("order-options", args=[sandbox_game_with_phase_options.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data["orders"]) > 0
