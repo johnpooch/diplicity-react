@@ -1,8 +1,8 @@
-import React, { Suspense, useState, useRef, useEffect } from "react";
+import React, { Suspense, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Send, MessageCircle } from "lucide-react";
-import { useRequiredParams } from "@/hooks";
+import { useDraft, useRequiredParams } from "@/hooks";
 import { toast } from "sonner";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
@@ -75,7 +75,7 @@ const ChannelScreen: React.FC = () => {
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useDraft(gameId, channelId);
 
   const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: channels } = useGamesChannelsListSuspense(gameId);
