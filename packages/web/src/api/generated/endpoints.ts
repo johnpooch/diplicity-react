@@ -448,7 +448,6 @@ export const StepEnum = {
 
 export interface Order {
   readonly source: Province;
-  /** @nullable */
   readonly sourceCoast: Province | null;
   readonly target: Province;
   readonly aux: Province;
@@ -5707,6 +5706,80 @@ export const useGamesDrawProposalsCreateCreate = <
   );
 };
 
+export const phaseDeadlineWarningsCreate = (signal?: AbortSignal) => {
+  return customInstance<void>({
+    url: `/phase/deadline-warnings/`,
+    method: "POST",
+    signal,
+  });
+};
+
+export const getPhaseDeadlineWarningsCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof phaseDeadlineWarningsCreate>>,
+    TError,
+    void,
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof phaseDeadlineWarningsCreate>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["phaseDeadlineWarningsCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof phaseDeadlineWarningsCreate>>,
+    void
+  > = () => {
+    return phaseDeadlineWarningsCreate();
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PhaseDeadlineWarningsCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof phaseDeadlineWarningsCreate>>
+>;
+
+export type PhaseDeadlineWarningsCreateMutationError = unknown;
+
+export const usePhaseDeadlineWarningsCreate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof phaseDeadlineWarningsCreate>>,
+      TError,
+      void,
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof phaseDeadlineWarningsCreate>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(
+    getPhaseDeadlineWarningsCreateMutationOptions(options),
+    queryClient
+  );
+};
+
 export const phaseResolveCreate = (signal?: AbortSignal) => {
   return customInstance<void>({
     url: `/phase/resolve/`,
@@ -7236,14 +7309,17 @@ export const getGameOrdersCreateResponseMock = (
       ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
     },
   },
-  sourceCoast: faker.helpers.arrayElement([
-    {
+  sourceCoast: {
+    ...{
       id: faker.string.alpha({ length: { min: 10, max: 20 } }),
       name: faker.string.alpha({ length: { min: 10, max: 20 } }),
       type: faker.string.alpha({ length: { min: 10, max: 20 } }),
       supplyCenter: faker.datatype.boolean(),
       parentId: faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        faker.helpers.arrayElement([
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          null,
+        ]),
         null,
       ]),
       namedCoastIds: Array.from(
@@ -7251,8 +7327,7 @@ export const getGameOrdersCreateResponseMock = (
         (_, i) => i + 1
       ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
     },
-    null,
-  ]),
+  },
   target: {
     ...{
       id: faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -7402,14 +7477,17 @@ export const getGameOrdersListResponseMock = (): Order[] =>
         ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
       },
     },
-    sourceCoast: faker.helpers.arrayElement([
-      {
+    sourceCoast: {
+      ...{
         id: faker.string.alpha({ length: { min: 10, max: 20 } }),
         name: faker.string.alpha({ length: { min: 10, max: 20 } }),
         type: faker.string.alpha({ length: { min: 10, max: 20 } }),
         supplyCenter: faker.datatype.boolean(),
         parentId: faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          faker.helpers.arrayElement([
+            faker.string.alpha({ length: { min: 10, max: 20 } }),
+            null,
+          ]),
           null,
         ]),
         namedCoastIds: Array.from(
@@ -7417,8 +7495,7 @@ export const getGameOrdersListResponseMock = (): Order[] =>
           (_, i) => i + 1
         ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
       },
-      null,
-    ]),
+    },
     target: {
       ...{
         id: faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -9203,6 +9280,26 @@ export const getGamesDrawProposalsCreateCreateMockHandler = (
   );
 };
 
+export const getPhaseDeadlineWarningsCreateMockHandler = (
+  overrideResponse?:
+    | void
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0]
+      ) => Promise<void> | void),
+  options?: RequestHandlerOptions
+) => {
+  return http.post(
+    "*/phase/deadline-warnings/",
+    async info => {
+      if (typeof overrideResponse === "function") {
+        await overrideResponse(info);
+      }
+      return new HttpResponse(null, { status: 200 });
+    },
+    options
+  );
+};
+
 export const getPhaseResolveCreateMockHandler = (
   overrideResponse?:
     | void
@@ -9415,6 +9512,7 @@ export const getMock = () => [
   getGamesDrawProposalsVoteUpdateMockHandler(),
   getGamesDrawProposalsVotePartialUpdateMockHandler(),
   getGamesDrawProposalsCreateCreateMockHandler(),
+  getPhaseDeadlineWarningsCreateMockHandler(),
   getPhaseResolveCreateMockHandler(),
   getSandboxGameCreateMockHandler(),
   getUserRetrieveMockHandler(),

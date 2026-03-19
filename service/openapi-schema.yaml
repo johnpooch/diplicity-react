@@ -995,6 +995,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/DrawProposal'
           description: ''
+  /phase/deadline-warnings/:
+    post:
+      operationId: phaseDeadlineWarningsCreate
+      tags:
+      - phase
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
   /phase/resolve/:
     post:
       operationId: phaseResolveCreate
@@ -1403,7 +1413,7 @@ components:
         deadlineMode:
           allOf:
           - $ref: '#/components/schemas/DeadlineModeEnum'
-          default: duration
+          default: fixed_time
         fixedDeadlineTime:
           type: string
           format: time
@@ -1764,6 +1774,11 @@ components:
           allOf:
           - $ref: '#/components/schemas/Province'
           readOnly: true
+        sourceCoast:
+          allOf:
+          - $ref: '#/components/schemas/Province'
+          readOnly: true
+          nullable: true
         target:
           allOf:
           - $ref: '#/components/schemas/Province'
@@ -1828,6 +1843,7 @@ components:
       - orderType
       - resolution
       - source
+      - sourceCoast
       - step
       - summary
       - target
