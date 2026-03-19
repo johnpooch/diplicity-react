@@ -1,9 +1,9 @@
 import { useState, useMemo } from "react";
-import { deriveWizardStep, OrderOption, FieldName } from "../utils/deriveWizardStep";
+import { deriveWizardStep, OrderOption } from "../utils/deriveWizardStep";
 
 function useOrderWizard(
   orders: OrderOption[],
-  fieldOrder: Record<string, FieldName[]>
+  fieldOrder: Record<string, string[]>
 ) {
   const [selections, setSelections] = useState<Record<string, string>>({});
 

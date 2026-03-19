@@ -46,7 +46,7 @@ function distinctByIdFirstOccurrence(values: FieldValue[]): FieldValue[] {
 
 export function deriveWizardStep(
   orders: OrderOption[],
-  fieldOrder: Record<string, FieldName[]>,
+  fieldOrder: Record<string, string[]>,
   selections: Record<string, string>
 ): WizardStep {
   const resolvedSelections: Record<string, string> = { ...selections };
@@ -71,13 +71,14 @@ export function deriveWizardStep(
     iterations++;
 
     const orderTypeId = resolvedSelections["orderType"];
-    const sequence: FieldName[] = orderTypeId
+    const sequence = orderTypeId
       ? (fieldOrder[orderTypeId] ?? UNIVERSAL_PREFIX)
       : UNIVERSAL_PREFIX;
 
     let foundNextField = false;
 
-    for (const field of sequence) {
+    for (const f of sequence) {
+      const field = f as FieldName;
       if (resolvedSelections[field] !== undefined) {
         continue;
       }
@@ -122,14 +123,14 @@ export function deriveWizardStep(
 
     // Check if we completed the sequence (no new auto-advances happened this iteration)
     const orderTypeIdNow = resolvedSelections["orderType"];
-    const sequenceNow: FieldName[] = orderTypeIdNow
+    const sequenceNow = orderTypeIdNow
       ? (fieldOrder[orderTypeIdNow] ?? UNIVERSAL_PREFIX)
       : UNIVERSAL_PREFIX;
 
     const allResolved = sequenceNow.every(
-      (field) =>
-        resolvedSelections[field] !== undefined ||
-        filtered.every((o) => o[field] === null)
+      (f) =>
+        resolvedSelections[f] !== undefined ||
+        filtered.every((o) => o[f as FieldName] === null)
     );
 
     if (allResolved) {
@@ -157,7 +158,7 @@ export function deriveWizardStep(
 }
 
 function buildSelectedArray(
-  fieldOrder: Record<string, FieldName[]>,
+  fieldOrder: Record<string, string[]>,
   resolvedSelections: Record<string, string>
 ): string[] {
   const orderTypeId = resolvedSelections["orderType"];

@@ -9,7 +9,6 @@ import {
   useGameRetrieve,
   useVariantsList,
   useGamePhaseRetrieve,
-  useGamePhaseStatesList,
   useGameOrdersList,
   useGameOrdersCreate,
   getGameOrdersListQueryKey,
@@ -29,7 +28,6 @@ const GameMap: React.FC = () => {
   const { data: game } = useGameRetrieve(gameId);
   const { data: variants } = useVariantsList();
   const { data: phase } = useGamePhaseRetrieve(gameId, selectedPhase);
-  const { data: phaseStates } = useGamePhaseStatesList(gameId);
   const { data: orders } = useGameOrdersList(gameId, selectedPhase);
   const { data: optionsData } = useGameOptionsRetrieve(gameId);
 

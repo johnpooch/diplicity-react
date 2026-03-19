@@ -1,14 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { deriveWizardStep, FieldValue, OrderOption } from "./deriveWizardStep";
 
-const FIELD_ORDER = {
-  Hold: ["source", "orderType"] as const,
-  Disband: ["source", "orderType"] as const,
-  Move: ["source", "orderType", "target", "namedCoast"] as const,
-  MoveViaConvoy: ["source", "orderType", "target"] as const,
-  Support: ["source", "orderType", "aux", "target"] as const,
-  Convoy: ["source", "orderType", "aux", "target"] as const,
-  Build: ["source", "orderType", "unitType", "namedCoast"] as const,
+const FIELD_ORDER: Record<string, string[]> = {
+  Hold: ["source", "orderType"],
+  Disband: ["source", "orderType"],
+  Move: ["source", "orderType", "target", "namedCoast"],
+  MoveViaConvoy: ["source", "orderType", "target"],
+  Support: ["source", "orderType", "aux", "target"],
+  Convoy: ["source", "orderType", "aux", "target"],
+  Build: ["source", "orderType", "unitType", "namedCoast"],
 };
 
 const fv = (id: string, label?: string): FieldValue => ({
