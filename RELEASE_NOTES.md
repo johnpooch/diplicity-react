@@ -1,5 +1,35 @@
 # Diplicity React - Release Notes
 
+## Order Wizard Overhaul & Bug Fixes (March 19, 2026)
+
+**Release Date:** March 19, 2026
+
+### Major Improvement: Client-Side Order Wizard
+
+The order wizard has been completely reworked to run client-side. Previously, each step of order creation required a separate API call, making the process feel sluggish — especially on slow connections. Now, all valid orders are fetched in a single request and the wizard runs locally in your browser, with just one final request to submit. The result is a noticeably faster and more responsive ordering experience.
+
+### Bug Fix: Retreat Phase Showing Wrong Unit
+
+During retreat phases, the orders screen was sometimes displaying the attacking unit instead of the dislodged unit that needs to retreat. This has been fixed on both the backend and frontend — you'll now always see the correct unit when issuing retreat orders.
+
+### Bug Fix: Phase Navigation Arrows on Map Screen
+
+The left/right arrows for navigating between phases were silently failing on the Map screen. This has been fixed — phase navigation now works reliably across all screens.
+
+### Bug Fix: Sheet Close Button Registering as "Hold" on Mobile
+
+On mobile, the close button on order sheets had a tiny tap target that overlapped with the first menu item (typically "Hold"), causing accidental order submissions. The redundant close button has been removed — tap outside the sheet to dismiss it.
+
+### Improvement: Chat Drafts Persist Across Navigation
+
+Chat message drafts are no longer lost when you navigate away from a channel. Your in-progress messages are saved for the duration of your browser session, so you can switch between channels without losing what you were typing.
+
+### Improvement: Navigation Icon Clarity
+
+Primary game screens (Map, Orders, Chat) now show an X icon instead of a back arrow on mobile, better indicating that they navigate to the home page rather than a previous screen.
+
+---
+
 ## Flexible Deadlines & Game Master Controls (February 6, 2026)
 
 **Release Date:** February 6, 2026

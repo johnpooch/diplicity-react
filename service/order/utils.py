@@ -1,5 +1,105 @@
 from common.constants import OrderType
 
+FIELD_ORDER = {
+    "Hold": ["source", "orderType"],
+    "Disband": ["source", "orderType"],
+    "Move": ["source", "orderType", "target", "namedCoast"],
+    "MoveViaConvoy": ["source", "orderType", "target"],
+    "Support": ["source", "orderType", "aux", "target"],
+    "Convoy": ["source", "orderType", "aux", "target"],
+    "Build": ["source", "orderType", "unitType", "namedCoast"],
+}
+
+
+def _make_field_value(id, province_lookup):
+    province = province_lookup.get(id)
+    return {"id": id, "label": province.name if province else id}
+
+
+def _is_named_coast_dict(d):
+    return bool(d) and all("/" in k for k in d)
+
+
+def flatten_options(nation_options, province_lookup):
+    results = []
+
+    for source_id, order_types in nation_options.items():
+        source = _make_field_value(source_id, province_lookup)
+
+        for order_type_id, order_type_data in order_types.items():
+            order_type = {"id": order_type_id, "label": order_type_id}
+
+            if order_type_id in (OrderType.HOLD, OrderType.DISBAND):
+                results.append({
+                    "source": source,
+                    "order_type": order_type,
+                    "target": None,
+                    "aux": None,
+                    "unit_type": None,
+                    "named_coast": None,
+                })
+
+            elif order_type_id in (OrderType.MOVE, OrderType.MOVE_VIA_CONVOY):
+                for target_id, target_data in order_type_data.items():
+                    target = _make_field_value(target_id, province_lookup)
+                    if _is_named_coast_dict(target_data):
+                        for coast_id in target_data:
+                            results.append({
+                                "source": source,
+                                "order_type": order_type,
+                                "target": target,
+                                "aux": None,
+                                "unit_type": None,
+                                "named_coast": _make_field_value(coast_id, province_lookup),
+                            })
+                    else:
+                        results.append({
+                            "source": source,
+                            "order_type": order_type,
+                            "target": target,
+                            "aux": None,
+                            "unit_type": None,
+                            "named_coast": None,
+                        })
+
+            elif order_type_id in (OrderType.SUPPORT, OrderType.CONVOY):
+                for aux_id, aux_data in order_type_data.items():
+                    aux = _make_field_value(aux_id, province_lookup)
+                    for target_id in aux_data:
+                        results.append({
+                            "source": source,
+                            "order_type": order_type,
+                            "target": _make_field_value(target_id, province_lookup),
+                            "aux": aux,
+                            "unit_type": None,
+                            "named_coast": None,
+                        })
+
+            elif order_type_id == OrderType.BUILD:
+                for unit_type_id, unit_type_data in order_type_data.items():
+                    unit_type = {"id": unit_type_id, "label": unit_type_id}
+                    if _is_named_coast_dict(unit_type_data):
+                        for coast_id in unit_type_data:
+                            results.append({
+                                "source": source,
+                                "order_type": order_type,
+                                "target": None,
+                                "aux": None,
+                                "unit_type": unit_type,
+                                "named_coast": _make_field_value(coast_id, province_lookup),
+                            })
+                    else:
+                        results.append({
+                            "source": source,
+                            "order_type": order_type,
+                            "target": None,
+                            "aux": None,
+                            "unit_type": unit_type,
+                            "named_coast": None,
+                        })
+
+    return results
+
 
 def get_order_data_from_selected(selected):
     if not selected:

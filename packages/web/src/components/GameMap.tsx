@@ -1,5 +1,5 @@
 import { useRequiredParams } from "../hooks";
-import { useState, useRef, useMemo } from "react";
+import { useRef, useMemo, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { determineRenderableProvinces } from "../utils/provinces";
@@ -9,21 +9,12 @@ import {
   useGameRetrieve,
   useVariantsList,
   useGamePhaseRetrieve,
-  useGamePhaseStatesList,
   useGameOrdersList,
   useGameOrdersCreate,
   getGameOrdersListQueryKey,
-  Order,
-  OrderOption,
+  useGameOptionsRetrieve,
 } from "../api/generated/endpoints";
-
-type OrderState = {
-  selected: string[];
-  options: readonly OrderOption[];
-  step: string | null;
-  complete: boolean;
-  title: string | null;
-};
+import { useOrderWizard } from "../hooks/useOrderWizard";
 
 const GameMap: React.FC = () => {
   const { gameId, phaseId } = useRequiredParams<{
@@ -37,48 +28,76 @@ const GameMap: React.FC = () => {
   const { data: game } = useGameRetrieve(gameId);
   const { data: variants } = useVariantsList();
   const { data: phase } = useGamePhaseRetrieve(gameId, selectedPhase);
-  const { data: phaseStates } = useGamePhaseStatesList(gameId);
   const { data: orders } = useGameOrdersList(gameId, selectedPhase);
+  const { data: optionsData } = useGameOptionsRetrieve(gameId);
 
   const containerRef = useRef<HTMLDivElement>(null);
-
-  const [orderState, setOrderState] = useState<OrderState | null>(null);
-  const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
   const createOrderMutation = useGameOrdersCreate();
 
-  const handleOrderResult = (result: Order) => {
-    if (result.complete) {
-      if (result.title) {
-        toast.success(result.title);
-      }
-      setOrderState(null);
-      setMenuPosition(null);
-      queryClient.invalidateQueries({
-        queryKey: getGameOrdersListQueryKey(gameId, selectedPhase),
-      });
-    } else {
-      setOrderState({
-        selected: result.selected ?? [],
-        options: result.options ?? [],
-        step: result.step ?? null,
-        complete: result.complete ?? false,
-        title: result.title ?? null,
-      });
-    }
-  };
+  const wizard = useOrderWizard(
+    optionsData?.orders ?? [],
+    optionsData?.fieldOrder ?? {}
+  );
 
-  const variant = variants?.find(v => v.id === game?.variantId);
+  const variant = variants?.find((v) => v.id === game?.variantId);
+
+  const isWizardActive = Object.keys(wizard.selections).length > 0;
+
+  const highlightedIds = useMemo(() => {
+    if (!isWizardActive) return [];
+    if (
+      wizard.nextField === "target" ||
+      wizard.nextField === "aux"
+    ) {
+      return wizard.choices.map((c) => c.id);
+    }
+    return [];
+  }, [isWizardActive, wizard.nextField, wizard.choices]);
 
   const renderableProvinces = useMemo(() => {
     if (!variant) return [];
+    return determineRenderableProvinces(variant.provinces, highlightedIds);
+  }, [variant, highlightedIds]);
 
-    const allProvinces = variant.provinces;
-    const highlightedProvinceIds = orderState?.options?.map(o => o.value) ?? [];
+  useEffect(() => {
+    if (!wizard.isComplete || wizard.selectedArray.length === 0) return;
+    createOrderMutation
+      .mutateAsync({
+        gameId,
+        data: { selected: wizard.selectedArray },
+      })
+      .then((order) => {
+        toast.success(order.title ?? "Order created");
+        wizard.reset();
+        setMenuPosition(null);
+        queryClient.invalidateQueries({
+          queryKey: getGameOrdersListQueryKey(gameId, selectedPhase),
+        });
+      })
+      .catch(() => {
+        toast.error("Failed to create order");
+        wizard.reset();
+        setMenuPosition(null);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mutateAsync is stable
+  }, [wizard.isComplete]);
 
-    return determineRenderableProvinces(allProvinces, highlightedProvinceIds);
-  }, [variant, orderState?.options]);
+  const captureMenuPosition = (event: React.MouseEvent<SVGPathElement>) => {
+    if (containerRef.current) {
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const x = event.clientX - containerRect.left;
+      const y = event.clientY - containerRect.top;
+      if (x > 0 && y > 0) {
+        setMenuPosition({ x, y });
+      }
+    }
+  };
 
-  const handleProvinceClick = async (
+  const handleProvinceClick = (
     province: string,
     event: React.MouseEvent<SVGPathElement>
   ) => {
@@ -86,64 +105,33 @@ const GameMap: React.FC = () => {
       return;
     }
 
-    const orderableProvince = phaseStates
-      ?.flatMap(ps => ps.orderableProvinces)
-      .find(p => p.id === province);
-    const options = orderState?.options;
-
-    if (orderState) {
-      if (options?.some(o => o.value === province)) {
-        const result = await createOrderMutation.mutateAsync({
-          gameId,
-          data: {
-            selected: [...(orderState.selected ?? []), province],
-          },
-        });
-        handleOrderResult(result);
-      }
-    } else {
-      if (orderableProvince) {
-        // Capture click position for the floating menu
-        if (containerRef.current) {
-          const containerRect = containerRef.current.getBoundingClientRect();
-          const x = event.clientX - containerRect.left;
-          const y = event.clientY - containerRect.top;
-          if (x > 0 && y > 0) {
-            setMenuPosition({ x, y });
-          }
-        }
-
-        const result = await createOrderMutation.mutateAsync({
-          gameId,
-          data: {
-            selected: [province],
-          },
-        });
-        handleOrderResult(result);
+    if (wizard.nextField === "source") {
+      if (!wizard.choices.some((c) => c.id === province)) return;
+      captureMenuPosition(event);
+      wizard.select(province);
+    } else if (
+      wizard.nextField === "target" ||
+      wizard.nextField === "aux"
+    ) {
+      if (wizard.choices.some((c) => c.id === province)) {
+        wizard.select(province);
       }
     }
   };
 
-  const handleSelectOrderOption = async (option: string) => {
-    if (orderState) {
-      const result = await createOrderMutation.mutateAsync({
-        gameId,
-        data: {
-          selected: [...(orderState.selected ?? []), option],
-        },
-      });
-      handleOrderResult(result);
-    }
+  const handleSelectOrderOption = (option: string) => {
+    wizard.select(option);
   };
 
   const handleCloseMenu = () => {
-    setOrderState(null);
+    wizard.reset();
     setMenuPosition(null);
   };
 
   const showMenu =
-    (orderState?.step === "select-order-type" ||
-      orderState?.step === "select-unit-type") &&
+    (wizard.nextField === "orderType" ||
+      wizard.nextField === "unitType" ||
+      wizard.nextField === "namedCoast") &&
     menuPosition !== null;
 
   return (
@@ -156,10 +144,10 @@ const GameMap: React.FC = () => {
               variant: variant,
               phase: phase,
               orders: orders,
-              selected: orderState?.selected ?? [],
+              selected: wizard.selectedArray,
               onClickProvince: handleProvinceClick,
               renderableProvinces: renderableProvinces,
-              highlighted: orderState?.options?.map(o => o.value) ?? [],
+              highlighted: highlightedIds,
             }}
           />
           <FloatingMenu
@@ -169,12 +157,12 @@ const GameMap: React.FC = () => {
             container={containerRef.current}
             onClose={handleCloseMenu}
           >
-            {orderState?.options?.map(o => (
+            {wizard.choices.map((c) => (
               <FloatingMenuItem
-                key={o.value}
-                onClick={() => handleSelectOrderOption(o.value)}
+                key={c.id}
+                onClick={() => handleSelectOrderOption(c.id)}
               >
-                {o.label}
+                {c.label}
               </FloatingMenuItem>
             ))}
           </FloatingMenu>

@@ -480,6 +480,29 @@ paths:
       responses:
         '204':
           description: No response body
+  /game/{gameId}/options/:
+    get:
+      operationId: gameOptionsRetrieve
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_phase
+        method that returns the current phase for the game. Also adds phase to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderOptionsResponse'
+          description: ''
   /game/{gameId}/orders/:
     post:
       operationId: gameOrdersCreate
@@ -1379,6 +1402,50 @@ components:
       - id
       - registrationId
       - type
+    FieldValue:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+      required:
+      - id
+      - label
+    FlatOrderOption:
+      type: object
+      properties:
+        source:
+          allOf:
+          - $ref: '#/components/schemas/FieldValue'
+          nullable: true
+        orderType:
+          allOf:
+          - $ref: '#/components/schemas/FieldValue'
+          nullable: true
+        target:
+          allOf:
+          - $ref: '#/components/schemas/FieldValue'
+          nullable: true
+        aux:
+          allOf:
+          - $ref: '#/components/schemas/FieldValue'
+          nullable: true
+        unitType:
+          allOf:
+          - $ref: '#/components/schemas/FieldValue'
+          nullable: true
+        namedCoast:
+          allOf:
+          - $ref: '#/components/schemas/FieldValue'
+          nullable: true
+      required:
+      - aux
+      - namedCoast
+      - orderType
+      - source
+      - target
+      - unitType
     GameCloneToSandbox:
       type: object
       properties:
@@ -1859,6 +1926,22 @@ components:
       required:
       - label
       - value
+    OrderOptionsResponse:
+      type: object
+      properties:
+        orders:
+          type: array
+          items:
+            $ref: '#/components/schemas/FlatOrderOption'
+        fieldOrder:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+      required:
+      - fieldOrder
+      - orders
     OrderResolution:
       type: object
       properties:

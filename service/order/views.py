@@ -1,8 +1,10 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, generics
+from rest_framework.response import Response
 
 from .models import Order
-from .serializers import OrderSerializer
+from .serializers import OrderSerializer, OrderOptionsResponseSerializer
+from .utils import flatten_options, FIELD_ORDER
 from common.permissions import IsActiveGame, IsActiveGameMember
 from common.views import SelectedPhaseMixin, CurrentPhaseMixin
 from common.serializers import EmptySerializer
@@ -20,6 +22,27 @@ class OrderCreateView(CurrentPhaseMixin, generics.CreateAPIView):
 
     permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsActiveGameMember]
     serializer_class = OrderSerializer
+
+
+class OrderOptionsView(CurrentPhaseMixin, generics.RetrieveAPIView):
+    permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsActiveGameMember]
+    serializer_class = OrderOptionsResponseSerializer
+
+    def retrieve(self, request, *args, **kwargs):
+        phase = self.get_phase()
+        province_lookup = {p.province_id: p for p in phase.variant.provinces.all()}
+        transformed = phase.transformed_options or {}
+        members = phase.game.members.filter(user=request.user)
+        nation_names = [m.nation.name for m in members]
+
+        all_orders = []
+        for nation_name in nation_names:
+            nation_options = transformed.get(nation_name, {})
+            all_orders.extend(flatten_options(nation_options, province_lookup))
+
+        data = {"orders": all_orders, "field_order": FIELD_ORDER}
+        serializer = self.get_serializer(data)
+        return Response(serializer.data)
 
 
 class OrderDeleteView(CurrentPhaseMixin, generics.DestroyAPIView):

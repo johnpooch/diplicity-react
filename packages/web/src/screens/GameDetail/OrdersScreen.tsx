@@ -52,6 +52,7 @@ import {
   useVariantsListSuspense,
   getGameRetrieveQueryKey,
   getGameOrdersListQueryKey,
+  getGameOptionsRetrieveQueryKey,
   Order,
   GameRetrieve,
   Member,
@@ -179,6 +180,9 @@ const OrdersScreen: React.FC = () => {
   const handleResolvePhase = async () => {
     try {
       const result = await resolvePhaseMutation.mutateAsync({ gameId });
+      queryClient.invalidateQueries({
+        queryKey: getGameOptionsRetrieveQueryKey(gameId),
+      });
       toast.success("Phase resolved");
       navigate(`/game/${gameId}/phase/${result.id}/orders`);
     } catch {
