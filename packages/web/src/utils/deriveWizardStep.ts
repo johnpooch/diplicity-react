@@ -67,7 +67,7 @@ export function deriveWizardStep(
   // Walk until we find a nextField or complete
   // We may loop multiple times as auto-advances update resolvedSelections and re-filter
   let iterations = 0;
-  while (iterations < 20) {
+  while (iterations < 20 && filtered.length > 0) {
     iterations++;
 
     const orderTypeId = resolvedSelections["orderType"];
@@ -79,13 +79,11 @@ export function deriveWizardStep(
 
     for (const field of sequence) {
       if (resolvedSelections[field] !== undefined) {
-        // Already selected — skip
         continue;
       }
 
       const allNull = filtered.every((o) => o[field] === null);
       if (allNull) {
-        // Auto-advance: skip this field (it's not applicable)
         continue;
       }
 

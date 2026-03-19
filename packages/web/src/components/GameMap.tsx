@@ -47,16 +47,18 @@ const GameMap: React.FC = () => {
 
   const variant = variants?.find((v) => v.id === game?.variantId);
 
+  const isWizardActive = Object.keys(wizard.selections).length > 0;
+
   const highlightedIds = useMemo(() => {
+    if (!isWizardActive) return [];
     if (
       wizard.nextField === "target" ||
-      wizard.nextField === "aux" ||
-      wizard.nextField === "source"
+      wizard.nextField === "aux"
     ) {
       return wizard.choices.map((c) => c.id);
     }
     return [];
-  }, [wizard.nextField, wizard.choices]);
+  }, [isWizardActive, wizard.nextField, wizard.choices]);
 
   const renderableProvinces = useMemo(() => {
     if (!variant) return [];
@@ -64,14 +66,14 @@ const GameMap: React.FC = () => {
   }, [variant, highlightedIds]);
 
   useEffect(() => {
-    if (!wizard.isComplete) return;
+    if (!wizard.isComplete || wizard.selectedArray.length === 0) return;
     createOrderMutation
       .mutateAsync({
         gameId,
         data: { selected: wizard.selectedArray },
       })
-      .then(() => {
-        toast.success("Order created");
+      .then((order) => {
+        toast.success(order.title ?? "Order created");
         wizard.reset();
         setMenuPosition(null);
         queryClient.invalidateQueries({
@@ -105,11 +107,7 @@ const GameMap: React.FC = () => {
       return;
     }
 
-    if (wizard.nextField === "source" || wizard.nextField === null) {
-      const orderableProvince = phaseStates
-        ?.flatMap((ps) => ps.orderableProvinces)
-        .find((p) => p.id === province);
-      if (!orderableProvince) return;
+    if (wizard.nextField === "source") {
       if (!wizard.choices.some((c) => c.id === province)) return;
       captureMenuPosition(event);
       wizard.select(province);

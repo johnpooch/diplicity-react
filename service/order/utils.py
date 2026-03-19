@@ -32,11 +32,11 @@ def flatten_options(nation_options, province_lookup):
             if order_type_id in (OrderType.HOLD, OrderType.DISBAND):
                 results.append({
                     "source": source,
-                    "orderType": order_type,
+                    "order_type": order_type,
                     "target": None,
                     "aux": None,
-                    "unitType": None,
-                    "namedCoast": None,
+                    "unit_type": None,
+                    "named_coast": None,
                 })
 
             elif order_type_id in (OrderType.MOVE, OrderType.MOVE_VIA_CONVOY):
@@ -46,20 +46,20 @@ def flatten_options(nation_options, province_lookup):
                         for coast_id in target_data:
                             results.append({
                                 "source": source,
-                                "orderType": order_type,
+                                "order_type": order_type,
                                 "target": target,
                                 "aux": None,
-                                "unitType": None,
-                                "namedCoast": _make_field_value(coast_id, province_lookup),
+                                "unit_type": None,
+                                "named_coast": _make_field_value(coast_id, province_lookup),
                             })
                     else:
                         results.append({
                             "source": source,
-                            "orderType": order_type,
+                            "order_type": order_type,
                             "target": target,
                             "aux": None,
-                            "unitType": None,
-                            "namedCoast": None,
+                            "unit_type": None,
+                            "named_coast": None,
                         })
 
             elif order_type_id in (OrderType.SUPPORT, OrderType.CONVOY):
@@ -68,11 +68,11 @@ def flatten_options(nation_options, province_lookup):
                     for target_id in aux_data:
                         results.append({
                             "source": source,
-                            "orderType": order_type,
+                            "order_type": order_type,
                             "target": _make_field_value(target_id, province_lookup),
                             "aux": aux,
-                            "unitType": None,
-                            "namedCoast": None,
+                            "unit_type": None,
+                            "named_coast": None,
                         })
 
             elif order_type_id == OrderType.BUILD:
@@ -82,20 +82,20 @@ def flatten_options(nation_options, province_lookup):
                         for coast_id in unit_type_data:
                             results.append({
                                 "source": source,
-                                "orderType": order_type,
+                                "order_type": order_type,
                                 "target": None,
                                 "aux": None,
-                                "unitType": unit_type,
-                                "namedCoast": _make_field_value(coast_id, province_lookup),
+                                "unit_type": unit_type,
+                                "named_coast": _make_field_value(coast_id, province_lookup),
                             })
                     else:
                         results.append({
                             "source": source,
-                            "orderType": order_type,
+                            "order_type": order_type,
                             "target": None,
                             "aux": None,
-                            "unitType": unit_type,
-                            "namedCoast": None,
+                            "unit_type": unit_type,
+                            "named_coast": None,
                         })
 
     return results

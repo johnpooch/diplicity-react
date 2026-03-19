@@ -2665,45 +2665,45 @@ class TestFlattenOptions:
         result = flatten_options(options, MOCK_PROVINCES)
         assert len(result) == 1
         assert result[0]["source"] == {"id": "lon", "label": "London"}
-        assert result[0]["orderType"] == {"id": "Hold", "label": "Hold"}
+        assert result[0]["order_type"] == {"id": "Hold", "label": "Hold"}
         assert result[0]["target"] is None
         assert result[0]["aux"] is None
-        assert result[0]["unitType"] is None
-        assert result[0]["namedCoast"] is None
+        assert result[0]["unit_type"] is None
+        assert result[0]["named_coast"] is None
 
     def test_disband(self):
         options = {"lon": {"Disband": {}}}
         result = flatten_options(options, MOCK_PROVINCES)
         assert len(result) == 1
-        assert result[0]["orderType"] == {"id": "Disband", "label": "Disband"}
+        assert result[0]["order_type"] == {"id": "Disband", "label": "Disband"}
         assert result[0]["target"] is None
         assert result[0]["aux"] is None
-        assert result[0]["unitType"] is None
-        assert result[0]["namedCoast"] is None
+        assert result[0]["unit_type"] is None
+        assert result[0]["named_coast"] is None
 
     def test_move_simple(self):
         options = {"lon": {"Move": {"eng": {}}}}
         result = flatten_options(options, MOCK_PROVINCES)
         assert len(result) == 1
         assert result[0]["source"] == {"id": "lon", "label": "London"}
-        assert result[0]["orderType"] == {"id": "Move", "label": "Move"}
+        assert result[0]["order_type"] == {"id": "Move", "label": "Move"}
         assert result[0]["target"] == {"id": "eng", "label": "English Channel"}
-        assert result[0]["namedCoast"] is None
+        assert result[0]["named_coast"] is None
 
     def test_move_to_named_coast(self):
         options = {"mid": {"Move": {"spa": {"spa/nc": {}, "spa/sc": {}}}}}
         result = flatten_options(options, MOCK_PROVINCES)
         assert len(result) == 2
         assert result[0]["target"] == {"id": "spa", "label": "Spain"}
-        assert result[0]["namedCoast"] == {"id": "spa/nc", "label": "Spain (NC)"}
+        assert result[0]["named_coast"] == {"id": "spa/nc", "label": "Spain (NC)"}
         assert result[1]["target"] == {"id": "spa", "label": "Spain"}
-        assert result[1]["namedCoast"] == {"id": "spa/sc", "label": "Spain (SC)"}
+        assert result[1]["named_coast"] == {"id": "spa/sc", "label": "Spain (SC)"}
 
     def test_move_via_convoy(self):
         options = {"lon": {"MoveViaConvoy": {"bel": {}}}}
         result = flatten_options(options, MOCK_PROVINCES)
         assert len(result) == 1
-        assert result[0]["orderType"] == {"id": "MoveViaConvoy", "label": "MoveViaConvoy"}
+        assert result[0]["order_type"] == {"id": "MoveViaConvoy", "label": "MoveViaConvoy"}
         assert result[0]["target"] == {"id": "bel", "label": "Belgium"}
 
     def test_support(self):
@@ -2711,7 +2711,7 @@ class TestFlattenOptions:
         result = flatten_options(options, MOCK_PROVINCES)
         assert len(result) == 1
         assert result[0]["source"] == {"id": "lon", "label": "London"}
-        assert result[0]["orderType"] == {"id": "Support", "label": "Support"}
+        assert result[0]["order_type"] == {"id": "Support", "label": "Support"}
         assert result[0]["aux"] == {"id": "wal", "label": "Wales"}
         assert result[0]["target"] == {"id": "yor", "label": "Yorkshire"}
 
@@ -2726,36 +2726,36 @@ class TestFlattenOptions:
         options = {"mun": {"Build": {"Army": {}}}}
         result = flatten_options(options, MOCK_PROVINCES)
         assert len(result) == 1
-        assert result[0]["unitType"] == {"id": "Army", "label": "Army"}
-        assert result[0]["namedCoast"] is None
+        assert result[0]["unit_type"] == {"id": "Army", "label": "Army"}
+        assert result[0]["named_coast"] is None
 
     def test_build_fleet_no_coast(self):
         options = {"bre": {"Build": {"Fleet": {}}}}
         result = flatten_options(options, MOCK_PROVINCES)
         assert len(result) == 1
-        assert result[0]["unitType"] == {"id": "Fleet", "label": "Fleet"}
-        assert result[0]["namedCoast"] is None
+        assert result[0]["unit_type"] == {"id": "Fleet", "label": "Fleet"}
+        assert result[0]["named_coast"] is None
 
     def test_build_fleet_with_coast(self):
         options = {"stp": {"Build": {"Fleet": {"stp/nc": {}, "stp/sc": {}}}}}
         result = flatten_options(options, MOCK_PROVINCES)
         assert len(result) == 2
-        assert result[0]["unitType"] == {"id": "Fleet", "label": "Fleet"}
-        assert result[0]["namedCoast"] == {"id": "stp/nc", "label": "St. Petersburg (NC)"}
-        assert result[1]["namedCoast"] == {"id": "stp/sc", "label": "St. Petersburg (SC)"}
+        assert result[0]["unit_type"] == {"id": "Fleet", "label": "Fleet"}
+        assert result[0]["named_coast"] == {"id": "stp/nc", "label": "St. Petersburg (NC)"}
+        assert result[1]["named_coast"] == {"id": "stp/sc", "label": "St. Petersburg (SC)"}
 
     def test_multiple_order_types(self):
         options = {"lon": {"Hold": {}, "Move": {"eng": {}}}}
         result = flatten_options(options, MOCK_PROVINCES)
         assert len(result) == 2
-        order_types = {r["orderType"]["id"] for r in result}
+        order_types = {r["order_type"]["id"] for r in result}
         assert order_types == {"Hold", "Move"}
 
     def test_labels_populated(self):
         options = {"lon": {"Move": {"eng": {}}}}
         result = flatten_options(options, MOCK_PROVINCES)
         order = result[0]
-        for field in ["source", "orderType", "target"]:
+        for field in ["source", "order_type", "target"]:
             assert "id" in order[field]
             assert "label" in order[field]
             assert isinstance(order[field]["id"], str)
@@ -2786,7 +2786,7 @@ class TestFlattenOptions:
     def test_all_fields_present(self):
         options = {"lon": {"Hold": {}}}
         result = flatten_options(options, MOCK_PROVINCES)
-        expected_keys = {"source", "orderType", "target", "aux", "unitType", "namedCoast"}
+        expected_keys = {"source", "order_type", "target", "aux", "unit_type", "named_coast"}
         assert set(result[0].keys()) == expected_keys
 
     def test_empty_options(self):
