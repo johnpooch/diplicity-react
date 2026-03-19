@@ -1,6 +1,6 @@
 import pytest
 from django.apps import apps
-from common.constants import PhaseStatus, GameStatus
+from common.constants import PhaseStatus, PhaseType, GameStatus
 from nation.models import Nation
 from province.models import Province
 
@@ -133,3 +133,25 @@ def game_with_many_phase_states(primary_user, classical_variant):
     phase.save()
 
     return game
+
+
+@pytest.fixture
+def retreat_phase(db):
+    def _create_phase(game):
+        phase = game.phases.create(
+            variant=game.variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.RETREAT,
+            status=PhaseStatus.ACTIVE,
+            ordinal=1,
+        )
+        england_nation = Nation.objects.get(name="England", variant=game.variant)
+        france_nation = Nation.objects.get(name="France", variant=game.variant)
+
+        primary_member = game.members.first()
+        phase.phase_states.create(member=primary_member)
+
+        return phase
+
+    return _create_phase

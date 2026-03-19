@@ -52,7 +52,11 @@ const GameDetailAppBar: React.FC<GameDetailAppBarProps> = ({
           {leftButton ||
             (showBackButton && (
               <Button variant="ghost" size="icon" onClick={handleBack}>
-                <ArrowLeft className="size-5" />
+                {variant === "primary" ? (
+                  <X className="size-5" />
+                ) : (
+                  <ArrowLeft className="size-5" />
+                )}
               </Button>
             ))}
         </div>

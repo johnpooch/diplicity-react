@@ -2554,7 +2554,7 @@ class TestOrderSourceUnit:
         assert order.source_unit is None
 
     @pytest.mark.django_db
-    def test_source_unit_with_multiple_units_returns_first(
+    def test_source_unit_with_multiple_units_in_movement_phase_returns_first(
         self,
         test_phase_state,
         classical_london_province,
@@ -2562,6 +2562,7 @@ class TestOrderSourceUnit:
         classical_france_nation,
     ):
         phase = test_phase_state.phase
+        assert phase.type == PhaseType.MOVEMENT
 
         fleet_unit = phase.units.create(
             type=UnitType.FLEET,
@@ -2585,6 +2586,42 @@ class TestOrderSourceUnit:
         assert result is not None
         assert result in [fleet_unit, army_unit]
 
+    @pytest.mark.django_db
+    def test_source_unit_returns_dislodged_unit_during_retreat_phase(
+        self,
+        order_active_game,
+        primary_user,
+        retreat_phase,
+        classical_london_province,
+        classical_england_nation,
+        classical_france_nation,
+    ):
+        phase = retreat_phase(order_active_game)
+        phase_state = phase.phase_states.get(member__user=primary_user)
+
+        army_unit = phase.units.create(
+            type=UnitType.ARMY,
+            nation=classical_england_nation,
+            province=classical_london_province,
+            dislodged=True,
+        )
+
+        phase.units.create(
+            type=UnitType.FLEET,
+            nation=classical_france_nation,
+            province=classical_london_province,
+            dislodged=False,
+        )
+
+        order = Order(
+            phase_state=phase_state,
+            source=classical_london_province,
+            order_type=OrderType.MOVE,
+        )
+
+        assert order.source_unit == army_unit
+        assert order.source_unit.type == UnitType.ARMY
+        assert order.source_unit.dislodged is True
 
 class TestSourceCoast:
 
