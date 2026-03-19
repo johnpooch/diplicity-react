@@ -1,16 +1,7 @@
-export interface FieldValue {
-  id: string;
-  label: string;
-}
+import type { FieldValue, FlatOrderOption } from "../api/generated/endpoints";
 
-export interface OrderOption {
-  source: FieldValue | null;
-  orderType: FieldValue | null;
-  target: FieldValue | null;
-  aux: FieldValue | null;
-  unitType: FieldValue | null;
-  namedCoast: FieldValue | null;
-}
+export type { FieldValue };
+export type OrderOption = FlatOrderOption;
 
 export type FieldName =
   | "source"

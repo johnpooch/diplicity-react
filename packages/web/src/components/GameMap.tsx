@@ -13,8 +13,8 @@ import {
   useGameOrdersList,
   useGameOrdersCreate,
   getGameOrdersListQueryKey,
+  useGameOptionsRetrieve,
 } from "../api/generated/endpoints";
-import { useGameOrderOptionsRetrieve } from "../api/orderOptions";
 import { useOrderWizard } from "../hooks/useOrderWizard";
 
 const GameMap: React.FC = () => {
@@ -31,7 +31,7 @@ const GameMap: React.FC = () => {
   const { data: phase } = useGamePhaseRetrieve(gameId, selectedPhase);
   const { data: phaseStates } = useGamePhaseStatesList(gameId);
   const { data: orders } = useGameOrdersList(gameId, selectedPhase);
-  const { data: optionsData } = useGameOrderOptionsRetrieve(gameId);
+  const { data: optionsData } = useGameOptionsRetrieve(gameId);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [menuPosition, setMenuPosition] = useState<{
