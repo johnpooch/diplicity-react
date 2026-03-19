@@ -2622,3 +2622,66 @@ class TestOrderSourceUnit:
         assert order.source_unit == army_unit
         assert order.source_unit.type == UnitType.ARMY
         assert order.source_unit.dislodged is True
+
+class TestSourceCoast:
+
+    @pytest.mark.django_db
+    def test_source_coast_returns_coast_for_fleet_on_named_coast(
+        self,
+        authenticated_client,
+        order_active_game,
+        primary_user,
+        classical_stp_province,
+        classical_stp_sc_province,
+        classical_russia_nation,
+    ):
+        game = order_active_game
+        phase = game.current_phase
+        phase_state = phase.phase_states.get(member__user=primary_user)
+
+        phase.units.create(
+            type=UnitType.FLEET,
+            nation=classical_russia_nation,
+            province=classical_stp_sc_province,
+        )
+
+        Order.objects.create(
+            phase_state=phase_state,
+            order_type=OrderType.HOLD,
+            source=classical_stp_province,
+        )
+
+        url = reverse("order-list", args=[game.id, phase.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        order_data = next(o for o in response.data if o["source"]["id"] == "stp")
+        assert order_data["source_coast"] is not None
+        assert order_data["source_coast"]["id"] == "stp/sc"
+
+    @pytest.mark.django_db
+    def test_source_coast_returns_null_for_regular_province(
+        self,
+        authenticated_client,
+        order_active_game,
+        primary_user,
+        classical_london_province,
+        classical_english_channel_province,
+    ):
+        game = order_active_game
+        phase = game.current_phase
+        phase_state = phase.phase_states.get(member__user=primary_user)
+
+        Order.objects.create(
+            phase_state=phase_state,
+            order_type=OrderType.MOVE,
+            source=classical_london_province,
+            target=classical_english_channel_province,
+        )
+
+        url = reverse("order-list", args=[game.id, phase.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        order_data = next(o for o in response.data if o["source"]["id"] == "lon")
+        assert order_data["source_coast"] is None

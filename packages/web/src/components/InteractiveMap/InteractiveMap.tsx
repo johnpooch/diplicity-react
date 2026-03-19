@@ -453,8 +453,9 @@ const InteractiveMap = (props: InteractiveMapProps) => {
       {props.orders
         ?.filter(o => o.orderType === "Hold")
         .map(o => {
-          const source = o.namedCoast
-            ? map.provinces.find(p => p.id === o.namedCoast.id)
+          const sourceCoast = o.sourceCoast;
+          const source = sourceCoast
+            ? map.provinces.find(p => p.id === sourceCoast.id)
             : map.provinces.find(p => p.id === o.source.id);
           if (!source) return null;
           return (
@@ -491,7 +492,10 @@ const InteractiveMap = (props: InteractiveMapProps) => {
           const color = props.variant.nations.find(
             n => n.name === o.nation.name
           )?.color as string;
-          const source = map.provinces.find(p => p.id === o.source.id);
+          const sourceCoast = o.sourceCoast;
+          const source = sourceCoast
+            ? map.provinces.find(p => p.id === sourceCoast.id)
+            : map.provinces.find(p => p.id === o.source.id);
           const target = map.provinces.find(p => p.id === o.target?.id);
           const aux = map.provinces.find(p => p.id === o.aux?.id);
           if (!source) return null;
@@ -579,8 +583,13 @@ const InteractiveMap = (props: InteractiveMapProps) => {
       {props.orders
         ?.filter(o => o.orderType === "Move" || o.orderType === "MoveViaConvoy")
         .map(o => {
-          const source = map.provinces.find(p => p.id === o.source.id);
-          const target = map.provinces.find(p => p.id === o.target?.id);
+          const sourceCoast = o.sourceCoast;
+          const source = sourceCoast
+            ? map.provinces.find(p => p.id === sourceCoast.id)
+            : map.provinces.find(p => p.id === o.source.id);
+          const target = o.namedCoast
+            ? map.provinces.find(p => p.id === o.namedCoast.id)
+            : map.provinces.find(p => p.id === o.target?.id);
           if (!source) return null;
           if (!target) return null;
           const color = props.variant.nations.find(
@@ -741,7 +750,10 @@ const InteractiveMap = (props: InteractiveMapProps) => {
       {props.orders
         ?.filter(o => o.orderType === "Disband")
         .map(o => {
-          const source = map.provinces.find(p => p.id === o.source.id);
+          const sourceCoast = o.sourceCoast;
+          const source = sourceCoast
+            ? map.provinces.find(p => p.id === sourceCoast.id)
+            : map.provinces.find(p => p.id === o.source.id);
           if (!source) return null;
           const { x, y } = source.center;
 
