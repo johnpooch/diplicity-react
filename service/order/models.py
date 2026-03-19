@@ -171,7 +171,10 @@ class Order(BaseModel):
 
     @property
     def source_unit(self):
-        return self.phase.units.filter(province=self.source).first()
+        units = self.phase.units.filter(province=self.source)
+        if self.phase.type == PhaseType.RETREAT:
+            return units.filter(dislodged=True).first() or units.first()
+        return units.first()
 
     @property
     def options_display(self):
