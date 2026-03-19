@@ -1841,6 +1841,11 @@ components:
           allOf:
           - $ref: '#/components/schemas/Province'
           readOnly: true
+        sourceCoast:
+          allOf:
+          - $ref: '#/components/schemas/Province'
+          readOnly: true
+          nullable: true
         target:
           allOf:
           - $ref: '#/components/schemas/Province'
@@ -1905,6 +1910,7 @@ components:
       - orderType
       - resolution
       - source
+      - sourceCoast
       - step
       - summary
       - target

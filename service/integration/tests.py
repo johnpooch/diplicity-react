@@ -507,7 +507,7 @@ def test_active_game_create_move_order_fleet_to_named_coast(
     assert create_order_response.status_code == status.HTTP_201_CREATED
     assert create_order_response.data["selected"] == ["gol", "Move", "spa", "spa/sc"]
     assert create_order_response.data["step"] == OrderCreationStep.COMPLETED
-    assert create_order_response.data["title"] == "Gulf of Lyon will move to Spain"
+    assert create_order_response.data["title"] == "Gulf of Lyon will move to Spain (SC)"
 
     confirm_order_response = authenticated_client.put(confirm_order_url)
     confirm_order_response = authenticated_client_for_secondary_user.put(confirm_order_url)
