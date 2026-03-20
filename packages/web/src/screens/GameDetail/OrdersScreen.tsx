@@ -52,6 +52,7 @@ import {
   useVariantsListSuspense,
   getGameRetrieveQueryKey,
   getGameOrdersListQueryKey,
+  getGameOptionsRetrieveQueryKey,
   Order,
   GameRetrieve,
   Member,
@@ -85,7 +86,8 @@ const buildNationGroups = (
         items: (ps.orderableProvinces as Province[]).map(province => ({
           province,
           order: orders.find(o => o.source.id === province.id),
-          unit: phase.units.find(u => u.province.id === province.id),
+          unit: phase.units.find(u => u.province.id === province.id && u.dislodged)
+            ?? phase.units.find(u => u.province.id === province.id),
         })),
       }));
   }
@@ -105,7 +107,8 @@ const buildNationGroups = (
     items: nationOrders.map(order => ({
       province: order.source,
       order,
-      unit: phase.units.find(u => u.province.id === order.source.id),
+      unit: phase.units.find(u => u.province.id === order.source.id && u.dislodged)
+        ?? phase.units.find(u => u.province.id === order.source.id),
     })),
   }));
 };
@@ -177,6 +180,9 @@ const OrdersScreen: React.FC = () => {
   const handleResolvePhase = async () => {
     try {
       const result = await resolvePhaseMutation.mutateAsync({ gameId });
+      queryClient.invalidateQueries({
+        queryKey: getGameOptionsRetrieveQueryKey(gameId),
+      });
       toast.success("Phase resolved");
       navigate(`/game/${gameId}/phase/${result.id}/orders`);
     } catch {

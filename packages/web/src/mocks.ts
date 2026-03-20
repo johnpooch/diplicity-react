@@ -561,6 +561,7 @@ export const mockOrders: Order[] = [
     target: mockProvinces[3], // Berlin
     aux: mockProvinces[0],
     namedCoast: mockProvinces[0],
+    sourceCoast: null,
     resolution: { status: "Succeeded", by: null },
     options: [],
     orderType: "Move",
@@ -576,6 +577,7 @@ export const mockOrders: Order[] = [
     target: mockProvinces[1], // London
     aux: mockProvinces[1],
     namedCoast: mockProvinces[1],
+    sourceCoast: null,
     resolution: { status: "Succeeded", by: null },
     options: [],
     orderType: "Hold",
@@ -591,6 +593,7 @@ export const mockOrders: Order[] = [
     target: mockProvinces[3], // Berlin
     aux: mockProvinces[2],
     namedCoast: mockProvinces[2],
+    sourceCoast: null,
     resolution: { status: "Failed", by: mockProvinces[0] },
     options: [],
     orderType: "Move",
@@ -606,6 +609,7 @@ export const mockOrders: Order[] = [
     target: mockProvinces[5], // Moscow
     aux: mockProvinces[6],
     namedCoast: mockProvinces[6],
+    sourceCoast: null,
     resolution: { status: "Succeeded", by: null },
     options: [],
     orderType: "Move",

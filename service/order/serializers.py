@@ -7,6 +7,25 @@ from .models import Order
 from common.constants import OrderType, UnitType, OrderCreationStep
 
 
+class FieldValueSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    label = serializers.CharField()
+
+
+class FlatOrderOptionSerializer(serializers.Serializer):
+    source = FieldValueSerializer(allow_null=True)
+    order_type = FieldValueSerializer(allow_null=True)
+    target = FieldValueSerializer(allow_null=True)
+    aux = FieldValueSerializer(allow_null=True)
+    unit_type = FieldValueSerializer(allow_null=True)
+    named_coast = FieldValueSerializer(allow_null=True)
+
+
+class OrderOptionsResponseSerializer(serializers.Serializer):
+    orders = FlatOrderOptionSerializer(many=True)
+    field_order = serializers.DictField(child=serializers.ListField(child=serializers.CharField()))
+
+
 class OrderOptionSerializer(serializers.Serializer):
     value = serializers.CharField()
     label = serializers.CharField()
@@ -19,6 +38,7 @@ class OrderResolutionSerializer(serializers.Serializer):
 
 class OrderSerializer(serializers.Serializer):
     source = ProvinceSerializer(read_only=True)
+    source_coast = ProvinceSerializer(read_only=True, allow_null=True)
     target = ProvinceSerializer(read_only=True)
     aux = ProvinceSerializer(read_only=True)
     named_coast = ProvinceSerializer(read_only=True)

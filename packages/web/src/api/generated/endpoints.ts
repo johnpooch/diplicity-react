@@ -198,6 +198,20 @@ export interface FCMDevice {
   type: TypeEnum;
 }
 
+export interface FieldValue {
+  id: string;
+  label: string;
+}
+
+export interface FlatOrderOption {
+  source: FieldValue | null;
+  orderType: FieldValue | null;
+  target: FieldValue | null;
+  aux: FieldValue | null;
+  unitType: FieldValue | null;
+  namedCoast: FieldValue | null;
+}
+
 export interface GameCloneToSandbox {
   readonly id: string;
 }
@@ -448,6 +462,7 @@ export const StepEnum = {
 
 export interface Order {
   readonly source: Province;
+  readonly sourceCoast: Province | null;
   readonly target: Province;
   readonly aux: Province;
   readonly namedCoast: Province;
@@ -464,6 +479,13 @@ export interface Order {
   /** @nullable */
   readonly summary: string | null;
   selected?: string[];
+}
+
+export type OrderOptionsResponseFieldOrder = { [key: string]: string[] };
+
+export interface OrderOptionsResponse {
+  orders: FlatOrderOption[];
+  fieldOrder: OrderOptionsResponseFieldOrder;
 }
 
 export interface PatchedDrawVoteUpdate {
@@ -2711,6 +2733,286 @@ export const useGameLeaveDestroy = <TError = unknown, TContext = unknown>(
 > => {
   return useMutation(getGameLeaveDestroyMutationOptions(options), queryClient);
 };
+
+/**
+ * Used by views that have a game parameter in the URL. Provides a get_phase
+method that returns the current phase for the game. Also adds phase to the serializer context.
+ */
+export const gameOptionsRetrieve = (gameId: string, signal?: AbortSignal) => {
+  return customInstance<OrderOptionsResponse>({
+    url: `/game/${gameId}/options/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getGameOptionsRetrieveQueryKey = (gameId: string) => {
+  return [`/game/${gameId}/options/`] as const;
+};
+
+export const getGameOptionsRetrieveQueryOptions = <
+  TData = Awaited<ReturnType<typeof gameOptionsRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gameOptionsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGameOptionsRetrieveQueryKey(gameId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof gameOptionsRetrieve>>
+  > = ({ signal }) => gameOptionsRetrieve(gameId, signal);
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!gameId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof gameOptionsRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GameOptionsRetrieveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gameOptionsRetrieve>>
+>;
+export type GameOptionsRetrieveQueryError = unknown;
+
+export function useGameOptionsRetrieve<
+  TData = Awaited<ReturnType<typeof gameOptionsRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gameOptionsRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gameOptionsRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof gameOptionsRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGameOptionsRetrieve<
+  TData = Awaited<ReturnType<typeof gameOptionsRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gameOptionsRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gameOptionsRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof gameOptionsRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGameOptionsRetrieve<
+  TData = Awaited<ReturnType<typeof gameOptionsRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gameOptionsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGameOptionsRetrieve<
+  TData = Awaited<ReturnType<typeof gameOptionsRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gameOptionsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGameOptionsRetrieveQueryOptions(gameId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getGameOptionsRetrieveSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof gameOptionsRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gameOptionsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGameOptionsRetrieveQueryKey(gameId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof gameOptionsRetrieve>>
+  > = ({ signal }) => gameOptionsRetrieve(gameId, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof gameOptionsRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GameOptionsRetrieveSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gameOptionsRetrieve>>
+>;
+export type GameOptionsRetrieveSuspenseQueryError = unknown;
+
+export function useGameOptionsRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gameOptionsRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gameOptionsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGameOptionsRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gameOptionsRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gameOptionsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGameOptionsRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gameOptionsRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gameOptionsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGameOptionsRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gameOptionsRetrieve>>,
+  TError = unknown,
+>(
+  gameId: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gameOptionsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGameOptionsRetrieveSuspenseQueryOptions(
+    gameId,
+    options
+  );
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * Used by views that have a game parameter in the URL. Provides a get_phase
@@ -5705,6 +6007,80 @@ export const useGamesDrawProposalsCreateCreate = <
   );
 };
 
+export const phaseDeadlineWarningsCreate = (signal?: AbortSignal) => {
+  return customInstance<void>({
+    url: `/phase/deadline-warnings/`,
+    method: "POST",
+    signal,
+  });
+};
+
+export const getPhaseDeadlineWarningsCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof phaseDeadlineWarningsCreate>>,
+    TError,
+    void,
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof phaseDeadlineWarningsCreate>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["phaseDeadlineWarningsCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof phaseDeadlineWarningsCreate>>,
+    void
+  > = () => {
+    return phaseDeadlineWarningsCreate();
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PhaseDeadlineWarningsCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof phaseDeadlineWarningsCreate>>
+>;
+
+export type PhaseDeadlineWarningsCreateMutationError = unknown;
+
+export const usePhaseDeadlineWarningsCreate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof phaseDeadlineWarningsCreate>>,
+      TError,
+      void,
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof phaseDeadlineWarningsCreate>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(
+    getPhaseDeadlineWarningsCreateMutationOptions(options),
+    queryClient
+  );
+};
+
 export const phaseResolveCreate = (signal?: AbortSignal) => {
   return customInstance<void>({
     url: `/phase/resolve/`,
@@ -7212,10 +7588,82 @@ export const getGameJoinCreateResponseMock = (
   ...overrideResponse,
 });
 
+export const getGameOptionsRetrieveResponseMock = (
+  overrideResponse: Partial<OrderOptionsResponse> = {}
+): OrderOptionsResponse => ({
+  orders: Array.from(
+    { length: faker.number.int({ min: 1, max: 10 }) },
+    (_, i) => i + 1
+  ).map(() => ({
+    source: {
+      ...{
+        id: faker.string.alpha({ length: { min: 10, max: 20 } }),
+        label: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      },
+    },
+    orderType: {
+      ...{
+        id: faker.string.alpha({ length: { min: 10, max: 20 } }),
+        label: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      },
+    },
+    target: {
+      ...{
+        id: faker.string.alpha({ length: { min: 10, max: 20 } }),
+        label: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      },
+    },
+    aux: {
+      ...{
+        id: faker.string.alpha({ length: { min: 10, max: 20 } }),
+        label: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      },
+    },
+    unitType: {
+      ...{
+        id: faker.string.alpha({ length: { min: 10, max: 20 } }),
+        label: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      },
+    },
+    namedCoast: {
+      ...{
+        id: faker.string.alpha({ length: { min: 10, max: 20 } }),
+        label: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      },
+    },
+  })),
+  fieldOrder: {
+    [faker.string.alphanumeric(5)]: Array.from(
+      { length: faker.number.int({ min: 1, max: 10 }) },
+      (_, i) => i + 1
+    ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
+  },
+  ...overrideResponse,
+});
+
 export const getGameOrdersCreateResponseMock = (
   overrideResponse: Partial<Order> = {}
 ): Order => ({
   source: {
+    ...{
+      id: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      type: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      supplyCenter: faker.datatype.boolean(),
+      parentId: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          null,
+        ]),
+        null,
+      ]),
+      namedCoastIds: Array.from(
+        { length: faker.number.int({ min: 1, max: 10 }) },
+        (_, i) => i + 1
+      ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
+    },
+  },
+  sourceCoast: {
     ...{
       id: faker.string.alpha({ length: { min: 10, max: 20 } }),
       name: faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -7365,6 +7813,25 @@ export const getGameOrdersListResponseMock = (): Order[] =>
     (_, i) => i + 1
   ).map(() => ({
     source: {
+      ...{
+        id: faker.string.alpha({ length: { min: 10, max: 20 } }),
+        name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+        type: faker.string.alpha({ length: { min: 10, max: 20 } }),
+        supplyCenter: faker.datatype.boolean(),
+        parentId: faker.helpers.arrayElement([
+          faker.helpers.arrayElement([
+            faker.string.alpha({ length: { min: 10, max: 20 } }),
+            null,
+          ]),
+          null,
+        ]),
+        namedCoastIds: Array.from(
+          { length: faker.number.int({ min: 1, max: 10 }) },
+          (_, i) => i + 1
+        ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
+      },
+    },
+    sourceCoast: {
       ...{
         id: faker.string.alpha({ length: { min: 10, max: 20 } }),
         name: faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -8683,6 +9150,32 @@ export const getGameLeaveDestroyMockHandler = (
   );
 };
 
+export const getGameOptionsRetrieveMockHandler = (
+  overrideResponse?:
+    | OrderOptionsResponse
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0]
+      ) => Promise<OrderOptionsResponse> | OrderOptionsResponse),
+  options?: RequestHandlerOptions
+) => {
+  return http.get(
+    "*/game/:gameId/options/",
+    async info => {
+      return new HttpResponse(
+        JSON.stringify(
+          overrideResponse !== undefined
+            ? typeof overrideResponse === "function"
+              ? await overrideResponse(info)
+              : overrideResponse
+            : getGameOptionsRetrieveResponseMock()
+        ),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    },
+    options
+  );
+};
+
 export const getGameOrdersCreateMockHandler = (
   overrideResponse?:
     | Order
@@ -9167,6 +9660,26 @@ export const getGamesDrawProposalsCreateCreateMockHandler = (
   );
 };
 
+export const getPhaseDeadlineWarningsCreateMockHandler = (
+  overrideResponse?:
+    | void
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0]
+      ) => Promise<void> | void),
+  options?: RequestHandlerOptions
+) => {
+  return http.post(
+    "*/phase/deadline-warnings/",
+    async info => {
+      if (typeof overrideResponse === "function") {
+        await overrideResponse(info);
+      }
+      return new HttpResponse(null, { status: 200 });
+    },
+    options
+  );
+};
+
 export const getPhaseResolveCreateMockHandler = (
   overrideResponse?:
     | void
@@ -9359,6 +9872,7 @@ export const getMock = () => [
   getGameExtendDeadlinePartialUpdateMockHandler(),
   getGameJoinCreateMockHandler(),
   getGameLeaveDestroyMockHandler(),
+  getGameOptionsRetrieveMockHandler(),
   getGameOrdersCreateMockHandler(),
   getGameOrdersListMockHandler(),
   getGameOrdersDeleteDestroyMockHandler(),
@@ -9379,6 +9893,7 @@ export const getMock = () => [
   getGamesDrawProposalsVoteUpdateMockHandler(),
   getGamesDrawProposalsVotePartialUpdateMockHandler(),
   getGamesDrawProposalsCreateCreateMockHandler(),
+  getPhaseDeadlineWarningsCreateMockHandler(),
   getPhaseResolveCreateMockHandler(),
   getSandboxGameCreateMockHandler(),
   getUserRetrieveMockHandler(),

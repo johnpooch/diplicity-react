@@ -20,21 +20,17 @@ export const PhaseSelect: React.FC = () => {
 
   const goToPreviousPhase = () => {
     if (phase.previousPhaseId) {
-      const newPath = location.pathname.replace(
-        `/phase/${phaseId}/`,
-        `/phase/${phase.previousPhaseId}/`
-      );
-      navigate(newPath);
+      const phasePrefix = `/game/${gameId}/phase/${phaseId}`;
+      const suffix = location.pathname.slice(phasePrefix.length);
+      navigate(`/game/${gameId}/phase/${phase.previousPhaseId}${suffix}`);
     }
   };
 
   const goToNextPhase = () => {
     if (phase.nextPhaseId) {
-      const newPath = location.pathname.replace(
-        `/phase/${phaseId}/`,
-        `/phase/${phase.nextPhaseId}/`
-      );
-      navigate(newPath);
+      const phasePrefix = `/game/${gameId}/phase/${phaseId}`;
+      const suffix = location.pathname.slice(phasePrefix.length);
+      navigate(`/game/${gameId}/phase/${phase.nextPhaseId}${suffix}`);
     }
   };
 
