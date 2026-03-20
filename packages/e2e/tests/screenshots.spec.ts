@@ -27,6 +27,7 @@ function loadSeedData(): SeedData {
 const seedData = loadSeedData();
 
 test.beforeEach(async ({ page }) => {
+  await page.goto("/");
   await loginAsTestUser(page, {
     accessToken: seedData.accessToken,
     refreshToken: seedData.refreshToken,
@@ -46,7 +47,7 @@ function screenshotPath(
 test("home screen", async ({ page }, testInfo) => {
   await page.goto("/");
   await page.waitForLoadState("networkidle");
-  await expect(page.locator('[data-testid="game-card"]').first()).toBeVisible({
+  await expect(page.getByText("The Great War")).toBeVisible({
     timeout: 15000,
   });
   // Allow rendering to settle
@@ -62,8 +63,8 @@ test("map view", async ({ page }, testInfo) => {
     `/game/${seedData.game1Id}/phase/${seedData.phase3Id}`
   );
   await page.waitForLoadState("networkidle");
-  // Wait for the map SVG to render
-  await expect(page.locator("svg").first()).toBeVisible({ timeout: 15000 });
+  // Wait for a map SVG to be attached to the DOM (layout may render a hidden duplicate)
+  await page.locator('svg[preserveAspectRatio]').first().waitFor({ state: "attached", timeout: 15000 });
   await page.waitForTimeout(2000);
   await page.screenshot({
     path: screenshotPath(testInfo.project.name, "map"),
@@ -76,7 +77,8 @@ test("orders resolved", async ({ page }, testInfo) => {
     `/game/${seedData.game1Id}/phase/${seedData.phase2Id}`
   );
   await page.waitForLoadState("networkidle");
-  await expect(page.locator("svg").first()).toBeVisible({ timeout: 15000 });
+  // Wait for at least one map SVG to be attached (completed phases may render two)
+  await page.locator('svg[preserveAspectRatio]').first().waitFor({ state: "attached", timeout: 15000 });
   await page.waitForTimeout(2000);
   await page.screenshot({
     path: screenshotPath(testInfo.project.name, "orders-resolved"),

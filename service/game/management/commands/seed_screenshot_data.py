@@ -92,7 +92,7 @@ STARTING_SUPPLY_CENTERS = {
 # Phase 1: Spring 1901 orders
 PHASE1_ORDERS = {
     "England": [
-        ("edi", OrderType.MOVE, "nwg", None),
+        ("edi", OrderType.MOVE, "nrg", None),
         ("lvp", OrderType.MOVE, "yor", None),
         ("lon", OrderType.MOVE, "eng", None),
     ],
@@ -134,7 +134,7 @@ PHASE1_BOUNCES = {"bre", "ank", "sev"}
 
 # Phase 2: Fall 1901 units (post-Spring positions)
 PHASE2_UNITS = {
-    "nwg": ("Fleet", "England"),
+    "nrg": ("Fleet", "England"),
     "yor": ("Army", "England"),
     "eng": ("Fleet", "England"),
     "bre": ("Fleet", "France"),  # bounced, stayed
@@ -161,12 +161,12 @@ PHASE2_UNITS = {
 # Phase 2: Fall 1901 orders
 PHASE2_ORDERS = {
     "England": [
-        ("nwg", OrderType.MOVE, "nor", None),
+        ("nrg", OrderType.MOVE, "nwy", None),
         ("yor", OrderType.MOVE, "lon", None),
         ("eng", OrderType.HOLD, None, None),
     ],
     "France": [
-        ("bre", OrderType.MOVE, "mao", None),
+        ("bre", OrderType.MOVE, "mid", None),
         ("bur", OrderType.HOLD, None, None),
         ("spa", OrderType.HOLD, None, None),
     ],
@@ -203,10 +203,10 @@ PHASE2_BOUNCES = {"arm", "ukr", "sil"}
 
 # Phase 3: Spring 1902 units (post-Fall positions)
 PHASE3_UNITS = {
-    "nor": ("Fleet", "England"),
+    "nwy": ("Fleet", "England"),
     "lon": ("Army", "England"),
     "eng": ("Fleet", "England"),
-    "mao": ("Fleet", "France"),
+    "mid": ("Fleet", "France"),
     "bur": ("Army", "France"),
     "spa": ("Army", "France"),
     "den": ("Fleet", "Germany"),
@@ -230,7 +230,7 @@ PHASE3_UNITS = {
 # Phase 3 supply centers (after Fall 1901 adjustments)
 PHASE3_SUPPLY_CENTERS = {
     **STARTING_SUPPLY_CENTERS,
-    "nor": "England",
+    "nwy": "England",
     "hol": "Germany",
     "bel": "Germany",
     "tun": "Italy",
@@ -437,6 +437,7 @@ class Command(BaseCommand):
         self._create_orders(phase2, members, province_lookup, nation_lookup, PHASE2_ORDERS, PHASE2_BOUNCES)
 
         # Phase 3: Spring 1902 Movement (ACTIVE)
+        empty_options = {ud["nation"]: {} for ud in USERS}
         phase3 = Phase.objects.create(
             game=game,
             variant=variant,
@@ -446,6 +447,7 @@ class Command(BaseCommand):
             ordinal=3,
             status=PhaseStatus.ACTIVE,
             scheduled_resolution=timezone.now() + timedelta(days=365),
+            options=empty_options,
         )
         self._create_units(phase3, province_lookup, nation_lookup, PHASE3_UNITS)
         self._create_supply_centers(phase3, province_lookup, nation_lookup, PHASE3_SUPPLY_CENTERS)
@@ -467,6 +469,7 @@ class Command(BaseCommand):
             for ud in USERS
         }
 
+        empty_options = {ud["nation"]: {} for ud in USERS}
         phase = Phase.objects.create(
             game=game,
             variant=variant,
@@ -476,6 +479,7 @@ class Command(BaseCommand):
             ordinal=1,
             status=PhaseStatus.ACTIVE,
             scheduled_resolution=timezone.now() + timedelta(days=365),
+            options=empty_options,
         )
         self._create_units(phase, province_lookup, nation_lookup, STARTING_UNITS)
         self._create_supply_centers(phase, province_lookup, nation_lookup, STARTING_SUPPLY_CENTERS)
