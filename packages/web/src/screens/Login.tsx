@@ -1,21 +1,53 @@
 import React from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
+import { Link } from "react-router";
 import { toast } from "sonner";
 import { useAuth } from "../auth";
-import { useAuthLoginCreate } from "../api/generated/endpoints";
+import {
+  useAuthEmailLoginCreate,
+  useAuthLoginCreate,
+} from "../api/generated/endpoints";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { isNativePlatform } from "@/utils/platform";
 import { nativeGoogleSignIn } from "@/auth/nativeGoogleAuth";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+
+const loginSchema = z.object({
+  email: z.string().email("Please enter a valid email"),
+  password: z.string().min(1, "Password is required"),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login: React.FC = () => {
   const { login } = useAuth();
-  const loginMutation = useAuthLoginCreate();
+  const emailLoginMutation = useAuthEmailLoginCreate();
+  const googleLoginMutation = useAuthLoginCreate();
 
-  const sendIdTokenToBackend = async (idToken: string) => {
-    const result = await loginMutation.mutateAsync({
-      data: { idToken },
-    });
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" },
+  });
+
+  const storeTokensAndLogin = (result: {
+    accessToken: string;
+    refreshToken: string;
+    email: string;
+    name: string;
+  }) => {
     login({
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
@@ -25,9 +57,28 @@ const Login: React.FC = () => {
     toast.success(`Logged in as ${result.name}`);
   };
 
-  const handleWebLoginSuccess = async (credentialResponse: CredentialResponse) => {
+  const handleEmailLogin = async (data: LoginFormValues) => {
+    try {
+      const result = await emailLoginMutation.mutateAsync({
+        data: { email: data.email, password: data.password },
+      });
+      storeTokensAndLogin(result);
+    } catch {
+      toast.error("Invalid email or password");
+    }
+  };
+
+  const sendIdTokenToBackend = async (idToken: string) => {
+    const result = await googleLoginMutation.mutateAsync({
+      data: { idToken },
+    });
+    storeTokensAndLogin(result);
+  };
+
+  const handleWebLoginSuccess = async (
+    credentialResponse: CredentialResponse
+  ) => {
     if (!credentialResponse.credential) {
-      console.error("No credential response received");
       return;
     }
     try {
@@ -38,7 +89,6 @@ const Login: React.FC = () => {
   };
 
   const handleWebLoginError = () => {
-    console.error("Login failed");
     toast.error("Login failed");
   };
 
@@ -54,9 +104,12 @@ const Login: React.FC = () => {
   return (
     <div
       className="flex justify-center items-center h-screen bg-cover bg-no-repeat pt-[var(--safe-area-top)] pb-[var(--safe-area-bottom)]"
-      style={{ backgroundImage: "url('/login_background.jpg')", backgroundPosition: "54%" }}
+      style={{
+        backgroundImage: "url('/login_background.jpg')",
+        backgroundPosition: "54%",
+      }}
     >
-      <div className="flex flex-col items-center gap-4 p-8 bg-background rounded">
+      <div className="flex flex-col items-center gap-4 p-8 bg-background rounded w-80">
         <Avatar className="size-12">
           <AvatarImage src="/otto.png" alt="Diplicity Logo" />
         </Avatar>
@@ -64,9 +117,66 @@ const Login: React.FC = () => {
         <p className="text-sm text-muted-foreground">
           A digital adaptation of the game of Diplomacy.
         </p>
-        <div className="flex justify-center mt-2">
+
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(handleEmailLogin)}
+            className="w-full space-y-4"
+          >
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input type="email" placeholder="you@example.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" placeholder="••••••••" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={emailLoginMutation.isPending}
+            >
+              Sign In
+            </Button>
+          </form>
+        </Form>
+
+        <Link
+          to="/forgot-password"
+          className="text-sm text-muted-foreground hover:underline"
+        >
+          Forgot password?
+        </Link>
+
+        <div className="flex items-center gap-4 w-full">
+          <Separator className="flex-1" />
+          <span className="text-sm text-muted-foreground">OR</span>
+          <Separator className="flex-1" />
+        </div>
+
+        <div className="flex justify-center">
           {isNativePlatform() ? (
-            <Button onClick={handleNativeLogin}>Sign in with Google</Button>
+            <Button variant="outline" onClick={handleNativeLogin}>
+              Sign in with Google
+            </Button>
           ) : (
             <GoogleLogin
               onSuccess={handleWebLoginSuccess}
@@ -74,6 +184,13 @@ const Login: React.FC = () => {
             />
           )}
         </div>
+
+        <p className="text-sm text-muted-foreground">
+          Don&apos;t have an account?{" "}
+          <Link to="/register" className="text-primary hover:underline">
+            Register
+          </Link>
+        </p>
       </div>
     </div>
   );

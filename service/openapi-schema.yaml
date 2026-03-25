@@ -179,6 +179,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/TokenRefresh'
           description: ''
+  /auth/email-login/:
+    post:
+      operationId: authEmailLoginCreate
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailLogin'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailLogin'
+          description: ''
   /auth/login/:
     post:
       operationId: authLoginCreate
@@ -199,6 +220,48 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Auth'
+          description: ''
+  /auth/register/:
+    post:
+      operationId: authRegisterCreate
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Register'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Register'
+          description: ''
+  /auth/verify-email/:
+    post:
+      operationId: authVerifyEmailCreate
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyEmail'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyEmail'
           description: ''
   /devices/:
     get:
@@ -1366,6 +1429,34 @@ components:
         * `4 days` - 4 days
         * `1 week` - 1 week
         * `2 weeks` - 2 weeks
+    EmailLogin:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          writeOnly: true
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        accessToken:
+          type: string
+          readOnly: true
+        refreshToken:
+          type: string
+          readOnly: true
+      required:
+      - accessToken
+      - email
+      - id
+      - name
+      - password
+      - refreshToken
     FCMDevice:
       type: object
       properties:
@@ -1770,8 +1861,8 @@ components:
           readOnly: true
         picture:
           type: string
-          readOnly: true
           nullable: true
+          readOnly: true
         nation:
           type: string
           readOnly: true
@@ -2148,6 +2239,24 @@ components:
       - parentId
       - supplyCenter
       - type
+    Register:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          writeOnly: true
+        password:
+          type: string
+          writeOnly: true
+          minLength: 8
+        displayName:
+          type: string
+          writeOnly: true
+      required:
+      - displayName
+      - email
+      - password
     RetreatFrequencyEnum:
       enum:
       - hourly
@@ -2303,6 +2412,18 @@ components:
       - provinces
       - soloVictoryScCount
       - templatePhase
+    VerifyEmail:
+      type: object
+      properties:
+        uid:
+          type: string
+          writeOnly: true
+        token:
+          type: string
+          writeOnly: true
+      required:
+      - token
+      - uid
     Version:
       type: object
       properties:

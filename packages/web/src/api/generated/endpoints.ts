@@ -164,6 +164,15 @@ export const DurationEnum = {
   "2_weeks": "2 weeks",
 } as const;
 
+export interface EmailLogin {
+  email: string;
+  password: string;
+  readonly id: number;
+  readonly name: string;
+  readonly accessToken: string;
+  readonly refreshToken: string;
+}
+
 /**
  * * `ios` - ios
  * `android` - android
@@ -586,6 +595,13 @@ export interface PhaseState {
   readonly member: Member;
 }
 
+export interface Register {
+  email: string;
+  /** @minLength 8 */
+  password: string;
+  displayName: string;
+}
+
 export interface TokenRefresh {
   readonly access: string;
   refresh: string;
@@ -612,6 +628,11 @@ export interface Variant {
   nations: Nation[];
   provinces: Province[];
   templatePhase: PhaseRetrieve;
+}
+
+export interface VerifyEmail {
+  uid: string;
+  token: string;
 }
 
 export interface Version {
@@ -1367,6 +1388,84 @@ export const useApiTokenRefreshCreate = <TError = unknown, TContext = unknown>(
   );
 };
 
+export const authEmailLoginCreate = (
+  emailLogin: NonReadonly<EmailLogin>,
+  signal?: AbortSignal
+) => {
+  return customInstance<EmailLogin>({
+    url: `/auth/email-login/`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: emailLogin,
+    signal,
+  });
+};
+
+export const getAuthEmailLoginCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof authEmailLoginCreate>>,
+    TError,
+    { data: NonReadonly<EmailLogin> },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof authEmailLoginCreate>>,
+  TError,
+  { data: NonReadonly<EmailLogin> },
+  TContext
+> => {
+  const mutationKey = ["authEmailLoginCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof authEmailLoginCreate>>,
+    { data: NonReadonly<EmailLogin> }
+  > = props => {
+    const { data } = props ?? {};
+
+    return authEmailLoginCreate(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AuthEmailLoginCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof authEmailLoginCreate>>
+>;
+export type AuthEmailLoginCreateMutationBody = NonReadonly<EmailLogin>;
+export type AuthEmailLoginCreateMutationError = unknown;
+
+export const useAuthEmailLoginCreate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof authEmailLoginCreate>>,
+      TError,
+      { data: NonReadonly<EmailLogin> },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof authEmailLoginCreate>>,
+  TError,
+  { data: NonReadonly<EmailLogin> },
+  TContext
+> => {
+  return useMutation(
+    getAuthEmailLoginCreateMutationOptions(options),
+    queryClient
+  );
+};
+
 export const authLoginCreate = (
   auth: NonReadonly<Auth>,
   signal?: AbortSignal
@@ -1440,6 +1539,162 @@ export const useAuthLoginCreate = <TError = unknown, TContext = unknown>(
   TContext
 > => {
   return useMutation(getAuthLoginCreateMutationOptions(options), queryClient);
+};
+
+export const authRegisterCreate = (
+  register: Register,
+  signal?: AbortSignal
+) => {
+  return customInstance<Register>({
+    url: `/auth/register/`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: register,
+    signal,
+  });
+};
+
+export const getAuthRegisterCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof authRegisterCreate>>,
+    TError,
+    { data: Register },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof authRegisterCreate>>,
+  TError,
+  { data: Register },
+  TContext
+> => {
+  const mutationKey = ["authRegisterCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof authRegisterCreate>>,
+    { data: Register }
+  > = props => {
+    const { data } = props ?? {};
+
+    return authRegisterCreate(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AuthRegisterCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof authRegisterCreate>>
+>;
+export type AuthRegisterCreateMutationBody = Register;
+export type AuthRegisterCreateMutationError = unknown;
+
+export const useAuthRegisterCreate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof authRegisterCreate>>,
+      TError,
+      { data: Register },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof authRegisterCreate>>,
+  TError,
+  { data: Register },
+  TContext
+> => {
+  return useMutation(
+    getAuthRegisterCreateMutationOptions(options),
+    queryClient
+  );
+};
+
+export const authVerifyEmailCreate = (
+  verifyEmail: VerifyEmail,
+  signal?: AbortSignal
+) => {
+  return customInstance<VerifyEmail>({
+    url: `/auth/verify-email/`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: verifyEmail,
+    signal,
+  });
+};
+
+export const getAuthVerifyEmailCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof authVerifyEmailCreate>>,
+    TError,
+    { data: VerifyEmail },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof authVerifyEmailCreate>>,
+  TError,
+  { data: VerifyEmail },
+  TContext
+> => {
+  const mutationKey = ["authVerifyEmailCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof authVerifyEmailCreate>>,
+    { data: VerifyEmail }
+  > = props => {
+    const { data } = props ?? {};
+
+    return authVerifyEmailCreate(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AuthVerifyEmailCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof authVerifyEmailCreate>>
+>;
+export type AuthVerifyEmailCreateMutationBody = VerifyEmail;
+export type AuthVerifyEmailCreateMutationError = unknown;
+
+export const useAuthVerifyEmailCreate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof authVerifyEmailCreate>>,
+      TError,
+      { data: VerifyEmail },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof authVerifyEmailCreate>>,
+  TError,
+  { data: VerifyEmail },
+  TContext
+> => {
+  return useMutation(
+    getAuthVerifyEmailCreateMutationOptions(options),
+    queryClient
+  );
 };
 
 export const devicesList = (signal?: AbortSignal) => {
@@ -7116,6 +7371,18 @@ export const getApiTokenRefreshCreateResponseMock = (
   ...overrideResponse,
 });
 
+export const getAuthEmailLoginCreateResponseMock = (
+  overrideResponse: Partial<EmailLogin> = {}
+): EmailLogin => ({
+  email: faker.internet.email(),
+  password: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  id: faker.number.int({ min: undefined, max: undefined }),
+  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  accessToken: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  refreshToken: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  ...overrideResponse,
+});
+
 export const getAuthLoginCreateResponseMock = (
   overrideResponse: Partial<Auth> = {}
 ): Auth => ({
@@ -7125,6 +7392,23 @@ export const getAuthLoginCreateResponseMock = (
   name: faker.string.alpha({ length: { min: 10, max: 20 } }),
   accessToken: faker.string.alpha({ length: { min: 10, max: 20 } }),
   refreshToken: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  ...overrideResponse,
+});
+
+export const getAuthRegisterCreateResponseMock = (
+  overrideResponse: Partial<Register> = {}
+): Register => ({
+  email: faker.internet.email(),
+  password: faker.string.alpha({ length: { min: 8, max: 20 } }),
+  displayName: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  ...overrideResponse,
+});
+
+export const getAuthVerifyEmailCreateResponseMock = (
+  overrideResponse: Partial<VerifyEmail> = {}
+): VerifyEmail => ({
+  uid: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  token: faker.string.alpha({ length: { min: 10, max: 20 } }),
   ...overrideResponse,
 });
 
@@ -8818,6 +9102,32 @@ export const getApiTokenRefreshCreateMockHandler = (
   );
 };
 
+export const getAuthEmailLoginCreateMockHandler = (
+  overrideResponse?:
+    | EmailLogin
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0]
+      ) => Promise<EmailLogin> | EmailLogin),
+  options?: RequestHandlerOptions
+) => {
+  return http.post(
+    "*/auth/email-login/",
+    async info => {
+      return new HttpResponse(
+        JSON.stringify(
+          overrideResponse !== undefined
+            ? typeof overrideResponse === "function"
+              ? await overrideResponse(info)
+              : overrideResponse
+            : getAuthEmailLoginCreateResponseMock()
+        ),
+        { status: 201, headers: { "Content-Type": "application/json" } }
+      );
+    },
+    options
+  );
+};
+
 export const getAuthLoginCreateMockHandler = (
   overrideResponse?:
     | Auth
@@ -8836,6 +9146,58 @@ export const getAuthLoginCreateMockHandler = (
               ? await overrideResponse(info)
               : overrideResponse
             : getAuthLoginCreateResponseMock()
+        ),
+        { status: 201, headers: { "Content-Type": "application/json" } }
+      );
+    },
+    options
+  );
+};
+
+export const getAuthRegisterCreateMockHandler = (
+  overrideResponse?:
+    | Register
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0]
+      ) => Promise<Register> | Register),
+  options?: RequestHandlerOptions
+) => {
+  return http.post(
+    "*/auth/register/",
+    async info => {
+      return new HttpResponse(
+        JSON.stringify(
+          overrideResponse !== undefined
+            ? typeof overrideResponse === "function"
+              ? await overrideResponse(info)
+              : overrideResponse
+            : getAuthRegisterCreateResponseMock()
+        ),
+        { status: 201, headers: { "Content-Type": "application/json" } }
+      );
+    },
+    options
+  );
+};
+
+export const getAuthVerifyEmailCreateMockHandler = (
+  overrideResponse?:
+    | VerifyEmail
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0]
+      ) => Promise<VerifyEmail> | VerifyEmail),
+  options?: RequestHandlerOptions
+) => {
+  return http.post(
+    "*/auth/verify-email/",
+    async info => {
+      return new HttpResponse(
+        JSON.stringify(
+          overrideResponse !== undefined
+            ? typeof overrideResponse === "function"
+              ? await overrideResponse(info)
+              : overrideResponse
+            : getAuthVerifyEmailCreateResponseMock()
         ),
         { status: 201, headers: { "Content-Type": "application/json" } }
       );
@@ -9859,7 +10221,10 @@ export const getMock = () => [
   getApiSchemaRetrieveMockHandler(),
   getApiTestSentryRetrieveMockHandler(),
   getApiTokenRefreshCreateMockHandler(),
+  getAuthEmailLoginCreateMockHandler(),
   getAuthLoginCreateMockHandler(),
+  getAuthRegisterCreateMockHandler(),
+  getAuthVerifyEmailCreateMockHandler(),
   getDevicesListMockHandler(),
   getDevicesCreateMockHandler(),
   getDevicesUpdateMockHandler(),
