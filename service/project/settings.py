@@ -191,7 +191,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-PASSWORD_RESET_TIMEOUT = 86400  # 24 hours (used for email verification tokens)
+PASSWORD_RESET_TIMEOUT = 3600  # 1 hour (used for email verification and password reset tokens)
 
 
 # Internationalization

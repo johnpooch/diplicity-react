@@ -91,6 +91,25 @@ class RegisterSerializer(serializers.Serializer):
         return user
 
 
+class PasswordResetSerializer(serializers.Serializer):
+    email = serializers.EmailField(write_only=True)
+
+    def create(self, validated_data):
+        user = User.objects.filter(email=validated_data["email"], is_active=True).first()
+        if user:
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            send_email(
+                to=user.email,
+                subject="Reset your Diplicity password",
+                html=f'<p>Click the link to reset your password:</p>'
+                f'<a href="https://diplicity.com/auth/password-reset/confirm/{uid}/{token}/">'
+                f'Reset Password</a>'
+                f'<p>This link expires in 1 hour.</p>',
+            )
+        return validated_data
+
+
 class VerifyEmailSerializer(serializers.Serializer):
     uid = serializers.CharField(write_only=True)
     token = serializers.CharField(write_only=True)

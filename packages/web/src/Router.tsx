@@ -10,6 +10,7 @@ import { QueryClient } from "@tanstack/react-query";
 import { Login } from "./screens/Login";
 import { Register } from "./screens/Register";
 import { CheckEmail } from "./screens/CheckEmail";
+import { ForgotPassword } from "./screens/ForgotPassword";
 import { VerifyEmail } from "./screens/VerifyEmail";
 import { GameDetail, Home } from "./screens";
 import { ErrorFallbackUI } from "./components/ErrorBoundary";
@@ -247,6 +248,10 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
             {
               path: "/register",
               element: <Register />,
+            },
+            {
+              path: "/forgot-password",
+              element: <ForgotPassword />,
             },
             {
               path: "/check-email",

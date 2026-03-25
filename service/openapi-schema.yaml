@@ -221,6 +221,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/Auth'
           description: ''
+  /auth/password-reset/:
+    post:
+      operationId: authPasswordResetCreate
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordReset'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordReset'
+          description: ''
   /auth/register/:
     post:
       operationId: authRegisterCreate
@@ -2063,6 +2084,15 @@ components:
         * `Convoy` - Convoy
         * `Build` - Build
         * `Disband` - Disband
+    PasswordReset:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          writeOnly: true
+      required:
+      - email
     PatchedDrawVoteUpdate:
       type: object
       properties:

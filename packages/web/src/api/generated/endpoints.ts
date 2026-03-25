@@ -497,6 +497,10 @@ export interface OrderOptionsResponse {
   fieldOrder: OrderOptionsResponseFieldOrder;
 }
 
+export interface PasswordReset {
+  email: string;
+}
+
 export interface PatchedDrawVoteUpdate {
   accepted?: boolean;
 }
@@ -1539,6 +1543,87 @@ export const useAuthLoginCreate = <TError = unknown, TContext = unknown>(
   TContext
 > => {
   return useMutation(getAuthLoginCreateMutationOptions(options), queryClient);
+};
+
+export const authPasswordResetCreate = (
+  passwordReset: PasswordReset,
+  signal?: AbortSignal
+) => {
+  return customInstance<PasswordReset>({
+    url: `/auth/password-reset/`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: passwordReset,
+    signal,
+  });
+};
+
+export const getAuthPasswordResetCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof authPasswordResetCreate>>,
+    TError,
+    { data: PasswordReset },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof authPasswordResetCreate>>,
+  TError,
+  { data: PasswordReset },
+  TContext
+> => {
+  const mutationKey = ["authPasswordResetCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof authPasswordResetCreate>>,
+    { data: PasswordReset }
+  > = props => {
+    const { data } = props ?? {};
+
+    return authPasswordResetCreate(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AuthPasswordResetCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof authPasswordResetCreate>>
+>;
+export type AuthPasswordResetCreateMutationBody = PasswordReset;
+export type AuthPasswordResetCreateMutationError = unknown;
+
+export const useAuthPasswordResetCreate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof authPasswordResetCreate>>,
+      TError,
+      { data: PasswordReset },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof authPasswordResetCreate>>,
+  TError,
+  { data: PasswordReset },
+  TContext
+> => {
+  return useMutation(
+    getAuthPasswordResetCreateMutationOptions(options),
+    queryClient
+  );
 };
 
 export const authRegisterCreate = (
@@ -7395,6 +7480,10 @@ export const getAuthLoginCreateResponseMock = (
   ...overrideResponse,
 });
 
+export const getAuthPasswordResetCreateResponseMock = (
+  overrideResponse: Partial<PasswordReset> = {}
+): PasswordReset => ({ email: faker.internet.email(), ...overrideResponse });
+
 export const getAuthRegisterCreateResponseMock = (
   overrideResponse: Partial<Register> = {}
 ): Register => ({
@@ -9154,6 +9243,32 @@ export const getAuthLoginCreateMockHandler = (
   );
 };
 
+export const getAuthPasswordResetCreateMockHandler = (
+  overrideResponse?:
+    | PasswordReset
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0]
+      ) => Promise<PasswordReset> | PasswordReset),
+  options?: RequestHandlerOptions
+) => {
+  return http.post(
+    "*/auth/password-reset/",
+    async info => {
+      return new HttpResponse(
+        JSON.stringify(
+          overrideResponse !== undefined
+            ? typeof overrideResponse === "function"
+              ? await overrideResponse(info)
+              : overrideResponse
+            : getAuthPasswordResetCreateResponseMock()
+        ),
+        { status: 201, headers: { "Content-Type": "application/json" } }
+      );
+    },
+    options
+  );
+};
+
 export const getAuthRegisterCreateMockHandler = (
   overrideResponse?:
     | Register
@@ -10223,6 +10338,7 @@ export const getMock = () => [
   getApiTokenRefreshCreateMockHandler(),
   getAuthEmailLoginCreateMockHandler(),
   getAuthLoginCreateMockHandler(),
+  getAuthPasswordResetCreateMockHandler(),
   getAuthRegisterCreateMockHandler(),
   getAuthVerifyEmailCreateMockHandler(),
   getDevicesListMockHandler(),
