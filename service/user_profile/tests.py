@@ -1,6 +1,11 @@
 import pytest
+from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework import status
+from user_profile.models import UserProfile
+from member.models import Member
+
+User = get_user_model()
 
 
 class TestUserProfileRetrieveView:
@@ -95,3 +100,82 @@ class TestUserProfileUpdateView:
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["name"] == "Trimmed Name"
+
+
+class TestUserAccountDelete:
+
+    @pytest.mark.django_db
+    def test_delete_account_with_confirmation(self, delete_user, delete_client):
+        user = delete_user()
+        client = delete_client(user)
+        user_id = user.id
+
+        url = reverse("user-delete")
+        response = client.post(url, {"confirm": "DELETE"}, format="json")
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert not User.objects.filter(id=user_id).exists()
+        assert not UserProfile.objects.filter(user_id=user_id).exists()
+
+    @pytest.mark.django_db
+    def test_delete_account_without_confirmation_returns_400(self, delete_user, delete_client):
+        user = delete_user()
+        client = delete_client(user)
+
+        url = reverse("user-delete")
+        response = client.post(url, {"confirm": "wrong"}, format="json")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert User.objects.filter(id=user.id).exists()
+
+    @pytest.mark.django_db
+    def test_pending_game_member_fully_removed(
+        self, delete_user, delete_client, base_pending_game_for_primary_user
+    ):
+        user = delete_user()
+        client = delete_client(user)
+        game = base_pending_game_for_primary_user
+        member = game.members.create(user=user)
+
+        url = reverse("user-delete")
+        client.post(url, {"confirm": "DELETE"}, format="json")
+
+        assert not Member.objects.filter(id=member.id).exists()
+
+    @pytest.mark.django_db
+    def test_active_game_member_preserved_with_kicked_and_null_user(
+        self, delete_user, delete_client, base_active_game_for_primary_user
+    ):
+        user = delete_user()
+        client = delete_client(user)
+        game = base_active_game_for_primary_user
+        member = game.members.create(user=user)
+
+        url = reverse("user-delete")
+        client.post(url, {"confirm": "DELETE"}, format="json")
+
+        member.refresh_from_db()
+        assert member.kicked is True
+        assert member.user is None
+
+    @pytest.mark.django_db
+    def test_game_master_of_active_game_preserved(
+        self, delete_user, delete_client, classical_variant
+    ):
+        from game.models import Game
+        from common.constants import GameStatus as GS
+
+        user = delete_user()
+        client = delete_client(user)
+        game = Game.objects.create(
+            name="GM Delete Test", variant=classical_variant, status=GS.ACTIVE
+        )
+        member = game.members.create(user=user, is_game_master=True)
+
+        url = reverse("user-delete")
+        client.post(url, {"confirm": "DELETE"}, format="json")
+
+        member.refresh_from_db()
+        assert member.is_game_master is True
+        assert member.kicked is True
+        assert member.user is None

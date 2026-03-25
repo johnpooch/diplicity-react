@@ -48,6 +48,9 @@ class AuthSerializer(serializers.Serializer):
     def create(self, validated_data):
         id_info = verify_google_id_token(validated_data["id_token"])
         user, _ = AuthUser.objects.create_from_google_id_info(id_info)
+        if not user.is_active:
+            user.is_active = True
+            user.save(update_fields=["is_active"])
         UserProfile.objects.update_or_create(
             user=user, defaults={"name": id_info.get("name"), "picture": id_info.get("picture")}
         )

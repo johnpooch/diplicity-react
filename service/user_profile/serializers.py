@@ -1,6 +1,28 @@
 from rest_framework import serializers
 import re
 
+from member.models import Member
+from common.constants import GameStatus
+
+
+class UserAccountDeleteSerializer(serializers.Serializer):
+    confirm = serializers.CharField(write_only=True)
+
+    def validate_confirm(self, value):
+        if value != "DELETE":
+            raise serializers.ValidationError("You must type DELETE to confirm account deletion.")
+        return value
+
+    def create(self, validated_data):
+        user = self.context["request"].user
+        user_members = Member.objects.filter(user=user)
+        user_members.filter(game__status=GameStatus.PENDING).delete()
+        user_members.filter(
+            game__status__in=[GameStatus.ACTIVE, GameStatus.COMPLETED]
+        ).update(kicked=True)
+        user.delete()
+        return validated_data
+
 
 class UserProfileSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
