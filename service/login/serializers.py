@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
-from rest_framework import serializers
+from rest_framework import exceptions, serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 from user_profile.models import UserProfile
 
@@ -11,6 +11,29 @@ from .models import AuthUser
 from .utils import verify_google_id_token
 
 User = get_user_model()
+
+
+class EmailLoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+
+    id = serializers.IntegerField(read_only=True)
+    name = serializers.CharField(source="profile.name", read_only=True)
+    access_token = serializers.CharField(read_only=True)
+    refresh_token = serializers.CharField(read_only=True)
+
+    def create(self, validated_data):
+        user = User.objects.filter(email=validated_data["email"]).first()
+        if user is None or not user.check_password(validated_data["password"]):
+            raise exceptions.AuthenticationFailed("Invalid email or password.")
+        if not user.is_active:
+            raise exceptions.AuthenticationFailed(
+                "Account not verified. Please check your email for a verification link."
+            )
+        refresh = RefreshToken.for_user(user)
+        user.access_token = str(refresh.access_token)
+        user.refresh_token = str(refresh)
+        return user
 
 
 class AuthSerializer(serializers.Serializer):
