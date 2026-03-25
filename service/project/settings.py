@@ -89,6 +89,7 @@ INSTALLED_APPS = [
     "health",
     "victory",
     "draw_proposal",
+    "email_service",
     "drf_spectacular",
 ]
 
@@ -274,6 +275,8 @@ SPECTACULAR_SETTINGS = {
         "drf_spectacular.hooks.postprocess_schema_enums",
     ],
 }
+
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 VERSION = os.getenv("GIT_SHA", "0.0.0")
