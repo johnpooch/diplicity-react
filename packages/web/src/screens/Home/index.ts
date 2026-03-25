@@ -21,4 +21,7 @@ export const Home = {
   Community: lazy(() =>
     import("./Community").then((m) => ({ default: m.Community }))
   ),
+  DeleteAccount: lazy(() =>
+    import("./DeleteAccount").then((m) => ({ default: m.DeleteAccount }))
+  ),
 };

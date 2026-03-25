@@ -12,6 +12,7 @@ import { Register } from "./screens/Register";
 import { CheckEmail } from "./screens/CheckEmail";
 import { ForgotPassword } from "./screens/ForgotPassword";
 import { VerifyEmail } from "./screens/VerifyEmail";
+import { ResetPassword } from "./screens/ResetPassword";
 import { GameDetail, Home } from "./screens";
 import { ErrorFallbackUI } from "./components/ErrorBoundary";
 import { HomeLayout } from "./components/HomeLayout";
@@ -130,6 +131,14 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
                       element: (
                         <Suspense fallback={<RouteFallback />}>
                           <Home.Profile />
+                        </Suspense>
+                      ),
+                    },
+                    {
+                      path: "delete-account",
+                      element: (
+                        <Suspense fallback={<RouteFallback />}>
+                          <Home.DeleteAccount />
                         </Suspense>
                       ),
                     },
@@ -260,6 +269,10 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
             {
               path: "/verify-email",
               element: <VerifyEmail />,
+            },
+            {
+              path: "/reset-password",
+              element: <ResetPassword />,
             },
             {
               path: "*",
