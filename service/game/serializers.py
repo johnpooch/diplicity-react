@@ -22,7 +22,7 @@ def send_gm_action_notification(game, title, body, notification_type):
     def _send():
         user_ids = [
             m.user_id for m in game.members.select_related('user').all()
-            if not m.is_game_master
+            if not m.is_game_master and m.user_id is not None
         ]
         notification_utils.send_notification_to_users(
             user_ids=user_ids,

@@ -369,13 +369,19 @@ class Game(BaseModel):
 
     def can_join(self, user):
         with tracer.start_as_current_span("game.models.can_join"):
-            user_is_member = any(member.user.id == user.id for member in self.members.all())
+            user_is_member = any(
+                member.user_id is not None and member.user_id == user.id
+                for member in self.members.all()
+            )
             game_is_pending = self.status == GameStatus.PENDING
             return not user_is_member and game_is_pending
 
     def can_leave(self, user):
         with tracer.start_as_current_span("game.models.can_leave"):
-            user_is_member = any(member.user.id == user.id for member in self.members.all())
+            user_is_member = any(
+                member.user_id is not None and member.user_id == user.id
+                for member in self.members.all()
+            )
             game_is_pending = self.status == GameStatus.PENDING
             return user_is_member and game_is_pending
 
@@ -385,7 +391,7 @@ class Game(BaseModel):
             if current_phase is None:
                 return False
             for phase_state in current_phase.phase_states.all():
-                if phase_state.member.user.id == user.id and phase_state.orders_confirmed:
+                if phase_state.member.user_id is not None and phase_state.member.user_id == user.id and phase_state.orders_confirmed:
                     return True
             return False
 

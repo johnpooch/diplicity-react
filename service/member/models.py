@@ -6,7 +6,7 @@ User = get_user_model()
 
 
 class Member(BaseModel):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="members")
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="members")
     game = models.ForeignKey("game.Game", on_delete=models.CASCADE, related_name="members")
     nation = models.ForeignKey("nation.Nation", on_delete=models.CASCADE, related_name="members", null=True, blank=True)
     won = models.BooleanField(default=False)
@@ -31,4 +31,5 @@ class Member(BaseModel):
         ]
 
     def __str__(self):
-        return f"{self.user.username} - {self.game.name} - {self.nation.name if self.nation else '-'}"
+        username = self.user.username if self.user else "Deleted User"
+        return f"{username} - {self.game.name} - {self.nation.name if self.nation else '-'}"
