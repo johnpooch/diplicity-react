@@ -240,6 +240,49 @@ jobs:
 
           echo "Deploy triggered: $RESULT"
 
+      - name: Set Netlify env var and trigger redeploy
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          STAGING_DOMAIN: ${{ steps.domain.outputs.domain }}
+        run: |
+          BACKEND_URL="https://${STAGING_DOMAIN}"
+
+          # Check if env var exists
+          EXISTING=$(curl -s "https://api.netlify.com/api/v1/sites/${NETLIFY_SITE_ID}/env/VITE_DIPLICITY_API_BASE_URL" \
+            -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN")
+
+          if echo "$EXISTING" | jq -e '.key' > /dev/null 2>&1; then
+            # Update existing env var
+            curl -s -X PATCH "https://api.netlify.com/api/v1/sites/${NETLIFY_SITE_ID}/env/VITE_DIPLICITY_API_BASE_URL" \
+              -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "$(jq -n --arg url "$BACKEND_URL" '{
+                context: "deploy-preview",
+                value: $url
+              }')" | jq .
+          else
+            # Create env var
+            curl -s -X POST "https://api.netlify.com/api/v1/sites/${NETLIFY_SITE_ID}/env" \
+              -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "$(jq -n --arg url "$BACKEND_URL" '[{
+                key: "VITE_DIPLICITY_API_BASE_URL",
+                scopes: ["builds"],
+                values: [{ context: "deploy-preview", value: $url }]
+              }]')" | jq .
+          fi
+
+          echo "Set VITE_DIPLICITY_API_BASE_URL=$BACKEND_URL for deploy-preview context"
+
+          # Trigger a new Netlify deploy for the PR branch
+          curl -s -X POST "https://api.netlify.com/api/v1/sites/${NETLIFY_SITE_ID}/builds" \
+            -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"clear_cache": false}' | jq .
+
+          echo "Triggered Netlify rebuild"
+
       - name: Comment on PR with staging URL
         env:
           STAGING_DOMAIN: ${{ steps.domain.outputs.domain }}
@@ -263,6 +306,7 @@ jobs:
                 'The staging backend has a copy of the production database with migrations from this PR applied.',
                 'Use email/password login to test (Google OAuth is not configured for staging).',
                 '',
+                'The frontend preview will rebuild shortly to connect to the staging backend.',
                 'To redeploy, add the `deploy-to-staging` label again.',
               ].join('\n')
             });
