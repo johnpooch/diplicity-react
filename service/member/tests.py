@@ -1,10 +1,63 @@
 import pytest
 from django.urls import reverse
+from django.contrib.auth import get_user_model
 from rest_framework import status
 from game.models import Game
+from user_profile.models import UserProfile
 from common.constants import GameStatus
 
+User = get_user_model()
+
 join_viewname = "game-join"
+retrieve_viewname = "game-retrieve"
+
+
+class TestDeletedUserMemberSerialization:
+
+    @pytest.mark.django_db
+    def test_member_with_null_user_serializes_as_deleted_user(
+        self, authenticated_client, classical_variant, classical_england_nation
+    ):
+        game = Game.objects.create(
+            name="Test Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        game.members.create(user=None, nation=classical_england_nation, kicked=True)
+
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        deleted_member = response.data["members"][0]
+        assert deleted_member["name"] == "Deleted User"
+        assert deleted_member["picture"] is None
+        assert deleted_member["is_current_user"] is False
+
+    @pytest.mark.django_db
+    def test_deleting_user_preserves_member_with_null_user(
+        self, classical_variant, classical_england_nation
+    ):
+        user = User.objects.create_user(
+            username="deletable_user", email="deletable@example.com", password="testpass123"
+        )
+        UserProfile.objects.create(user=user, name="Deletable User", picture="")
+
+        game = Game.objects.create(
+            name="Preservation Test Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        member = game.members.create(user=user, nation=classical_england_nation)
+        member_id = member.id
+
+        user.delete()
+
+        from member.models import Member
+        preserved_member = Member.objects.get(id=member_id)
+        assert preserved_member.user is None
+        assert preserved_member.game == game
+        assert preserved_member.nation == classical_england_nation
 
 
 @pytest.mark.django_db

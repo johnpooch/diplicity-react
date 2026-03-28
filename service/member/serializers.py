@@ -4,8 +4,8 @@ from drf_spectacular.utils import extend_schema_field
 
 class MemberSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
-    name = serializers.CharField(source="user.profile.name", read_only=True)
-    picture = serializers.CharField(source="user.profile.picture", read_only=True, allow_null=True)
+    name = serializers.CharField(read_only=True)
+    picture = serializers.CharField(allow_null=True, read_only=True)
     nation = serializers.CharField(allow_null=True, read_only=True, source="nation.name")
     is_current_user = serializers.SerializerMethodField()
     eliminated = serializers.BooleanField(read_only=True)
@@ -15,6 +15,8 @@ class MemberSerializer(serializers.Serializer):
 
     @extend_schema_field(serializers.BooleanField)
     def get_is_current_user(self, obj):
+        if obj.user is None:
+            return False
         return obj.user == self.context["request"].user
 
     def create(self, validated_data):

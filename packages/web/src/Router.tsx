@@ -8,6 +8,11 @@ import {
 } from "react-router";
 import { QueryClient } from "@tanstack/react-query";
 import { Login } from "./screens/Login";
+import { Register } from "./screens/Register";
+import { CheckEmail } from "./screens/CheckEmail";
+import { ForgotPassword } from "./screens/ForgotPassword";
+import { VerifyEmail } from "./screens/VerifyEmail";
+import { ResetPassword } from "./screens/ResetPassword";
 import { GameDetail, Home } from "./screens";
 import { ErrorFallbackUI } from "./components/ErrorBoundary";
 import { HomeLayout } from "./components/HomeLayout";
@@ -130,6 +135,14 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
                       ),
                     },
                     {
+                      path: "delete-account",
+                      element: (
+                        <Suspense fallback={<RouteFallback />}>
+                          <Home.DeleteAccount />
+                        </Suspense>
+                      ),
+                    },
+                    {
                       path: "community",
                       element: (
                         <Suspense fallback={<RouteFallback />}>
@@ -240,6 +253,26 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
             {
               path: "/",
               element: <Login />,
+            },
+            {
+              path: "/register",
+              element: <Register />,
+            },
+            {
+              path: "/forgot-password",
+              element: <ForgotPassword />,
+            },
+            {
+              path: "/check-email",
+              element: <CheckEmail />,
+            },
+            {
+              path: "/verify-email",
+              element: <VerifyEmail />,
+            },
+            {
+              path: "/reset-password",
+              element: <ResetPassword />,
             },
             {
               path: "*",
