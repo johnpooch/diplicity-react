@@ -300,4 +300,34 @@ describe("deriveWizardStep", () => {
     expect(result.isComplete).toBe(true);
     expect(result.selectedArray).toEqual(["nth", "Convoy", "yor", "bel"]);
   });
+
+  it("18. Retreat phase: single dislodged unit auto-advances source, presents order type choices", () => {
+    // Scenario: one dislodged unit in Paris can retreat (Move) or Disband
+    const orders = [
+      option({
+        source: fv("par", "Paris"),
+        orderType: fv("Move", "Move"),
+        target: fv("bur", "Burgundy"),
+      }),
+      option({
+        source: fv("par", "Paris"),
+        orderType: fv("Move", "Move"),
+        target: fv("gas", "Gascony"),
+      }),
+      option({
+        source: fv("par", "Paris"),
+        orderType: fv("Disband", "Disband"),
+      }),
+    ];
+    const result = deriveWizardStep(orders, FIELD_ORDER, {});
+    // Source should auto-advance (only one unit)
+    expect(result.resolvedSelections["source"]).toBe("par");
+    // Should stop at orderType with Move and Disband choices
+    expect(result.nextField).toBe("orderType");
+    expect(result.choices).toEqual([
+      fv("Move", "Move"),
+      fv("Disband", "Disband"),
+    ]);
+    expect(result.isComplete).toBe(false);
+  });
 });

@@ -116,6 +116,13 @@ const GameMap: React.FC = () => {
       if (wizard.choices.some((c) => c.id === province)) {
         wizard.select(province);
       }
+    } else if (
+      (wizard.nextField === "orderType" ||
+        wizard.nextField === "unitType" ||
+        wizard.nextField === "namedCoast") &&
+      province === wizard.resolvedSelections["source"]
+    ) {
+      captureMenuPosition(event);
     }
   };
 
