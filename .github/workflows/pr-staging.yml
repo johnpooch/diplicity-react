@@ -42,7 +42,7 @@ jobs:
 
           PAYLOAD=$(jq -n \
             --arg projectId "$PROJECT_ID" \
-            '{ query: "{ project(id: \"" + $projectId + "\") { environments { edges { node { id name } } } } }" }')
+            '{query: ("{ project(id: \"" + $projectId + "\") { environments { edges { node { id name } } } } }")}')
 
           echo "Querying environments..."
           RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
@@ -58,7 +58,7 @@ jobs:
             echo "Deleting existing environment: $ENV_ID"
             DELETE_PAYLOAD=$(jq -n \
               --arg envId "$ENV_ID" \
-              '{ query: "mutation { environmentDelete(id: \"" + $envId + "\") }" }')
+              '{query: ("mutation { environmentDelete(id: \"" + $envId + "\") }")}')
 
             DELETE_RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
               -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
@@ -143,7 +143,7 @@ jobs:
             --arg projectId "$PROJECT_ID" \
             --arg envId "$ENV_ID" \
             --arg serviceId "$POSTGRES_SERVICE_ID" \
-            '{ query: "{ variables(projectId: \"" + $projectId + "\", environmentId: \"" + $envId + "\", serviceId: \"" + $serviceId + "\") }" }')
+            '{query: ("{ variables(projectId: \"" + $projectId + "\", environmentId: \"" + $envId + "\", serviceId: \"" + $serviceId + "\") }")}')
 
           for i in $(seq 1 30); do
             VARS=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
@@ -270,7 +270,7 @@ jobs:
 
           PAYLOAD=$(jq -n \
             --arg projectId "$PROJECT_ID" \
-            '{ query: "{ project(id: \"" + $projectId + "\") { environments { edges { node { id name } } } } }" }')
+            '{query: ("{ project(id: \"" + $projectId + "\") { environments { edges { node { id name } } } } }")}')
 
           echo "Querying environments..."
           RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
@@ -285,7 +285,7 @@ jobs:
           if [ -n "$ENV_ID" ] && [ "$ENV_ID" != "null" ]; then
             DELETE_PAYLOAD=$(jq -n \
               --arg envId "$ENV_ID" \
-              '{ query: "mutation { environmentDelete(id: \"" + $envId + "\") }" }')
+              '{query: ("mutation { environmentDelete(id: \"" + $envId + "\") }")}')
 
             DELETE_RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
               -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
