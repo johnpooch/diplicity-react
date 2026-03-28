@@ -45,7 +45,8 @@ def test_list_variants_success(authenticated_client, classical_variant):
 def test_list_variants_unauthenticated(unauthenticated_client):
     url = reverse(viewname)
     response = unauthenticated_client.get(url)
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.status_code == status.HTTP_200_OK
+    assert len(response.data) >= 1
 
 
 class TestVariantListViewQueryPerformance:

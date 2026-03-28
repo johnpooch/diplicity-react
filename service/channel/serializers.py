@@ -19,7 +19,7 @@ class ChannelMemberSerializer(serializers.Serializer):
     @extend_schema_field(serializers.BooleanField)
     def get_is_current_user(self, obj):
         request = self.context.get("request")
-        if request and hasattr(request, "user"):
+        if request and request.user.is_authenticated:
             return obj.user == request.user
         return False
 
