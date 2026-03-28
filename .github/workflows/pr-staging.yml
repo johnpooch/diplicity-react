@@ -64,21 +64,29 @@ jobs:
         run: |
           ENV_NAME="staging-pr-${PR_NUMBER}"
 
-          RESULT=$(curl -sf -X POST "$RAILWAY_API_ENDPOINT" \
+          PAYLOAD=$(jq -n \
+            --arg projectId "$PROJECT_ID" \
+            --arg name "$ENV_NAME" \
+            --arg sourceId "$PROD_ENV_ID" \
+            '{
+              query: "mutation($input: EnvironmentCreateInput!) { environmentCreate(input: $input) { id name } }",
+              variables: { input: { projectId: $projectId, name: $name, sourceEnvironmentId: $sourceId } }
+            }')
+
+          RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
             -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
             -H "Content-Type: application/json" \
-            -d "{
-              \"query\": \"mutation(\$input: EnvironmentCreateInput!) { environmentCreate(input: \$input) { id name } }\",
-              \"variables\": {
-                \"input\": {
-                  \"projectId\": \"$PROJECT_ID\",
-                  \"name\": \"$ENV_NAME\",
-                  \"sourceEnvironmentId\": \"$PROD_ENV_ID\"
-                }
-              }
-            }")
+            -d "$PAYLOAD")
 
+          echo "API response: $RESULT"
           ENV_ID=$(echo "$RESULT" | jq -r '.data.environmentCreate.id')
+
+          if [ -z "$ENV_ID" ] || [ "$ENV_ID" = "null" ]; then
+            echo "ERROR: Failed to create environment"
+            echo "$RESULT" | jq .
+            exit 1
+          fi
+
           echo "Created environment: $ENV_ID ($ENV_NAME)"
           echo "env_id=$ENV_ID" >> "$GITHUB_OUTPUT"
           echo "env_name=$ENV_NAME" >> "$GITHUB_OUTPUT"
@@ -90,20 +98,20 @@ jobs:
         run: |
           sleep 5
 
-          RESULT=$(curl -sf -X POST "$RAILWAY_API_ENDPOINT" \
+          PAYLOAD=$(jq -n \
+            --arg envId "$ENV_ID" \
+            --arg serviceId "$DJANGO_SERVICE_ID" \
+            '{
+              query: "mutation($input: ServiceDomainCreateInput!) { serviceDomainCreate(input: $input) { domain } }",
+              variables: { input: { environmentId: $envId, serviceId: $serviceId, targetPort: 8000 } }
+            }')
+
+          RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
             -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
             -H "Content-Type: application/json" \
-            -d "{
-              \"query\": \"mutation(\$input: ServiceDomainCreateInput!) { serviceDomainCreate(input: \$input) { domain } }\",
-              \"variables\": {
-                \"input\": {
-                  \"environmentId\": \"$ENV_ID\",
-                  \"serviceId\": \"$DJANGO_SERVICE_ID\",
-                  \"targetPort\": 8000
-                }
-              }
-            }")
+            -d "$PAYLOAD")
 
+          echo "API response: $RESULT"
           DOMAIN=$(echo "$RESULT" | jq -r '.data.serviceDomainCreate.domain')
           echo "Generated domain: $DOMAIN"
           echo "domain=$DOMAIN" >> "$GITHUB_OUTPUT"
@@ -163,39 +171,43 @@ jobs:
         run: |
           PREVIEW_URL="https://deploy-preview-${PR_NUMBER}--diplicity-react.netlify.app"
 
-          curl -sf -X POST "$RAILWAY_API_ENDPOINT" \
+          PAYLOAD=$(jq -n \
+            --arg projectId "$PROJECT_ID" \
+            --arg envId "$ENV_ID" \
+            --arg serviceId "$DJANGO_SERVICE_ID" \
+            --arg cors "${PREVIEW_URL},https://${STAGING_DOMAIN},capacitor://localhost" \
+            --arg hosts "$STAGING_DOMAIN" \
+            --arg csrf "https://${STAGING_DOMAIN}" \
+            '{
+              query: "mutation($input: VariableCollectionUpsertInput!) { variableCollectionUpsert(input: $input) }",
+              variables: { input: { projectId: $projectId, environmentId: $envId, serviceId: $serviceId, variables: { DJANGO_CORS_ALLOWED_ORIGINS: $cors, DJANGO_ALLOWED_HOSTS: $hosts, DJANGO_CSRF_TRUSTED_ORIGINS: $csrf, ENVIRONMENT: "staging" }, skipDeploys: true } }
+            }')
+
+          RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
             -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
             -H "Content-Type: application/json" \
-            -d "{
-              \"query\": \"mutation(\$input: VariableCollectionUpsertInput!) { variableCollectionUpsert(input: \$input) }\",
-              \"variables\": {
-                \"input\": {
-                  \"projectId\": \"$PROJECT_ID\",
-                  \"environmentId\": \"$ENV_ID\",
-                  \"serviceId\": \"$DJANGO_SERVICE_ID\",
-                  \"variables\": {
-                    \"DJANGO_CORS_ALLOWED_ORIGINS\": \"${PREVIEW_URL},https://${STAGING_DOMAIN},capacitor://localhost\",
-                    \"DJANGO_ALLOWED_HOSTS\": \"${STAGING_DOMAIN}\",
-                    \"DJANGO_CSRF_TRUSTED_ORIGINS\": \"https://${STAGING_DOMAIN}\",
-                    \"ENVIRONMENT\": \"staging\"
-                  },
-                  \"skipDeploys\": true
-                }
-              }
-            }"
+            -d "$PAYLOAD")
 
+          echo "API response: $RESULT"
           echo "Environment variables configured."
 
       - name: Deploy PR branch to staging
         env:
           ENV_ID: ${{ steps.create_env.outputs.env_id }}
         run: |
-          RESULT=$(curl -sf -X POST "$RAILWAY_API_ENDPOINT" \
+          PAYLOAD=$(jq -n \
+            --arg envId "$ENV_ID" \
+            --arg serviceId "$DJANGO_SERVICE_ID" \
+            --arg sha "$COMMIT_SHA" \
+            '{
+              query: "mutation($envId: String!, $serviceId: String!, $sha: String) { serviceInstanceDeployV2(environmentId: $envId, serviceId: $serviceId, commitSha: $sha) }",
+              variables: { envId: $envId, serviceId: $serviceId, sha: $sha }
+            }')
+
+          RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
             -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
             -H "Content-Type: application/json" \
-            -d "{
-              \"query\": \"mutation { serviceInstanceDeployV2(environmentId: \\\"$ENV_ID\\\", serviceId: \\\"$DJANGO_SERVICE_ID\\\", commitSha: \\\"$COMMIT_SHA\\\") }\"
-            }")
+            -d "$PAYLOAD")
 
           echo "Deploy triggered: $RESULT"
 
