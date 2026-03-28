@@ -1,0 +1,146 @@
+name: PR Staging Environment
+
+on:
+  pull_request:
+    types: [labeled, closed]
+
+jobs:
+  deploy-staging:
+    if: github.event.action == 'labeled' && github.event.label.name == 'deploy-to-staging'
+    runs-on: ubuntu-latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      STAGING_ENV_NAME: staging-pr-${{ github.event.pull_request.number }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Remove label immediately
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.removeLabel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              name: 'deploy-to-staging'
+            });
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Tear down existing staging environment (if any)
+        run: railway environment delete "$STAGING_ENV_NAME" -y 2>/dev/null || true
+
+      - name: Create staging environment
+        run: railway environment new "$STAGING_ENV_NAME" --copy production
+
+      - name: Generate staging domain
+        id: domain
+        run: |
+          DOMAIN=$(railway domain -e "$STAGING_ENV_NAME" -s diplicity-react --json 2>/dev/null | jq -r '.domain // empty')
+          if [ -z "$DOMAIN" ]; then
+            DOMAIN="diplicity-react-${STAGING_ENV_NAME}.up.railway.app"
+            echo "Warning: Could not get domain from Railway, using predicted pattern: $DOMAIN"
+          fi
+          echo "domain=$DOMAIN" >> "$GITHUB_OUTPUT"
+          echo "Staging domain: $DOMAIN"
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Clone production database to staging
+        env:
+          PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        run: |
+          echo "Dumping production database..."
+          pg_dump "$PRODUCTION_DATABASE_URL" --no-owner --no-acl --format=custom -f dump.pgdata
+
+          echo "Getting staging database URL..."
+          STAGING_DB_URL=$(railway variable list -s Postgres -e "$STAGING_ENV_NAME" --json | jq -r '.DATABASE_PUBLIC_URL')
+
+          echo "Restoring to staging database..."
+          pg_restore --no-owner --no-acl --clean --if-exists -d "$STAGING_DB_URL" dump.pgdata || true
+
+          rm dump.pgdata
+
+      - name: Configure staging environment variables
+        env:
+          STAGING_DOMAIN: ${{ steps.domain.outputs.domain }}
+        run: |
+          PREVIEW_URL="https://deploy-preview-${PR_NUMBER}--diplicity-react.netlify.app"
+
+          railway variable set \
+            "DJANGO_CORS_ALLOWED_ORIGINS=${PREVIEW_URL},https://${STAGING_DOMAIN},capacitor://localhost" \
+            "DJANGO_ALLOWED_HOSTS=${STAGING_DOMAIN}" \
+            "DJANGO_CSRF_TRUSTED_ORIGINS=https://${STAGING_DOMAIN}" \
+            "ENVIRONMENT=staging" \
+            -e "$STAGING_ENV_NAME" \
+            -s diplicity-react \
+            --skip-deploys
+
+      - name: Deploy PR branch to staging
+        run: |
+          railway up \
+            -e "$STAGING_ENV_NAME" \
+            -s diplicity-react \
+            -d
+        working-directory: ./service
+
+      - name: Comment on PR with staging URL
+        env:
+          STAGING_DOMAIN: ${{ steps.domain.outputs.domain }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const stagingDomain = process.env.STAGING_DOMAIN;
+            const stagingUrl = `https://${stagingDomain}`;
+            const previewUrl = `https://deploy-preview-${context.payload.pull_request.number}--diplicity-react.netlify.app`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: [
+                '## Staging Environment Deployed',
+                '',
+                `**Frontend preview:** ${previewUrl}`,
+                `**Staging backend:** ${stagingUrl}`,
+                '',
+                'The staging backend has a copy of the production database with migrations from this PR applied.',
+                'Use email/password login to test (Google OAuth is not configured for staging).',
+                '',
+                'To redeploy, add the `deploy-to-staging` label again.',
+              ].join('\n')
+            });
+
+  teardown-staging:
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      STAGING_ENV_NAME: staging-pr-${{ github.event.pull_request.number }}
+    steps:
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Tear down staging if it belongs to this PR
+        run: |
+          if railway environment delete "$STAGING_ENV_NAME" -y 2>/dev/null; then
+            echo "Staging environment $STAGING_ENV_NAME torn down."
+          else
+            echo "No staging environment found for this PR."
+          fi
+
+      - name: Comment on PR
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: '## Staging Environment Torn Down\n\nThe staging environment for this PR has been removed.'
+            });
