@@ -5,6 +5,7 @@ on:
     types: [labeled, closed]
 
 permissions:
+  contents: write
   issues: write
   pull-requests: write
 
