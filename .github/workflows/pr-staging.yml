@@ -239,7 +239,7 @@ jobs:
 
           echo "Deploy triggered: $RESULT"
 
-      - name: Set Netlify env var and trigger redeploy
+      - name: Set Netlify env var for deploy previews
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
@@ -268,12 +268,18 @@ jobs:
             }]')")
           echo "Create env var result: $CREATE_RESULT"
 
-          # Trigger a new Netlify build
-          BUILD_RESULT=$(curl -s -X POST "${NETLIFY_API}/sites/${NETLIFY_SITE_ID}/builds" \
-            -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d '{}')
-          echo "Build trigger result: $BUILD_RESULT"
+      - name: Trigger Netlify deploy preview rebuild
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ github.token }}
+
+      - name: Push empty commit to trigger Netlify deploy preview
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit --allow-empty -m "chore: trigger Netlify deploy preview rebuild"
+          git push
 
       - name: Comment on PR with staging URL
         env:
