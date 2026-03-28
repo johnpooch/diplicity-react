@@ -11,9 +11,13 @@ import {
   useGamesListSuspense,
   useVariantsListSuspense,
 } from "@/api/generated/endpoints";
+import { useAuth } from "@/auth";
 
 const FindGames: React.FC = () => {
-  const { data: games } = useGamesListSuspense({ can_join: true });
+  const { loggedIn } = useAuth();
+  const { data: games } = useGamesListSuspense(
+    loggedIn ? { can_join: true } : {}
+  );
   const { data: variants } = useVariantsListSuspense();
 
   const getVariant = (game: GameList) => {
@@ -39,7 +43,11 @@ const FindGames: React.FC = () => {
       ) : (
         <Notice
           title="No games found"
-          message="There are no games available to join. Go to Create Game to start a new game."
+          message={
+            loggedIn
+              ? "There are no games available to join. Go to Create Game to start a new game."
+              : "There are no games available right now. Sign in to create a new game."
+          }
           icon={Inbox}
         />
       )}
