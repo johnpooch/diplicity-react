@@ -246,13 +246,34 @@ jobs:
           STAGING_DOMAIN: ${{ steps.domain.outputs.domain }}
         run: |
           BACKEND_URL="https://${STAGING_DOMAIN}"
+          NETLIFY_API="https://api.netlify.com/api/v1"
 
-          npx netlify-cli env:set VITE_DIPLICITY_API_BASE_URL "$BACKEND_URL" --context deploy-preview
-          echo "Set VITE_DIPLICITY_API_BASE_URL=$BACKEND_URL for deploy-preview context"
+          # Get account_id from site
+          ACCOUNT_ID=$(curl -s "${NETLIFY_API}/sites/${NETLIFY_SITE_ID}" \
+            -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" | jq -r '.account_id')
+          echo "Account ID: $ACCOUNT_ID"
 
-          # Trigger a new Netlify build so deploy preview picks up the env var
-          npx netlify-cli build:trigger
-          echo "Triggered Netlify rebuild"
+          # Delete existing env var (ignore errors if it doesn't exist)
+          curl -s -X DELETE "${NETLIFY_API}/accounts/${ACCOUNT_ID}/env/VITE_DIPLICITY_API_BASE_URL?site_id=${NETLIFY_SITE_ID}" \
+            -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" || true
+
+          # Create env var scoped to deploy-preview context
+          CREATE_RESULT=$(curl -s -X POST "${NETLIFY_API}/accounts/${ACCOUNT_ID}/env?site_id=${NETLIFY_SITE_ID}" \
+            -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg url "$BACKEND_URL" '[{
+              key: "VITE_DIPLICITY_API_BASE_URL",
+              scopes: ["builds", "functions", "runtime"],
+              values: [{ context: "deploy-preview", value: $url }]
+            }]')")
+          echo "Create env var result: $CREATE_RESULT"
+
+          # Trigger a new Netlify build
+          BUILD_RESULT=$(curl -s -X POST "${NETLIFY_API}/sites/${NETLIFY_SITE_ID}/builds" \
+            -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{}')
+          echo "Build trigger result: $BUILD_RESULT"
 
       - name: Comment on PR with staging URL
         env:
