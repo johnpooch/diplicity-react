@@ -620,10 +620,6 @@ export interface TokenRefresh {
   refresh: string;
 }
 
-export interface UserAccountDelete {
-  confirm: string;
-}
-
 export interface UserProfile {
   readonly id: number;
   /**
@@ -1060,258 +1056,6 @@ export function useApiSchemaRetrieveSuspense<
     params,
     options
   );
-
-  const query = useSuspenseQuery(
-    queryOptions,
-    queryClient
-  ) as UseSuspenseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-export const apiTestSentryRetrieve = (signal?: AbortSignal) => {
-  return customInstance<void>({
-    url: `/api/test-sentry/`,
-    method: "GET",
-    signal,
-  });
-};
-
-export const getApiTestSentryRetrieveQueryKey = () => {
-  return [`/api/test-sentry/`] as const;
-};
-
-export const getApiTestSentryRetrieveQueryOptions = <
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(options?: {
-  query?: Partial<
-    UseQueryOptions<
-      Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-      TError,
-      TData
-    >
-  >;
-}) => {
-  const { query: queryOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getApiTestSentryRetrieveQueryKey();
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof apiTestSentryRetrieve>>
-  > = ({ signal }) => apiTestSentryRetrieve(signal);
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type ApiTestSentryRetrieveQueryResult = NonNullable<
-  Awaited<ReturnType<typeof apiTestSentryRetrieve>>
->;
-export type ApiTestSentryRetrieveQueryError = unknown;
-
-export function useApiTestSentryRetrieve<
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(
-  options: {
-    query: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-          TError,
-          Awaited<ReturnType<typeof apiTestSentryRetrieve>>
-        >,
-        "initialData"
-      >;
-  },
-  queryClient?: QueryClient
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useApiTestSentryRetrieve<
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-          TError,
-          Awaited<ReturnType<typeof apiTestSentryRetrieve>>
-        >,
-        "initialData"
-      >;
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useApiTestSentryRetrieve<
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-
-export function useApiTestSentryRetrieve<
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getApiTestSentryRetrieveQueryOptions(options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-export const getApiTestSentryRetrieveSuspenseQueryOptions = <
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(options?: {
-  query?: Partial<
-    UseSuspenseQueryOptions<
-      Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-      TError,
-      TData
-    >
-  >;
-}) => {
-  const { query: queryOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getApiTestSentryRetrieveQueryKey();
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof apiTestSentryRetrieve>>
-  > = ({ signal }) => apiTestSentryRetrieve(signal);
-
-  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
-    Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type ApiTestSentryRetrieveSuspenseQueryResult = NonNullable<
-  Awaited<ReturnType<typeof apiTestSentryRetrieve>>
->;
-export type ApiTestSentryRetrieveSuspenseQueryError = unknown;
-
-export function useApiTestSentryRetrieveSuspense<
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(
-  options: {
-    query: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useApiTestSentryRetrieveSuspense<
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(
-  options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useApiTestSentryRetrieveSuspense<
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(
-  options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-
-export function useApiTestSentryRetrieveSuspense<
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(
-  options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getApiTestSentryRetrieveSuspenseQueryOptions(options);
 
   const query = useSuspenseQuery(
     queryOptions,
@@ -6889,36 +6633,31 @@ export function useUserRetrieveSuspense<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-export const userDeleteCreate = (
-  userAccountDelete: UserAccountDelete,
-  signal?: AbortSignal
-) => {
-  return customInstance<UserAccountDelete>({
+export const userDeleteDestroy = (signal?: AbortSignal) => {
+  return customInstance<void>({
     url: `/user/delete/`,
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    data: userAccountDelete,
+    method: "DELETE",
     signal,
   });
 };
 
-export const getUserDeleteCreateMutationOptions = <
+export const getUserDeleteDestroyMutationOptions = <
   TError = unknown,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof userDeleteCreate>>,
+    Awaited<ReturnType<typeof userDeleteDestroy>>,
     TError,
-    { data: UserAccountDelete },
+    void,
     TContext
   >;
 }): UseMutationOptions<
-  Awaited<ReturnType<typeof userDeleteCreate>>,
+  Awaited<ReturnType<typeof userDeleteDestroy>>,
   TError,
-  { data: UserAccountDelete },
+  void,
   TContext
 > => {
-  const mutationKey = ["userDeleteCreate"];
+  const mutationKey = ["userDeleteDestroy"];
   const { mutation: mutationOptions } = options
     ? options.mutation &&
       "mutationKey" in options.mutation &&
@@ -6928,40 +6667,38 @@ export const getUserDeleteCreateMutationOptions = <
     : { mutation: { mutationKey } };
 
   const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof userDeleteCreate>>,
-    { data: UserAccountDelete }
-  > = props => {
-    const { data } = props ?? {};
-
-    return userDeleteCreate(data);
+    Awaited<ReturnType<typeof userDeleteDestroy>>,
+    void
+  > = () => {
+    return userDeleteDestroy();
   };
 
   return { mutationFn, ...mutationOptions };
 };
 
-export type UserDeleteCreateMutationResult = NonNullable<
-  Awaited<ReturnType<typeof userDeleteCreate>>
+export type UserDeleteDestroyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof userDeleteDestroy>>
 >;
-export type UserDeleteCreateMutationBody = UserAccountDelete;
-export type UserDeleteCreateMutationError = unknown;
 
-export const useUserDeleteCreate = <TError = unknown, TContext = unknown>(
+export type UserDeleteDestroyMutationError = unknown;
+
+export const useUserDeleteDestroy = <TError = unknown, TContext = unknown>(
   options?: {
     mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof userDeleteCreate>>,
+      Awaited<ReturnType<typeof userDeleteDestroy>>,
       TError,
-      { data: UserAccountDelete },
+      void,
       TContext
     >;
   },
   queryClient?: QueryClient
 ): UseMutationResult<
-  Awaited<ReturnType<typeof userDeleteCreate>>,
+  Awaited<ReturnType<typeof userDeleteDestroy>>,
   TError,
-  { data: UserAccountDelete },
+  void,
   TContext
 > => {
-  return useMutation(getUserDeleteCreateMutationOptions(options), queryClient);
+  return useMutation(getUserDeleteDestroyMutationOptions(options), queryClient);
 };
 
 export const userUpdateUpdate = (
@@ -9120,13 +8857,6 @@ export const getUserRetrieveResponseMock = (
   ...overrideResponse,
 });
 
-export const getUserDeleteCreateResponseMock = (
-  overrideResponse: Partial<UserAccountDelete> = {}
-): UserAccountDelete => ({
-  confirm: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  ...overrideResponse,
-});
-
 export const getUserUpdateUpdateResponseMock = (
   overrideResponse: Partial<UserProfile> = {}
 ): UserProfile => ({
@@ -9326,26 +9056,6 @@ export const getApiSchemaRetrieveMockHandler = (
         ),
         { status: 200, headers: { "Content-Type": "application/json" } }
       );
-    },
-    options
-  );
-};
-
-export const getApiTestSentryRetrieveMockHandler = (
-  overrideResponse?:
-    | void
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0]
-      ) => Promise<void> | void),
-  options?: RequestHandlerOptions
-) => {
-  return http.get(
-    "*/api/test-sentry/",
-    async info => {
-      if (typeof overrideResponse === "function") {
-        await overrideResponse(info);
-      }
-      return new HttpResponse(null, { status: 200 });
     },
     options
   );
@@ -10441,27 +10151,21 @@ export const getUserRetrieveMockHandler = (
   );
 };
 
-export const getUserDeleteCreateMockHandler = (
+export const getUserDeleteDestroyMockHandler = (
   overrideResponse?:
-    | UserAccountDelete
+    | void
     | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0]
-      ) => Promise<UserAccountDelete> | UserAccountDelete),
+        info: Parameters<Parameters<typeof http.delete>[1]>[0]
+      ) => Promise<void> | void),
   options?: RequestHandlerOptions
 ) => {
-  return http.post(
+  return http.delete(
     "*/user/delete/",
     async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getUserDeleteCreateResponseMock()
-        ),
-        { status: 201, headers: { "Content-Type": "application/json" } }
-      );
+      if (typeof overrideResponse === "function") {
+        await overrideResponse(info);
+      }
+      return new HttpResponse(null, { status: 204 });
     },
     options
   );
@@ -10572,7 +10276,6 @@ export const getVersionRetrieveMockHandler = (
 };
 export const getMock = () => [
   getApiSchemaRetrieveMockHandler(),
-  getApiTestSentryRetrieveMockHandler(),
   getApiTokenRefreshCreateMockHandler(),
   getAuthEmailLoginCreateMockHandler(),
   getAuthLoginCreateMockHandler(),
@@ -10617,7 +10320,7 @@ export const getMock = () => [
   getPhaseResolveCreateMockHandler(),
   getSandboxGameCreateMockHandler(),
   getUserRetrieveMockHandler(),
-  getUserDeleteCreateMockHandler(),
+  getUserDeleteDestroyMockHandler(),
   getUserUpdateUpdateMockHandler(),
   getUserUpdatePartialUpdateMockHandler(),
   getVariantsListMockHandler(),

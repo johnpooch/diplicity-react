@@ -30,7 +30,7 @@ class TestPasswordReset:
             format="json",
         )
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_201_CREATED
         mock_send_email.assert_called_once()
         call_kwargs = mock_send_email.call_args[1]
         assert call_kwargs["to"] == "player@example.com"
@@ -45,7 +45,7 @@ class TestPasswordReset:
             format="json",
         )
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_201_CREATED
         mock_send_email.assert_not_called()
 
 
@@ -67,7 +67,7 @@ class TestPasswordResetConfirm:
             format="json",
         )
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_201_CREATED
         user.refresh_from_db()
         assert user.check_password("newpass456")
 

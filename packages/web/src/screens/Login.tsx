@@ -10,7 +10,7 @@ import {
   useAuthEmailLoginCreate,
   useAuthLoginCreate,
 } from "../api/generated/endpoints";
-import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { AuthLayout } from "@/components/AuthLayout";
 import { isNativePlatform } from "@/utils/platform";
 import { nativeGoogleSignIn } from "@/auth/nativeGoogleAuth";
 import { Button } from "@/components/ui/button";
@@ -42,27 +42,18 @@ const Login: React.FC = () => {
     defaultValues: { email: "", password: "" },
   });
 
-  const storeTokensAndLogin = (result: {
-    accessToken: string;
-    refreshToken: string;
-    email: string;
-    name: string;
-  }) => {
-    login({
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
-      email: result.email,
-      name: result.name,
-    });
-    toast.success(`Logged in as ${result.name}`);
-  };
-
   const handleEmailLogin = async (data: LoginFormValues) => {
     try {
       const result = await emailLoginMutation.mutateAsync({
         data: { email: data.email, password: data.password },
       });
-      storeTokensAndLogin(result);
+      login({
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        email: result.email,
+        name: result.name,
+      });
+      toast.success(`Logged in as ${result.name}`);
     } catch {
       toast.error("Invalid email or password");
     }
@@ -72,7 +63,13 @@ const Login: React.FC = () => {
     const result = await googleLoginMutation.mutateAsync({
       data: { idToken },
     });
-    storeTokensAndLogin(result);
+    login({
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      email: result.email,
+      name: result.name,
+    });
+    toast.success(`Logged in as ${result.name}`);
   };
 
   const handleWebLoginSuccess = async (
@@ -102,17 +99,7 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div
-      className="flex justify-center items-center h-screen bg-cover bg-no-repeat pt-[var(--safe-area-top)] pb-[var(--safe-area-bottom)]"
-      style={{
-        backgroundImage: "url('/login_background.jpg')",
-        backgroundPosition: "54%",
-      }}
-    >
-      <div className="flex flex-col items-center gap-4 p-8 bg-background rounded w-80">
-        <Avatar className="size-12">
-          <AvatarImage src="/otto.png" alt="Diplicity Logo" />
-        </Avatar>
+    <AuthLayout>
         <h1 className="text-base">Welcome to Diplicity!</h1>
         <p className="text-sm text-muted-foreground">
           A digital adaptation of the game of Diplomacy.
@@ -191,8 +178,7 @@ const Login: React.FC = () => {
             Register
           </Link>
         </p>
-      </div>
-    </div>
+    </AuthLayout>
   );
 };
 

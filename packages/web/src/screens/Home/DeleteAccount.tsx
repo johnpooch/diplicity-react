@@ -9,21 +9,19 @@ import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { useAuth } from "@/auth";
-import { useUserDeleteCreate } from "@/api/generated/endpoints";
+import { useUserDeleteDestroy } from "@/api/generated/endpoints";
 
 const DeleteAccount: React.FC = () => {
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const deleteMutation = useUserDeleteCreate();
+  const deleteMutation = useUserDeleteDestroy();
   const [confirmText, setConfirmText] = useState("");
 
   const isConfirmed = confirmText.trim().toLowerCase() === "delete";
 
   const handleDelete = async () => {
     try {
-      await deleteMutation.mutateAsync({
-        data: { confirm: "DELETE" },
-      });
+      await deleteMutation.mutateAsync();
       logout();
     } catch {
       toast.error("Failed to delete account");

@@ -30,6 +30,18 @@ class Member(BaseModel):
             )
         ]
 
+    @property
+    def name(self):
+        if self.user is None:
+            return "Deleted User"
+        return self.user.profile.name
+
+    @property
+    def picture(self):
+        if self.user is None:
+            return None
+        return self.user.profile.picture
+
     def __str__(self):
         username = self.user.username if self.user else "Deleted User"
         return f"{username} - {self.game.name} - {self.nation.name if self.nation else '-'}"

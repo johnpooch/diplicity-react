@@ -111,22 +111,11 @@ class TestUserAccountDelete:
         user_id = user.id
 
         url = reverse("user-delete")
-        response = client.post(url, {"confirm": "DELETE"}, format="json")
+        response = client.delete(url)
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert not User.objects.filter(id=user_id).exists()
         assert not UserProfile.objects.filter(user_id=user_id).exists()
-
-    @pytest.mark.django_db
-    def test_delete_account_without_confirmation_returns_400(self, delete_user, delete_client):
-        user = delete_user()
-        client = delete_client(user)
-
-        url = reverse("user-delete")
-        response = client.post(url, {"confirm": "wrong"}, format="json")
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert User.objects.filter(id=user.id).exists()
 
     @pytest.mark.django_db
     def test_pending_game_member_fully_removed(
@@ -138,7 +127,7 @@ class TestUserAccountDelete:
         member = game.members.create(user=user)
 
         url = reverse("user-delete")
-        client.post(url, {"confirm": "DELETE"}, format="json")
+        client.delete(url)
 
         assert not Member.objects.filter(id=member.id).exists()
 
@@ -152,7 +141,7 @@ class TestUserAccountDelete:
         member = game.members.create(user=user)
 
         url = reverse("user-delete")
-        client.post(url, {"confirm": "DELETE"}, format="json")
+        client.delete(url)
 
         member.refresh_from_db()
         assert member.kicked is True
@@ -173,7 +162,7 @@ class TestUserAccountDelete:
         member = game.members.create(user=user, is_game_master=True)
 
         url = reverse("user-delete")
-        client.post(url, {"confirm": "DELETE"}, format="json")
+        client.delete(url)
 
         member.refresh_from_db()
         assert member.is_game_master is True

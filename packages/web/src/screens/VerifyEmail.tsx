@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useAuthVerifyEmailCreate } from "../api/generated/endpoints";
-import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { AuthLayout } from "@/components/AuthLayout";
 
 const VerifyEmail: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -27,18 +27,7 @@ const VerifyEmail: React.FC = () => {
   }, [searchParams]);
 
   return (
-    <div
-      className="flex justify-center items-center h-screen bg-cover bg-no-repeat pt-[var(--safe-area-top)] pb-[var(--safe-area-bottom)]"
-      style={{
-        backgroundImage: "url('/login_background.jpg')",
-        backgroundPosition: "54%",
-      }}
-    >
-      <div className="flex flex-col items-center gap-4 p-8 bg-background rounded w-80">
-        <Avatar className="size-12">
-          <AvatarImage src="/otto.png" alt="Diplicity Logo" />
-        </Avatar>
-
+    <AuthLayout>
         {status === "verifying" && (
           <p className="text-sm text-muted-foreground">
             Verifying your email...
@@ -68,8 +57,7 @@ const VerifyEmail: React.FC = () => {
             </Link>
           </>
         )}
-      </div>
-    </div>
+    </AuthLayout>
   );
 };
 

@@ -147,17 +147,6 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
-  /api/test-sentry/:
-    get:
-      operationId: apiTestSentryRetrieve
-      tags:
-      - api
-      security:
-      - jwtAuth: []
-      - {}
-      responses:
-        '200':
-          description: No response body
   /api/token/refresh/:
     post:
       operationId: apiTokenRefreshCreate
@@ -1178,25 +1167,15 @@ paths:
                 $ref: '#/components/schemas/UserProfile'
           description: ''
   /user/delete/:
-    post:
-      operationId: userDeleteCreate
+    delete:
+      operationId: userDeleteDestroy
       tags:
       - user
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UserAccountDelete'
-        required: true
       security:
       - jwtAuth: []
       responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserAccountDelete'
-          description: ''
+        '204':
+          description: No response body
   /user/update/:
     put:
       operationId: userUpdateUpdate
@@ -1923,8 +1902,8 @@ components:
           readOnly: true
         picture:
           type: string
-          nullable: true
           readOnly: true
+          nullable: true
         nation:
           type: string
           readOnly: true
@@ -2452,14 +2431,6 @@ components:
       description: |-
         * `Army` - Army
         * `Fleet` - Fleet
-    UserAccountDelete:
-      type: object
-      properties:
-        confirm:
-          type: string
-          writeOnly: true
-      required:
-      - confirm
     UserProfile:
       type: object
       properties:
