@@ -4,6 +4,10 @@ on:
   pull_request:
     types: [labeled, closed]
 
+permissions:
+  issues: write
+  pull-requests: write
+
 jobs:
   deploy-staging:
     if: github.event.action == 'labeled' && github.event.label.name == 'deploy-to-staging'
