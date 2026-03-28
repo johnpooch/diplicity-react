@@ -181,7 +181,7 @@ def test_email_password_login_works_after_google_linking(
         {"email": "test@example.com", "password": "securepass123"},
         format="json",
     )
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == status.HTTP_201_CREATED
     assert response.data["id"] == user.id
 
 

@@ -110,7 +110,7 @@ class TestVerifyEmail:
             format="json",
         )
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_201_CREATED
         user.refresh_from_db()
         assert user.is_active is True
 

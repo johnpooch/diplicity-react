@@ -27,7 +27,7 @@ class TestEmailLogin:
             format="json",
         )
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_201_CREATED
         assert response.data["id"] == user.id
         assert response.data["email"] == "player@example.com"
         assert response.data["name"] == "Test Player"
