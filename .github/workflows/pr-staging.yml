@@ -247,39 +247,11 @@ jobs:
         run: |
           BACKEND_URL="https://${STAGING_DOMAIN}"
 
-          # Check if env var exists
-          EXISTING=$(curl -s "https://api.netlify.com/api/v1/sites/${NETLIFY_SITE_ID}/env/VITE_DIPLICITY_API_BASE_URL" \
-            -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN")
-
-          if echo "$EXISTING" | jq -e '.key' > /dev/null 2>&1; then
-            # Update existing env var
-            curl -s -X PATCH "https://api.netlify.com/api/v1/sites/${NETLIFY_SITE_ID}/env/VITE_DIPLICITY_API_BASE_URL" \
-              -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "$(jq -n --arg url "$BACKEND_URL" '{
-                context: "deploy-preview",
-                value: $url
-              }')" | jq .
-          else
-            # Create env var
-            curl -s -X POST "https://api.netlify.com/api/v1/sites/${NETLIFY_SITE_ID}/env" \
-              -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "$(jq -n --arg url "$BACKEND_URL" '[{
-                key: "VITE_DIPLICITY_API_BASE_URL",
-                scopes: ["builds"],
-                values: [{ context: "deploy-preview", value: $url }]
-              }]')" | jq .
-          fi
-
+          npx netlify-cli env:set VITE_DIPLICITY_API_BASE_URL "$BACKEND_URL" --context deploy-preview
           echo "Set VITE_DIPLICITY_API_BASE_URL=$BACKEND_URL for deploy-preview context"
 
-          # Trigger a new Netlify deploy for the PR branch
-          curl -s -X POST "https://api.netlify.com/api/v1/sites/${NETLIFY_SITE_ID}/builds" \
-            -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d '{"clear_cache": false}' | jq .
-
+          # Trigger a new Netlify build so deploy preview picks up the env var
+          npx netlify-cli build:trigger
           echo "Triggered Netlify rebuild"
 
       - name: Comment on PR with staging URL
