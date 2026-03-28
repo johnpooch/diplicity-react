@@ -36,46 +36,33 @@ jobs:
               name: 'deploy-to-staging'
             });
 
-      - name: Tear down any existing staging environment
-        run: |
-          ENV_NAME="staging-pr-${PR_NUMBER}"
-
-          PAYLOAD=$(jq -n \
-            --arg projectId "$PROJECT_ID" \
-            '{query: ("{ project(id: \"" + $projectId + "\") { environments { edges { node { id name } } } } }")}')
-
-          echo "Querying environments..."
-          RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
-            -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "$PAYLOAD")
-
-          echo "API response: $RESULT"
-          ENV_ID=$(echo "$RESULT" | jq -r ".data.project.environments.edges[] | select(.node.name == \"$ENV_NAME\") | .node.id")
-          echo "Found ENV_ID: '$ENV_ID'"
-
-          if [ -n "$ENV_ID" ] && [ "$ENV_ID" != "null" ]; then
-            echo "Deleting existing environment: $ENV_ID"
-            DELETE_PAYLOAD=$(jq -n \
-              --arg envId "$ENV_ID" \
-              '{query: ("mutation { environmentDelete(id: \"" + $envId + "\") }")}')
-
-            DELETE_RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
-              -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "$DELETE_PAYLOAD")
-            echo "Delete response: $DELETE_RESULT"
-            sleep 5
-          else
-            echo "No existing staging environment found."
-          fi
-
-      - name: Create staging environment
+      - name: Find or create staging environment
         id: create_env
         run: |
           ENV_NAME="staging-pr-${PR_NUMBER}"
 
-          PAYLOAD=$(jq -n \
+          # Check if environment already exists
+          QUERY_PAYLOAD=$(jq -n \
+            --arg projectId "$PROJECT_ID" \
+            '{query: ("{ project(id: \"" + $projectId + "\") { environments { edges { node { id name } } } } }")}')
+
+          QUERY_RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
+            -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$QUERY_PAYLOAD")
+
+          EXISTING_ID=$(echo "$QUERY_RESULT" | jq -r ".data.project.environments.edges[] | select(.node.name == \"$ENV_NAME\") | .node.id")
+
+          if [ -n "$EXISTING_ID" ] && [ "$EXISTING_ID" != "null" ]; then
+            echo "Reusing existing environment: $EXISTING_ID ($ENV_NAME)"
+            echo "env_id=$EXISTING_ID" >> "$GITHUB_OUTPUT"
+            echo "env_name=$ENV_NAME" >> "$GITHUB_OUTPUT"
+            echo "created=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "No existing environment found, creating new one..."
+          CREATE_PAYLOAD=$(jq -n \
             --arg projectId "$PROJECT_ID" \
             --arg name "$ENV_NAME" \
             --arg sourceId "$PROD_ENV_ID" \
@@ -84,43 +71,55 @@ jobs:
               variables: { input: { projectId: $projectId, name: $name, sourceEnvironmentId: $sourceId } }
             }')
 
-          for attempt in $(seq 1 6); do
-            RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
-              -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "$PAYLOAD")
+          RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
+            -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$CREATE_PAYLOAD")
 
-            echo "Attempt $attempt - API response: $RESULT"
-            ENV_ID=$(echo "$RESULT" | jq -r '.data.environmentCreate.id')
+          echo "API response: $RESULT"
+          ENV_ID=$(echo "$RESULT" | jq -r '.data.environmentCreate.id')
 
-            if [ -n "$ENV_ID" ] && [ "$ENV_ID" != "null" ]; then
-              echo "Created environment: $ENV_ID ($ENV_NAME)"
-              echo "env_id=$ENV_ID" >> "$GITHUB_OUTPUT"
-              echo "env_name=$ENV_NAME" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
+          if [ -z "$ENV_ID" ] || [ "$ENV_ID" = "null" ]; then
+            echo "ERROR: Failed to create environment"
+            echo "$RESULT" | jq .
+            exit 1
+          fi
 
-            if echo "$RESULT" | jq -r '.errors[0].message // empty' | grep -q "already exists"; then
-              echo "Environment name still reserved, waiting 10s before retry..."
-              sleep 10
-            else
-              echo "ERROR: Failed to create environment"
-              echo "$RESULT" | jq .
-              exit 1
-            fi
-          done
+          echo "Created environment: $ENV_ID ($ENV_NAME)"
+          echo "env_id=$ENV_ID" >> "$GITHUB_OUTPUT"
+          echo "env_name=$ENV_NAME" >> "$GITHUB_OUTPUT"
+          echo "created=true" >> "$GITHUB_OUTPUT"
 
-          echo "ERROR: Could not create environment after 6 attempts"
-          exit 1
-
-      - name: Generate staging domain
+      - name: Get or create staging domain
         id: domain
         env:
           ENV_ID: ${{ steps.create_env.outputs.env_id }}
         run: |
+          # First check if domain already exists for this service+environment
+          QUERY_PAYLOAD=$(jq -n \
+            --arg projectId "$PROJECT_ID" \
+            --arg envId "$ENV_ID" \
+            --arg serviceId "$DJANGO_SERVICE_ID" \
+            '{query: ("query { domains(projectId: \"" + $projectId + "\", environmentId: \"" + $envId + "\", serviceId: \"" + $serviceId + "\") { serviceDomains { domain } } }")}')
+
+          QUERY_RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
+            -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$QUERY_PAYLOAD")
+
+          echo "Domain query response: $QUERY_RESULT"
+          EXISTING_DOMAIN=$(echo "$QUERY_RESULT" | jq -r '.data.domains.serviceDomains[0].domain // empty')
+
+          if [ -n "$EXISTING_DOMAIN" ]; then
+            echo "Reusing existing domain: $EXISTING_DOMAIN"
+            echo "domain=$EXISTING_DOMAIN" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "No existing domain found, creating new one..."
           sleep 5
 
-          PAYLOAD=$(jq -n \
+          CREATE_PAYLOAD=$(jq -n \
             --arg envId "$ENV_ID" \
             --arg serviceId "$DJANGO_SERVICE_ID" \
             '{
@@ -131,7 +130,7 @@ jobs:
           RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
             -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
             -H "Content-Type: application/json" \
-            -d "$PAYLOAD")
+            -d "$CREATE_PAYLOAD")
 
           echo "API response: $RESULT"
           DOMAIN=$(echo "$RESULT" | jq -r '.data.serviceDomainCreate.domain')
