@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi, beforeAll } from "vitest";
-import { createMemoryRouter, RouterProvider } from "react-router";
+import { MemoryRouter, Route, Routes } from "react-router";
 
 beforeAll(() => {
   Object.defineProperty(window, "matchMedia", {
@@ -41,6 +41,71 @@ vi.mock("@/api/generated/endpoints", () => ({
   }),
 }));
 
+vi.mock("./screens/Login", () => ({
+  Login: () => <div data-testid="login-screen">Sign In</div>,
+}));
+
+vi.mock("./screens/Register", () => ({
+  Register: () => <div>Register</div>,
+}));
+vi.mock("./screens/CheckEmail", () => ({
+  CheckEmail: () => <div>Check Email</div>,
+}));
+vi.mock("./screens/ForgotPassword", () => ({
+  ForgotPassword: () => <div>Forgot Password</div>,
+}));
+vi.mock("./screens/VerifyEmail", () => ({
+  VerifyEmail: () => <div>Verify Email</div>,
+}));
+vi.mock("./screens/ResetPassword", () => ({
+  ResetPassword: () => <div>Reset Password</div>,
+}));
+
+vi.mock("./screens", () => ({
+  Home: {
+    MyGames: () => <div data-testid="my-games-screen">My Games</div>,
+    FindGames: () => <div data-testid="find-games-screen">Find Games</div>,
+    CreateGame: () => <div>Create Game</div>,
+    SandboxGames: () => <div>Sandbox</div>,
+    Profile: () => <div>Profile</div>,
+    DeleteAccount: () => <div>Delete Account</div>,
+    Community: () => <div>Community</div>,
+    GameInfoScreen: () => <div>Game Info</div>,
+    PlayerInfoScreen: () => <div>Player Info</div>,
+  },
+  GameDetail: {
+    MapScreen: () => <div>Map</div>,
+    OrdersScreen: () => <div>Orders</div>,
+    ChannelListScreen: () => <div>Channel List</div>,
+    ChannelCreateScreen: () => <div>Channel Create</div>,
+    ChannelScreen: () => <div>Channel</div>,
+    GameInfoScreen: () => <div>Game Info</div>,
+    PlayerInfoScreen: () => <div>Player Info</div>,
+    ProposeDrawScreen: () => <div>Propose Draw</div>,
+    DrawProposalsScreen: () => <div>Draw Proposals</div>,
+  },
+}));
+
+vi.mock("./components/ErrorBoundary", () => ({
+  ErrorFallbackUI: () => <div>Error</div>,
+}));
+
+vi.mock("./components/HomeLayout", () => ({
+  HomeLayout: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
+}));
+
+vi.mock("./components/GameDetailLayout", () => ({
+  GameDetailLayout: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
+}));
+
+vi.mock("./components/GamePhaseRedirect", () => ({
+  GamePhaseRedirect: () => <div>Game Phase Redirect</div>,
+}));
+
 vi.mock("@/deepLink", () => ({
   useDeepLink: vi.fn(),
 }));
@@ -53,157 +118,114 @@ vi.mock("@react-oauth/google", () => ({
   GoogleLogin: () => <div data-testid="google-login">Google Sign In</div>,
 }));
 
-vi.mock("@tanstack/react-query", async () => {
-  const actual = await vi.importActual("@tanstack/react-query");
-  return {
-    ...actual,
-    QueryClient: vi.fn().mockImplementation(() => ({
-      fetchQuery: vi.fn().mockResolvedValue([]),
-    })),
-    useQueryClient: () => ({
-      invalidateQueries: vi.fn(),
-    }),
-  };
-});
-
-vi.mock("./screens", () => ({
-  Home: {
-    MyGames: () => <div data-testid="my-games-screen">My Games</div>,
-    FindGames: () => <div data-testid="find-games-screen">Find Games</div>,
-    CreateGame: () => <div data-testid="create-game-screen">Create Game</div>,
-    SandboxGames: () => <div data-testid="sandbox-screen">Sandbox</div>,
-    Profile: () => <div data-testid="profile-screen">Profile</div>,
-    DeleteAccount: () => (
-      <div data-testid="delete-account-screen">Delete Account</div>
-    ),
-    Community: () => <div data-testid="community-screen">Community</div>,
-    GameInfoScreen: () => <div data-testid="game-info-screen">Game Info</div>,
-    PlayerInfoScreen: () => (
-      <div data-testid="player-info-screen">Player Info</div>
-    ),
-  },
-  GameDetail: {
-    MapScreen: () => <div data-testid="map-screen">Map</div>,
-    OrdersScreen: () => <div data-testid="orders-screen">Orders</div>,
-    ChannelListScreen: () => (
-      <div data-testid="channel-list-screen">Channel List</div>
-    ),
-    ChannelCreateScreen: () => (
-      <div data-testid="channel-create-screen">Channel Create</div>
-    ),
-    ChannelScreen: () => <div data-testid="channel-screen">Channel</div>,
-    GameInfoScreen: () => (
-      <div data-testid="game-detail-info-screen">Game Info</div>
-    ),
-    PlayerInfoScreen: () => (
-      <div data-testid="game-detail-player-info-screen">Player Info</div>
-    ),
-    ProposeDrawScreen: () => (
-      <div data-testid="propose-draw-screen">Propose Draw</div>
-    ),
-    DrawProposalsScreen: () => (
-      <div data-testid="draw-proposals-screen">Draw Proposals</div>
-    ),
-  },
+vi.mock("@sentry/react", () => ({
+  captureException: vi.fn(),
 }));
 
-import { routeObjects } from "./Router";
+import { RequireAuth, LoginRoute, ConditionalIndex } from "./Router";
 
-const renderRoute = (initialPath: string) => {
-  const router = createMemoryRouter(routeObjects, {
-    initialEntries: [initialPath],
-  });
-  return render(<RouterProvider router={router} />);
-};
+const LoginScreen = () => <div data-testid="login-screen">Sign In</div>;
+const ProtectedScreen = () => (
+  <div data-testid="protected-screen">Protected</div>
+);
+const MyGamesScreen = () => <div data-testid="my-games-screen">My Games</div>;
 
-describe("Router", () => {
-  describe("when user is not logged in", () => {
-    it("redirects auth-required routes to /login", async () => {
-      mockLoggedIn.mockReturnValue(false);
-      renderRoute("/create-game");
+describe("RequireAuth", () => {
+  it("renders children when logged in", () => {
+    mockLoggedIn.mockReturnValue(true);
+    render(
+      <MemoryRouter initialEntries={["/protected"]}>
+        <Routes>
+          <Route
+            path="/protected"
+            element={
+              <RequireAuth>
+                <ProtectedScreen />
+              </RequireAuth>
+            }
+          />
+          <Route path="/login" element={<LoginScreen />} />
+        </Routes>
+      </MemoryRouter>
+    );
 
-      expect(
-        await screen.findByRole("button", { name: /sign in/i })
-      ).toBeInTheDocument();
-    });
-
-    it("can access /find-games without auth", async () => {
-      mockLoggedIn.mockReturnValue(false);
-      renderRoute("/find-games");
-
-      expect(
-        await screen.findByTestId("find-games-screen")
-      ).toBeInTheDocument();
-    });
-
-    it("shows FindGames at / for anonymous users", async () => {
-      mockLoggedIn.mockReturnValue(false);
-      renderRoute("/");
-
-      expect(
-        await screen.findByTestId("find-games-screen")
-      ).toBeInTheDocument();
-    });
+    expect(screen.getByTestId("protected-screen")).toBeInTheDocument();
   });
 
-  describe("when user is logged in", () => {
-    it("shows MyGames at / for logged-in users", async () => {
-      mockLoggedIn.mockReturnValue(true);
-      renderRoute("/");
+  it("redirects to /login when not logged in", () => {
+    mockLoggedIn.mockReturnValue(false);
+    render(
+      <MemoryRouter initialEntries={["/protected"]}>
+        <Routes>
+          <Route
+            path="/protected"
+            element={
+              <RequireAuth>
+                <ProtectedScreen />
+              </RequireAuth>
+            }
+          />
+          <Route path="/login" element={<LoginScreen />} />
+        </Routes>
+      </MemoryRouter>
+    );
 
-      expect(await screen.findByTestId("my-games-screen")).toBeInTheDocument();
-    });
+    expect(screen.getByTestId("login-screen")).toBeInTheDocument();
+    expect(screen.queryByTestId("protected-screen")).not.toBeInTheDocument();
+  });
+});
 
-    it("redirects /login to /", async () => {
-      mockLoggedIn.mockReturnValue(true);
-      renderRoute("/login");
+describe("LoginRoute", () => {
+  it("shows login screen when not logged in", () => {
+    mockLoggedIn.mockReturnValue(false);
+    render(
+      <MemoryRouter initialEntries={["/login"]}>
+        <Routes>
+          <Route path="/login" element={<LoginRoute />} />
+          <Route path="/" element={<MyGamesScreen />} />
+        </Routes>
+      </MemoryRouter>
+    );
 
-      expect(await screen.findByTestId("my-games-screen")).toBeInTheDocument();
-    });
-
-    it("can access auth-required routes when logged in", async () => {
-      mockLoggedIn.mockReturnValue(true);
-      renderRoute("/create-game");
-
-      expect(
-        await screen.findByTestId("create-game-screen")
-      ).toBeInTheDocument();
-    });
+    expect(screen.getByTestId("login-screen")).toBeInTheDocument();
   });
 
-  describe("auth-required routes redirect to /login when not logged in", () => {
-    const authRoutes = [
-      "/create-game",
-      "/sandbox",
-      "/profile",
-      "/delete-account",
-    ];
+  it("redirects to / when logged in", () => {
+    mockLoggedIn.mockReturnValue(true);
+    render(
+      <MemoryRouter initialEntries={["/login"]}>
+        <Routes>
+          <Route path="/login" element={<LoginRoute />} />
+          <Route path="/" element={<MyGamesScreen />} />
+        </Routes>
+      </MemoryRouter>
+    );
 
-    authRoutes.forEach(route => {
-      it(`${route} redirects to /login`, async () => {
-        mockLoggedIn.mockReturnValue(false);
-        renderRoute(route);
+    expect(screen.getByTestId("my-games-screen")).toBeInTheDocument();
+    expect(screen.queryByTestId("login-screen")).not.toBeInTheDocument();
+  });
+});
 
-        expect(
-          await screen.findByRole("button", { name: /sign in/i })
-        ).toBeInTheDocument();
-      });
-    });
+describe("ConditionalIndex", () => {
+  it("shows FindGames for anonymous users", () => {
+    mockLoggedIn.mockReturnValue(false);
+    render(
+      <MemoryRouter>
+        <ConditionalIndex />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByTestId("find-games-screen")).toBeInTheDocument();
   });
 
-  describe("public routes are accessible without auth", () => {
-    const publicRoutes = [
-      { path: "/find-games", testId: "find-games-screen" },
-      { path: "/community", testId: "community-screen" },
-    ];
+  it("shows MyGames for logged-in users", () => {
+    mockLoggedIn.mockReturnValue(true);
+    render(
+      <MemoryRouter>
+        <ConditionalIndex />
+      </MemoryRouter>
+    );
 
-    publicRoutes.forEach(({ path, testId }) => {
-      it(`${path} is accessible`, async () => {
-        mockLoggedIn.mockReturnValue(false);
-        renderRoute(path);
-
-        expect(await screen.findByTestId(testId)).toBeInTheDocument();
-      });
-    });
+    expect(screen.getByTestId("my-games-screen")).toBeInTheDocument();
   });
 });

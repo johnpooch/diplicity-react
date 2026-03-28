@@ -67,19 +67,19 @@ const AppRoot: React.FC = () => {
   return <Outlet />;
 };
 
-const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { loggedIn } = useAuth();
   if (!loggedIn) return <Navigate to="/login" />;
   return <>{children}</>;
 };
 
-const LoginRoute: React.FC = () => {
+export const LoginRoute: React.FC = () => {
   const { loggedIn } = useAuth();
   if (loggedIn) return <Navigate to="/" />;
   return <Login />;
 };
 
-const ConditionalIndex: React.FC = () => {
+export const ConditionalIndex: React.FC = () => {
   const { loggedIn } = useAuth();
   return loggedIn ? <Home.MyGames /> : <Home.FindGames />;
 };
