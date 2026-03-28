@@ -17,7 +17,7 @@ class ChannelMessageCreateView(SelectedGameMixin, SelectedChannelMixin, CurrentG
 
 
 class ChannelListView(SelectedGameMixin, generics.ListAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsActiveOrCompletedGame]
+    permission_classes = [IsActiveOrCompletedGame]
     serializer_class = ChannelSerializer
 
     def get_queryset(self):
