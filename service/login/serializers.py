@@ -106,7 +106,7 @@ class PasswordResetSerializer(serializers.Serializer):
                 to=user.email,
                 subject="Reset your Diplicity password",
                 html=f'<p>Click the link to reset your password:</p>'
-                f'<a href="https://diplicity.com/auth/password-reset/confirm/{uid}/{token}/">'
+                f'<a href="https://diplicity.com/reset-password?uid={uid}&token={token}">'
                 f'Reset Password</a>'
                 f'<p>This link expires in 1 hour.</p>',
             )
@@ -134,4 +134,33 @@ class VerifyEmailSerializer(serializers.Serializer):
         user = validated_data["user"]
         user.is_active = True
         user.save(update_fields=["is_active"])
+        return user
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    uid = serializers.CharField(write_only=True)
+    token = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True, min_length=8)
+    confirm_password = serializers.CharField(write_only=True, min_length=8)
+
+    def validate(self, attrs):
+        if attrs["new_password"] != attrs["confirm_password"]:
+            raise serializers.ValidationError("Passwords do not match.")
+
+        try:
+            user_id = force_str(urlsafe_base64_decode(attrs["uid"]))
+            user = User.objects.get(pk=user_id)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            raise serializers.ValidationError("Invalid or expired reset link.")
+
+        if not default_token_generator.check_token(user, attrs["token"]):
+            raise serializers.ValidationError("Invalid or expired reset link.")
+
+        attrs["user"] = user
+        return attrs
+
+    def create(self, validated_data):
+        user = validated_data["user"]
+        user.set_password(validated_data["new_password"])
+        user.save(update_fields=["password"])
         return user

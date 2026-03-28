@@ -35,7 +35,7 @@ class TestPasswordReset:
         call_kwargs = mock_send_email.call_args[1]
         assert call_kwargs["to"] == "player@example.com"
         assert "reset" in call_kwargs["subject"].lower()
-        assert "password-reset/confirm" in call_kwargs["html"]
+        assert "reset-password?uid=" in call_kwargs["html"]
 
     def test_nonexistent_email_returns_200_without_sending(self, unauthenticated_client, mock_send_email):
         url = reverse(password_reset_viewname)
@@ -51,7 +51,7 @@ class TestPasswordReset:
 
 @pytest.mark.django_db
 class TestPasswordResetConfirm:
-    def test_valid_token_sets_new_password(self, client):
+    def test_valid_token_sets_new_password(self, unauthenticated_client):
         user = User.objects.create_user(
             username="reset@example.com",
             email="reset@example.com",
@@ -61,16 +61,17 @@ class TestPasswordResetConfirm:
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
 
-        response = client.post(
-            f"/auth/password-reset/confirm/{uid}/{token}/",
-            {"new_password": "newpass456", "confirm_password": "newpass456"},
+        response = unauthenticated_client.post(
+            "/auth/password-reset/confirm/",
+            {"uid": uid, "token": token, "new_password": "newpass456", "confirm_password": "newpass456"},
+            format="json",
         )
 
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         user.refresh_from_db()
         assert user.check_password("newpass456")
 
-    def test_invalid_token_returns_400(self, client):
+    def test_invalid_token_returns_400(self, unauthenticated_client):
         user = User.objects.create_user(
             username="invalid@example.com",
             email="invalid@example.com",
@@ -79,25 +80,27 @@ class TestPasswordResetConfirm:
         )
         uid = urlsafe_base64_encode(force_bytes(user.pk))
 
-        response = client.post(
-            f"/auth/password-reset/confirm/{uid}/bad-token/",
-            {"new_password": "newpass456", "confirm_password": "newpass456"},
+        response = unauthenticated_client.post(
+            "/auth/password-reset/confirm/",
+            {"uid": uid, "token": "bad-token", "new_password": "newpass456", "confirm_password": "newpass456"},
+            format="json",
         )
 
-        assert response.status_code == 400
-        assert "invalid or expired" in response.content.decode().lower()
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "invalid or expired" in str(response.json()).lower()
         user.refresh_from_db()
         assert user.check_password("oldpass123")
 
-    def test_invalid_uid_returns_400(self, client):
-        response = client.post(
-            "/auth/password-reset/confirm/baduid/bad-token/",
-            {"new_password": "newpass456", "confirm_password": "newpass456"},
+    def test_invalid_uid_returns_400(self, unauthenticated_client):
+        response = unauthenticated_client.post(
+            "/auth/password-reset/confirm/",
+            {"uid": "baduid", "token": "bad-token", "new_password": "newpass456", "confirm_password": "newpass456"},
+            format="json",
         )
 
-        assert response.status_code == 400
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_mismatched_passwords_returns_400(self, client):
+    def test_mismatched_passwords_returns_400(self, unauthenticated_client):
         user = User.objects.create_user(
             username="mismatch@example.com",
             email="mismatch@example.com",
@@ -107,48 +110,13 @@ class TestPasswordResetConfirm:
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
 
-        response = client.post(
-            f"/auth/password-reset/confirm/{uid}/{token}/",
-            {"new_password": "newpass456", "confirm_password": "different789"},
+        response = unauthenticated_client.post(
+            "/auth/password-reset/confirm/",
+            {"uid": uid, "token": token, "new_password": "newpass456", "confirm_password": "different789"},
+            format="json",
         )
 
-        assert response.status_code == 400
-        assert "do not match" in response.content.decode().lower()
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "do not match" in str(response.json()).lower()
         user.refresh_from_db()
         assert user.check_password("oldpass123")
-
-    def test_get_serves_html_form(self, client):
-        user = User.objects.create_user(
-            username="form@example.com",
-            email="form@example.com",
-            password="oldpass123",
-            is_active=True,
-        )
-        uid = urlsafe_base64_encode(force_bytes(user.pk))
-        token = default_token_generator.make_token(user)
-
-        response = client.get(
-            f"/auth/password-reset/confirm/{uid}/{token}/",
-        )
-
-        assert response.status_code == 200
-        content = response.content.decode()
-        assert "<form" in content
-        assert "new_password" in content
-        assert "confirm_password" in content
-
-    def test_get_with_invalid_token_returns_error(self, client):
-        user = User.objects.create_user(
-            username="badform@example.com",
-            email="badform@example.com",
-            password="oldpass123",
-            is_active=True,
-        )
-        uid = urlsafe_base64_encode(force_bytes(user.pk))
-
-        response = client.get(
-            f"/auth/password-reset/confirm/{uid}/bad-token/",
-        )
-
-        assert response.status_code == 400
-        assert "invalid or expired" in response.content.decode().lower()

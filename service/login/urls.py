@@ -8,5 +8,5 @@ urlpatterns = [
     path("auth/register/", RegisterView.as_view(), name="register"),
     path("auth/verify-email/", VerifyEmailView.as_view(), name="verify-email"),
     path("auth/password-reset/", PasswordResetView.as_view(), name="password-reset"),
-    path("auth/password-reset/confirm/<str:uidb64>/<str:token>/", PasswordResetConfirmView.as_view(), name="password-reset-confirm"),
+    path("auth/password-reset/confirm/", PasswordResetConfirmView.as_view(), name="password-reset-confirm"),
 ]

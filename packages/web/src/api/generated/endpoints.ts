@@ -501,6 +501,15 @@ export interface PasswordReset {
   email: string;
 }
 
+export interface PasswordResetConfirm {
+  uid: string;
+  token: string;
+  /** @minLength 8 */
+  newPassword: string;
+  /** @minLength 8 */
+  confirmPassword: string;
+}
+
 export interface PatchedDrawVoteUpdate {
   accepted?: boolean;
 }
@@ -609,6 +618,10 @@ export interface Register {
 export interface TokenRefresh {
   readonly access: string;
   refresh: string;
+}
+
+export interface UserAccountDelete {
+  confirm: string;
 }
 
 export interface UserProfile {
@@ -1622,6 +1635,87 @@ export const useAuthPasswordResetCreate = <
 > => {
   return useMutation(
     getAuthPasswordResetCreateMutationOptions(options),
+    queryClient
+  );
+};
+
+export const authPasswordResetConfirmCreate = (
+  passwordResetConfirm: PasswordResetConfirm,
+  signal?: AbortSignal
+) => {
+  return customInstance<PasswordResetConfirm>({
+    url: `/auth/password-reset/confirm/`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: passwordResetConfirm,
+    signal,
+  });
+};
+
+export const getAuthPasswordResetConfirmCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof authPasswordResetConfirmCreate>>,
+    TError,
+    { data: PasswordResetConfirm },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof authPasswordResetConfirmCreate>>,
+  TError,
+  { data: PasswordResetConfirm },
+  TContext
+> => {
+  const mutationKey = ["authPasswordResetConfirmCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof authPasswordResetConfirmCreate>>,
+    { data: PasswordResetConfirm }
+  > = props => {
+    const { data } = props ?? {};
+
+    return authPasswordResetConfirmCreate(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AuthPasswordResetConfirmCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof authPasswordResetConfirmCreate>>
+>;
+export type AuthPasswordResetConfirmCreateMutationBody = PasswordResetConfirm;
+export type AuthPasswordResetConfirmCreateMutationError = unknown;
+
+export const useAuthPasswordResetConfirmCreate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof authPasswordResetConfirmCreate>>,
+      TError,
+      { data: PasswordResetConfirm },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof authPasswordResetConfirmCreate>>,
+  TError,
+  { data: PasswordResetConfirm },
+  TContext
+> => {
+  return useMutation(
+    getAuthPasswordResetConfirmCreateMutationOptions(options),
     queryClient
   );
 };
@@ -6795,6 +6889,81 @@ export function useUserRetrieveSuspense<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
+export const userDeleteCreate = (
+  userAccountDelete: UserAccountDelete,
+  signal?: AbortSignal
+) => {
+  return customInstance<UserAccountDelete>({
+    url: `/user/delete/`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: userAccountDelete,
+    signal,
+  });
+};
+
+export const getUserDeleteCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof userDeleteCreate>>,
+    TError,
+    { data: UserAccountDelete },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof userDeleteCreate>>,
+  TError,
+  { data: UserAccountDelete },
+  TContext
+> => {
+  const mutationKey = ["userDeleteCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof userDeleteCreate>>,
+    { data: UserAccountDelete }
+  > = props => {
+    const { data } = props ?? {};
+
+    return userDeleteCreate(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UserDeleteCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof userDeleteCreate>>
+>;
+export type UserDeleteCreateMutationBody = UserAccountDelete;
+export type UserDeleteCreateMutationError = unknown;
+
+export const useUserDeleteCreate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof userDeleteCreate>>,
+      TError,
+      { data: UserAccountDelete },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof userDeleteCreate>>,
+  TError,
+  { data: UserAccountDelete },
+  TContext
+> => {
+  return useMutation(getUserDeleteCreateMutationOptions(options), queryClient);
+};
+
 export const userUpdateUpdate = (
   userProfile: NonReadonly<UserProfile>,
   signal?: AbortSignal
@@ -7483,6 +7652,16 @@ export const getAuthLoginCreateResponseMock = (
 export const getAuthPasswordResetCreateResponseMock = (
   overrideResponse: Partial<PasswordReset> = {}
 ): PasswordReset => ({ email: faker.internet.email(), ...overrideResponse });
+
+export const getAuthPasswordResetConfirmCreateResponseMock = (
+  overrideResponse: Partial<PasswordResetConfirm> = {}
+): PasswordResetConfirm => ({
+  uid: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  token: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  newPassword: faker.string.alpha({ length: { min: 8, max: 20 } }),
+  confirmPassword: faker.string.alpha({ length: { min: 8, max: 20 } }),
+  ...overrideResponse,
+});
 
 export const getAuthRegisterCreateResponseMock = (
   overrideResponse: Partial<Register> = {}
@@ -8941,6 +9120,13 @@ export const getUserRetrieveResponseMock = (
   ...overrideResponse,
 });
 
+export const getUserDeleteCreateResponseMock = (
+  overrideResponse: Partial<UserAccountDelete> = {}
+): UserAccountDelete => ({
+  confirm: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  ...overrideResponse,
+});
+
 export const getUserUpdateUpdateResponseMock = (
   overrideResponse: Partial<UserProfile> = {}
 ): UserProfile => ({
@@ -9261,6 +9447,32 @@ export const getAuthPasswordResetCreateMockHandler = (
               ? await overrideResponse(info)
               : overrideResponse
             : getAuthPasswordResetCreateResponseMock()
+        ),
+        { status: 201, headers: { "Content-Type": "application/json" } }
+      );
+    },
+    options
+  );
+};
+
+export const getAuthPasswordResetConfirmCreateMockHandler = (
+  overrideResponse?:
+    | PasswordResetConfirm
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0]
+      ) => Promise<PasswordResetConfirm> | PasswordResetConfirm),
+  options?: RequestHandlerOptions
+) => {
+  return http.post(
+    "*/auth/password-reset/confirm/",
+    async info => {
+      return new HttpResponse(
+        JSON.stringify(
+          overrideResponse !== undefined
+            ? typeof overrideResponse === "function"
+              ? await overrideResponse(info)
+              : overrideResponse
+            : getAuthPasswordResetConfirmCreateResponseMock()
         ),
         { status: 201, headers: { "Content-Type": "application/json" } }
       );
@@ -10229,6 +10441,32 @@ export const getUserRetrieveMockHandler = (
   );
 };
 
+export const getUserDeleteCreateMockHandler = (
+  overrideResponse?:
+    | UserAccountDelete
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0]
+      ) => Promise<UserAccountDelete> | UserAccountDelete),
+  options?: RequestHandlerOptions
+) => {
+  return http.post(
+    "*/user/delete/",
+    async info => {
+      return new HttpResponse(
+        JSON.stringify(
+          overrideResponse !== undefined
+            ? typeof overrideResponse === "function"
+              ? await overrideResponse(info)
+              : overrideResponse
+            : getUserDeleteCreateResponseMock()
+        ),
+        { status: 201, headers: { "Content-Type": "application/json" } }
+      );
+    },
+    options
+  );
+};
+
 export const getUserUpdateUpdateMockHandler = (
   overrideResponse?:
     | UserProfile
@@ -10339,6 +10577,7 @@ export const getMock = () => [
   getAuthEmailLoginCreateMockHandler(),
   getAuthLoginCreateMockHandler(),
   getAuthPasswordResetCreateMockHandler(),
+  getAuthPasswordResetConfirmCreateMockHandler(),
   getAuthRegisterCreateMockHandler(),
   getAuthVerifyEmailCreateMockHandler(),
   getDevicesListMockHandler(),
@@ -10378,6 +10617,7 @@ export const getMock = () => [
   getPhaseResolveCreateMockHandler(),
   getSandboxGameCreateMockHandler(),
   getUserRetrieveMockHandler(),
+  getUserDeleteCreateMockHandler(),
   getUserUpdateUpdateMockHandler(),
   getUserUpdatePartialUpdateMockHandler(),
   getVariantsListMockHandler(),

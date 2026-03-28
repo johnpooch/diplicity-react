@@ -242,6 +242,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/PasswordReset'
           description: ''
+  /auth/password-reset/confirm/:
+    post:
+      operationId: authPasswordResetConfirmCreate
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetConfirm'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordResetConfirm'
+          description: ''
   /auth/register/:
     post:
       operationId: authRegisterCreate
@@ -1155,6 +1176,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserProfile'
+          description: ''
+  /user/delete/:
+    post:
+      operationId: userDeleteCreate
+      tags:
+      - user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserAccountDelete'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserAccountDelete'
           description: ''
   /user/update/:
     put:
@@ -2093,6 +2134,28 @@ components:
           writeOnly: true
       required:
       - email
+    PasswordResetConfirm:
+      type: object
+      properties:
+        uid:
+          type: string
+          writeOnly: true
+        token:
+          type: string
+          writeOnly: true
+        newPassword:
+          type: string
+          writeOnly: true
+          minLength: 8
+        confirmPassword:
+          type: string
+          writeOnly: true
+          minLength: 8
+      required:
+      - confirmPassword
+      - newPassword
+      - token
+      - uid
     PatchedDrawVoteUpdate:
       type: object
       properties:
@@ -2389,6 +2452,14 @@ components:
       description: |-
         * `Army` - Army
         * `Fleet` - Fleet
+    UserAccountDelete:
+      type: object
+      properties:
+        confirm:
+          type: string
+          writeOnly: true
+      required:
+      - confirm
     UserProfile:
       type: object
       properties:
