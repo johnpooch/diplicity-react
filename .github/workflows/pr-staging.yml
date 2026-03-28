@@ -84,23 +84,34 @@ jobs:
               variables: { input: { projectId: $projectId, name: $name, sourceEnvironmentId: $sourceId } }
             }')
 
-          RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
-            -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "$PAYLOAD")
+          for attempt in $(seq 1 6); do
+            RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
+              -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD")
 
-          echo "API response: $RESULT"
-          ENV_ID=$(echo "$RESULT" | jq -r '.data.environmentCreate.id')
+            echo "Attempt $attempt - API response: $RESULT"
+            ENV_ID=$(echo "$RESULT" | jq -r '.data.environmentCreate.id')
 
-          if [ -z "$ENV_ID" ] || [ "$ENV_ID" = "null" ]; then
-            echo "ERROR: Failed to create environment"
-            echo "$RESULT" | jq .
-            exit 1
-          fi
+            if [ -n "$ENV_ID" ] && [ "$ENV_ID" != "null" ]; then
+              echo "Created environment: $ENV_ID ($ENV_NAME)"
+              echo "env_id=$ENV_ID" >> "$GITHUB_OUTPUT"
+              echo "env_name=$ENV_NAME" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
 
-          echo "Created environment: $ENV_ID ($ENV_NAME)"
-          echo "env_id=$ENV_ID" >> "$GITHUB_OUTPUT"
-          echo "env_name=$ENV_NAME" >> "$GITHUB_OUTPUT"
+            if echo "$RESULT" | jq -r '.errors[0].message // empty' | grep -q "already exists"; then
+              echo "Environment name still reserved, waiting 10s before retry..."
+              sleep 10
+            else
+              echo "ERROR: Failed to create environment"
+              echo "$RESULT" | jq .
+              exit 1
+            fi
+          done
+
+          echo "ERROR: Could not create environment after 6 attempts"
+          exit 1
 
       - name: Generate staging domain
         id: domain

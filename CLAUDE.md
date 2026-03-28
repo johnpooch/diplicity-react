@@ -615,6 +615,47 @@ Check https://status.railway.com for platform-wide incidents. Use WebFetch to ch
 
 ---
 
+# PR Staging Environments
+
+PRs can be deployed to an isolated staging environment with a copy of the production database. This is useful for:
+- Testing database migrations against real production data before merging
+- Validating end-to-end behavior with realistic data
+- Manual QA of features that need backend changes
+
+## How to Deploy
+
+Add the `deploy-to-staging` label to a PR. A GitHub Actions workflow (`.github/workflows/pr-staging.yml`) will:
+1. Tear down any existing staging environment for that PR
+2. Create a new Railway environment (`staging-pr-<number>`)
+3. Generate a Railway domain for the staging backend
+4. Clone the production database via `pg_dump`/`pg_restore`
+5. Configure CORS/ALLOWED_HOSTS for the staging domain
+6. Deploy the PR branch to the staging backend
+7. Comment on the PR with the frontend preview and staging backend URLs
+
+The frontend Netlify deploy preview automatically points at the staging backend (configured in `packages/web/netlify.toml`).
+
+## How to Redeploy
+
+Add the `deploy-to-staging` label again. The workflow tears down the existing environment first.
+
+## Teardown
+
+Staging environments are automatically deleted when the PR is closed or merged.
+
+## Auth on Staging
+
+Use email/password login. Google OAuth is not configured for staging environments.
+
+## Key Details
+
+- **One staging environment per PR** (no pool of shared environments)
+- Railway GraphQL API is used for all environment management (not the Railway CLI)
+- The `RAILWAY_ACCOUNT_TOKEN` GitHub secret is an account-level token (not a project token)
+- Railway project: `devoted-rejoicing` (ID: `39039c2c-4f5d-4a37-8c0d-f8e4279fce61`)
+
+---
+
 # API Development
 
 The API schema is auto-generated using DRF Spectacular:
