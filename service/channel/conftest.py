@@ -70,3 +70,23 @@ def sandbox_game_with_channel(sandbox_game):
     channel = Channel.objects.create(game=sandbox_game, name="Sandbox Channel", private=True)
     channel.members.add(sandbox_game.members.first())
     return sandbox_game
+
+
+@pytest.fixture
+def game_with_public_channel_and_messages(
+    db, active_game_with_phase_state, secondary_user, classical_france_nation
+):
+    game = active_game_with_phase_state
+    primary_member = game.members.first()
+    secondary_member = game.members.create(user=secondary_user, nation=classical_france_nation)
+
+    public_channel = Channel.objects.create(game=game, name="Public Press", private=False)
+
+    from channel.models import ChannelMember
+    ChannelMember.objects.create(member=primary_member, channel=public_channel)
+    ChannelMember.objects.create(member=secondary_member, channel=public_channel)
+
+    ChannelMessage.objects.create(channel=public_channel, sender=secondary_member, body="Message 1")
+    ChannelMessage.objects.create(channel=public_channel, sender=secondary_member, body="Message 2")
+
+    return game

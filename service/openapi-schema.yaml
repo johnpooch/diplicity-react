@@ -147,6 +147,17 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
+  /api/test-sentry/:
+    get:
+      operationId: apiTestSentryRetrieve
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
   /api/token/refresh/:
     post:
       operationId: apiTokenRefreshCreate
@@ -381,6 +392,7 @@ paths:
       - game
       security:
       - jwtAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -871,6 +883,7 @@ paths:
       - games
       security:
       - jwtAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -905,6 +918,30 @@ paths:
                 items:
                   $ref: '#/components/schemas/Channel'
           description: ''
+  /games/{gameId}/channels/{channelId}/mark-read/:
+    post:
+      operationId: gamesChannelsMarkReadCreate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: channelId
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - games
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          description: No response body
   /games/{gameId}/channels/{channelId}/messages/create/:
     post:
       operationId: gamesChannelsMessagesCreateCreate
@@ -1221,6 +1258,7 @@ paths:
       - variants
       security:
       - jwtAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -1291,6 +1329,10 @@ components:
           items:
             $ref: '#/components/schemas/ChannelMessage'
           readOnly: true
+        unreadMessageCount:
+          type: integer
+          readOnly: true
+          default: 0
         memberIds:
           type: array
           items:
@@ -1302,6 +1344,7 @@ components:
       - messages
       - name
       - private
+      - unreadMessageCount
     ChannelMember:
       type: object
       properties:
@@ -1866,6 +1909,9 @@ components:
           type: string
           readOnly: true
           nullable: true
+        totalUnreadMessageCount:
+          type: integer
+          readOnly: true
       required:
       - canJoin
       - canLeave
@@ -1889,6 +1935,7 @@ components:
       - retreatPhaseDuration
       - sandbox
       - status
+      - totalUnreadMessageCount
       - variantId
       - victory
     Member:
