@@ -264,7 +264,6 @@ jobs:
             -H "Content-Type: application/json" \
             -d "$(jq -n --arg url "$BACKEND_URL" '[{
               key: "VITE_DIPLICITY_API_BASE_URL",
-              scopes: ["builds", "functions", "runtime"],
               values: [{ context: "deploy-preview", value: $url }]
             }]')")
           echo "Create env var result: $CREATE_RESULT"
