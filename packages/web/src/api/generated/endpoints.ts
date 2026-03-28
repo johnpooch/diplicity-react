@@ -164,6 +164,15 @@ export const DurationEnum = {
   "2_weeks": "2 weeks",
 } as const;
 
+export interface EmailLogin {
+  email: string;
+  password: string;
+  readonly id: number;
+  readonly name: string;
+  readonly accessToken: string;
+  readonly refreshToken: string;
+}
+
 /**
  * * `ios` - ios
  * `android` - android
@@ -488,6 +497,19 @@ export interface OrderOptionsResponse {
   fieldOrder: OrderOptionsResponseFieldOrder;
 }
 
+export interface PasswordReset {
+  email: string;
+}
+
+export interface PasswordResetConfirm {
+  uid: string;
+  token: string;
+  /** @minLength 8 */
+  newPassword: string;
+  /** @minLength 8 */
+  confirmPassword: string;
+}
+
 export interface PatchedDrawVoteUpdate {
   accepted?: boolean;
 }
@@ -586,6 +608,13 @@ export interface PhaseState {
   readonly member: Member;
 }
 
+export interface Register {
+  email: string;
+  /** @minLength 8 */
+  password: string;
+  displayName: string;
+}
+
 export interface TokenRefresh {
   readonly access: string;
   refresh: string;
@@ -612,6 +641,11 @@ export interface Variant {
   nations: Nation[];
   provinces: Province[];
   templatePhase: PhaseRetrieve;
+}
+
+export interface VerifyEmail {
+  uid: string;
+  token: string;
 }
 
 export interface Version {
@@ -1033,258 +1067,6 @@ export function useApiSchemaRetrieveSuspense<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-export const apiTestSentryRetrieve = (signal?: AbortSignal) => {
-  return customInstance<void>({
-    url: `/api/test-sentry/`,
-    method: "GET",
-    signal,
-  });
-};
-
-export const getApiTestSentryRetrieveQueryKey = () => {
-  return [`/api/test-sentry/`] as const;
-};
-
-export const getApiTestSentryRetrieveQueryOptions = <
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(options?: {
-  query?: Partial<
-    UseQueryOptions<
-      Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-      TError,
-      TData
-    >
-  >;
-}) => {
-  const { query: queryOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getApiTestSentryRetrieveQueryKey();
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof apiTestSentryRetrieve>>
-  > = ({ signal }) => apiTestSentryRetrieve(signal);
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type ApiTestSentryRetrieveQueryResult = NonNullable<
-  Awaited<ReturnType<typeof apiTestSentryRetrieve>>
->;
-export type ApiTestSentryRetrieveQueryError = unknown;
-
-export function useApiTestSentryRetrieve<
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(
-  options: {
-    query: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-          TError,
-          Awaited<ReturnType<typeof apiTestSentryRetrieve>>
-        >,
-        "initialData"
-      >;
-  },
-  queryClient?: QueryClient
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useApiTestSentryRetrieve<
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-          TError,
-          Awaited<ReturnType<typeof apiTestSentryRetrieve>>
-        >,
-        "initialData"
-      >;
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useApiTestSentryRetrieve<
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-
-export function useApiTestSentryRetrieve<
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getApiTestSentryRetrieveQueryOptions(options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-export const getApiTestSentryRetrieveSuspenseQueryOptions = <
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(options?: {
-  query?: Partial<
-    UseSuspenseQueryOptions<
-      Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-      TError,
-      TData
-    >
-  >;
-}) => {
-  const { query: queryOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getApiTestSentryRetrieveQueryKey();
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof apiTestSentryRetrieve>>
-  > = ({ signal }) => apiTestSentryRetrieve(signal);
-
-  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
-    Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type ApiTestSentryRetrieveSuspenseQueryResult = NonNullable<
-  Awaited<ReturnType<typeof apiTestSentryRetrieve>>
->;
-export type ApiTestSentryRetrieveSuspenseQueryError = unknown;
-
-export function useApiTestSentryRetrieveSuspense<
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(
-  options: {
-    query: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useApiTestSentryRetrieveSuspense<
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(
-  options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useApiTestSentryRetrieveSuspense<
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(
-  options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-
-export function useApiTestSentryRetrieveSuspense<
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(
-  options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getApiTestSentryRetrieveSuspenseQueryOptions(options);
-
-  const query = useSuspenseQuery(
-    queryOptions,
-    queryClient
-  ) as UseSuspenseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
 /**
  * Takes a refresh type JSON web token and returns an access type JSON web
 token if the refresh token is valid.
@@ -1367,6 +1149,84 @@ export const useApiTokenRefreshCreate = <TError = unknown, TContext = unknown>(
   );
 };
 
+export const authEmailLoginCreate = (
+  emailLogin: NonReadonly<EmailLogin>,
+  signal?: AbortSignal
+) => {
+  return customInstance<EmailLogin>({
+    url: `/auth/email-login/`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: emailLogin,
+    signal,
+  });
+};
+
+export const getAuthEmailLoginCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof authEmailLoginCreate>>,
+    TError,
+    { data: NonReadonly<EmailLogin> },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof authEmailLoginCreate>>,
+  TError,
+  { data: NonReadonly<EmailLogin> },
+  TContext
+> => {
+  const mutationKey = ["authEmailLoginCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof authEmailLoginCreate>>,
+    { data: NonReadonly<EmailLogin> }
+  > = props => {
+    const { data } = props ?? {};
+
+    return authEmailLoginCreate(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AuthEmailLoginCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof authEmailLoginCreate>>
+>;
+export type AuthEmailLoginCreateMutationBody = NonReadonly<EmailLogin>;
+export type AuthEmailLoginCreateMutationError = unknown;
+
+export const useAuthEmailLoginCreate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof authEmailLoginCreate>>,
+      TError,
+      { data: NonReadonly<EmailLogin> },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof authEmailLoginCreate>>,
+  TError,
+  { data: NonReadonly<EmailLogin> },
+  TContext
+> => {
+  return useMutation(
+    getAuthEmailLoginCreateMutationOptions(options),
+    queryClient
+  );
+};
+
 export const authLoginCreate = (
   auth: NonReadonly<Auth>,
   signal?: AbortSignal
@@ -1440,6 +1300,324 @@ export const useAuthLoginCreate = <TError = unknown, TContext = unknown>(
   TContext
 > => {
   return useMutation(getAuthLoginCreateMutationOptions(options), queryClient);
+};
+
+export const authPasswordResetCreate = (
+  passwordReset: PasswordReset,
+  signal?: AbortSignal
+) => {
+  return customInstance<PasswordReset>({
+    url: `/auth/password-reset/`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: passwordReset,
+    signal,
+  });
+};
+
+export const getAuthPasswordResetCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof authPasswordResetCreate>>,
+    TError,
+    { data: PasswordReset },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof authPasswordResetCreate>>,
+  TError,
+  { data: PasswordReset },
+  TContext
+> => {
+  const mutationKey = ["authPasswordResetCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof authPasswordResetCreate>>,
+    { data: PasswordReset }
+  > = props => {
+    const { data } = props ?? {};
+
+    return authPasswordResetCreate(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AuthPasswordResetCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof authPasswordResetCreate>>
+>;
+export type AuthPasswordResetCreateMutationBody = PasswordReset;
+export type AuthPasswordResetCreateMutationError = unknown;
+
+export const useAuthPasswordResetCreate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof authPasswordResetCreate>>,
+      TError,
+      { data: PasswordReset },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof authPasswordResetCreate>>,
+  TError,
+  { data: PasswordReset },
+  TContext
+> => {
+  return useMutation(
+    getAuthPasswordResetCreateMutationOptions(options),
+    queryClient
+  );
+};
+
+export const authPasswordResetConfirmCreate = (
+  passwordResetConfirm: PasswordResetConfirm,
+  signal?: AbortSignal
+) => {
+  return customInstance<PasswordResetConfirm>({
+    url: `/auth/password-reset/confirm/`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: passwordResetConfirm,
+    signal,
+  });
+};
+
+export const getAuthPasswordResetConfirmCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof authPasswordResetConfirmCreate>>,
+    TError,
+    { data: PasswordResetConfirm },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof authPasswordResetConfirmCreate>>,
+  TError,
+  { data: PasswordResetConfirm },
+  TContext
+> => {
+  const mutationKey = ["authPasswordResetConfirmCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof authPasswordResetConfirmCreate>>,
+    { data: PasswordResetConfirm }
+  > = props => {
+    const { data } = props ?? {};
+
+    return authPasswordResetConfirmCreate(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AuthPasswordResetConfirmCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof authPasswordResetConfirmCreate>>
+>;
+export type AuthPasswordResetConfirmCreateMutationBody = PasswordResetConfirm;
+export type AuthPasswordResetConfirmCreateMutationError = unknown;
+
+export const useAuthPasswordResetConfirmCreate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof authPasswordResetConfirmCreate>>,
+      TError,
+      { data: PasswordResetConfirm },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof authPasswordResetConfirmCreate>>,
+  TError,
+  { data: PasswordResetConfirm },
+  TContext
+> => {
+  return useMutation(
+    getAuthPasswordResetConfirmCreateMutationOptions(options),
+    queryClient
+  );
+};
+
+export const authRegisterCreate = (
+  register: Register,
+  signal?: AbortSignal
+) => {
+  return customInstance<Register>({
+    url: `/auth/register/`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: register,
+    signal,
+  });
+};
+
+export const getAuthRegisterCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof authRegisterCreate>>,
+    TError,
+    { data: Register },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof authRegisterCreate>>,
+  TError,
+  { data: Register },
+  TContext
+> => {
+  const mutationKey = ["authRegisterCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof authRegisterCreate>>,
+    { data: Register }
+  > = props => {
+    const { data } = props ?? {};
+
+    return authRegisterCreate(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AuthRegisterCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof authRegisterCreate>>
+>;
+export type AuthRegisterCreateMutationBody = Register;
+export type AuthRegisterCreateMutationError = unknown;
+
+export const useAuthRegisterCreate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof authRegisterCreate>>,
+      TError,
+      { data: Register },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof authRegisterCreate>>,
+  TError,
+  { data: Register },
+  TContext
+> => {
+  return useMutation(
+    getAuthRegisterCreateMutationOptions(options),
+    queryClient
+  );
+};
+
+export const authVerifyEmailCreate = (
+  verifyEmail: VerifyEmail,
+  signal?: AbortSignal
+) => {
+  return customInstance<VerifyEmail>({
+    url: `/auth/verify-email/`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: verifyEmail,
+    signal,
+  });
+};
+
+export const getAuthVerifyEmailCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof authVerifyEmailCreate>>,
+    TError,
+    { data: VerifyEmail },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof authVerifyEmailCreate>>,
+  TError,
+  { data: VerifyEmail },
+  TContext
+> => {
+  const mutationKey = ["authVerifyEmailCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof authVerifyEmailCreate>>,
+    { data: VerifyEmail }
+  > = props => {
+    const { data } = props ?? {};
+
+    return authVerifyEmailCreate(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AuthVerifyEmailCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof authVerifyEmailCreate>>
+>;
+export type AuthVerifyEmailCreateMutationBody = VerifyEmail;
+export type AuthVerifyEmailCreateMutationError = unknown;
+
+export const useAuthVerifyEmailCreate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof authVerifyEmailCreate>>,
+      TError,
+      { data: VerifyEmail },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof authVerifyEmailCreate>>,
+  TError,
+  { data: VerifyEmail },
+  TContext
+> => {
+  return useMutation(
+    getAuthVerifyEmailCreateMutationOptions(options),
+    queryClient
+  );
 };
 
 export const devicesList = (signal?: AbortSignal) => {
@@ -6455,6 +6633,74 @@ export function useUserRetrieveSuspense<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
+export const userDeleteDestroy = (signal?: AbortSignal) => {
+  return customInstance<void>({
+    url: `/user/delete/`,
+    method: "DELETE",
+    signal,
+  });
+};
+
+export const getUserDeleteDestroyMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof userDeleteDestroy>>,
+    TError,
+    void,
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof userDeleteDestroy>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["userDeleteDestroy"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof userDeleteDestroy>>,
+    void
+  > = () => {
+    return userDeleteDestroy();
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UserDeleteDestroyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof userDeleteDestroy>>
+>;
+
+export type UserDeleteDestroyMutationError = unknown;
+
+export const useUserDeleteDestroy = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof userDeleteDestroy>>,
+      TError,
+      void,
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof userDeleteDestroy>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getUserDeleteDestroyMutationOptions(options), queryClient);
+};
+
 export const userUpdateUpdate = (
   userProfile: NonReadonly<UserProfile>,
   signal?: AbortSignal
@@ -7116,6 +7362,18 @@ export const getApiTokenRefreshCreateResponseMock = (
   ...overrideResponse,
 });
 
+export const getAuthEmailLoginCreateResponseMock = (
+  overrideResponse: Partial<EmailLogin> = {}
+): EmailLogin => ({
+  email: faker.internet.email(),
+  password: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  id: faker.number.int({ min: undefined, max: undefined }),
+  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  accessToken: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  refreshToken: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  ...overrideResponse,
+});
+
 export const getAuthLoginCreateResponseMock = (
   overrideResponse: Partial<Auth> = {}
 ): Auth => ({
@@ -7125,6 +7383,37 @@ export const getAuthLoginCreateResponseMock = (
   name: faker.string.alpha({ length: { min: 10, max: 20 } }),
   accessToken: faker.string.alpha({ length: { min: 10, max: 20 } }),
   refreshToken: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  ...overrideResponse,
+});
+
+export const getAuthPasswordResetCreateResponseMock = (
+  overrideResponse: Partial<PasswordReset> = {}
+): PasswordReset => ({ email: faker.internet.email(), ...overrideResponse });
+
+export const getAuthPasswordResetConfirmCreateResponseMock = (
+  overrideResponse: Partial<PasswordResetConfirm> = {}
+): PasswordResetConfirm => ({
+  uid: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  token: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  newPassword: faker.string.alpha({ length: { min: 8, max: 20 } }),
+  confirmPassword: faker.string.alpha({ length: { min: 8, max: 20 } }),
+  ...overrideResponse,
+});
+
+export const getAuthRegisterCreateResponseMock = (
+  overrideResponse: Partial<Register> = {}
+): Register => ({
+  email: faker.internet.email(),
+  password: faker.string.alpha({ length: { min: 8, max: 20 } }),
+  displayName: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  ...overrideResponse,
+});
+
+export const getAuthVerifyEmailCreateResponseMock = (
+  overrideResponse: Partial<VerifyEmail> = {}
+): VerifyEmail => ({
+  uid: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  token: faker.string.alpha({ length: { min: 10, max: 20 } }),
   ...overrideResponse,
 });
 
@@ -8772,26 +9061,6 @@ export const getApiSchemaRetrieveMockHandler = (
   );
 };
 
-export const getApiTestSentryRetrieveMockHandler = (
-  overrideResponse?:
-    | void
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0]
-      ) => Promise<void> | void),
-  options?: RequestHandlerOptions
-) => {
-  return http.get(
-    "*/api/test-sentry/",
-    async info => {
-      if (typeof overrideResponse === "function") {
-        await overrideResponse(info);
-      }
-      return new HttpResponse(null, { status: 200 });
-    },
-    options
-  );
-};
-
 export const getApiTokenRefreshCreateMockHandler = (
   overrideResponse?:
     | TokenRefresh
@@ -8818,6 +9087,32 @@ export const getApiTokenRefreshCreateMockHandler = (
   );
 };
 
+export const getAuthEmailLoginCreateMockHandler = (
+  overrideResponse?:
+    | EmailLogin
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0]
+      ) => Promise<EmailLogin> | EmailLogin),
+  options?: RequestHandlerOptions
+) => {
+  return http.post(
+    "*/auth/email-login/",
+    async info => {
+      return new HttpResponse(
+        JSON.stringify(
+          overrideResponse !== undefined
+            ? typeof overrideResponse === "function"
+              ? await overrideResponse(info)
+              : overrideResponse
+            : getAuthEmailLoginCreateResponseMock()
+        ),
+        { status: 201, headers: { "Content-Type": "application/json" } }
+      );
+    },
+    options
+  );
+};
+
 export const getAuthLoginCreateMockHandler = (
   overrideResponse?:
     | Auth
@@ -8836,6 +9131,110 @@ export const getAuthLoginCreateMockHandler = (
               ? await overrideResponse(info)
               : overrideResponse
             : getAuthLoginCreateResponseMock()
+        ),
+        { status: 201, headers: { "Content-Type": "application/json" } }
+      );
+    },
+    options
+  );
+};
+
+export const getAuthPasswordResetCreateMockHandler = (
+  overrideResponse?:
+    | PasswordReset
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0]
+      ) => Promise<PasswordReset> | PasswordReset),
+  options?: RequestHandlerOptions
+) => {
+  return http.post(
+    "*/auth/password-reset/",
+    async info => {
+      return new HttpResponse(
+        JSON.stringify(
+          overrideResponse !== undefined
+            ? typeof overrideResponse === "function"
+              ? await overrideResponse(info)
+              : overrideResponse
+            : getAuthPasswordResetCreateResponseMock()
+        ),
+        { status: 201, headers: { "Content-Type": "application/json" } }
+      );
+    },
+    options
+  );
+};
+
+export const getAuthPasswordResetConfirmCreateMockHandler = (
+  overrideResponse?:
+    | PasswordResetConfirm
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0]
+      ) => Promise<PasswordResetConfirm> | PasswordResetConfirm),
+  options?: RequestHandlerOptions
+) => {
+  return http.post(
+    "*/auth/password-reset/confirm/",
+    async info => {
+      return new HttpResponse(
+        JSON.stringify(
+          overrideResponse !== undefined
+            ? typeof overrideResponse === "function"
+              ? await overrideResponse(info)
+              : overrideResponse
+            : getAuthPasswordResetConfirmCreateResponseMock()
+        ),
+        { status: 201, headers: { "Content-Type": "application/json" } }
+      );
+    },
+    options
+  );
+};
+
+export const getAuthRegisterCreateMockHandler = (
+  overrideResponse?:
+    | Register
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0]
+      ) => Promise<Register> | Register),
+  options?: RequestHandlerOptions
+) => {
+  return http.post(
+    "*/auth/register/",
+    async info => {
+      return new HttpResponse(
+        JSON.stringify(
+          overrideResponse !== undefined
+            ? typeof overrideResponse === "function"
+              ? await overrideResponse(info)
+              : overrideResponse
+            : getAuthRegisterCreateResponseMock()
+        ),
+        { status: 201, headers: { "Content-Type": "application/json" } }
+      );
+    },
+    options
+  );
+};
+
+export const getAuthVerifyEmailCreateMockHandler = (
+  overrideResponse?:
+    | VerifyEmail
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0]
+      ) => Promise<VerifyEmail> | VerifyEmail),
+  options?: RequestHandlerOptions
+) => {
+  return http.post(
+    "*/auth/verify-email/",
+    async info => {
+      return new HttpResponse(
+        JSON.stringify(
+          overrideResponse !== undefined
+            ? typeof overrideResponse === "function"
+              ? await overrideResponse(info)
+              : overrideResponse
+            : getAuthVerifyEmailCreateResponseMock()
         ),
         { status: 201, headers: { "Content-Type": "application/json" } }
       );
@@ -9752,6 +10151,26 @@ export const getUserRetrieveMockHandler = (
   );
 };
 
+export const getUserDeleteDestroyMockHandler = (
+  overrideResponse?:
+    | void
+    | ((
+        info: Parameters<Parameters<typeof http.delete>[1]>[0]
+      ) => Promise<void> | void),
+  options?: RequestHandlerOptions
+) => {
+  return http.delete(
+    "*/user/delete/",
+    async info => {
+      if (typeof overrideResponse === "function") {
+        await overrideResponse(info);
+      }
+      return new HttpResponse(null, { status: 204 });
+    },
+    options
+  );
+};
+
 export const getUserUpdateUpdateMockHandler = (
   overrideResponse?:
     | UserProfile
@@ -9857,9 +10276,13 @@ export const getVersionRetrieveMockHandler = (
 };
 export const getMock = () => [
   getApiSchemaRetrieveMockHandler(),
-  getApiTestSentryRetrieveMockHandler(),
   getApiTokenRefreshCreateMockHandler(),
+  getAuthEmailLoginCreateMockHandler(),
   getAuthLoginCreateMockHandler(),
+  getAuthPasswordResetCreateMockHandler(),
+  getAuthPasswordResetConfirmCreateMockHandler(),
+  getAuthRegisterCreateMockHandler(),
+  getAuthVerifyEmailCreateMockHandler(),
   getDevicesListMockHandler(),
   getDevicesCreateMockHandler(),
   getDevicesUpdateMockHandler(),
@@ -9897,6 +10320,7 @@ export const getMock = () => [
   getPhaseResolveCreateMockHandler(),
   getSandboxGameCreateMockHandler(),
   getUserRetrieveMockHandler(),
+  getUserDeleteDestroyMockHandler(),
   getUserUpdateUpdateMockHandler(),
   getUserUpdatePartialUpdateMockHandler(),
   getVariantsListMockHandler(),

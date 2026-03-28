@@ -15,9 +15,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/auth";
+import { useNavigate } from "react-router";
 import { useMessaging } from "@/hooks/useMessaging";
 import {
   useUserRetrieveSuspense,
@@ -188,6 +190,7 @@ const Profile: React.FC = () => {
 
 const ProfileSuspense: React.FC = () => {
   const { logout } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
@@ -206,6 +209,13 @@ const ProfileSuspense: React.FC = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive"
+                onClick={() => navigate("/delete-account")}
+              >
+                Delete Account
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         }

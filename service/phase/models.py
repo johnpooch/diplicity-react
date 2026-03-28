@@ -165,18 +165,20 @@ class PhaseManager(models.Manager):
 
         def send_notifications():
             for member in members_with_extensions:
+                if member.user_id is None:
+                    continue
                 notification_utils.send_notification_to_users(
-                    user_ids=[member.user.id],
+                    user_ids=[member.user_id],
                     title="Extension Used",
                     body=f"You used an automatic extension. {member.nmr_extensions_remaining} remaining.",
                     notification_type="nmr_extension_used",
                     data={"game_id": str(phase.game.id)},
                 )
 
-            extension_ids = {m.user.id for m in members_with_extensions}
+            extension_ids = {m.user_id for m in members_with_extensions if m.user_id is not None}
             other_ids = [
-                m.user.id for m in phase.game.members.all()
-                if m.user.id not in extension_ids
+                m.user_id for m in phase.game.members.all()
+                if m.user_id is not None and m.user_id not in extension_ids
             ]
             if other_ids:
                 notification_utils.send_notification_to_users(
@@ -248,7 +250,7 @@ class PhaseManager(models.Manager):
                 if not unconfirmed_members:
                     continue
 
-                user_ids = [m.user.id for m in unconfirmed_members]
+                user_ids = [m.user_id for m in unconfirmed_members if m.user_id is not None]
 
                 notification_utils.send_notification_to_users(
                     user_ids=user_ids,
@@ -656,7 +658,8 @@ class PhaseState(BaseModel):
     has_possible_orders = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.member.user.username} - {self.phase.name}"
+        username = self.member.user.username if self.member.user else "Deleted User"
+        return f"{username} - {self.phase.name}"
 
     def max_allowed_adjustment_orders(self):
         if self.phase.type != PhaseType.ADJUSTMENT:

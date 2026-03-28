@@ -25,12 +25,13 @@ def send_channel_message_notification(sender, instance, created, **kwargs):
         else:
             other_members = instance.channel.game.members.exclude(id=instance.sender.id)
 
-        user_ids = [member.user.id for member in other_members]
+        user_ids = [member.user_id for member in other_members if member.user_id is not None]
 
+        sender_name = instance.sender.user.username if instance.sender.user else "Deleted User"
         send_notification_to_users(
             user_ids=user_ids,
             title="New Message",
-            body=f"{instance.sender.user.username} sent a message in {instance.channel.name}.",
+            body=f"{sender_name} sent a message in {instance.channel.name}.",
             notification_type="channel_message",
             data={
                 "game_id": str(instance.channel.game.id),
@@ -60,7 +61,7 @@ def send_game_start_notification(sender, instance, created, **kwargs):
     if old_status == GameStatus.PENDING and instance.status == GameStatus.ACTIVE:
 
         def send_notification():
-            user_ids = [member.user.id for member in instance.members.all()]
+            user_ids = [member.user_id for member in instance.members.all() if member.user_id is not None]
 
             send_notification_to_users(
                 user_ids=user_ids,
@@ -95,7 +96,7 @@ def send_phase_resolved_notification(sender, instance, created, **kwargs):  # no
     if old_status == PhaseStatus.ACTIVE and instance.status == PhaseStatus.COMPLETED:
 
         def send_notification():
-            user_ids = [member.user.id for member in instance.game.members.all()]
+            user_ids = [member.user_id for member in instance.game.members.all() if member.user_id is not None]
 
             had_orders = len(instance.phase_states_with_possible_orders) > 0
             new_phase = instance.game.current_phase

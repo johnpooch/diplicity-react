@@ -43,3 +43,9 @@ def mock_refresh_token():
             },
         )()
         yield mock
+
+
+@pytest.fixture
+def mock_send_email():
+    with patch("login.serializers.send_email") as mock:
+        yield mock

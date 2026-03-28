@@ -6,9 +6,7 @@ djangorestframework-simplejwt>=5.0.0,<6.0
 drf-spectacular>=0.25.0,<1.0
 factory_boy>=3.2.0,<4.0
 gunicorn>=20.0.0,<21.0
-kombu[azure]>=5.2.0,<6.0
 psycopg2-binary
-azure-servicebus
 google-auth>=2.0.0,<3.0
 google-auth-oauthlib>=0.4.0,<1.0
 cryptography>=3.4.0,<4.0
@@ -24,3 +22,4 @@ opentelemetry-exporter-otlp-proto-grpc>=1.20.0,<2.0
 opentelemetry-instrumentation-django>=0.41b0,<1.0
 opentelemetry-instrumentation-psycopg2>=0.41b0,<1.0
 opentelemetry-instrumentation-requests>=0.41b0,<1.0
+resend>=2.0.0,<3.0
