@@ -155,11 +155,14 @@ jobs:
           PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
           STAGING_DB_URL: ${{ steps.wait_postgres.outputs.staging_db_url }}
         run: |
+          PG_BIN="/usr/lib/postgresql/17/bin"
+          echo "Using pg_dump version: $($PG_BIN/pg_dump --version)"
+
           echo "Dumping production database..."
-          pg_dump "$PRODUCTION_DATABASE_URL" --no-owner --no-acl --format=custom -f dump.pgdata
+          $PG_BIN/pg_dump "$PRODUCTION_DATABASE_URL" --no-owner --no-acl --format=custom -f dump.pgdata
 
           echo "Restoring to staging database..."
-          pg_restore --no-owner --no-acl --clean --if-exists -d "$STAGING_DB_URL" dump.pgdata || true
+          $PG_BIN/pg_restore --no-owner --no-acl --clean --if-exists -d "$STAGING_DB_URL" dump.pgdata || true
 
           rm dump.pgdata
           echo "Database clone complete."
