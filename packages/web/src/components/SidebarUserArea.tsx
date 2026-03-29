@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router";
-import { MoreHorizontal } from "lucide-react";
+import { LogIn, MoreHorizontal } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -18,7 +18,7 @@ import {
 import { useUserRetrieveSuspense } from "@/api/generated/endpoints";
 import { useAuth } from "@/auth";
 
-const SidebarUserArea: React.FC = () => {
+const AuthenticatedUserArea: React.FC = () => {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const { data: userProfile } = useUserRetrieveSuspense();
@@ -56,6 +56,32 @@ const SidebarUserArea: React.FC = () => {
       </SidebarMenuItem>
     </SidebarMenu>
   );
+};
+
+const AnonymousUserArea: React.FC = () => {
+  const navigate = useNavigate();
+
+  return (
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          size="lg"
+          onClick={() => navigate("/login")}
+          tooltip="Sign in"
+        >
+          <LogIn className="size-5" />
+          <span>Sign in</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  );
+};
+
+const SidebarUserArea: React.FC = () => {
+  const { loggedIn } = useAuth();
+
+  if (!loggedIn) return <AnonymousUserArea />;
+  return <AuthenticatedUserArea />;
 };
 
 export { SidebarUserArea };

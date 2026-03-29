@@ -1429,7 +1429,8 @@ class TestPhaseRetrieveView:
         phase = game.current_phase
         url = reverse("phase-retrieve", args=[game.id, phase.id])
         response = unauthenticated_client.get(url)
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["id"] == phase.id
 
     @pytest.mark.django_db
     def test_retrieve_phase_not_found(self, authenticated_client, active_game_with_phase_state):
@@ -1556,7 +1557,8 @@ class TestPhaseListView:
         url = reverse("phase-list", args=[game.id])
         response = unauthenticated_client.get(url)
 
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) > 0
 
 
 class TestPhaseListViewPerformance:

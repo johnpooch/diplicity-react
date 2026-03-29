@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Send, MessageCircle } from "lucide-react";
 import { useDraft, useRequiredParams } from "@/hooks";
 import { toast } from "sonner";
+import { useAuth } from "@/auth";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Button } from "@/components/ui/button";
@@ -73,6 +74,7 @@ const ChannelScreen: React.FC = () => {
     channelId: string;
   }>();
 
+  const { loggedIn } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [message, setMessage] = useDraft(gameId, channelId);
@@ -180,26 +182,30 @@ const ChannelScreen: React.FC = () => {
               )}
             </div>
           </Panel.Content>
-          <Separator />
-          <Panel.Footer>
-            <div className="flex gap-2 w-full">
-              <Input
-                placeholder="Type a message"
-                value={message}
-                onChange={e => setMessage(e.target.value)}
-                onKeyDown={handleKeyDown}
-                disabled={createMessageMutation.isPending}
-                className="flex-1"
-              />
-              <Button
-                onClick={handleSubmit}
-                disabled={!message.trim() || createMessageMutation.isPending}
-                size="icon"
-              >
-                <Send className="size-4" />
-              </Button>
-            </div>
-          </Panel.Footer>
+          {loggedIn && (
+            <>
+              <Separator />
+              <Panel.Footer>
+                <div className="flex gap-2 w-full">
+                  <Input
+                    placeholder="Type a message"
+                    value={message}
+                    onChange={e => setMessage(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    disabled={createMessageMutation.isPending}
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={!message.trim() || createMessageMutation.isPending}
+                    size="icon"
+                  >
+                    <Send className="size-4" />
+                  </Button>
+                </div>
+              </Panel.Footer>
+            </>
+          )}
         </Panel>
       </div>
     </div>
