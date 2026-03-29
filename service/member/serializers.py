@@ -1,5 +1,8 @@
 from rest_framework import serializers
+from django.apps import apps
 from drf_spectacular.utils import extend_schema_field
+
+ChannelMember = apps.get_model("channel", "ChannelMember")
 
 
 class MemberSerializer(serializers.Serializer):
@@ -22,4 +25,9 @@ class MemberSerializer(serializers.Serializer):
     def create(self, validated_data):
         game = self.context["game"]
         user = self.context["request"].user
-        return game.members.create(user=user)
+        member = game.members.create(user=user)
+        public_channels = game.channels.filter(private=False)
+        ChannelMember.objects.bulk_create(
+            [ChannelMember(member=member, channel=ch) for ch in public_channels]
+        )
+        return member

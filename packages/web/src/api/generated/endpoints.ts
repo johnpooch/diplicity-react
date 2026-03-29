@@ -92,6 +92,7 @@ export interface Channel {
   readonly name: string;
   readonly private: boolean;
   readonly messages: readonly ChannelMessage[];
+  readonly unreadMessageCount: number;
   memberIds: number[];
 }
 
@@ -396,6 +397,7 @@ export interface GameRetrieve {
   readonly movementFrequency: string | null;
   /** @nullable */
   readonly retreatFrequency: string | null;
+  readonly totalUnreadMessageCount: number;
 }
 
 export interface Province {
@@ -1056,6 +1058,258 @@ export function useApiSchemaRetrieveSuspense<
     params,
     options
   );
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const apiTestSentryRetrieve = (signal?: AbortSignal) => {
+  return customInstance<void>({
+    url: `/api/test-sentry/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getApiTestSentryRetrieveQueryKey = () => {
+  return [`/api/test-sentry/`] as const;
+};
+
+export const getApiTestSentryRetrieveQueryOptions = <
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<
+      Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+      TError,
+      TData
+    >
+  >;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getApiTestSentryRetrieveQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+  > = ({ signal }) => apiTestSentryRetrieve(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ApiTestSentryRetrieveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+>;
+export type ApiTestSentryRetrieveQueryError = unknown;
+
+export function useApiTestSentryRetrieve<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useApiTestSentryRetrieve<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useApiTestSentryRetrieve<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useApiTestSentryRetrieve<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getApiTestSentryRetrieveQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getApiTestSentryRetrieveSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<
+    UseSuspenseQueryOptions<
+      Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+      TError,
+      TData
+    >
+  >;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getApiTestSentryRetrieveQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+  > = ({ signal }) => apiTestSentryRetrieve(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ApiTestSentryRetrieveSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+>;
+export type ApiTestSentryRetrieveSuspenseQueryError = unknown;
+
+export function useApiTestSentryRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useApiTestSentryRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useApiTestSentryRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useApiTestSentryRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getApiTestSentryRetrieveSuspenseQueryOptions(options);
 
   const query = useSuspenseQuery(
     queryOptions,
@@ -5386,6 +5640,90 @@ export function useGamesChannelsListSuspense<
  * Used by views that have a game parameter in the URL. Provides a get_game
 method that returns the game object. Also adds game to the serializer context.
  */
+export const gamesChannelsMarkReadCreate = (
+  gameId: string,
+  channelId: number,
+  signal?: AbortSignal
+) => {
+  return customInstance<void>({
+    url: `/games/${gameId}/channels/${channelId}/mark-read/`,
+    method: "POST",
+    signal,
+  });
+};
+
+export const getGamesChannelsMarkReadCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gamesChannelsMarkReadCreate>>,
+    TError,
+    { gameId: string; channelId: number },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gamesChannelsMarkReadCreate>>,
+  TError,
+  { gameId: string; channelId: number },
+  TContext
+> => {
+  const mutationKey = ["gamesChannelsMarkReadCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gamesChannelsMarkReadCreate>>,
+    { gameId: string; channelId: number }
+  > = props => {
+    const { gameId, channelId } = props ?? {};
+
+    return gamesChannelsMarkReadCreate(gameId, channelId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GamesChannelsMarkReadCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gamesChannelsMarkReadCreate>>
+>;
+
+export type GamesChannelsMarkReadCreateMutationError = unknown;
+
+export const useGamesChannelsMarkReadCreate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gamesChannelsMarkReadCreate>>,
+      TError,
+      { gameId: string; channelId: number },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gamesChannelsMarkReadCreate>>,
+  TError,
+  { gameId: string; channelId: number },
+  TContext
+> => {
+  return useMutation(
+    getGamesChannelsMarkReadCreateMutationOptions(options),
+    queryClient
+  );
+};
+
+/**
+ * Used by views that have a game parameter in the URL. Provides a get_game
+method that returns the game object. Also adds game to the serializer context.
+ */
 export const gamesChannelsMessagesCreateCreate = (
   gameId: string,
   channelId: number,
@@ -7712,6 +8050,7 @@ export const getGameRetrieveResponseMock = (
     ]),
     null,
   ]),
+  totalUnreadMessageCount: faker.number.int({ min: undefined, max: undefined }),
   ...overrideResponse,
 });
 
@@ -8613,6 +8952,7 @@ export const getGamesChannelsListResponseMock = (): Channel[] =>
       },
       createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
     })),
+    unreadMessageCount: faker.number.int({ min: undefined, max: undefined }),
     memberIds: Array.from(
       { length: faker.number.int({ min: 1, max: 10 }) },
       (_, i) => i + 1
@@ -8678,6 +9018,7 @@ export const getGamesChannelsCreateCreateResponseMock = (
     },
     createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
   })),
+  unreadMessageCount: faker.number.int({ min: undefined, max: undefined }),
   memberIds: Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1
@@ -9056,6 +9397,26 @@ export const getApiSchemaRetrieveMockHandler = (
         ),
         { status: 200, headers: { "Content-Type": "application/json" } }
       );
+    },
+    options
+  );
+};
+
+export const getApiTestSentryRetrieveMockHandler = (
+  overrideResponse?:
+    | void
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0]
+      ) => Promise<void> | void),
+  options?: RequestHandlerOptions
+) => {
+  return http.get(
+    "*/api/test-sentry/",
+    async info => {
+      if (typeof overrideResponse === "function") {
+        await overrideResponse(info);
+      }
+      return new HttpResponse(null, { status: 200 });
     },
     options
   );
@@ -9883,6 +10244,26 @@ export const getGamesChannelsListMockHandler = (
   );
 };
 
+export const getGamesChannelsMarkReadCreateMockHandler = (
+  overrideResponse?:
+    | void
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0]
+      ) => Promise<void> | void),
+  options?: RequestHandlerOptions
+) => {
+  return http.post(
+    "*/games/:gameId/channels/:channelId/mark-read/",
+    async info => {
+      if (typeof overrideResponse === "function") {
+        await overrideResponse(info);
+      }
+      return new HttpResponse(null, { status: 201 });
+    },
+    options
+  );
+};
+
 export const getGamesChannelsMessagesCreateCreateMockHandler = (
   overrideResponse?:
     | ChannelMessage
@@ -10276,6 +10657,7 @@ export const getVersionRetrieveMockHandler = (
 };
 export const getMock = () => [
   getApiSchemaRetrieveMockHandler(),
+  getApiTestSentryRetrieveMockHandler(),
   getApiTokenRefreshCreateMockHandler(),
   getAuthEmailLoginCreateMockHandler(),
   getAuthLoginCreateMockHandler(),
@@ -10309,6 +10691,7 @@ export const getMock = () => [
   getGameUnpausePartialUpdateMockHandler(),
   getGamesListMockHandler(),
   getGamesChannelsListMockHandler(),
+  getGamesChannelsMarkReadCreateMockHandler(),
   getGamesChannelsMessagesCreateCreateMockHandler(),
   getGamesChannelsCreateCreateMockHandler(),
   getGamesDrawProposalsListMockHandler(),

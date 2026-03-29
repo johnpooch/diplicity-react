@@ -23,7 +23,9 @@ import {
   useGamesChannelsListSuspense,
   useVariantsListSuspense,
   useGamesChannelsMessagesCreateCreate,
+  useGamesChannelsMarkReadCreate,
   getGamesChannelsListQueryKey,
+  getGameRetrieveQueryKey,
   ChannelMessage as ChannelMessageType,
 } from "@/api/generated/endpoints";
 
@@ -81,11 +83,33 @@ const ChannelScreen: React.FC = () => {
   const { data: channels } = useGamesChannelsListSuspense(gameId);
   const { data: variants } = useVariantsListSuspense();
   const createMessageMutation = useGamesChannelsMessagesCreateCreate();
+  const markReadMutation = useGamesChannelsMarkReadCreate();
 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const channel = channels.find(c => c.id === parseInt(channelId));
   if (!channel) throw new Error("Channel not found");
+
+  const currentMember = game.members.find(m => m.isCurrentUser);
+
+  useEffect(() => {
+    if (currentMember) {
+      markReadMutation.mutateAsync({
+        gameId,
+        channelId: parseInt(channelId),
+      }).then(() => {
+        queryClient.invalidateQueries({
+          queryKey: getGamesChannelsListQueryKey(gameId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: getGameRetrieveQueryKey(gameId),
+        });
+      }).catch(() => {
+        // Fire-and-forget: silently ignore mark-read failures
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- markReadMutation is stable, fire once on mount
+  }, [gameId, channelId, currentMember]);
 
   useEffect(() => {
     if (messagesContainerRef.current) {

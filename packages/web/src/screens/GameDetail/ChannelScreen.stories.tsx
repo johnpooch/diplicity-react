@@ -31,6 +31,7 @@ const mockChannelWithMessages: Channel = {
   name: "Austria-England Alliance",
   private: true,
   memberIds: [1, 2],
+  unreadMessageCount: 2,
   messages: [
     {
       id: 1,
@@ -88,6 +89,7 @@ const mockChannelNoMessages: Channel = {
   name: "New Private Chat",
   private: true,
   memberIds: [1, 3],
+  unreadMessageCount: 0,
   messages: [],
 };
 

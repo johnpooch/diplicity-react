@@ -30,6 +30,7 @@ const mockChannels: Channel[] = [
     name: "Austria-England Alliance",
     private: true,
     memberIds: [1, 2],
+    unreadMessageCount: 3,
     messages: [
       {
         id: 1,
@@ -50,6 +51,7 @@ const mockChannels: Channel[] = [
     name: "Public Chat",
     private: false,
     memberIds: [1, 2, 3, 4, 5, 6, 7],
+    unreadMessageCount: 0,
     messages: [
       {
         id: 2,
@@ -70,6 +72,7 @@ const mockChannels: Channel[] = [
     name: "Italy-Turkey Pact",
     private: true,
     memberIds: [5, 7],
+    unreadMessageCount: 0,
     messages: [],
   },
 ];
