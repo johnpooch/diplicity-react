@@ -122,7 +122,7 @@ vi.mock("@sentry/react", () => ({
   captureException: vi.fn(),
 }));
 
-import { RequireAuth, LoginRoute, ConditionalIndex } from "./Router";
+import { RequireAuth, RedirectIfAuthenticated, ConditionalIndex } from "./Router";
 
 const LoginScreen = () => <div data-testid="login-screen">Sign In</div>;
 const ProtectedScreen = () => (
@@ -175,13 +175,20 @@ describe("RequireAuth", () => {
   });
 });
 
-describe("LoginRoute", () => {
-  it("shows login screen when not logged in", () => {
+describe("RedirectIfAuthenticated", () => {
+  it("renders children when logged out", () => {
     mockLoggedIn.mockReturnValue(false);
     render(
       <MemoryRouter initialEntries={["/login"]}>
         <Routes>
-          <Route path="/login" element={<LoginRoute />} />
+          <Route
+            path="/login"
+            element={
+              <RedirectIfAuthenticated>
+                <LoginScreen />
+              </RedirectIfAuthenticated>
+            }
+          />
           <Route path="/" element={<MyGamesScreen />} />
         </Routes>
       </MemoryRouter>
@@ -195,7 +202,14 @@ describe("LoginRoute", () => {
     render(
       <MemoryRouter initialEntries={["/login"]}>
         <Routes>
-          <Route path="/login" element={<LoginRoute />} />
+          <Route
+            path="/login"
+            element={
+              <RedirectIfAuthenticated>
+                <LoginScreen />
+              </RedirectIfAuthenticated>
+            }
+          />
           <Route path="/" element={<MyGamesScreen />} />
         </Routes>
       </MemoryRouter>

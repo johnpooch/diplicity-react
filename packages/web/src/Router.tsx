@@ -73,10 +73,10 @@ export const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children 
   return <>{children}</>;
 };
 
-export const LoginRoute: React.FC = () => {
+export const RedirectIfAuthenticated: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { loggedIn } = useAuth();
-  if (loggedIn) return <Navigate to="/" />;
-  return <Login />;
+  if (loggedIn) return <Navigate to="/" replace />;
+  return <>{children}</>;
 };
 
 export const ConditionalIndex: React.FC = () => {
@@ -270,28 +270,29 @@ export const routeObjects: RouteObject[] = [
       },
       {
         path: "login",
-        element: <LoginRoute />,
+        element: <RedirectIfAuthenticated><Login /></RedirectIfAuthenticated>,
       },
       {
         path: "register",
-        element: <Register />,
+        element: <RedirectIfAuthenticated><Register /></RedirectIfAuthenticated>,
       },
       {
         path: "forgot-password",
-        element: <ForgotPassword />,
+        element: <RedirectIfAuthenticated><ForgotPassword /></RedirectIfAuthenticated>,
       },
       {
         path: "check-email",
-        element: <CheckEmail />,
+        element: <RedirectIfAuthenticated><CheckEmail /></RedirectIfAuthenticated>,
       },
       {
         path: "verify-email",
-        element: <VerifyEmail />,
+        element: <RedirectIfAuthenticated><VerifyEmail /></RedirectIfAuthenticated>,
       },
       {
         path: "reset-password",
-        element: <ResetPassword />,
+        element: <RedirectIfAuthenticated><ResetPassword /></RedirectIfAuthenticated>,
       },
+      { path: "*", element: <Navigate to="/" replace /> },
     ],
   },
 ];
