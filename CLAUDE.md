@@ -625,19 +625,18 @@ PRs can be deployed to an isolated staging environment with a copy of the produc
 ## How to Deploy
 
 Add the `deploy-to-staging` label to a PR. A GitHub Actions workflow (`.github/workflows/pr-staging.yml`) will:
-1. Tear down any existing staging environment for that PR
-2. Create a new Railway environment (`staging-pr-<number>`)
-3. Generate a Railway domain for the staging backend
-4. Clone the production database via `pg_dump`/`pg_restore`
-5. Configure CORS/ALLOWED_HOSTS for the staging domain
-6. Deploy the PR branch to the staging backend
-7. Comment on the PR with the frontend preview and staging backend URLs
+1. Find or create a Railway environment (`staging-pr-<number>`)
+2. Generate a Railway domain for the staging backend
+3. Clone the production database via `pg_dump`/`pg_restore`
+4. Configure CORS/ALLOWED_HOSTS for the staging domain
+5. Deploy the PR branch to the staging backend
+6. Comment on the PR with the frontend preview and staging backend URLs
 
-The frontend Netlify deploy preview automatically points at the staging backend (configured in `packages/web/netlify.toml`).
+The frontend Netlify deploy preview automatically derives the staging backend URL from the PR number at build time (`packages/web/netlify.toml` uses Netlify's `REVIEW_ID` env var).
 
 ## How to Redeploy
 
-Add the `deploy-to-staging` label again. The workflow tears down the existing environment first.
+Add the `deploy-to-staging` label again. The workflow reuses the existing environment and re-clones the production database.
 
 ## Teardown
 

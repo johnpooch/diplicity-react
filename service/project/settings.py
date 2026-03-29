@@ -109,11 +109,6 @@ CORS_ALLOWED_ORIGINS = os.getenv(
     "DJANGO_CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173,http://diplicity-web:5173,capacitor://localhost"
 ).split(",")
 
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://deploy-preview-\d+--diplicity-react\.netlify\.app$",
-    r"^https://diplicity-react-staging-pr-\d+\.up\.railway\.app$",
-]
-
 CORS_ALLOW_HEADERS = [
     "accept",
     "accept-encoding",
