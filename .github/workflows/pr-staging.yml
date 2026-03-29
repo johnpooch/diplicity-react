@@ -186,8 +186,11 @@ jobs:
           echo "Dumping production database..."
           $PG_BIN/pg_dump "$PRODUCTION_DATABASE_URL" --no-owner --no-acl --format=custom -f dump.pgdata
 
+          echo "Wiping staging database for clean restore..."
+          psql "$STAGING_DB_URL" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+
           echo "Restoring to staging database..."
-          $PG_BIN/pg_restore --no-owner --no-acl --clean --if-exists -d "$STAGING_DB_URL" dump.pgdata || true
+          $PG_BIN/pg_restore --no-owner --no-acl -d "$STAGING_DB_URL" dump.pgdata
 
           rm dump.pgdata
           echo "Database clone complete."
