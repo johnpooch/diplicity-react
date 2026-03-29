@@ -16,7 +16,7 @@ def test_list_variants_success(authenticated_client, classical_variant):
     url = reverse(viewname)
     response = authenticated_client.get(url)
     assert response.status_code == status.HTTP_200_OK
-    assert len(response.data) == 3
+    assert len(response.data) == 4
     assert response.data[0]["id"] == classical_variant.id
     assert response.data[0]["name"] == classical_variant.name
     assert response.data[1]["id"] == "italy-vs-germany"
@@ -61,7 +61,7 @@ class TestVariantListViewQueryPerformance:
             response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.data) == 3
+        assert len(response.data) == 4
 
         # With optimized queries, we should have a constant number of queries
         # regardless of the number of variants due to prefetch_related
@@ -94,8 +94,8 @@ class TestVariantListViewQueryPerformance:
             response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        # Should have at least 3 variants now (classical, italy-vs-germany, test-single-variant)
-        assert len(response.data) >= 4
+        # Should have at least 4 variants now (classical, hundred, italy-vs-germany, youngstown-redux, test-single-variant)
+        assert len(response.data) >= 5
 
         # Should have the same number of queries regardless of variant count
         # due to prefetch_related optimization
