@@ -1,0 +1,6 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[context.deploy-preview]
+  command = "VITE_DIPLICITY_API_BASE_URL=https://diplicity-react-staging-pr-${REVIEW_ID}.up.railway.app npm run build"
