@@ -1,0 +1,324 @@
+name: PR Staging Environment
+
+on:
+  pull_request:
+    types: [labeled, closed]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+env:
+  RAILWAY_API_ENDPOINT: https://backboard.railway.app/graphql/v2
+  PROJECT_ID: 39039c2c-4f5d-4a37-8c0d-f8e4279fce61
+  PROD_ENV_ID: 0372f6a0-88ab-4a58-b472-16789135ad71
+  DJANGO_SERVICE_ID: 5f342326-a52a-4c40-8bc1-910588628f8a
+  POSTGRES_SERVICE_ID: 6ae5f2bc-1398-4ad2-a08f-2151ca1024f2
+
+jobs:
+  deploy-staging:
+    if: github.event.action == 'labeled' && github.event.label.name == 'deploy-to-staging'
+    runs-on: ubuntu-latest
+    env:
+      RAILWAY_ACCOUNT_TOKEN: ${{ secrets.RAILWAY_ACCOUNT_TOKEN }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: Remove label immediately
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.removeLabel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              name: 'deploy-to-staging'
+            });
+
+      - name: Find or create staging environment
+        id: create_env
+        run: |
+          ENV_NAME="staging-pr-${PR_NUMBER}"
+
+          # Check if environment already exists
+          QUERY_PAYLOAD=$(jq -n \
+            --arg projectId "$PROJECT_ID" \
+            '{query: ("{ project(id: \"" + $projectId + "\") { environments { edges { node { id name } } } } }")}')
+
+          QUERY_RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
+            -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$QUERY_PAYLOAD")
+
+          EXISTING_ID=$(echo "$QUERY_RESULT" | jq -r ".data.project.environments.edges[] | select(.node.name == \"$ENV_NAME\") | .node.id")
+
+          if [ -n "$EXISTING_ID" ] && [ "$EXISTING_ID" != "null" ]; then
+            echo "Reusing existing environment: $EXISTING_ID ($ENV_NAME)"
+            echo "env_id=$EXISTING_ID" >> "$GITHUB_OUTPUT"
+            echo "env_name=$ENV_NAME" >> "$GITHUB_OUTPUT"
+            echo "created=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "No existing environment found, creating new one..."
+          CREATE_PAYLOAD=$(jq -n \
+            --arg projectId "$PROJECT_ID" \
+            --arg name "$ENV_NAME" \
+            --arg sourceId "$PROD_ENV_ID" \
+            '{
+              query: "mutation($input: EnvironmentCreateInput!) { environmentCreate(input: $input) { id name } }",
+              variables: { input: { projectId: $projectId, name: $name, sourceEnvironmentId: $sourceId } }
+            }')
+
+          RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
+            -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$CREATE_PAYLOAD")
+
+          echo "API response: $RESULT"
+          ENV_ID=$(echo "$RESULT" | jq -r '.data.environmentCreate.id')
+
+          if [ -z "$ENV_ID" ] || [ "$ENV_ID" = "null" ]; then
+            echo "ERROR: Failed to create environment"
+            echo "$RESULT" | jq .
+            exit 1
+          fi
+
+          echo "Created environment: $ENV_ID ($ENV_NAME)"
+          echo "env_id=$ENV_ID" >> "$GITHUB_OUTPUT"
+          echo "env_name=$ENV_NAME" >> "$GITHUB_OUTPUT"
+          echo "created=true" >> "$GITHUB_OUTPUT"
+
+      - name: Get or create staging domain
+        id: domain
+        env:
+          ENV_ID: ${{ steps.create_env.outputs.env_id }}
+        run: |
+          # First check if domain already exists for this service+environment
+          QUERY_PAYLOAD=$(jq -n \
+            --arg projectId "$PROJECT_ID" \
+            --arg envId "$ENV_ID" \
+            --arg serviceId "$DJANGO_SERVICE_ID" \
+            '{query: ("query { domains(projectId: \"" + $projectId + "\", environmentId: \"" + $envId + "\", serviceId: \"" + $serviceId + "\") { serviceDomains { domain } } }")}')
+
+          QUERY_RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
+            -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$QUERY_PAYLOAD")
+
+          echo "Domain query response: $QUERY_RESULT"
+          EXISTING_DOMAIN=$(echo "$QUERY_RESULT" | jq -r '.data.domains.serviceDomains[0].domain // empty')
+
+          if [ -n "$EXISTING_DOMAIN" ]; then
+            echo "Reusing existing domain: $EXISTING_DOMAIN"
+            echo "domain=$EXISTING_DOMAIN" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "No existing domain found, creating new one..."
+          sleep 5
+
+          CREATE_PAYLOAD=$(jq -n \
+            --arg envId "$ENV_ID" \
+            --arg serviceId "$DJANGO_SERVICE_ID" \
+            '{
+              query: "mutation($input: ServiceDomainCreateInput!) { serviceDomainCreate(input: $input) { domain } }",
+              variables: { input: { environmentId: $envId, serviceId: $serviceId, targetPort: 8000 } }
+            }')
+
+          RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
+            -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$CREATE_PAYLOAD")
+
+          echo "API response: $RESULT"
+          DOMAIN=$(echo "$RESULT" | jq -r '.data.serviceDomainCreate.domain')
+          echo "Generated domain: $DOMAIN"
+          echo "domain=$DOMAIN" >> "$GITHUB_OUTPUT"
+
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
+          sudo apt-get update && sudo apt-get install -y postgresql-client-17
+
+      - name: Wait for staging Postgres to be ready
+        id: wait_postgres
+        env:
+          ENV_ID: ${{ steps.create_env.outputs.env_id }}
+        run: |
+          echo "Waiting for staging Postgres to provision..."
+          VARS_PAYLOAD=$(jq -n \
+            --arg projectId "$PROJECT_ID" \
+            --arg envId "$ENV_ID" \
+            --arg serviceId "$POSTGRES_SERVICE_ID" \
+            '{query: ("{ variables(projectId: \"" + $projectId + "\", environmentId: \"" + $envId + "\", serviceId: \"" + $serviceId + "\") }")}')
+
+          for i in $(seq 1 30); do
+            VARS=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
+              -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "$VARS_PAYLOAD" | jq -r '.data.variables')
+
+            DB_URL=$(echo "$VARS" | jq -r '.DATABASE_PUBLIC_URL // empty')
+            if [ -n "$DB_URL" ] && [ "$DB_URL" != "null" ]; then
+              echo "Staging Postgres is ready."
+              echo "staging_db_url=$DB_URL" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            echo "Attempt $i/30: Postgres not ready yet, waiting 10s..."
+            sleep 10
+          done
+
+          echo "ERROR: Staging Postgres did not become ready in time."
+          exit 1
+
+      - name: Clone production database to staging
+        env:
+          PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          STAGING_DB_URL: ${{ steps.wait_postgres.outputs.staging_db_url }}
+        run: |
+          PG_BIN="/usr/lib/postgresql/17/bin"
+          echo "Using pg_dump version: $($PG_BIN/pg_dump --version)"
+
+          echo "Dumping production database..."
+          $PG_BIN/pg_dump "$PRODUCTION_DATABASE_URL" --no-owner --no-acl --format=custom -f dump.pgdata
+
+          echo "Restoring to staging database..."
+          $PG_BIN/pg_restore --no-owner --no-acl --clean --if-exists -d "$STAGING_DB_URL" dump.pgdata || true
+
+          rm dump.pgdata
+          echo "Database clone complete."
+
+      - name: Configure staging environment variables
+        env:
+          ENV_ID: ${{ steps.create_env.outputs.env_id }}
+          STAGING_DOMAIN: ${{ steps.domain.outputs.domain }}
+        run: |
+          PREVIEW_URL="https://deploy-preview-${PR_NUMBER}--diplicity-react.netlify.app"
+
+          PAYLOAD=$(jq -n \
+            --arg projectId "$PROJECT_ID" \
+            --arg envId "$ENV_ID" \
+            --arg serviceId "$DJANGO_SERVICE_ID" \
+            --arg cors "${PREVIEW_URL},https://${STAGING_DOMAIN},capacitor://localhost" \
+            --arg hosts "$STAGING_DOMAIN" \
+            --arg csrf "https://${STAGING_DOMAIN}" \
+            '{
+              query: "mutation($input: VariableCollectionUpsertInput!) { variableCollectionUpsert(input: $input) }",
+              variables: { input: { projectId: $projectId, environmentId: $envId, serviceId: $serviceId, variables: { DJANGO_CORS_ALLOWED_ORIGINS: $cors, DJANGO_ALLOWED_HOSTS: $hosts, DJANGO_CSRF_TRUSTED_ORIGINS: $csrf, ENVIRONMENT: "staging" }, skipDeploys: true } }
+            }')
+
+          RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
+            -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD")
+
+          echo "API response: $RESULT"
+          echo "Environment variables configured."
+
+      - name: Deploy PR branch to staging
+        env:
+          ENV_ID: ${{ steps.create_env.outputs.env_id }}
+        run: |
+          PAYLOAD=$(jq -n \
+            --arg envId "$ENV_ID" \
+            --arg serviceId "$DJANGO_SERVICE_ID" \
+            --arg sha "$COMMIT_SHA" \
+            '{
+              query: "mutation($envId: String!, $serviceId: String!, $sha: String) { serviceInstanceDeployV2(environmentId: $envId, serviceId: $serviceId, commitSha: $sha) }",
+              variables: { envId: $envId, serviceId: $serviceId, sha: $sha }
+            }')
+
+          RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
+            -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD")
+
+          echo "Deploy triggered: $RESULT"
+
+      - name: Comment on PR with staging URL
+        env:
+          STAGING_DOMAIN: ${{ steps.domain.outputs.domain }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const stagingDomain = process.env.STAGING_DOMAIN;
+            const stagingUrl = `https://${stagingDomain}`;
+            const previewUrl = `https://deploy-preview-${context.payload.pull_request.number}--diplicity-react.netlify.app`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: [
+                '## Staging Environment Deployed',
+                '',
+                `**Frontend preview:** ${previewUrl}`,
+                `**Staging backend:** ${stagingUrl}`,
+                '',
+                'The staging backend has a copy of the production database with migrations from this PR applied.',
+                'Use email/password login to test (Google OAuth is not configured for staging).',
+                '',
+                'The frontend preview derives its backend URL from the PR number at build time.',
+                'Refresh the preview page once the staging backend is ready.',
+                'To redeploy, add the `deploy-to-staging` label again.',
+              ].join('\n')
+            });
+
+  teardown-staging:
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    env:
+      RAILWAY_ACCOUNT_TOKEN: ${{ secrets.RAILWAY_ACCOUNT_TOKEN }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Find and delete staging environment
+        id: teardown
+        run: |
+          ENV_NAME="staging-pr-${PR_NUMBER}"
+
+          PAYLOAD=$(jq -n \
+            --arg projectId "$PROJECT_ID" \
+            '{query: ("{ project(id: \"" + $projectId + "\") { environments { edges { node { id name } } } } }")}')
+
+          echo "Querying environments..."
+          RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
+            -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD")
+
+          echo "API response: $RESULT"
+          ENV_ID=$(echo "$RESULT" | jq -r ".data.project.environments.edges[] | select(.node.name == \"$ENV_NAME\") | .node.id")
+          echo "Found ENV_ID: '$ENV_ID'"
+
+          if [ -n "$ENV_ID" ] && [ "$ENV_ID" != "null" ]; then
+            DELETE_PAYLOAD=$(jq -n \
+              --arg envId "$ENV_ID" \
+              '{query: ("mutation { environmentDelete(id: \"" + $envId + "\") }")}')
+
+            DELETE_RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
+              -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "$DELETE_PAYLOAD")
+            echo "Delete response: $DELETE_RESULT"
+            echo "Staging environment $ENV_NAME torn down."
+            echo "deleted=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No staging environment found for this PR."
+            echo "deleted=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Comment on PR
+        if: steps.teardown.outputs.deleted == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: '## Staging Environment Torn Down\n\nThe staging environment for this PR has been removed.'
+            });
