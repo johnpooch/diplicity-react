@@ -9,7 +9,8 @@ def add_youngstown_redux_variant(apps, schema_editor):
         id="youngstown-redux",
         name="Youngstown Redux",
         description="""China, India and Japan join the standard seven nations.""",
-        author="airborne"
+        author="airborne",
+        solo_victory_sc_count=28,
     )
 
 
