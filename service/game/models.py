@@ -258,6 +258,7 @@ class Game(BaseModel):
     status = models.CharField(max_length=20, choices=GameStatus.STATUS_CHOICES, default=GameStatus.PENDING)
     sandbox = models.BooleanField(default=False)
     private = models.BooleanField(default=False)
+    anonymous = models.BooleanField(default=False)
     movement_phase_duration = models.CharField(
         max_length=20,
         choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES,
