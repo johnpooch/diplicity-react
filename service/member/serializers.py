@@ -13,7 +13,10 @@ class BaseMemberSerializer(serializers.Serializer):
     def _is_current_user(self, obj):
         if obj.user is None:
             return False
-        return obj.user == self.context["request"].user
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return False
+        return obj.user == request.user
 
     def _is_masked(self, obj):
         game = self._get_game(obj)

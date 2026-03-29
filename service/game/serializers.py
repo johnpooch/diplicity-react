@@ -63,12 +63,18 @@ class GameListSerializer(serializers.Serializer):
     @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):
         with tracer.start_as_current_span("game.serializers.get_can_join"):
-            return obj.can_join(self.context["request"].user)
+            user = self.context["request"].user
+            if not user.is_authenticated:
+                return False
+            return obj.can_join(user)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_leave(self, obj):
         with tracer.start_as_current_span("game.serializers.get_can_leave"):
-            return obj.can_leave(self.context["request"].user)
+            user = self.context["request"].user
+            if not user.is_authenticated:
+                return False
+            return obj.can_leave(user)
 
     @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_phases(self, obj):
@@ -110,12 +116,18 @@ class GameRetrieveSerializer(serializers.Serializer):
     @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):
         with tracer.start_as_current_span("game.serializers.get_can_join"):
-            return obj.can_join(self.context["request"].user)
+            user = self.context["request"].user
+            if not user.is_authenticated:
+                return False
+            return obj.can_join(user)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_leave(self, obj):
         with tracer.start_as_current_span("game.serializers.get_can_leave"):
-            return obj.can_leave(self.context["request"].user)
+            user = self.context["request"].user
+            if not user.is_authenticated:
+                return False
+            return obj.can_leave(user)
 
     @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_phases(self, obj):
@@ -129,7 +141,10 @@ class GameRetrieveSerializer(serializers.Serializer):
     @extend_schema_field(serializers.BooleanField)
     def get_phase_confirmed(self, obj):
         with tracer.start_as_current_span("game.serializers.get_phase_confirmed"):
-            return obj.phase_confirmed(self.context["request"].user)
+            user = self.context["request"].user
+            if not user.is_authenticated:
+                return False
+            return obj.phase_confirmed(user)
 
     def to_representation(self, instance):
         with tracer.start_as_current_span("game.serializers.to_representation") as span:

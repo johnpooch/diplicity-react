@@ -23,7 +23,7 @@ tracer = trace.get_tracer(__name__)
 
 
 class GameRetrieveView(generics.RetrieveAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     serializer_class = GameRetrieveSerializer
 
     queryset = Game.objects.all().with_retrieve_data()
@@ -33,7 +33,7 @@ class GameRetrieveView(generics.RetrieveAPIView):
 
 
 class GameListView(generics.ListAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     serializer_class = GameListSerializer
     filterset_class = GameFilter
     filter_backends = [DjangoFilterBackend]
@@ -44,6 +44,9 @@ class GameListView(generics.ListAPIView):
 
             if "sandbox" not in self.request.query_params:
                 queryset = queryset.filter(sandbox=False)
+
+            if not self.request.user.is_authenticated:
+                queryset = queryset.filter(private=False)
 
             return queryset
 

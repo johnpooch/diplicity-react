@@ -117,7 +117,18 @@ class TestChannelListView:
     def test_list_channels_unauthenticated(self, unauthenticated_client, active_game_with_channels):
         url = reverse("channel-list", args=[active_game_with_channels.id])
         response = unauthenticated_client.get(url)
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "Public Channel"
+
+    @pytest.mark.django_db
+    def test_list_channels_unauthenticated_is_current_user_false(self, unauthenticated_client, active_game_with_channels):
+        url = reverse("channel-list", args=[active_game_with_channels.id])
+        response = unauthenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        for channel in response.data:
+            for msg in channel.get("messages", []):
+                assert msg["sender"]["is_current_user"] is False
 
     @pytest.mark.django_db
     def test_list_channels_with_messages(self, authenticated_client, active_game_with_channels):

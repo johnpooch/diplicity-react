@@ -43,7 +43,11 @@ class TestGameRetrieveView:
     def test_retrieve_game_unauthenticated(self, unauthenticated_client, pending_game_created_by_primary_user):
         url = reverse(retrieve_viewname, args=[pending_game_created_by_primary_user.id])
         response = unauthenticated_client.get(url)
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["id"] == pending_game_created_by_primary_user.id
+        assert response.data["can_join"] is False
+        assert response.data["can_leave"] is False
+        assert response.data["phase_confirmed"] is False
 
     @pytest.mark.django_db
     def test_retrieve_game_not_found(self, authenticated_client):
@@ -373,10 +377,46 @@ class TestGameListView:
         assert isinstance(response.data, list)
 
     @pytest.mark.django_db
-    def test_list_games_unauthenticated(self, unauthenticated_client):
+    def test_list_games_unauthenticated(self, unauthenticated_client, pending_game_created_by_primary_user):
         url = reverse(list_viewname)
         response = unauthenticated_client.get(url)
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.status_code == status.HTTP_200_OK
+        assert isinstance(response.data, list)
+        for game in response.data:
+            assert game["can_join"] is False
+            assert game["can_leave"] is False
+
+    @pytest.mark.django_db
+    def test_list_games_unauthenticated_excludes_private(self, unauthenticated_client, classical_variant, base_pending_phase):
+        from .models import Game
+        public_game = Game.objects.create(name="Public Game", variant=classical_variant, status="pending")
+        base_pending_phase(public_game)
+        private_game = Game.objects.create(name="Private Game", variant=classical_variant, status="pending", private=True)
+        base_pending_phase(private_game)
+
+        url = reverse(list_viewname)
+        response = unauthenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        game_ids = [g["id"] for g in response.data]
+        assert public_game.id in game_ids
+        assert private_game.id not in game_ids
+
+    @pytest.mark.django_db
+    def test_list_games_unauthenticated_mine_filter_returns_empty(self, unauthenticated_client, pending_game_created_by_primary_user):
+        url = reverse(list_viewname) + "?mine=true"
+        response = unauthenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == []
+
+    @pytest.mark.django_db
+    def test_list_games_unauthenticated_can_join_filter(self, unauthenticated_client, pending_game_created_by_primary_user):
+        url = reverse(list_viewname) + "?can_join=true"
+        response = unauthenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        # Should return joinable games without excluding any user's games (since no user)
+        game_ids = [g["id"] for g in response.data]
+        if not pending_game_created_by_primary_user.private:
+            assert pending_game_created_by_primary_user.id in game_ids
 
     @pytest.mark.django_db
     def test_list_games_response_structure(self, authenticated_client, pending_game_created_by_primary_user):
