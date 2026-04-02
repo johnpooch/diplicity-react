@@ -7,7 +7,6 @@ import { GameCard } from "@/components/GameCard";
 import { Notice } from "@/components/Notice";
 import { Inbox } from "lucide-react";
 import {
-  GameList,
   useGamesListSuspense,
   useVariantsListSuspense,
 } from "@/api/generated/endpoints";
@@ -16,22 +15,17 @@ const FindGames: React.FC = () => {
   const { data: games } = useGamesListSuspense({ can_join: true });
   const { data: variants } = useVariantsListSuspense();
 
-  const getVariant = (game: GameList) => {
-    const variant = variants.find(v => v.id === game.variantId);
-    if (!variant) {
-      throw new Error(`Variant not found for game ${game.id}`);
-    }
-    return variant;
-  };
+  const variantMap = new Map(variants.map(v => [v.id, v]));
+  const knownGames = games.filter(game => variantMap.has(game.variantId));
 
   return (
     <div className="space-y-4">
-      {games && games.length > 0 ? (
-        games.map(game => (
+      {knownGames.length > 0 ? (
+        knownGames.map(game => (
           <GameCard
             key={game.id}
             game={game}
-            variant={getVariant(game)}
+            variant={variantMap.get(game.variantId)!}
             phaseId={game.phases[0]}
             map={<div />}
           />
