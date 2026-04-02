@@ -8,7 +8,6 @@ import { Notice } from "@/components/Notice";
 import { Inbox } from "lucide-react";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import {
-  GameList,
   useGamesListSuspense,
   useVariantsListSuspense,
 } from "@/api/generated/endpoints";
@@ -38,25 +37,20 @@ const MyGames: React.FC = () => {
   const { data: games } = useGamesListSuspense({ mine: true });
   const { data: variants } = useVariantsListSuspense();
 
+  const variantMap = new Map(variants.map(v => [v.id, v]));
+  const knownGames = games.filter(game => variantMap.has(game.variantId));
+
   const [selectedStatus, setSelectedStatus] = useState<Status>(() => {
     const firstStatusWithGames = statusPriority.find(status => {
       if (status === "completed") {
-        return games.some(
+        return knownGames.some(
           game => game.status === "completed" || game.status === "abandoned"
         );
       }
-      return games.some(game => game.status === status);
+      return knownGames.some(game => game.status === status);
     });
     return firstStatusWithGames ?? "active";
   });
-
-  const getVariant = (game: GameList) => {
-    const variant = variants.find(v => v.id === game.variantId);
-    if (!variant) {
-      throw new Error(`Variant not found for game ${game.id}`);
-    }
-    return variant;
-  };
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -78,7 +72,7 @@ const MyGames: React.FC = () => {
         </TabsList>
 
         {statuses.map(status => {
-          const filteredGames = games?.filter(game => {
+          const filteredGames = knownGames.filter(game => {
             if (status.value === "completed") {
               return game.status === "completed" || game.status === "abandoned";
             }
@@ -87,12 +81,12 @@ const MyGames: React.FC = () => {
           return (
             <TabsContent key={status.value} value={status.value}>
               <div className="space-y-4">
-                {filteredGames && filteredGames.length > 0 ? (
+                {filteredGames.length > 0 ? (
                   filteredGames.map(game => (
                     <GameCard
                       key={game.id}
                       game={game}
-                      variant={getVariant(game)}
+                      variant={variantMap.get(game.variantId)!}
                       phaseId={game.phases[0]}
                       map={<div />}
                     />
