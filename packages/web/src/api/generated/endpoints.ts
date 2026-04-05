@@ -56,6 +56,17 @@ type NonReadonly<T> = [T] extends [UnionToIntersection<T>]
     }
   : DistributeReadOnlyOverUnions<T>;
 
+export interface AppleAuth {
+  idToken: string;
+  firstName?: string;
+  lastName?: string;
+  readonly id: number;
+  readonly email: string;
+  readonly name: string;
+  readonly accessToken: string;
+  readonly refreshToken: string;
+}
+
 export interface Auth {
   idToken: string;
   readonly id: number;
@@ -1067,6 +1078,258 @@ export function useApiSchemaRetrieveSuspense<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
+export const apiTestSentryRetrieve = (signal?: AbortSignal) => {
+  return customInstance<void>({
+    url: `/api/test-sentry/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getApiTestSentryRetrieveQueryKey = () => {
+  return [`/api/test-sentry/`] as const;
+};
+
+export const getApiTestSentryRetrieveQueryOptions = <
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<
+      Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+      TError,
+      TData
+    >
+  >;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getApiTestSentryRetrieveQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+  > = ({ signal }) => apiTestSentryRetrieve(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ApiTestSentryRetrieveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+>;
+export type ApiTestSentryRetrieveQueryError = unknown;
+
+export function useApiTestSentryRetrieve<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useApiTestSentryRetrieve<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useApiTestSentryRetrieve<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useApiTestSentryRetrieve<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getApiTestSentryRetrieveQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getApiTestSentryRetrieveSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<
+    UseSuspenseQueryOptions<
+      Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+      TError,
+      TData
+    >
+  >;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getApiTestSentryRetrieveQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+  > = ({ signal }) => apiTestSentryRetrieve(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ApiTestSentryRetrieveSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+>;
+export type ApiTestSentryRetrieveSuspenseQueryError = unknown;
+
+export function useApiTestSentryRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useApiTestSentryRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useApiTestSentryRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useApiTestSentryRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getApiTestSentryRetrieveSuspenseQueryOptions(options);
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
 /**
  * Takes a refresh type JSON web token and returns an access type JSON web
 token if the refresh token is valid.
@@ -1145,6 +1408,84 @@ export const useApiTokenRefreshCreate = <TError = unknown, TContext = unknown>(
 > => {
   return useMutation(
     getApiTokenRefreshCreateMutationOptions(options),
+    queryClient
+  );
+};
+
+export const authAppleLoginCreate = (
+  appleAuth: NonReadonly<AppleAuth>,
+  signal?: AbortSignal
+) => {
+  return customInstance<AppleAuth>({
+    url: `/auth/apple-login/`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: appleAuth,
+    signal,
+  });
+};
+
+export const getAuthAppleLoginCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof authAppleLoginCreate>>,
+    TError,
+    { data: NonReadonly<AppleAuth> },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof authAppleLoginCreate>>,
+  TError,
+  { data: NonReadonly<AppleAuth> },
+  TContext
+> => {
+  const mutationKey = ["authAppleLoginCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof authAppleLoginCreate>>,
+    { data: NonReadonly<AppleAuth> }
+  > = props => {
+    const { data } = props ?? {};
+
+    return authAppleLoginCreate(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AuthAppleLoginCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof authAppleLoginCreate>>
+>;
+export type AuthAppleLoginCreateMutationBody = NonReadonly<AppleAuth>;
+export type AuthAppleLoginCreateMutationError = unknown;
+
+export const useAuthAppleLoginCreate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof authAppleLoginCreate>>,
+      TError,
+      { data: NonReadonly<AppleAuth> },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof authAppleLoginCreate>>,
+  TError,
+  { data: NonReadonly<AppleAuth> },
+  TContext
+> => {
+  return useMutation(
+    getAuthAppleLoginCreateMutationOptions(options),
     queryClient
   );
 };
@@ -7362,6 +7703,26 @@ export const getApiTokenRefreshCreateResponseMock = (
   ...overrideResponse,
 });
 
+export const getAuthAppleLoginCreateResponseMock = (
+  overrideResponse: Partial<AppleAuth> = {}
+): AppleAuth => ({
+  idToken: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  firstName: faker.helpers.arrayElement([
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
+    undefined,
+  ]),
+  lastName: faker.helpers.arrayElement([
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
+    undefined,
+  ]),
+  id: faker.number.int({ min: undefined, max: undefined }),
+  email: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  accessToken: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  refreshToken: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  ...overrideResponse,
+});
+
 export const getAuthEmailLoginCreateResponseMock = (
   overrideResponse: Partial<EmailLogin> = {}
 ): EmailLogin => ({
@@ -9061,6 +9422,26 @@ export const getApiSchemaRetrieveMockHandler = (
   );
 };
 
+export const getApiTestSentryRetrieveMockHandler = (
+  overrideResponse?:
+    | void
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0]
+      ) => Promise<void> | void),
+  options?: RequestHandlerOptions
+) => {
+  return http.get(
+    "*/api/test-sentry/",
+    async info => {
+      if (typeof overrideResponse === "function") {
+        await overrideResponse(info);
+      }
+      return new HttpResponse(null, { status: 200 });
+    },
+    options
+  );
+};
+
 export const getApiTokenRefreshCreateMockHandler = (
   overrideResponse?:
     | TokenRefresh
@@ -9081,6 +9462,32 @@ export const getApiTokenRefreshCreateMockHandler = (
             : getApiTokenRefreshCreateResponseMock()
         ),
         { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    },
+    options
+  );
+};
+
+export const getAuthAppleLoginCreateMockHandler = (
+  overrideResponse?:
+    | AppleAuth
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0]
+      ) => Promise<AppleAuth> | AppleAuth),
+  options?: RequestHandlerOptions
+) => {
+  return http.post(
+    "*/auth/apple-login/",
+    async info => {
+      return new HttpResponse(
+        JSON.stringify(
+          overrideResponse !== undefined
+            ? typeof overrideResponse === "function"
+              ? await overrideResponse(info)
+              : overrideResponse
+            : getAuthAppleLoginCreateResponseMock()
+        ),
+        { status: 201, headers: { "Content-Type": "application/json" } }
       );
     },
     options
@@ -10276,7 +10683,9 @@ export const getVersionRetrieveMockHandler = (
 };
 export const getMock = () => [
   getApiSchemaRetrieveMockHandler(),
+  getApiTestSentryRetrieveMockHandler(),
   getApiTokenRefreshCreateMockHandler(),
+  getAuthAppleLoginCreateMockHandler(),
   getAuthEmailLoginCreateMockHandler(),
   getAuthLoginCreateMockHandler(),
   getAuthPasswordResetCreateMockHandler(),
