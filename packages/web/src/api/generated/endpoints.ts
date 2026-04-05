@@ -497,6 +497,15 @@ export interface OrderOptionsResponse {
   fieldOrder: OrderOptionsResponseFieldOrder;
 }
 
+export interface PaginatedGameListList {
+  count: number;
+  /** @nullable */
+  next?: string | null;
+  /** @nullable */
+  previous?: string | null;
+  results: GameList[];
+}
+
 export interface PasswordReset {
   email: string;
 }
@@ -781,7 +790,16 @@ export type ApiSchemaRetrieve200Four = { [key: string]: unknown };
 export type GamesListParams = {
   can_join?: boolean;
   mine?: boolean;
+  /**
+   * A page number within the paginated result set.
+   */
+  page?: number;
+  /**
+   * Number of results to return per page.
+   */
+  page_size?: number;
   sandbox?: boolean;
+  status?: string;
 };
 
 /**
@@ -1056,6 +1074,258 @@ export function useApiSchemaRetrieveSuspense<
     params,
     options
   );
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const apiTestSentryRetrieve = (signal?: AbortSignal) => {
+  return customInstance<void>({
+    url: `/api/test-sentry/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getApiTestSentryRetrieveQueryKey = () => {
+  return [`/api/test-sentry/`] as const;
+};
+
+export const getApiTestSentryRetrieveQueryOptions = <
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<
+      Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+      TError,
+      TData
+    >
+  >;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getApiTestSentryRetrieveQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+  > = ({ signal }) => apiTestSentryRetrieve(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ApiTestSentryRetrieveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+>;
+export type ApiTestSentryRetrieveQueryError = unknown;
+
+export function useApiTestSentryRetrieve<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useApiTestSentryRetrieve<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useApiTestSentryRetrieve<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useApiTestSentryRetrieve<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getApiTestSentryRetrieveQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getApiTestSentryRetrieveSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<
+    UseSuspenseQueryOptions<
+      Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+      TError,
+      TData
+    >
+  >;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getApiTestSentryRetrieveQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+  > = ({ signal }) => apiTestSentryRetrieve(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ApiTestSentryRetrieveSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+>;
+export type ApiTestSentryRetrieveSuspenseQueryError = unknown;
+
+export function useApiTestSentryRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useApiTestSentryRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useApiTestSentryRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useApiTestSentryRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getApiTestSentryRetrieveSuspenseQueryOptions(options);
 
   const query = useSuspenseQuery(
     queryOptions,
@@ -4856,7 +5126,7 @@ export const useGameUnpausePartialUpdate = <
 };
 
 export const gamesList = (params?: GamesListParams, signal?: AbortSignal) => {
-  return customInstance<GameList[]>({
+  return customInstance<PaginatedGameListList>({
     url: `/games/`,
     method: "GET",
     params,
@@ -8435,8 +8705,19 @@ export const getGameResolvePhaseCreateResponseMock = (
   ...overrideResponse,
 });
 
-export const getGamesListResponseMock = (): GameList[] =>
-  Array.from(
+export const getGamesListResponseMock = (
+  overrideResponse: Partial<PaginatedGameListList> = {}
+): PaginatedGameListList => ({
+  count: faker.number.int({ min: undefined, max: undefined }),
+  next: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([faker.internet.url(), null]),
+    undefined,
+  ]),
+  previous: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([faker.internet.url(), null]),
+    undefined,
+  ]),
+  results: Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1
   ).map(() => ({
@@ -8577,7 +8858,9 @@ export const getGamesListResponseMock = (): GameList[] =>
       ]),
       null,
     ]),
-  }));
+  })),
+  ...overrideResponse,
+});
 
 export const getGamesChannelsListResponseMock = (): Channel[] =>
   Array.from(
@@ -9056,6 +9339,26 @@ export const getApiSchemaRetrieveMockHandler = (
         ),
         { status: 200, headers: { "Content-Type": "application/json" } }
       );
+    },
+    options
+  );
+};
+
+export const getApiTestSentryRetrieveMockHandler = (
+  overrideResponse?:
+    | void
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0]
+      ) => Promise<void> | void),
+  options?: RequestHandlerOptions
+) => {
+  return http.get(
+    "*/api/test-sentry/",
+    async info => {
+      if (typeof overrideResponse === "function") {
+        await overrideResponse(info);
+      }
+      return new HttpResponse(null, { status: 200 });
     },
     options
   );
@@ -9833,10 +10136,10 @@ export const getGameUnpausePartialUpdateMockHandler = (
 
 export const getGamesListMockHandler = (
   overrideResponse?:
-    | GameList[]
+    | PaginatedGameListList
     | ((
         info: Parameters<Parameters<typeof http.get>[1]>[0]
-      ) => Promise<GameList[]> | GameList[]),
+      ) => Promise<PaginatedGameListList> | PaginatedGameListList),
   options?: RequestHandlerOptions
 ) => {
   return http.get(
@@ -10276,6 +10579,7 @@ export const getVersionRetrieveMockHandler = (
 };
 export const getMock = () => [
   getApiSchemaRetrieveMockHandler(),
+  getApiTestSentryRetrieveMockHandler(),
   getApiTokenRefreshCreateMockHandler(),
   getAuthEmailLoginCreateMockHandler(),
   getAuthLoginCreateMockHandler(),
