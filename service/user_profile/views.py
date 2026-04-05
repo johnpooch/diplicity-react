@@ -3,7 +3,17 @@ from rest_framework import permissions, generics
 from member.models import Member
 from common.constants import GameStatus
 from .models import UserProfile
-from .serializers import UserProfileSerializer
+from .serializers import PublicUserProfileSerializer, UserProfileSerializer
+
+
+class PublicUserProfileRetrieveView(generics.RetrieveAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PublicUserProfileSerializer
+
+    def get_object(self):
+        return generics.get_object_or_404(
+            UserProfile.objects.with_related_data(), user_id=self.kwargs["user_id"]
+        )
 
 
 class UserProfileRetrieveView(generics.RetrieveAPIView):

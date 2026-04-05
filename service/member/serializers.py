@@ -4,6 +4,7 @@ from drf_spectacular.utils import extend_schema_field
 
 class MemberSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
+    user_id = serializers.IntegerField(read_only=True, allow_null=True)
     name = serializers.CharField(read_only=True)
     picture = serializers.CharField(allow_null=True, read_only=True)
     nation = serializers.CharField(allow_null=True, read_only=True, source="nation.name")

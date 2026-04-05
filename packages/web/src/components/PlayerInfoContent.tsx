@@ -1,5 +1,6 @@
 import React from "react";
 import { Shield, Star, Trophy } from "lucide-react";
+import { useNavigate } from "react-router";
 
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
 import { NationFlag } from "@/components/NationFlag";
@@ -16,7 +17,11 @@ import { getCurrentPhaseId } from "@/util";
 import { useRequiredParams } from "@/hooks";
 
 export const PlayerInfoContent: React.FC = () => {
-  const { gameId } = useRequiredParams<{ gameId: string }>();
+  const navigate = useNavigate();
+  const { gameId, phaseId } = useRequiredParams<{
+    gameId: string;
+    phaseId: string;
+  }>();
 
   const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: variants } = useVariantsListSuspense();
@@ -65,7 +70,20 @@ export const PlayerInfoContent: React.FC = () => {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium">{member.name}</span>
+                    {member.userId !== null ? (
+                      <button
+                        className="font-medium hover:underline text-left"
+                        onClick={() =>
+                          navigate(
+                            `/game/${gameId}/phase/${phaseId}/user/${member.userId}`
+                          )
+                        }
+                      >
+                        {member.name}
+                      </button>
+                    ) : (
+                      <span className="font-medium">{member.name}</span>
+                    )}
                     {member.isGameMaster && (
                       <Badge variant="secondary" className="gap-1">
                         <Shield className="size-3" />

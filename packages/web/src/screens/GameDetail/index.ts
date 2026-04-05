@@ -34,4 +34,9 @@ export const GameDetail = {
       default: m.DrawProposalsScreen,
     }))
   ),
+  UserProfileScreen: lazy(() =>
+    import("./UserProfileScreen").then((m) => ({
+      default: m.UserProfileScreen,
+    }))
+  ),
 };

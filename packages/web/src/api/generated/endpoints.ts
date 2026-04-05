@@ -321,6 +321,8 @@ export interface GameExtendDeadline {
 
 export interface Member {
   readonly id: number;
+  /** @nullable */
+  readonly userId: number | null;
   readonly name: string;
   /** @nullable */
   readonly picture: string | null;
@@ -626,6 +628,14 @@ export interface PhaseState {
   readonly eliminated: boolean;
   readonly orderableProvinces: readonly Province[];
   readonly member: Member;
+}
+
+export interface PublicUserProfile {
+  readonly id: number;
+  readonly name: string;
+  /** @nullable */
+  readonly picture: string | null;
+  readonly createdAt: string;
 }
 
 export interface Register {
@@ -7217,6 +7227,257 @@ export const useUserUpdatePartialUpdate = <
   );
 };
 
+export const usersRetrieve = (userId: number, signal?: AbortSignal) => {
+  return customInstance<PublicUserProfile>({
+    url: `/users/${userId}/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getUsersRetrieveQueryKey = (userId: number) => {
+  return [`/users/${userId}/`] as const;
+};
+
+export const getUsersRetrieveQueryOptions = <
+  TData = Awaited<ReturnType<typeof usersRetrieve>>,
+  TError = unknown,
+>(
+  userId: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof usersRetrieve>>, TError, TData>
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getUsersRetrieveQueryKey(userId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof usersRetrieve>>> = ({
+    signal,
+  }) => usersRetrieve(userId, signal);
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!userId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof usersRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type UsersRetrieveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof usersRetrieve>>
+>;
+export type UsersRetrieveQueryError = unknown;
+
+export function useUsersRetrieve<
+  TData = Awaited<ReturnType<typeof usersRetrieve>>,
+  TError = unknown,
+>(
+  userId: number,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof usersRetrieve>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof usersRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof usersRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useUsersRetrieve<
+  TData = Awaited<ReturnType<typeof usersRetrieve>>,
+  TError = unknown,
+>(
+  userId: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof usersRetrieve>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof usersRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof usersRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useUsersRetrieve<
+  TData = Awaited<ReturnType<typeof usersRetrieve>>,
+  TError = unknown,
+>(
+  userId: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof usersRetrieve>>, TError, TData>
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useUsersRetrieve<
+  TData = Awaited<ReturnType<typeof usersRetrieve>>,
+  TError = unknown,
+>(
+  userId: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof usersRetrieve>>, TError, TData>
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getUsersRetrieveQueryOptions(userId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getUsersRetrieveSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof usersRetrieve>>,
+  TError = unknown,
+>(
+  userId: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof usersRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getUsersRetrieveQueryKey(userId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof usersRetrieve>>> = ({
+    signal,
+  }) => usersRetrieve(userId, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof usersRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type UsersRetrieveSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof usersRetrieve>>
+>;
+export type UsersRetrieveSuspenseQueryError = unknown;
+
+export function useUsersRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof usersRetrieve>>,
+  TError = unknown,
+>(
+  userId: number,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof usersRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useUsersRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof usersRetrieve>>,
+  TError = unknown,
+>(
+  userId: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof usersRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useUsersRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof usersRetrieve>>,
+  TError = unknown,
+>(
+  userId: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof usersRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useUsersRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof usersRetrieve>>,
+  TError = unknown,
+>(
+  userId: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof usersRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getUsersRetrieveSuspenseQueryOptions(userId, options);
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
 export const variantsList = (signal?: AbortSignal) => {
   return customInstance<Variant[]>({
     url: `/variants/`,
@@ -7974,6 +8235,13 @@ export const getGameRetrieveResponseMock = (
     (_, i) => i + 1
   ).map(() => ({
     id: faker.number.int({ min: undefined, max: undefined }),
+    userId: faker.helpers.arrayElement([
+      faker.helpers.arrayElement([
+        faker.number.int({ min: undefined, max: undefined }),
+        null,
+      ]),
+      null,
+    ]),
     name: faker.string.alpha({ length: { min: 10, max: 20 } }),
     picture: faker.helpers.arrayElement([
       faker.helpers.arrayElement([
@@ -8009,6 +8277,13 @@ export const getGameRetrieveResponseMock = (
         (_, i) => i + 1
       ).map(() => ({
         id: faker.number.int({ min: undefined, max: undefined }),
+        userId: faker.helpers.arrayElement([
+          faker.helpers.arrayElement([
+            faker.number.int({ min: undefined, max: undefined }),
+            null,
+          ]),
+          null,
+        ]),
         name: faker.string.alpha({ length: { min: 10, max: 20 } }),
         picture: faker.helpers.arrayElement([
           faker.helpers.arrayElement([
@@ -8130,6 +8405,13 @@ export const getGameConfirmPhaseUpdateResponseMock = (
   member: {
     ...{
       id: faker.number.int({ min: undefined, max: undefined }),
+      userId: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          faker.number.int({ min: undefined, max: undefined }),
+          null,
+        ]),
+        null,
+      ]),
       name: faker.string.alpha({ length: { min: 10, max: 20 } }),
       picture: faker.helpers.arrayElement([
         faker.helpers.arrayElement([
@@ -8187,6 +8469,13 @@ export const getGameConfirmPhasePartialUpdateResponseMock = (
   member: {
     ...{
       id: faker.number.int({ min: undefined, max: undefined }),
+      userId: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          faker.number.int({ min: undefined, max: undefined }),
+          null,
+        ]),
+        null,
+      ]),
       name: faker.string.alpha({ length: { min: 10, max: 20 } }),
       picture: faker.helpers.arrayElement([
         faker.helpers.arrayElement([
@@ -8233,6 +8522,13 @@ export const getGameJoinCreateResponseMock = (
   overrideResponse: Partial<Member> = {}
 ): Member => ({
   id: faker.number.int({ min: undefined, max: undefined }),
+  userId: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([
+      faker.number.int({ min: undefined, max: undefined }),
+      null,
+    ]),
+    null,
+  ]),
   name: faker.string.alpha({ length: { min: 10, max: 20 } }),
   picture: faker.helpers.arrayElement([
     faker.helpers.arrayElement([
@@ -8673,6 +8969,13 @@ export const getGamePhaseStatesListResponseMock = (): PhaseState[] =>
     member: {
       ...{
         id: faker.number.int({ min: undefined, max: undefined }),
+        userId: faker.helpers.arrayElement([
+          faker.helpers.arrayElement([
+            faker.number.int({ min: undefined, max: undefined }),
+            null,
+          ]),
+          null,
+        ]),
         name: faker.string.alpha({ length: { min: 10, max: 20 } }),
         picture: faker.helpers.arrayElement([
           faker.helpers.arrayElement([
@@ -8868,6 +9171,13 @@ export const getGamesListResponseMock = (
       (_, i) => i + 1
     ).map(() => ({
       id: faker.number.int({ min: undefined, max: undefined }),
+      userId: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          faker.number.int({ min: undefined, max: undefined }),
+          null,
+        ]),
+        null,
+      ]),
       name: faker.string.alpha({ length: { min: 10, max: 20 } }),
       picture: faker.helpers.arrayElement([
         faker.helpers.arrayElement([
@@ -8902,6 +9212,13 @@ export const getGamesListResponseMock = (
           (_, i) => i + 1
         ).map(() => ({
           id: faker.number.int({ min: undefined, max: undefined }),
+          userId: faker.helpers.arrayElement([
+            faker.helpers.arrayElement([
+              faker.number.int({ min: undefined, max: undefined }),
+              null,
+            ]),
+            null,
+          ]),
           name: faker.string.alpha({ length: { min: 10, max: 20 } }),
           picture: faker.helpers.arrayElement([
             faker.helpers.arrayElement([
@@ -9278,6 +9595,22 @@ export const getUserUpdatePartialUpdateResponseMock = (
     null,
   ]),
   email: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  ...overrideResponse,
+});
+
+export const getUsersRetrieveResponseMock = (
+  overrideResponse: Partial<PublicUserProfile> = {}
+): PublicUserProfile => ({
+  id: faker.number.int({ min: undefined, max: undefined }),
+  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  picture: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      null,
+    ]),
+    null,
+  ]),
+  createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
   ...overrideResponse,
 });
 
@@ -10661,6 +10994,32 @@ export const getUserUpdatePartialUpdateMockHandler = (
   );
 };
 
+export const getUsersRetrieveMockHandler = (
+  overrideResponse?:
+    | PublicUserProfile
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0]
+      ) => Promise<PublicUserProfile> | PublicUserProfile),
+  options?: RequestHandlerOptions
+) => {
+  return http.get(
+    "*/users/:userId/",
+    async info => {
+      return new HttpResponse(
+        JSON.stringify(
+          overrideResponse !== undefined
+            ? typeof overrideResponse === "function"
+              ? await overrideResponse(info)
+              : overrideResponse
+            : getUsersRetrieveResponseMock()
+        ),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    },
+    options
+  );
+};
+
 export const getVariantsListMockHandler = (
   overrideResponse?:
     | Variant[]
@@ -10763,6 +11122,7 @@ export const getMock = () => [
   getUserDeleteDestroyMockHandler(),
   getUserUpdateUpdateMockHandler(),
   getUserUpdatePartialUpdateMockHandler(),
+  getUsersRetrieveMockHandler(),
   getVariantsListMockHandler(),
   getVersionRetrieveMockHandler(),
 ];

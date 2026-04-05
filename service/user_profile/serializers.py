@@ -1,6 +1,13 @@
 from rest_framework import serializers
 
 
+class PublicUserProfileSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    name = serializers.CharField(read_only=True)
+    picture = serializers.CharField(allow_null=True, read_only=True)
+    created_at = serializers.DateTimeField(read_only=True)
+
+
 class UserProfileSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     name = serializers.CharField(min_length=2, max_length=255)

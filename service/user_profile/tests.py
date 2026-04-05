@@ -102,6 +102,72 @@ class TestUserProfileUpdateView:
         assert response.data["name"] == "Trimmed Name"
 
 
+class TestPublicUserProfileRetrieveView:
+
+    @pytest.mark.django_db
+    def test_authenticated_user_can_fetch_another_users_public_profile(
+        self, authenticated_client, secondary_user
+    ):
+        url = reverse("public-user-profile", args=[secondary_user.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["name"] == secondary_user.profile.name
+        assert response.data["picture"] == secondary_user.profile.picture
+        assert "created_at" in response.data
+
+    @pytest.mark.django_db
+    def test_response_does_not_include_email(self, authenticated_client, secondary_user):
+        url = reverse("public-user-profile", args=[secondary_user.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert "email" not in response.data
+
+    @pytest.mark.django_db
+    def test_unauthenticated_request_returns_401(self, unauthenticated_client, secondary_user):
+        url = reverse("public-user-profile", args=[secondary_user.id])
+        response = unauthenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_non_existent_user_returns_404(self, authenticated_client):
+        url = reverse("public-user-profile", args=[999999])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+class TestMemberSerializerUserId:
+
+    @pytest.mark.django_db
+    def test_member_serializer_includes_user_id(
+        self, authenticated_client, pending_game_created_by_primary_user, primary_user
+    ):
+        url = reverse("game-retrieve", args=[pending_game_created_by_primary_user.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        member_data = response.data["members"][0]
+        assert "user_id" in member_data
+        assert member_data["user_id"] == primary_user.id
+
+    @pytest.mark.django_db
+    def test_member_serializer_user_id_is_null_for_deleted_user(
+        self, authenticated_client, base_active_game_for_primary_user
+    ):
+        base_active_game_for_primary_user.members.create(user=None)
+        url = reverse("game-retrieve", args=[base_active_game_for_primary_user.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        null_user_member = next(
+            m for m in response.data["members"] if m["user_id"] is None
+        )
+        assert null_user_member["user_id"] is None
+
+
 class TestUserAccountDelete:
 
     @pytest.mark.django_db

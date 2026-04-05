@@ -1262,6 +1262,26 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserProfile'
           description: ''
+  /users/{userId}/:
+    get:
+      operationId: usersRetrieve
+      parameters:
+      - in: path
+        name: userId
+        schema:
+          type: integer
+        required: true
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicUserProfile'
+          description: ''
   /variants/:
     get:
       operationId: variantsList
@@ -1980,6 +2000,10 @@ components:
         id:
           type: integer
           readOnly: true
+        userId:
+          type: integer
+          readOnly: true
+          nullable: true
         name:
           type: string
           readOnly: true
@@ -2016,6 +2040,7 @@ components:
       - nation
       - nmrExtensionsRemaining
       - picture
+      - userId
     MovementFrequencyEnum:
       enum:
       - hourly
@@ -2417,6 +2442,28 @@ components:
       - parentId
       - supplyCenter
       - type
+    PublicUserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        picture:
+          type: string
+          readOnly: true
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - createdAt
+      - id
+      - name
+      - picture
     Register:
       type: object
       properties:

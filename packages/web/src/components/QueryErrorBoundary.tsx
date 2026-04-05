@@ -1,6 +1,5 @@
 import React, { Component, ReactNode } from "react";
 import { useQueryErrorResetBoundary } from "@tanstack/react-query";
-import * as Sentry from "@sentry/react";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/Notice";
 import { AlertCircle } from "lucide-react";
@@ -55,7 +54,6 @@ class ErrorBoundaryClass extends Component<
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryClassState {
-    Sentry.captureException(error);
     return { hasError: true, error };
   }
 
