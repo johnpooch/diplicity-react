@@ -17,6 +17,7 @@ from .serializers import (
 )
 from common.views import SelectedGameMixin
 from common.permissions import IsActiveGame, IsGameMember, IsGameMaster
+from common.pagination import StandardPageNumberPagination
 from .filters import GameFilter
 
 tracer = trace.get_tracer(__name__)
@@ -37,32 +38,18 @@ class GameListView(generics.ListAPIView):
     serializer_class = GameListSerializer
     filterset_class = GameFilter
     filter_backends = [DjangoFilterBackend]
+    pagination_class = StandardPageNumberPagination
 
     def get_queryset(self):
-        with tracer.start_as_current_span("view.get_queryset"):
-            queryset = Game.objects.all().with_list_data()
+        queryset = Game.objects.all().with_list_data().order_by("-created_at")
 
-            if "sandbox" not in self.request.query_params:
-                queryset = queryset.filter(sandbox=False)
+        if "sandbox" not in self.request.query_params:
+            queryset = queryset.filter(sandbox=False)
 
-            if not self.request.user.is_authenticated:
-                queryset = queryset.filter(private=False)
+        if not self.request.user.is_authenticated:
+            queryset = queryset.filter(private=False)
 
-            return queryset
-
-    def list(self, request, *args, **kwargs):
-        with tracer.start_as_current_span("view.list") as span:
-            queryset = self.filter_queryset(self.get_queryset())
-
-            with tracer.start_as_current_span("view.queryset_evaluation"):
-                games = list(queryset)
-                span.set_attribute("games.count", len(games))
-
-            with tracer.start_as_current_span("view.serialization"):
-                serializer = self.get_serializer(games, many=True)
-                data = serializer.data
-
-            return Response(data)
+        return queryset
 
 
 class GameCreateView(generics.CreateAPIView):

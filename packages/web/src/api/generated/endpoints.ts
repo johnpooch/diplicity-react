@@ -56,6 +56,17 @@ type NonReadonly<T> = [T] extends [UnionToIntersection<T>]
     }
   : DistributeReadOnlyOverUnions<T>;
 
+export interface AppleAuth {
+  idToken: string;
+  firstName?: string;
+  lastName?: string;
+  readonly id: number;
+  readonly email: string;
+  readonly name: string;
+  readonly accessToken: string;
+  readonly refreshToken: string;
+}
+
 export interface Auth {
   idToken: string;
   readonly id: number;
@@ -499,6 +510,15 @@ export interface OrderOptionsResponse {
   fieldOrder: OrderOptionsResponseFieldOrder;
 }
 
+export interface PaginatedGameListList {
+  count: number;
+  /** @nullable */
+  next?: string | null;
+  /** @nullable */
+  previous?: string | null;
+  results: GameList[];
+}
+
 export interface PasswordReset {
   email: string;
 }
@@ -791,7 +811,16 @@ export type ApiSchemaRetrieve200Four = { [key: string]: unknown };
 export type GamesListParams = {
   can_join?: boolean;
   mine?: boolean;
+  /**
+   * A page number within the paginated result set.
+   */
+  page?: number;
+  /**
+   * Number of results to return per page.
+   */
+  page_size?: number;
   sandbox?: boolean;
+  status?: string;
 };
 
 /**
@@ -1407,6 +1436,84 @@ export const useApiTokenRefreshCreate = <TError = unknown, TContext = unknown>(
 > => {
   return useMutation(
     getApiTokenRefreshCreateMutationOptions(options),
+    queryClient
+  );
+};
+
+export const authAppleLoginCreate = (
+  appleAuth: NonReadonly<AppleAuth>,
+  signal?: AbortSignal
+) => {
+  return customInstance<AppleAuth>({
+    url: `/auth/apple-login/`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: appleAuth,
+    signal,
+  });
+};
+
+export const getAuthAppleLoginCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof authAppleLoginCreate>>,
+    TError,
+    { data: NonReadonly<AppleAuth> },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof authAppleLoginCreate>>,
+  TError,
+  { data: NonReadonly<AppleAuth> },
+  TContext
+> => {
+  const mutationKey = ["authAppleLoginCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof authAppleLoginCreate>>,
+    { data: NonReadonly<AppleAuth> }
+  > = props => {
+    const { data } = props ?? {};
+
+    return authAppleLoginCreate(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AuthAppleLoginCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof authAppleLoginCreate>>
+>;
+export type AuthAppleLoginCreateMutationBody = NonReadonly<AppleAuth>;
+export type AuthAppleLoginCreateMutationError = unknown;
+
+export const useAuthAppleLoginCreate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof authAppleLoginCreate>>,
+      TError,
+      { data: NonReadonly<AppleAuth> },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof authAppleLoginCreate>>,
+  TError,
+  { data: NonReadonly<AppleAuth> },
+  TContext
+> => {
+  return useMutation(
+    getAuthAppleLoginCreateMutationOptions(options),
     queryClient
   );
 };
@@ -5118,7 +5225,7 @@ export const useGameUnpausePartialUpdate = <
 };
 
 export const gamesList = (params?: GamesListParams, signal?: AbortSignal) => {
-  return customInstance<GameList[]>({
+  return customInstance<PaginatedGameListList>({
     url: `/games/`,
     method: "GET",
     params,
@@ -7875,6 +7982,26 @@ export const getApiTokenRefreshCreateResponseMock = (
   ...overrideResponse,
 });
 
+export const getAuthAppleLoginCreateResponseMock = (
+  overrideResponse: Partial<AppleAuth> = {}
+): AppleAuth => ({
+  idToken: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  firstName: faker.helpers.arrayElement([
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
+    undefined,
+  ]),
+  lastName: faker.helpers.arrayElement([
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
+    undefined,
+  ]),
+  id: faker.number.int({ min: undefined, max: undefined }),
+  email: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  accessToken: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  refreshToken: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  ...overrideResponse,
+});
+
 export const getAuthEmailLoginCreateResponseMock = (
   overrideResponse: Partial<EmailLogin> = {}
 ): EmailLogin => ({
@@ -8990,8 +9117,19 @@ export const getGameResolvePhaseCreateResponseMock = (
   ...overrideResponse,
 });
 
-export const getGamesListResponseMock = (): GameList[] =>
-  Array.from(
+export const getGamesListResponseMock = (
+  overrideResponse: Partial<PaginatedGameListList> = {}
+): PaginatedGameListList => ({
+  count: faker.number.int({ min: undefined, max: undefined }),
+  next: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([faker.internet.url(), null]),
+    undefined,
+  ]),
+  previous: faker.helpers.arrayElement([
+    faker.helpers.arrayElement([faker.internet.url(), null]),
+    undefined,
+  ]),
+  results: Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1
   ).map(() => ({
@@ -9146,7 +9284,9 @@ export const getGamesListResponseMock = (): GameList[] =>
       ]),
       null,
     ]),
-  }));
+  })),
+  ...overrideResponse,
+});
 
 export const getGamesChannelsListResponseMock = (): Channel[] =>
   Array.from(
@@ -9686,6 +9826,32 @@ export const getApiTokenRefreshCreateMockHandler = (
             : getApiTokenRefreshCreateResponseMock()
         ),
         { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    },
+    options
+  );
+};
+
+export const getAuthAppleLoginCreateMockHandler = (
+  overrideResponse?:
+    | AppleAuth
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0]
+      ) => Promise<AppleAuth> | AppleAuth),
+  options?: RequestHandlerOptions
+) => {
+  return http.post(
+    "*/auth/apple-login/",
+    async info => {
+      return new HttpResponse(
+        JSON.stringify(
+          overrideResponse !== undefined
+            ? typeof overrideResponse === "function"
+              ? await overrideResponse(info)
+              : overrideResponse
+            : getAuthAppleLoginCreateResponseMock()
+        ),
+        { status: 201, headers: { "Content-Type": "application/json" } }
       );
     },
     options
@@ -10438,10 +10604,10 @@ export const getGameUnpausePartialUpdateMockHandler = (
 
 export const getGamesListMockHandler = (
   overrideResponse?:
-    | GameList[]
+    | PaginatedGameListList
     | ((
         info: Parameters<Parameters<typeof http.get>[1]>[0]
-      ) => Promise<GameList[]> | GameList[]),
+      ) => Promise<PaginatedGameListList> | PaginatedGameListList),
   options?: RequestHandlerOptions
 ) => {
   return http.get(
@@ -10909,6 +11075,7 @@ export const getMock = () => [
   getApiSchemaRetrieveMockHandler(),
   getApiTestSentryRetrieveMockHandler(),
   getApiTokenRefreshCreateMockHandler(),
+  getAuthAppleLoginCreateMockHandler(),
   getAuthEmailLoginCreateMockHandler(),
   getAuthLoginCreateMockHandler(),
   getAuthPasswordResetCreateMockHandler(),

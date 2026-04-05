@@ -2,6 +2,7 @@ from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import AllowAny
 
 from .serializers import (
+    AppleAuthSerializer,
     AuthSerializer,
     EmailLoginSerializer,
     PasswordResetConfirmSerializer,
@@ -9,6 +10,11 @@ from .serializers import (
     RegisterSerializer,
     VerifyEmailSerializer,
 )
+
+
+class AppleAuthView(CreateAPIView):
+    serializer_class = AppleAuthSerializer
+    permission_classes = [AllowAny]
 
 
 class AuthView(CreateAPIView):

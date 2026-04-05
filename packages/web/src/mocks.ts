@@ -1,5 +1,6 @@
 import type {
   GameList,
+  PaginatedGameListList,
   Variant,
   PhaseRetrieve,
   Member,
@@ -450,6 +451,15 @@ export const mockPendingGames = mockGames.filter(g => g.status === "pending");
 export const mockCompletedGames = mockGames.filter(
   g => g.status === "completed"
 );
+
+export const paginatedResponse = (
+  games: GameList[]
+): PaginatedGameListList => ({
+  count: games.length,
+  next: null,
+  previous: null,
+  results: games,
+});
 
 export const mockSandboxGames: GameList[] = [
   {

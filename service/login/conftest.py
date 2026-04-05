@@ -49,3 +49,29 @@ def mock_refresh_token():
 def mock_send_email():
     with patch("login.serializers.send_email") as mock:
         yield mock
+
+
+@pytest.fixture
+def mock_apple_auth(settings):
+    settings.APPLE_CLIENT_ID = "com.diplicity.app"
+    with patch("login.serializers.verify_apple_id_token") as mock:
+        mock.return_value = {
+            "iss": "https://appleid.apple.com",
+            "aud": "com.diplicity.app",
+            "sub": "001234.apple-user-id.5678",
+            "email": "apple@example.com",
+        }
+        yield mock
+
+
+@pytest.fixture
+def mock_apple_auth_relay_email(settings):
+    settings.APPLE_CLIENT_ID = "com.diplicity.app"
+    with patch("login.serializers.verify_apple_id_token") as mock:
+        mock.return_value = {
+            "iss": "https://appleid.apple.com",
+            "aud": "com.diplicity.app",
+            "sub": "001234.apple-user-id.5678",
+            "email": "abc123@privaterelay.appleid.com",
+        }
+        yield mock
