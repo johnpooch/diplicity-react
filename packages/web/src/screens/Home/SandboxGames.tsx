@@ -6,18 +6,26 @@ import { ScreenContainer } from "@/components/ui/screen-container";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { GameCard } from "@/components/GameCard";
 import { Notice } from "@/components/Notice";
-import { Blocks } from "lucide-react";
+import { Blocks, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  useGamesListSuspense,
-  useVariantsListSuspense,
-} from "@/api/generated/endpoints";
+import { useVariantsListSuspense } from "@/api/generated/endpoints";
+import { useGamesListInfinite } from "@/hooks/useGamesListInfinite";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 
 const SandboxGames: React.FC = () => {
   const navigate = useNavigate();
 
-  const { data: games } = useGamesListSuspense({ sandbox: true, mine: true });
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useGamesListInfinite({ sandbox: true, mine: true });
   const { data: variants } = useVariantsListSuspense();
+
+  const games = data.pages.flatMap(page => page.results);
+
+  const sentinelRef = useInfiniteScroll(
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage
+  );
 
   const variantMap = new Map(variants.map(v => [v.id, v]));
   const knownGames = games.filter(game => variantMap.has(game.variantId));
@@ -29,15 +37,23 @@ const SandboxGames: React.FC = () => {
   return (
     <div className="space-y-4">
       {knownGames.length > 0 ? (
-        knownGames.map(game => (
-          <GameCard
-            key={game.id}
-            game={game}
-            variant={variantMap.get(game.variantId)!}
-            phaseId={game.phases[0]}
-            map={<div />}
-          />
-        ))
+        <>
+          {knownGames.map(game => (
+            <GameCard
+              key={game.id}
+              game={game}
+              variant={variantMap.get(game.variantId)!}
+              phaseId={game.phases[0]}
+              map={<div />}
+            />
+          ))}
+          {isFetchingNextPage && (
+            <div className="flex justify-center py-4">
+              <Loader2 className="animate-spin" />
+            </div>
+          )}
+          <div ref={sentinelRef} />
+        </>
       ) : (
         <Notice
           title="No sandbox games found"

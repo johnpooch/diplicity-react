@@ -147,6 +147,17 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
+  /api/test-sentry/:
+    get:
+      operationId: apiTestSentryRetrieve
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
   /api/token/refresh/:
     post:
       operationId: apiTokenRefreshCreate
@@ -381,6 +392,7 @@ paths:
       - game
       security:
       - jwtAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -863,22 +875,37 @@ paths:
         name: mine
         schema:
           type: boolean
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
       - in: query
         name: sandbox
         schema:
           type: boolean
+      - in: query
+        name: status
+        schema:
+          type: string
       tags:
       - games
       security:
       - jwtAuth: []
+      - {}
       responses:
         '200':
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/GameList'
+                $ref: '#/components/schemas/PaginatedGameListList'
           description: ''
   /games/{gameId}/channels/:
     get:
@@ -1221,6 +1248,7 @@ paths:
       - variants
       security:
       - jwtAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -2104,6 +2132,29 @@ components:
         * `Convoy` - Convoy
         * `Build` - Build
         * `Disband` - Disband
+    PaginatedGameListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/GameList'
     PasswordReset:
       type: object
       properties:
