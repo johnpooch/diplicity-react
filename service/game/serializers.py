@@ -49,6 +49,7 @@ class GameListSerializer(serializers.Serializer):
     phases = serializers.SerializerMethodField()
     current_phase_id = serializers.SerializerMethodField()
     private = serializers.BooleanField(read_only=True)
+    anonymous = serializers.BooleanField(read_only=True)
     movement_phase_duration = serializers.CharField(read_only=True, allow_null=True)
     retreat_phase_duration = serializers.CharField(read_only=True, allow_null=True)
     nation_assignment = serializers.CharField(read_only=True)
@@ -107,6 +108,7 @@ class GameRetrieveSerializer(serializers.Serializer):
     movement_phase_duration = serializers.CharField(read_only=True, allow_null=True)
     retreat_phase_duration = serializers.CharField(read_only=True, allow_null=True)
     private = serializers.BooleanField(read_only=True)
+    anonymous = serializers.BooleanField(read_only=True)
     is_paused = serializers.BooleanField(read_only=True)
     paused_at = serializers.DateTimeField(read_only=True, allow_null=True)
     nmr_extensions_allowed = serializers.IntegerField(read_only=True)
@@ -192,6 +194,7 @@ class GameCreateSerializer(serializers.Serializer):
         default=None,
     )
     private = serializers.BooleanField()
+    anonymous = serializers.BooleanField(default=False)
     deadline_mode = serializers.ChoiceField(
         choices=DeadlineMode.DEADLINE_MODE_CHOICES,
         default=DeadlineMode.FIXED_TIME,
@@ -266,6 +269,7 @@ class GameCreateSerializer(serializers.Serializer):
                 movement_phase_duration=validated_data["movement_phase_duration"],
                 retreat_phase_duration=validated_data.get("retreat_phase_duration"),
                 private=validated_data["private"],
+                anonymous=validated_data["anonymous"],
                 deadline_mode=validated_data["deadline_mode"],
                 fixed_deadline_time=validated_data.get("fixed_deadline_time"),
                 fixed_deadline_timezone=validated_data.get("fixed_deadline_timezone"),

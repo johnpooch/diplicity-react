@@ -7,11 +7,13 @@ import { Link } from "react-router";
 import { toast } from "sonner";
 import { useAuth } from "../auth";
 import {
+  useAuthAppleLoginCreate,
   useAuthEmailLoginCreate,
   useAuthLoginCreate,
 } from "../api/generated/endpoints";
 import { AuthLayout } from "@/components/AuthLayout";
 import { isNativePlatform } from "@/utils/platform";
+import { nativeAppleSignIn } from "@/auth/nativeAppleAuth";
 import { nativeGoogleSignIn } from "@/auth/nativeGoogleAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +27,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
+
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email"),
   password: z.string().min(1, "Password is required"),
@@ -34,6 +37,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login: React.FC = () => {
   const { login } = useAuth();
+  const appleLoginMutation = useAuthAppleLoginCreate();
   const emailLoginMutation = useAuthEmailLoginCreate();
   const googleLoginMutation = useAuthLoginCreate();
 
@@ -93,6 +97,24 @@ const Login: React.FC = () => {
     try {
       const idToken = await nativeGoogleSignIn();
       await sendIdTokenToBackend(idToken);
+    } catch {
+      toast.error("Login failed");
+    }
+  };
+
+  const handleAppleLogin = async () => {
+    try {
+      const { idToken, firstName, lastName } = await nativeAppleSignIn();
+      const result = await appleLoginMutation.mutateAsync({
+        data: { idToken, firstName, lastName },
+      });
+      login({
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        email: result.email,
+        name: result.name,
+      });
+      toast.success(`Logged in as ${result.name}`);
     } catch {
       toast.error("Login failed");
     }
@@ -159,11 +181,16 @@ const Login: React.FC = () => {
           <Separator className="flex-1" />
         </div>
 
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center gap-3">
           {isNativePlatform() ? (
-            <Button variant="outline" onClick={handleNativeLogin}>
-              Sign in with Google
-            </Button>
+            <>
+              <Button variant="outline" onClick={handleNativeLogin}>
+                Sign in with Google
+              </Button>
+              <Button variant="outline" onClick={handleAppleLogin}>
+                Sign in with Apple
+              </Button>
+            </>
           ) : (
             <GoogleLogin
               onSuccess={handleWebLoginSuccess}

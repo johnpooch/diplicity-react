@@ -13,6 +13,10 @@ vi.mock("@/auth", () => ({
 }));
 
 vi.mock("@/api/generated/endpoints", () => ({
+  useAuthAppleLoginCreate: () => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  }),
   useAuthEmailLoginCreate: () => ({
     mutateAsync: mockMutateAsync,
     isPending: false,

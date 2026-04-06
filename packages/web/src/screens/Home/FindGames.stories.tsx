@@ -5,7 +5,12 @@ import {
   getGamesListMockHandler,
   getVariantsListMockHandler,
 } from "@/api/generated/endpoints";
-import { mockVariants, mockPendingGames, mockPhaseMovement } from "@/mocks";
+import {
+  mockVariants,
+  mockPendingGames,
+  mockPhaseMovement,
+  paginatedResponse,
+} from "@/mocks";
 import { withHomeLayout } from "@/stories/decorators";
 
 const meta = {
@@ -20,7 +25,7 @@ const meta = {
     },
     msw: {
       handlers: [
-        getGamesListMockHandler(mockPendingGames),
+        getGamesListMockHandler(paginatedResponse(mockPendingGames)),
         getVariantsListMockHandler(mockVariants),
         getGamePhaseRetrieveMockHandler(mockPhaseMovement),
       ],
@@ -37,7 +42,7 @@ export const NoGames: Story = {
   parameters: {
     msw: {
       handlers: [
-        getGamesListMockHandler([]),
+        getGamesListMockHandler(paginatedResponse([])),
         getVariantsListMockHandler(mockVariants),
       ],
     },

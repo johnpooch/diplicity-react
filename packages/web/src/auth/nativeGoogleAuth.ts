@@ -1,12 +1,13 @@
 import { SocialLogin } from "@capgo/capacitor-social-login";
 
-export async function initializeNativeGoogleAuth(): Promise<void> {
+export async function initializeNativeSocialLogin(): Promise<void> {
   await SocialLogin.initialize({
     google: {
       iOSClientId: import.meta.env.VITE_GOOGLE_IOS_CLIENT_ID,
       webClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID,
       mode: "online",
     },
+    apple: {},
   });
 }
 

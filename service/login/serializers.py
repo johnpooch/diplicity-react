@@ -8,7 +8,7 @@ from user_profile.models import UserProfile
 
 from email_service.utils import send_email
 from .models import AuthUser
-from .utils import verify_google_id_token
+from .utils import verify_apple_id_token, verify_google_id_token
 
 User = get_user_model()
 
@@ -54,6 +54,37 @@ class AuthSerializer(serializers.Serializer):
         UserProfile.objects.update_or_create(
             user=user, defaults={"name": id_info.get("name"), "picture": id_info.get("picture")}
         )
+        refresh = RefreshToken.for_user(user)
+        user.access_token = str(refresh.access_token)
+        user.refresh_token = str(refresh)
+        return user
+
+
+class AppleAuthSerializer(serializers.Serializer):
+    id_token = serializers.CharField(write_only=True)
+    first_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    last_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+
+    id = serializers.IntegerField(read_only=True)
+    email = serializers.CharField(read_only=True)
+    name = serializers.CharField(source="profile.name", read_only=True)
+    access_token = serializers.CharField(read_only=True)
+    refresh_token = serializers.CharField(read_only=True)
+
+    def create(self, validated_data):
+        decoded = verify_apple_id_token(validated_data["id_token"])
+        user, created, name = AuthUser.objects.create_from_apple_id_info(
+            decoded,
+            first_name=validated_data.get("first_name"),
+            last_name=validated_data.get("last_name"),
+        )
+        if not user.is_active:
+            user.is_active = True
+            user.save(update_fields=["is_active"])
+        if created or validated_data.get("first_name") or validated_data.get("last_name"):
+            UserProfile.objects.update_or_create(user=user, defaults={"name": name})
+        elif not hasattr(user, "profile"):
+            UserProfile.objects.create(user=user, name=name)
         refresh = RefreshToken.for_user(user)
         user.access_token = str(refresh.access_token)
         user.refresh_token = str(refresh)

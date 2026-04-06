@@ -1,28 +1,17 @@
 from rest_framework import serializers
-from django.shortcuts import get_object_or_404
 from django.apps import apps
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema_field
+
 from .models import Channel, ChannelMessage, ChannelMember
 from nation.serializers import NationSerializer
+from member.serializers import BaseMemberSerializer
 
 Game = apps.get_model("game", "Game")
 Member = apps.get_model("member", "Member")
 
 
-class ChannelMemberSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    name = serializers.CharField(source="user.profile.name")
-    picture = serializers.CharField(source="user.profile.picture", allow_null=True)
+class ChannelMemberSerializer(BaseMemberSerializer):
     nation = NationSerializer()
-    is_current_user = serializers.SerializerMethodField()
-
-    @extend_schema_field(serializers.BooleanField)
-    def get_is_current_user(self, obj):
-        request = self.context.get("request")
-        if request and request.user.is_authenticated:
-            return obj.user == request.user
-        return False
 
 
 class ChannelMessageSerializer(serializers.Serializer):
