@@ -674,7 +674,7 @@ class TestGameListViewPagination:
         assert response.data["count"] == 1
 
 
-class TestGameListViewVariantFilter:
+class TestGameListViewFilters:
 
     @pytest.mark.django_db
     def test_list_games_filter_variant(

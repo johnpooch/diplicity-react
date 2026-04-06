@@ -41,8 +41,8 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useGamesListInfinite({
       can_join: true,
-      ...(variantParam ? { variant: variantParam } : {}),
-      ...(durationParam ? { movement_phase_duration: durationParam } : {}),
+      variant: variantParam,
+      movement_phase_duration: durationParam,
     });
   const { data: variants } = useVariantsListSuspense();
 
