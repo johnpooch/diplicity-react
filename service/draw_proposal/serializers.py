@@ -1,22 +1,11 @@
 from rest_framework import serializers
-from drf_spectacular.utils import extend_schema_field
 from .models import DrawProposal, DrawVote
 from .constants import DrawProposalStatus
+from member.serializers import BaseMemberSerializer
 
 
-class DrawVoteMemberSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    name = serializers.CharField(source="user.profile.name")
-    picture = serializers.CharField(source="user.profile.picture", allow_null=True)
+class DrawVoteMemberSerializer(BaseMemberSerializer):
     nation = serializers.CharField(source="nation.name", allow_null=True)
-    is_current_user = serializers.SerializerMethodField()
-
-    @extend_schema_field(serializers.BooleanField)
-    def get_is_current_user(self, obj):
-        request = self.context.get("request")
-        if request and hasattr(request, "user"):
-            return obj.user == request.user
-        return False
 
 
 class DrawVoteSerializer(serializers.Serializer):

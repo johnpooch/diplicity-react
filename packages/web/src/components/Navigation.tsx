@@ -78,7 +78,12 @@ const NavigationItem: React.FC<NavigationItemProps> = ({
       className={cn(baseClasses, variantClasses[variant])}
       aria-current={isActive ? "page" : undefined}
     >
-      <IconComponent className="size-5" strokeWidth={isActive ? 2.5 : 1.5} />
+      <div className="relative">
+        <IconComponent className="size-5" strokeWidth={isActive ? 2.5 : 1.5} />
+        {(variant === "compact" || variant === "bottom") && badge && (
+          <span className="absolute -top-1 -right-1 size-2 rounded-full bg-primary" />
+        )}
+      </div>
       {variant === "sidebar" && (
         <>
           <span className="text-sm font-medium">{label}</span>

@@ -103,6 +103,7 @@ export interface Channel {
   readonly name: string;
   readonly private: boolean;
   readonly messages: readonly ChannelMessage[];
+  readonly unreadMessageCount: number;
   memberIds: number[];
 }
 
@@ -407,6 +408,7 @@ export interface GameRetrieve {
   readonly movementFrequency: string | null;
   /** @nullable */
   readonly retreatFrequency: string | null;
+  readonly totalUnreadMessageCount: number;
 }
 
 export interface Province {
@@ -5756,6 +5758,90 @@ export function useGamesChannelsListSuspense<
  * Used by views that have a game parameter in the URL. Provides a get_game
 method that returns the game object. Also adds game to the serializer context.
  */
+export const gamesChannelsMarkReadCreate = (
+  gameId: string,
+  channelId: number,
+  signal?: AbortSignal
+) => {
+  return customInstance<void>({
+    url: `/games/${gameId}/channels/${channelId}/mark-read/`,
+    method: "POST",
+    signal,
+  });
+};
+
+export const getGamesChannelsMarkReadCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gamesChannelsMarkReadCreate>>,
+    TError,
+    { gameId: string; channelId: number },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gamesChannelsMarkReadCreate>>,
+  TError,
+  { gameId: string; channelId: number },
+  TContext
+> => {
+  const mutationKey = ["gamesChannelsMarkReadCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gamesChannelsMarkReadCreate>>,
+    { gameId: string; channelId: number }
+  > = props => {
+    const { gameId, channelId } = props ?? {};
+
+    return gamesChannelsMarkReadCreate(gameId, channelId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GamesChannelsMarkReadCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gamesChannelsMarkReadCreate>>
+>;
+
+export type GamesChannelsMarkReadCreateMutationError = unknown;
+
+export const useGamesChannelsMarkReadCreate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gamesChannelsMarkReadCreate>>,
+      TError,
+      { gameId: string; channelId: number },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gamesChannelsMarkReadCreate>>,
+  TError,
+  { gameId: string; channelId: number },
+  TContext
+> => {
+  return useMutation(
+    getGamesChannelsMarkReadCreateMutationOptions(options),
+    queryClient
+  );
+};
+
+/**
+ * Used by views that have a game parameter in the URL. Provides a get_game
+method that returns the game object. Also adds game to the serializer context.
+ */
 export const gamesChannelsMessagesCreateCreate = (
   gameId: string,
   channelId: number,
@@ -8102,6 +8188,7 @@ export const getGameRetrieveResponseMock = (
     ]),
     null,
   ]),
+  totalUnreadMessageCount: faker.number.int({ min: undefined, max: undefined }),
   ...overrideResponse,
 });
 
@@ -9003,6 +9090,7 @@ export const getGamesChannelsListResponseMock = (): Channel[] =>
       },
       createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
     })),
+    unreadMessageCount: faker.number.int({ min: undefined, max: undefined }),
     memberIds: Array.from(
       { length: faker.number.int({ min: 1, max: 10 }) },
       (_, i) => i + 1
@@ -9068,6 +9156,7 @@ export const getGamesChannelsCreateCreateResponseMock = (
     },
     createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
   })),
+  unreadMessageCount: faker.number.int({ min: undefined, max: undefined }),
   memberIds: Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1
@@ -10319,6 +10408,26 @@ export const getGamesChannelsListMockHandler = (
   );
 };
 
+export const getGamesChannelsMarkReadCreateMockHandler = (
+  overrideResponse?:
+    | void
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0]
+      ) => Promise<void> | void),
+  options?: RequestHandlerOptions
+) => {
+  return http.post(
+    "*/games/:gameId/channels/:channelId/mark-read/",
+    async info => {
+      if (typeof overrideResponse === "function") {
+        await overrideResponse(info);
+      }
+      return new HttpResponse(null, { status: 201 });
+    },
+    options
+  );
+};
+
 export const getGamesChannelsMessagesCreateCreateMockHandler = (
   overrideResponse?:
     | ChannelMessage
@@ -10747,6 +10856,7 @@ export const getMock = () => [
   getGameUnpausePartialUpdateMockHandler(),
   getGamesListMockHandler(),
   getGamesChannelsListMockHandler(),
+  getGamesChannelsMarkReadCreateMockHandler(),
   getGamesChannelsMessagesCreateCreateMockHandler(),
   getGamesChannelsCreateCreateMockHandler(),
   getGamesDrawProposalsListMockHandler(),
