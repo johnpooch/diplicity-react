@@ -903,13 +903,13 @@ paths:
           nullable: true
           enum:
           - 1 hour
-          - 1 week
           - 12 hours
-          - 2 weeks
           - 24 hours
+          - 48 hours
           - 3 days
           - 4 days
-          - 48 hours
+          - 1 week
+          - 2 weeks
         description: |-
           * `1 hour` - 1 hour
           * `12 hours` - 12 hours
@@ -919,6 +919,18 @@ paths:
           * `4 days` - 4 days
           * `1 week` - 1 week
           * `2 weeks` - 2 weeks
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
       - in: query
         name: sandbox
         schema:
@@ -941,9 +953,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/GameList'
+                $ref: '#/components/schemas/PaginatedGameListList'
           description: ''
   /games/{gameId}/channels/:
     get:
@@ -2237,6 +2247,29 @@ components:
         * `Convoy` - Convoy
         * `Build` - Build
         * `Disband` - Disband
+    PaginatedGameListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/GameList'
     PasswordReset:
       type: object
       properties:

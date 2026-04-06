@@ -1,4 +1,3 @@
-import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
@@ -14,7 +13,7 @@ const defaultGamesListResult = {
   fetchNextPage: mockFetchNextPage,
   hasNextPage: false,
   isFetchingNextPage: false,
-};
+} as unknown as ReturnType<typeof useGamesListInfinite>;
 
 vi.mock("@/api/generated/endpoints", async importOriginal => {
   const actual = await importOriginal<
