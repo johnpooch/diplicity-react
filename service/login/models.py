@@ -15,6 +15,16 @@ class AuthUserManager(models.Manager):
         )
         return user, created
 
+    def create_from_apple_id_info(self, decoded_token, first_name=None, last_name=None):
+        email = decoded_token.get("email")
+        name_parts = [p for p in [first_name, last_name] if p]
+        name = " ".join(name_parts) if name_parts else email.split("@")[0]
+
+        user, created = self.get_or_create(
+            email=email, defaults={"username": self.generate_username(name), "password": settings.SOCIAL_AUTH_PASSWORD}
+        )
+        return user, created, name
+
     def generate_username(self, name):
         username = "".join(name.split(" ")).lower()
         User = get_user_model()

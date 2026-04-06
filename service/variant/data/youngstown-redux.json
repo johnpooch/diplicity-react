@@ -1,5 +1,5 @@
 {
-  "id": "youngstown redux",
+  "id": "youngstown-redux",
   "name": "Youngstown Redux",
   "description": "China, India and Japan join the standard seven nations.",
   "author": "airborne",
@@ -14,15 +14,15 @@
     },
     {
       "name": "Britain",
-      "color": "#808080"
+      "color": "#2196F3"
     },
     {
       "name": "China",
-      "color": "#808080"
+      "color": "#9C27B0"
     },
     {
       "name": "Japan",
-      "color": "#808080"
+      "color": "#FFD700"
     },
     {
       "name": "Italy",
@@ -30,11 +30,11 @@
     },
     {
       "name": "Germany",
-      "color": "#90A4AE"
+      "color": "#795548"
     },
     {
       "name": "India",
-      "color": "#808080"
+      "color": "#FF9800"
     },
     {
       "name": "Russia",
@@ -56,14 +56,14 @@
       "id": "spa/nc",
       "name": "Spain (NC)",
       "type": "named_coast",
-      "supply_center": true,
+      "supply_center": false,
       "parent": "spa"
     },
     {
       "id": "spa/sc",
       "name": "Spain (SC)",
       "type": "named_coast",
-      "supply_center": true,
+      "supply_center": false,
       "parent": "spa"
     },
     {
@@ -88,14 +88,14 @@
       "id": "tha/ec",
       "name": "Thailand (EC)",
       "type": "named_coast",
-      "supply_center": true,
+      "supply_center": false,
       "parent": "tha"
     },
     {
       "id": "tha/wc",
       "name": "Thailand (WC)",
       "type": "named_coast",
-      "supply_center": true,
+      "supply_center": false,
       "parent": "tha"
     },
     {
@@ -136,7 +136,7 @@
     },
     {
       "id": "vit",
-      "name": "Vietnaam",
+      "name": "Vietnam",
       "type": "coastal",
       "supply_center": true
     },
@@ -1138,14 +1138,14 @@
       "id": "stp/nc",
       "name": "St. Petersburg (NC)",
       "type": "named_coast",
-      "supply_center": true,
+      "supply_center": false,
       "parent": "stp"
     },
     {
       "id": "stp/sc",
       "name": "St. Petersburg (SC)",
       "type": "named_coast",
-      "supply_center": true,
+      "supply_center": false,
       "parent": "stp"
     },
     {

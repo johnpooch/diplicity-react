@@ -21,6 +21,7 @@ const config: CapacitorConfig = {
     SocialLogin: {
       providers: {
         google: true,
+        apple: true,
       },
     },
     FirebaseMessaging: {

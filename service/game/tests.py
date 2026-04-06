@@ -374,15 +374,15 @@ class TestGameListView:
         url = reverse(list_viewname)
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
-        assert isinstance(response.data, list)
+        assert isinstance(response.data["results"], list)
 
     @pytest.mark.django_db
     def test_list_games_unauthenticated(self, unauthenticated_client, pending_game_created_by_primary_user):
         url = reverse(list_viewname)
         response = unauthenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
-        assert isinstance(response.data, list)
-        for game in response.data:
+        assert isinstance(response.data["results"], list)
+        for game in response.data["results"]:
             assert game["can_join"] is False
             assert game["can_leave"] is False
 
@@ -397,7 +397,7 @@ class TestGameListView:
         url = reverse(list_viewname)
         response = unauthenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
-        game_ids = [g["id"] for g in response.data]
+        game_ids = [g["id"] for g in response.data["results"]]
         assert public_game.id in game_ids
         assert private_game.id not in game_ids
 
@@ -406,7 +406,7 @@ class TestGameListView:
         url = reverse(list_viewname) + "?mine=true"
         response = unauthenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
-        assert response.data == []
+        assert response.data["results"] == []
 
     @pytest.mark.django_db
     def test_list_games_unauthenticated_can_join_filter(self, unauthenticated_client, pending_game_created_by_primary_user):
@@ -414,7 +414,7 @@ class TestGameListView:
         response = unauthenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
         # Should return joinable games without excluding any user's games (since no user)
-        game_ids = [g["id"] for g in response.data]
+        game_ids = [g["id"] for g in response.data["results"]]
         if not pending_game_created_by_primary_user.private:
             assert pending_game_created_by_primary_user.id in game_ids
 
@@ -423,10 +423,10 @@ class TestGameListView:
         url = reverse(list_viewname)
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
-        assert isinstance(response.data, list)
+        assert isinstance(response.data["results"], list)
 
-        if len(response.data) > 0:
-            game = response.data[0]
+        if len(response.data["results"]) > 0:
+            game = response.data["results"][0]
             required_fields = [
                 "id",
                 "name",
@@ -450,7 +450,7 @@ class TestGameListView:
         response = authenticated_client.get(url, {"mine": "true"})
         assert response.status_code == status.HTTP_200_OK
 
-        game_ids = [game["id"] for game in response.data]
+        game_ids = [game["id"] for game in response.data["results"]]
         assert pending_game_created_by_primary_user.id in game_ids
         assert pending_game_created_by_secondary_user.id not in game_ids
 
@@ -462,7 +462,7 @@ class TestGameListView:
         response = authenticated_client.get(url, {"mine": "false"})
         assert response.status_code == status.HTTP_200_OK
 
-        game_ids = [game["id"] for game in response.data]
+        game_ids = [game["id"] for game in response.data["results"]]
         assert pending_game_created_by_secondary_user.id in game_ids
 
     @pytest.mark.django_db
@@ -473,7 +473,7 @@ class TestGameListView:
         response = authenticated_client.get(url, {"can_join": "true"})
         assert response.status_code == status.HTTP_200_OK
 
-        for game in response.data:
+        for game in response.data["results"]:
             assert game["can_join"] is True
 
     @pytest.mark.django_db
@@ -482,11 +482,11 @@ class TestGameListView:
         response = authenticated_client.get(url, {"mine": "true", "can_join": "false"})
         assert response.status_code == status.HTTP_200_OK
 
-        for game in response.data:
+        for game in response.data["results"]:
             assert game["can_join"] is False
 
-        if len(response.data) > 0:
-            game_ids = [game["id"] for game in response.data]
+        if len(response.data["results"]) > 0:
+            game_ids = [game["id"] for game in response.data["results"]]
             assert pending_game_created_by_primary_user.id in game_ids
 
     @pytest.mark.django_db
@@ -494,6 +494,184 @@ class TestGameListView:
         url = reverse(list_viewname)
         response = authenticated_client.get(url, {"mine": "", "can_join": ""})
         assert response.status_code == status.HTTP_200_OK
+
+
+class TestGameListViewPagination:
+
+    @pytest.mark.django_db
+    def test_list_games_returns_paginated_response(self, authenticated_client, pending_game_created_by_primary_user):
+        url = reverse(list_viewname)
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert "results" in response.data
+        assert "count" in response.data
+        assert "next" in response.data
+        assert "previous" in response.data
+        assert isinstance(response.data["results"], list)
+        assert response.data["count"] == 1
+        game_ids = [g["id"] for g in response.data["results"]]
+        assert pending_game_created_by_primary_user.id in game_ids
+
+
+    @pytest.mark.django_db
+    def test_list_games_default_page_size(self, authenticated_client, classical_variant, base_pending_phase):
+        for i in range(25):
+            game = Game.objects.create(
+                name=f"Game {i}",
+                variant=classical_variant,
+                status=GameStatus.PENDING,
+            )
+            base_pending_phase(game)
+
+        url = reverse(list_viewname)
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data["results"]) == 20
+        assert response.data["count"] == 25
+        assert response.data["next"] is not None
+        assert response.data["previous"] is None
+
+
+    @pytest.mark.django_db
+    def test_list_games_page_navigation(self, authenticated_client, classical_variant, base_pending_phase):
+        for i in range(25):
+            game = Game.objects.create(
+                name=f"Game {i}",
+                variant=classical_variant,
+                status=GameStatus.PENDING,
+            )
+            base_pending_phase(game)
+
+        url = reverse(list_viewname)
+        response = authenticated_client.get(url, {"page": 2})
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data["results"]) == 5
+        assert response.data["previous"] is not None
+        assert response.data["next"] is None
+
+
+    @pytest.mark.django_db
+    def test_list_games_custom_page_size(self, authenticated_client, classical_variant, base_pending_phase):
+        for i in range(10):
+            game = Game.objects.create(
+                name=f"Game {i}",
+                variant=classical_variant,
+                status=GameStatus.PENDING,
+            )
+            base_pending_phase(game)
+
+        url = reverse(list_viewname)
+        response = authenticated_client.get(url, {"page_size": 5})
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data["results"]) == 5
+        assert response.data["count"] == 10
+
+    @pytest.mark.django_db
+    def test_list_games_page_size_capped_at_max(self, authenticated_client, classical_variant, base_pending_phase):
+        for i in range(5):
+            game = Game.objects.create(
+                name=f"Game {i}",
+                variant=classical_variant,
+                status=GameStatus.PENDING,
+            )
+            base_pending_phase(game)
+
+        url = reverse(list_viewname)
+        response = authenticated_client.get(url, {"page_size": 200})
+        assert response.status_code == status.HTTP_200_OK
+        # max_page_size is 100, but only 5 games exist, so all are returned
+        assert len(response.data["results"]) == 5
+
+
+    @pytest.mark.django_db
+    def test_list_games_filter_status_single(self, authenticated_client, classical_variant, base_pending_phase):
+        active_game = Game.objects.create(
+            name="Active Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        base_pending_phase(active_game)
+        pending_game = Game.objects.create(
+            name="Pending Game",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+        )
+        base_pending_phase(pending_game)
+
+        url = reverse(list_viewname)
+        response = authenticated_client.get(url, {"status": "active"})
+        assert response.status_code == status.HTTP_200_OK
+        game_ids = [g["id"] for g in response.data["results"]]
+        assert active_game.id in game_ids
+        assert pending_game.id not in game_ids
+
+
+    @pytest.mark.django_db
+    def test_list_games_filter_status_multiple(self, authenticated_client, classical_variant, base_pending_phase):
+        completed_game = Game.objects.create(
+            name="Completed Game",
+            variant=classical_variant,
+            status=GameStatus.COMPLETED,
+        )
+        base_pending_phase(completed_game)
+        abandoned_game = Game.objects.create(
+            name="Abandoned Game",
+            variant=classical_variant,
+            status=GameStatus.ABANDONED,
+        )
+        base_pending_phase(abandoned_game)
+        active_game = Game.objects.create(
+            name="Active Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        base_pending_phase(active_game)
+
+        url = reverse(list_viewname)
+        response = authenticated_client.get(url, {"status": "completed,abandoned"})
+        assert response.status_code == status.HTTP_200_OK
+        game_ids = [g["id"] for g in response.data["results"]]
+        assert completed_game.id in game_ids
+        assert abandoned_game.id in game_ids
+        assert active_game.id not in game_ids
+
+
+    @pytest.mark.django_db
+    def test_list_games_ordered_newest_first(self, authenticated_client, classical_variant, base_pending_phase):
+        first_game = Game.objects.create(
+            name="First Game",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+        )
+        base_pending_phase(first_game)
+        second_game = Game.objects.create(
+            name="Second Game",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+        )
+        base_pending_phase(second_game)
+
+        url = reverse(list_viewname)
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        results = response.data["results"]
+        assert len(results) == 2
+        assert results[0]["id"] == second_game.id
+        assert results[1]["id"] == first_game.id
+
+
+    @pytest.mark.django_db
+    def test_list_games_existing_filters_with_pagination(
+        self, authenticated_client, pending_game_created_by_primary_user, pending_game_created_by_secondary_user
+    ):
+        url = reverse(list_viewname)
+        response = authenticated_client.get(url, {"mine": "true"})
+        assert response.status_code == status.HTTP_200_OK
+        assert "results" in response.data
+        game_ids = [g["id"] for g in response.data["results"]]
+        assert pending_game_created_by_primary_user.id in game_ids
+        assert pending_game_created_by_secondary_user.id not in game_ids
+        assert response.data["count"] == 1
 
 
 class TestGameListViewQueryPerformance:
@@ -508,7 +686,7 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 3
+        assert query_count == 4
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_phases_and_units(
@@ -559,7 +737,7 @@ class TestGameListViewQueryPerformance:
             print(f"Time: {query['time']}")
         print("=" * 80 + "\n")
 
-        assert query_count == 3
+        assert query_count == 4
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_different_nations(
@@ -620,7 +798,7 @@ class TestGameListViewQueryPerformance:
             print(f"Time: {query['time']}")
         print("=" * 80 + "\n")
 
-        assert query_count == 3
+        assert query_count == 4
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_phase_states(
@@ -669,7 +847,7 @@ class TestGameListViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        assert query_count == 3
+        assert query_count == 4
 
 
 class TestGameCreateView:
@@ -1269,7 +1447,7 @@ class TestGamePrivateFiltering:
         response = authenticated_client.get(url, {"can_join": "true"})
         assert response.status_code == status.HTTP_200_OK
 
-        game_ids = [game["id"] for game in response.data]
+        game_ids = [game["id"] for game in response.data["results"]]
         assert public_game.id in game_ids
         assert private_game.id not in game_ids
 
@@ -1289,7 +1467,7 @@ class TestGamePrivateFiltering:
         response = authenticated_client.get(url, {"mine": "true"})
         assert response.status_code == status.HTTP_200_OK
 
-        game_ids = [game["id"] for game in response.data]
+        game_ids = [game["id"] for game in response.data["results"]]
         assert private_game.id in game_ids
 
     @pytest.mark.django_db
@@ -1816,7 +1994,7 @@ class TestSandboxGameFiltering:
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
 
-        game_ids = [game["id"] for game in response.data]
+        game_ids = [game["id"] for game in response.data["results"]]
         assert regular_game.id in game_ids
         assert sandbox_game.id not in game_ids
 
@@ -1844,7 +2022,7 @@ class TestSandboxGameFiltering:
         response = authenticated_client.get(url, {"sandbox": "true"})
         assert response.status_code == status.HTTP_200_OK
 
-        game_ids = [game["id"] for game in response.data]
+        game_ids = [game["id"] for game in response.data["results"]]
         assert sandbox_game.id in game_ids
         assert regular_game.id not in game_ids
 
@@ -1872,7 +2050,7 @@ class TestSandboxGameFiltering:
         response = authenticated_client.get(url, {"sandbox": "false"})
         assert response.status_code == status.HTTP_200_OK
 
-        game_ids = [game["id"] for game in response.data]
+        game_ids = [game["id"] for game in response.data["results"]]
         assert regular_game.id in game_ids
         assert sandbox_game.id not in game_ids
 
@@ -2366,7 +2544,7 @@ class TestGamePauseUnpause:
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
 
-        game_data = next((g for g in response.data if g["id"] == game.id), None)
+        game_data = next((g for g in response.data["results"] if g["id"] == game.id), None)
         assert game_data is not None
         assert "is_paused" in game_data
         assert "paused_at" in game_data

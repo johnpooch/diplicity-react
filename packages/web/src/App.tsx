@@ -8,7 +8,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider } from "./auth";
 import { Toaster } from "./components/ui/sonner";
 import { isNativePlatform } from "./utils/platform";
-import { initializeNativeGoogleAuth } from "./auth/nativeGoogleAuth";
+import { initializeNativeSocialLogin } from "./auth/nativeGoogleAuth";
 import { App as CapacitorApp } from "@capacitor/app";
 import { deepLinkStorage, parseDeepLinkUrl } from "./deepLink";
 
@@ -36,7 +36,7 @@ function App() {
 
   useEffect(() => {
     if (isNativePlatform()) {
-      initializeNativeGoogleAuth();
+      initializeNativeSocialLogin();
     }
   }, []);
 
