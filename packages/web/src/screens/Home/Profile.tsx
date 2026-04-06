@@ -9,7 +9,15 @@ import { ScreenHeader } from "@/components/ui/screen-header";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { useTheme } from "@/theme/useTheme";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   DropdownMenu,
@@ -32,6 +40,8 @@ const Profile: React.FC = () => {
   const queryClient = useQueryClient();
   const { data: userProfile } = useUserRetrieveSuspense();
   const updateProfileMutation = useUserUpdatePartialUpdate();
+
+  const { preference, setPreference } = useTheme();
 
   const {
     enableMessaging,
@@ -153,6 +163,23 @@ const Profile: React.FC = () => {
                 Failed to update name. Please try again.
               </p>
             )}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Appearance</h2>
+          <div className="flex items-center gap-4">
+            <Label htmlFor="theme-select">Theme</Label>
+            <Select value={preference} onValueChange={setPreference}>
+              <SelectTrigger id="theme-select" className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="light">Light</SelectItem>
+                <SelectItem value="dark">Dark</SelectItem>
+                <SelectItem value="system">System</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
