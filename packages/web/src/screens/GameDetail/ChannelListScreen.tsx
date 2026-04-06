@@ -42,7 +42,9 @@ const ChannelListScreen: React.FC = () => {
 
   const isSandboxGame = game.sandbox;
   const isNoPressActiveGame =
-    game.pressType === "no_press" && game.status !== "completed";
+    game.pressType === "no_press" &&
+    game.status !== "completed" &&
+    game.status !== "abandoned";
 
   return (
     <div className="flex flex-col flex-1 min-h-0">

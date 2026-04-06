@@ -144,7 +144,9 @@ const ChannelScreen: React.FC = () => {
   };
 
   const isNoPressActiveGame =
-    game.pressType === "no_press" && game.status !== "completed";
+    game.pressType === "no_press" &&
+    game.status !== "completed" &&
+    game.status !== "abandoned";
 
   const variant = variants.find(v => v.id === game.variantId);
   const variantId = variant?.id;
