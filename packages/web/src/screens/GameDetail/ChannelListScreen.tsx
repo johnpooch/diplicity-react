@@ -75,6 +75,11 @@ const ChannelListScreen: React.FC = () => {
                             {!channel.private && (
                               <Badge variant="outline">Public</Badge>
                             )}
+                            {channel.unreadMessageCount > 0 && (
+                              <Badge variant="default">
+                                {channel.unreadMessageCount}
+                              </Badge>
+                            )}
                           </ItemTitle>
                           <ItemDescription>
                             {getLatestMessagePreview(channel.messages)}

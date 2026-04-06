@@ -2,6 +2,8 @@ from zoneinfo import ZoneInfo
 
 from rest_framework import serializers
 from django.db import transaction
+from django.db.models import Count, Q, Subquery, OuterRef
+from django.apps import apps
 from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
 from common.constants import DeadlineMode, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus
@@ -14,6 +16,9 @@ from victory.serializers import VictorySerializer
 from variant.models import Variant
 from member.models import Member
 from .models import Game
+
+ChannelMember = apps.get_model("channel", "ChannelMember")
+ChannelMessage = apps.get_model("channel", "ChannelMessage")
 
 tracer = trace.get_tracer(__name__)
 
@@ -112,6 +117,27 @@ class GameRetrieveSerializer(serializers.Serializer):
     fixed_deadline_timezone = serializers.CharField(read_only=True, allow_null=True)
     movement_frequency = serializers.CharField(read_only=True, allow_null=True)
     retreat_frequency = serializers.CharField(read_only=True, allow_null=True)
+    total_unread_message_count = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.IntegerField)
+    def get_total_unread_message_count(self, obj):
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return 0
+        return (
+            ChannelMessage.objects.filter(
+                channel__game=obj,
+                channel__member_channels__member__user=user,
+                created_at__gt=Subquery(
+                    ChannelMember.objects.filter(
+                        channel=OuterRef("channel"),
+                        member__user=user,
+                    ).values("last_read_at")[:1]
+                ),
+            )
+            .distinct()
+            .count()
+        )
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):
@@ -252,8 +278,9 @@ class GameCreateSerializer(serializers.Serializer):
                 nmr_extensions_allowed=validated_data["nmr_extensions_allowed"],
             )
 
-            game.members.create(user=request.user, is_game_master=True)
-            game.channels.create(name="Public Press", private=False)
+            creator_member = game.members.create(user=request.user, is_game_master=True)
+            public_channel = game.channels.create(name="Public Press", private=False)
+            public_channel.member_channels.create(member=creator_member)
 
             if hasattr(game, "_created_phase"):
                 delattr(game, "_created_phase")
