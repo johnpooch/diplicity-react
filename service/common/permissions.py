@@ -1,7 +1,7 @@
 from rest_framework.permissions import BasePermission
 from django.shortcuts import get_object_or_404
 from django.apps import apps
-from common.constants import GameStatus
+from common.constants import GameStatus, PressType
 
 Game = apps.get_model("game", "Game")
 Channel = apps.get_model("channel", "Channel")
@@ -141,6 +141,17 @@ class IsNotSandboxGame(BasePermission):
         game_id = view.kwargs.get("game_id")
         game = get_object_or_404(Game, id=game_id)
         return not game.sandbox
+
+
+class IsNotNoPressActiveGame(BasePermission):
+    message = "Messaging is not available in active No Press games."
+
+    def has_permission(self, request, view):
+        game_id = view.kwargs.get("game_id")
+        game = get_object_or_404(Game, id=game_id)
+        if game.press_type != PressType.NO_PRESS:
+            return True
+        return game.status in (GameStatus.COMPLETED, GameStatus.ABANDONED)
 
 
 class IsGameMaster(BasePermission):
