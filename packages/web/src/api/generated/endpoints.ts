@@ -508,15 +508,6 @@ export interface OrderOptionsResponse {
   fieldOrder: OrderOptionsResponseFieldOrder;
 }
 
-export interface PaginatedGameListList {
-  count: number;
-  /** @nullable */
-  next?: string | null;
-  /** @nullable */
-  previous?: string | null;
-  results: GameList[];
-}
-
 export interface PasswordReset {
   email: string;
 }
@@ -802,16 +793,36 @@ export type GamesListParams = {
   can_join?: boolean;
   mine?: boolean;
   /**
-   * A page number within the paginated result set.
+   * * `1 hour` - 1 hour
+   * `12 hours` - 12 hours
+   * `24 hours` - 24 hours
+   * `48 hours` - 48 hours
+   * `3 days` - 3 days
+   * `4 days` - 4 days
+   * `1 week` - 1 week
+   * `2 weeks` - 2 weeks
+   * @nullable
    */
-  page?: number;
-  /**
-   * Number of results to return per page.
-   */
-  page_size?: number;
+  movement_phase_duration?: GamesListMovementPhaseDuration;
   sandbox?: boolean;
   status?: string;
+  variant?: string;
 };
+
+export type GamesListMovementPhaseDuration =
+  | (typeof GamesListMovementPhaseDuration)[keyof typeof GamesListMovementPhaseDuration]
+  | null;
+
+export const GamesListMovementPhaseDuration = {
+  "1_hour": "1 hour",
+  "1_week": "1 week",
+  "12_hours": "12 hours",
+  "2_weeks": "2 weeks",
+  "24_hours": "24 hours",
+  "3_days": "3 days",
+  "4_days": "4 days",
+  "48_hours": "48 hours",
+} as const;
 
 /**
  * OpenApi3 schema for this API. Format can be selected via content negotiation.
@@ -5215,7 +5226,7 @@ export const useGameUnpausePartialUpdate = <
 };
 
 export const gamesList = (params?: GamesListParams, signal?: AbortSignal) => {
-  return customInstance<PaginatedGameListList>({
+  return customInstance<GameList[]>({
     url: `/games/`,
     method: "GET",
     params,
@@ -8814,19 +8825,8 @@ export const getGameResolvePhaseCreateResponseMock = (
   ...overrideResponse,
 });
 
-export const getGamesListResponseMock = (
-  overrideResponse: Partial<PaginatedGameListList> = {}
-): PaginatedGameListList => ({
-  count: faker.number.int({ min: undefined, max: undefined }),
-  next: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([faker.internet.url(), null]),
-    undefined,
-  ]),
-  previous: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([faker.internet.url(), null]),
-    undefined,
-  ]),
-  results: Array.from(
+export const getGamesListResponseMock = (): GameList[] =>
+  Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1
   ).map(() => ({
@@ -8967,9 +8967,7 @@ export const getGamesListResponseMock = (
       ]),
       null,
     ]),
-  })),
-  ...overrideResponse,
-});
+  }));
 
 export const getGamesChannelsListResponseMock = (): Channel[] =>
   Array.from(
@@ -10271,10 +10269,10 @@ export const getGameUnpausePartialUpdateMockHandler = (
 
 export const getGamesListMockHandler = (
   overrideResponse?:
-    | PaginatedGameListList
+    | GameList[]
     | ((
         info: Parameters<Parameters<typeof http.get>[1]>[0]
-      ) => Promise<PaginatedGameListList> | PaginatedGameListList),
+      ) => Promise<GameList[]> | GameList[]),
   options?: RequestHandlerOptions
 ) => {
   return http.get(
