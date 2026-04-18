@@ -15,13 +15,12 @@ import { Navigation } from "@/components/Navigation";
 import { InfoPanel } from "@/components/InfoPanel";
 import { SidebarUserArea } from "@/components/SidebarUserArea";
 import { SafeAreaView } from "@/components/SafeAreaView";
-import { Home, Search, PlusCircle, Blocks, MessageCircle } from "lucide-react";
+import { Home, Search, PlusCircle, MessageCircle } from "lucide-react";
 
 const navigationItems = [
   { label: "My Games", icon: Home, path: "/" },
   { label: "Find Games", icon: Search, path: "/find-games" },
   { label: "Create Game", icon: PlusCircle, path: "/create-game" },
-  { label: "Sandbox", icon: Blocks, path: "/sandbox" },
   { label: "Community", icon: MessageCircle, path: "/community", badge: "New" },
 ];
 

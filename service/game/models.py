@@ -202,6 +202,30 @@ class GameManager(models.Manager):
         game._created_phase = phase
         return game
 
+    def create_sandbox(self, user, *, name, variant, **kwargs):
+        kwargs.setdefault("sandbox", True)
+        kwargs.setdefault("private", True)
+        kwargs.setdefault("nation_assignment", NationAssignment.ORDERED)
+        kwargs.setdefault("movement_phase_duration", None)
+
+        with transaction.atomic():
+            game = self.create_from_template(variant, name=name, **kwargs)
+
+            nations_list = list(variant.nations.all())
+            members_to_create = [Member(game=game, user=user) for _ in nations_list]
+            created_members = Member.objects.bulk_create(members_to_create)
+
+            current_phase = getattr(game, "_created_phase", None)
+            if current_phase is None:
+                current_phase = game.phases.first()
+
+            game.start(current_phase=current_phase, members=created_members)
+
+            if hasattr(game, "_created_phase"):
+                delattr(game, "_created_phase")
+
+        return game
+
     def clone_from_phase(self, source_phase, name):
         game = self.create(
             variant=source_phase.game.variant,

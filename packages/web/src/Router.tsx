@@ -119,14 +119,6 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
                       ),
                     },
                     {
-                      path: "sandbox",
-                      element: (
-                        <Suspense fallback={<RouteFallback />}>
-                          <Home.SandboxGames />
-                        </Suspense>
-                      ),
-                    },
-                    {
                       path: "profile",
                       element: (
                         <Suspense fallback={<RouteFallback />}>

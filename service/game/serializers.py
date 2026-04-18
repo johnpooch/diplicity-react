@@ -305,28 +305,11 @@ class GameCreateSandboxSerializer(serializers.Serializer):
         request = self.context["request"]
         variant = Variant.objects.with_game_creation_data().get(id=validated_data["variant_id"])
 
-        with transaction.atomic():
-            game = Game.objects.create_from_template(
-                variant,
-                name=validated_data["name"],
-                sandbox=True,
-                private=True,
-                nation_assignment=NationAssignment.ORDERED,
-                movement_phase_duration=None,
-            )
-
-            nations_list = list(variant.nations.all())
-            members_to_create = [Member(game=game, user=request.user) for _ in nations_list]
-            created_members = Member.objects.bulk_create(members_to_create)
-
-            current_phase = getattr(game, "_created_phase", None)
-            if current_phase is None:
-                current_phase = game.phases.first()
-
-            game.start(current_phase=current_phase, members=created_members)
-
-            if hasattr(game, "_created_phase"):
-                delattr(game, "_created_phase")
+        game = Game.objects.create_sandbox(
+            user=request.user,
+            name=validated_data["name"],
+            variant=variant,
+        )
 
         return Game.objects.all().with_related_data().get(id=game.id)
 

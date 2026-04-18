@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { GameDropdownMenu } from "./GameDropdownMenu";
 import { UserPlus, Lock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { RemainingTimeDisplay } from "./RemainingTimeDisplay";
 import {
@@ -98,7 +99,12 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
                 onClick={handleClickGame}
                 className="text-left hover:underline"
               >
-                <CardTitle>{game.name}</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  {game.name}
+                  {game.sandbox && (
+                    <Badge variant="secondary">Sandbox</Badge>
+                  )}
+                </CardTitle>
               </button>
               <div className="flex items-center gap-2">
                 {joinGameButton}
@@ -138,29 +144,31 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
             </CardDescription>
           </div>
         </CardHeader>
-        <CardFooter className="p-0 flex justify-between items-center">
-          <button
-            onClick={handleClickPlayerInfo}
-            className="flex -space-x-2"
-          >
-            {game.members.slice(0, 7).map(member => (
-              <Avatar
-                key={member.id}
-                className="h-8 w-8 border-2 border-background"
-              >
-                <AvatarImage src={member.picture ?? undefined} />
-                <AvatarFallback>
-                  {member.name?.[0]?.toUpperCase() ?? "?"}
-                </AvatarFallback>
-              </Avatar>
-            ))}
-            {game.members.length > 7 && (
-              <div className="h-8 w-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs">
-                +{game.members.length - 7}
-              </div>
-            )}
-          </button>
-        </CardFooter>
+        {!game.sandbox && (
+          <CardFooter className="p-0 flex justify-between items-center">
+            <button
+              onClick={handleClickPlayerInfo}
+              className="flex -space-x-2"
+            >
+              {game.members.slice(0, 7).map(member => (
+                <Avatar
+                  key={member.id}
+                  className="h-8 w-8 border-2 border-background"
+                >
+                  <AvatarImage src={member.picture ?? undefined} />
+                  <AvatarFallback>
+                    {member.name?.[0]?.toUpperCase() ?? "?"}
+                  </AvatarFallback>
+                </Avatar>
+              ))}
+              {game.members.length > 7 && (
+                <div className="h-8 w-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs">
+                  +{game.members.length - 7}
+                </div>
+              )}
+            </button>
+          </CardFooter>
+        )}
       </div>
     </Card>
   );

@@ -1,7 +1,10 @@
 import pytest
+from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework import status
+from adjudication import service as adjudication_service
+from game.models import Game
 from user_profile.models import UserProfile
 from member.models import Member
 
@@ -168,3 +171,65 @@ class TestUserAccountDelete:
         assert member.is_game_master is True
         assert member.kicked is True
         assert member.user is None
+
+
+class TestWelcomeSandboxGameCreation:
+
+    @pytest.mark.django_db
+    def test_creating_user_profile_creates_sandbox_game(self, adjudication_data_classical):
+        with patch.object(adjudication_service, "start", return_value=adjudication_data_classical):
+            user = User.objects.create_user(
+                username="newuser", email="new@example.com", password="testpass123"
+            )
+            UserProfile.objects.create(user=user, name="New User")
+
+        sandbox_games = Game.objects.filter(sandbox=True, members__user=user).distinct()
+        assert sandbox_games.count() == 1
+
+        game = sandbox_games.first()
+        assert game.name == "Practice Game"
+        assert game.variant.id == "classical"
+
+    @pytest.mark.django_db
+    def test_does_not_create_duplicate_if_user_has_sandbox_game(
+        self, classical_variant, adjudication_data_classical
+    ):
+        with patch.object(adjudication_service, "start", return_value=adjudication_data_classical):
+            user = User.objects.create_user(
+                username="existingsandbox", email="existing@example.com", password="testpass123"
+            )
+            existing_game = Game.objects.create_sandbox(
+                user=user,
+                name="Existing Sandbox",
+                variant=classical_variant,
+            )
+            UserProfile.objects.create(user=user, name="Existing Sandbox User")
+
+        sandbox_games = Game.objects.filter(sandbox=True, members__user=user).distinct()
+        assert sandbox_games.count() == 1
+        assert sandbox_games.first().id == existing_game.id
+
+    @pytest.mark.django_db
+    def test_user_creation_succeeds_when_variant_missing(self):
+        from variant.models import Variant
+
+        with patch.object(Variant.objects, "with_game_creation_data") as mock_qs:
+            mock_qs.return_value = Variant.objects.none()
+            user = User.objects.create_user(
+                username="novariant", email="novariant@example.com", password="testpass123"
+            )
+            UserProfile.objects.create(user=user, name="No Variant User")
+
+        assert UserProfile.objects.filter(user=user).exists()
+        sandbox_games = Game.objects.filter(sandbox=True, members__user=user).distinct()
+        assert sandbox_games.count() == 0
+
+    @pytest.mark.django_db
+    def test_user_creation_succeeds_when_game_creation_fails(self):
+        with patch.object(Game.objects, "create_sandbox", side_effect=Exception("boom")):
+            user = User.objects.create_user(
+                username="failedgame", email="fail@example.com", password="testpass123"
+            )
+            UserProfile.objects.create(user=user, name="Failed Game User")
+
+        assert UserProfile.objects.filter(user=user).exists()
