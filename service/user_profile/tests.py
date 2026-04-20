@@ -176,7 +176,9 @@ class TestUserAccountDelete:
 class TestWelcomeSandboxGameCreation:
 
     @pytest.mark.django_db
-    def test_creating_user_profile_creates_sandbox_game(self, adjudication_data_classical):
+    def test_creating_user_profile_creates_sandbox_game(
+        self, adjudication_data_classical, mock_immediate_on_commit
+    ):
         with patch.object(adjudication_service, "start", return_value=adjudication_data_classical):
             user = User.objects.create_user(
                 username="newuser", email="new@example.com", password="testpass123"
@@ -192,7 +194,7 @@ class TestWelcomeSandboxGameCreation:
 
     @pytest.mark.django_db
     def test_does_not_create_duplicate_if_user_has_sandbox_game(
-        self, classical_variant, adjudication_data_classical
+        self, classical_variant, adjudication_data_classical, mock_immediate_on_commit
     ):
         with patch.object(adjudication_service, "start", return_value=adjudication_data_classical):
             user = User.objects.create_user(
@@ -210,7 +212,7 @@ class TestWelcomeSandboxGameCreation:
         assert sandbox_games.first().id == existing_game.id
 
     @pytest.mark.django_db
-    def test_user_creation_succeeds_when_variant_missing(self):
+    def test_user_creation_succeeds_when_variant_missing(self, mock_immediate_on_commit):
         from variant.models import Variant
 
         with patch.object(Variant.objects, "with_game_creation_data") as mock_qs:
@@ -225,7 +227,7 @@ class TestWelcomeSandboxGameCreation:
         assert sandbox_games.count() == 0
 
     @pytest.mark.django_db
-    def test_user_creation_succeeds_when_game_creation_fails(self):
+    def test_user_creation_succeeds_when_game_creation_fails(self, mock_immediate_on_commit):
         with patch.object(Game.objects, "create_sandbox", side_effect=Exception("boom")):
             user = User.objects.create_user(
                 username="failedgame", email="fail@example.com", password="testpass123"
