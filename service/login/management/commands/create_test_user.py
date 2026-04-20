@@ -11,18 +11,25 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--email", type=str, required=True)
         parser.add_argument("--name", type=str, required=True)
+        parser.add_argument("--password", type=str, required=False)
 
     def handle(self, *args, **options):
         email = options["email"]
         name = options["name"]
+        password = options.get("password")
 
-        user, _ = AuthUser.objects.get_or_create(
+        user, created = AuthUser.objects.get_or_create(
             email=email,
             defaults={
                 "username": email.split("@")[0],
-                "password": "unused",
+                "is_active": True,
             },
         )
+
+        if password:
+            user.set_password(password)
+            user.save()
+
         UserProfile.objects.update_or_create(
             user=user,
             defaults={"name": name},
