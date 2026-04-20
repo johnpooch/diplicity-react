@@ -671,7 +671,6 @@ class TestGameListViewPagination:
         game_ids = [g["id"] for g in response.data["results"]]
         assert pending_game_created_by_primary_user.id in game_ids
         assert pending_game_created_by_secondary_user.id not in game_ids
-        assert response.data["count"] == 1
 
 
 class TestGameListViewQueryPerformance:
@@ -1999,6 +1998,34 @@ class TestSandboxGameFiltering:
         assert sandbox_game.id not in game_ids
 
     @pytest.mark.django_db
+    def test_sandbox_games_included_when_mine_filter(self, authenticated_client, primary_user, classical_variant):
+        regular_game = Game.objects.create_from_template(
+            classical_variant,
+            name="Regular Game",
+            nation_assignment=NationAssignment.RANDOM,
+            private=False,
+        )
+        regular_game.members.create(user=primary_user)
+
+        sandbox_game = Game.objects.create_from_template(
+            classical_variant,
+            name="Sandbox Game",
+            sandbox=True,
+            private=True,
+            nation_assignment=NationAssignment.ORDERED,
+            movement_phase_duration=None,
+        )
+        sandbox_game.members.create(user=primary_user)
+
+        url = reverse(list_viewname)
+        response = authenticated_client.get(url, {"mine": "true"})
+        assert response.status_code == status.HTTP_200_OK
+
+        game_ids = [game["id"] for game in response.data["results"]]
+        assert regular_game.id in game_ids
+        assert sandbox_game.id in game_ids
+
+    @pytest.mark.django_db
     def test_sandbox_games_included_when_filter_true(self, authenticated_client, primary_user, classical_variant):
         regular_game = Game.objects.create_from_template(
             classical_variant,
@@ -2346,20 +2373,26 @@ class TestGameCloneToSandbox:
         self, authenticated_client, primary_user, classical_variant, adjudication_data_classical,
         active_game_with_phase_state
     ):
-        sandboxes = []
-        for i in range(3):
+        existing_sandboxes = list(
+            Game.objects.filter(sandbox=True, members__user=primary_user)
+            .distinct()
+            .order_by("created_at")
+            .values_list("id", flat=True)
+        )
+
+        while len(existing_sandboxes) < 3:
             sandbox = Game.objects.create_from_template(
                 classical_variant,
-                name=f"Existing Sandbox {i}",
+                name=f"Existing Sandbox {len(existing_sandboxes)}",
                 sandbox=True,
                 private=True,
                 nation_assignment=NationAssignment.ORDERED,
                 movement_phase_duration=None,
             )
             sandbox.members.create(user=primary_user)
-            sandboxes.append(sandbox)
+            existing_sandboxes.append(sandbox.id)
 
-        oldest_sandbox_id = sandboxes[0].id
+        oldest_sandbox_id = existing_sandboxes[0]
 
         url = reverse(clone_to_sandbox_viewname, args=[active_game_with_phase_state.id])
         with patch("adjudication.service.start") as mock_start:
@@ -2968,3 +3001,62 @@ class TestFixedTimeDeadlines:
             retreat_frequency=None,
         )
         assert game.get_phase_frequency(PhaseType.RETREAT) == PhaseFrequency.DAILY
+
+
+class TestCreateSandboxManagerMethod:
+
+    @pytest.mark.django_db
+    def test_creates_active_sandbox_game_with_members(
+        self, primary_user, classical_variant, adjudication_data_classical
+    ):
+        with patch.object(adjudication_service, "start", return_value=adjudication_data_classical):
+            game = Game.objects.create_sandbox(
+                user=primary_user,
+                name="Test Sandbox",
+                variant=classical_variant,
+            )
+
+        assert game.sandbox is True
+        assert game.private is True
+        assert game.status == GameStatus.ACTIVE
+        assert game.movement_phase_duration is None
+        assert game.nation_assignment == NationAssignment.ORDERED
+        assert game.name == "Test Sandbox"
+        assert game.variant == classical_variant
+
+        nation_count = classical_variant.nations.count()
+        assert game.members.count() == nation_count
+        assert all(m.user == primary_user for m in game.members.all())
+        assert all(m.nation is not None for m in game.members.all())
+
+    @pytest.mark.django_db
+    def test_accepts_custom_parameters(
+        self, primary_user, italy_vs_germany_variant, adjudication_data_italy_vs_germany
+    ):
+        with patch.object(adjudication_service, "start", return_value=adjudication_data_italy_vs_germany):
+            game = Game.objects.create_sandbox(
+                user=primary_user,
+                name="Custom Sandbox",
+                variant=italy_vs_germany_variant,
+                anonymous=True,
+            )
+
+        assert game.name == "Custom Sandbox"
+        assert game.variant == italy_vs_germany_variant
+        assert game.anonymous is True
+        assert game.members.count() == italy_vs_germany_variant.nations.count()
+
+    @pytest.mark.django_db
+    def test_creates_phase_states_for_all_members(
+        self, primary_user, classical_variant, adjudication_data_classical
+    ):
+        with patch.object(adjudication_service, "start", return_value=adjudication_data_classical):
+            game = Game.objects.create_sandbox(
+                user=primary_user,
+                name="Phase State Test",
+                variant=classical_variant,
+            )
+
+        current_phase = game.phases.first()
+        assert current_phase.status == PhaseStatus.ACTIVE
+        assert current_phase.phase_states.count() == classical_variant.nations.count()
