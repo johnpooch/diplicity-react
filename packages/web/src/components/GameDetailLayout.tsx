@@ -43,7 +43,10 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
   });
 
   const navItems = useMemo(() => {
-    return navigationItems.map(item => {
+    const items = game?.sandbox
+      ? navigationItems.filter(item => item.label !== "Chat")
+      : navigationItems;
+    return items.map(item => {
       const path = item.path
         .replace(":gameId", gameId)
         .replace(":phaseId", phaseId);
@@ -60,7 +63,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
         badge,
       };
     });
-  }, [gameId, phaseId, location.pathname, game?.totalUnreadMessageCount]);
+  }, [gameId, phaseId, location.pathname, game?.totalUnreadMessageCount, game?.sandbox]);
 
   // Filter out Map for desktop sidebar since map is already visible in right panel
   const sidebarNavItems = useMemo(
