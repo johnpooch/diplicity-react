@@ -1419,16 +1419,19 @@ components:
       properties:
         id:
           type: integer
+          readOnly: true
         name:
           type: string
+          readOnly: true
         picture:
           type: string
           nullable: true
-        nation:
-          $ref: '#/components/schemas/Nation'
+          readOnly: true
         isCurrentUser:
           type: boolean
           readOnly: true
+        nation:
+          $ref: '#/components/schemas/Nation'
       required:
       - id
       - isCurrentUser
@@ -1538,17 +1541,20 @@ components:
       properties:
         id:
           type: integer
+          readOnly: true
         name:
           type: string
+          readOnly: true
         picture:
           type: string
           nullable: true
-        nation:
-          type: string
-          nullable: true
+          readOnly: true
         isCurrentUser:
           type: boolean
           readOnly: true
+        nation:
+          type: string
+          nullable: true
       required:
       - id
       - isCurrentUser
@@ -1565,6 +1571,9 @@ components:
     DurationEnum:
       enum:
       - 1 hour
+      - 2 hours
+      - 4 hours
+      - 8 hours
       - 12 hours
       - 24 hours
       - 48 hours
@@ -1575,6 +1584,9 @@ components:
       type: string
       description: |-
         * `1 hour` - 1 hour
+        * `2 hours` - 2 hours
+        * `4 hours` - 4 hours
+        * `8 hours` - 8 hours
         * `12 hours` - 12 hours
         * `24 hours` - 24 hours
         * `48 hours` - 48 hours
@@ -1721,6 +1733,9 @@ components:
           - $ref: '#/components/schemas/NullEnum'
         private:
           type: boolean
+        anonymous:
+          type: boolean
+          default: false
         deadlineMode:
           allOf:
           - $ref: '#/components/schemas/DeadlineModeEnum'
@@ -1808,6 +1823,9 @@ components:
         private:
           type: boolean
           readOnly: true
+        anonymous:
+          type: boolean
+          readOnly: true
         movementPhaseDuration:
           type: string
           readOnly: true
@@ -1864,6 +1882,7 @@ components:
           readOnly: true
           nullable: true
       required:
+      - anonymous
       - canJoin
       - canLeave
       - currentPhaseId
@@ -1947,6 +1966,9 @@ components:
         private:
           type: boolean
           readOnly: true
+        anonymous:
+          type: boolean
+          readOnly: true
         isPaused:
           type: boolean
           readOnly: true
@@ -1982,6 +2004,7 @@ components:
           type: integer
           readOnly: true
       required:
+      - anonymous
       - canJoin
       - canLeave
       - currentPhaseId
@@ -2018,15 +2041,15 @@ components:
           readOnly: true
         picture:
           type: string
-          readOnly: true
           nullable: true
+          readOnly: true
+        isCurrentUser:
+          type: boolean
+          readOnly: true
         nation:
           type: string
           readOnly: true
           nullable: true
-        isCurrentUser:
-          type: boolean
-          readOnly: true
         eliminated:
           type: boolean
           readOnly: true
