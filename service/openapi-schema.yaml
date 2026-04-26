@@ -1571,6 +1571,9 @@ components:
     DurationEnum:
       enum:
       - 1 hour
+      - 2 hours
+      - 4 hours
+      - 8 hours
       - 12 hours
       - 24 hours
       - 48 hours
@@ -1581,6 +1584,9 @@ components:
       type: string
       description: |-
         * `1 hour` - 1 hour
+        * `2 hours` - 2 hours
+        * `4 hours` - 4 hours
+        * `8 hours` - 8 hours
         * `12 hours` - 12 hours
         * `24 hours` - 24 hours
         * `48 hours` - 48 hours

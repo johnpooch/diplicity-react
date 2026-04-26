@@ -2,6 +2,9 @@ import { DurationEnum } from "@/api/generated/endpoints";
 
 export const DURATION_OPTIONS = [
   { value: "1 hour", label: "1 hour" },
+  { value: "2 hours", label: "2 hours" },
+  { value: "4 hours", label: "4 hours" },
+  { value: "8 hours", label: "8 hours" },
   { value: "12 hours", label: "12 hours" },
   { value: "24 hours", label: "24 hours" },
   { value: "48 hours", label: "48 hours" },
@@ -13,6 +16,9 @@ export const DURATION_OPTIONS = [
 
 export const DURATION_ENUM_VALUES = [
   "1 hour",
+  "2 hours",
+  "4 hours",
+  "8 hours",
   "12 hours",
   "24 hours",
   "48 hours",
@@ -56,6 +62,9 @@ export const NMR_EXTENSION_OPTIONS = [
 
 export const EXTEND_DURATION_OPTIONS = [
   { value: DurationEnum["1_hour"], label: "1 hour" },
+  { value: DurationEnum["2_hours"], label: "2 hours" },
+  { value: DurationEnum["4_hours"], label: "4 hours" },
+  { value: DurationEnum["8_hours"], label: "8 hours" },
   { value: DurationEnum["12_hours"], label: "12 hours" },
   { value: DurationEnum["24_hours"], label: "24 hours" },
   { value: DurationEnum["48_hours"], label: "48 hours" },

@@ -155,6 +155,9 @@ export interface DrawVoteUpdate {
 
 /**
  * * `1 hour` - 1 hour
+ * `2 hours` - 2 hours
+ * `4 hours` - 4 hours
+ * `8 hours` - 8 hours
  * `12 hours` - 12 hours
  * `24 hours` - 24 hours
  * `48 hours` - 48 hours
@@ -167,6 +170,9 @@ export type DurationEnum = (typeof DurationEnum)[keyof typeof DurationEnum];
 
 export const DurationEnum = {
   "1_hour": "1 hour",
+  "2_hours": "2 hours",
+  "4_hours": "4 hours",
+  "8_hours": "8 hours",
   "12_hours": "12 hours",
   "24_hours": "24 hours",
   "48_hours": "48 hours",
