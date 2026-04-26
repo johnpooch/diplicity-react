@@ -45,8 +45,8 @@ const ConvoyArrow = (props: ConvoyArrowProps) => {
   const offsetY = props.offset * unitY;
 
   // Adjust the start and end points by the offset
-  const startX = props.x1 + offsetX;
-  const startY = props.y1 + offsetY;
+  const startX = props.x1;
+  const startY = props.y1;
   const endX = closestPoint.x;
   const endY = closestPoint.y;
 

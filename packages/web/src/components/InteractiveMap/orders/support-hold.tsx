@@ -23,8 +23,8 @@ const SupportHoldArrow = (props: SupportHoldArrowProps) => {
   const offsetX = props.offset * Math.cos(angle);
   const offsetY = props.offset * Math.sin(angle);
   // Adjust start and end points by offset
-  const startX = props.x1 + offsetX;
-  const startY = props.y1 + offsetY;
+  const startX = props.x1;
+  const startY = props.y1;
   const endX = props.x2 - offsetX - Math.cos(angle);
   const endY = props.y2 - offsetY - Math.sin(angle);
   const centerX = (startX + endX) / 2;

@@ -11,6 +11,7 @@ import type {
 import { ConvoyArrow } from "./orders/convoy";
 import { SupportHoldArrow } from "./orders/support-hold";
 import { Minus } from "./shapes/minus";
+import { UnitIcon } from "./shapes/unit-icon";
 import { useMapData, type MapData } from "../../hooks/useMapData";
 import { isNativePlatform } from "../../utils/platform";
 
@@ -49,7 +50,7 @@ const DEFAULT_FILL = "transparent";
 const SUCCESS_COLOR = "rgba(0,0,0,1)";
 
 const UNIT_RADIUS = 10;
-const UNIT_OFFSET_RADIUS = 5;
+const UNIT_OFFSET_RADIUS = 12;
 const UNIT_OFFSET_X = 10;
 const UNIT_OFFSET_Y = 10;
 
@@ -266,6 +267,9 @@ const InteractiveMap = (props: InteractiveMapProps) => {
             x1="0"
           />
         </pattern>
+        <filter id="noiseFilter">
+          <feTurbulence baseFrequency="0.65" />
+        </filter>
       </defs>
       {map.backgroundElements.map((element, index) => (
         <g key={index}>
@@ -380,76 +384,16 @@ const InteractiveMap = (props: InteractiveMapProps) => {
           strokeWidth={1}
         />
       ))}
-      {[...props.phase.units]
-        .sort((a, b) => {
-          // Sort so dislodged units are rendered last (on top)
-          if (a.dislodged && !b.dislodged) return 1;
-          if (!a.dislodged && b.dislodged) return -1;
-          return 0;
-        })
-        .map((unit, index) => {
-          const province = map.provinces.find(p => p.id === unit.province.id);
-          if (!province) return null;
-          const { x, y } = province.center;
-          const color = props.variant.nations.find(
-            n => n.name === unit.nation.name
-          )?.color;
-          if (!color) throw new Error("Color not found");
-
-          // Offset dislodged units by a few pixels
-          const offsetX = unit.dislodged ? 8 : 0;
-          const offsetY = unit.dislodged ? 8 : 0;
-
-          const hasDisbandOrder = props.orders?.some(
-            o => o.orderType === "Disband" && o.source.id === unit.province.id
-          );
-
-          return (
-            <g key={`${unit.province.id}-${index}`}>
-              <circle
-                cx={x - 10 + offsetX}
-                cy={y - 10 + offsetY}
-                r={UNIT_RADIUS}
-                fill={color}
-                stroke="black"
-                strokeWidth={2}
-                opacity={hasDisbandOrder ? 0.7 : 1}
-              />
-              <text
-                x={x - 10 + offsetX}
-                y={y - 5 + offsetY}
-                fontSize="15"
-                fontWeight="bold"
-                fill="black"
-                textAnchor="middle"
-              >
-                {unit.type === "Army" ? "A" : "F"}
-              </text>
-              {unit.dislodged && !hasDisbandOrder && (
-                <g
-                  transform={`translate(${x - 8 + offsetX + UNIT_RADIUS + RETREAT_FLAG_OFFSET_X}, ${y - 18 + offsetY - UNIT_RADIUS + RETREAT_FLAG_OFFSET_Y}) scale(${RETREAT_FLAG_SCALE})`}
-                >
-                  {/* Flag pole */}
-                  <line
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2={RETREAT_FLAG_POLE_HEIGHT}
-                    stroke={RETREAT_FLAG_STROKE}
-                    strokeWidth={RETREAT_FLAG_POLE_STROKE_WIDTH}
-                  />
-                  {/* Flag */}
-                  <path
-                    d="M 0 0 L 8 2 L 8 6 L 0 8 Z"
-                    fill={RETREAT_FLAG_FILL}
-                    stroke={RETREAT_FLAG_STROKE}
-                    strokeWidth={RETREAT_FLAG_STROKE_WIDTH}
-                  />
-                </g>
-              )}
-            </g>
-          );
-        })}
+      <rect
+        x="0"
+        y="0"
+        width={map.width}
+        height={map.height}
+        fill="red"
+        filter="url(#noiseFilter)"
+        opacity={0.3}
+        pointerEvents="none"
+      />
       {props.orders
         ?.filter(o => o.orderType === "Hold")
         .map(o => {
@@ -714,26 +658,13 @@ const InteractiveMap = (props: InteractiveMapProps) => {
 
           return (
             <g key={`build-${o.source.id}`}>
-              <circle
-                cx={x - 10}
-                cy={y - 10}
-                r={UNIT_RADIUS}
-                fill={color}
-                stroke="black"
-                strokeWidth={2}
+              <UnitIcon
+                type={o.unitType === "Army" ? "Army" : "Fleet"}
+                x={x - 10}
+                y={y - 10}
+                color={color}
                 opacity={0.6}
               />
-              <text
-                x={x - 10}
-                y={y - 5}
-                fontSize="15"
-                fontWeight="bold"
-                fill="black"
-                textAnchor="middle"
-                opacity={0.6}
-              >
-                {o.unitType === "Army" ? "A" : "F"}
-              </text>
               <Cross
                 x={x - 10 + BUILD_CROSS_OFFSET_X}
                 y={y - 10 + BUILD_CROSS_OFFSET_Y}
@@ -772,6 +703,60 @@ const InteractiveMap = (props: InteractiveMapProps) => {
               stroke={DISBAND_MINUS_STROKE}
               strokeWidth={DISBAND_MINUS_STROKE_WIDTH}
             />
+          );
+        })}
+      {[...props.phase.units]
+        .sort((a, b) => {
+          if (a.dislodged && !b.dislodged) return 1;
+          if (!a.dislodged && b.dislodged) return -1;
+          return 0;
+        })
+        .map((unit, index) => {
+          const province = map.provinces.find(p => p.id === unit.province.id);
+          if (!province) return null;
+          const { x, y } = province.center;
+          const color = props.variant.nations.find(
+            n => n.name === unit.nation.name
+          )?.color;
+          if (!color) throw new Error("Color not found");
+
+          const offsetX = unit.dislodged ? 8 : 0;
+          const offsetY = unit.dislodged ? 8 : 0;
+
+          const hasDisbandOrder = props.orders?.some(
+            o => o.orderType === "Disband" && o.source.id === unit.province.id
+          );
+
+          return (
+            <g key={`${unit.province.id}-${index}`}>
+              <UnitIcon
+                type={unit.type}
+                x={x - 10 + offsetX}
+                y={y - 10 + offsetY}
+                color={color}
+                opacity={hasDisbandOrder ? 0.7 : 1}
+              />
+              {unit.dislodged && !hasDisbandOrder && (
+                <g
+                  transform={`translate(${x - 8 + offsetX + UNIT_RADIUS + RETREAT_FLAG_OFFSET_X}, ${y - 18 + offsetY - UNIT_RADIUS + RETREAT_FLAG_OFFSET_Y}) scale(${RETREAT_FLAG_SCALE})`}
+                >
+                  <line
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2={RETREAT_FLAG_POLE_HEIGHT}
+                    stroke={RETREAT_FLAG_STROKE}
+                    strokeWidth={RETREAT_FLAG_POLE_STROKE_WIDTH}
+                  />
+                  <path
+                    d="M 0 0 L 8 2 L 8 6 L 0 8 Z"
+                    fill={RETREAT_FLAG_FILL}
+                    stroke={RETREAT_FLAG_STROKE}
+                    strokeWidth={RETREAT_FLAG_STROKE_WIDTH}
+                  />
+                </g>
+              )}
+            </g>
           );
         })}
       {provincesToRender.map(province => {
