@@ -82,12 +82,12 @@ export interface Nation {
 }
 
 export interface ChannelMember {
-  id: number;
-  name: string;
+  readonly id: number;
+  readonly name: string;
   /** @nullable */
-  picture: string | null;
-  nation: Nation;
+  readonly picture: string | null;
   readonly isCurrentUser: boolean;
+  nation: Nation;
 }
 
 export interface ChannelMessage {
@@ -120,13 +120,13 @@ export const DeadlineModeEnum = {
 } as const;
 
 export interface DrawVoteMember {
-  id: number;
-  name: string;
+  readonly id: number;
+  readonly name: string;
   /** @nullable */
-  picture: string | null;
+  readonly picture: string | null;
+  readonly isCurrentUser: boolean;
   /** @nullable */
   nation: string | null;
-  readonly isCurrentUser: boolean;
 }
 
 export interface DrawVote {
@@ -293,6 +293,7 @@ export interface GameCreate {
   movementPhaseDuration?: DurationEnum;
   retreatPhaseDuration?: DurationEnum | NullEnum | null;
   private: boolean;
+  anonymous?: boolean;
   deadlineMode?: DeadlineModeEnum;
   /** @nullable */
   fixedDeadlineTime?: string | null;
@@ -325,9 +326,9 @@ export interface Member {
   readonly name: string;
   /** @nullable */
   readonly picture: string | null;
+  readonly isCurrentUser: boolean;
   /** @nullable */
   readonly nation: string | null;
-  readonly isCurrentUser: boolean;
   readonly eliminated: boolean;
   readonly kicked: boolean;
   readonly isGameMaster: boolean;
@@ -345,6 +346,7 @@ export interface GameList {
   readonly id: string;
   readonly name: string;
   readonly status: string;
+  readonly createdAt: string;
   readonly canJoin: boolean;
   readonly canLeave: boolean;
   readonly variantId: string;
@@ -352,6 +354,7 @@ export interface GameList {
   /** @nullable */
   readonly currentPhaseId: number | null;
   readonly private: boolean;
+  readonly anonymous: boolean;
   /** @nullable */
   readonly movementPhaseDuration: string | null;
   /** @nullable */
@@ -379,6 +382,7 @@ export interface GameRetrieve {
   readonly id: string;
   readonly name: string;
   readonly status: string;
+  readonly createdAt: string;
   readonly canJoin: boolean;
   readonly canLeave: boolean;
   readonly phases: readonly number[];
@@ -395,6 +399,7 @@ export interface GameRetrieve {
   /** @nullable */
   readonly retreatPhaseDuration: string | null;
   readonly private: boolean;
+  readonly anonymous: boolean;
   readonly isPaused: boolean;
   /** @nullable */
   readonly pausedAt: string | null;
@@ -7997,6 +8002,7 @@ export const getGameCreateResponseMock = (
     undefined,
   ]),
   private: faker.datatype.boolean(),
+  anonymous: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]),
   deadlineMode: faker.helpers.arrayElement([
     faker.helpers.arrayElement(Object.values(DeadlineModeEnum)),
     undefined,
@@ -8042,6 +8048,7 @@ export const getGameRetrieveResponseMock = (
   id: faker.string.alpha({ length: { min: 10, max: 20 } }),
   name: faker.string.alpha({ length: { min: 10, max: 20 } }),
   status: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
   canJoin: faker.datatype.boolean(),
   canLeave: faker.datatype.boolean(),
   phases: Array.from(
@@ -8068,6 +8075,7 @@ export const getGameRetrieveResponseMock = (
       ]),
       null,
     ]),
+    isCurrentUser: faker.datatype.boolean(),
     nation: faker.helpers.arrayElement([
       faker.helpers.arrayElement([
         faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -8075,7 +8083,6 @@ export const getGameRetrieveResponseMock = (
       ]),
       null,
     ]),
-    isCurrentUser: faker.datatype.boolean(),
     eliminated: faker.datatype.boolean(),
     kicked: faker.datatype.boolean(),
     isGameMaster: faker.datatype.boolean(),
@@ -8103,6 +8110,7 @@ export const getGameRetrieveResponseMock = (
           ]),
           null,
         ]),
+        isCurrentUser: faker.datatype.boolean(),
         nation: faker.helpers.arrayElement([
           faker.helpers.arrayElement([
             faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -8110,7 +8118,6 @@ export const getGameRetrieveResponseMock = (
           ]),
           null,
         ]),
-        isCurrentUser: faker.datatype.boolean(),
         eliminated: faker.datatype.boolean(),
         kicked: faker.datatype.boolean(),
         isGameMaster: faker.datatype.boolean(),
@@ -8139,6 +8146,7 @@ export const getGameRetrieveResponseMock = (
     null,
   ]),
   private: faker.datatype.boolean(),
+  anonymous: faker.datatype.boolean(),
   isPaused: faker.datatype.boolean(),
   pausedAt: faker.helpers.arrayElement([
     faker.helpers.arrayElement([
@@ -8225,6 +8233,7 @@ export const getGameConfirmPhaseUpdateResponseMock = (
         ]),
         null,
       ]),
+      isCurrentUser: faker.datatype.boolean(),
       nation: faker.helpers.arrayElement([
         faker.helpers.arrayElement([
           faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -8232,7 +8241,6 @@ export const getGameConfirmPhaseUpdateResponseMock = (
         ]),
         null,
       ]),
-      isCurrentUser: faker.datatype.boolean(),
       eliminated: faker.datatype.boolean(),
       kicked: faker.datatype.boolean(),
       isGameMaster: faker.datatype.boolean(),
@@ -8282,6 +8290,7 @@ export const getGameConfirmPhasePartialUpdateResponseMock = (
         ]),
         null,
       ]),
+      isCurrentUser: faker.datatype.boolean(),
       nation: faker.helpers.arrayElement([
         faker.helpers.arrayElement([
           faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -8289,7 +8298,6 @@ export const getGameConfirmPhasePartialUpdateResponseMock = (
         ]),
         null,
       ]),
-      isCurrentUser: faker.datatype.boolean(),
       eliminated: faker.datatype.boolean(),
       kicked: faker.datatype.boolean(),
       isGameMaster: faker.datatype.boolean(),
@@ -8328,6 +8336,7 @@ export const getGameJoinCreateResponseMock = (
     ]),
     null,
   ]),
+  isCurrentUser: faker.datatype.boolean(),
   nation: faker.helpers.arrayElement([
     faker.helpers.arrayElement([
       faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -8335,7 +8344,6 @@ export const getGameJoinCreateResponseMock = (
     ]),
     null,
   ]),
-  isCurrentUser: faker.datatype.boolean(),
   eliminated: faker.datatype.boolean(),
   kicked: faker.datatype.boolean(),
   isGameMaster: faker.datatype.boolean(),
@@ -8768,6 +8776,7 @@ export const getGamePhaseStatesListResponseMock = (): PhaseState[] =>
           ]),
           null,
         ]),
+        isCurrentUser: faker.datatype.boolean(),
         nation: faker.helpers.arrayElement([
           faker.helpers.arrayElement([
             faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -8775,7 +8784,6 @@ export const getGamePhaseStatesListResponseMock = (): PhaseState[] =>
           ]),
           null,
         ]),
-        isCurrentUser: faker.datatype.boolean(),
         eliminated: faker.datatype.boolean(),
         kicked: faker.datatype.boolean(),
         isGameMaster: faker.datatype.boolean(),
@@ -8920,6 +8928,7 @@ export const getGamesListResponseMock = (
     id: faker.string.alpha({ length: { min: 10, max: 20 } }),
     name: faker.string.alpha({ length: { min: 10, max: 20 } }),
     status: faker.string.alpha({ length: { min: 10, max: 20 } }),
+    createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
     canJoin: faker.datatype.boolean(),
     canLeave: faker.datatype.boolean(),
     variantId: faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -8935,6 +8944,7 @@ export const getGamesListResponseMock = (
       null,
     ]),
     private: faker.datatype.boolean(),
+    anonymous: faker.datatype.boolean(),
     movementPhaseDuration: faker.helpers.arrayElement([
       faker.helpers.arrayElement([
         faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -8963,6 +8973,7 @@ export const getGamesListResponseMock = (
         ]),
         null,
       ]),
+      isCurrentUser: faker.datatype.boolean(),
       nation: faker.helpers.arrayElement([
         faker.helpers.arrayElement([
           faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -8970,7 +8981,6 @@ export const getGamesListResponseMock = (
         ]),
         null,
       ]),
-      isCurrentUser: faker.datatype.boolean(),
       eliminated: faker.datatype.boolean(),
       kicked: faker.datatype.boolean(),
       isGameMaster: faker.datatype.boolean(),
@@ -8997,6 +9007,7 @@ export const getGamesListResponseMock = (
             ]),
             null,
           ]),
+          isCurrentUser: faker.datatype.boolean(),
           nation: faker.helpers.arrayElement([
             faker.helpers.arrayElement([
               faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -9004,7 +9015,6 @@ export const getGamesListResponseMock = (
             ]),
             null,
           ]),
-          isCurrentUser: faker.datatype.boolean(),
           eliminated: faker.datatype.boolean(),
           kicked: faker.datatype.boolean(),
           isGameMaster: faker.datatype.boolean(),
@@ -9083,11 +9093,11 @@ export const getGamesChannelsListResponseMock = (): Channel[] =>
             ]),
             null,
           ]),
+          isCurrentUser: faker.datatype.boolean(),
           nation: {
             name: faker.string.alpha({ length: { min: 10, max: 20 } }),
             color: faker.string.alpha({ length: { min: 10, max: 20 } }),
           },
-          isCurrentUser: faker.datatype.boolean(),
         },
       },
       createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
@@ -9115,11 +9125,11 @@ export const getGamesChannelsMessagesCreateCreateResponseMock = (
         ]),
         null,
       ]),
+      isCurrentUser: faker.datatype.boolean(),
       nation: {
         name: faker.string.alpha({ length: { min: 10, max: 20 } }),
         color: faker.string.alpha({ length: { min: 10, max: 20 } }),
       },
-      isCurrentUser: faker.datatype.boolean(),
     },
   },
   createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
@@ -9149,11 +9159,11 @@ export const getGamesChannelsCreateCreateResponseMock = (
           ]),
           null,
         ]),
+        isCurrentUser: faker.datatype.boolean(),
         nation: {
           name: faker.string.alpha({ length: { min: 10, max: 20 } }),
           color: faker.string.alpha({ length: { min: 10, max: 20 } }),
         },
-        isCurrentUser: faker.datatype.boolean(),
       },
     },
     createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
@@ -9183,6 +9193,7 @@ export const getGamesDrawProposalsListResponseMock = (): DrawProposal[] =>
           ]),
           null,
         ]),
+        isCurrentUser: faker.datatype.boolean(),
         nation: faker.helpers.arrayElement([
           faker.helpers.arrayElement([
             faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -9190,7 +9201,6 @@ export const getGamesDrawProposalsListResponseMock = (): DrawProposal[] =>
           ]),
           null,
         ]),
-        isCurrentUser: faker.datatype.boolean(),
       },
     },
     status: faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -9212,6 +9222,7 @@ export const getGamesDrawProposalsListResponseMock = (): DrawProposal[] =>
             ]),
             null,
           ]),
+          isCurrentUser: faker.datatype.boolean(),
           nation: faker.helpers.arrayElement([
             faker.helpers.arrayElement([
               faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -9219,7 +9230,6 @@ export const getGamesDrawProposalsListResponseMock = (): DrawProposal[] =>
             ]),
             null,
           ]),
-          isCurrentUser: faker.datatype.boolean(),
         },
       },
       included: faker.datatype.boolean(),
@@ -9262,6 +9272,7 @@ export const getGamesDrawProposalsCreateCreateResponseMock = (
         ]),
         null,
       ]),
+      isCurrentUser: faker.datatype.boolean(),
       nation: faker.helpers.arrayElement([
         faker.helpers.arrayElement([
           faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -9269,7 +9280,6 @@ export const getGamesDrawProposalsCreateCreateResponseMock = (
         ]),
         null,
       ]),
-      isCurrentUser: faker.datatype.boolean(),
     },
   },
   status: faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -9291,6 +9301,7 @@ export const getGamesDrawProposalsCreateCreateResponseMock = (
           ]),
           null,
         ]),
+        isCurrentUser: faker.datatype.boolean(),
         nation: faker.helpers.arrayElement([
           faker.helpers.arrayElement([
             faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -9298,7 +9309,6 @@ export const getGamesDrawProposalsCreateCreateResponseMock = (
           ]),
           null,
         ]),
-        isCurrentUser: faker.datatype.boolean(),
       },
     },
     included: faker.datatype.boolean(),
