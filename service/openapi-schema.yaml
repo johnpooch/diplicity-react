@@ -504,6 +504,25 @@ paths:
               schema:
                 $ref: '#/components/schemas/PhaseState'
           description: ''
+  /game/{gameId}/delete/:
+    delete:
+      operationId: gameDeleteDestroy
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
   /game/{gameId}/extend-deadline/:
     put:
       operationId: gameExtendDeadlineUpdate
@@ -1419,16 +1438,19 @@ components:
       properties:
         id:
           type: integer
+          readOnly: true
         name:
           type: string
+          readOnly: true
         picture:
           type: string
           nullable: true
-        nation:
-          $ref: '#/components/schemas/Nation'
+          readOnly: true
         isCurrentUser:
           type: boolean
           readOnly: true
+        nation:
+          $ref: '#/components/schemas/Nation'
       required:
       - id
       - isCurrentUser
@@ -1538,17 +1560,20 @@ components:
       properties:
         id:
           type: integer
+          readOnly: true
         name:
           type: string
+          readOnly: true
         picture:
           type: string
           nullable: true
-        nation:
-          type: string
-          nullable: true
+          readOnly: true
         isCurrentUser:
           type: boolean
           readOnly: true
+        nation:
+          type: string
+          nullable: true
       required:
       - id
       - isCurrentUser
@@ -1721,6 +1746,9 @@ components:
           - $ref: '#/components/schemas/NullEnum'
         private:
           type: boolean
+        anonymous:
+          type: boolean
+          default: false
         deadlineMode:
           allOf:
           - $ref: '#/components/schemas/DeadlineModeEnum'
@@ -1793,6 +1821,9 @@ components:
         canLeave:
           type: boolean
           readOnly: true
+        canDelete:
+          type: boolean
+          readOnly: true
         variantId:
           type: string
           readOnly: true
@@ -1806,6 +1837,9 @@ components:
           nullable: true
           readOnly: true
         private:
+          type: boolean
+          readOnly: true
+        anonymous:
           type: boolean
           readOnly: true
         movementPhaseDuration:
@@ -1864,6 +1898,8 @@ components:
           readOnly: true
           nullable: true
       required:
+      - anonymous
+      - canDelete
       - canJoin
       - canLeave
       - currentPhaseId
@@ -1903,6 +1939,9 @@ components:
           type: boolean
           readOnly: true
         canLeave:
+          type: boolean
+          readOnly: true
+        canDelete:
           type: boolean
           readOnly: true
         phases:
@@ -1947,6 +1986,9 @@ components:
         private:
           type: boolean
           readOnly: true
+        anonymous:
+          type: boolean
+          readOnly: true
         isPaused:
           type: boolean
           readOnly: true
@@ -1982,6 +2024,8 @@ components:
           type: integer
           readOnly: true
       required:
+      - anonymous
+      - canDelete
       - canJoin
       - canLeave
       - currentPhaseId
@@ -2018,15 +2062,15 @@ components:
           readOnly: true
         picture:
           type: string
-          readOnly: true
           nullable: true
+          readOnly: true
+        isCurrentUser:
+          type: boolean
+          readOnly: true
         nation:
           type: string
           readOnly: true
           nullable: true
-        isCurrentUser:
-          type: boolean
-          readOnly: true
         eliminated:
           type: boolean
           readOnly: true

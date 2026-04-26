@@ -11,6 +11,11 @@ urlpatterns = [
         name="game-retrieve",
     ),
     path(
+        "game/<str:game_id>/delete/",
+        views.GameDeleteView.as_view(),
+        name="game-delete",
+    ),
+    path(
         "game/<str:game_id>/clone-to-sandbox/",
         views.GameCloneToSandboxView.as_view(),
         name="game-clone-to-sandbox",

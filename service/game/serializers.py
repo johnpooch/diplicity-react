@@ -45,6 +45,7 @@ class GameListSerializer(serializers.Serializer):
     status = serializers.CharField(read_only=True)
     can_join = serializers.SerializerMethodField()
     can_leave = serializers.SerializerMethodField()
+    can_delete = serializers.SerializerMethodField()
     variant_id = serializers.CharField(source="variant.id", read_only=True)
     phases = serializers.SerializerMethodField()
     current_phase_id = serializers.SerializerMethodField()
@@ -81,6 +82,13 @@ class GameListSerializer(serializers.Serializer):
                 return False
             return obj.can_leave(user)
 
+    @extend_schema_field(serializers.BooleanField)
+    def get_can_delete(self, obj):
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return False
+        return obj.can_delete(user)
+
     @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_phases(self, obj):
         return [phase.id for phase in obj.phases.all()]
@@ -97,6 +105,7 @@ class GameRetrieveSerializer(serializers.Serializer):
     status = serializers.CharField(read_only=True)
     can_join = serializers.SerializerMethodField()
     can_leave = serializers.SerializerMethodField()
+    can_delete = serializers.SerializerMethodField()
     phases = serializers.SerializerMethodField()
     current_phase_id = serializers.SerializerMethodField()
     members = MemberSerializer(many=True, read_only=True)
@@ -154,6 +163,13 @@ class GameRetrieveSerializer(serializers.Serializer):
             if not user.is_authenticated:
                 return False
             return obj.can_leave(user)
+
+    @extend_schema_field(serializers.BooleanField)
+    def get_can_delete(self, obj):
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return False
+        return obj.can_delete(user)
 
     @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_phases(self, obj):
