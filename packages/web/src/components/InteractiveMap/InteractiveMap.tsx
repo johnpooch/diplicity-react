@@ -50,7 +50,7 @@ const DEFAULT_FILL = "transparent";
 const SUCCESS_COLOR = "rgba(0,0,0,1)";
 
 const UNIT_RADIUS = 10;
-const UNIT_OFFSET_RADIUS = 5;
+const UNIT_OFFSET_RADIUS = 12;
 const UNIT_OFFSET_X = 10;
 const UNIT_OFFSET_Y = 10;
 

@@ -34,8 +34,8 @@ const UnitIcon = (props: UnitIconProps) => {
   const mainPath = isArmy ? ARMY_MAIN_PATH : FLEET_MAIN_PATH;
   const scale = isArmy ? ARMY_SCALE : FLEET_SCALE;
   const shadowOpacity = isArmy ? 0.53 : 0.47;
-  const adjustX = isArmy ? 5 : 0;
-  const adjustY = isArmy ? 0 : -10;
+  const adjustX = isArmy ? 0 : 0;
+  const adjustY = isArmy ? 0 : -7;
 
   return (
     <g
