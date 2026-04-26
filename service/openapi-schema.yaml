@@ -1590,6 +1590,9 @@ components:
     DurationEnum:
       enum:
       - 1 hour
+      - 2 hours
+      - 4 hours
+      - 8 hours
       - 12 hours
       - 24 hours
       - 48 hours
@@ -1600,6 +1603,9 @@ components:
       type: string
       description: |-
         * `1 hour` - 1 hour
+        * `2 hours` - 2 hours
+        * `4 hours` - 4 hours
+        * `8 hours` - 8 hours
         * `12 hours` - 12 hours
         * `24 hours` - 24 hours
         * `48 hours` - 48 hours
@@ -1815,6 +1821,10 @@ components:
         status:
           type: string
           readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
         canJoin:
           type: boolean
           readOnly: true
@@ -1902,6 +1912,7 @@ components:
       - canDelete
       - canJoin
       - canLeave
+      - createdAt
       - currentPhaseId
       - deadlineMode
       - fixedDeadlineTime
@@ -1934,6 +1945,10 @@ components:
           readOnly: true
         status:
           type: string
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
           readOnly: true
         canJoin:
           type: boolean
@@ -2028,6 +2043,7 @@ components:
       - canDelete
       - canJoin
       - canLeave
+      - createdAt
       - currentPhaseId
       - deadlineMode
       - fixedDeadlineTime

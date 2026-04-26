@@ -155,6 +155,9 @@ export interface DrawVoteUpdate {
 
 /**
  * * `1 hour` - 1 hour
+ * `2 hours` - 2 hours
+ * `4 hours` - 4 hours
+ * `8 hours` - 8 hours
  * `12 hours` - 12 hours
  * `24 hours` - 24 hours
  * `48 hours` - 48 hours
@@ -167,6 +170,9 @@ export type DurationEnum = (typeof DurationEnum)[keyof typeof DurationEnum];
 
 export const DurationEnum = {
   "1_hour": "1 hour",
+  "2_hours": "2 hours",
+  "4_hours": "4 hours",
+  "8_hours": "8 hours",
   "12_hours": "12 hours",
   "24_hours": "24 hours",
   "48_hours": "48 hours",
@@ -346,6 +352,7 @@ export interface GameList {
   readonly id: string;
   readonly name: string;
   readonly status: string;
+  readonly createdAt: string;
   readonly canJoin: boolean;
   readonly canLeave: boolean;
   readonly canDelete: boolean;
@@ -382,6 +389,7 @@ export interface GameRetrieve {
   readonly id: string;
   readonly name: string;
   readonly status: string;
+  readonly createdAt: string;
   readonly canJoin: boolean;
   readonly canLeave: boolean;
   readonly canDelete: boolean;
@@ -8122,6 +8130,7 @@ export const getGameRetrieveResponseMock = (
   id: faker.string.alpha({ length: { min: 10, max: 20 } }),
   name: faker.string.alpha({ length: { min: 10, max: 20 } }),
   status: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
   canJoin: faker.datatype.boolean(),
   canLeave: faker.datatype.boolean(),
   canDelete: faker.datatype.boolean(),
@@ -9002,6 +9011,7 @@ export const getGamesListResponseMock = (
     id: faker.string.alpha({ length: { min: 10, max: 20 } }),
     name: faker.string.alpha({ length: { min: 10, max: 20 } }),
     status: faker.string.alpha({ length: { min: 10, max: 20 } }),
+    createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
     canJoin: faker.datatype.boolean(),
     canLeave: faker.datatype.boolean(),
     canDelete: faker.datatype.boolean(),

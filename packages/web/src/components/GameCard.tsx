@@ -22,6 +22,7 @@ import {
   useGamePhaseRetrieve,
   getGamesListQueryKey,
 } from "../api/generated/endpoints";
+import { formatTimeAgo } from "../util";
 import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
@@ -124,7 +125,9 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
                   {game.movementPhaseDuration || "Resolve when ready"}
                 </span>
               </div>
-              {phase ? (
+              {game.status === "pending" ? (
+                <p>Created {formatTimeAgo(game.createdAt)}</p>
+              ) : phase ? (
                 <p>
                   {phase.season} {phase.year} • {phase.type}
                   {phase.status === "active" && phase.scheduledResolution && (
