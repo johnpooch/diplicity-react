@@ -415,7 +415,7 @@ class Game(BaseModel):
             if not self.sandbox:
                 return False
             return any(
-                member.user_id is not None and member.user_id == user.id and member.is_game_master
+                member.user_id is not None and member.user_id == user.id
                 for member in self.members.all()
             )
 

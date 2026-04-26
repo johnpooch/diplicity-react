@@ -59,10 +59,10 @@ def active_game_with_gm(db, primary_user, classical_variant, adjudication_data_c
 
 
 @pytest.fixture
-def sandbox_game_with_gm(db, primary_user, classical_variant, base_active_phase, sample_options):
-    def _create(gm_user=None):
-        if gm_user is None:
-            gm_user = primary_user
+def sandbox_game(db, primary_user, classical_variant, base_active_phase, sample_options):
+    def _create(user=None):
+        if user is None:
+            user = primary_user
         game = models.Game.objects.create(
             name="Test Sandbox Game",
             variant=classical_variant,
@@ -73,7 +73,7 @@ def sandbox_game_with_gm(db, primary_user, classical_variant, base_active_phase,
         phase = base_active_phase(game)
         phase.options = sample_options
         phase.save()
-        game.members.create(user=gm_user, is_game_master=True)
+        game.members.create(user=user)
         return game
     return _create
 

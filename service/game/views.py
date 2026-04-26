@@ -86,7 +86,7 @@ class GameUnpauseView(SelectedGameMixin, generics.UpdateAPIView):
 
 class GameDeleteView(SelectedGameMixin, generics.DestroyAPIView):
     serializer_class = EmptySerializer
-    permission_classes = [permissions.IsAuthenticated, IsSandboxGame, IsGameMaster]
+    permission_classes = [permissions.IsAuthenticated, IsSandboxGame, IsGameMember]
 
     def get_object(self):
         return self.get_game()
