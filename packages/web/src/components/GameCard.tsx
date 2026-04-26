@@ -125,10 +125,9 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
                   {game.movementPhaseDuration || "Resolve when ready"}
                 </span>
               </div>
-              {game.status === "pending" && (
+              {game.status === "pending" ? (
                 <p>Created {formatTimeAgo(game.createdAt)}</p>
-              )}
-              {phase ? (
+              ) : phase ? (
                 <p>
                   {phase.season} {phase.year} • {phase.type}
                   {phase.status === "active" && phase.scheduledResolution && (
