@@ -410,6 +410,15 @@ class Game(BaseModel):
             game_is_pending = self.status == GameStatus.PENDING
             return user_is_member and game_is_pending
 
+    def can_delete(self, user):
+        with tracer.start_as_current_span("game.models.can_delete"):
+            if not self.sandbox:
+                return False
+            return any(
+                member.user_id is not None and member.user_id == user.id
+                for member in self.members.all()
+            )
+
     def phase_confirmed(self, user):
         with tracer.start_as_current_span("game.models.phase_confirmed"):
             current_phase = self.current_phase

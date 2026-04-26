@@ -40,9 +40,11 @@ import {
   Clock,
   Pause,
   Play,
+  Trash2,
 } from "lucide-react";
 import {
   useGameLeaveDestroy,
+  useGameDeleteDestroy,
   useGameCloneToSandboxCreate,
   useGameExtendDeadlineUpdate,
   useGamePauseUpdate,
@@ -61,7 +63,7 @@ import { EXTEND_DURATION_OPTIONS } from "@/constants";
 import { Suspense } from "react";
 
 interface GameDropdownMenuProps {
-  game: Pick<GameList, "id" | "sandbox" | "canLeave" | "isPaused"> &
+  game: Pick<GameList, "id" | "sandbox" | "canLeave" | "canDelete" | "isPaused"> &
     Partial<Pick<GameRetrieve, "status" | "members">>;
   onNavigateToGameInfo: () => void;
   onNavigateToPlayerInfo: () => void;
@@ -124,6 +126,7 @@ export function GameDropdownMenu({
   onNavigateToPlayerInfo,
 }: GameDropdownMenuProps) {
   const [showCloneConfirmation, setShowCloneConfirmation] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [showExtendDeadlineDialog, setShowExtendDeadlineDialog] =
     useState(false);
   const [selectedDuration, setSelectedDuration] = useState<DurationEnum>(
@@ -133,6 +136,7 @@ export function GameDropdownMenu({
   const navigate = useNavigate();
   const { phaseId } = useParams<{ phaseId: string }>();
   const leaveGameMutation = useGameLeaveDestroy();
+  const deleteGameMutation = useGameDeleteDestroy();
   const cloneToSandboxMutation = useGameCloneToSandboxCreate();
   const extendDeadlineMutation = useGameExtendDeadlineUpdate();
   const pauseGameMutation = useGamePauseUpdate();
@@ -161,6 +165,18 @@ export function GameDropdownMenu({
       queryClient.invalidateQueries({ queryKey: getGamesListQueryKey() });
     } catch {
       toast.error("Failed to leave game");
+    }
+  };
+
+  const handleDeleteGame = async () => {
+    setShowDeleteConfirmation(false);
+    try {
+      await deleteGameMutation.mutateAsync({ gameId: game.id });
+      toast.success("Game deleted");
+      queryClient.invalidateQueries({ queryKey: getGamesListQueryKey() });
+      navigate("/");
+    } catch {
+      toast.error("Failed to delete game");
     }
   };
 
@@ -346,7 +362,37 @@ export function GameDropdownMenu({
             </DropdownMenuItem>
           </>
         )}
+        {game.canDelete && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setShowDeleteConfirmation(true)}>
+              <Trash2 />
+              Delete game
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
+
+      <AlertDialog
+        open={showDeleteConfirmation}
+        onOpenChange={setShowDeleteConfirmation}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete sandbox game</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this sandbox game and all its data.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteGame}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={showCloneConfirmation}

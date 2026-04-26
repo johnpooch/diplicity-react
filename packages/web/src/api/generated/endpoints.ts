@@ -355,6 +355,7 @@ export interface GameList {
   readonly createdAt: string;
   readonly canJoin: boolean;
   readonly canLeave: boolean;
+  readonly canDelete: boolean;
   readonly variantId: string;
   readonly phases: readonly number[];
   /** @nullable */
@@ -391,6 +392,7 @@ export interface GameRetrieve {
   readonly createdAt: string;
   readonly canJoin: boolean;
   readonly canLeave: boolean;
+  readonly canDelete: boolean;
   readonly phases: readonly number[];
   /** @nullable */
   readonly currentPhaseId: number | null;
@@ -2955,6 +2957,80 @@ export const useGameConfirmPhasePartialUpdate = <
     getGameConfirmPhasePartialUpdateMutationOptions(options),
     queryClient
   );
+};
+
+/**
+ * Used by views that have a game parameter in the URL. Provides a get_game
+method that returns the game object. Also adds game to the serializer context.
+ */
+export const gameDeleteDestroy = (gameId: string, signal?: AbortSignal) => {
+  return customInstance<void>({
+    url: `/game/${gameId}/delete/`,
+    method: "DELETE",
+    signal,
+  });
+};
+
+export const getGameDeleteDestroyMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gameDeleteDestroy>>,
+    TError,
+    { gameId: string },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gameDeleteDestroy>>,
+  TError,
+  { gameId: string },
+  TContext
+> => {
+  const mutationKey = ["gameDeleteDestroy"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gameDeleteDestroy>>,
+    { gameId: string }
+  > = props => {
+    const { gameId } = props ?? {};
+
+    return gameDeleteDestroy(gameId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GameDeleteDestroyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gameDeleteDestroy>>
+>;
+
+export type GameDeleteDestroyMutationError = unknown;
+
+export const useGameDeleteDestroy = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gameDeleteDestroy>>,
+      TError,
+      { gameId: string },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gameDeleteDestroy>>,
+  TError,
+  { gameId: string },
+  TContext
+> => {
+  return useMutation(getGameDeleteDestroyMutationOptions(options), queryClient);
 };
 
 /**
@@ -8057,6 +8133,7 @@ export const getGameRetrieveResponseMock = (
   createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
   canJoin: faker.datatype.boolean(),
   canLeave: faker.datatype.boolean(),
+  canDelete: faker.datatype.boolean(),
   phases: Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1
@@ -8937,6 +9014,7 @@ export const getGamesListResponseMock = (
     createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
     canJoin: faker.datatype.boolean(),
     canLeave: faker.datatype.boolean(),
+    canDelete: faker.datatype.boolean(),
     variantId: faker.string.alpha({ length: { min: 10, max: 20 } }),
     phases: Array.from(
       { length: faker.number.int({ min: 1, max: 10 }) },
@@ -9994,6 +10072,26 @@ export const getGameConfirmPhasePartialUpdateMockHandler = (
   );
 };
 
+export const getGameDeleteDestroyMockHandler = (
+  overrideResponse?:
+    | void
+    | ((
+        info: Parameters<Parameters<typeof http.delete>[1]>[0]
+      ) => Promise<void> | void),
+  options?: RequestHandlerOptions
+) => {
+  return http.delete(
+    "*/game/:gameId/delete/",
+    async info => {
+      if (typeof overrideResponse === "function") {
+        await overrideResponse(info);
+      }
+      return new HttpResponse(null, { status: 204 });
+    },
+    options
+  );
+};
+
 export const getGameExtendDeadlineUpdateMockHandler = (
   overrideResponse?:
     | GameExtendDeadline
@@ -10856,6 +10954,7 @@ export const getMock = () => [
   getGameCloneToSandboxCreateMockHandler(),
   getGameConfirmPhaseUpdateMockHandler(),
   getGameConfirmPhasePartialUpdateMockHandler(),
+  getGameDeleteDestroyMockHandler(),
   getGameExtendDeadlineUpdateMockHandler(),
   getGameExtendDeadlinePartialUpdateMockHandler(),
   getGameJoinCreateMockHandler(),
