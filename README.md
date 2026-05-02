@@ -4,7 +4,7 @@ Welcome to the Diplicity React project! This is a web version of the classic Dip
 
 ## Get involved
 
-We are looking for developers to get involved with the project. If you want to contribute, come say hi on the [Diplomacy Discord](chttps://discord.gg/QETtwGR).
+We are looking for developers to get involved with the project. If you want to contribute, come say hi on the [Diplomacy Discord](https://discord.gg/QETtwGR), and see [DEVELOPER.md](DEVELOPER.md) for the contributor setup guide.
 
 ## Project Overview
 
