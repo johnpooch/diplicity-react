@@ -88,6 +88,16 @@ def duration_to_seconds(duration: Optional[str]) -> Optional[int]:
     return duration_map.get(duration, 0)
 
 
+class PressType:
+    FULL_PRESS = "full_press"
+    NO_PRESS = "no_press"
+
+    PRESS_TYPE_CHOICES = (
+        (FULL_PRESS, "Full Press"),
+        (NO_PRESS, "No Press"),
+    )
+
+
 class NationAssignment:
     RANDOM = "random"
     ORDERED = "ordered"

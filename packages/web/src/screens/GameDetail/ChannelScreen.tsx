@@ -1,7 +1,7 @@
 import React, { Suspense, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Send, MessageCircle } from "lucide-react";
+import { Send, MessageCircle, MessageSquareOff } from "lucide-react";
 import { useDraft, useRequiredParams } from "@/hooks";
 import { toast } from "sonner";
 
@@ -143,10 +143,40 @@ const ChannelScreen: React.FC = () => {
     }
   };
 
+  const isNoPressActiveGame =
+    game.pressType === "no_press" &&
+    game.status !== "completed" &&
+    game.status !== "abandoned";
+
   const variant = variants.find(v => v.id === game.variantId);
   const variantId = variant?.id;
 
   const messageItems = buildMessageItems(channel.messages);
+
+  if (isNoPressActiveGame) {
+    return (
+      <div className="flex flex-col flex-1 min-h-0">
+        <GameDetailAppBar
+          title={channel.name}
+          onNavigateBack={() =>
+            navigate(`/game/${gameId}/phase/${phaseId}/chat`)
+          }
+          variant="secondary"
+        />
+        <div className="flex-1 overflow-y-auto">
+          <Panel>
+            <Panel.Content>
+              <Notice
+                icon={MessageSquareOff}
+                title="Messaging is disabled in No Press games."
+                className="h-full"
+              />
+            </Panel.Content>
+          </Panel>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col flex-1 min-h-0">

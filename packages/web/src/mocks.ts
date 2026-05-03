@@ -304,6 +304,7 @@ export const mockGames: GameList[] = [
     fixedDeadlineTimezone: null,
     movementFrequency: null,
     retreatFrequency: null,
+    pressType: "full_press",
   },
   {
     id: "game-2",
@@ -332,6 +333,7 @@ export const mockGames: GameList[] = [
     fixedDeadlineTimezone: null,
     movementFrequency: null,
     retreatFrequency: null,
+    pressType: "full_press",
   },
   {
     id: "game-3",
@@ -360,6 +362,7 @@ export const mockGames: GameList[] = [
     fixedDeadlineTimezone: null,
     movementFrequency: null,
     retreatFrequency: null,
+    pressType: "full_press",
   },
   {
     id: "game-4",
@@ -388,6 +391,7 @@ export const mockGames: GameList[] = [
     fixedDeadlineTimezone: null,
     movementFrequency: null,
     retreatFrequency: null,
+    pressType: "full_press",
   },
   {
     id: "game-5",
@@ -421,6 +425,7 @@ export const mockGames: GameList[] = [
     fixedDeadlineTimezone: null,
     movementFrequency: null,
     retreatFrequency: null,
+    pressType: "full_press",
   },
   {
     id: "game-6",
@@ -454,6 +459,7 @@ export const mockGames: GameList[] = [
     fixedDeadlineTimezone: null,
     movementFrequency: null,
     retreatFrequency: null,
+    pressType: "full_press",
   },
 ];
 
@@ -500,6 +506,7 @@ export const mockSandboxGames: GameList[] = [
     fixedDeadlineTimezone: null,
     movementFrequency: null,
     retreatFrequency: null,
+    pressType: "full_press",
   },
   {
     id: "sandbox-2",
@@ -528,6 +535,7 @@ export const mockSandboxGames: GameList[] = [
     fixedDeadlineTimezone: null,
     movementFrequency: null,
     retreatFrequency: null,
+    pressType: "full_press",
   },
 ];
 

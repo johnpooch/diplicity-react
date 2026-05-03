@@ -14,6 +14,7 @@ from common.constants import (
     PhaseFrequency,
     PhaseStatus,
     PhaseType,
+    PressType,
     duration_to_seconds,
 )
 from common.models import BaseModel
@@ -283,6 +284,11 @@ class Game(BaseModel):
     sandbox = models.BooleanField(default=False)
     private = models.BooleanField(default=False)
     anonymous = models.BooleanField(default=False)
+    press_type = models.CharField(
+        max_length=20,
+        choices=PressType.PRESS_TYPE_CHOICES,
+        default=PressType.FULL_PRESS,
+    )
     movement_phase_duration = models.CharField(
         max_length=20,
         choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES,

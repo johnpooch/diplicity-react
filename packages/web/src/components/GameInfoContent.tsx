@@ -1,5 +1,5 @@
 import React from "react";
-import { Calendar, Clock, Users, Lock, Unlock, User, Map, Trophy, Pause, Shield } from "lucide-react";
+import { Calendar, Clock, Users, Lock, Unlock, User, Map, Trophy, Pause, Shield, MessageSquare, MessageSquareOff } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -94,6 +94,17 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
             }
             label="Visibility"
             value={game.private ? "Private" : "Public"}
+          />
+          <MetadataRow
+            icon={
+              game.pressType === "no_press" ? (
+                <MessageSquareOff className="size-4" />
+              ) : (
+                <MessageSquare className="size-4" />
+              )
+            }
+            label="Press type"
+            value={game.pressType === "no_press" ? "No Press" : "Full Press"}
           />
           {game.status === "completed" && game.victory && (
             <MetadataRow
