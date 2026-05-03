@@ -817,6 +817,18 @@ export type GamesListParams = {
   can_join?: boolean;
   mine?: boolean;
   /**
+   * * `1 hour` - 1 hour
+   * `12 hours` - 12 hours
+   * `24 hours` - 24 hours
+   * `48 hours` - 48 hours
+   * `3 days` - 3 days
+   * `4 days` - 4 days
+   * `1 week` - 1 week
+   * `2 weeks` - 2 weeks
+   * @nullable
+   */
+  movement_phase_duration?: GamesListMovementPhaseDuration;
+  /**
    * A page number within the paginated result set.
    */
   page?: number;
@@ -826,7 +838,23 @@ export type GamesListParams = {
   page_size?: number;
   sandbox?: boolean;
   status?: string;
+  variant?: string;
 };
+
+export type GamesListMovementPhaseDuration =
+  | (typeof GamesListMovementPhaseDuration)[keyof typeof GamesListMovementPhaseDuration]
+  | null;
+
+export const GamesListMovementPhaseDuration = {
+  "1_hour": "1 hour",
+  "12_hours": "12 hours",
+  "24_hours": "24 hours",
+  "48_hours": "48 hours",
+  "3_days": "3 days",
+  "4_days": "4 days",
+  "1_week": "1 week",
+  "2_weeks": "2 weeks",
+} as const;
 
 /**
  * OpenApi3 schema for this API. Format can be selected via content negotiation.

@@ -673,6 +673,85 @@ class TestGameListViewPagination:
         assert pending_game_created_by_secondary_user.id not in game_ids
 
 
+class TestGameListViewFilters:
+
+    @pytest.mark.django_db
+    def test_list_games_filter_variant(
+        self, authenticated_client, classical_variant, italy_vs_germany_variant, base_pending_phase
+    ):
+        classical_game = Game.objects.create(
+            name="Classical Game",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+        )
+        base_pending_phase(classical_game)
+        italy_vs_germany_game = Game.objects.create(
+            name="Italy vs Germany Game",
+            variant=italy_vs_germany_variant,
+            status=GameStatus.PENDING,
+        )
+        base_pending_phase(italy_vs_germany_game)
+
+        url = reverse(list_viewname)
+        response = authenticated_client.get(url, {"variant": classical_variant.id})
+        assert response.status_code == status.HTTP_200_OK
+        game_ids = [g["id"] for g in response.data["results"]]
+        assert classical_game.id in game_ids
+        assert italy_vs_germany_game.id not in game_ids
+
+    @pytest.mark.django_db
+    def test_list_games_filter_movement_phase_duration(
+        self, authenticated_client, classical_variant, base_pending_phase
+    ):
+        twenty_four_hour_game = Game.objects.create(
+            name="24 Hour Game",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+        )
+        base_pending_phase(twenty_four_hour_game)
+        forty_eight_hour_game = Game.objects.create(
+            name="48 Hour Game",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+            movement_phase_duration=MovementPhaseDuration.FORTY_EIGHT_HOURS,
+        )
+        base_pending_phase(forty_eight_hour_game)
+
+        url = reverse(list_viewname)
+        response = authenticated_client.get(url, {"movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS})
+        assert response.status_code == status.HTTP_200_OK
+        game_ids = [g["id"] for g in response.data["results"]]
+        assert twenty_four_hour_game.id in game_ids
+        assert forty_eight_hour_game.id not in game_ids
+
+    @pytest.mark.django_db
+    def test_list_games_filter_can_join_and_variant(
+        self, authenticated_client, classical_variant, italy_vs_germany_variant, base_pending_phase, secondary_user
+    ):
+        classical_joinable_game = Game.objects.create(
+            name="Classical Joinable Game",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+        )
+        base_pending_phase(classical_joinable_game)
+        italy_vs_germany_joinable_game = Game.objects.create(
+            name="Italy vs Germany Joinable Game",
+            variant=italy_vs_germany_variant,
+            status=GameStatus.PENDING,
+        )
+        base_pending_phase(italy_vs_germany_joinable_game)
+
+        url = reverse(list_viewname)
+        response = authenticated_client.get(url, {"can_join": "true", "variant": classical_variant.id})
+        assert response.status_code == status.HTTP_200_OK
+        game_ids = [g["id"] for g in response.data["results"]]
+        assert classical_joinable_game.id in game_ids
+        assert italy_vs_germany_joinable_game.id not in game_ids
+        for game in response.data["results"]:
+            assert game["can_join"] is True
+
+
 class TestGameListViewQueryPerformance:
 
     @pytest.mark.django_db

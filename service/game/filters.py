@@ -1,5 +1,5 @@
 import django_filters
-from common.constants import GameStatus
+from common.constants import GameStatus, MovementPhaseDuration
 
 from .models import Game
 
@@ -9,6 +9,10 @@ class GameFilter(django_filters.FilterSet):
     can_join = django_filters.BooleanFilter(method="filter_can_join")
     sandbox = django_filters.BooleanFilter(method="filter_sandbox")
     status = django_filters.CharFilter(method="filter_status")
+    variant = django_filters.CharFilter(field_name="variant_id")
+    movement_phase_duration = django_filters.ChoiceFilter(
+        choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES
+    )
 
     class Meta:
         model = Game
