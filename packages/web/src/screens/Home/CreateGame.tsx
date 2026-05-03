@@ -271,8 +271,8 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
                 </Select>
                 <FormDescription>
                   {field.value === "gunboat"
-                    ? "Read intent through orders alone. No messages, no names. The format used in most online tournaments."
-                    : "Negotiate openly with named opponents."}
+                    ? "Player names are anonymized and messaging is disabled"
+                    : "Standard play"}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
