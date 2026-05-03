@@ -1782,6 +1782,10 @@ components:
           maximum: 2
           minimum: 0
           default: 0
+        pressType:
+          allOf:
+          - $ref: '#/components/schemas/PressTypeEnum'
+          default: full_press
       required:
       - id
       - name
@@ -1907,6 +1911,9 @@ components:
           type: string
           readOnly: true
           nullable: true
+        pressType:
+          type: string
+          readOnly: true
       required:
       - anonymous
       - canDelete
@@ -1927,6 +1934,7 @@ components:
       - nmrExtensionsAllowed
       - pausedAt
       - phases
+      - pressType
       - private
       - retreatFrequency
       - retreatPhaseDuration
@@ -2035,6 +2043,9 @@ components:
           type: string
           readOnly: true
           nullable: true
+        pressType:
+          type: string
+          readOnly: true
         totalUnreadMessageCount:
           type: integer
           readOnly: true
@@ -2059,6 +2070,7 @@ components:
       - pausedAt
       - phaseConfirmed
       - phases
+      - pressType
       - private
       - retreatFrequency
       - retreatPhaseDuration
@@ -2484,6 +2496,14 @@ components:
       - member
       - orderableProvinces
       - ordersConfirmed
+    PressTypeEnum:
+      enum:
+      - full_press
+      - no_press
+      type: string
+      description: |-
+        * `full_press` - Full Press
+        * `no_press` - No Press
     Province:
       type: object
       properties:

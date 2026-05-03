@@ -291,6 +291,17 @@ export const RetreatFrequencyEnum = {
   weekly: "weekly",
 } as const;
 
+/**
+ * * `full_press` - Full Press
+ * `no_press` - No Press
+ */
+export type PressTypeEnum = (typeof PressTypeEnum)[keyof typeof PressTypeEnum];
+
+export const PressTypeEnum = {
+  full_press: "full_press",
+  no_press: "no_press",
+} as const;
+
 export interface GameCreate {
   readonly id: string;
   name: string;
@@ -315,6 +326,7 @@ export interface GameCreate {
    * @maximum 2
    */
   nmrExtensionsAllowed?: number;
+  pressType?: PressTypeEnum;
 }
 
 export interface GameCreateSandbox {
@@ -383,6 +395,7 @@ export interface GameList {
   readonly movementFrequency: string | null;
   /** @nullable */
   readonly retreatFrequency: string | null;
+  readonly pressType: string;
 }
 
 export interface GameRetrieve {
@@ -421,6 +434,7 @@ export interface GameRetrieve {
   readonly movementFrequency: string | null;
   /** @nullable */
   readonly retreatFrequency: string | null;
+  readonly pressType: string;
   readonly totalUnreadMessageCount: number;
 }
 
@@ -8121,6 +8135,10 @@ export const getGameCreateResponseMock = (
     faker.number.int({ min: 0, max: 2 }),
     undefined,
   ]),
+  pressType: faker.helpers.arrayElement([
+    faker.helpers.arrayElement(Object.values(PressTypeEnum)),
+    undefined,
+  ]),
   ...overrideResponse,
 });
 
@@ -8268,6 +8286,7 @@ export const getGameRetrieveResponseMock = (
     ]),
     null,
   ]),
+  pressType: faker.string.alpha({ length: { min: 10, max: 20 } }),
   totalUnreadMessageCount: faker.number.int({ min: undefined, max: undefined }),
   ...overrideResponse,
 });
@@ -9148,6 +9167,7 @@ export const getGamesListResponseMock = (
       ]),
       null,
     ]),
+    pressType: faker.string.alpha({ length: { min: 10, max: 20 } }),
   })),
   ...overrideResponse,
 });
