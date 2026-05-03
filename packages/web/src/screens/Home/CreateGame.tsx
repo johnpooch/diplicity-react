@@ -59,6 +59,7 @@ const standardGameSchema = z.object({
     .min(1, "Game name is required")
     .max(100, "Game name must be less than 100 characters"),
   variantId: z.string().min(1, "Please select a variant"),
+  mode: z.enum(["standard", "gunboat"] as const),
   nationAssignment: z.enum(["random", "ordered"] as const),
   private: z.boolean(),
   deadlineMode: z.enum(["duration", "fixed_time"] as const),
@@ -89,6 +90,11 @@ const sandboxGameSchema = z.object({
 
 type StandardGameFormValues = z.infer<typeof standardGameSchema>;
 type SandboxGameFormValues = z.infer<typeof sandboxGameSchema>;
+
+const modeToBackendFields = (mode: StandardGameFormValues["mode"]) => ({
+  anonymous: mode === "gunboat",
+  pressType: mode === "gunboat" ? "no_press" : "full_press",
+} as const);
 
 interface MetadataRow {
   label: string;
@@ -219,6 +225,7 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
     defaultValues: {
       name: randomGameName(),
       variantId: variants[0].id,
+      mode: "standard",
       nationAssignment: "random" as NationAssignmentEnum,
       private: false,
       deadlineMode: "fixed_time",
@@ -240,6 +247,37 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">General</h2>
+
+          <FormField
+            control={form.control}
+            name="mode"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Mode</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                  disabled={isSubmitting}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="standard">Standard</SelectItem>
+                    <SelectItem value="gunboat">Gunboat</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  {field.value === "gunboat"
+                    ? "Read intent through orders alone. No messages, no names. The format used in most online tournaments."
+                    : "Negotiate openly with named opponents."}
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <FormField
             control={form.control}
@@ -700,6 +738,7 @@ const CreateGame: React.FC = () => {
           variantId: data.variantId,
           nationAssignment: data.nationAssignment,
           private: data.private,
+          ...modeToBackendFields(data.mode),
           deadlineMode: data.deadlineMode,
           movementPhaseDuration:
             data.deadlineMode === "duration"
@@ -794,5 +833,5 @@ const CreateGameSuspense: React.FC = () => {
   );
 };
 
-export { CreateGameSuspense as CreateGame };
+export { CreateGameSuspense as CreateGame, modeToBackendFields };
 export type { CreateStandardGameFormProps, CreateSandboxGameFormProps };
