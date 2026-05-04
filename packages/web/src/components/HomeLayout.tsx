@@ -68,7 +68,7 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
     <SidebarProvider>
       <SafeAreaView
         className={cn(
-          "flex flex-col h-screen w-full overflow-hidden",
+          "flex flex-col h-dvh w-full overflow-hidden",
           className
         )}
       >
