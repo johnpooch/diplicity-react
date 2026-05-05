@@ -134,7 +134,7 @@ describe("FindGames", () => {
     );
   });
 
-  it("renders the Fastest Start header when the top game has at least 3 members", () => {
+  it("renders the Fastest Start and More games headers when the top game has at least 3 members", () => {
     const buildMember = (id: number) => ({ id, user: { id, username: `u${id}` } });
     const buildGame = (id: string, memberCount: number) => ({
       id,
@@ -156,12 +156,36 @@ describe("FindGames", () => {
 
     expect(screen.getByText(/fastest start/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/join to start playing fastest/i)
+      screen.getByText(/join to start playing quickly/i)
     ).toBeInTheDocument();
+    expect(screen.getByText(/more games/i)).toBeInTheDocument();
     expect(screen.getAllByTestId("game-card")).toHaveLength(3);
   });
 
-  it("does not render the Fastest Start header when the top game has fewer than 3 members", () => {
+  it("omits the More games header when there is only the Fastest Start game", () => {
+    const buildMember = (id: number) => ({ id, user: { id, username: `u${id}` } });
+    const buildGame = (id: string, memberCount: number) => ({
+      id,
+      variantId: "classical",
+      phases: [1],
+      members: Array.from({ length: memberCount }, (_, i) => buildMember(i + 1)),
+    });
+
+    mockUseGamesListInfinite.mockReturnValue({
+      ...defaultGamesListResult,
+      data: {
+        pages: [{ results: [buildGame("g1", 4)] }],
+      },
+    } as unknown as ReturnType<typeof useGamesListInfinite>);
+
+    renderFindGames();
+
+    expect(screen.getByText(/fastest start/i)).toBeInTheDocument();
+    expect(screen.queryByText(/more games/i)).not.toBeInTheDocument();
+    expect(screen.getAllByTestId("game-card")).toHaveLength(1);
+  });
+
+  it("does not render the Fastest Start or More games headers when the top game has fewer than 3 members", () => {
     const buildMember = (id: number) => ({ id, user: { id, username: `u${id}` } });
     const buildGame = (id: string, memberCount: number) => ({
       id,
@@ -182,6 +206,7 @@ describe("FindGames", () => {
     renderFindGames();
 
     expect(screen.queryByText(/fastest start/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/more games/i)).not.toBeInTheDocument();
     expect(screen.getAllByTestId("game-card")).toHaveLength(3);
   });
 });
