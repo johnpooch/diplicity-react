@@ -23,6 +23,7 @@ import {
   useGameRetrieveSuspense,
   useGamesChannelsListSuspense,
 } from "@/api/generated/endpoints";
+import { useAuth } from "@/auth";
 
 const getLatestMessagePreview = (
   messages: readonly ChannelMessage[]
@@ -37,6 +38,7 @@ const ChannelListScreen: React.FC = () => {
     gameId: string;
     phaseId: string;
   }>();
+  const { loggedIn } = useAuth();
   const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: channels } = useGamesChannelsListSuspense(gameId);
 
@@ -103,7 +105,7 @@ const ChannelListScreen: React.FC = () => {
               </ItemGroup>
             )}
           </Panel.Content>
-          {!isSandboxGame && !isNoPressActiveGame && (
+          {!isSandboxGame && !isNoPressActiveGame && loggedIn && (
             <>
               <Separator />
               <Panel.Footer>

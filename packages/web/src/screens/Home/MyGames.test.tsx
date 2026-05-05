@@ -29,6 +29,14 @@ vi.mock("@/hooks/useInfiniteScroll", () => ({
   useInfiniteScroll: () => ({ current: null }),
 }));
 
+vi.mock("@/auth", () => ({
+  useAuth: () => ({
+    loggedIn: true,
+    login: vi.fn(),
+    logout: vi.fn(),
+  }),
+}));
+
 const renderMyGames = () => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },

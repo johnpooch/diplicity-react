@@ -77,9 +77,7 @@ class DeadlineWarningsView(views.APIView):
 
 class PhaseListView(SelectedGameMixin, generics.ListAPIView):
     permission_classes = [
-        permissions.IsAuthenticated,
         IsActiveOrCompletedGame,
-        IsGameMember,
     ]
     serializer_class = PhaseListSerializer
 
@@ -91,7 +89,7 @@ class PhaseListView(SelectedGameMixin, generics.ListAPIView):
 
 
 class PhaseRetrieveView(generics.RetrieveAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     serializer_class = PhaseRetrieveSerializer
     lookup_field = 'id'
     lookup_url_kwarg = 'phase_id'

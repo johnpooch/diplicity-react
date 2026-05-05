@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Router from "./Router";
 import { MaintenanceMode } from "./components/MaintenanceMode";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { AuthProvider, useAuth } from "./auth";
+import { AuthProvider } from "./auth";
 import { Toaster } from "./components/ui/sonner";
 import { isNativePlatform } from "./utils/platform";
 import { initializeNativeSocialLogin } from "./auth/nativeGoogleAuth";
@@ -15,9 +15,7 @@ import { deepLinkStorage, parseDeepLinkUrl } from "./deepLink";
 const queryClient = new QueryClient();
 
 function AppContent() {
-  const { loggedIn } = useAuth();
-
-  return <Router loggedIn={loggedIn} queryClient={queryClient} />;
+  return <Router queryClient={queryClient} />;
 }
 
 const MaybeGoogleOAuthProvider: React.FC<{ children: React.ReactNode }> = ({

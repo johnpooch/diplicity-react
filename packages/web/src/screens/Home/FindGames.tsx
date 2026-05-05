@@ -19,6 +19,7 @@ import { useVariantsListSuspense } from "@/api/generated/endpoints";
 import type { GamesListMovementPhaseDuration } from "@/api/generated/endpoints";
 import { useGamesListInfinite } from "@/hooks/useGamesListInfinite";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
+import { useAuth } from "@/auth";
 import { DURATION_OPTIONS } from "@/constants";
 
 const VARIANT_PARAM = "variant";
@@ -31,6 +32,7 @@ interface FindGamesProps {
 }
 
 const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
+  const { loggedIn } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const variantParam = searchParams.get(VARIANT_PARAM) ?? undefined;
@@ -40,7 +42,7 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useGamesListInfinite({
-      can_join: true,
+      ...(loggedIn ? { can_join: true } : {}),
       variant: variantParam,
       movement_phase_duration: durationParam,
     });
@@ -142,7 +144,11 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
       ) : (
         <Notice
           title="No games found"
-          message="There are no games available to join. Go to Create Game to start a new game."
+          message={
+            loggedIn
+              ? "There are no games available to join. Go to Create Game to start a new game."
+              : "There are no games available right now. Sign in to create a new game."
+          }
           icon={Inbox}
         />
       )}
