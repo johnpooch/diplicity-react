@@ -6,7 +6,6 @@ import { ScreenContainer } from "@/components/ui/screen-container";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { GameCard } from "@/components/GameCard";
 import { Notice } from "@/components/Notice";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -130,8 +129,9 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
             <>
               <div className="flex items-center gap-2 pt-2">
                 <Zap className="size-4" />
-                <h3 className="text-sm font-semibold">Fastest Start</h3>
-                <Badge>Join to start playing fastest</Badge>
+                <h3 className="text-sm font-semibold">
+                  Fastest Start — Join to start playing quickly
+                </h3>
               </div>
               <GameCard
                 key={knownGames[0].id}
@@ -140,15 +140,20 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
                 phaseId={knownGames[0].phases[0]}
                 map={<div />}
               />
-              {knownGames.slice(1).map(game => (
-                <GameCard
-                  key={game.id}
-                  game={game}
-                  variant={variantMap.get(game.variantId)!}
-                  phaseId={game.phases[0]}
-                  map={<div />}
-                />
-              ))}
+              {knownGames.length > 1 && (
+                <>
+                  <h3 className="text-sm font-semibold pt-2">More games</h3>
+                  {knownGames.slice(1).map(game => (
+                    <GameCard
+                      key={game.id}
+                      game={game}
+                      variant={variantMap.get(game.variantId)!}
+                      phaseId={game.phases[0]}
+                      map={<div />}
+                    />
+                  ))}
+                </>
+              )}
             </>
           ) : (
             knownGames.map(game => (
