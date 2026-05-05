@@ -827,6 +827,9 @@ export type GamesListParams = {
   mine?: boolean;
   /**
    * * `1 hour` - 1 hour
+   * `2 hours` - 2 hours
+   * `4 hours` - 4 hours
+   * `8 hours` - 8 hours
    * `12 hours` - 12 hours
    * `24 hours` - 24 hours
    * `48 hours` - 48 hours
@@ -837,6 +840,7 @@ export type GamesListParams = {
    * @nullable
    */
   movement_phase_duration?: GamesListMovementPhaseDuration;
+  ordering?: string;
   /**
    * A page number within the paginated result set.
    */
@@ -856,13 +860,16 @@ export type GamesListMovementPhaseDuration =
 
 export const GamesListMovementPhaseDuration = {
   "1_hour": "1 hour",
+  "1_week": "1 week",
   "12_hours": "12 hours",
+  "2_hours": "2 hours",
+  "2_weeks": "2 weeks",
   "24_hours": "24 hours",
-  "48_hours": "48 hours",
   "3_days": "3 days",
   "4_days": "4 days",
-  "1_week": "1 week",
-  "2_weeks": "2 weeks",
+  "4_hours": "4 hours",
+  "48_hours": "48 hours",
+  "8_hours": "8 hours",
 } as const;
 
 /**

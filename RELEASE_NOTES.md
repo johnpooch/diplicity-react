@@ -1,5 +1,15 @@
 # Diplicity React - Release Notes
 
+## Find Games: "Fastest Start" highlight (May 5, 2026)
+
+**Release Date:** May 5, 2026
+
+### Improvement: Find Games surfaces the joinable game closest to starting
+
+The Find Games list now sorts joinable games by how close they are to filling, so the staging game with the fewest open slots appears first. When the top game already has at least three players, it's marked with a "Fastest Start" header and badge — a clear signal of where to join if you want to start playing as soon as possible. Filtering by variant or duration still works the same way; the highlight applies within whatever filters you've set.
+
+---
+
 ## Order Wizard Overhaul & Bug Fixes (March 19, 2026)
 
 **Release Date:** March 19, 2026

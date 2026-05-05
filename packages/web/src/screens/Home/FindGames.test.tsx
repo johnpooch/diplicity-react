@@ -39,7 +39,9 @@ vi.mock("@/hooks/useInfiniteScroll", () => ({
 }));
 
 vi.mock("@/components/GameCard", () => ({
-  GameCard: () => <div data-testid="game-card" />,
+  GameCard: ({ game }: { game: { id: string } }) => (
+    <div data-testid="game-card" data-game-id={game.id} />
+  ),
 }));
 
 vi.mock("@/components/UserAvatar", () => ({
@@ -122,5 +124,64 @@ describe("FindGames", () => {
         movement_phase_duration: "24 hours",
       })
     );
+  });
+
+  it("passes ordering=slots_remaining to the games list query", () => {
+    renderFindGames();
+
+    expect(mockUseGamesListInfinite).toHaveBeenCalledWith(
+      expect.objectContaining({ ordering: "slots_remaining" })
+    );
+  });
+
+  it("renders the Fastest Start header when the top game has at least 3 members", () => {
+    const buildMember = (id: number) => ({ id, user: { id, username: `u${id}` } });
+    const buildGame = (id: string, memberCount: number) => ({
+      id,
+      variantId: "classical",
+      phases: [1],
+      members: Array.from({ length: memberCount }, (_, i) => buildMember(i + 1)),
+    });
+
+    mockUseGamesListInfinite.mockReturnValue({
+      ...defaultGamesListResult,
+      data: {
+        pages: [
+          { results: [buildGame("g1", 4), buildGame("g2", 2), buildGame("g3", 1)] },
+        ],
+      },
+    } as unknown as ReturnType<typeof useGamesListInfinite>);
+
+    renderFindGames();
+
+    expect(screen.getByText(/fastest start/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/join to start playing fastest/i)
+    ).toBeInTheDocument();
+    expect(screen.getAllByTestId("game-card")).toHaveLength(3);
+  });
+
+  it("does not render the Fastest Start header when the top game has fewer than 3 members", () => {
+    const buildMember = (id: number) => ({ id, user: { id, username: `u${id}` } });
+    const buildGame = (id: string, memberCount: number) => ({
+      id,
+      variantId: "classical",
+      phases: [1],
+      members: Array.from({ length: memberCount }, (_, i) => buildMember(i + 1)),
+    });
+
+    mockUseGamesListInfinite.mockReturnValue({
+      ...defaultGamesListResult,
+      data: {
+        pages: [
+          { results: [buildGame("g1", 2), buildGame("g2", 1), buildGame("g3", 0)] },
+        ],
+      },
+    } as unknown as ReturnType<typeof useGamesListInfinite>);
+
+    renderFindGames();
+
+    expect(screen.queryByText(/fastest start/i)).not.toBeInTheDocument();
+    expect(screen.getAllByTestId("game-card")).toHaveLength(3);
   });
 });
