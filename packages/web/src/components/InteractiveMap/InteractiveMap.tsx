@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Cross } from "./shapes/cross";
+import { Arrow } from "./shapes/arrow";
 import { CurvedArrow } from "./shapes/curved-arrow";
 import { Octagon } from "./shapes/octagon";
 import type {
@@ -60,7 +61,6 @@ const ORDER_ARROW_LENGTH = 8;
 const ORDER_DASH_LENGTH = 4;
 const ORDER_DASH_SPACING = 2;
 
-const MOVE_ARROW_CURVE_OFFSET = 25; // Perpendicular offset for curved move arrows
 
 const ORDER_FAILED_CROSS_WIDTH = 3;
 const ORDER_FAILED_CROSS_LENGTH = 16;
@@ -596,32 +596,13 @@ const InteractiveMap = (props: InteractiveMapProps) => {
             n => n.name === o.nation.name
           )?.color as string;
 
-          // Calculate control point for curved arrow
-          const midX = (source.center.x + target.center.x) / 2;
-          const midY = (source.center.y + target.center.y) / 2;
-
-          // Direction vector
-          const dx = target.center.x - source.center.x;
-          const dy = target.center.y - source.center.y;
-
-          // Perpendicular vector (rotate 90° counterclockwise)
-          const perpX = -dy;
-          const perpY = dx;
-
-          // Normalize and scale by offset
-          const length = Math.sqrt(perpX * perpX + perpY * perpY);
-          const x3 = midX + (perpX / length) * MOVE_ARROW_CURVE_OFFSET;
-          const y3 = midY + (perpY / length) * MOVE_ARROW_CURVE_OFFSET;
-
           return (
-            <CurvedArrow
+            <Arrow
               key={o.source.id}
               x1={source.center.x - UNIT_OFFSET_X}
               y1={source.center.y - UNIT_OFFSET_Y}
               x2={target.center.x - UNIT_OFFSET_X}
               y2={target.center.y - UNIT_OFFSET_Y}
-              x3={x3}
-              y3={y3}
               lineWidth={ORDER_LINE_WIDTH}
               arrowWidth={ORDER_ARROW_WIDTH}
               arrowLength={ORDER_ARROW_LENGTH}
