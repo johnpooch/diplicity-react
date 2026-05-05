@@ -18,6 +18,7 @@ retrieve_viewname = "game-retrieve"
 list_viewname = "game-list"
 create_viewname = "game-create"
 sandbox_create_viewname = "sandbox-game-create"
+find_similar_viewname = "game-find-similar"
 
 
 class TestGameRetrieveView:
@@ -3139,3 +3140,257 @@ class TestCreateSandboxManagerMethod:
         current_phase = game.phases.first()
         assert current_phase.status == PhaseStatus.ACTIVE
         assert current_phase.phase_states.count() == classical_variant.nations.count()
+
+
+class TestGameFindSimilarView:
+
+    @pytest.mark.django_db
+    def test_unauthenticated(self, unauthenticated_client, classical_variant):
+        url = reverse(find_similar_viewname)
+        response = unauthenticated_client.get(
+            url,
+            {"variant": classical_variant.id, "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS},
+        )
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_no_match_returns_null(self, authenticated_client, classical_variant):
+        url = reverse(find_similar_viewname)
+        response = authenticated_client.get(
+            url,
+            {"variant": classical_variant.id, "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {"game": None}
+
+    @pytest.mark.django_db
+    def test_missing_variant_returns_null(self, authenticated_client):
+        url = reverse(find_similar_viewname)
+        response = authenticated_client.get(
+            url, {"movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {"game": None}
+
+    @pytest.mark.django_db
+    def test_missing_duration_returns_null(self, authenticated_client, classical_variant):
+        url = reverse(find_similar_viewname)
+        response = authenticated_client.get(url, {"variant": classical_variant.id})
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {"game": None}
+
+    @pytest.mark.django_db
+    def test_returns_matching_game(
+        self, authenticated_client, secondary_user, classical_variant, base_pending_phase
+    ):
+        match = Game.objects.create(
+            name="Match",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+        )
+        base_pending_phase(match)
+        match.members.create(user=secondary_user, is_game_master=True)
+
+        url = reverse(find_similar_viewname)
+        response = authenticated_client.get(
+            url,
+            {"variant": classical_variant.id, "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["game"]["id"] == match.id
+
+    @pytest.mark.django_db
+    def test_picks_smallest_slots_remaining(
+        self, authenticated_client, secondary_user, tertiary_user, classical_variant, base_pending_phase
+    ):
+        less_ready = Game.objects.create(
+            name="Less Ready",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+        )
+        base_pending_phase(less_ready)
+        less_ready.members.create(user=secondary_user, is_game_master=True)
+
+        most_ready = Game.objects.create(
+            name="Most Ready",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+        )
+        base_pending_phase(most_ready)
+        most_ready.members.create(user=secondary_user, is_game_master=True)
+        most_ready.members.create(user=tertiary_user)
+
+        url = reverse(find_similar_viewname)
+        response = authenticated_client.get(
+            url,
+            {"variant": classical_variant.id, "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["game"]["id"] == most_ready.id
+
+    @pytest.mark.django_db
+    def test_tie_break_by_created_at_desc(
+        self, authenticated_client, secondary_user, classical_variant, base_pending_phase
+    ):
+        older = Game.objects.create(
+            name="Older",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+        )
+        base_pending_phase(older)
+        older.members.create(user=secondary_user, is_game_master=True)
+        Game.objects.filter(pk=older.pk).update(created_at=timezone.now() - timedelta(days=2))
+
+        newer = Game.objects.create(
+            name="Newer",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+        )
+        base_pending_phase(newer)
+        newer.members.create(user=secondary_user, is_game_master=True)
+
+        url = reverse(find_similar_viewname)
+        response = authenticated_client.get(
+            url,
+            {"variant": classical_variant.id, "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["game"]["id"] == newer.id
+
+    @pytest.mark.django_db
+    def test_excludes_private_game(
+        self, authenticated_client, secondary_user, classical_variant, base_pending_phase
+    ):
+        game = Game.objects.create(
+            name="Private",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            private=True,
+        )
+        base_pending_phase(game)
+        game.members.create(user=secondary_user, is_game_master=True)
+
+        url = reverse(find_similar_viewname)
+        response = authenticated_client.get(
+            url,
+            {"variant": classical_variant.id, "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {"game": None}
+
+    @pytest.mark.django_db
+    def test_excludes_sandbox_game(
+        self, authenticated_client, secondary_user, classical_variant, base_pending_phase
+    ):
+        game = Game.objects.create(
+            name="Sandbox",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            sandbox=True,
+        )
+        base_pending_phase(game)
+        game.members.create(user=secondary_user, is_game_master=True)
+
+        url = reverse(find_similar_viewname)
+        response = authenticated_client.get(
+            url,
+            {"variant": classical_variant.id, "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {"game": None}
+
+    @pytest.mark.django_db
+    def test_excludes_non_pending_game(
+        self, authenticated_client, secondary_user, classical_variant, base_pending_phase
+    ):
+        game = Game.objects.create(
+            name="Active",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+        )
+        base_pending_phase(game)
+        game.members.create(user=secondary_user, is_game_master=True)
+
+        url = reverse(find_similar_viewname)
+        response = authenticated_client.get(
+            url,
+            {"variant": classical_variant.id, "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {"game": None}
+
+    @pytest.mark.django_db
+    def test_excludes_different_variant(
+        self,
+        authenticated_client,
+        secondary_user,
+        classical_variant,
+        italy_vs_germany_variant,
+        base_pending_phase,
+    ):
+        game = Game.objects.create(
+            name="Wrong Variant",
+            variant=italy_vs_germany_variant,
+            status=GameStatus.PENDING,
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+        )
+        base_pending_phase(game)
+        game.members.create(user=secondary_user, is_game_master=True)
+
+        url = reverse(find_similar_viewname)
+        response = authenticated_client.get(
+            url,
+            {"variant": classical_variant.id, "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {"game": None}
+
+    @pytest.mark.django_db
+    def test_excludes_different_duration(
+        self, authenticated_client, secondary_user, classical_variant, base_pending_phase
+    ):
+        game = Game.objects.create(
+            name="Wrong Duration",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+            movement_phase_duration=MovementPhaseDuration.TWELVE_HOURS,
+        )
+        base_pending_phase(game)
+        game.members.create(user=secondary_user, is_game_master=True)
+
+        url = reverse(find_similar_viewname)
+        response = authenticated_client.get(
+            url,
+            {"variant": classical_variant.id, "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {"game": None}
+
+    @pytest.mark.django_db
+    def test_excludes_game_user_is_member_of(
+        self, authenticated_client, primary_user, classical_variant, base_pending_phase
+    ):
+        game = Game.objects.create(
+            name="Already Joined",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+        )
+        base_pending_phase(game)
+        game.members.create(user=primary_user, is_game_master=True)
+
+        url = reverse(find_similar_viewname)
+        response = authenticated_client.get(
+            url,
+            {"variant": classical_variant.id, "movement_phase_duration": MovementPhaseDuration.TWENTY_FOUR_HOURS},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {"game": None}

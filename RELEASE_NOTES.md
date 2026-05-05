@@ -1,5 +1,15 @@
 # Diplicity React - Release Notes
 
+## Creation Intervention: Suggest Joining a Similar Game (May 5, 2026)
+
+**Release Date:** May 5, 2026
+
+### New Feature: Suggested Similar Game on Create
+
+When you submit Create Game, if a similar public staging game already exists (same variant and movement phase duration), a prompt now asks whether you'd rather join that game instead. Pick "Join Them?" to head to its Game Info page, or "Continue" to create your own as before. Private games and fixed-time deadlines skip this check.
+
+---
+
 ## Order Wizard Overhaul & Bug Fixes (March 19, 2026)
 
 **Release Date:** March 19, 2026

@@ -393,6 +393,10 @@ export interface GameList {
   readonly pressType: string;
 }
 
+export interface GameFindSimilar {
+  game: GameList | null;
+}
+
 export interface GameRetrieve {
   readonly id: string;
   readonly name: string;
@@ -827,6 +831,9 @@ export type GamesListParams = {
   mine?: boolean;
   /**
    * * `1 hour` - 1 hour
+   * `2 hours` - 2 hours
+   * `4 hours` - 4 hours
+   * `8 hours` - 8 hours
    * `12 hours` - 12 hours
    * `24 hours` - 24 hours
    * `48 hours` - 48 hours
@@ -856,14 +863,22 @@ export type GamesListMovementPhaseDuration =
 
 export const GamesListMovementPhaseDuration = {
   "1_hour": "1 hour",
+  "1_week": "1 week",
   "12_hours": "12 hours",
+  "2_hours": "2 hours",
+  "2_weeks": "2 weeks",
   "24_hours": "24 hours",
-  "48_hours": "48 hours",
   "3_days": "3 days",
   "4_days": "4 days",
-  "1_week": "1 week",
-  "2_weeks": "2 weeks",
+  "4_hours": "4 hours",
+  "48_hours": "48 hours",
+  "8_hours": "8 hours",
 } as const;
+
+export type GamesFindSimilarRetrieveParams = {
+  movement_phase_duration: string;
+  variant: string;
+};
 
 /**
  * OpenApi3 schema for this API. Format can be selected via content negotiation.
@@ -6753,6 +6768,283 @@ export const useGamesDrawProposalsCreateCreate = <
     queryClient
   );
 };
+
+export const gamesFindSimilarRetrieve = (
+  params: GamesFindSimilarRetrieveParams,
+  signal?: AbortSignal
+) => {
+  return customInstance<GameFindSimilar>({
+    url: `/games/find-similar/`,
+    method: "GET",
+    params,
+    signal,
+  });
+};
+
+export const getGamesFindSimilarRetrieveQueryKey = (
+  params?: GamesFindSimilarRetrieveParams
+) => {
+  return [`/games/find-similar/`, ...(params ? [params] : [])] as const;
+};
+
+export const getGamesFindSimilarRetrieveQueryOptions = <
+  TData = Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+  TError = unknown,
+>(
+  params: GamesFindSimilarRetrieveParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGamesFindSimilarRetrieveQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>
+  > = ({ signal }) => gamesFindSimilarRetrieve(params, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GamesFindSimilarRetrieveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>
+>;
+export type GamesFindSimilarRetrieveQueryError = unknown;
+
+export function useGamesFindSimilarRetrieve<
+  TData = Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+  TError = unknown,
+>(
+  params: GamesFindSimilarRetrieveParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesFindSimilarRetrieve<
+  TData = Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+  TError = unknown,
+>(
+  params: GamesFindSimilarRetrieveParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesFindSimilarRetrieve<
+  TData = Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+  TError = unknown,
+>(
+  params: GamesFindSimilarRetrieveParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGamesFindSimilarRetrieve<
+  TData = Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+  TError = unknown,
+>(
+  params: GamesFindSimilarRetrieveParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGamesFindSimilarRetrieveQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getGamesFindSimilarRetrieveSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+  TError = unknown,
+>(
+  params: GamesFindSimilarRetrieveParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGamesFindSimilarRetrieveQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>
+  > = ({ signal }) => gamesFindSimilarRetrieve(params, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GamesFindSimilarRetrieveSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>
+>;
+export type GamesFindSimilarRetrieveSuspenseQueryError = unknown;
+
+export function useGamesFindSimilarRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+  TError = unknown,
+>(
+  params: GamesFindSimilarRetrieveParams,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesFindSimilarRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+  TError = unknown,
+>(
+  params: GamesFindSimilarRetrieveParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesFindSimilarRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+  TError = unknown,
+>(
+  params: GamesFindSimilarRetrieveParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGamesFindSimilarRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+  TError = unknown,
+>(
+  params: GamesFindSimilarRetrieveParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGamesFindSimilarRetrieveSuspenseQueryOptions(
+    params,
+    options
+  );
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 export const phaseDeadlineWarningsCreate = (signal?: AbortSignal) => {
   return customInstance<void>({
