@@ -845,7 +845,6 @@ const CreateGame: React.FC = () => {
   const matchedVariant = similarMatch
     ? variants.find(v => v.id === similarMatch.variantId)
     : null;
-  const matchedGM = similarMatch?.members.find(m => m.isGameMaster);
 
   return (
     <div className="space-y-4">
@@ -906,7 +905,6 @@ const CreateGame: React.FC = () => {
               <p className="text-muted-foreground">
                 {similarMatch.members.length}
                 {matchedVariant ? ` / ${matchedVariant.nations.length}` : ""} players
-                {matchedGM ? ` • GM ${matchedGM.name}` : ""}
               </p>
             </div>
           )}

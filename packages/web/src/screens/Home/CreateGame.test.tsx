@@ -262,7 +262,7 @@ describe("CreateGame — find-similar intervention", () => {
     expect(mockNavigate).toHaveBeenCalledWith("/game-info/created-game");
   });
 
-  it("shows the modal with name, member count, and GM when find-similar returns a match", async () => {
+  it("shows the modal with name and member count when find-similar returns a match", async () => {
     const user = userEvent.setup();
     stubFindSimilar(matchedGame);
 
@@ -272,9 +272,7 @@ describe("CreateGame — find-similar intervention", () => {
 
     await screen.findByRole("alertdialog");
     expect(screen.getByText("Matched Game")).toBeInTheDocument();
-    expect(
-      screen.getByText(/2 \/ 7 players • GM Game Master Bob/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/2 \/ 7 players/i)).toBeInTheDocument();
     expect(createGameMutateAsync).not.toHaveBeenCalled();
   });
 
