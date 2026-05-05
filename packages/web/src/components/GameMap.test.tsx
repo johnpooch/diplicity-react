@@ -1,4 +1,3 @@
-import React from "react";
 import { render, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -16,7 +15,7 @@ const {
   mockToastSuccess: vi.fn(),
   mockToastError: vi.fn(),
   mockWizardReset: vi.fn(),
-  mockInteractiveMapZoomWrapper: vi.fn(() => <div data-testid="map" />),
+  mockInteractiveMapZoomWrapper: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -24,8 +23,10 @@ vi.mock("sonner", () => ({
 }));
 
 vi.mock("@/components/InteractiveMap/InteractiveMapZoomWrapper", () => ({
-  InteractiveMapZoomWrapper: (props: unknown) =>
-    mockInteractiveMapZoomWrapper(props),
+  InteractiveMapZoomWrapper: (props: unknown) => {
+    mockInteractiveMapZoomWrapper(props);
+    return <div data-testid="map" />;
+  },
 }));
 
 // Wizard state is held in a mutable object the mock reads from each render
@@ -178,10 +179,10 @@ function completeWizard() {
 }
 
 function getLastOrdersProp(): Order[] {
-  const calls = mockInteractiveMapZoomWrapper.mock.calls;
-  const last = calls[calls.length - 1];
-  return (last[0] as { interactiveMapProps: { orders: Order[] } })
-    .interactiveMapProps.orders ?? [];
+  const last = mockInteractiveMapZoomWrapper.mock.calls.at(-1);
+  if (!last) return [];
+  const props = (last[0] as unknown) as { interactiveMapProps: { orders: Order[] } };
+  return props.interactiveMapProps.orders ?? [];
 }
 
 // --- Tests ---
