@@ -15,6 +15,9 @@ type CurvedArrowProps = {
   arrowWidth: number;
   arrowLength: number;
   dash?: { length: number; spacing: number };
+  // When the supported move curves (head-to-head), override the end direction so the
+  // arrowhead aligns with the move arrow's arrival angle instead of the straight aux→target line.
+  endControlPoint?: { x: number; y: number };
   onRenderCenter?: (x: number, y: number, angle: number) => React.ReactElement;
 };
 
@@ -55,6 +58,7 @@ const getBezierPoint = (
 };
 
 const CurvedArrow: React.FC<CurvedArrowProps> = props => {
+  // start and cp1 always use x3,y3 (aux unit) so the support arrow curves toward the supported unit
   const start = getOffsetPoint(
     props.x1,
     props.y1,
@@ -63,25 +67,28 @@ const CurvedArrow: React.FC<CurvedArrowProps> = props => {
     props.offset
   );
 
-  const end = getOffsetPoint(
-    props.x2,
-    props.y2,
-    props.x3,
-    props.y3,
-    props.offset + props.arrowLength
-  );
-
-  // Angle between x2,y2 and x3,y3
-  const endAngle = Math.atan2(props.y3 - props.y2, props.x3 - props.x2);
-
   const cp1 = {
     x: start.x + (props.x3 - start.x) * 0.5,
     y: start.y + (props.y3 - start.y) * 0.5,
   };
 
+  // end, endAngle and cp2 use endControlPoint when provided (curved move) so the arrowhead
+  // aligns with the move arrow's arrival angle rather than the straight aux→target line
+  const ecp = props.endControlPoint ?? { x: props.x3, y: props.y3 };
+
+  const end = getOffsetPoint(
+    props.x2,
+    props.y2,
+    ecp.x,
+    ecp.y,
+    props.offset + props.arrowLength
+  );
+
+  const endAngle = Math.atan2(ecp.y - props.y2, ecp.x - props.x2);
+
   const cp2 = {
-    x: end.x + (props.x3 - end.x) * 0.5,
-    y: end.y + (props.y3 - end.y) * 0.5,
+    x: end.x + (ecp.x - end.x) * 0.5,
+    y: end.y + (ecp.y - end.y) * 0.5,
   };
 
   const arrowStart = {

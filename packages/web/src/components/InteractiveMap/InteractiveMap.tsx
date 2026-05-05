@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Cross } from "./shapes/cross";
+import { Arrow } from "./shapes/arrow";
 import { CurvedArrow } from "./shapes/curved-arrow";
 import { Octagon } from "./shapes/octagon";
 import type {
@@ -59,8 +60,8 @@ const ORDER_ARROW_WIDTH = 6;
 const ORDER_ARROW_LENGTH = 8;
 const ORDER_DASH_LENGTH = 4;
 const ORDER_DASH_SPACING = 2;
-
-const MOVE_ARROW_CURVE_OFFSET = 25; // Perpendicular offset for curved move arrows
+const SUPPORT_STAGGER_DISTANCE = 4.375;
+const MOVE_CURVE_OFFSET = 20;
 
 const ORDER_FAILED_CROSS_WIDTH = 3;
 const ORDER_FAILED_CROSS_LENGTH = 16;
@@ -213,6 +214,49 @@ const InteractiveMap = (props: InteractiveMapProps) => {
     display: "block",
     ...props.style,
   };
+
+  // Detect head-to-head move pairs and compute Bezier control points (curving right).
+  // When A→B and B→A both exist, each arrow curves toward its own right so they separate visually.
+  const moveOrdersAll = props.orders?.filter(
+    o => o.orderType === "Move" || o.orderType === "MoveViaConvoy"
+  ) ?? [];
+  const curvedMoveControlPoints = new Map<string, { x: number; y: number }>();
+  for (const o of moveOrdersAll) {
+    if (!o.target?.id) continue;
+    const isHeadToHead = moveOrdersAll.some(
+      other =>
+        other.source.id === o.target!.id && other.target?.id === o.source.id
+    );
+    if (!isHeadToHead) continue;
+    const sourceProvince = o.sourceCoast
+      ? map.provinces.find(p => p.id === o.sourceCoast!.id)
+      : map.provinces.find(p => p.id === o.source.id);
+    const targetProvince = o.namedCoast
+      ? map.provinces.find(p => p.id === o.namedCoast!.id)
+      : map.provinces.find(p => p.id === o.target.id);
+    if (!sourceProvince || !targetProvince) continue;
+    const x1 = sourceProvince.center.x - UNIT_OFFSET_X;
+    const y1 = sourceProvince.center.y - UNIT_OFFSET_Y;
+    const x2 = targetProvince.center.x - UNIT_OFFSET_X;
+    const y2 = targetProvince.center.y - UNIT_OFFSET_Y;
+    const mx = (x1 + x2) / 2;
+    const my = (y1 + y2) / 2;
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    // Right perpendicular in screen coords (Y-down): (-dy, dx)
+    curvedMoveControlPoints.set(`${o.source.id}-${o.target.id}`, {
+      x: mx + (-dy / len) * MOVE_CURVE_OFFSET,
+      y: my + (dx / len) * MOVE_CURVE_OFFSET,
+    });
+  }
+
+  const supportMoveGroups = new Map<string, Order[]>();
+  for (const o of props.orders?.filter(o => o.orderType === "Support" && o.aux?.id !== o.target?.id) ?? []) {
+    const key = `${o.aux?.id}-${o.target?.id}`;
+    if (!supportMoveGroups.has(key)) supportMoveGroups.set(key, []);
+    supportMoveGroups.get(key)!.push(o);
+  }
 
   return (
     <svg
@@ -502,6 +546,30 @@ const InteractiveMap = (props: InteractiveMapProps) => {
           if (!target) return null;
           if (!aux) return null;
 
+          const supportGroupKey = `${o.aux?.id}-${o.target?.id}`;
+          const supportGroup = supportMoveGroups.get(supportGroupKey) ?? [];
+          const staggerIndex = supportGroup.indexOf(o);
+          const sdx = aux.center.x - target.center.x;
+          const sdy = aux.center.y - target.center.y;
+          const slen = Math.sqrt(sdx * sdx + sdy * sdy);
+          const staggerDist = (staggerIndex + 1) * SUPPORT_STAGGER_DISTANCE;
+          const moveCurveCP = curvedMoveControlPoints.get(supportGroupKey);
+          let staggeredX2: number;
+          let staggeredY2: number;
+          if (moveCurveCP) {
+            // Stagger back along the Bezier end tangent (from control point toward target)
+            const tgtX = target.center.x - UNIT_OFFSET_X;
+            const tgtY = target.center.y - UNIT_OFFSET_Y;
+            const etDx = tgtX - moveCurveCP.x;
+            const etDy = tgtY - moveCurveCP.y;
+            const etLen = Math.sqrt(etDx * etDx + etDy * etDy);
+            staggeredX2 = tgtX - (etDx / etLen) * staggerDist;
+            staggeredY2 = tgtY - (etDy / etLen) * staggerDist;
+          } else {
+            staggeredX2 = target.center.x - UNIT_OFFSET_X + (sdx / slen) * staggerDist;
+            staggeredY2 = target.center.y - UNIT_OFFSET_Y + (sdy / slen) * staggerDist;
+          }
+
           if (aux === target) {
             // Render HoldArrow if auxiliary is the same as the target
             return (
@@ -546,10 +614,11 @@ const InteractiveMap = (props: InteractiveMapProps) => {
               key={o.source.id}
               x1={source.center.x - UNIT_OFFSET_X}
               y1={source.center.y - UNIT_OFFSET_Y}
-              x2={target.center.x - UNIT_OFFSET_X}
-              y2={target.center.y - UNIT_OFFSET_Y}
+              x2={staggeredX2}
+              y2={staggeredY2}
               x3={aux.center.x - UNIT_OFFSET_X}
               y3={aux.center.y - UNIT_OFFSET_Y}
+              endControlPoint={moveCurveCP}
               lineWidth={ORDER_LINE_WIDTH}
               arrowWidth={ORDER_ARROW_WIDTH}
               arrowLength={ORDER_ARROW_LENGTH}
@@ -596,32 +665,13 @@ const InteractiveMap = (props: InteractiveMapProps) => {
             n => n.name === o.nation.name
           )?.color as string;
 
-          // Calculate control point for curved arrow
-          const midX = (source.center.x + target.center.x) / 2;
-          const midY = (source.center.y + target.center.y) / 2;
-
-          // Direction vector
-          const dx = target.center.x - source.center.x;
-          const dy = target.center.y - source.center.y;
-
-          // Perpendicular vector (rotate 90° counterclockwise)
-          const perpX = -dy;
-          const perpY = dx;
-
-          // Normalize and scale by offset
-          const length = Math.sqrt(perpX * perpX + perpY * perpY);
-          const x3 = midX + (perpX / length) * MOVE_ARROW_CURVE_OFFSET;
-          const y3 = midY + (perpY / length) * MOVE_ARROW_CURVE_OFFSET;
-
           return (
-            <CurvedArrow
+            <Arrow
               key={o.source.id}
               x1={source.center.x - UNIT_OFFSET_X}
               y1={source.center.y - UNIT_OFFSET_Y}
               x2={target.center.x - UNIT_OFFSET_X}
               y2={target.center.y - UNIT_OFFSET_Y}
-              x3={x3}
-              y3={y3}
               lineWidth={ORDER_LINE_WIDTH}
               arrowWidth={ORDER_ARROW_WIDTH}
               arrowLength={ORDER_ARROW_LENGTH}
@@ -629,6 +679,7 @@ const InteractiveMap = (props: InteractiveMapProps) => {
               offset={UNIT_RADIUS}
               stroke={SUCCESS_COLOR}
               fill={color}
+              controlPoint={curvedMoveControlPoints.get(`${o.source.id}-${o.target?.id}`)}
               onRenderCenter={
                 o.resolution && o.resolution.status !== "Succeeded"
                   ? (x: number, y: number) => (
