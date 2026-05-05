@@ -75,7 +75,8 @@ function App() {
                 position="top-center"
                 closeButton
                 richColors
-                mobileOffset={{ top: "calc(16px + env(safe-area-inset-top, 0px))" }}
+                duration={1000}
+                mobileOffset={{ top: "calc(72px + env(safe-area-inset-top, 0px))" }}
               />
             </AuthProvider>
           </QueryClientProvider>
