@@ -1,4 +1,4 @@
-FROM node:24.10.0-alpine
+FROM node:24.15.0-alpine
 RUN apk add --no-cache bash
 
 RUN mkdir -p /app
