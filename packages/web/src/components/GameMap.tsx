@@ -3,6 +3,7 @@ import { useRef, useMemo, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { determineRenderableProvinces } from "../utils/provinces";
+import { buildOptimisticOrder } from "../utils/buildOptimisticOrder";
 import { InteractiveMapZoomWrapper } from "./InteractiveMap/InteractiveMapZoomWrapper";
 import { FloatingMenu, FloatingMenuItem } from "./FloatingMenu";
 import {
@@ -13,6 +14,7 @@ import {
   useGameOrdersCreate,
   getGameOrdersListQueryKey,
   useGameOptionsRetrieve,
+  type Order,
 } from "../api/generated/endpoints";
 import { useOrderWizard } from "../hooks/useOrderWizard";
 
@@ -36,6 +38,7 @@ const GameMap: React.FC = () => {
     x: number;
     y: number;
   } | null>(null);
+  const [pendingOrder, setPendingOrder] = useState<Order | null>(null);
   const createOrderMutation = useGameOrdersCreate();
 
   const wizard = useOrderWizard(
@@ -65,20 +68,31 @@ const GameMap: React.FC = () => {
 
   useEffect(() => {
     if (!wizard.isComplete || wizard.selectedArray.length === 0) return;
+    if (variant && phase) {
+      setPendingOrder(
+        buildOptimisticOrder(wizard.resolvedSelections, variant, phase)
+      );
+    }
     createOrderMutation
       .mutateAsync({
         gameId,
         data: { selected: wizard.selectedArray },
       })
       .then((order) => {
+        queryClient.setQueryData<Order[]>(
+          getGameOrdersListQueryKey(gameId, selectedPhase),
+          (old) => [
+            ...(old ?? []).filter((o) => o.source.id !== order.source.id),
+            order,
+          ]
+        );
+        setPendingOrder(null);
         toast.success(order.title ?? "Order created");
         wizard.reset();
         setMenuPosition(null);
-        queryClient.invalidateQueries({
-          queryKey: getGameOrdersListQueryKey(gameId, selectedPhase),
-        });
       })
       .catch(() => {
+        setPendingOrder(null);
         toast.error("Failed to create order");
         wizard.reset();
         setMenuPosition(null);
@@ -141,6 +155,15 @@ const GameMap: React.FC = () => {
       wizard.nextField === "namedCoast") &&
     menuPosition !== null;
 
+  const displayOrders = pendingOrder
+    ? [
+        ...(orders ?? []).filter(
+          (o) => o.source.id !== pendingOrder.source.id
+        ),
+        pendingOrder,
+      ]
+    : orders;
+
   return (
     <div ref={containerRef} className="relative w-full h-full">
       {game && variant && phase && orders && (
@@ -150,7 +173,7 @@ const GameMap: React.FC = () => {
               interactive: true,
               variant: variant,
               phase: phase,
-              orders: orders,
+              orders: displayOrders,
               selected: wizard.selectedArray,
               onClickProvince: handleProvinceClick,
               renderableProvinces: renderableProvinces,
