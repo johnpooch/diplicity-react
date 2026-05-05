@@ -944,6 +944,10 @@ paths:
           * `4 days` - 4 days
           * `1 week` - 1 week
           * `2 weeks` - 2 weeks
+      - in: query
+        name: ordering
+        schema:
+          type: string
       - name: page
         required: false
         in: query

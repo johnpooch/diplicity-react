@@ -7,6 +7,13 @@
 ### New Feature: Suggested Similar Game on Create
 
 When you submit Create Game, if a similar public staging game already exists (same variant and movement phase duration), a prompt now asks whether you'd rather join that game instead. Pick "Join Them?" to head to its Game Info page, or "Continue" to create your own as before. Private games and fixed-time deadlines skip this check.
+## Find Games: "Fastest Start" highlight (May 5, 2026)
+
+**Release Date:** May 5, 2026
+
+### Improvement: Find Games surfaces the joinable game closest to starting
+
+The Find Games list now sorts joinable games by how close they are to filling, so the staging game with the fewest open slots appears first. When the top game already has at least three players, it's marked with a "Fastest Start" header and badge — a clear signal of where to join if you want to start playing as soon as possible. Filtering by variant or duration still works the same way; the highlight applies within whatever filters you've set.
 
 ---
 

@@ -844,6 +844,7 @@ export type GamesListParams = {
    * @nullable
    */
   movement_phase_duration?: GamesListMovementPhaseDuration;
+  ordering?: string;
   /**
    * A page number within the paginated result set.
    */
