@@ -36,4 +36,9 @@ urlpatterns = [
         name="game-extend-deadline",
     ),
     path("games/", views.GameListView.as_view(), name="game-list"),
+    path(
+        "games/find-similar/",
+        views.GameFindSimilarView.as_view(),
+        name="game-find-similar",
+    ),
 ]

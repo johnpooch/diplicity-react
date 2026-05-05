@@ -2,13 +2,16 @@ from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from opentelemetry import trace
 
+from common.constants import GameStatus
 from .models import Game
 from .serializers import (
     GameCreateSerializer,
     GameCreateSandboxSerializer,
     GameCloneToSandboxSerializer,
+    GameFindSimilarSerializer,
     GameListSerializer,
     GameRetrieveSerializer,
     GamePauseSerializer,
@@ -56,6 +59,48 @@ class GameListView(generics.ListAPIView):
 class GameCreateView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = GameCreateSerializer
+
+
+class GameFindSimilarView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = GameFindSimilarSerializer
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("variant", str, required=True),
+            OpenApiParameter("movement_phase_duration", str, required=True),
+        ],
+        responses=GameFindSimilarSerializer,
+    )
+    def get(self, request):
+        variant = request.query_params.get("variant")
+        duration = request.query_params.get("movement_phase_duration")
+        if not variant or not duration:
+            return Response({"game": None})
+
+        candidates = list(
+            Game.objects.with_list_data()
+            .filter(
+                status=GameStatus.PENDING,
+                private=False,
+                sandbox=False,
+                variant_id=variant,
+                movement_phase_duration=duration,
+            )
+            .exclude(members__user=request.user)
+        )
+
+        if not candidates:
+            return Response({"game": None})
+
+        candidates.sort(
+            key=lambda g: (
+                g.variant.nations.count() - g.members.count(),
+                -g.created_at.timestamp(),
+            )
+        )
+        match_data = GameListSerializer(candidates[0], context={"request": request}).data
+        return Response({"game": match_data})
 
 
 class CreateSandboxGameView(generics.CreateAPIView):

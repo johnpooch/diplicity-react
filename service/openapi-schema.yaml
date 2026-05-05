@@ -1240,6 +1240,31 @@ paths:
               schema:
                 $ref: '#/components/schemas/DrawProposal'
           description: ''
+  /games/find-similar/:
+    get:
+      operationId: gamesFindSimilarRetrieve
+      parameters:
+      - in: query
+        name: movement_phase_duration
+        schema:
+          type: string
+        required: true
+      - in: query
+        name: variant
+        schema:
+          type: string
+        required: true
+      tags:
+      - games
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameFindSimilar'
+          description: ''
   /phase/deadline-warnings/:
     post:
       operationId: phaseDeadlineWarningsCreate
@@ -1850,6 +1875,15 @@ components:
           $ref: '#/components/schemas/DurationEnum'
       required:
       - duration
+    GameFindSimilar:
+      type: object
+      properties:
+        game:
+          allOf:
+          - $ref: '#/components/schemas/GameList'
+          nullable: true
+      required:
+      - game
     GameList:
       type: object
       properties:
