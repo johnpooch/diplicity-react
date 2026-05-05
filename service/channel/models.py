@@ -1,6 +1,7 @@
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, Count, Subquery, OuterRef, IntegerField, Value
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from common.models import BaseModel
 
 User = get_user_model()
@@ -21,6 +22,23 @@ class ChannelQuerySet(models.QuerySet):
     def with_related_data(self):
         return self.prefetch_related(
             "messages", "messages__sender", "messages__sender__user", "members", "members__user"
+        )
+
+    def with_unread_counts(self, user):
+        if not user.is_authenticated:
+            return self.annotate(unread_message_count=Value(0, output_field=IntegerField()))
+        last_read_subquery = Subquery(
+            ChannelMember.objects.filter(
+                channel=OuterRef("pk"),
+                member__user=user,
+            ).values("last_read_at")[:1]
+        )
+        return self.annotate(
+            unread_message_count=Count(
+                "messages",
+                filter=Q(messages__created_at__gt=last_read_subquery),
+                distinct=True,
+            )
         )
 
 
@@ -46,6 +64,9 @@ class ChannelManager(models.Manager):
     def with_related_data(self):
         return self.get_queryset().with_related_data()
 
+    def with_unread_counts(self, user):
+        return self.get_queryset().with_unread_counts(user)
+
 
 class Channel(BaseModel):
 
@@ -69,6 +90,7 @@ class ChannelMemberQuerySet(models.QuerySet):
 class ChannelMember(BaseModel):
     member = models.ForeignKey("member.Member", on_delete=models.CASCADE, related_name="member_channels")
     channel = models.ForeignKey("channel.Channel", on_delete=models.CASCADE, related_name="member_channels")
+    last_read_at = models.DateTimeField(default=timezone.now)
 
     objects = ChannelMemberQuerySet.as_manager()
 

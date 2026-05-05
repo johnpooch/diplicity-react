@@ -59,6 +59,26 @@ def active_game_with_gm(db, primary_user, classical_variant, adjudication_data_c
 
 
 @pytest.fixture
+def sandbox_game(db, primary_user, classical_variant, base_active_phase, sample_options):
+    def _create(user=None):
+        if user is None:
+            user = primary_user
+        game = models.Game.objects.create(
+            name="Test Sandbox Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+            sandbox=True,
+            private=True,
+        )
+        phase = base_active_phase(game)
+        phase.options = sample_options
+        phase.save()
+        game.members.create(user=user)
+        return game
+    return _create
+
+
+@pytest.fixture
 def active_game_with_fixed_time(db, primary_user, classical_variant, adjudication_data_classical):
     def _create(gm_user=None, target_time=None, timezone_name=None, movement_frequency=None, retreat_frequency=None):
         if gm_user is None:

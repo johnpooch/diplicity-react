@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Navigation } from "@/components/Navigation";
 import { GameMap } from "@/components/GameMap";
 import { SafeAreaView } from "@/components/SafeAreaView";
+import { useGameRetrieve } from "@/api/generated/endpoints";
 
 const navigationItems = [
   { label: "Map", icon: Map, path: "/game/:gameId/phase/:phaseId" },
@@ -37,18 +38,32 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
     phaseId: string;
   }>();
 
+  const { data: game } = useGameRetrieve(gameId, {
+    query: { refetchInterval: 30000 },
+  });
+
   const navItems = useMemo(() => {
-    return navigationItems.map(item => {
+    const items = game?.sandbox
+      ? navigationItems.filter(item => item.label !== "Chat")
+      : navigationItems;
+    return items.map(item => {
       const path = item.path
         .replace(":gameId", gameId)
         .replace(":phaseId", phaseId);
+      const badge =
+        item.label === "Chat" &&
+        game?.totalUnreadMessageCount &&
+        game.totalUnreadMessageCount > 0
+          ? "•"
+          : undefined;
       return {
         ...item,
         path,
         isActive: location.pathname === path,
+        badge,
       };
     });
-  }, [gameId, phaseId, location.pathname]);
+  }, [gameId, phaseId, location.pathname, game?.totalUnreadMessageCount, game?.sandbox]);
 
   // Filter out Map for desktop sidebar since map is already visible in right panel
   const sidebarNavItems = useMemo(
@@ -62,7 +77,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
     <SidebarProvider>
       <SafeAreaView
         className={cn(
-          "flex flex-col h-screen w-full overflow-hidden",
+          "flex flex-col h-dvh w-full overflow-hidden",
           className
         )}
       >

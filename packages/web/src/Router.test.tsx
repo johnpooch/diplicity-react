@@ -66,7 +66,6 @@ vi.mock("./screens", () => ({
     MyGames: () => <div data-testid="my-games-screen">My Games</div>,
     FindGames: () => <div data-testid="find-games-screen">Find Games</div>,
     CreateGame: () => <div>Create Game</div>,
-    SandboxGames: () => <div>Sandbox</div>,
     Profile: () => <div>Profile</div>,
     DeleteAccount: () => <div>Delete Account</div>,
     Community: () => <div>Community</div>,

@@ -504,6 +504,25 @@ paths:
               schema:
                 $ref: '#/components/schemas/PhaseState'
           description: ''
+  /game/{gameId}/delete/:
+    delete:
+      operationId: gameDeleteDestroy
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
   /game/{gameId}/extend-deadline/:
     put:
       operationId: gameExtendDeadlineUpdate
@@ -896,6 +915,29 @@ paths:
         name: mine
         schema:
           type: boolean
+      - in: query
+        name: movement_phase_duration
+        schema:
+          type: string
+          nullable: true
+          enum:
+          - 1 hour
+          - 12 hours
+          - 24 hours
+          - 48 hours
+          - 3 days
+          - 4 days
+          - 1 week
+          - 2 weeks
+        description: |-
+          * `1 hour` - 1 hour
+          * `12 hours` - 12 hours
+          * `24 hours` - 24 hours
+          * `48 hours` - 48 hours
+          * `3 days` - 3 days
+          * `4 days` - 4 days
+          * `1 week` - 1 week
+          * `2 weeks` - 2 weeks
       - name: page
         required: false
         in: query
@@ -914,6 +956,10 @@ paths:
           type: boolean
       - in: query
         name: status
+        schema:
+          type: string
+      - in: query
+        name: variant
         schema:
           type: string
       tags:
@@ -953,6 +999,30 @@ paths:
                 items:
                   $ref: '#/components/schemas/Channel'
           description: ''
+  /games/{gameId}/channels/{channelId}/mark-read/:
+    post:
+      operationId: gamesChannelsMarkReadCreate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: channelId
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - games
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          description: No response body
   /games/{gameId}/channels/{channelId}/messages/create/:
     post:
       operationId: gamesChannelsMessagesCreateCreate
@@ -1374,6 +1444,10 @@ components:
           items:
             $ref: '#/components/schemas/ChannelMessage'
           readOnly: true
+        unreadMessageCount:
+          type: integer
+          readOnly: true
+          default: 0
         memberIds:
           type: array
           items:
@@ -1385,21 +1459,25 @@ components:
       - messages
       - name
       - private
+      - unreadMessageCount
     ChannelMember:
       type: object
       properties:
         id:
           type: integer
+          readOnly: true
         name:
           type: string
+          readOnly: true
         picture:
           type: string
           nullable: true
-        nation:
-          $ref: '#/components/schemas/Nation'
+          readOnly: true
         isCurrentUser:
           type: boolean
           readOnly: true
+        nation:
+          $ref: '#/components/schemas/Nation'
       required:
       - id
       - isCurrentUser
@@ -1509,17 +1587,20 @@ components:
       properties:
         id:
           type: integer
+          readOnly: true
         name:
           type: string
+          readOnly: true
         picture:
           type: string
           nullable: true
-        nation:
-          type: string
-          nullable: true
+          readOnly: true
         isCurrentUser:
           type: boolean
           readOnly: true
+        nation:
+          type: string
+          nullable: true
       required:
       - id
       - isCurrentUser
@@ -1536,6 +1617,9 @@ components:
     DurationEnum:
       enum:
       - 1 hour
+      - 2 hours
+      - 4 hours
+      - 8 hours
       - 12 hours
       - 24 hours
       - 48 hours
@@ -1546,6 +1630,9 @@ components:
       type: string
       description: |-
         * `1 hour` - 1 hour
+        * `2 hours` - 2 hours
+        * `4 hours` - 4 hours
+        * `8 hours` - 8 hours
         * `12 hours` - 12 hours
         * `24 hours` - 24 hours
         * `48 hours` - 48 hours
@@ -1692,6 +1779,9 @@ components:
           - $ref: '#/components/schemas/NullEnum'
         private:
           type: boolean
+        anonymous:
+          type: boolean
+          default: false
         deadlineMode:
           allOf:
           - $ref: '#/components/schemas/DeadlineModeEnum'
@@ -1719,6 +1809,10 @@ components:
           maximum: 2
           minimum: 0
           default: 0
+        pressType:
+          allOf:
+          - $ref: '#/components/schemas/PressTypeEnum'
+          default: full_press
       required:
       - id
       - name
@@ -1758,10 +1852,17 @@ components:
         status:
           type: string
           readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
         canJoin:
           type: boolean
           readOnly: true
         canLeave:
+          type: boolean
+          readOnly: true
+        canDelete:
           type: boolean
           readOnly: true
         variantId:
@@ -1777,6 +1878,9 @@ components:
           nullable: true
           readOnly: true
         private:
+          type: boolean
+          readOnly: true
+        anonymous:
           type: boolean
           readOnly: true
         movementPhaseDuration:
@@ -1834,9 +1938,15 @@ components:
           type: string
           readOnly: true
           nullable: true
+        pressType:
+          type: string
+          readOnly: true
       required:
+      - anonymous
+      - canDelete
       - canJoin
       - canLeave
+      - createdAt
       - currentPhaseId
       - deadlineMode
       - fixedDeadlineTime
@@ -1851,6 +1961,7 @@ components:
       - nmrExtensionsAllowed
       - pausedAt
       - phases
+      - pressType
       - private
       - retreatFrequency
       - retreatPhaseDuration
@@ -1870,10 +1981,17 @@ components:
         status:
           type: string
           readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
         canJoin:
           type: boolean
           readOnly: true
         canLeave:
+          type: boolean
+          readOnly: true
+        canDelete:
           type: boolean
           readOnly: true
         phases:
@@ -1918,6 +2036,9 @@ components:
         private:
           type: boolean
           readOnly: true
+        anonymous:
+          type: boolean
+          readOnly: true
         isPaused:
           type: boolean
           readOnly: true
@@ -1949,9 +2070,18 @@ components:
           type: string
           readOnly: true
           nullable: true
+        pressType:
+          type: string
+          readOnly: true
+        totalUnreadMessageCount:
+          type: integer
+          readOnly: true
       required:
+      - anonymous
+      - canDelete
       - canJoin
       - canLeave
+      - createdAt
       - currentPhaseId
       - deadlineMode
       - fixedDeadlineTime
@@ -1967,11 +2097,13 @@ components:
       - pausedAt
       - phaseConfirmed
       - phases
+      - pressType
       - private
       - retreatFrequency
       - retreatPhaseDuration
       - sandbox
       - status
+      - totalUnreadMessageCount
       - variantId
       - victory
     Member:
@@ -1985,15 +2117,15 @@ components:
           readOnly: true
         picture:
           type: string
-          readOnly: true
           nullable: true
+          readOnly: true
+        isCurrentUser:
+          type: boolean
+          readOnly: true
         nation:
           type: string
           readOnly: true
           nullable: true
-        isCurrentUser:
-          type: boolean
-          readOnly: true
         eliminated:
           type: boolean
           readOnly: true
@@ -2391,6 +2523,14 @@ components:
       - member
       - orderableProvinces
       - ordersConfirmed
+    PressTypeEnum:
+      enum:
+      - full_press
+      - no_press
+      type: string
+      description: |-
+        * `full_press` - Full Press
+        * `no_press` - No Press
     Province:
       type: object
       properties:

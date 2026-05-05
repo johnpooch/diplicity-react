@@ -8,7 +8,9 @@ import "@fontsource/roboto/700.css";
 import App from "./App.tsx";
 import { initializeObservability } from "./observability";
 import { initializeSentry } from "./sentry";
+import { themeStorage } from "./theme/themeStorage";
 
+themeStorage.initialize();
 initializeObservability();
 initializeSentry();
 

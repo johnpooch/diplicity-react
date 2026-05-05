@@ -82,12 +82,12 @@ export interface Nation {
 }
 
 export interface ChannelMember {
-  id: number;
-  name: string;
+  readonly id: number;
+  readonly name: string;
   /** @nullable */
-  picture: string | null;
-  nation: Nation;
+  readonly picture: string | null;
   readonly isCurrentUser: boolean;
+  nation: Nation;
 }
 
 export interface ChannelMessage {
@@ -103,6 +103,7 @@ export interface Channel {
   readonly name: string;
   readonly private: boolean;
   readonly messages: readonly ChannelMessage[];
+  readonly unreadMessageCount: number;
   memberIds: number[];
 }
 
@@ -119,13 +120,13 @@ export const DeadlineModeEnum = {
 } as const;
 
 export interface DrawVoteMember {
-  id: number;
-  name: string;
+  readonly id: number;
+  readonly name: string;
   /** @nullable */
-  picture: string | null;
+  readonly picture: string | null;
+  readonly isCurrentUser: boolean;
   /** @nullable */
   nation: string | null;
-  readonly isCurrentUser: boolean;
 }
 
 export interface DrawVote {
@@ -154,6 +155,9 @@ export interface DrawVoteUpdate {
 
 /**
  * * `1 hour` - 1 hour
+ * `2 hours` - 2 hours
+ * `4 hours` - 4 hours
+ * `8 hours` - 8 hours
  * `12 hours` - 12 hours
  * `24 hours` - 24 hours
  * `48 hours` - 48 hours
@@ -166,6 +170,9 @@ export type DurationEnum = (typeof DurationEnum)[keyof typeof DurationEnum];
 
 export const DurationEnum = {
   "1_hour": "1 hour",
+  "2_hours": "2 hours",
+  "4_hours": "4 hours",
+  "8_hours": "8 hours",
   "12_hours": "12 hours",
   "24_hours": "24 hours",
   "48_hours": "48 hours",
@@ -284,6 +291,17 @@ export const RetreatFrequencyEnum = {
   weekly: "weekly",
 } as const;
 
+/**
+ * * `full_press` - Full Press
+ * `no_press` - No Press
+ */
+export type PressTypeEnum = (typeof PressTypeEnum)[keyof typeof PressTypeEnum];
+
+export const PressTypeEnum = {
+  full_press: "full_press",
+  no_press: "no_press",
+} as const;
+
 export interface GameCreate {
   readonly id: string;
   name: string;
@@ -292,6 +310,7 @@ export interface GameCreate {
   movementPhaseDuration?: DurationEnum;
   retreatPhaseDuration?: DurationEnum | NullEnum | null;
   private: boolean;
+  anonymous?: boolean;
   deadlineMode?: DeadlineModeEnum;
   /** @nullable */
   fixedDeadlineTime?: string | null;
@@ -307,6 +326,7 @@ export interface GameCreate {
    * @maximum 2
    */
   nmrExtensionsAllowed?: number;
+  pressType?: PressTypeEnum;
 }
 
 export interface GameCreateSandbox {
@@ -324,9 +344,9 @@ export interface Member {
   readonly name: string;
   /** @nullable */
   readonly picture: string | null;
+  readonly isCurrentUser: boolean;
   /** @nullable */
   readonly nation: string | null;
-  readonly isCurrentUser: boolean;
   readonly eliminated: boolean;
   readonly kicked: boolean;
   readonly isGameMaster: boolean;
@@ -344,13 +364,16 @@ export interface GameList {
   readonly id: string;
   readonly name: string;
   readonly status: string;
+  readonly createdAt: string;
   readonly canJoin: boolean;
   readonly canLeave: boolean;
+  readonly canDelete: boolean;
   readonly variantId: string;
   readonly phases: readonly number[];
   /** @nullable */
   readonly currentPhaseId: number | null;
   readonly private: boolean;
+  readonly anonymous: boolean;
   /** @nullable */
   readonly movementPhaseDuration: string | null;
   /** @nullable */
@@ -372,14 +395,17 @@ export interface GameList {
   readonly movementFrequency: string | null;
   /** @nullable */
   readonly retreatFrequency: string | null;
+  readonly pressType: string;
 }
 
 export interface GameRetrieve {
   readonly id: string;
   readonly name: string;
   readonly status: string;
+  readonly createdAt: string;
   readonly canJoin: boolean;
   readonly canLeave: boolean;
+  readonly canDelete: boolean;
   readonly phases: readonly number[];
   /** @nullable */
   readonly currentPhaseId: number | null;
@@ -394,6 +420,7 @@ export interface GameRetrieve {
   /** @nullable */
   readonly retreatPhaseDuration: string | null;
   readonly private: boolean;
+  readonly anonymous: boolean;
   readonly isPaused: boolean;
   /** @nullable */
   readonly pausedAt: string | null;
@@ -407,6 +434,8 @@ export interface GameRetrieve {
   readonly movementFrequency: string | null;
   /** @nullable */
   readonly retreatFrequency: string | null;
+  readonly pressType: string;
+  readonly totalUnreadMessageCount: number;
 }
 
 export interface Province {
@@ -802,6 +831,18 @@ export type GamesListParams = {
   can_join?: boolean;
   mine?: boolean;
   /**
+   * * `1 hour` - 1 hour
+   * `12 hours` - 12 hours
+   * `24 hours` - 24 hours
+   * `48 hours` - 48 hours
+   * `3 days` - 3 days
+   * `4 days` - 4 days
+   * `1 week` - 1 week
+   * `2 weeks` - 2 weeks
+   * @nullable
+   */
+  movement_phase_duration?: GamesListMovementPhaseDuration;
+  /**
    * A page number within the paginated result set.
    */
   page?: number;
@@ -811,7 +852,23 @@ export type GamesListParams = {
   page_size?: number;
   sandbox?: boolean;
   status?: string;
+  variant?: string;
 };
+
+export type GamesListMovementPhaseDuration =
+  | (typeof GamesListMovementPhaseDuration)[keyof typeof GamesListMovementPhaseDuration]
+  | null;
+
+export const GamesListMovementPhaseDuration = {
+  "1_hour": "1 hour",
+  "12_hours": "12 hours",
+  "24_hours": "24 hours",
+  "48_hours": "48 hours",
+  "3_days": "3 days",
+  "4_days": "4 days",
+  "1_week": "1 week",
+  "2_weeks": "2 weeks",
+} as const;
 
 /**
  * OpenApi3 schema for this API. Format can be selected via content negotiation.
@@ -2942,6 +2999,80 @@ export const useGameConfirmPhasePartialUpdate = <
     getGameConfirmPhasePartialUpdateMutationOptions(options),
     queryClient
   );
+};
+
+/**
+ * Used by views that have a game parameter in the URL. Provides a get_game
+method that returns the game object. Also adds game to the serializer context.
+ */
+export const gameDeleteDestroy = (gameId: string, signal?: AbortSignal) => {
+  return customInstance<void>({
+    url: `/game/${gameId}/delete/`,
+    method: "DELETE",
+    signal,
+  });
+};
+
+export const getGameDeleteDestroyMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gameDeleteDestroy>>,
+    TError,
+    { gameId: string },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gameDeleteDestroy>>,
+  TError,
+  { gameId: string },
+  TContext
+> => {
+  const mutationKey = ["gameDeleteDestroy"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gameDeleteDestroy>>,
+    { gameId: string }
+  > = props => {
+    const { gameId } = props ?? {};
+
+    return gameDeleteDestroy(gameId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GameDeleteDestroyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gameDeleteDestroy>>
+>;
+
+export type GameDeleteDestroyMutationError = unknown;
+
+export const useGameDeleteDestroy = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gameDeleteDestroy>>,
+      TError,
+      { gameId: string },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gameDeleteDestroy>>,
+  TError,
+  { gameId: string },
+  TContext
+> => {
+  return useMutation(getGameDeleteDestroyMutationOptions(options), queryClient);
 };
 
 /**
@@ -5745,6 +5876,90 @@ export function useGamesChannelsListSuspense<
  * Used by views that have a game parameter in the URL. Provides a get_game
 method that returns the game object. Also adds game to the serializer context.
  */
+export const gamesChannelsMarkReadCreate = (
+  gameId: string,
+  channelId: number,
+  signal?: AbortSignal
+) => {
+  return customInstance<void>({
+    url: `/games/${gameId}/channels/${channelId}/mark-read/`,
+    method: "POST",
+    signal,
+  });
+};
+
+export const getGamesChannelsMarkReadCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gamesChannelsMarkReadCreate>>,
+    TError,
+    { gameId: string; channelId: number },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gamesChannelsMarkReadCreate>>,
+  TError,
+  { gameId: string; channelId: number },
+  TContext
+> => {
+  const mutationKey = ["gamesChannelsMarkReadCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gamesChannelsMarkReadCreate>>,
+    { gameId: string; channelId: number }
+  > = props => {
+    const { gameId, channelId } = props ?? {};
+
+    return gamesChannelsMarkReadCreate(gameId, channelId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GamesChannelsMarkReadCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gamesChannelsMarkReadCreate>>
+>;
+
+export type GamesChannelsMarkReadCreateMutationError = unknown;
+
+export const useGamesChannelsMarkReadCreate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gamesChannelsMarkReadCreate>>,
+      TError,
+      { gameId: string; channelId: number },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gamesChannelsMarkReadCreate>>,
+  TError,
+  { gameId: string; channelId: number },
+  TContext
+> => {
+  return useMutation(
+    getGamesChannelsMarkReadCreateMutationOptions(options),
+    queryClient
+  );
+};
+
+/**
+ * Used by views that have a game parameter in the URL. Provides a get_game
+method that returns the game object. Also adds game to the serializer context.
+ */
 export const gamesChannelsMessagesCreateCreate = (
   gameId: string,
   channelId: number,
@@ -7911,6 +8126,7 @@ export const getGameCreateResponseMock = (
     undefined,
   ]),
   private: faker.datatype.boolean(),
+  anonymous: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]),
   deadlineMode: faker.helpers.arrayElement([
     faker.helpers.arrayElement(Object.values(DeadlineModeEnum)),
     undefined,
@@ -7947,6 +8163,10 @@ export const getGameCreateResponseMock = (
     faker.number.int({ min: 0, max: 2 }),
     undefined,
   ]),
+  pressType: faker.helpers.arrayElement([
+    faker.helpers.arrayElement(Object.values(PressTypeEnum)),
+    undefined,
+  ]),
   ...overrideResponse,
 });
 
@@ -7956,8 +8176,10 @@ export const getGameRetrieveResponseMock = (
   id: faker.string.alpha({ length: { min: 10, max: 20 } }),
   name: faker.string.alpha({ length: { min: 10, max: 20 } }),
   status: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
   canJoin: faker.datatype.boolean(),
   canLeave: faker.datatype.boolean(),
+  canDelete: faker.datatype.boolean(),
   phases: Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1
@@ -7982,6 +8204,7 @@ export const getGameRetrieveResponseMock = (
       ]),
       null,
     ]),
+    isCurrentUser: faker.datatype.boolean(),
     nation: faker.helpers.arrayElement([
       faker.helpers.arrayElement([
         faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -7989,7 +8212,6 @@ export const getGameRetrieveResponseMock = (
       ]),
       null,
     ]),
-    isCurrentUser: faker.datatype.boolean(),
     eliminated: faker.datatype.boolean(),
     kicked: faker.datatype.boolean(),
     isGameMaster: faker.datatype.boolean(),
@@ -8017,6 +8239,7 @@ export const getGameRetrieveResponseMock = (
           ]),
           null,
         ]),
+        isCurrentUser: faker.datatype.boolean(),
         nation: faker.helpers.arrayElement([
           faker.helpers.arrayElement([
             faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -8024,7 +8247,6 @@ export const getGameRetrieveResponseMock = (
           ]),
           null,
         ]),
-        isCurrentUser: faker.datatype.boolean(),
         eliminated: faker.datatype.boolean(),
         kicked: faker.datatype.boolean(),
         isGameMaster: faker.datatype.boolean(),
@@ -8053,6 +8275,7 @@ export const getGameRetrieveResponseMock = (
     null,
   ]),
   private: faker.datatype.boolean(),
+  anonymous: faker.datatype.boolean(),
   isPaused: faker.datatype.boolean(),
   pausedAt: faker.helpers.arrayElement([
     faker.helpers.arrayElement([
@@ -8091,6 +8314,8 @@ export const getGameRetrieveResponseMock = (
     ]),
     null,
   ]),
+  pressType: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  totalUnreadMessageCount: faker.number.int({ min: undefined, max: undefined }),
   ...overrideResponse,
 });
 
@@ -8138,6 +8363,7 @@ export const getGameConfirmPhaseUpdateResponseMock = (
         ]),
         null,
       ]),
+      isCurrentUser: faker.datatype.boolean(),
       nation: faker.helpers.arrayElement([
         faker.helpers.arrayElement([
           faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -8145,7 +8371,6 @@ export const getGameConfirmPhaseUpdateResponseMock = (
         ]),
         null,
       ]),
-      isCurrentUser: faker.datatype.boolean(),
       eliminated: faker.datatype.boolean(),
       kicked: faker.datatype.boolean(),
       isGameMaster: faker.datatype.boolean(),
@@ -8195,6 +8420,7 @@ export const getGameConfirmPhasePartialUpdateResponseMock = (
         ]),
         null,
       ]),
+      isCurrentUser: faker.datatype.boolean(),
       nation: faker.helpers.arrayElement([
         faker.helpers.arrayElement([
           faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -8202,7 +8428,6 @@ export const getGameConfirmPhasePartialUpdateResponseMock = (
         ]),
         null,
       ]),
-      isCurrentUser: faker.datatype.boolean(),
       eliminated: faker.datatype.boolean(),
       kicked: faker.datatype.boolean(),
       isGameMaster: faker.datatype.boolean(),
@@ -8241,6 +8466,7 @@ export const getGameJoinCreateResponseMock = (
     ]),
     null,
   ]),
+  isCurrentUser: faker.datatype.boolean(),
   nation: faker.helpers.arrayElement([
     faker.helpers.arrayElement([
       faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -8248,7 +8474,6 @@ export const getGameJoinCreateResponseMock = (
     ]),
     null,
   ]),
-  isCurrentUser: faker.datatype.boolean(),
   eliminated: faker.datatype.boolean(),
   kicked: faker.datatype.boolean(),
   isGameMaster: faker.datatype.boolean(),
@@ -8681,6 +8906,7 @@ export const getGamePhaseStatesListResponseMock = (): PhaseState[] =>
           ]),
           null,
         ]),
+        isCurrentUser: faker.datatype.boolean(),
         nation: faker.helpers.arrayElement([
           faker.helpers.arrayElement([
             faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -8688,7 +8914,6 @@ export const getGamePhaseStatesListResponseMock = (): PhaseState[] =>
           ]),
           null,
         ]),
-        isCurrentUser: faker.datatype.boolean(),
         eliminated: faker.datatype.boolean(),
         kicked: faker.datatype.boolean(),
         isGameMaster: faker.datatype.boolean(),
@@ -8833,8 +9058,10 @@ export const getGamesListResponseMock = (
     id: faker.string.alpha({ length: { min: 10, max: 20 } }),
     name: faker.string.alpha({ length: { min: 10, max: 20 } }),
     status: faker.string.alpha({ length: { min: 10, max: 20 } }),
+    createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
     canJoin: faker.datatype.boolean(),
     canLeave: faker.datatype.boolean(),
+    canDelete: faker.datatype.boolean(),
     variantId: faker.string.alpha({ length: { min: 10, max: 20 } }),
     phases: Array.from(
       { length: faker.number.int({ min: 1, max: 10 }) },
@@ -8848,6 +9075,7 @@ export const getGamesListResponseMock = (
       null,
     ]),
     private: faker.datatype.boolean(),
+    anonymous: faker.datatype.boolean(),
     movementPhaseDuration: faker.helpers.arrayElement([
       faker.helpers.arrayElement([
         faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -8876,6 +9104,7 @@ export const getGamesListResponseMock = (
         ]),
         null,
       ]),
+      isCurrentUser: faker.datatype.boolean(),
       nation: faker.helpers.arrayElement([
         faker.helpers.arrayElement([
           faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -8883,7 +9112,6 @@ export const getGamesListResponseMock = (
         ]),
         null,
       ]),
-      isCurrentUser: faker.datatype.boolean(),
       eliminated: faker.datatype.boolean(),
       kicked: faker.datatype.boolean(),
       isGameMaster: faker.datatype.boolean(),
@@ -8910,6 +9138,7 @@ export const getGamesListResponseMock = (
             ]),
             null,
           ]),
+          isCurrentUser: faker.datatype.boolean(),
           nation: faker.helpers.arrayElement([
             faker.helpers.arrayElement([
               faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -8917,7 +9146,6 @@ export const getGamesListResponseMock = (
             ]),
             null,
           ]),
-          isCurrentUser: faker.datatype.boolean(),
           eliminated: faker.datatype.boolean(),
           kicked: faker.datatype.boolean(),
           isGameMaster: faker.datatype.boolean(),
@@ -8967,6 +9195,7 @@ export const getGamesListResponseMock = (
       ]),
       null,
     ]),
+    pressType: faker.string.alpha({ length: { min: 10, max: 20 } }),
   })),
   ...overrideResponse,
 });
@@ -8996,15 +9225,16 @@ export const getGamesChannelsListResponseMock = (): Channel[] =>
             ]),
             null,
           ]),
+          isCurrentUser: faker.datatype.boolean(),
           nation: {
             name: faker.string.alpha({ length: { min: 10, max: 20 } }),
             color: faker.string.alpha({ length: { min: 10, max: 20 } }),
           },
-          isCurrentUser: faker.datatype.boolean(),
         },
       },
       createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
     })),
+    unreadMessageCount: faker.number.int({ min: undefined, max: undefined }),
     memberIds: Array.from(
       { length: faker.number.int({ min: 1, max: 10 }) },
       (_, i) => i + 1
@@ -9027,11 +9257,11 @@ export const getGamesChannelsMessagesCreateCreateResponseMock = (
         ]),
         null,
       ]),
+      isCurrentUser: faker.datatype.boolean(),
       nation: {
         name: faker.string.alpha({ length: { min: 10, max: 20 } }),
         color: faker.string.alpha({ length: { min: 10, max: 20 } }),
       },
-      isCurrentUser: faker.datatype.boolean(),
     },
   },
   createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
@@ -9061,15 +9291,16 @@ export const getGamesChannelsCreateCreateResponseMock = (
           ]),
           null,
         ]),
+        isCurrentUser: faker.datatype.boolean(),
         nation: {
           name: faker.string.alpha({ length: { min: 10, max: 20 } }),
           color: faker.string.alpha({ length: { min: 10, max: 20 } }),
         },
-        isCurrentUser: faker.datatype.boolean(),
       },
     },
     createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
   })),
+  unreadMessageCount: faker.number.int({ min: undefined, max: undefined }),
   memberIds: Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1
@@ -9094,6 +9325,7 @@ export const getGamesDrawProposalsListResponseMock = (): DrawProposal[] =>
           ]),
           null,
         ]),
+        isCurrentUser: faker.datatype.boolean(),
         nation: faker.helpers.arrayElement([
           faker.helpers.arrayElement([
             faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -9101,7 +9333,6 @@ export const getGamesDrawProposalsListResponseMock = (): DrawProposal[] =>
           ]),
           null,
         ]),
-        isCurrentUser: faker.datatype.boolean(),
       },
     },
     status: faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -9123,6 +9354,7 @@ export const getGamesDrawProposalsListResponseMock = (): DrawProposal[] =>
             ]),
             null,
           ]),
+          isCurrentUser: faker.datatype.boolean(),
           nation: faker.helpers.arrayElement([
             faker.helpers.arrayElement([
               faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -9130,7 +9362,6 @@ export const getGamesDrawProposalsListResponseMock = (): DrawProposal[] =>
             ]),
             null,
           ]),
-          isCurrentUser: faker.datatype.boolean(),
         },
       },
       included: faker.datatype.boolean(),
@@ -9173,6 +9404,7 @@ export const getGamesDrawProposalsCreateCreateResponseMock = (
         ]),
         null,
       ]),
+      isCurrentUser: faker.datatype.boolean(),
       nation: faker.helpers.arrayElement([
         faker.helpers.arrayElement([
           faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -9180,7 +9412,6 @@ export const getGamesDrawProposalsCreateCreateResponseMock = (
         ]),
         null,
       ]),
-      isCurrentUser: faker.datatype.boolean(),
     },
   },
   status: faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -9202,6 +9433,7 @@ export const getGamesDrawProposalsCreateCreateResponseMock = (
           ]),
           null,
         ]),
+        isCurrentUser: faker.datatype.boolean(),
         nation: faker.helpers.arrayElement([
           faker.helpers.arrayElement([
             faker.string.alpha({ length: { min: 10, max: 20 } }),
@@ -9209,7 +9441,6 @@ export const getGamesDrawProposalsCreateCreateResponseMock = (
           ]),
           null,
         ]),
-        isCurrentUser: faker.datatype.boolean(),
       },
     },
     included: faker.datatype.boolean(),
@@ -9889,6 +10120,26 @@ export const getGameConfirmPhasePartialUpdateMockHandler = (
   );
 };
 
+export const getGameDeleteDestroyMockHandler = (
+  overrideResponse?:
+    | void
+    | ((
+        info: Parameters<Parameters<typeof http.delete>[1]>[0]
+      ) => Promise<void> | void),
+  options?: RequestHandlerOptions
+) => {
+  return http.delete(
+    "*/game/:gameId/delete/",
+    async info => {
+      if (typeof overrideResponse === "function") {
+        await overrideResponse(info);
+      }
+      return new HttpResponse(null, { status: 204 });
+    },
+    options
+  );
+};
+
 export const getGameExtendDeadlineUpdateMockHandler = (
   overrideResponse?:
     | GameExtendDeadline
@@ -10321,6 +10572,26 @@ export const getGamesChannelsListMockHandler = (
   );
 };
 
+export const getGamesChannelsMarkReadCreateMockHandler = (
+  overrideResponse?:
+    | void
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0]
+      ) => Promise<void> | void),
+  options?: RequestHandlerOptions
+) => {
+  return http.post(
+    "*/games/:gameId/channels/:channelId/mark-read/",
+    async info => {
+      if (typeof overrideResponse === "function") {
+        await overrideResponse(info);
+      }
+      return new HttpResponse(null, { status: 201 });
+    },
+    options
+  );
+};
+
 export const getGamesChannelsMessagesCreateCreateMockHandler = (
   overrideResponse?:
     | ChannelMessage
@@ -10731,6 +11002,7 @@ export const getMock = () => [
   getGameCloneToSandboxCreateMockHandler(),
   getGameConfirmPhaseUpdateMockHandler(),
   getGameConfirmPhasePartialUpdateMockHandler(),
+  getGameDeleteDestroyMockHandler(),
   getGameExtendDeadlineUpdateMockHandler(),
   getGameExtendDeadlinePartialUpdateMockHandler(),
   getGameJoinCreateMockHandler(),
@@ -10749,6 +11021,7 @@ export const getMock = () => [
   getGameUnpausePartialUpdateMockHandler(),
   getGamesListMockHandler(),
   getGamesChannelsListMockHandler(),
+  getGamesChannelsMarkReadCreateMockHandler(),
   getGamesChannelsMessagesCreateCreateMockHandler(),
   getGamesChannelsCreateCreateMockHandler(),
   getGamesDrawProposalsListMockHandler(),

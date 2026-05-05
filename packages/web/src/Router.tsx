@@ -130,16 +130,6 @@ export const routeObjects: RouteObject[] = [
             ),
           },
           {
-            path: "sandbox",
-            element: (
-              <RequireAuth>
-                <Suspense fallback={<RouteFallback />}>
-                  <Home.SandboxGames />
-                </Suspense>
-              </RequireAuth>
-            ),
-          },
-          {
             path: "profile",
             element: (
               <RequireAuth>

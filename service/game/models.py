@@ -14,6 +14,7 @@ from common.constants import (
     PhaseFrequency,
     PhaseStatus,
     PhaseType,
+    PressType,
     duration_to_seconds,
 )
 from common.models import BaseModel
@@ -202,6 +203,30 @@ class GameManager(models.Manager):
         game._created_phase = phase
         return game
 
+    def create_sandbox(self, user, *, name, variant, **kwargs):
+        kwargs.setdefault("sandbox", True)
+        kwargs.setdefault("private", True)
+        kwargs.setdefault("nation_assignment", NationAssignment.ORDERED)
+        kwargs.setdefault("movement_phase_duration", None)
+
+        with transaction.atomic():
+            game = self.create_from_template(variant, name=name, **kwargs)
+
+            nations_list = list(variant.nations.all())
+            members_to_create = [Member(game=game, user=user) for _ in nations_list]
+            created_members = Member.objects.bulk_create(members_to_create)
+
+            current_phase = getattr(game, "_created_phase", None)
+            if current_phase is None:
+                current_phase = game.phases.first()
+
+            game.start(current_phase=current_phase, members=created_members)
+
+            if hasattr(game, "_created_phase"):
+                delattr(game, "_created_phase")
+
+        return game
+
     def clone_from_phase(self, source_phase, name):
         game = self.create(
             variant=source_phase.game.variant,
@@ -258,6 +283,12 @@ class Game(BaseModel):
     status = models.CharField(max_length=20, choices=GameStatus.STATUS_CHOICES, default=GameStatus.PENDING)
     sandbox = models.BooleanField(default=False)
     private = models.BooleanField(default=False)
+    anonymous = models.BooleanField(default=False)
+    press_type = models.CharField(
+        max_length=20,
+        choices=PressType.PRESS_TYPE_CHOICES,
+        default=PressType.FULL_PRESS,
+    )
     movement_phase_duration = models.CharField(
         max_length=20,
         choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES,
@@ -384,6 +415,15 @@ class Game(BaseModel):
             )
             game_is_pending = self.status == GameStatus.PENDING
             return user_is_member and game_is_pending
+
+    def can_delete(self, user):
+        with tracer.start_as_current_span("game.models.can_delete"):
+            if not self.sandbox:
+                return False
+            return any(
+                member.user_id is not None and member.user_id == user.id
+                for member in self.members.all()
+            )
 
     def phase_confirmed(self, user):
         with tracer.start_as_current_span("game.models.phase_confirmed"):

@@ -1,5 +1,5 @@
 import React from "react";
-import { Calendar, Users, Lock, Unlock, User, Map, Trophy, Pause, Shield } from "lucide-react";
+import { Calendar, Clock, Users, Lock, Unlock, User, Map, Trophy, Pause, Shield, MessageSquare, MessageSquareOff } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,7 +10,7 @@ import {
   useGamePhaseRetrieve,
   useVariantsListSuspense,
 } from "@/api/generated/endpoints";
-import { getCurrentPhaseId, formatDateTime } from "@/util";
+import { getCurrentPhaseId, formatDateTime, formatTimeAgo } from "@/util";
 import { InteractiveMap } from "@/components/InteractiveMap/InteractiveMap";
 import { CardTitle } from "@/components/ui/card";
 import {
@@ -73,6 +73,11 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
             value={variant?.name ?? <Skeleton className="h-4 w-24" />}
           />
           <MetadataRow
+            icon={<Clock className="size-4" />}
+            label="Created"
+            value={formatTimeAgo(game.createdAt)}
+          />
+          <MetadataRow
             icon={<Calendar className="size-4" />}
             label="Phase deadlines"
             value={
@@ -89,6 +94,17 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
             }
             label="Visibility"
             value={game.private ? "Private" : "Public"}
+          />
+          <MetadataRow
+            icon={
+              game.pressType === "no_press" ? (
+                <MessageSquareOff className="size-4" />
+              ) : (
+                <MessageSquare className="size-4" />
+              )
+            }
+            label="Press type"
+            value={game.pressType === "no_press" ? "No Press" : "Full Press"}
           />
           {game.status === "completed" && game.victory && (
             <MetadataRow

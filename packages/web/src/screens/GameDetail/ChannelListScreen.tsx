@@ -1,6 +1,6 @@
 import React, { Suspense } from "react";
 import { Link } from "react-router";
-import { UserPlus, MessageSquare } from "lucide-react";
+import { UserPlus, MessageSquare, MessageSquareOff } from "lucide-react";
 import { useRequiredParams } from "@/hooks";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
@@ -43,6 +43,10 @@ const ChannelListScreen: React.FC = () => {
   const { data: channels } = useGamesChannelsListSuspense(gameId);
 
   const isSandboxGame = game.sandbox;
+  const isNoPressActiveGame =
+    game.pressType === "no_press" &&
+    game.status !== "completed" &&
+    game.status !== "abandoned";
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -54,6 +58,12 @@ const ChannelListScreen: React.FC = () => {
               <Notice
                 icon={MessageSquare}
                 title="Chat is not available in sandbox games."
+                className="h-full"
+              />
+            ) : isNoPressActiveGame ? (
+              <Notice
+                icon={MessageSquareOff}
+                title="Messaging is disabled in No Press games."
                 className="h-full"
               />
             ) : channels.length === 0 ? (
@@ -77,6 +87,11 @@ const ChannelListScreen: React.FC = () => {
                             {!channel.private && (
                               <Badge variant="outline">Public</Badge>
                             )}
+                            {channel.unreadMessageCount > 0 && (
+                              <Badge variant="default">
+                                {channel.unreadMessageCount}
+                              </Badge>
+                            )}
                           </ItemTitle>
                           <ItemDescription>
                             {getLatestMessagePreview(channel.messages)}
@@ -90,7 +105,7 @@ const ChannelListScreen: React.FC = () => {
               </ItemGroup>
             )}
           </Panel.Content>
-          {!isSandboxGame && loggedIn && (
+          {!isSandboxGame && !isNoPressActiveGame && loggedIn && (
             <>
               <Separator />
               <Panel.Footer>

@@ -2,9 +2,11 @@ from zoneinfo import ZoneInfo
 
 from rest_framework import serializers
 from django.db import transaction
+from django.db.models import Count, Q, Subquery, OuterRef
+from django.apps import apps
 from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
-from common.constants import DeadlineMode, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus
+from common.constants import DeadlineMode, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType
 from member.serializers import MemberSerializer
 from unit.models import Unit
 from supply_center.models import SupplyCenter
@@ -14,6 +16,9 @@ from victory.serializers import VictorySerializer
 from variant.models import Variant
 from member.models import Member
 from .models import Game
+
+ChannelMember = apps.get_model("channel", "ChannelMember")
+ChannelMessage = apps.get_model("channel", "ChannelMessage")
 
 tracer = trace.get_tracer(__name__)
 
@@ -38,12 +43,15 @@ class GameListSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
     name = serializers.CharField(read_only=True)
     status = serializers.CharField(read_only=True)
+    created_at = serializers.DateTimeField(read_only=True)
     can_join = serializers.SerializerMethodField()
     can_leave = serializers.SerializerMethodField()
+    can_delete = serializers.SerializerMethodField()
     variant_id = serializers.CharField(source="variant.id", read_only=True)
     phases = serializers.SerializerMethodField()
     current_phase_id = serializers.SerializerMethodField()
     private = serializers.BooleanField(read_only=True)
+    anonymous = serializers.BooleanField(read_only=True)
     movement_phase_duration = serializers.CharField(read_only=True, allow_null=True)
     retreat_phase_duration = serializers.CharField(read_only=True, allow_null=True)
     nation_assignment = serializers.CharField(read_only=True)
@@ -58,6 +66,7 @@ class GameListSerializer(serializers.Serializer):
     fixed_deadline_timezone = serializers.CharField(read_only=True, allow_null=True)
     movement_frequency = serializers.CharField(read_only=True, allow_null=True)
     retreat_frequency = serializers.CharField(read_only=True, allow_null=True)
+    press_type = serializers.CharField(read_only=True)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):
@@ -74,6 +83,13 @@ class GameListSerializer(serializers.Serializer):
             if not user.is_authenticated:
                 return False
             return obj.can_leave(user)
+
+    @extend_schema_field(serializers.BooleanField)
+    def get_can_delete(self, obj):
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return False
+        return obj.can_delete(user)
 
     @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_phases(self, obj):
@@ -89,8 +105,10 @@ class GameRetrieveSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
     name = serializers.CharField(read_only=True)
     status = serializers.CharField(read_only=True)
+    created_at = serializers.DateTimeField(read_only=True)
     can_join = serializers.SerializerMethodField()
     can_leave = serializers.SerializerMethodField()
+    can_delete = serializers.SerializerMethodField()
     phases = serializers.SerializerMethodField()
     current_phase_id = serializers.SerializerMethodField()
     members = MemberSerializer(many=True, read_only=True)
@@ -102,6 +120,7 @@ class GameRetrieveSerializer(serializers.Serializer):
     movement_phase_duration = serializers.CharField(read_only=True, allow_null=True)
     retreat_phase_duration = serializers.CharField(read_only=True, allow_null=True)
     private = serializers.BooleanField(read_only=True)
+    anonymous = serializers.BooleanField(read_only=True)
     is_paused = serializers.BooleanField(read_only=True)
     paused_at = serializers.DateTimeField(read_only=True, allow_null=True)
     nmr_extensions_allowed = serializers.IntegerField(read_only=True)
@@ -110,6 +129,28 @@ class GameRetrieveSerializer(serializers.Serializer):
     fixed_deadline_timezone = serializers.CharField(read_only=True, allow_null=True)
     movement_frequency = serializers.CharField(read_only=True, allow_null=True)
     retreat_frequency = serializers.CharField(read_only=True, allow_null=True)
+    press_type = serializers.CharField(read_only=True)
+    total_unread_message_count = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.IntegerField)
+    def get_total_unread_message_count(self, obj):
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return 0
+        return (
+            ChannelMessage.objects.filter(
+                channel__game=obj,
+                channel__member_channels__member__user=user,
+                created_at__gt=Subquery(
+                    ChannelMember.objects.filter(
+                        channel=OuterRef("channel"),
+                        member__user=user,
+                    ).values("last_read_at")[:1]
+                ),
+            )
+            .distinct()
+            .count()
+        )
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):
@@ -126,6 +167,13 @@ class GameRetrieveSerializer(serializers.Serializer):
             if not user.is_authenticated:
                 return False
             return obj.can_leave(user)
+
+    @extend_schema_field(serializers.BooleanField)
+    def get_can_delete(self, obj):
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return False
+        return obj.can_delete(user)
 
     @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_phases(self, obj):
@@ -166,6 +214,7 @@ class GameCreateSerializer(serializers.Serializer):
         default=None,
     )
     private = serializers.BooleanField()
+    anonymous = serializers.BooleanField(default=False)
     deadline_mode = serializers.ChoiceField(
         choices=DeadlineMode.DEADLINE_MODE_CHOICES,
         default=DeadlineMode.FIXED_TIME,
@@ -189,6 +238,10 @@ class GameCreateSerializer(serializers.Serializer):
         default=0,
         min_value=0,
         max_value=2,
+    )
+    press_type = serializers.ChoiceField(
+        choices=PressType.PRESS_TYPE_CHOICES,
+        default=PressType.FULL_PRESS,
     )
 
     def validate_variant_id(self, value):
@@ -240,16 +293,19 @@ class GameCreateSerializer(serializers.Serializer):
                 movement_phase_duration=validated_data["movement_phase_duration"],
                 retreat_phase_duration=validated_data.get("retreat_phase_duration"),
                 private=validated_data["private"],
+                anonymous=validated_data["anonymous"],
                 deadline_mode=validated_data["deadline_mode"],
                 fixed_deadline_time=validated_data.get("fixed_deadline_time"),
                 fixed_deadline_timezone=validated_data.get("fixed_deadline_timezone"),
                 movement_frequency=validated_data.get("movement_frequency"),
                 retreat_frequency=validated_data.get("retreat_frequency"),
                 nmr_extensions_allowed=validated_data["nmr_extensions_allowed"],
+                press_type=validated_data["press_type"],
             )
 
-            game.members.create(user=request.user, is_game_master=True)
-            game.channels.create(name="Public Press", private=False)
+            creator_member = game.members.create(user=request.user, is_game_master=True)
+            public_channel = game.channels.create(name="Public Press", private=False)
+            public_channel.member_channels.create(member=creator_member)
 
             if hasattr(game, "_created_phase"):
                 delattr(game, "_created_phase")
@@ -274,28 +330,11 @@ class GameCreateSandboxSerializer(serializers.Serializer):
         request = self.context["request"]
         variant = Variant.objects.with_game_creation_data().get(id=validated_data["variant_id"])
 
-        with transaction.atomic():
-            game = Game.objects.create_from_template(
-                variant,
-                name=validated_data["name"],
-                sandbox=True,
-                private=True,
-                nation_assignment=NationAssignment.ORDERED,
-                movement_phase_duration=None,
-            )
-
-            nations_list = list(variant.nations.all())
-            members_to_create = [Member(game=game, user=request.user) for _ in nations_list]
-            created_members = Member.objects.bulk_create(members_to_create)
-
-            current_phase = getattr(game, "_created_phase", None)
-            if current_phase is None:
-                current_phase = game.phases.first()
-
-            game.start(current_phase=current_phase, members=created_members)
-
-            if hasattr(game, "_created_phase"):
-                delattr(game, "_created_phase")
+        game = Game.objects.create_sandbox(
+            user=request.user,
+            name=validated_data["name"],
+            variant=variant,
+        )
 
         return Game.objects.all().with_related_data().get(id=game.id)
 

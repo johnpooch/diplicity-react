@@ -1,7 +1,7 @@
 import React, { Suspense, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Send, MessageCircle } from "lucide-react";
+import { Send, MessageCircle, MessageSquareOff } from "lucide-react";
 import { useDraft, useRequiredParams } from "@/hooks";
 import { toast } from "sonner";
 import { useAuth } from "@/auth";
@@ -24,7 +24,9 @@ import {
   useGamesChannelsListSuspense,
   useVariantsListSuspense,
   useGamesChannelsMessagesCreateCreate,
+  useGamesChannelsMarkReadCreate,
   getGamesChannelsListQueryKey,
+  getGameRetrieveQueryKey,
   ChannelMessage as ChannelMessageType,
 } from "@/api/generated/endpoints";
 
@@ -83,11 +85,33 @@ const ChannelScreen: React.FC = () => {
   const { data: channels } = useGamesChannelsListSuspense(gameId);
   const { data: variants } = useVariantsListSuspense();
   const createMessageMutation = useGamesChannelsMessagesCreateCreate();
+  const markReadMutation = useGamesChannelsMarkReadCreate();
 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const channel = channels.find(c => c.id === parseInt(channelId));
   if (!channel) throw new Error("Channel not found");
+
+  const currentMember = game.members.find(m => m.isCurrentUser);
+
+  useEffect(() => {
+    if (currentMember) {
+      markReadMutation.mutateAsync({
+        gameId,
+        channelId: parseInt(channelId),
+      }).then(() => {
+        queryClient.invalidateQueries({
+          queryKey: getGamesChannelsListQueryKey(gameId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: getGameRetrieveQueryKey(gameId),
+        });
+      }).catch(() => {
+        // Fire-and-forget: silently ignore mark-read failures
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- markReadMutation is stable, fire once on mount
+  }, [gameId, channelId, currentMember]);
 
   useEffect(() => {
     if (messagesContainerRef.current) {
@@ -121,10 +145,40 @@ const ChannelScreen: React.FC = () => {
     }
   };
 
+  const isNoPressActiveGame =
+    game.pressType === "no_press" &&
+    game.status !== "completed" &&
+    game.status !== "abandoned";
+
   const variant = variants.find(v => v.id === game.variantId);
   const variantId = variant?.id;
 
   const messageItems = buildMessageItems(channel.messages);
+
+  if (isNoPressActiveGame) {
+    return (
+      <div className="flex flex-col flex-1 min-h-0">
+        <GameDetailAppBar
+          title={channel.name}
+          onNavigateBack={() =>
+            navigate(`/game/${gameId}/phase/${phaseId}/chat`)
+          }
+          variant="secondary"
+        />
+        <div className="flex-1 overflow-y-auto">
+          <Panel>
+            <Panel.Content>
+              <Notice
+                icon={MessageSquareOff}
+                title="Messaging is disabled in No Press games."
+                className="h-full"
+              />
+            </Panel.Content>
+          </Panel>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col flex-1 min-h-0">

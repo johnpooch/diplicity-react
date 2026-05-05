@@ -39,7 +39,13 @@ vi.mock("@/hooks", () => ({
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({
-    data: { id: "1", variantId: 1 },
+    data: {
+      id: "1",
+      variantId: 1,
+      members: [],
+      status: "active",
+      pressType: "regular_press",
+    },
   }),
   useGamesChannelsListSuspense: () => ({
     data: [
@@ -66,6 +72,10 @@ vi.mock("@/api/generated/endpoints", () => ({
     data: [{ id: 1, name: "Classical" }],
   }),
   useGamesChannelsMessagesCreateCreate: () => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  }),
+  useGamesChannelsMarkReadCreate: () => ({
     mutateAsync: vi.fn(),
     isPending: false,
   }),

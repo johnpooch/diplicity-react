@@ -19,6 +19,9 @@ class GameStatus:
 
 class MovementPhaseDuration:
     ONE_HOUR = "1 hour"
+    TWO_HOURS = "2 hours"
+    FOUR_HOURS = "4 hours"
+    EIGHT_HOURS = "8 hours"
     TWELVE_HOURS = "12 hours"
     TWENTY_FOUR_HOURS = "24 hours"
     FORTY_EIGHT_HOURS = "48 hours"
@@ -29,6 +32,9 @@ class MovementPhaseDuration:
 
     MOVEMENT_PHASE_DURATION_CHOICES = (
         (ONE_HOUR, "1 hour"),
+        (TWO_HOURS, "2 hours"),
+        (FOUR_HOURS, "4 hours"),
+        (EIGHT_HOURS, "8 hours"),
         (TWELVE_HOURS, "12 hours"),
         (TWENTY_FOUR_HOURS, "24 hours"),
         (FORTY_EIGHT_HOURS, "48 hours"),
@@ -68,6 +74,9 @@ def duration_to_seconds(duration: Optional[str]) -> Optional[int]:
         return None
     duration_map = {
         MovementPhaseDuration.ONE_HOUR: 1 * 60 * 60,
+        MovementPhaseDuration.TWO_HOURS: 2 * 60 * 60,
+        MovementPhaseDuration.FOUR_HOURS: 4 * 60 * 60,
+        MovementPhaseDuration.EIGHT_HOURS: 8 * 60 * 60,
         MovementPhaseDuration.TWELVE_HOURS: 12 * 60 * 60,
         MovementPhaseDuration.TWENTY_FOUR_HOURS: 24 * 60 * 60,
         MovementPhaseDuration.FORTY_EIGHT_HOURS: 48 * 60 * 60,
@@ -77,6 +86,16 @@ def duration_to_seconds(duration: Optional[str]) -> Optional[int]:
         MovementPhaseDuration.TWO_WEEKS: 14 * 24 * 60 * 60,
     }
     return duration_map.get(duration, 0)
+
+
+class PressType:
+    FULL_PRESS = "full_press"
+    NO_PRESS = "no_press"
+
+    PRESS_TYPE_CHOICES = (
+        (FULL_PRESS, "Full Press"),
+        (NO_PRESS, "No Press"),
+    )
 
 
 class NationAssignment:

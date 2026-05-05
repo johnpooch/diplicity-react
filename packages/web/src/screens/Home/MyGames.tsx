@@ -1,10 +1,12 @@
 import React, { Suspense, useState } from "react";
+import { Link } from "react-router";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { GameCard } from "@/components/GameCard";
 import { Notice } from "@/components/Notice";
+import { Button } from "@/components/ui/button";
 import { Inbox, Loader2 } from "lucide-react";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { useVariantsListSuspense } from "@/api/generated/endpoints";
@@ -23,27 +25,68 @@ const statuses = [
 
 type StatusValue = (typeof statuses)[number]["value"];
 
-const getStatusMessage = (status: StatusValue) => {
+interface EmptyStateConfig {
+  message: string;
+  actions: React.ReactNode;
+}
+
+const getEmptyStateConfig = (status: StatusValue): EmptyStateConfig => {
   switch (status) {
     case "pending":
-      return "You are not a member of any staging games. Go to Find Games to join a game.";
+      return {
+        message:
+          "Games you've joined that are waiting for more players will appear here. Create a new game or find one to join!",
+        actions: (
+          <div className="flex gap-2">
+            <Button asChild>
+              <Link to="/create-game">Create a game</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/find-games">Find a game</Link>
+            </Button>
+          </div>
+        ),
+      };
     case "active":
-      return "You are not a member of any started games. When you join a game, it will be in a pending state until the required number of players have joined.";
+      return {
+        message:
+          "Your active games will appear here. Ready to play? Create a new game, try a sandbox to practice, or find an open game to join.",
+        actions: (
+          <div className="flex gap-2">
+            <Button asChild>
+              <Link to="/create-game">Create a game</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/find-games">Find a game</Link>
+            </Button>
+          </div>
+        ),
+      };
     case "completed":
-      return "You have not finished any games. When a game ends by victory, draw, or abandonment, it will appear here.";
+      return {
+        message:
+          "Completed games will appear here. When a game ends by victory, draw, or abandonment, you'll find it in this list.",
+        actions: (
+          <div className="flex gap-2">
+            <Button asChild>
+              <Link to="/create-game">Create a game</Link>
+            </Button>
+          </div>
+        ),
+      };
   }
 };
 
 interface GameTabContentProps {
   statusFilter: string;
   emptyTitle: string;
-  emptyMessage: string;
+  status: StatusValue;
 }
 
 const GameTabContent: React.FC<GameTabContentProps> = ({
   statusFilter,
   emptyTitle,
-  emptyMessage,
+  status,
 }) => {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useGamesListInfinite({ mine: true, status: statusFilter });
@@ -61,7 +104,10 @@ const GameTabContent: React.FC<GameTabContentProps> = ({
   const knownGames = games.filter(game => variantMap.has(game.variantId));
 
   if (knownGames.length === 0) {
-    return <Notice title={emptyTitle} message={emptyMessage} icon={Inbox} />;
+    const { message, actions } = getEmptyStateConfig(status);
+    return (
+      <Notice title={emptyTitle} message={message} icon={Inbox} actions={actions} />
+    );
   }
 
   return (
@@ -107,14 +153,14 @@ const MyGames: React.FC = () => {
           ))}
         </TabsList>
 
-        {statuses.map(status => (
-          <TabsContent key={status.value} value={status.value}>
+        {statuses.map(s => (
+          <TabsContent key={s.value} value={s.value}>
             <QueryErrorBoundary>
               <Suspense fallback={<div></div>}>
                 <GameTabContent
-                  statusFilter={status.statusFilter}
-                  emptyTitle={`No ${status.label.toLowerCase()} games`}
-                  emptyMessage={getStatusMessage(status.value)}
+                  statusFilter={s.statusFilter}
+                  emptyTitle={`No ${s.label.toLowerCase()} games`}
+                  status={s.value}
                 />
               </Suspense>
             </QueryErrorBoundary>
