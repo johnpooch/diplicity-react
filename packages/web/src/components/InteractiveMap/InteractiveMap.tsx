@@ -728,10 +728,6 @@ const InteractiveMap = (props: InteractiveMapProps) => {
               offset={UNIT_RADIUS + UNIT_OFFSET_RADIUS}
               stroke={SUCCESS_COLOR}
               fill={color}
-              dash={{
-                length: ORDER_DASH_LENGTH * 2,
-                spacing: ORDER_DASH_LENGTH,
-              }}
               onRenderCenter={
                 o.resolution && o.resolution.status !== "Succeeded"
                   ? (x: number, y: number) => (

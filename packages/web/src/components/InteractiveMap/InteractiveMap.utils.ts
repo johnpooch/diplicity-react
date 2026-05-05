@@ -15,14 +15,19 @@ const getClosestPointOnLine = (
   const pointVecX = x1 - x2;
   const pointVecY = y1 - y2;
 
-  // Project point onto the line
+  // Project point onto the line segment, clamped to [0, 1]
   const lineLengthSquared = lineVecX * lineVecX + lineVecY * lineVecY;
-  const projection =
-    (pointVecX * lineVecX + pointVecY * lineVecY) / lineLengthSquared;
+  const t = Math.max(
+    0.1,
+    Math.min(
+      0.9,
+      (pointVecX * lineVecX + pointVecY * lineVecY) / lineLengthSquared
+    )
+  );
 
-  // Closest point on the line
-  const closestX = x2 + projection * lineVecX;
-  const closestY = y2 + projection * lineVecY;
+  // Closest point on the segment
+  const closestX = x2 + t * lineVecX;
+  const closestY = y2 + t * lineVecY;
 
   return { x: closestX, y: closestY };
 };
