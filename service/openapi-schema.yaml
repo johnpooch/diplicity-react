@@ -922,15 +922,21 @@ paths:
           nullable: true
           enum:
           - 1 hour
+          - 1 week
           - 12 hours
+          - 2 hours
+          - 2 weeks
           - 24 hours
-          - 48 hours
           - 3 days
           - 4 days
-          - 1 week
-          - 2 weeks
+          - 4 hours
+          - 48 hours
+          - 8 hours
         description: |-
           * `1 hour` - 1 hour
+          * `2 hours` - 2 hours
+          * `4 hours` - 4 hours
+          * `8 hours` - 8 hours
           * `12 hours` - 12 hours
           * `24 hours` - 24 hours
           * `48 hours` - 48 hours
@@ -938,6 +944,10 @@ paths:
           * `4 days` - 4 days
           * `1 week` - 1 week
           * `2 weeks` - 2 weeks
+      - in: query
+        name: ordering
+        schema:
+          type: string
       - name: page
         required: false
         in: query

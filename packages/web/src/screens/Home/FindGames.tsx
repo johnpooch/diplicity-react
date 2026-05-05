@@ -6,6 +6,7 @@ import { ScreenContainer } from "@/components/ui/screen-container";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { GameCard } from "@/components/GameCard";
 import { Notice } from "@/components/Notice";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -14,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Inbox, Loader2, SlidersHorizontal } from "lucide-react";
+import { Inbox, Loader2, SlidersHorizontal, Zap } from "lucide-react";
 import { useVariantsListSuspense } from "@/api/generated/endpoints";
 import type { GamesListMovementPhaseDuration } from "@/api/generated/endpoints";
 import { useGamesListInfinite } from "@/hooks/useGamesListInfinite";
@@ -25,6 +26,7 @@ const VARIANT_PARAM = "variant";
 const DURATION_PARAM = "movement_phase_duration";
 const ALL_VARIANTS_VALUE = "__all__";
 const ANY_DURATION_VALUE = "__any__";
+const EXPRESS_MIN_MEMBERS = 3;
 
 interface FindGamesProps {
   isFilterOpen: boolean;
@@ -43,6 +45,7 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
       can_join: true,
       variant: variantParam,
       movement_phase_duration: durationParam,
+      ordering: "slots_remaining",
     });
   const { data: variants } = useVariantsListSuspense();
 
@@ -123,15 +126,41 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
 
       {knownGames.length > 0 ? (
         <>
-          {knownGames.map(game => (
-            <GameCard
-              key={game.id}
-              game={game}
-              variant={variantMap.get(game.variantId)!}
-              phaseId={game.phases[0]}
-              map={<div />}
-            />
-          ))}
+          {knownGames[0].members.length >= EXPRESS_MIN_MEMBERS ? (
+            <>
+              <div className="flex items-center gap-2 pt-2">
+                <Zap className="size-4" />
+                <h3 className="text-sm font-semibold">Fastest Start</h3>
+                <Badge>Join to start playing fastest</Badge>
+              </div>
+              <GameCard
+                key={knownGames[0].id}
+                game={knownGames[0]}
+                variant={variantMap.get(knownGames[0].variantId)!}
+                phaseId={knownGames[0].phases[0]}
+                map={<div />}
+              />
+              {knownGames.slice(1).map(game => (
+                <GameCard
+                  key={game.id}
+                  game={game}
+                  variant={variantMap.get(game.variantId)!}
+                  phaseId={game.phases[0]}
+                  map={<div />}
+                />
+              ))}
+            </>
+          ) : (
+            knownGames.map(game => (
+              <GameCard
+                key={game.id}
+                game={game}
+                variant={variantMap.get(game.variantId)!}
+                phaseId={game.phases[0]}
+                map={<div />}
+              />
+            ))
+          )}
           {isFetchingNextPage && (
             <div className="flex justify-center py-4">
               <Loader2 className="animate-spin" />

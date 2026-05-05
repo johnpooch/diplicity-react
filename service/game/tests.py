@@ -752,6 +752,122 @@ class TestGameListViewFilters:
             assert game["can_join"] is True
 
 
+class TestGameListViewOrdering:
+
+    @pytest.mark.django_db
+    def test_ordering_slots_remaining_ascending(
+        self, authenticated_client, classical_variant, base_pending_phase, secondary_user, tertiary_user
+    ):
+        empty_game = Game.objects.create(
+            name="Empty Game",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+        )
+        base_pending_phase(empty_game)
+
+        one_member_game = Game.objects.create(
+            name="One Member Game",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+        )
+        base_pending_phase(one_member_game)
+        one_member_game.members.create(user=secondary_user)
+
+        two_member_game = Game.objects.create(
+            name="Two Member Game",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+        )
+        base_pending_phase(two_member_game)
+        two_member_game.members.create(user=secondary_user)
+        two_member_game.members.create(user=tertiary_user)
+
+        url = reverse(list_viewname)
+        response = authenticated_client.get(url, {"ordering": "slots_remaining"})
+        assert response.status_code == status.HTTP_200_OK
+
+        ordered_ids = [g["id"] for g in response.data["results"]]
+        two_idx = ordered_ids.index(two_member_game.id)
+        one_idx = ordered_ids.index(one_member_game.id)
+        empty_idx = ordered_ids.index(empty_game.id)
+        assert two_idx < one_idx < empty_idx
+
+    @pytest.mark.django_db
+    def test_ordering_slots_remaining_tiebreaker_created_at_desc(
+        self, authenticated_client, classical_variant, base_pending_phase
+    ):
+        older_game = Game.objects.create(
+            name="Older Game",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+        )
+        base_pending_phase(older_game)
+        newer_game = Game.objects.create(
+            name="Newer Game",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+        )
+        base_pending_phase(newer_game)
+
+        Game.objects.filter(id=older_game.id).update(
+            created_at=timezone.now() - timedelta(days=2)
+        )
+        Game.objects.filter(id=newer_game.id).update(
+            created_at=timezone.now() - timedelta(days=1)
+        )
+
+        url = reverse(list_viewname)
+        response = authenticated_client.get(url, {"ordering": "slots_remaining"})
+        assert response.status_code == status.HTTP_200_OK
+
+        ordered_ids = [g["id"] for g in response.data["results"]]
+        assert ordered_ids.index(newer_game.id) < ordered_ids.index(older_game.id)
+
+    @pytest.mark.django_db
+    def test_ordering_combined_with_can_join_and_variant(
+        self,
+        authenticated_client,
+        classical_variant,
+        italy_vs_germany_variant,
+        base_pending_phase,
+        secondary_user,
+        tertiary_user,
+    ):
+        classical_full = Game.objects.create(
+            name="Classical Fuller",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+        )
+        base_pending_phase(classical_full)
+        classical_full.members.create(user=secondary_user)
+        classical_full.members.create(user=tertiary_user)
+
+        classical_empty = Game.objects.create(
+            name="Classical Empty",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+        )
+        base_pending_phase(classical_empty)
+
+        italy_game = Game.objects.create(
+            name="Italy vs Germany",
+            variant=italy_vs_germany_variant,
+            status=GameStatus.PENDING,
+        )
+        base_pending_phase(italy_game)
+
+        url = reverse(list_viewname)
+        response = authenticated_client.get(
+            url,
+            {"can_join": "true", "variant": classical_variant.id, "ordering": "slots_remaining"},
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        ordered_ids = [g["id"] for g in response.data["results"]]
+        assert italy_game.id not in ordered_ids
+        assert ordered_ids.index(classical_full.id) < ordered_ids.index(classical_empty.id)
+
+
 class TestGameListViewQueryPerformance:
 
     @pytest.mark.django_db
