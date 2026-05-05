@@ -60,7 +60,7 @@ const ORDER_ARROW_WIDTH = 6;
 const ORDER_ARROW_LENGTH = 8;
 const ORDER_DASH_LENGTH = 4;
 const ORDER_DASH_SPACING = 2;
-
+const SUPPORT_STAGGER_DISTANCE = 4.375;
 
 const ORDER_FAILED_CROSS_WIDTH = 3;
 const ORDER_FAILED_CROSS_LENGTH = 16;
@@ -213,6 +213,13 @@ const InteractiveMap = (props: InteractiveMapProps) => {
     display: "block",
     ...props.style,
   };
+
+  const supportMoveGroups = new Map<string, Order[]>();
+  for (const o of props.orders?.filter(o => o.orderType === "Support" && o.aux?.id !== o.target?.id) ?? []) {
+    const key = `${o.aux?.id}-${o.target?.id}`;
+    if (!supportMoveGroups.has(key)) supportMoveGroups.set(key, []);
+    supportMoveGroups.get(key)!.push(o);
+  }
 
   return (
     <svg
@@ -502,6 +509,16 @@ const InteractiveMap = (props: InteractiveMapProps) => {
           if (!target) return null;
           if (!aux) return null;
 
+          const supportGroupKey = `${o.aux?.id}-${o.target?.id}`;
+          const supportGroup = supportMoveGroups.get(supportGroupKey) ?? [];
+          const staggerIndex = supportGroup.indexOf(o);
+          const sdx = aux.center.x - target.center.x;
+          const sdy = aux.center.y - target.center.y;
+          const slen = Math.sqrt(sdx * sdx + sdy * sdy);
+          const staggerDist = (staggerIndex + 1) * SUPPORT_STAGGER_DISTANCE;
+          const staggeredX2 = target.center.x - UNIT_OFFSET_X + (sdx / slen) * staggerDist;
+          const staggeredY2 = target.center.y - UNIT_OFFSET_Y + (sdy / slen) * staggerDist;
+
           if (aux === target) {
             // Render HoldArrow if auxiliary is the same as the target
             return (
@@ -546,8 +563,8 @@ const InteractiveMap = (props: InteractiveMapProps) => {
               key={o.source.id}
               x1={source.center.x - UNIT_OFFSET_X}
               y1={source.center.y - UNIT_OFFSET_Y}
-              x2={target.center.x - UNIT_OFFSET_X}
-              y2={target.center.y - UNIT_OFFSET_Y}
+              x2={staggeredX2}
+              y2={staggeredY2}
               x3={aux.center.x - UNIT_OFFSET_X}
               y3={aux.center.y - UNIT_OFFSET_Y}
               lineWidth={ORDER_LINE_WIDTH}
