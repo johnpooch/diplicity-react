@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Cross } from "./shapes/cross";
 import { CurvedArrow } from "./shapes/curved-arrow";
 import { Octagon } from "./shapes/octagon";
@@ -13,6 +13,28 @@ import { SupportHoldArrow } from "./orders/support-hold";
 import { Minus } from "./shapes/minus";
 import { useMapData, type MapData } from "../../hooks/useMapData";
 import { isNativePlatform } from "../../utils/platform";
+
+const useMapFonts = (map: MapData | undefined) => {
+  useEffect(() => {
+    if (!map) return;
+    const fontFamilies = [
+      ...new Set(
+        map.provinces
+          .flatMap(p => p.text ?? [])
+          .map(t => (t.styles.fontFamily as string) ?? "")
+          .filter(Boolean)
+          .map(f => f.replace(/['"]/g, "").trim())
+      ),
+    ];
+    if (fontFamilies.length === 0) return;
+    const href = `https://fonts.googleapis.com/css2?${fontFamilies.map(f => `family=${f.replace(/ /g, "+")}`).join("&")}&display=swap`;
+    if (document.querySelector(`link[href="${href}"]`)) return;
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = href;
+    document.head.appendChild(link);
+  }, [map]);
+};
 
 type VariantForMap = Pick<Variant, "id" | "nations">;
 
@@ -109,6 +131,7 @@ const InteractiveMap = (props: InteractiveMapProps) => {
   // If mapData is provided, use it directly; otherwise load internally
   const { data: loadedMap, isLoading, error } = useMapData(props.variant.id);
   const map = props.mapData ?? loadedMap;
+  useMapFonts(map);
 
   // Only show loading/error states if mapData is not provided
   if (!props.mapData) {
