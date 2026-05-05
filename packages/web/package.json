@@ -77,7 +77,6 @@
     "@capacitor/cli": "^8.1.0",
     "@chromatic-com/storybook": "^3.2.2",
     "@eslint/js": "^9.15.0",
-    "@faker-js/faker": "^10.1.0",
     "@storybook/addon-essentials": "^8.4.7",
     "@storybook/addon-interactions": "^8.4.7",
     "@storybook/addon-onboarding": "^8.4.7",
@@ -98,8 +97,6 @@
     "eslint-plugin-storybook": "^0.11.1",
     "globals": "^15.12.0",
     "jsdom": "^25.0.1",
-    "msw": "^2.12.4",
-    "msw-storybook-addon": "^2.0.6",
     "orval": "^8.0.3",
     "prettier": "^3.2.5",
     "rollup-plugin-visualizer": "^6.0.5",
@@ -113,11 +110,6 @@
   "eslintConfig": {
     "extends": [
       "plugin:storybook/recommended"
-    ]
-  },
-  "msw": {
-    "workerDirectory": [
-      "public"
     ]
   }
 }
