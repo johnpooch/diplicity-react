@@ -756,7 +756,7 @@ const InteractiveMap = (props: InteractiveMapProps) => {
                 fill={color}
                 onRenderCenter={
                   o.resolution && o.resolution.status !== "Succeeded"
-                    ? (x: number, y: number, angle: number) => (
+                    ? (x: number, y: number, _angle: number) => (
                         <Cross
                           x={x}
                           y={y}
