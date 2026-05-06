@@ -5,7 +5,6 @@ import { z } from "zod";
 import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
 import { Link } from "react-router";
 import { toast } from "sonner";
-import { ChevronDown } from "lucide-react";
 import { useAuth } from "../auth";
 import {
   useAuthAppleLoginCreate,
@@ -15,6 +14,7 @@ import {
 import { isNativePlatform } from "@/utils/platform";
 import { nativeAppleSignIn } from "@/auth/nativeAppleAuth";
 import { nativeGoogleSignIn } from "@/auth/nativeGoogleAuth";
+import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -126,7 +126,7 @@ const Login: React.FC = () => {
       {/* HERO */}
       <section
         id="top"
-        className="relative flex flex-col lg:flex-row lg:items-center lg:justify-start min-h-dvh lg:h-dvh lg:min-h-[600px] pt-24 pb-24 px-6 lg:pt-0 lg:pb-0 lg:px-[6vw] gap-10 lg:gap-[6vw] text-white overflow-hidden"
+        className="relative flex flex-col items-center justify-center min-h-dvh overflow-hidden px-6 py-16 lg:flex-row lg:items-center lg:justify-start lg:h-dvh lg:min-h-[600px] lg:py-0 lg:px-[6vw] lg:gap-[6vw]"
         style={{
           backgroundImage:
             "linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.35) 50%, rgba(0,0,0,0.65) 100%), url('/login_background.jpg')",
@@ -144,24 +144,10 @@ const Login: React.FC = () => {
           }}
         />
 
-        {/* App bar */}
-        <div className="absolute top-0 left-0 right-0 flex items-center px-6 lg:px-[6vw] py-5 z-10">
-          <div className="flex items-center gap-3 font-semibold text-[18px] text-white">
-            <div className="size-8 rounded-full bg-white overflow-hidden shrink-0">
-              <img
-                src="/otto.png"
-                alt="Diplicity"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <span>Diplicity</span>
-          </div>
-        </div>
-
-        {/* Marketing blurb — top on mobile, right on desktop */}
-        <div className="relative z-10 order-1 lg:order-2 lg:flex-1 text-center lg:text-left">
+        {/* Marketing blurb — desktop only */}
+        <div className="hidden lg:block relative z-10 order-2 flex-1 text-left text-white">
           <div className="text-xs tracking-[0.18em] uppercase text-white/70 mb-5">
-            Play Diplomacy online · Since 2014
+            Diplicity · Since 2014
           </div>
           <h2 className="text-[clamp(32px,5.5vw,68px)] leading-[1.05] font-semibold tracking-[-0.02em] text-white mb-6">
             Friendships forged.
@@ -170,26 +156,28 @@ const Login: React.FC = () => {
             <br />
             <em className="font-normal text-white/85">Empires won.</em>
           </h2>
-          <p className="text-[17px] leading-[1.6] text-white/85 max-w-[520px] mb-7 mx-auto lg:mx-0">
+          <p className="text-[17px] leading-[1.6] text-white/85 max-w-[520px]">
             Diplomacy is the legendary game of negotiation, alliance, and betrayal — a war where every move is decided by the people playing, not by chance. Outwit, out-talk, and outlast everyone else to take the map.
           </p>
-          <div className="flex justify-center lg:justify-start gap-3">
-            <Link
-              to="/learn-to-play"
-              className="inline-flex items-center justify-center h-11 px-6 text-[15px] font-medium border border-white/40 text-white rounded-md hover:bg-white/10 transition-colors"
-            >
-              Read the rules
-            </Link>
-          </div>
         </div>
 
-        {/* Login card — bottom on mobile, left on desktop */}
-        <div className="relative z-10 order-2 lg:order-1 w-full max-w-[380px] mx-auto lg:mx-0 lg:w-[33%] lg:max-w-[420px] lg:shrink-0">
+        {/* Scroll hint — desktop only (absolute), mobile handled below */}
+        <button
+          type="button"
+          onClick={() => document.getElementById("guide")?.scrollIntoView({ behavior: "smooth" })}
+          className="hidden lg:flex absolute left-1/2 bottom-8 -translate-x-1/2 z-10 flex-col items-center gap-2.5 text-white/75 text-xs tracking-[0.16em] uppercase hover:text-white transition-colors bg-transparent border-0 cursor-pointer px-8 py-4"
+        >
+          <span>Learn how to play</span>
+          <ChevronDown className="size-5 animate-bounce" />
+        </button>
+
+        {/* Login card */}
+        <div className="relative z-10 w-full max-w-[380px] lg:order-1 lg:mx-0 lg:w-[33%] lg:max-w-[420px] lg:shrink-0">
           <div className="bg-background text-foreground rounded-lg p-8 flex flex-col items-center gap-4 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
             <Avatar className="size-12">
               <AvatarImage src="/otto.png" alt="Diplicity Logo" />
             </Avatar>
-            <h1 className="text-base font-semibold">Welcome to Diplicity!</h1>
+            <h1 className="text-base font-semibold">Welcome to Diplicity</h1>
             <p className="text-sm text-muted-foreground text-center -mt-2">
               A digital adaptation of the game of Diplomacy.
             </p>
@@ -283,15 +271,37 @@ const Login: React.FC = () => {
           </div>
         </div>
 
-        {/* Scroll hint */}
-        <a
-          href="#guide"
-          className="absolute left-1/2 bottom-8 -translate-x-1/2 z-10 hidden md:flex flex-col items-center gap-2.5 text-white/75 text-xs tracking-[0.16em] uppercase no-underline hover:text-white transition-colors"
+
+      </section>
+
+      {/* Mobile intro — below the fold, scrolled to from the sticky hint */}
+      <section id="mobile-intro" className="lg:hidden px-6 py-14 bg-background">
+        <div className="text-xs tracking-[0.18em] uppercase text-muted-foreground mb-5">
+          Diplicity · Since 2014
+        </div>
+        <h2 className="text-[clamp(32px,5.5vw,48px)] leading-[1.05] font-semibold tracking-[-0.02em] text-foreground mb-6">
+          Friendships forged.
+          <br />
+          Promises broken.
+          <br />
+          <em className="font-normal text-foreground/70">Empires won.</em>
+        </h2>
+        <p className="text-[17px] leading-[1.6] text-muted-foreground">
+          Diplomacy is the legendary game of negotiation, alliance, and betrayal — a war where every move is decided by the people playing, not by chance. Outwit, out-talk, and outlast everyone else to take the map.
+        </p>
+      </section>
+
+      {/* Mobile sticky scroll hint */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 flex justify-center bg-background/80 backdrop-blur-sm border-t border-border">
+        <button
+          type="button"
+          onClick={() => document.getElementById("mobile-intro")?.scrollIntoView({ behavior: "smooth" })}
+          className="flex flex-col items-center gap-1.5 text-muted-foreground text-xs tracking-[0.16em] uppercase hover:text-foreground transition-colors bg-transparent border-0 cursor-pointer px-8 py-3"
         >
           <span>Learn how to play</span>
-          <ChevronDown className="size-5 animate-bounce" />
-        </a>
-      </section>
+          <ChevronDown className="size-4 animate-bounce" />
+        </button>
+      </div>
 
       {/* Guide intro */}
       <section id="guide" className="px-6 pt-24 pb-12 text-center bg-background">
@@ -299,7 +309,7 @@ const Login: React.FC = () => {
           Quick-start guide · 5 minute read
         </div>
         <h2 className="text-[clamp(36px,4.5vw,56px)] font-semibold tracking-[-0.01em] leading-[1.15] max-w-[16ch] mx-auto mb-5">
-          Learn the rules in five minutes.
+          Take your seat at the table.
         </h2>
         <p className="text-[18px] leading-[1.6] text-muted-foreground max-w-[600px] mx-auto">
           Diplomacy looks like a war game. It isn&apos;t — at least not in the
@@ -317,7 +327,7 @@ const Login: React.FC = () => {
           Ready when you are
         </div>
         <h2 className="text-[clamp(28px,3.5vw,40px)] font-semibold tracking-[-0.01em] leading-[1.15] max-w-[18ch] mx-auto mb-7">
-          Find and join a game with players. Or enemies. Same thing.
+          Join a game with players. Or enemies. Same thing.
         </h2>
         <a
           href="#top"

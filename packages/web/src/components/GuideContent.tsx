@@ -3,20 +3,27 @@ import React from "react";
 interface ShotProps {
   label: string;
   caption?: string;
+  src?: string;
 }
 
-const Shot: React.FC<ShotProps> = ({ label, caption }) => (
+const Shot: React.FC<ShotProps> = ({ label, caption, src }) => (
   <div>
-    <div
-      className="aspect-square flex items-center justify-center"
-      style={{
-        background:
-          "repeating-linear-gradient(135deg, oklch(0.97 0 0) 0px, oklch(0.97 0 0) 8px, oklch(0.94 0 0) 8px, oklch(0.94 0 0) 9px)",
-      }}
-    >
-      <span className="font-mono text-[11px] tracking-[0.14em] uppercase text-muted-foreground bg-background px-2.5 py-1.5 border border-border rounded-sm">
-        {label}
-      </span>
+    <div className="aspect-square overflow-hidden rounded-sm">
+      {src ? (
+        <img src={src} alt={label} className="w-full h-full object-cover" />
+      ) : (
+        <div
+          className="w-full h-full flex items-center justify-center"
+          style={{
+            background:
+              "repeating-linear-gradient(135deg, oklch(0.97 0 0) 0px, oklch(0.97 0 0) 8px, oklch(0.94 0 0) 8px, oklch(0.94 0 0) 9px)",
+          }}
+        >
+          <span className="font-mono text-[11px] tracking-[0.14em] uppercase text-muted-foreground bg-background px-2.5 py-1.5 border border-border rounded-sm">
+            {label}
+          </span>
+        </div>
+      )}
     </div>
     {caption && (
       <span className="block text-sm text-muted-foreground mt-2.5">{caption}</span>
@@ -24,17 +31,23 @@ const Shot: React.FC<ShotProps> = ({ label, caption }) => (
   </div>
 );
 
-const CardShot: React.FC<{ label: string }> = ({ label }) => (
-  <div
-    className="aspect-square flex items-center justify-center border-b border-border"
-    style={{
-      background:
-        "repeating-linear-gradient(135deg, oklch(0.97 0 0) 0px, oklch(0.97 0 0) 8px, oklch(0.94 0 0) 8px, oklch(0.94 0 0) 9px)",
-    }}
-  >
-    <span className="font-mono text-[11px] tracking-[0.14em] uppercase text-muted-foreground bg-background px-2.5 py-1.5 border border-border rounded-sm">
-      {label}
-    </span>
+const CardShot: React.FC<{ label: string; src?: string }> = ({ label, src }) => (
+  <div className="aspect-square overflow-hidden border-b border-border">
+    {src ? (
+      <img src={src} alt={label} className="w-full h-full object-cover" />
+    ) : (
+      <div
+        className="w-full h-full flex items-center justify-center"
+        style={{
+          background:
+            "repeating-linear-gradient(135deg, oklch(0.97 0 0) 0px, oklch(0.97 0 0) 8px, oklch(0.94 0 0) 8px, oklch(0.94 0 0) 9px)",
+        }}
+      >
+        <span className="font-mono text-[11px] tracking-[0.14em] uppercase text-muted-foreground bg-background px-2.5 py-1.5 border border-border rounded-sm">
+          {label}
+        </span>
+      </div>
+    )}
   </div>
 );
 
@@ -109,6 +122,7 @@ const GuideContent: React.FC = () => (
           <Body>Controlling half of the supply centers wins the game outright.</Body>
         </div>
         <Shot
+          src="/guidecontent/fig1.png"
           label="Map · Supply centers"
           caption="Fig. 01 — French supply centers - while Belgium remains unoccupied."
         />
@@ -194,30 +208,34 @@ const GuideContent: React.FC = () => (
         {[
           {
             label: "Hold",
+            src: "/guidecontent/fig2.png",
             syntax: "Army Budapest Holds",
             desc: "The unit stays in place and defends its territory - thwarting a potential attack from Galicia.",
           },
           {
             label: "Move",
+            src: "/guidecontent/fig3.png",
             syntax: "Fleet NRG – Norway",
-            desc: "The unit advances into a neighboring area - capturing the supply point in Norway.",
+            desc: "The unit advances into a neighboring area - capturing the supply center in Norway.",
           },
           {
             label: "Support",
+            src: "/guidecontent/fig4.png",
             syntax: "Army Rumania Supports Army Budapest – Serbia",
-            desc: "One unit reinforces another, making that one stronger in attack or defense.",
+            desc: "One unit reinforces another, making that one stronger in attack. Units can also support hold orders, making their defense stronger.",
           },
           {
             label: "Convoy",
+            src: "/guidecontent/fig5.png",
             syntax: "Fleet NTH Convoys Army Edinburgh – Holland",
             desc: "Fleets can ferry an army across water — sometimes across half the map. A convoy succeeds even if the fleet is under attack - unless it has to retreat.",
           },
-        ].map(({ label, syntax, desc }) => (
+        ].map(({ label, src, syntax, desc }) => (
           <div
             key={label}
             className="bg-card border border-border rounded-lg overflow-hidden flex flex-col"
           >
-            <CardShot label={label} />
+            <CardShot label={label} src={src} />
             <div className="p-[18px_20px_20px]">
               <h3 className="text-lg font-semibold mb-1 text-foreground">
                 {label}
@@ -253,6 +271,7 @@ const GuideContent: React.FC = () => (
         </div>
         <div className="lg:order-1">
           <Shot
+            src="/guidecontent/fig6.png"
             label="2 vs 1 · Successful attack"
             caption="Fig. 06 — Two supported units overpower a lone defender"
           />
@@ -290,6 +309,7 @@ const GuideContent: React.FC = () => (
           </Italic>
         </div>
         <Shot
+          src="/guidecontent/fig7.png"
           label="1 vs 1 · Bounce"
           caption="Fig. 07 — Equally matched units — nobody moves into the Black Sea."
         />
@@ -314,8 +334,9 @@ const GuideContent: React.FC = () => (
           <Italic>This is often the easiest way to break a strong position.</Italic>
         </div>
         <Shot
+          src="/guidecontent/fig8.png"
           label="Cut support"
-          caption="Fig. 08 — Berlin attacks Silesia. Galicia loses their support, and bounces with Warsaw."
+          caption="Fig. 08 — Berlin attacks Silesia and bounces, but Galicia loses their support and bounces with Warsaw."
         />
       </div>
     </section>
@@ -337,7 +358,7 @@ const GuideContent: React.FC = () => (
             send them.
           </Italic>
           <Body>
-            It cannot retreat to the space the attack came from, nor to a space
+            It cannot retreat to the space the attack or its support came from, nor to a space
             where units bounced that same turn.
           </Body>
           <Italic>
@@ -345,8 +366,9 @@ const GuideContent: React.FC = () => (
           </Italic>
         </div>
         <Shot
+          src="/guidecontent/fig9.png"
           label="Retreat"
-          caption="Fig. 09 — The English Channel was supported by the Irish Sea. The French fleet needs to retreat."
+          caption="Fig. 09 — The English Channel was supported by the Irish Sea. The French fleet needs to retreat anywhere else."
         />
       </div>
     </section>
