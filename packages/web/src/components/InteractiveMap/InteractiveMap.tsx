@@ -50,6 +50,7 @@ const HIGHLIGHTED_STROKE_COLOR = "#FFFFFF";
 const DEFAULT_FILL = "transparent";
 
 const SUCCESS_COLOR = "rgba(0,0,0,1)";
+const IMPLICIT_HOLD_STROKE = "rgba(0,0,0,0.2)";
 
 const UNIT_RADIUS = 10;
 const UNIT_OFFSET_RADIUS = 5;
@@ -602,6 +603,44 @@ const InteractiveMap = (props: InteractiveMapProps) => {
             />
           );
         })}
+      {props.orders !== undefined &&
+        props.phase.units
+          .filter(unit =>
+            !props.orders!.some(o => o.source.id === unit.province.id) &&
+            props.orders!.some(
+              o =>
+                (o.orderType === "Move" || o.orderType === "MoveViaConvoy") &&
+                o.target?.id === unit.province.id &&
+                o.resolution?.status === "Succeeded"
+            )
+          )
+          .map(unit => {
+            const province = map.provinces.find(p => p.id === unit.province.id);
+            if (!province) return null;
+            return (
+              <Octagon
+                key={`implicit-hold-${unit.province.id}`}
+                x={province.center.x - UNIT_OFFSET_X}
+                y={province.center.y - UNIT_OFFSET_Y}
+                strokeWidth={ORDER_LINE_WIDTH}
+                size={24}
+                stroke={IMPLICIT_HOLD_STROKE}
+                fill="transparent"
+                onRenderBottomCenter={(x, y) => (
+                  <Cross
+                    x={x}
+                    y={y}
+                    width={ORDER_FAILED_CROSS_WIDTH}
+                    length={ORDER_FAILED_CROSS_LENGTH}
+                    angle={45}
+                    fill={ORDER_FAILED_CROSS_FILL}
+                    stroke={ORDER_FAILED_CROSS_STROKE}
+                    strokeWidth={ORDER_FAILED_CROSS_STROKE_WIDTH}
+                  />
+                )}
+              />
+            );
+          })}
       {props.orders
         ?.filter(o => o.orderType === "Support")
         .map(o => {
