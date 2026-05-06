@@ -51,7 +51,7 @@ const LearnToPlayPublic: React.FC = () => (
       <div className="inline-flex gap-[18px] text-xs tracking-[0.14em] uppercase text-muted-foreground border-t border-b border-border py-3 px-5">
         <span>≈ 5 min read</span>
         <span>·</span>
-        <span>11 sections</span>
+        <span>12 sections</span>
         <span>·</span>
         <span>No prior experience</span>
       </div>

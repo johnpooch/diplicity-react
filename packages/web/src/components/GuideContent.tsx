@@ -76,14 +76,15 @@ const GuideContent: React.FC = () => (
         You are a diplomat first, a commander second.
       </SectionHeading>
       <Body className="mt-[18px]">
-        Yes, you move armies and fleets. But you cannot succeed on your own. The
+        In this game, you move armies and fleets. But you cannot succeed on your own. The
         game is built around <em>talking</em> to other players, making plans
         together, and deciding who you trust.
       </Body>
       <Body>
         You will negotiate, cooperate, and sometimes betray. There is no
         randomness, no dice, no luck — everything that happens comes from player
-        decisions.
+        decisions. All players submit their orders in secret at the same time, and 
+        once revealed, you see who was manipulated successfully — and who wasn't.
       </Body>
     </section>
 
@@ -94,17 +95,17 @@ const GuideContent: React.FC = () => (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-7 lg:gap-14 items-center">
         <div>
           <SectionNum>II · The goal</SectionNum>
-          <SectionHeading>Control eighteen supply centers.</SectionHeading>
+          <SectionHeading>Control half of all supply centers.</SectionHeading>
           <Body className="mt-[18px]">
             Supply centers are the key locations on the map. The more you
             control, the more units you get. The more units you have, the more
             influence you have.
           </Body>
-          <Body>Eighteen out of thirty-four wins the game outright.</Body>
+          <Body>Controlling half of the supply centers wins the game outright.</Body>
         </div>
         <Shot
           label="Map · Supply centers"
-          caption="Fig. 01 — Highlighted supply centers across the standard map"
+          caption="Fig. 01 — French supply centers - while Belgium remains unoccupied."
         />
       </div>
     </section>
@@ -128,7 +129,9 @@ const GuideContent: React.FC = () => (
       </Body>
       <Body>
         At the end of each year, your number of supply centers determines
-        whether you gain or lose units.
+        whether you gain or lose units. A year consists of Spring and Fall turns,
+        followed by a Winter adjustment. Only the end of a Fall turn determines 
+        control of supply centers.
       </Body>
     </section>
 
@@ -174,7 +177,7 @@ const GuideContent: React.FC = () => (
     {/* V */}
     <section className="max-w-[1040px] mx-auto py-14">
       <SectionNum>V · What units can do</SectionNum>
-      <SectionHeading>Each unit gives one order per turn.</SectionHeading>
+      <SectionHeading>Each unit receives one order per turn.</SectionHeading>
       <p className="text-[17px] leading-[1.65] text-foreground/80 mt-[18px] max-w-[680px]">
         There are four kinds of orders. Support is the most important — units
         are weak alone, but powerful together.
@@ -183,23 +186,23 @@ const GuideContent: React.FC = () => (
         {[
           {
             label: "Hold",
-            syntax: "A PAR H",
-            desc: "The unit stays in place and defends its territory.",
+            syntax: "Army Budapest Holds",
+            desc: "The unit stays in place and defends its territory - thwarting a potential attack from Galicia.",
           },
           {
             label: "Move",
-            syntax: "A PAR – BUR",
-            desc: "The unit advances into a neighboring area.",
+            syntax: "Fleet NRG – Norway",
+            desc: "The unit advances into a neighboring area - capturing the supply point in Norway.",
           },
           {
             label: "Support",
-            syntax: "A MAR S A PAR – BUR",
-            desc: "One unit reinforces another, making it stronger in attack or defense.",
+            syntax: "Army Rumania Supports Army Budapest – Serbia",
+            desc: "One unit reinforces another, making that one stronger in attack or defense.",
           },
           {
             label: "Convoy",
-            syntax: "F ENG C A LON – BRE",
-            desc: "A fleet ferries an army across water — sometimes across half the map.",
+            syntax: "Fleet NTH Convoys Army Edinburgh – Holland",
+            desc: "Fleets can ferry an army across water — sometimes across half the map. A convoy succeeds even if the fleet is under attack - unless it has to retreat.",
           },
         ].map(({ label, syntax, desc }) => (
           <div
@@ -231,12 +234,16 @@ const GuideContent: React.FC = () => (
           <SectionHeading>Strongest side wins.</SectionHeading>
           <Body className="mt-[18px]">
             Every unit has a strength of one. Each support adds one more. The
-            strongest side wins; the loser retreats or is destroyed.
+            strongest side wins; the loser is dislodged - it needs to retreat or is destroyed.
           </Body>
           <Body>
             A single unit cannot dislodge another unit on its own — you almost
             always need support to take territory.
+             
           </Body>
+                    <p className="text-[17px] leading-[1.65] italic text-muted-foreground">
+          You cannot dislodge your own units, even with support.
+          </p>
         </div>
         <div className="lg:order-1">
           <Shot
@@ -271,10 +278,13 @@ const GuideContent: React.FC = () => (
             Even if your attack fails, it still forces the defending player to
             hold that unit — which can be useful in itself.
           </Body>
+          <p className="text-[17px] leading-[1.65] italic text-muted-foreground">
+          This also happens if units try to move into each other’s space — neither succeeds.
+          </p>
         </div>
         <Shot
           label="1 vs 1 · Bounce"
-          caption="Fig. 07 — Equally matched units — nobody moves"
+          caption="Fig. 07 — Equally matched units — nobody moves into the Black Sea."
         />
       </div>
     </section>
@@ -307,9 +317,36 @@ const GuideContent: React.FC = () => (
 
     <Divider />
 
-    {/* IX · Supply centers */}
+    {/* IX · Retreats */}
+    <section className="max-w-[1040px] mx-auto py-14">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-7 lg:gap-14 items-center">
+        <div>
+          <SectionNum>IX · Retreats</SectionNum>
+          <SectionHeading>Dislodged units must retreat.</SectionHeading>
+          <Body className="mt-[18px]">
+            A unit that loses a battle is dislodged — it doesn't disappear
+            immediately, but must retreat to an adjacent empty territory.
+          </Body>
+          <Body>
+            It cannot retreat to the space the attack came from, nor to a space
+            where units bounced that same turn.
+          </Body>
+          <p className="text-[17px] leading-[1.65] italic text-muted-foreground">
+            If there is no valid place to retreat, the unit is destroyed.
+          </p>
+        </div>
+        <Shot
+          label="Retreat"
+          caption="Fig. 09 — A dislodged unit retreating to the only available space"
+        />
+      </div>
+    </section>
+
+    <Divider />
+
+    {/* X · Supply centers */}
     <section className="max-w-[720px] mx-auto py-14">
-      <SectionNum>IX · Supply centers</SectionNum>
+      <SectionNum>X · Supply centers</SectionNum>
       <SectionHeading>Centers are what matter.</SectionHeading>
       <Body className="mt-[18px]">
         At the end of the year, you compare how many centers you control with
@@ -325,7 +362,7 @@ const GuideContent: React.FC = () => (
 
     {/* X · The real game */}
     <section className="max-w-[720px] mx-auto py-14">
-      <SectionNum>X · The real game</SectionNum>
+      <SectionNum>XI · The real game</SectionNum>
       <SectionHeading>Diplomacy.</SectionHeading>
       <Body className="mt-[18px]">
         You need other players to succeed, especially early on. You'll form
@@ -343,7 +380,7 @@ const GuideContent: React.FC = () => (
 
     {/* XI · Getting started */}
     <section className="max-w-[720px] mx-auto py-14">
-      <SectionNum>XI · Getting started</SectionNum>
+      <SectionNum>XII · Getting started</SectionNum>
       <SectionHeading>Don't worry about playing perfectly.</SectionHeading>
       <Body className="mt-[18px]">
         Talk to your neighbors. Make simple plans. Use support to help each
