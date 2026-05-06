@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { UserPlus } from "lucide-react";
 import { useRequiredParams } from "@/hooks";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ import { Panel } from "../../components/Panel";
 import {
   useGameRetrieveSuspense,
   useGamesChannelsCreateCreate,
+  getGamesChannelsListQueryKey,
 } from "@/api/generated/endpoints";
 
 const ChannelCreateScreen: React.FC = () => {
@@ -36,6 +38,7 @@ const ChannelCreateScreen: React.FC = () => {
 
   const { data: game } = useGameRetrieveSuspense(gameId);
   const createChannelMutation = useGamesChannelsCreateCreate();
+  const queryClient = useQueryClient();
 
   const handleToggle = (memberId: number) => {
     setSelectedMembers(prevSelected =>
@@ -55,6 +58,9 @@ const ChannelCreateScreen: React.FC = () => {
       });
       toast.success("Channel created successfully");
       if (response) {
+        await queryClient.invalidateQueries({
+          queryKey: getGamesChannelsListQueryKey(gameId),
+        });
         navigate(`/game/${gameId}/phase/${phaseId}/chat/channel/${response.id}`);
       }
     } catch {
