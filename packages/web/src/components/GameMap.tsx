@@ -2,7 +2,6 @@ import { useRequiredParams } from "../hooks";
 import { useRef, useMemo, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import axios from "axios";
 import { determineRenderableProvinces } from "../utils/provinces";
 import { buildOptimisticOrder } from "../utils/buildOptimisticOrder";
 import { InteractiveMapZoomWrapper } from "./InteractiveMap/InteractiveMapZoomWrapper";
@@ -106,16 +105,11 @@ const GameMap: React.FC = () => {
         wizard.reset();
         setMenuPosition(null);
       })
-      .catch((error) => {
+      .catch(() => {
         clearTimeout(timeoutId);
         if (timedOut) return;
         setPendingOrder(null);
-        const isNetworkError = axios.isAxiosError(error) && !error.response;
-        toast.error(
-          isNetworkError
-            ? "Failed to create order. Check your internet connection and try again"
-            : "Failed to create order. Couldn't connect to server - try again later"
-        );
+        toast.error("Failed to create order");
         wizard.reset();
         setMenuPosition(null);
       });
