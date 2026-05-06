@@ -27,7 +27,10 @@ const buildWavyPath = (
   // Round to nearest even number of half-waves (minimum 2) so both
   // endpoints always land on the centre axis.
   const rawHalfWaves = Math.round(len / (WAVE_LENGTH / 2));
-  const numHalfWaves = Math.max(2, rawHalfWaves % 2 === 0 ? rawHalfWaves : rawHalfWaves + 1);
+  const numHalfWaves = Math.max(
+    2,
+    rawHalfWaves % 2 === 0 ? rawHalfWaves : rawHalfWaves + 1
+  );
   const halfWaveLen = len / numHalfWaves;
 
   let path = `M ${x1} ${y1}`;
@@ -40,10 +43,14 @@ const buildWavyPath = (
     const ey = y1 + (i + 1) * halfWaveLen * uy;
 
     // Control points that approximate a sine half-wave using cubic bezier
-    const cp1x = sx + halfWaveLen * 0.25 * ux + sign * WAVE_AMPLITUDE * BEZIER_K * px;
-    const cp1y = sy + halfWaveLen * 0.25 * uy + sign * WAVE_AMPLITUDE * BEZIER_K * py;
-    const cp2x = ex - halfWaveLen * 0.25 * ux + sign * WAVE_AMPLITUDE * BEZIER_K * px;
-    const cp2y = ey - halfWaveLen * 0.25 * uy + sign * WAVE_AMPLITUDE * BEZIER_K * py;
+    const cp1x =
+      sx + halfWaveLen * 0.25 * ux + sign * WAVE_AMPLITUDE * BEZIER_K * px;
+    const cp1y =
+      sy + halfWaveLen * 0.25 * uy + sign * WAVE_AMPLITUDE * BEZIER_K * py;
+    const cp2x =
+      ex - halfWaveLen * 0.25 * ux + sign * WAVE_AMPLITUDE * BEZIER_K * px;
+    const cp2y =
+      ey - halfWaveLen * 0.25 * uy + sign * WAVE_AMPLITUDE * BEZIER_K * py;
 
     path += ` C ${cp1x} ${cp1y} ${cp2x} ${cp2y} ${ex} ${ey}`;
   }
@@ -65,24 +72,38 @@ type ConvoyArrowProps = {
   fill: string;
   stroke: string;
   strokeWidth: number;
+  // When provided, the fleet connects to this exact point on the rendered B-spline
+  // instead of computing the closest point on the straight x2→x3 line.
+  attachmentPoint?: { x: number; y: number };
   dash?: { length: number; spacing: number };
   onRenderCenter?: (x: number, y: number, angle: number) => React.ReactElement;
 };
 
 const ConvoyArrow = (props: ConvoyArrowProps) => {
-  // Get the closest point on the MoveViaConvoy segment from the fleet position
-  const closestPoint = getClosestPointOnLine(
-    props.x1,
-    props.y1,
-    props.x2,
-    props.y2,
-    props.x3,
-    props.y3
-  );
+  const closestPoint = props.attachmentPoint
+    ? props.attachmentPoint
+    : getClosestPointOnLine(
+        props.x1,
+        props.y1,
+        props.x2,
+        props.y2,
+        props.x3,
+        props.y3
+      );
 
   const directionX = closestPoint.x - props.x1;
   const directionY = closestPoint.y - props.y1;
-  const magnitude = Math.sqrt(directionX * directionX + directionY * directionY);
+  const magnitude = Math.sqrt(
+    directionX * directionX + directionY * directionY
+  );
+
+  // The attachment point is essentially at the fleet center (collinear route segment).
+  // Skip the wavy line but still render the failure cross so it isn't lost.
+  if (magnitude < 1) {
+    if (!props.onRenderCenter) return null;
+    return <g>{props.onRenderCenter(props.x1, props.y1, 0)}</g>;
+  }
+
   const unitX = directionX / magnitude;
   const unitY = directionY / magnitude;
 
