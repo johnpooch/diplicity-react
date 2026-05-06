@@ -73,26 +73,12 @@ const GameMap: React.FC = () => {
         buildOptimisticOrder(wizard.resolvedSelections, variant, phase)
       );
     }
-
-    let timedOut = false;
-    const timeoutId = setTimeout(() => {
-      timedOut = true;
-      setPendingOrder(null);
-      toast.error(
-        "Order not saved. There was an issue connecting to the server. Check your internet connection and try again"
-      );
-      wizard.reset();
-      setMenuPosition(null);
-    }, 5000);
-
     createOrderMutation
       .mutateAsync({
         gameId,
         data: { selected: wizard.selectedArray },
       })
       .then((order) => {
-        clearTimeout(timeoutId);
-        if (timedOut) return;
         queryClient.setQueryData<Order[]>(
           getGameOrdersListQueryKey(gameId, selectedPhase),
           (old) => [
@@ -106,15 +92,11 @@ const GameMap: React.FC = () => {
         setMenuPosition(null);
       })
       .catch(() => {
-        clearTimeout(timeoutId);
-        if (timedOut) return;
         setPendingOrder(null);
         toast.error("Failed to create order");
         wizard.reset();
         setMenuPosition(null);
       });
-
-    return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mutateAsync is stable
   }, [wizard.isComplete]);
 
