@@ -367,7 +367,7 @@ describe("GameMap", () => {
       rerender(gameMapJsx());
 
       await waitFor(() => {
-        expect(mockToastError).toHaveBeenCalledWith("Failed to create order. Couldn't connect to server - try again later");
+        expect(mockToastError).toHaveBeenCalledWith("Failed to create order");
       });
 
       expect(mockWizardReset).toHaveBeenCalled();
