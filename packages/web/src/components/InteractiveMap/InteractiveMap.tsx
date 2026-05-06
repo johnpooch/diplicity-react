@@ -10,6 +10,8 @@ import type {
 } from "../../api/generated/endpoints";
 
 import { ConvoyArrow } from "./orders/convoy";
+import { shortestWaypointOrder, bSplineAttachmentPoint } from "./InteractiveMap.utils";
+import { MoveViaConvoyArrow } from "./orders/move-via-convoy";
 import { SupportHoldArrow } from "./orders/support-hold";
 import { Minus } from "./shapes/minus";
 import { useMapData, type MapData } from "../../hooks/useMapData";
@@ -256,6 +258,76 @@ const InteractiveMap = (props: InteractiveMapProps) => {
     const key = `${o.aux?.id}-${o.target?.id}`;
     if (!supportMoveGroups.has(key)) supportMoveGroups.set(key, []);
     supportMoveGroups.get(key)!.push(o);
+  }
+
+  // For each MoveViaConvoy that has matching Convoy orders, build an ordered
+  // route through the participating fleets: [source, ...fleets_greedy_order, destination].
+  // The route is only stored when fleet waypoints exist (otherwise Arrow renders straight).
+  // Key: `${mvcSource.id}-${mvcTarget.id}`
+  type RouteInfo = {
+    waypoints: { x: number; y: number }[];
+    // Maps fleet province id → its B-spline attachment point on the rendered curve
+    attachments: Record<string, { x: number; y: number }>;
+  };
+  const convoyRoutes = new Map<string, RouteInfo>();
+  for (const o of props.orders?.filter(
+    o => o.orderType === "MoveViaConvoy"
+  ) ?? []) {
+    const sourceCoast = o.sourceCoast;
+    const sourceProvince = sourceCoast
+      ? map.provinces.find(p => p.id === sourceCoast.id)
+      : map.provinces.find(p => p.id === o.source.id);
+    const targetProvince = o.namedCoast
+      ? map.provinces.find(p => p.id === o.namedCoast.id)
+      : map.provinces.find(p => p.id === o.target?.id);
+    if (!sourceProvince || !targetProvince) continue;
+
+    const srcPt = {
+      x: sourceProvince.center.x - UNIT_OFFSET_X,
+      y: sourceProvince.center.y - UNIT_OFFSET_Y,
+    };
+    const dstPt = {
+      x: targetProvince.center.x - UNIT_OFFSET_X,
+      y: targetProvince.center.y - UNIT_OFFSET_Y,
+    };
+
+    // Participating fleets: Convoy orders where aux=army province, target=destination
+    // (mirrors the Support order convention: target=destination, aux=the unit being helped)
+    const convoyOrders = (props.orders ?? []).filter(
+      c =>
+        c.orderType === "Convoy" &&
+        c.aux?.id === o.source.id &&
+        c.target?.id === o.target?.id
+    );
+    const fleetProvinces = convoyOrders
+      .map(c => map.provinces.find(p => p.id === c.source.id))
+      .filter((p): p is NonNullable<typeof p> => p !== undefined);
+    const fleetPts = fleetProvinces.map(p => ({
+      x: p.center.x - UNIT_OFFSET_X,
+      y: p.center.y - UNIT_OFFSET_Y,
+    }));
+
+    if (fleetPts.length > 0) {
+      const ordered = shortestWaypointOrder(fleetPts, srcPt, dstPt);
+      const waypoints = [srcPt, ...ordered, dstPt];
+
+      // For each fleet, compute its attachment point on the B-spline curve.
+      // Fleet i in ordered[] sits at index i+1 in waypoints[].
+      const attachments: Record<string, { x: number; y: number }> = {};
+      ordered.forEach((fleetPt, idx) => {
+        // Find which convoy order corresponds to this fleet position
+        const matchingProvince = fleetProvinces.find(
+          p =>
+            p.center.x - UNIT_OFFSET_X === fleetPt.x &&
+            p.center.y - UNIT_OFFSET_Y === fleetPt.y
+        );
+        if (matchingProvince) {
+          attachments[matchingProvince.id] = bSplineAttachmentPoint(waypoints, idx + 1);
+        }
+      });
+
+      convoyRoutes.set(`${o.source.id}-${o.target?.id}`, { waypoints, attachments });
+    }
   }
 
   return (
@@ -665,6 +737,43 @@ const InteractiveMap = (props: InteractiveMapProps) => {
             n => n.name === o.nation.name
           )?.color as string;
 
+          const confirmedRoute =
+            o.orderType === "MoveViaConvoy"
+              ? convoyRoutes.get(`${o.source.id}-${o.target?.id}`)
+              : undefined;
+
+          if (confirmedRoute) {
+            return (
+              <MoveViaConvoyArrow
+                key={o.source.id}
+                waypoints={confirmedRoute.waypoints}
+                lineWidth={ORDER_LINE_WIDTH}
+                arrowWidth={ORDER_ARROW_WIDTH}
+                arrowLength={ORDER_ARROW_LENGTH}
+                strokeWidth={ORDER_STROKE_WIDTH}
+                offset={UNIT_RADIUS}
+                stroke={SUCCESS_COLOR}
+                fill={color}
+                onRenderCenter={
+                  o.resolution && o.resolution.status !== "Succeeded"
+                    ? (x: number, y: number, _angle: number) => (
+                        <Cross
+                          x={x}
+                          y={y}
+                          width={ORDER_FAILED_CROSS_WIDTH}
+                          length={ORDER_FAILED_CROSS_LENGTH}
+                          angle={45}
+                          fill={ORDER_FAILED_CROSS_FILL}
+                          stroke={ORDER_FAILED_CROSS_STROKE}
+                          strokeWidth={ORDER_FAILED_CROSS_STROKE_WIDTH}
+                        />
+                      )
+                    : undefined
+                }
+              />
+            );
+          }
+
           return (
             <Arrow
               key={o.source.id}
@@ -713,6 +822,9 @@ const InteractiveMap = (props: InteractiveMapProps) => {
             n => n.name === o.nation.name
           )?.color as string;
 
+          const routeInfo = convoyRoutes.get(`${o.aux?.id}-${o.target?.id}`);
+          const attachmentPoint = routeInfo?.attachments[o.source.id];
+
           return (
             <ConvoyArrow
               x1={source.center.x - UNIT_OFFSET_X}
@@ -728,10 +840,7 @@ const InteractiveMap = (props: InteractiveMapProps) => {
               offset={UNIT_RADIUS + UNIT_OFFSET_RADIUS}
               stroke={SUCCESS_COLOR}
               fill={color}
-              dash={{
-                length: ORDER_DASH_LENGTH * 2,
-                spacing: ORDER_DASH_LENGTH,
-              }}
+              attachmentPoint={attachmentPoint}
               onRenderCenter={
                 o.resolution && o.resolution.status !== "Succeeded"
                   ? (x: number, y: number) => (
