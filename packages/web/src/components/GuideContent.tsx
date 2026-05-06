@@ -418,6 +418,25 @@ const GuideContent: React.FC = () => (
         other. Pay attention to who is working with you — and who isn't.
       </Body>
       <Body>You'll learn quickly by playing.</Body>
+      <Body>
+        Because this is a game of influencing real people, even if you can't
+        win, you still — even with your last unit — have leverage. One unit can
+        shape major battles and change how the game unfolds. Like in politics,
+        even a small party can decide a big vote.
+      </Body>
+      <div className="border border-border rounded-lg bg-secondary p-5 my-7">
+        <div className="text-[11px] tracking-[0.18em] uppercase text-muted-foreground mb-1.5">
+          Sportsmanship behaviour
+        </div>
+        <div className="text-[17px] font-medium leading-[1.4] text-foreground">
+          Games move at a real-life pace — sometimes fast bursts of
+          conversation, then long pauses while people wait to respond when they
+          have time in their life. This is part of the experience. Even if
+          you're losing, try to keep playing your turns; it keeps the game fun
+          for everyone and helps you stay part of better, more engaging games in
+          the future.
+        </div>
+      </div>
     </section>
 
     <Divider />
