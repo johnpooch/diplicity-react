@@ -61,7 +61,7 @@ const Body: React.FC<{
   className?: string;
 }> = ({ children, className }) => (
   <p
-    className={`text-[17px] leading-[1.65] text-[oklch(0.3_0_0)] ${className ?? ""}`}
+    className={`text-[17px] leading-[1.65] text-foreground/80 ${className ?? ""}`}
   >
     {children}
   </p>
@@ -140,7 +140,7 @@ const GuideContent: React.FC = () => (
       <SectionHeading>Two types. That's all.</SectionHeading>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-7">
         <div className="border border-border rounded-lg p-5 flex items-start gap-4 bg-card">
-          <div className="size-11 border-[1.5px] border-foreground flex items-center justify-center font-semibold rounded-sm shrink-0 text-foreground">
+          <div className="size-11 border-[1.5px] border-foreground flex items-center justify-center font-semibold rounded-full shrink-0 text-foreground">
             A
           </div>
           <div>
@@ -175,7 +175,7 @@ const GuideContent: React.FC = () => (
     <section className="max-w-[1040px] mx-auto py-14">
       <SectionNum>V · What units can do</SectionNum>
       <SectionHeading>Each unit gives one order per turn.</SectionHeading>
-      <p className="text-[17px] leading-[1.65] text-[oklch(0.3_0_0)] mt-[18px] max-w-[680px]">
+      <p className="text-[17px] leading-[1.65] text-foreground/80 mt-[18px] max-w-[680px]">
         There are four kinds of orders. Support is the most important — units
         are weak alone, but powerful together.
       </p>
@@ -214,7 +214,7 @@ const GuideContent: React.FC = () => (
               <div className="font-mono text-[12.5px] text-muted-foreground mb-3">
                 {syntax}
               </div>
-              <p className="text-[14.5px] text-[oklch(0.35_0_0)] m-0">{desc}</p>
+              <p className="text-[14.5px] text-muted-foreground m-0">{desc}</p>
             </div>
           </div>
         ))}

@@ -126,7 +126,7 @@ const Login: React.FC = () => {
       {/* HERO */}
       <section
         id="top"
-        className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between min-h-dvh lg:h-dvh lg:min-h-[600px] pt-24 pb-24 px-6 lg:pt-0 lg:pb-0 lg:px-[6vw] gap-10 lg:gap-[6vw] text-white overflow-hidden"
+        className="relative flex flex-col lg:grid lg:grid-cols-3 lg:items-center min-h-dvh lg:h-dvh lg:min-h-[600px] pt-24 pb-24 px-6 lg:pt-0 lg:pb-0 lg:px-[6vw] gap-10 lg:gap-[6vw] text-white overflow-hidden"
         style={{
           backgroundImage:
             "linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.35) 50%, rgba(0,0,0,0.65) 100%), url('/login_background.jpg')",
@@ -145,7 +145,7 @@ const Login: React.FC = () => {
         />
 
         {/* App bar */}
-        <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-6 lg:px-[6vw] py-5 z-10">
+        <div className="absolute top-0 left-0 right-0 flex items-center px-6 lg:px-[6vw] py-5 z-10">
           <div className="flex items-center gap-3 font-semibold text-[18px] text-white">
             <div className="size-8 rounded-full bg-white overflow-hidden shrink-0">
               <img
@@ -156,24 +156,10 @@ const Login: React.FC = () => {
             </div>
             <span>Diplicity</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Link
-              to="/learn-to-play"
-              className="hidden sm:inline-flex text-sm font-medium text-white/90 hover:text-white px-3 py-1.5 hover:bg-white/10 rounded-md transition-colors"
-            >
-              Learn to play
-            </Link>
-            <Link
-              to="/register"
-              className="text-sm font-medium border border-white/40 text-white px-3 py-1.5 rounded-md hover:bg-white/10 transition-colors"
-            >
-              Register
-            </Link>
-          </div>
         </div>
 
-        {/* Marketing blurb — top on mobile, right on desktop */}
-        <div className="relative z-10 order-1 lg:order-2 lg:max-w-[560px] text-center lg:text-left">
+        {/* Marketing blurb — top on mobile, cols 2-3 on desktop */}
+        <div className="relative z-10 order-1 lg:col-start-2 lg:col-span-2 text-center lg:text-left">
           <div className="text-xs tracking-[0.18em] uppercase text-white/70 mb-5">
             Play-by-email Diplomacy · Since 2014
           </div>
@@ -199,8 +185,8 @@ const Login: React.FC = () => {
           </div>
         </div>
 
-        {/* Login card — bottom on mobile, left on desktop */}
-        <div className="relative z-10 order-2 lg:order-1 w-full max-w-[380px] mx-auto lg:mx-0 lg:max-w-[360px]">
+        {/* Login card — bottom on mobile, col 1 on desktop */}
+        <div className="relative z-10 order-2 lg:col-start-1 w-full max-w-[380px] mx-auto lg:mx-0 lg:max-w-none">
           <div className="bg-background text-foreground rounded-lg p-8 flex flex-col items-center gap-4 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
             <Avatar className="size-12">
               <AvatarImage src="/otto.png" alt="Diplicity Logo" />
