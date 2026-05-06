@@ -58,8 +58,9 @@ const ChannelCreateScreen: React.FC = () => {
       });
       toast.success("Channel created successfully");
       if (response) {
-        await queryClient.invalidateQueries({
+        await queryClient.refetchQueries({
           queryKey: getGamesChannelsListQueryKey(gameId),
+          type: "all",
         });
         navigate(`/game/${gameId}/phase/${phaseId}/chat/channel/${response.id}`);
       }
