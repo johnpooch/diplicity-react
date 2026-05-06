@@ -161,19 +161,17 @@ const Login: React.FC = () => {
         {/* Marketing blurb — top on mobile, right on desktop */}
         <div className="relative z-10 order-1 lg:order-2 lg:flex-1 text-center lg:text-left">
           <div className="text-xs tracking-[0.18em] uppercase text-white/70 mb-5">
-            Play-by-email Diplomacy · Since 2014
+            Play Diplomacy online · Since 2014
           </div>
           <h2 className="text-[clamp(32px,5.5vw,68px)] leading-[1.05] font-semibold tracking-[-0.02em] text-white mb-6">
-            Seven powers.
+            Friendships forged.
             <br />
-            One map.
+            Promises broken.
             <br />
-            <em className="font-normal text-white/85">No dice.</em>
+            <em className="font-normal text-white/85">Empires won.</em>
           </h2>
           <p className="text-[17px] leading-[1.6] text-white/85 max-w-[520px] mb-7 mx-auto lg:mx-0">
-            Diplicity hosts the classic game of Diplomacy online — slow games
-            measured in days, fast games measured in hours. Negotiate, ally, and
-            betray your way to eighteen supply centers.
+            Diplomacy is the legendary game of negotiation, alliance, and betrayal — a war where every move is decided by the people playing, not by chance. Outwit, out-talk, and outlast everyone else to take the map.
           </p>
           <div className="flex justify-center lg:justify-start gap-3">
             <Link
@@ -319,7 +317,7 @@ const Login: React.FC = () => {
           Ready when you are
         </div>
         <h2 className="text-[clamp(28px,3.5vw,40px)] font-semibold tracking-[-0.01em] leading-[1.15] max-w-[18ch] mx-auto mb-7">
-          Find seven players. Or seven enemies. Same thing.
+          Find and join a game with players. Or enemies. Same thing.
         </h2>
         <a
           href="#top"

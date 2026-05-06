@@ -60,9 +60,13 @@ const Body: React.FC<{
   children: React.ReactNode;
   className?: string;
 }> = ({ children, className }) => (
-  <p
-    className={`text-[17px] leading-[1.65] text-foreground/80 ${className ?? ""}`}
-  >
+  <p className={`text-[17px] leading-[1.65] text-foreground/80 ${className ?? ""}`}>
+    {children}
+  </p>
+);
+
+const Italic: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <p className="text-[17px] leading-[1.65] italic text-muted-foreground">
     {children}
   </p>
 );
@@ -76,15 +80,16 @@ const GuideContent: React.FC = () => (
         You are a diplomat first, a commander second.
       </SectionHeading>
       <Body className="mt-[18px]">
-        In this game, you move armies and fleets. But you cannot succeed on your own. The
-        game is built around <em>talking</em> to other players, making plans
-        together, and deciding who you trust.
+        In this game, you move armies and fleets. But you cannot succeed on your
+        own. The game is built around <em>talking</em> to other players, making
+        plans together, and deciding who you trust.
       </Body>
       <Body>
         You will negotiate, cooperate, and sometimes betray. There is no
         randomness, no dice, no luck — everything that happens comes from player
-        decisions. All players submit their orders in secret at the same time, and 
-        once revealed, you see who was manipulated successfully — and who wasn't.
+        decisions. All players submit their orders in secret at the same time,
+        and once revealed, you see who was manipulated successfully — and who
+        wasn't.
       </Body>
     </section>
 
@@ -129,10 +134,13 @@ const GuideContent: React.FC = () => (
       </Body>
       <Body>
         At the end of each year, your number of supply centers determines
-        whether you gain or lose units. A year consists of Spring and Fall turns,
-        followed by a Winter adjustment. Only the end of a Fall turn determines 
-        control of supply centers.
+        whether you gain or lose units.
       </Body>
+      <Italic>
+        A year consists of Spring and Fall turns, followed by a Winter
+        adjustment. Only the end of a Fall turn determines control of supply
+        centers.
+      </Italic>
     </section>
 
     <Divider />
@@ -234,16 +242,14 @@ const GuideContent: React.FC = () => (
           <SectionHeading>Strongest side wins.</SectionHeading>
           <Body className="mt-[18px]">
             Every unit has a strength of one. Each support adds one more. The
-            strongest side wins; the loser is dislodged - it needs to retreat or is destroyed.
+            strongest side wins; the loser is dislodged - it needs to retreat or
+            is destroyed.
           </Body>
           <Body>
             A single unit cannot dislodge another unit on its own — you almost
             always need support to take territory.
-             
           </Body>
-                    <p className="text-[17px] leading-[1.65] italic text-muted-foreground">
-          You cannot dislodge your own units, even with support.
-          </p>
+          <Italic>You cannot dislodge your own units, even with support.</Italic>
         </div>
         <div className="lg:order-1">
           <Shot
@@ -278,9 +284,10 @@ const GuideContent: React.FC = () => (
             Even if your attack fails, it still forces the defending player to
             hold that unit — which can be useful in itself.
           </Body>
-          <p className="text-[17px] leading-[1.65] italic text-muted-foreground">
-          This also happens if units try to move into each other’s space — neither succeeds.
-          </p>
+          <Italic>
+            This also happens if units try to move into each other's space —
+            neither succeeds.
+          </Italic>
         </div>
         <Shot
           label="1 vs 1 · Bounce"
@@ -304,13 +311,11 @@ const GuideContent: React.FC = () => (
             If you attack a unit that is giving support, its support is canceled
             — even if your attack doesn't succeed.
           </Body>
-          <p className="text-[17px] leading-[1.65] italic text-muted-foreground">
-            This is often the easiest way to break a strong position.
-          </p>
+          <Italic>This is often the easiest way to break a strong position.</Italic>
         </div>
         <Shot
           label="Cut support"
-          caption="Fig. 08 — A weak attack neutralizes a strong defense"
+          caption="Fig. 08 — Berlin attacks Silesia. Galicia loses their support, and bounces with Warsaw."
         />
       </div>
     </section>
@@ -327,17 +332,21 @@ const GuideContent: React.FC = () => (
             A unit that loses a battle is dislodged — it doesn't disappear
             immediately, but must retreat to an adjacent empty territory.
           </Body>
+          <Italic>
+            If there are retreats, players get an extra turn to decide where to
+            send them.
+          </Italic>
           <Body>
             It cannot retreat to the space the attack came from, nor to a space
             where units bounced that same turn.
           </Body>
-          <p className="text-[17px] leading-[1.65] italic text-muted-foreground">
+          <Italic>
             If there is no valid place to retreat, the unit is destroyed.
-          </p>
+          </Italic>
         </div>
         <Shot
           label="Retreat"
-          caption="Fig. 09 — A dislodged unit retreating to the only available space"
+          caption="Fig. 09 — The English Channel was supported by the Irish Sea. The French fleet needs to retreat."
         />
       </div>
     </section>
@@ -360,7 +369,7 @@ const GuideContent: React.FC = () => (
       The rules are simple. The people are not.
     </blockquote>
 
-    {/* X · The real game */}
+    {/* XI · The real game */}
     <section className="max-w-[720px] mx-auto py-14">
       <SectionNum>XI · The real game</SectionNum>
       <SectionHeading>Diplomacy.</SectionHeading>
@@ -378,7 +387,7 @@ const GuideContent: React.FC = () => (
 
     <Divider />
 
-    {/* XI · Getting started */}
+    {/* XII · Getting started */}
     <section className="max-w-[720px] mx-auto py-14">
       <SectionNum>XII · Getting started</SectionNum>
       <SectionHeading>Don't worry about playing perfectly.</SectionHeading>
