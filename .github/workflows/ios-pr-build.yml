@@ -27,6 +27,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Select latest Xcode 26
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+          echo "DEVELOPER_DIR=$XCODE/Contents/Developer" >> "$GITHUB_ENV"
+
       - name: Fetch PR info and checkout PR branch
         run: |
           PR_INFO=$(gh pr view ${{ inputs.pr_number }} --json headRefName,title)
