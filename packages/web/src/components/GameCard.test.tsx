@@ -1,9 +1,31 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GameCard } from "./GameCard";
-import { mockGames, mockSandboxGames, mockPhaseMovement } from "@/mocks";
+import {
+  mockGames,
+  mockSandboxGames,
+  mockPhaseMovement,
+  mockPendingGames,
+  mockActiveGames,
+} from "@/mocks";
+
+const mockNavigate = vi.fn();
+const mockUseIsMobile = vi.fn();
+
+vi.mock("react-router", async () => {
+  const actual = await vi.importActual("react-router");
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
+vi.mock("@/hooks/use-mobile", () => ({
+  useIsMobile: () => mockUseIsMobile(),
+}));
 
 vi.mock("@/api/generated/endpoints", async () => {
   const actual = await vi.importActual("@/api/generated/endpoints");
@@ -38,6 +60,56 @@ const defaultProps = {
 };
 
 describe("GameCard", () => {
+  beforeEach(() => {
+    mockNavigate.mockReset();
+    mockUseIsMobile.mockReset();
+    mockUseIsMobile.mockReturnValue(false);
+  });
+
+  describe("click navigation", () => {
+    it("navigates pending games to game-info on desktop", async () => {
+      mockUseIsMobile.mockReturnValue(false);
+      renderGameCard({ game: mockPendingGames[0], ...defaultProps });
+      await userEvent.click(
+        screen.getByRole("button", { name: mockPendingGames[0].name })
+      );
+      expect(mockNavigate).toHaveBeenCalledWith(
+        `/game-info/${mockPendingGames[0].id}`
+      );
+    });
+
+    it("navigates pending games to game-info on mobile", async () => {
+      mockUseIsMobile.mockReturnValue(true);
+      renderGameCard({ game: mockPendingGames[0], ...defaultProps });
+      await userEvent.click(
+        screen.getByRole("button", { name: mockPendingGames[0].name })
+      );
+      expect(mockNavigate).toHaveBeenCalledWith(
+        `/game-info/${mockPendingGames[0].id}`
+      );
+    });
+
+    it("navigates active games on mobile to the phase index", async () => {
+      mockUseIsMobile.mockReturnValue(true);
+      const game = mockActiveGames[0];
+      renderGameCard({ game, ...defaultProps });
+      await userEvent.click(screen.getByRole("button", { name: game.name }));
+      expect(mockNavigate).toHaveBeenCalledWith(
+        `/game/${game.id}/phase/${game.currentPhaseId}`
+      );
+    });
+
+    it("navigates active games on desktop to the orders sub-route", async () => {
+      mockUseIsMobile.mockReturnValue(false);
+      const game = mockActiveGames[0];
+      renderGameCard({ game, ...defaultProps });
+      await userEvent.click(screen.getByRole("button", { name: game.name }));
+      expect(mockNavigate).toHaveBeenCalledWith(
+        `/game/${game.id}/phase/${game.currentPhaseId}/orders`
+      );
+    });
+  });
+
   describe("sandbox visual treatment", () => {
     it("displays a Sandbox badge when game.sandbox is true", () => {
       renderGameCard({

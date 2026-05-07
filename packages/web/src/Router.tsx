@@ -20,7 +20,7 @@ import { GameDetailLayout } from "./components/GameDetailLayout";
 import { GamePhaseRedirect } from "./components/GamePhaseRedirect";
 import { getVariantsListQueryOptions } from "./api/generated/endpoints";
 import * as Sentry from "@sentry/react";
-import { useDeepLink } from "./deepLink";
+import { deepLinkStorage, useDeepLink } from "./deepLink";
 
 const RouteFallback: React.FC = () => (
   <div className="flex-1 flex items-center justify-center">
@@ -268,7 +268,14 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
             },
             {
               path: "*",
-              loader: () => redirect("/"),
+              loader: ({ request }) => {
+                const url = new URL(request.url);
+                const path = `${url.pathname}${url.search}${url.hash}`;
+                if (url.pathname !== "/") {
+                  deepLinkStorage.setPendingPath(path);
+                }
+                return redirect("/");
+              },
             },
           ]),
     [loggedIn, queryClient]
