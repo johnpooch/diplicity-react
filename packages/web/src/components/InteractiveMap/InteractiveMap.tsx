@@ -585,7 +585,13 @@ const InteractiveMap = (props: InteractiveMapProps) => {
               stroke={SUCCESS_COLOR}
               fill={"transparent"}
               onRenderBottomCenter={
-                o.resolution && o.resolution.status !== "Succeeded"
+                (o.resolution && o.resolution.status !== "Succeeded") ||
+                props.orders?.some(
+                  mo =>
+                    (mo.orderType === "Move" || mo.orderType === "MoveViaConvoy") &&
+                    mo.target?.id === o.source.id &&
+                    mo.resolution?.status === "Succeeded"
+                )
                   ? (x, y) => (
                       <Cross
                         x={x}

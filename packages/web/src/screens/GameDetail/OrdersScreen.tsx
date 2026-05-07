@@ -303,9 +303,17 @@ const OrdersScreen: React.FC = () => {
                                   </Button>
                                 </ItemActions>
                               )}
-                              {!isActivePhase &&
-                                item.order &&
-                                item.order.resolution?.status && (
+                              {!isActivePhase && item.order && (
+                                orders.some(
+                                  o =>
+                                    (o.orderType === "Move" || o.orderType === "MoveViaConvoy") &&
+                                    o.target?.id === item.province.id &&
+                                    o.resolution?.status === "Succeeded"
+                                ) ? (
+                                  <ItemContent className="text-xs text-red-600">
+                                    Dislodged
+                                  </ItemContent>
+                                ) : item.order.resolution?.status ? (
                                   <ItemContent
                                     className={cn(
                                       "text-xs",
@@ -317,7 +325,8 @@ const OrdersScreen: React.FC = () => {
                                   >
                                     {item.order.resolution.status}
                                   </ItemContent>
-                                )}
+                                ) : null
+                              )}
                             </Item>
                             {index < items.length - 1 && <ItemSeparator />}
                           </React.Fragment>
