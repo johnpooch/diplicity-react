@@ -1075,6 +1075,140 @@ class TestCreateFromAdjudicationData:
         resolved_orders = [order for order in phase.all_orders if hasattr(order, "resolution")]
         assert len(resolved_orders) == orders_count
 
+    @pytest.mark.django_db
+    def test_creates_implicit_hold_orders_for_unordered_units(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        explicit_order_count = len(phase.all_orders)
+
+        Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+
+        phase.refresh_from_db()
+        all_orders = Order.objects.filter(phase_state__phase=phase)
+        implicit_orders = all_orders.filter(is_implicit=True)
+        explicit_orders = all_orders.filter(is_implicit=False)
+
+        unit_count = phase.units.count()
+        assert implicit_orders.count() == unit_count - explicit_order_count
+        assert explicit_orders.count() == explicit_order_count
+
+        for order in implicit_orders:
+            assert order.order_type == OrderType.HOLD
+
+    @pytest.mark.django_db
+    def test_implicit_hold_orders_have_resolutions_when_provided(
+        self,
+        italy_vs_germany_phase_with_orders,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        adjudication_data = {
+            "season": "Spring",
+            "year": 1901,
+            "type": "Retreat",
+            "options": {},
+            "supply_centers": [
+                {"province": "ven", "nation": "Italy"},
+                {"province": "rom", "nation": "Italy"},
+                {"province": "nap", "nation": "Italy"},
+                {"province": "kie", "nation": "Germany"},
+                {"province": "ber", "nation": "Germany"},
+                {"province": "mun", "nation": "Germany"},
+            ],
+            "units": [
+                {"type": "Army", "nation": "Italy", "province": "ven", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Italy", "province": "rom", "dislodged": False, "dislodged_by": None},
+                {"type": "Fleet", "nation": "Italy", "province": "nap", "dislodged": False, "dislodged_by": None},
+                {"type": "Fleet", "nation": "Germany", "province": "kie", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Germany", "province": "ber", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Germany", "province": "mun", "dislodged": False, "dislodged_by": None},
+            ],
+            "resolutions": [
+                {"province": "ven", "result": "OK", "by": None},
+                {"province": "kie", "result": "OK", "by": None},
+                {"province": "rom", "result": "OK", "by": None},
+                {"province": "nap", "result": "OK", "by": None},
+                {"province": "ber", "result": "OK", "by": None},
+                {"province": "mun", "result": "OK", "by": None},
+            ],
+        }
+
+        Phase.objects.create_from_adjudication_data(phase, adjudication_data)
+
+        implicit_orders = Order.objects.filter(phase_state__phase=phase, is_implicit=True)
+        assert implicit_orders.count() == 4
+        for order in implicit_orders:
+            assert hasattr(order, "resolution")
+            assert order.resolution.status == "OK"
+
+    @pytest.mark.django_db
+    def test_implicit_hold_dislodged_unit_without_explicit_order(
+        self,
+        italy_vs_germany_phase_with_orders,
+        italy_vs_germany_kiel_province,
+        italy_vs_germany_venice_province,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        germany_kiel_order = Order.objects.get(phase_state__phase=phase, source=italy_vs_germany_kiel_province)
+        germany_kiel_order.delete()
+
+        adjudication_data = {
+            "season": "Spring",
+            "year": 1901,
+            "type": "Retreat",
+            "options": {},
+            "supply_centers": [
+                {"province": "ven", "nation": "Italy"},
+                {"province": "rom", "nation": "Italy"},
+                {"province": "nap", "nation": "Italy"},
+                {"province": "kie", "nation": "Italy"},
+                {"province": "ber", "nation": "Germany"},
+                {"province": "mun", "nation": "Germany"},
+            ],
+            "units": [
+                {"type": "Army", "nation": "Italy", "province": "kie", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Italy", "province": "rom", "dislodged": False, "dislodged_by": None},
+                {"type": "Fleet", "nation": "Italy", "province": "nap", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Germany", "province": "kie", "dislodged": True, "dislodged_by": "ven"},
+                {"type": "Army", "nation": "Germany", "province": "ber", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Germany", "province": "mun", "dislodged": False, "dislodged_by": None},
+            ],
+            "resolutions": [
+                {"province": "ven", "result": "OK", "by": None},
+                {"province": "kie", "result": "OK", "by": None},
+            ],
+        }
+
+        Phase.objects.create_from_adjudication_data(phase, adjudication_data)
+
+        kiel_implicit_order = Order.objects.get(
+            phase_state__phase=phase,
+            source=italy_vs_germany_kiel_province,
+            is_implicit=True,
+        )
+        assert kiel_implicit_order.order_type == OrderType.HOLD
+        assert kiel_implicit_order.resolution.status == "OK"
+
+    @pytest.mark.django_db
+    def test_no_implicit_hold_orders_for_non_movement_phases(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        phase.type = PhaseType.RETREAT
+        phase.save()
+
+        explicit_order_count = len(phase.all_orders)
+
+        Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+
+        all_orders = Order.objects.filter(phase_state__phase=phase)
+        assert all_orders.count() == explicit_order_count
+        assert all_orders.filter(is_implicit=True).count() == 0
+
 
 class TestCreateFromAdjudicationDataPerformance:
 
