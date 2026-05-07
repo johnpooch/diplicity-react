@@ -2,6 +2,7 @@ import pytest
 from django.urls import reverse
 from rest_framework import status
 
+from common.constants import GameStatus
 from game.models import Game
 
 delete_viewname = "game-delete"
@@ -67,3 +68,36 @@ class TestGameDeleteView:
         url = reverse(delete_viewname, args=["nonexistent-game"])
         response = authenticated_client.delete(url)
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+class TestDeleteIfEmptyPending:
+
+    @pytest.mark.django_db
+    def test_pending_game_with_no_members_is_deleted(self, base_pending_game_for_primary_user):
+        game = base_pending_game_for_primary_user
+        game_id = game.id
+
+        result = game.delete_if_empty_pending()
+
+        assert result is True
+        assert not Game.objects.filter(id=game_id).exists()
+
+    @pytest.mark.django_db
+    def test_pending_game_with_members_is_not_deleted(self, pending_game_created_by_primary_user):
+        game = pending_game_created_by_primary_user
+
+        result = game.delete_if_empty_pending()
+
+        assert result is False
+        assert Game.objects.filter(id=game.id).exists()
+
+    @pytest.mark.django_db
+    def test_active_game_with_no_members_is_not_deleted(self, base_pending_game_for_primary_user):
+        game = base_pending_game_for_primary_user
+        game.status = GameStatus.ACTIVE
+        game.save()
+
+        result = game.delete_if_empty_pending()
+
+        assert result is False
+        assert Game.objects.filter(id=game.id).exists()
