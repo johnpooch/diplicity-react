@@ -26,11 +26,31 @@ export type MapData = {
   borders: Array<{
     id: string;
     d: string;
+    styles?: {
+      fill?: string;
+      stroke?: string;
+      strokeWidth?: string;
+      fillOpacity?: string;
+      strokeDasharray?: string;
+    };
   }>;
   impassableProvinces: Array<{
     id: string;
     d: string;
   }>;
+  namesLayer?: {
+    transform?: string;
+    elements: Array<{
+      id: string;
+      d: string;
+      styles: {
+        fill?: string;
+        stroke?: string;
+        strokeWidth?: string;
+        fillOpacity?: string;
+      };
+    }>;
+  };
 };
 
 const isJsonResponse = (response: Response): boolean => {

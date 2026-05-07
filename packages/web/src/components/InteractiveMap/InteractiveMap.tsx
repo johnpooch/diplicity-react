@@ -482,9 +482,11 @@ const InteractiveMap = (props: InteractiveMapProps) => {
         <path
           key={`${element.id}-${index}`}
           d={element.d}
-          fill="none"
-          stroke="black"
-          strokeWidth={1}
+          fill={element.styles?.fill ?? "none"}
+          fillOpacity={element.styles?.fillOpacity}
+          stroke={element.styles?.stroke ?? "black"}
+          strokeWidth={element.styles?.strokeWidth ?? 1}
+          strokeDasharray={element.styles?.strokeDasharray}
         />
       ))}
       {map.impassableProvinces.map((element, index) => (
@@ -496,6 +498,21 @@ const InteractiveMap = (props: InteractiveMapProps) => {
           strokeWidth={1}
         />
       ))}
+      {map.namesLayer && (
+        <g transform={map.namesLayer.transform}>
+          {map.namesLayer.elements.map((element, index) => (
+            <path
+              key={`names-${element.id}-${index}`}
+              d={element.d}
+              fill={element.styles?.fill ?? "black"}
+              fillOpacity={element.styles?.fillOpacity}
+              stroke={element.styles?.stroke ?? "none"}
+              strokeWidth={element.styles?.strokeWidth}
+              pointerEvents="none"
+            />
+          ))}
+        </g>
+      )}
       {[...props.phase.units]
         .sort((a, b) => {
           // Sort so dislodged units are rendered last (on top)

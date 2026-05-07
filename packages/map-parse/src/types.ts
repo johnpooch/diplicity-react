@@ -1,8 +1,5 @@
 import { CSSProperties } from "react";
 
-// LSP TEST: This should show a type error - assigning number to string
-const lspTestError: string = 123;
-
 interface IPoint {
     x: number;
     y: number;
@@ -53,6 +50,11 @@ interface IProvince {
     transform?: string;
 }
 
+interface INamesLayer {
+    transform?: string;
+    elements: IPath[];
+}
+
 interface IMap {
     width: number;
     height: number;
@@ -60,6 +62,7 @@ interface IMap {
     backgroundElements: IPath[];
     borders: IPath[];
     impassableProvinces: IPath[];
+    namesLayer?: INamesLayer;
 }
 
-export { IMap, IPath, IPoint, IStyles, ICenter, IProvince, IText }
+export { IMap, IPath, IPoint, IStyles, ICenter, IProvince, IText, INamesLayer }
