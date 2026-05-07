@@ -36,6 +36,8 @@ abstract class PathConverter implements IElementConverter {
         pathElement.setAttribute("d", path);
         pathElement.setAttribute("style", element.getAttribute("style") || "");
         pathElement.setAttribute("id", element.getAttribute("id") || "");
+        const transform = element.getAttribute("transform");
+        if (transform) pathElement.setAttribute("transform", transform);
         return pathElement;
     }
 }
@@ -47,11 +49,11 @@ class RectConverter extends PathConverter {
     protected expectedTag = "rect";
 
     protected buildPath(element: Element): string {
-        const x = element.getAttribute("x") || "0";
-        const y = element.getAttribute("y") || "0";
-        const width = element.getAttribute("width") || "0";
-        const height = element.getAttribute("height") || "0";
-        return `M${x} ${y} L${x + width} ${y} L${x + width} ${y + height} L${x} ${y + height} Z`;
+        const x = parseFloat(element.getAttribute("x") || "0");
+        const y = parseFloat(element.getAttribute("y") || "0");
+        const width = parseFloat(element.getAttribute("width") || "0");
+        const height = parseFloat(element.getAttribute("height") || "0");
+        return `M ${x} ${y} L ${x + width} ${y} L ${x + width} ${y + height} L ${x} ${y + height} Z`;
     }
 }
 

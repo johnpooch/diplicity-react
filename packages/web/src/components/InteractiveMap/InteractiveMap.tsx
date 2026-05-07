@@ -439,24 +439,30 @@ const InteractiveMap = (props: InteractiveMapProps) => {
             )}
             {province.supplyCenter && (
               <g>
-                <circle
-                  cx={province.supplyCenter.x}
-                  cy={province.supplyCenter.y}
-                  r={SUPPLY_CENTER_OUTER_RADIUS}
-                  fill={SUPPLY_CENTER_FILL}
-                  stroke={SUPPLY_CENTER_STROKE}
-                  opacity={SUPPLY_CENTER_OPACITY}
-                  strokeWidth={SUPPLY_CENTER_STROKE_WIDTH}
-                />
-                <circle
-                  cx={province.supplyCenter.x}
-                  cy={province.supplyCenter.y}
-                  r={SUPPLY_CENTER_INNER_RADIUS}
-                  fill={SUPPLY_CENTER_FILL}
-                  stroke={SUPPLY_CENTER_STROKE}
-                  opacity={SUPPLY_CENTER_OPACITY}
-                  strokeWidth={SUPPLY_CENTER_STROKE_WIDTH}
-                />
+                {province.supplyCenter.path ? (
+                  <path d={province.supplyCenter.path} />
+                ) : (
+                  <>
+                    <circle
+                      cx={province.supplyCenter.x}
+                      cy={province.supplyCenter.y}
+                      r={SUPPLY_CENTER_OUTER_RADIUS}
+                      fill={SUPPLY_CENTER_FILL}
+                      stroke={SUPPLY_CENTER_STROKE}
+                      opacity={SUPPLY_CENTER_OPACITY}
+                      strokeWidth={SUPPLY_CENTER_STROKE_WIDTH}
+                    />
+                    <circle
+                      cx={province.supplyCenter.x}
+                      cy={province.supplyCenter.y}
+                      r={SUPPLY_CENTER_INNER_RADIUS}
+                      fill={SUPPLY_CENTER_FILL}
+                      stroke={SUPPLY_CENTER_STROKE}
+                      opacity={SUPPLY_CENTER_OPACITY}
+                      strokeWidth={SUPPLY_CENTER_STROKE_WIDTH}
+                    />
+                  </>
+                )}
               </g>
             )}
           </g>
@@ -482,9 +488,11 @@ const InteractiveMap = (props: InteractiveMapProps) => {
         <path
           key={`${element.id}-${index}`}
           d={element.d}
-          fill="none"
-          stroke="black"
-          strokeWidth={1}
+          fill={element.styles?.fill ?? "none"}
+          fillOpacity={element.styles?.fillOpacity}
+          stroke={element.styles?.stroke ?? "black"}
+          strokeWidth={element.styles?.strokeWidth ?? 1}
+          strokeDasharray={element.styles?.strokeDasharray}
         />
       ))}
       {map.impassableProvinces.map((element, index) => (
@@ -496,6 +504,21 @@ const InteractiveMap = (props: InteractiveMapProps) => {
           strokeWidth={1}
         />
       ))}
+      {map.namesLayer && (
+        <g transform={map.namesLayer.transform}>
+          {map.namesLayer.elements.map((element, index) => (
+            <path
+              key={`names-${element.id}-${index}`}
+              d={element.d}
+              fill={element.styles?.fill ?? "black"}
+              fillOpacity={element.styles?.fillOpacity}
+              stroke={element.styles?.stroke ?? "none"}
+              strokeWidth={element.styles?.strokeWidth}
+              pointerEvents="none"
+            />
+          ))}
+        </g>
+      )}
       {[...props.phase.units]
         .sort((a, b) => {
           // Sort so dislodged units are rendered last (on top)
