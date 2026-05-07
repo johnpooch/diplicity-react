@@ -14,7 +14,7 @@ import {
 import { isNativePlatform } from "@/utils/platform";
 import { nativeAppleSignIn } from "@/auth/nativeAppleAuth";
 import { nativeGoogleSignIn } from "@/auth/nativeGoogleAuth";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -41,6 +41,13 @@ const Login: React.FC = () => {
   const appleLoginMutation = useAuthAppleLoginCreate();
   const emailLoginMutation = useAuthEmailLoginCreate();
   const googleLoginMutation = useAuthLoginCreate();
+  const [showBackToTop, setShowBackToTop] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleScroll = () => setShowBackToTop(window.scrollY > window.innerHeight * 0.5);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -123,6 +130,18 @@ const Login: React.FC = () => {
 
   return (
     <div className="w-full bg-background">
+      {/* Back to top — sticky, appears after scrolling past hero */}
+      <div className={`fixed top-0 left-0 right-0 z-50 flex justify-center bg-background/80 backdrop-blur-sm border-b border-border transition-opacity duration-200 ${showBackToTop ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
+        <button
+          type="button"
+          onClick={() => document.getElementById("top")?.scrollIntoView({ behavior: "smooth" })}
+          className="flex items-center gap-1.5 text-muted-foreground text-xs tracking-[0.16em] uppercase hover:text-foreground transition-colors bg-transparent border-0 cursor-pointer px-8 py-3"
+        >
+          <ChevronUp className="size-4" />
+          <span>Back to top</span>
+        </button>
+      </div>
+
       {/* HERO */}
       <section
         id="top"
