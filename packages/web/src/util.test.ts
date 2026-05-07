@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatRemainingTime } from "./util";
+import { formatRemainingTime, getGameLandingPath } from "./util";
 
 describe("formatRemainingTime", () => {
   it("returns 'Deadline passed' for 0 seconds", () => {
@@ -34,5 +34,41 @@ describe("formatRemainingTime", () => {
     expect(formatRemainingTime(90000)).toBe("1d 1h remaining");
     expect(formatRemainingTime(172800)).toBe("2d 0h remaining");
     expect(formatRemainingTime(259200)).toBe("3d 0h remaining");
+  });
+});
+
+describe("getGameLandingPath", () => {
+  it("routes pending games to game-info regardless of viewport", () => {
+    const game = { id: "abc-1", status: "pending", currentPhaseId: 5 };
+    expect(getGameLandingPath(game, true)).toBe("/game-info/abc-1");
+    expect(getGameLandingPath(game, false)).toBe("/game-info/abc-1");
+  });
+
+  it("routes pending games to game-info even when currentPhaseId is null", () => {
+    const game = { id: "abc-2", status: "pending", currentPhaseId: null };
+    expect(getGameLandingPath(game, true)).toBe("/game-info/abc-2");
+    expect(getGameLandingPath(game, false)).toBe("/game-info/abc-2");
+  });
+
+  it("routes active games on mobile to the phase index", () => {
+    const game = { id: "abc-3", status: "active", currentPhaseId: 7 };
+    expect(getGameLandingPath(game, true)).toBe("/game/abc-3/phase/7");
+  });
+
+  it("routes active games on desktop to the orders sub-route", () => {
+    const game = { id: "abc-3", status: "active", currentPhaseId: 7 };
+    expect(getGameLandingPath(game, false)).toBe("/game/abc-3/phase/7/orders");
+  });
+
+  it("routes active games with no currentPhaseId back to home", () => {
+    const game = { id: "abc-4", status: "active", currentPhaseId: null };
+    expect(getGameLandingPath(game, true)).toBe("/");
+    expect(getGameLandingPath(game, false)).toBe("/");
+  });
+
+  it("routes completed games like active ones", () => {
+    const game = { id: "abc-5", status: "completed", currentPhaseId: 12 };
+    expect(getGameLandingPath(game, true)).toBe("/game/abc-5/phase/12");
+    expect(getGameLandingPath(game, false)).toBe("/game/abc-5/phase/12/orders");
   });
 });

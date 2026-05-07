@@ -153,6 +153,7 @@ const matchedGame: GameList = {
   movementFrequency: null,
   retreatFrequency: null,
   pressType: "full_press",
+  minReliability: "open",
 };
 
 const renderCreateGame = () => {

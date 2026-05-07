@@ -164,4 +164,14 @@ describe("buildOptimisticOrder", () => {
 
     expect(result!.unitType).toBe("Army");
   });
+
+  it("namedCoast falls back to target (not source) when not in selections", () => {
+    const result = buildOptimisticOrder(
+      { source: "lon", orderType: "Move", target: "nth" },
+      variant,
+      phaseWithUnit("lon", england)
+    );
+
+    expect(result!.namedCoast.id).toBe("nth");
+  });
 });

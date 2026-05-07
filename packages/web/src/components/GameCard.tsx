@@ -22,9 +22,10 @@ import {
   useGamePhaseRetrieve,
   getGamesListQueryKey,
 } from "../api/generated/endpoints";
-import { formatTimeAgo } from "../util";
+import { formatTimeAgo, getGameLandingPath } from "../util";
 import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export interface GameCardProps {
   game: GameList;
@@ -37,15 +38,12 @@ export interface GameCardProps {
 const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const { data: phase } = useGamePhaseRetrieve(game.id, phaseId);
   const joinGameMutation = useGameJoinCreate();
 
   const handleClickGame = () => {
-    if (game.status === "pending") {
-      navigate(`/game-info/${game.id}`);
-    } else {
-      navigate(`/game/${game.id}`);
-    }
+    navigate(getGameLandingPath(game, isMobile));
   };
 
   const handleClickGameInfo = () => {

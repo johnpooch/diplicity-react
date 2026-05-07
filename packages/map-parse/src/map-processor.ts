@@ -1,12 +1,13 @@
 import { CssParser } from "./parsers/util/css-parser";
 import { PathConverterFactory } from "./parsers/components/converter";
 import { FilterFactory } from "./parsers/components/filter";
-import { IdNormalizer, PathConverterNormalizer } from "./parsers/components/normalizer";
+import { IdNormalizer, PathConverterNormalizer, TransformNormalizer } from "./parsers/components/normalizer";
 import { SelectorFactory } from "./parsers/components/selector";
 import { CenterSerializer, PathSerializer, TextSerializer } from "./parsers/components/serializer";
 import { Parser } from "./parsers/parser";
 import { CenterParser } from "./parsers/util/center-parser";
 import { StyleParser } from "./parsers/util/style-parser";
+import { parseMatrix, applyMatrixToPath } from "./parsers/util/path-transform";
 import { IMap } from "./types";
 import { JSDOM } from "jsdom";
 
@@ -44,6 +45,7 @@ class MapProcessor implements IMapProcessor {
         const pathConverterFactory = new PathConverterFactory(document);
 
         const pathConverterNormalizer = new PathConverterNormalizer(pathConverterFactory);
+        const transformNormalizer = new TransformNormalizer();
         const centerIdNormalizer = new IdNormalizer((id: string) => id.replace(/Center$/, ""));
         const textIdNormalizer = new IdNormalizer((id: string) => {
             return idMap[id] || id;
@@ -57,7 +59,7 @@ class MapProcessor implements IMapProcessor {
         const backgroundElements = new Parser(
             selectorFactory.create("#background path, #background polygon, #background polyline, #background rect"),
             [],
-            [pathConverterNormalizer],
+            [pathConverterNormalizer, transformNormalizer],
             pathSerializer
         ).parse(svgElement);
         console.log(`Found ${backgroundElements.length} background elements`);
@@ -65,8 +67,8 @@ class MapProcessor implements IMapProcessor {
         console.log("Processing borders...");
         const borders = new Parser(
             selectorFactory.create("#foreground path, #foreground polygon, #foreground polyline, #foreground line"),
-            [filterFactory.create((elements) => elements.filter(element => !element.getAttribute("style")?.includes("url(#impassableStripes)")))],
-            [pathConverterNormalizer],
+            [filterFactory.create((elements) => elements.filter(element => !element.getAttribute("style")?.includes("url(#impassableStripes")))],
+            [pathConverterNormalizer, transformNormalizer],
             pathSerializer
         ).parse(svgElement);
         console.log(`Found ${borders.length} borders`);
@@ -74,8 +76,8 @@ class MapProcessor implements IMapProcessor {
         console.log("Processing impassable provinces...");
         const impassableProvinces = new Parser(
             selectorFactory.create("#foreground path, #foreground polygon, #foreground polyline"),
-            [filterFactory.create((elements) => elements.filter(element => element.getAttribute("style")?.includes("url(#impassableStripes)")))],
-            [pathConverterNormalizer],
+            [filterFactory.create((elements) => elements.filter(element => element.getAttribute("style")?.includes("url(#impassableStripes")))],
+            [pathConverterNormalizer, transformNormalizer],
             pathSerializer
         ).parse(svgElement);
         console.log(`Found ${impassableProvinces.length} impassable provinces`);
@@ -84,7 +86,7 @@ class MapProcessor implements IMapProcessor {
         const provinceCenters = new Parser(
             selectorFactory.create("#province-centers path, #province-centers polygon, #province-centers polyline"),
             [],
-            [pathConverterNormalizer, centerIdNormalizer],
+            [pathConverterNormalizer, transformNormalizer, centerIdNormalizer],
             centerSerializer
         ).parse(svgElement);
         console.log(`Found ${provinceCenters.length} province centers`);
@@ -93,7 +95,7 @@ class MapProcessor implements IMapProcessor {
         const supplyCenters = new Parser(
             selectorFactory.create("#supply-centers path, #supply-centers polygon, #supply-centers polyline"),
             [],
-            [pathConverterNormalizer, centerIdNormalizer],
+            [pathConverterNormalizer, transformNormalizer, centerIdNormalizer],
             centerSerializer
         ).parse(svgElement);
         console.log(`Found ${supplyCenters.length} supply centers`);
@@ -106,11 +108,71 @@ class MapProcessor implements IMapProcessor {
             textSerializer
         ).parse(svgElement);
 
+        console.log("Processing names layer elements...");
+        const namesGroup = svgElement.querySelector("#names");
+        const namesTransform = namesGroup?.getAttribute("transform") || undefined;
+        const namesElements = new Parser(
+            selectorFactory.create("#names rect, #names path, #names polygon, #names polyline"),
+            [],
+            [pathConverterNormalizer],
+            pathSerializer
+        ).parse(svgElement);
+        console.log(`Found ${namesElements.length} names layer elements`);
+
+        // Identify supply-center star paths by their distinctive -4.908 fingerprint,
+        // bake the namesLayer group transform into their coordinates, and match each
+        // star to the nearest supply-center province.
+        const starByProvinceId = new Map<string, string>();
+        const starIndices = new Set<number>();
+
+        const groupMatrix = namesTransform ? parseMatrix(namesTransform) : null;
+        if (groupMatrix) {
+            const getAnchor = (d: string) => {
+                const m = /^[Mm]\s*([\d.eE+-]+)[,\s]+([\d.eE+-]+)/.exec(d.trim());
+                if (!m) return null;
+                const xl = parseFloat(m[1]);
+                const yl = parseFloat(m[2]);
+                return {
+                    x: groupMatrix.a * xl + groupMatrix.e,
+                    y: groupMatrix.d * yl + groupMatrix.f,
+                };
+            };
+
+            const starCandidates = namesElements
+                .map((el, idx) => ({ el, idx, anchor: getAnchor(el.d) }))
+                .filter(({ el, anchor }) => anchor && /-4\.908/.test(el.d));
+
+            console.log(`Found ${starCandidates.length} star candidates`);
+
+            const usedCandidates = new Set<number>();
+            for (const sc of supplyCenters) {
+                let minDist = Infinity;
+                let bestCandIdx = -1;
+                for (let ci = 0; ci < starCandidates.length; ci++) {
+                    if (usedCandidates.has(ci)) continue;
+                    const anchor = starCandidates[ci].anchor!;
+                    const dx = anchor.x - sc.center.x;
+                    const dy = anchor.y - sc.center.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < minDist) { minDist = dist; bestCandIdx = ci; }
+                }
+                if (bestCandIdx >= 0) {
+                    usedCandidates.add(bestCandIdx);
+                    const { el, idx } = starCandidates[bestCandIdx];
+                    starIndices.add(idx);
+                    starByProvinceId.set(sc.id, applyMatrixToPath(el.d, groupMatrix));
+                }
+            }
+            console.log(`Matched ${starByProvinceId.size} stars to supply centers`);
+        }
+
+        const labelElements = namesElements.filter((_, idx) => !starIndices.has(idx));
+
         console.log("Processing provinces...");
         const provinces = new Parser(
             selectorFactory.create("#provinces path, #provinces polygon, #provinces polyline"),
             [],
-            [pathConverterNormalizer],
+            [pathConverterNormalizer, transformNormalizer],
             pathSerializer
         ).parse(svgElement);
         console.log(`Found ${provinces.length} provinces`);
@@ -133,7 +195,10 @@ class MapProcessor implements IMapProcessor {
                     styles: province.styles,
                 },
                 styles: province.styles,
-                supplyCenter: supplyCenter?.center,
+                supplyCenter: supplyCenter ? {
+                    ...supplyCenter.center,
+                    path: starByProvinceId.get(id),
+                } : undefined,
                 center: center.center,
                 text,
             }
@@ -146,6 +211,9 @@ class MapProcessor implements IMapProcessor {
             backgroundElements,
             borders,
             impassableProvinces,
+            namesLayer: labelElements.length > 0
+                ? { transform: namesTransform, elements: labelElements }
+                : undefined,
         }
     }
 }

@@ -1,4 +1,4 @@
-import { GameRetrieve } from "./api/generated/endpoints";
+import { GameRetrieve, StatusEnum } from "./api/generated/endpoints";
 import { adjectives, conflictSynonyms, nouns } from "./terms";
 
 function capitalize(s: string) {
@@ -11,6 +11,16 @@ function randomOf(ary: string[]) {
 
 const getCurrentPhaseId = (game: GameRetrieve) => {
   return game.phases[game.phases.length - 1];
+};
+
+const getGameLandingPath = (
+  game: { id: string; status: string; currentPhaseId: number | null },
+  isMobile: boolean
+): string => {
+  if (game.status === StatusEnum.pending) return `/game-info/${game.id}`;
+  if (!game.currentPhaseId) return "/";
+  const base = `/game/${game.id}/phase/${game.currentPhaseId}`;
+  return isMobile ? base : `${base}/orders`;
 };
 
 function dziemba_levenshtein(a: string, b: string) {
@@ -181,4 +191,4 @@ function formatTimeAgo(djangoDatetime: string): string {
   return rtf.format(-diffYears, "year");
 }
 
-export { formatOrderText, formatDateTime, formatRemainingTime, formatTimeAgo, getCurrentPhaseId };
+export { formatOrderText, formatDateTime, formatRemainingTime, formatTimeAgo, getCurrentPhaseId, getGameLandingPath };

@@ -7,7 +7,7 @@ export type MapData = {
     id: string;
     path: { d: string };
     center: { x: number; y: number };
-    supplyCenter?: { x: number; y: number };
+    supplyCenter?: { x: number; y: number; path?: string };
     text?: Array<{
       point: { x: number; y: number };
       value: string;
@@ -26,11 +26,31 @@ export type MapData = {
   borders: Array<{
     id: string;
     d: string;
+    styles?: {
+      fill?: string;
+      stroke?: string;
+      strokeWidth?: string;
+      fillOpacity?: string;
+      strokeDasharray?: string;
+    };
   }>;
   impassableProvinces: Array<{
     id: string;
     d: string;
   }>;
+  namesLayer?: {
+    transform?: string;
+    elements: Array<{
+      id: string;
+      d: string;
+      styles: {
+        fill?: string;
+        stroke?: string;
+        strokeWidth?: string;
+        fillOpacity?: string;
+      };
+    }>;
+  };
 };
 
 const isJsonResponse = (response: Response): boolean => {

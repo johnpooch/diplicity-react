@@ -28,7 +28,7 @@ function buildOptimisticOrder(
 
   const target = findProvince(resolvedSelections["target"]) ?? source;
   const aux = findProvince(resolvedSelections["aux"]) ?? source;
-  const namedCoast = findProvince(resolvedSelections["namedCoast"]) ?? source;
+  const namedCoast = findProvince(resolvedSelections["namedCoast"]) ?? target;
 
   return {
     source,
