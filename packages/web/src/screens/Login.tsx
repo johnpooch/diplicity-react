@@ -161,11 +161,11 @@ const Login: React.FC = () => {
           </p>
         </div>
 
-        {/* Scroll hint — desktop only (absolute), mobile handled below */}
+        {/* Scroll hint */}
         <button
           type="button"
           onClick={() => document.getElementById("guide")?.scrollIntoView({ behavior: "smooth" })}
-          className="hidden lg:flex absolute left-1/2 bottom-8 -translate-x-1/2 z-10 flex-col items-center gap-2.5 text-white/75 text-xs tracking-[0.16em] uppercase hover:text-white transition-colors bg-transparent border-0 cursor-pointer px-8 py-4"
+          className="flex absolute left-1/2 bottom-8 -translate-x-1/2 z-10 flex-col items-center gap-2.5 text-white/75 text-xs tracking-[0.16em] uppercase hover:text-white transition-colors bg-transparent border-0 cursor-pointer px-8 py-4"
         >
           <span>Learn how to play</span>
           <ChevronDown className="size-5 animate-bounce" />
@@ -290,18 +290,6 @@ const Login: React.FC = () => {
           Diplomacy is the legendary game of negotiation, alliance, and betrayal — a war where every move is decided by the people playing, not by chance. Outwit, out-talk, and outlast everyone else to take the map.
         </p>
       </section>
-
-      {/* Mobile sticky scroll hint */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 flex justify-center bg-background/80 backdrop-blur-sm border-t border-border">
-        <button
-          type="button"
-          onClick={() => document.getElementById("mobile-intro")?.scrollIntoView({ behavior: "smooth" })}
-          className="flex flex-col items-center gap-1.5 text-muted-foreground text-xs tracking-[0.16em] uppercase hover:text-foreground transition-colors bg-transparent border-0 cursor-pointer px-8 py-3"
-        >
-          <span>Learn how to play</span>
-          <ChevronDown className="size-4 animate-bounce" />
-        </button>
-      </div>
 
       {/* Guide intro */}
       <section id="guide" className="px-6 pt-24 pb-12 text-center bg-background">
