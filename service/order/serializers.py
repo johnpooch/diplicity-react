@@ -54,6 +54,8 @@ class OrderSerializer(serializers.Serializer):
     title = serializers.CharField(allow_null=True, read_only=True)
     summary = serializers.CharField(allow_null=True, read_only=True)
 
+    is_implicit = serializers.BooleanField(read_only=True)
+
     selected = serializers.ListField(
         child=serializers.CharField(),
         allow_empty=False,

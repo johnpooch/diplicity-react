@@ -148,6 +148,7 @@ class Order(BaseModel):
     named_coast = models.ForeignKey(
         "province.Province", on_delete=models.CASCADE, related_name="named_coast_orders", null=True, blank=True
     )
+    is_implicit = models.BooleanField(default=False)
 
     class Meta:
         constraints = [

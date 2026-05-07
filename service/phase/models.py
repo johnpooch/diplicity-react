@@ -7,7 +7,7 @@ from django.utils import timezone
 from opentelemetry import trace
 from common.models import BaseModel
 from datetime import timedelta
-from common.constants import PhaseStatus, PhaseType, GameStatus
+from common.constants import PhaseStatus, PhaseType, GameStatus, OrderType
 from adjudication.service import resolve
 from member.models import Member
 from order.models import OrderResolution, Order
@@ -380,6 +380,58 @@ class PhaseManager(models.Manager):
                     resolutions_span.set_attribute("order_count", order_count)
                     resolutions_span.set_attribute("resolutions_created", resolutions_count)
                     logger.info(f"Created {resolutions_count} order resolutions")
+
+                # Create implicit hold orders for units without explicit orders (movement phases only)
+                if previous_phase.type == PhaseType.MOVEMENT:
+                    with tracer.start_as_current_span("phase.create_implicit_hold_orders") as implicit_span:
+                        explicit_province_ids = {order.source.province_id for order in previous_phase.all_orders}
+                        unit_province_to_nation = {
+                            unit.province.province_id: unit.nation
+                            for unit in previous_phase.units.all()
+                            if not unit.dislodged
+                        }
+                        nation_to_phase_state = {
+                            ps.member.nation.name: ps
+                            for ps in previous_phase.phase_states.all()
+                        }
+                        resolutions_by_province = {r["province"]: r for r in adjudication_data["resolutions"]}
+
+                        implicit_orders_to_create = []
+                        for province_id, nation in unit_province_to_nation.items():
+                            if province_id in explicit_province_ids:
+                                continue
+                            phase_state = nation_to_phase_state.get(nation.name)
+                            province = province_lookup.get(province_id)
+                            if phase_state and province:
+                                implicit_orders_to_create.append(
+                                    Order(
+                                        phase_state=phase_state,
+                                        source=province,
+                                        order_type=OrderType.HOLD,
+                                        is_implicit=True,
+                                    )
+                                )
+
+                        implicit_resolutions_to_create = []
+                        if implicit_orders_to_create:
+                            created_implicit_orders = Order.objects.bulk_create(implicit_orders_to_create)
+                            for order in created_implicit_orders:
+                                resolution_data = resolutions_by_province.get(order.source.province_id)
+                                if resolution_data:
+                                    by_province = province_lookup.get(resolution_data["by"]) if resolution_data["by"] else None
+                                    implicit_resolutions_to_create.append(
+                                        OrderResolution(
+                                            order=order,
+                                            status=resolution_data["result"],
+                                            by=by_province,
+                                        )
+                                    )
+                            if implicit_resolutions_to_create:
+                                OrderResolution.objects.bulk_create(implicit_resolutions_to_create)
+
+                        implicit_span.set_attribute("implicit_orders_created", len(implicit_orders_to_create))
+                        implicit_span.set_attribute("implicit_resolutions_created", len(implicit_resolutions_to_create))
+                        logger.info(f"Created {len(implicit_orders_to_create)} implicit hold orders with {len(implicit_resolutions_to_create)} resolutions")
 
                 # Calculate next phase details
                 scheduled_resolution = previous_phase.game.get_scheduled_resolution(

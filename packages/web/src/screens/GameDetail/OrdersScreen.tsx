@@ -92,8 +92,17 @@ const buildNationGroups = (
       }));
   }
 
+  const isDislodgedBySuccessfulMove = (order: Order) =>
+    orders.some(
+      o =>
+        (o.orderType === "Move" || o.orderType === "MoveViaConvoy") &&
+        o.target?.id === order.source.id &&
+        o.resolution?.status === "Succeeded"
+    );
+
   const ordersByNation = orders.reduce(
     (acc, order) => {
+      if (order.isImplicit && !isDislodgedBySuccessfulMove(order)) return acc;
       const nation = order.nation.name;
       acc[nation] = [...(acc[nation] || []), order];
       return acc;

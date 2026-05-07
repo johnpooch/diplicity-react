@@ -526,6 +526,7 @@ export interface Order {
   readonly title: string | null;
   /** @nullable */
   readonly summary: string | null;
+  readonly isImplicit: boolean;
   selected?: string[];
 }
 

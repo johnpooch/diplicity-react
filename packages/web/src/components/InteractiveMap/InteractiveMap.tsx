@@ -582,7 +582,7 @@ const InteractiveMap = (props: InteractiveMapProps) => {
               y={source.center.y - UNIT_OFFSET_Y}
               strokeWidth={ORDER_LINE_WIDTH}
               size={24}
-              stroke={SUCCESS_COLOR}
+              stroke={o.isImplicit ? IMPLICIT_HOLD_STROKE : SUCCESS_COLOR}
               fill={"transparent"}
               onRenderBottomCenter={
                 (o.resolution && o.resolution.status !== "Succeeded") ||
@@ -609,44 +609,6 @@ const InteractiveMap = (props: InteractiveMapProps) => {
             />
           );
         })}
-      {props.orders !== undefined &&
-        props.phase.units
-          .filter(unit =>
-            !props.orders!.some(o => o.source.id === unit.province.id) &&
-            props.orders!.some(
-              o =>
-                (o.orderType === "Move" || o.orderType === "MoveViaConvoy") &&
-                o.target?.id === unit.province.id &&
-                o.resolution?.status === "Succeeded"
-            )
-          )
-          .map(unit => {
-            const province = map.provinces.find(p => p.id === unit.province.id);
-            if (!province) return null;
-            return (
-              <Octagon
-                key={`implicit-hold-${unit.province.id}`}
-                x={province.center.x - UNIT_OFFSET_X}
-                y={province.center.y - UNIT_OFFSET_Y}
-                strokeWidth={ORDER_LINE_WIDTH}
-                size={24}
-                stroke={IMPLICIT_HOLD_STROKE}
-                fill="transparent"
-                onRenderBottomCenter={(x, y) => (
-                  <Cross
-                    x={x}
-                    y={y}
-                    width={ORDER_FAILED_CROSS_WIDTH}
-                    length={ORDER_FAILED_CROSS_LENGTH}
-                    angle={45}
-                    fill={ORDER_FAILED_CROSS_FILL}
-                    stroke={ORDER_FAILED_CROSS_STROKE}
-                    strokeWidth={ORDER_FAILED_CROSS_STROKE_WIDTH}
-                  />
-                )}
-              />
-            );
-          })}
       {props.orders
         ?.filter(o => o.orderType === "Support")
         .map(o => {
