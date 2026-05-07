@@ -869,6 +869,7 @@ export type ApiSchemaRetrieve200Four = { [key: string]: unknown };
 
 export type GamesListParams = {
   can_join?: boolean;
+  include_ineligible?: boolean;
   /**
    * * `open` - Open
    * `reliable_and_new` - Reliable + New Players

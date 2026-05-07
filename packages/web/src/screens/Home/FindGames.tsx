@@ -7,6 +7,8 @@ import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { GameCard } from "@/components/GameCard";
 import { Notice } from "@/components/Notice";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -23,6 +25,7 @@ import { DURATION_OPTIONS } from "@/constants";
 
 const VARIANT_PARAM = "variant";
 const DURATION_PARAM = "movement_phase_duration";
+const SHOW_INELIGIBLE_PARAM = "show_ineligible";
 const ALL_VARIANTS_VALUE = "__all__";
 const ANY_DURATION_VALUE = "__any__";
 const EXPRESS_MIN_MEMBERS = 3;
@@ -38,6 +41,7 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
   const durationParam =
     (searchParams.get(DURATION_PARAM) as GamesListMovementPhaseDuration) ??
     undefined;
+  const showIneligible = searchParams.get(SHOW_INELIGIBLE_PARAM) === "true";
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useGamesListInfinite({
@@ -45,6 +49,7 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
       variant: variantParam,
       movement_phase_duration: durationParam,
       ordering: "slots_remaining",
+      ...(showIneligible ? { include_ineligible: true } : {}),
     });
   const { data: variants } = useVariantsListSuspense();
 
@@ -83,43 +88,70 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
     });
   };
 
+  const handleShowIneligibleChange = (checked: boolean) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (checked) {
+        next.set(SHOW_INELIGIBLE_PARAM, "true");
+      } else {
+        next.delete(SHOW_INELIGIBLE_PARAM);
+      }
+      return next;
+    });
+  };
+
   return (
     <div className="space-y-4">
       {isFilterOpen && (
-        <div className="grid grid-cols-2 gap-2">
-          <Select
-            value={variantParam ?? ALL_VARIANTS_VALUE}
-            onValueChange={handleVariantChange}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL_VARIANTS_VALUE}>All variants</SelectItem>
-              {variants.map(v => (
-                <SelectItem key={v.id} value={v.id}>
-                  {v.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <Select
+              value={variantParam ?? ALL_VARIANTS_VALUE}
+              onValueChange={handleVariantChange}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_VARIANTS_VALUE}>All variants</SelectItem>
+                {variants.map(v => (
+                  <SelectItem key={v.id} value={v.id}>
+                    {v.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <Select
-            value={durationParam ?? ANY_DURATION_VALUE}
-            onValueChange={handleDurationChange}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ANY_DURATION_VALUE}>Any duration</SelectItem>
-              {DURATION_OPTIONS.map(opt => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <Select
+              value={durationParam ?? ANY_DURATION_VALUE}
+              onValueChange={handleDurationChange}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ANY_DURATION_VALUE}>Any duration</SelectItem>
+                {DURATION_OPTIONS.map(opt => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="show-ineligible"
+              checked={showIneligible}
+              onCheckedChange={checked =>
+                handleShowIneligibleChange(checked === true)
+              }
+            />
+            <Label htmlFor="show-ineligible" className="text-sm font-normal">
+              Show all games (including ones I can't join)
+            </Label>
+          </div>
         </div>
       )}
 

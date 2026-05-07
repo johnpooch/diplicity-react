@@ -14,6 +14,7 @@ from .models import Game
 class GameFilter(django_filters.FilterSet):
     mine = django_filters.BooleanFilter(method="filter_mine")
     can_join = django_filters.BooleanFilter(method="filter_can_join")
+    include_ineligible = django_filters.BooleanFilter(method="filter_noop")
     sandbox = django_filters.BooleanFilter(method="filter_sandbox")
     status = django_filters.CharFilter(method="filter_status")
     variant = django_filters.CharFilter(field_name="variant_id")
@@ -29,6 +30,9 @@ class GameFilter(django_filters.FilterSet):
         model = Game
         fields = []
 
+    def filter_noop(self, queryset, name, value):
+        return queryset
+
     def filter_mine(self, queryset, name, value):
         if value:
             if not self.request.user.is_authenticated:
@@ -41,18 +45,20 @@ class GameFilter(django_filters.FilterSet):
             queryset = queryset.filter(status=GameStatus.PENDING, private=False)
             if self.request.user.is_authenticated:
                 queryset = queryset.exclude(members__user=self.request.user)
-                profile = getattr(self.request.user, "profile", None)
-                if profile is not None:
-                    tier = profile.reliability_tier
-                    if tier == ReliabilityTier.UNRELIABLE:
-                        queryset = queryset.filter(min_reliability=MinReliability.OPEN)
-                    elif tier == ReliabilityTier.NEW_PLAYER:
-                        queryset = queryset.filter(
-                            min_reliability__in=[
-                                MinReliability.OPEN,
-                                MinReliability.RELIABLE_AND_NEW,
-                            ]
-                        )
+                include_ineligible = self.data.get("include_ineligible") in ("true", "True", "1")
+                if not include_ineligible:
+                    profile = getattr(self.request.user, "profile", None)
+                    if profile is not None:
+                        tier = profile.reliability_tier
+                        if tier == ReliabilityTier.UNRELIABLE:
+                            queryset = queryset.filter(min_reliability=MinReliability.OPEN)
+                        elif tier == ReliabilityTier.NEW_PLAYER:
+                            queryset = queryset.filter(
+                                min_reliability__in=[
+                                    MinReliability.OPEN,
+                                    MinReliability.RELIABLE_AND_NEW,
+                                ]
+                            )
             return queryset
         return queryset
 

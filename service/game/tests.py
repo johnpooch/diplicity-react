@@ -3466,6 +3466,82 @@ class TestGameMinReliability:
         assert reliable_only_game.id not in ids
 
     @pytest.mark.django_db
+    def test_include_ineligible_relaxes_tier_filter(
+        self,
+        authenticated_client,
+        primary_user,
+        secondary_user,
+        classical_variant,
+        base_pending_phase,
+    ):
+        primary_user.profile.games_finished = 5
+        primary_user.profile.games_abandoned_recent = 3
+        primary_user.profile.save()
+
+        open_game = Game.objects.create(
+            name="Open Game",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+            min_reliability=MinReliability.OPEN,
+        )
+        base_pending_phase(open_game)
+        open_game.members.create(user=secondary_user, is_game_master=True)
+
+        reliable_only_game = Game.objects.create(
+            name="Reliable Only Game",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+            min_reliability=MinReliability.RELIABLE_ONLY,
+        )
+        base_pending_phase(reliable_only_game)
+        reliable_only_game.members.create(user=secondary_user, is_game_master=True)
+
+        url = reverse(list_viewname) + "?can_join=true&include_ineligible=true"
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        ids = {g["id"] for g in response.data["results"]}
+        assert open_game.id in ids
+        assert reliable_only_game.id in ids
+
+    @pytest.mark.django_db
+    def test_include_ineligible_still_excludes_user_membership_and_status(
+        self,
+        authenticated_client,
+        primary_user,
+        secondary_user,
+        classical_variant,
+        base_pending_phase,
+    ):
+        primary_user.profile.games_finished = 5
+        primary_user.profile.games_abandoned_recent = 3
+        primary_user.profile.save()
+
+        own_game = Game.objects.create(
+            name="Own Game",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+            min_reliability=MinReliability.OPEN,
+        )
+        base_pending_phase(own_game)
+        own_game.members.create(user=primary_user, is_game_master=True)
+
+        active_game = Game.objects.create(
+            name="Active Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+            min_reliability=MinReliability.RELIABLE_ONLY,
+        )
+        base_pending_phase(active_game)
+        active_game.members.create(user=secondary_user, is_game_master=True)
+
+        url = reverse(list_viewname) + "?can_join=true&include_ineligible=true"
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        ids = {g["id"] for g in response.data["results"]}
+        assert own_game.id not in ids
+        assert active_game.id not in ids
+
+    @pytest.mark.django_db
     def test_list_can_join_filter_includes_all_for_reliable(
         self,
         authenticated_client,
