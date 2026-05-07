@@ -385,6 +385,7 @@ const GuideContent: React.FC = () => (
         you have fewer, you remove them.
       </Body>
       <Body>This is how players grow — or fall behind.</Body>
+      <Italic>In most variants, you can only build on empty home supply centers.</Italic>
     </section>
 
     <blockquote className="max-w-[800px] mx-auto text-center text-[clamp(28px,3.5vw,40px)] leading-[1.2] font-semibold tracking-[-0.02em] text-foreground py-16">
