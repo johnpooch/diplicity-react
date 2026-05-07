@@ -2,6 +2,7 @@ from django.db import models, transaction
 from common.models import BaseModel
 from common.constants import GameStatus
 from draw_proposal.constants import DrawProposalStatus
+from member.utils import classify_outcomes_for_finished_game
 from victory.models import Victory
 
 
@@ -137,6 +138,8 @@ class DrawProposal(BaseModel):
 
             self.game.status = GameStatus.COMPLETED
             self.game.save()
+
+            classify_outcomes_for_finished_game(self.game)
 
             return victory
 

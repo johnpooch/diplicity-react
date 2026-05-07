@@ -168,3 +168,24 @@ class IsGameMaster(BasePermission):
             self.message = "Only the Game Master can perform this action."
             return False
         return True
+
+
+class IsNotKicked(BasePermission):
+    message = "Cannot perform action for kicked players."
+
+    def has_permission(self, request, view):
+        game_id = view.kwargs.get("game_id")
+        game = get_object_or_404(Game, id=game_id)
+        member = game.members.filter(user=request.user).first()
+        if member is None:
+            return True
+        return not member.kicked
+
+
+class MeetsGameMinReliability(BasePermission):
+    message = "Your reliability tier does not meet this game's minimum requirement."
+
+    def has_permission(self, request, view):
+        game_id = view.kwargs.get("game_id")
+        game = get_object_or_404(Game, id=game_id)
+        return game.user_meets_min_reliability(request.user)

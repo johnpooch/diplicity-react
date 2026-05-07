@@ -9,12 +9,14 @@ from opentelemetry import trace
 from common.constants import (
     DeadlineMode,
     GameStatus,
+    MinReliability,
     MovementPhaseDuration,
     NationAssignment,
     PhaseFrequency,
     PhaseStatus,
     PhaseType,
     PressType,
+    ReliabilityTier,
     duration_to_seconds,
 )
 from common.models import BaseModel
@@ -328,6 +330,11 @@ class Game(BaseModel):
         null=True,
         blank=True,
     )
+    min_reliability = models.CharField(
+        max_length=20,
+        choices=MinReliability.MIN_RELIABILITY_CHOICES,
+        default=MinReliability.OPEN,
+    )
 
     def save(self, *args, **kwargs):
         if not self.id:
@@ -405,7 +412,24 @@ class Game(BaseModel):
                 for member in self.members.all()
             )
             game_is_pending = self.status == GameStatus.PENDING
-            return not user_is_member and game_is_pending
+            return (
+                not user_is_member
+                and game_is_pending
+                and self.user_meets_min_reliability(user)
+            )
+
+    def user_meets_min_reliability(self, user):
+        if self.min_reliability == MinReliability.OPEN:
+            return True
+        profile = getattr(user, "profile", None)
+        if profile is None:
+            return False
+        tier = profile.reliability_tier
+        if self.min_reliability == MinReliability.RELIABLE_ONLY:
+            return tier == ReliabilityTier.RELIABLE
+        if self.min_reliability == MinReliability.RELIABLE_AND_NEW:
+            return tier in (ReliabilityTier.RELIABLE, ReliabilityTier.NEW_PLAYER)
+        return True
 
     def can_leave(self, user):
         with tracer.start_as_current_span("game.models.can_leave"):

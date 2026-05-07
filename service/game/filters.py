@@ -1,5 +1,10 @@
 import django_filters
-from common.constants import GameStatus, MovementPhaseDuration
+from common.constants import (
+    GameStatus,
+    MinReliability,
+    MovementPhaseDuration,
+    ReliabilityTier,
+)
 
 from .models import Game
 
@@ -12,6 +17,9 @@ class GameFilter(django_filters.FilterSet):
     variant = django_filters.CharFilter(field_name="variant_id")
     movement_phase_duration = django_filters.ChoiceFilter(
         choices=MovementPhaseDuration.MOVEMENT_PHASE_DURATION_CHOICES
+    )
+    min_reliability = django_filters.ChoiceFilter(
+        choices=MinReliability.MIN_RELIABILITY_CHOICES
     )
 
     class Meta:
@@ -30,6 +38,18 @@ class GameFilter(django_filters.FilterSet):
             queryset = queryset.filter(status=GameStatus.PENDING, private=False)
             if self.request.user.is_authenticated:
                 queryset = queryset.exclude(members__user=self.request.user)
+                profile = getattr(self.request.user, "profile", None)
+                if profile is not None:
+                    tier = profile.reliability_tier
+                    if tier == ReliabilityTier.UNRELIABLE:
+                        queryset = queryset.filter(min_reliability=MinReliability.OPEN)
+                    elif tier == ReliabilityTier.NEW_PLAYER:
+                        queryset = queryset.filter(
+                            min_reliability__in=[
+                                MinReliability.OPEN,
+                                MinReliability.RELIABLE_AND_NEW,
+                            ]
+                        )
             return queryset
         return queryset
 

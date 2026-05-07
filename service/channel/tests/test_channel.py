@@ -338,6 +338,20 @@ class TestChannelMessageCreateView:
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
+    @pytest.mark.django_db
+    def test_create_message_kicked_member_forbidden(
+        self, authenticated_client, active_game_with_private_channel
+    ):
+        member = active_game_with_private_channel.members.first()
+        member.kicked = True
+        member.save()
+
+        private_channel = Channel.objects.get(game=active_game_with_private_channel, private=True)
+        url = reverse("channel-message-create", args=[active_game_with_private_channel.id, private_channel.id])
+        payload = {"body": "Hello, world!"}
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
 
 class TestChannelModels:
 

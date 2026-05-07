@@ -33,6 +33,9 @@ export const mockMembers: Member[] = [
     kicked: false,
     isGameMaster: true,
     nmrExtensionsRemaining: 2,
+    reliabilityTier: "reliable",
+    reliabilityGamesFinished: 5,
+    reliabilityGamesAbandonedRecent: 0,
   },
   {
     id: 2,
@@ -44,6 +47,9 @@ export const mockMembers: Member[] = [
     kicked: false,
     isGameMaster: false,
     nmrExtensionsRemaining: 2,
+    reliabilityTier: "reliable",
+    reliabilityGamesFinished: 5,
+    reliabilityGamesAbandonedRecent: 0,
   },
   {
     id: 3,
@@ -55,6 +61,9 @@ export const mockMembers: Member[] = [
     kicked: false,
     isGameMaster: false,
     nmrExtensionsRemaining: 2,
+    reliabilityTier: "reliable",
+    reliabilityGamesFinished: 5,
+    reliabilityGamesAbandonedRecent: 0,
   },
   {
     id: 4,
@@ -66,6 +75,9 @@ export const mockMembers: Member[] = [
     kicked: false,
     isGameMaster: false,
     nmrExtensionsRemaining: 2,
+    reliabilityTier: "reliable",
+    reliabilityGamesFinished: 5,
+    reliabilityGamesAbandonedRecent: 0,
   },
   {
     id: 5,
@@ -77,6 +89,9 @@ export const mockMembers: Member[] = [
     kicked: false,
     isGameMaster: false,
     nmrExtensionsRemaining: 2,
+    reliabilityTier: "reliable",
+    reliabilityGamesFinished: 5,
+    reliabilityGamesAbandonedRecent: 0,
   },
   {
     id: 6,
@@ -88,6 +103,9 @@ export const mockMembers: Member[] = [
     kicked: false,
     isGameMaster: false,
     nmrExtensionsRemaining: 2,
+    reliabilityTier: "reliable",
+    reliabilityGamesFinished: 5,
+    reliabilityGamesAbandonedRecent: 0,
   },
   {
     id: 7,
@@ -99,6 +117,9 @@ export const mockMembers: Member[] = [
     kicked: false,
     isGameMaster: false,
     nmrExtensionsRemaining: 2,
+    reliabilityTier: "reliable",
+    reliabilityGamesFinished: 5,
+    reliabilityGamesAbandonedRecent: 0,
   },
 ];
 
@@ -305,6 +326,7 @@ export const mockGames: GameList[] = [
     movementFrequency: null,
     retreatFrequency: null,
     pressType: "full_press",
+    minReliability: "open",
   },
   {
     id: "game-2",
@@ -334,6 +356,7 @@ export const mockGames: GameList[] = [
     movementFrequency: null,
     retreatFrequency: null,
     pressType: "full_press",
+    minReliability: "open",
   },
   {
     id: "game-3",
@@ -363,6 +386,7 @@ export const mockGames: GameList[] = [
     movementFrequency: null,
     retreatFrequency: null,
     pressType: "full_press",
+    minReliability: "open",
   },
   {
     id: "game-4",
@@ -392,6 +416,7 @@ export const mockGames: GameList[] = [
     movementFrequency: null,
     retreatFrequency: null,
     pressType: "full_press",
+    minReliability: "open",
   },
   {
     id: "game-5",
@@ -426,6 +451,7 @@ export const mockGames: GameList[] = [
     movementFrequency: null,
     retreatFrequency: null,
     pressType: "full_press",
+    minReliability: "open",
   },
   {
     id: "game-6",
@@ -460,6 +486,7 @@ export const mockGames: GameList[] = [
     movementFrequency: null,
     retreatFrequency: null,
     pressType: "full_press",
+    minReliability: "open",
   },
 ];
 
@@ -507,6 +534,7 @@ export const mockSandboxGames: GameList[] = [
     movementFrequency: null,
     retreatFrequency: null,
     pressType: "full_press",
+    minReliability: "open",
   },
   {
     id: "sandbox-2",
@@ -536,6 +564,7 @@ export const mockSandboxGames: GameList[] = [
     movementFrequency: null,
     retreatFrequency: null,
     pressType: "full_press",
+    minReliability: "open",
   },
 ];
 
@@ -595,6 +624,9 @@ export const mockUserProfile: UserProfile = {
   name: "John Doe",
   picture: null,
   email: "john.doe@example.com",
+  reliabilityTier: "reliable",
+  reliabilityGamesFinished: 5,
+  reliabilityGamesAbandonedRecent: 0,
 };
 
 export const mockOrders: Order[] = [

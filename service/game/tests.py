@@ -8,7 +8,7 @@ from django.utils import timezone
 from datetime import time, timedelta
 from zoneinfo import ZoneInfo
 from rest_framework import status
-from common.constants import PhaseStatus, PhaseType, GameStatus, NationAssignment, MovementPhaseDuration, DeadlineMode, PhaseFrequency
+from common.constants import PhaseStatus, PhaseType, GameStatus, MinReliability, NationAssignment, MovementPhaseDuration, DeadlineMode, PhaseFrequency
 
 from phase.models import Phase
 from user_profile.models import UserProfile
@@ -3139,3 +3139,271 @@ class TestCreateSandboxManagerMethod:
         current_phase = game.phases.first()
         assert current_phase.status == PhaseStatus.ACTIVE
         assert current_phase.phase_states.count() == classical_variant.nations.count()
+
+
+class TestGameMinReliability:
+
+    @pytest.mark.django_db
+    def test_create_game_defaults_to_open(self, authenticated_client, classical_variant):
+        url = reverse(create_viewname)
+        payload = {
+            "name": "Default Reliability",
+            "variant_id": classical_variant.id,
+            "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["min_reliability"] == MinReliability.OPEN
+
+    @pytest.mark.django_db
+    def test_create_game_with_reliable_only(self, authenticated_client, classical_variant):
+        url = reverse(create_viewname)
+        payload = {
+            "name": "Reliable Only Game",
+            "variant_id": classical_variant.id,
+            "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
+            "min_reliability": MinReliability.RELIABLE_ONLY,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["min_reliability"] == MinReliability.RELIABLE_ONLY
+
+    @pytest.mark.django_db
+    def test_create_game_with_invalid_reliability_rejected(
+        self, authenticated_client, classical_variant
+    ):
+        url = reverse(create_viewname)
+        payload = {
+            "name": "Invalid Reliability",
+            "variant_id": classical_variant.id,
+            "nation_assignment": NationAssignment.RANDOM,
+            "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
+            "min_reliability": "elite",
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    def test_join_open_game_succeeds_for_unreliable(
+        self, authenticated_client, primary_user, base_pending_game_for_secondary_user, base_pending_phase
+    ):
+        primary_user.profile.games_finished = 5
+        primary_user.profile.games_abandoned_recent = 3
+        primary_user.profile.save()
+
+        base_pending_phase(base_pending_game_for_secondary_user)
+        base_pending_game_for_secondary_user.min_reliability = MinReliability.OPEN
+        base_pending_game_for_secondary_user.save()
+
+        url = reverse("game-join", args=[base_pending_game_for_secondary_user.id])
+        response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_201_CREATED
+
+    @pytest.mark.django_db
+    def test_join_reliable_only_game_blocks_unreliable(
+        self, authenticated_client, primary_user, base_pending_game_for_secondary_user, base_pending_phase
+    ):
+        primary_user.profile.games_finished = 5
+        primary_user.profile.games_abandoned_recent = 3
+        primary_user.profile.save()
+
+        base_pending_phase(base_pending_game_for_secondary_user)
+        base_pending_game_for_secondary_user.min_reliability = MinReliability.RELIABLE_ONLY
+        base_pending_game_for_secondary_user.save()
+
+        url = reverse("game-join", args=[base_pending_game_for_secondary_user.id])
+        response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_join_reliable_only_game_blocks_new_player(
+        self, authenticated_client, primary_user, base_pending_game_for_secondary_user, base_pending_phase
+    ):
+        primary_user.profile.games_finished = 0
+        primary_user.profile.games_abandoned_recent = 0
+        primary_user.profile.save()
+
+        base_pending_phase(base_pending_game_for_secondary_user)
+        base_pending_game_for_secondary_user.min_reliability = MinReliability.RELIABLE_ONLY
+        base_pending_game_for_secondary_user.save()
+
+        url = reverse("game-join", args=[base_pending_game_for_secondary_user.id])
+        response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_join_reliable_only_game_allows_reliable(
+        self, authenticated_client, primary_user, base_pending_game_for_secondary_user, base_pending_phase
+    ):
+        primary_user.profile.games_finished = 5
+        primary_user.profile.games_abandoned_recent = 0
+        primary_user.profile.save()
+
+        base_pending_phase(base_pending_game_for_secondary_user)
+        base_pending_game_for_secondary_user.min_reliability = MinReliability.RELIABLE_ONLY
+        base_pending_game_for_secondary_user.save()
+
+        url = reverse("game-join", args=[base_pending_game_for_secondary_user.id])
+        response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_201_CREATED
+
+    @pytest.mark.django_db
+    def test_join_reliable_and_new_game_allows_new_player(
+        self, authenticated_client, primary_user, base_pending_game_for_secondary_user, base_pending_phase
+    ):
+        primary_user.profile.games_finished = 0
+        primary_user.profile.games_abandoned_recent = 0
+        primary_user.profile.save()
+
+        base_pending_phase(base_pending_game_for_secondary_user)
+        base_pending_game_for_secondary_user.min_reliability = MinReliability.RELIABLE_AND_NEW
+        base_pending_game_for_secondary_user.save()
+
+        url = reverse("game-join", args=[base_pending_game_for_secondary_user.id])
+        response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_201_CREATED
+
+    @pytest.mark.django_db
+    def test_join_reliable_and_new_game_blocks_unreliable(
+        self, authenticated_client, primary_user, base_pending_game_for_secondary_user, base_pending_phase
+    ):
+        primary_user.profile.games_finished = 5
+        primary_user.profile.games_abandoned_recent = 3
+        primary_user.profile.save()
+
+        base_pending_phase(base_pending_game_for_secondary_user)
+        base_pending_game_for_secondary_user.min_reliability = MinReliability.RELIABLE_AND_NEW
+        base_pending_game_for_secondary_user.save()
+
+        url = reverse("game-join", args=[base_pending_game_for_secondary_user.id])
+        response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_can_join_reflects_reliability_in_serializer(
+        self,
+        authenticated_client,
+        primary_user,
+        base_pending_game_for_secondary_user,
+        base_pending_phase,
+        secondary_user,
+    ):
+        primary_user.profile.games_finished = 5
+        primary_user.profile.games_abandoned_recent = 3
+        primary_user.profile.save()
+
+        base_pending_phase(base_pending_game_for_secondary_user)
+        base_pending_game_for_secondary_user.members.create(
+            user=secondary_user, is_game_master=True
+        )
+        base_pending_game_for_secondary_user.min_reliability = MinReliability.RELIABLE_ONLY
+        base_pending_game_for_secondary_user.save()
+
+        url = reverse(retrieve_viewname, args=[base_pending_game_for_secondary_user.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["can_join"] is False
+        assert response.data["min_reliability"] == MinReliability.RELIABLE_ONLY
+
+    @pytest.mark.django_db
+    def test_list_can_join_filter_excludes_reliable_only_for_unreliable(
+        self,
+        authenticated_client,
+        primary_user,
+        secondary_user,
+        classical_variant,
+        base_pending_phase,
+    ):
+        primary_user.profile.games_finished = 5
+        primary_user.profile.games_abandoned_recent = 3
+        primary_user.profile.save()
+
+        open_game = Game.objects.create(
+            name="Open Game",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+            min_reliability=MinReliability.OPEN,
+        )
+        base_pending_phase(open_game)
+        open_game.members.create(user=secondary_user, is_game_master=True)
+
+        reliable_only_game = Game.objects.create(
+            name="Reliable Only Game",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+            min_reliability=MinReliability.RELIABLE_ONLY,
+        )
+        base_pending_phase(reliable_only_game)
+        reliable_only_game.members.create(user=secondary_user, is_game_master=True)
+
+        url = reverse(list_viewname) + "?can_join=true"
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        ids = {g["id"] for g in response.data["results"]}
+        assert open_game.id in ids
+        assert reliable_only_game.id not in ids
+
+    @pytest.mark.django_db
+    def test_list_can_join_filter_includes_all_for_reliable(
+        self,
+        authenticated_client,
+        primary_user,
+        secondary_user,
+        classical_variant,
+        base_pending_phase,
+    ):
+        primary_user.profile.games_finished = 5
+        primary_user.profile.games_abandoned_recent = 0
+        primary_user.profile.save()
+
+        for label, level in [
+            ("open", MinReliability.OPEN),
+            ("rel_new", MinReliability.RELIABLE_AND_NEW),
+            ("rel_only", MinReliability.RELIABLE_ONLY),
+        ]:
+            game = Game.objects.create(
+                name=f"Game {label}",
+                variant=classical_variant,
+                status=GameStatus.PENDING,
+                min_reliability=level,
+            )
+            base_pending_phase(game)
+            game.members.create(user=secondary_user, is_game_master=True)
+
+        url = reverse(list_viewname) + "?can_join=true"
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        # All three games are joinable for a Reliable user
+        assert response.data["count"] == 3
+
+    @pytest.mark.django_db
+    def test_list_min_reliability_filter(
+        self,
+        authenticated_client,
+        secondary_user,
+        classical_variant,
+        base_pending_phase,
+    ):
+        for label, level in [
+            ("open", MinReliability.OPEN),
+            ("rel_only", MinReliability.RELIABLE_ONLY),
+        ]:
+            game = Game.objects.create(
+                name=f"Game {label}",
+                variant=classical_variant,
+                status=GameStatus.PENDING,
+                min_reliability=level,
+            )
+            base_pending_phase(game)
+            game.members.create(user=secondary_user, is_game_master=True)
+
+        url = reverse(list_viewname) + f"?min_reliability={MinReliability.RELIABLE_ONLY}"
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["count"] == 1
+        assert response.data["results"][0]["min_reliability"] == MinReliability.RELIABLE_ONLY

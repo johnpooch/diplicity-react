@@ -4,7 +4,13 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from game.models import Game
 from user_profile.models import UserProfile
-from common.constants import GameStatus
+from common.constants import (
+    GameStatus,
+    MemberOutcomeState,
+    PhaseStatus,
+    PhaseType,
+)
+from member.utils import classify_outcomes_for_finished_game, kick_inactive_members
 
 User = get_user_model()
 
@@ -230,3 +236,490 @@ def test_game_has_exactly_one_game_master(
     game_masters = game.members.filter(is_game_master=True)
     assert game_masters.count() == 1
     assert game_masters.first().user == secondary_user
+
+
+class TestClassifyOutcomesForFinishedGame:
+
+    def _make_finished_game(self, variant, sandbox=False):
+        return Game.objects.create(
+            name="Outcome Test Game",
+            variant=variant,
+            status=GameStatus.COMPLETED,
+            sandbox=sandbox,
+        )
+
+    def _add_movement_phase(self, game, ordinal, member_to_unit, member_to_orders):
+        phase = game.phases.create(
+            game=game,
+            variant=game.variant,
+            season="Spring",
+            year=1900 + ordinal,
+            type=PhaseType.MOVEMENT,
+            status=PhaseStatus.COMPLETED,
+            ordinal=ordinal,
+        )
+        for member, province in member_to_unit.items():
+            phase.units.create(type="Fleet", nation=member.nation, province=province)
+        for member, has_order in member_to_orders.items():
+            phase_state = phase.phase_states.create(member=member, has_possible_orders=True)
+            if has_order:
+                province = member_to_unit.get(member)
+                if province is not None:
+                    phase_state.orders.create(source=province, order_type="Hold")
+        return phase
+
+    @pytest.mark.django_db
+    def test_member_with_all_orders_classified_completed(
+        self, classical_variant, classical_england_nation, classical_edinburgh_province, primary_user
+    ):
+        game = self._make_finished_game(classical_variant)
+        member = game.members.create(user=primary_user, nation=classical_england_nation)
+
+        for ordinal in range(1, 4):
+            self._add_movement_phase(
+                game,
+                ordinal,
+                {member: classical_edinburgh_province},
+                {member: True},
+            )
+
+        classify_outcomes_for_finished_game(game)
+        member.refresh_from_db()
+        assert member.outcome_state == MemberOutcomeState.COMPLETED
+
+    @pytest.mark.django_db
+    def test_member_with_two_consecutive_nmrs_classified_completed(
+        self, classical_variant, classical_england_nation, classical_edinburgh_province, primary_user
+    ):
+        game = self._make_finished_game(classical_variant)
+        member = game.members.create(user=primary_user, nation=classical_england_nation)
+
+        for ordinal, has_order in [(1, True), (2, False), (3, False), (4, True)]:
+            self._add_movement_phase(
+                game,
+                ordinal,
+                {member: classical_edinburgh_province},
+                {member: has_order},
+            )
+
+        classify_outcomes_for_finished_game(game)
+        member.refresh_from_db()
+        assert member.outcome_state == MemberOutcomeState.COMPLETED
+
+    @pytest.mark.django_db
+    def test_member_with_three_consecutive_nmrs_classified_abandoned(
+        self, classical_variant, classical_england_nation, classical_edinburgh_province, primary_user
+    ):
+        game = self._make_finished_game(classical_variant)
+        member = game.members.create(user=primary_user, nation=classical_england_nation)
+
+        for ordinal, has_order in [(1, True), (2, False), (3, False), (4, False)]:
+            self._add_movement_phase(
+                game,
+                ordinal,
+                {member: classical_edinburgh_province},
+                {member: has_order},
+            )
+
+        classify_outcomes_for_finished_game(game)
+        member.refresh_from_db()
+        assert member.outcome_state == MemberOutcomeState.ABANDONED
+
+    @pytest.mark.django_db
+    def test_streak_resets_when_member_submits_orders(
+        self, classical_variant, classical_england_nation, classical_edinburgh_province, primary_user
+    ):
+        game = self._make_finished_game(classical_variant)
+        member = game.members.create(user=primary_user, nation=classical_england_nation)
+
+        # Two NMRs, one order, two NMRs — longest streak is 2
+        for ordinal, has_order in [(1, False), (2, False), (3, True), (4, False), (5, False)]:
+            self._add_movement_phase(
+                game,
+                ordinal,
+                {member: classical_edinburgh_province},
+                {member: has_order},
+            )
+
+        classify_outcomes_for_finished_game(game)
+        member.refresh_from_db()
+        assert member.outcome_state == MemberOutcomeState.COMPLETED
+
+    @pytest.mark.django_db
+    def test_kicked_member_classified_abandoned(
+        self, classical_variant, classical_england_nation, classical_edinburgh_province, primary_user
+    ):
+        game = self._make_finished_game(classical_variant)
+        member = game.members.create(
+            user=primary_user, nation=classical_england_nation, kicked=True
+        )
+
+        # Even with all orders submitted, kicked overrides
+        for ordinal in range(1, 4):
+            self._add_movement_phase(
+                game,
+                ordinal,
+                {member: classical_edinburgh_province},
+                {member: True},
+            )
+
+        classify_outcomes_for_finished_game(game)
+        member.refresh_from_db()
+        assert member.outcome_state == MemberOutcomeState.ABANDONED
+
+    @pytest.mark.django_db
+    def test_phases_without_units_dont_count_toward_streak(
+        self, classical_variant, classical_england_nation, classical_edinburgh_province, primary_user
+    ):
+        game = self._make_finished_game(classical_variant)
+        member = game.members.create(user=primary_user, nation=classical_england_nation)
+
+        # Eliminated member: had units in phase 1, then no units in phases 2-5.
+        # Phase 1 NMR + phases 2-5 with no units = streak of 1, not 5.
+        for ordinal in range(1, 6):
+            member_to_unit = {member: classical_edinburgh_province} if ordinal == 1 else {}
+            self._add_movement_phase(
+                game,
+                ordinal,
+                member_to_unit,
+                {member: False},
+            )
+
+        classify_outcomes_for_finished_game(game)
+        member.refresh_from_db()
+        assert member.outcome_state == MemberOutcomeState.COMPLETED
+
+    @pytest.mark.django_db
+    def test_game_master_not_classified(
+        self, classical_variant, classical_england_nation, classical_edinburgh_province, primary_user
+    ):
+        game = self._make_finished_game(classical_variant)
+        gm = game.members.create(user=primary_user, is_game_master=True)
+
+        classify_outcomes_for_finished_game(game)
+        gm.refresh_from_db()
+        assert gm.outcome_state is None
+
+    @pytest.mark.django_db
+    def test_sandbox_game_not_classified(
+        self, classical_variant, classical_england_nation, classical_edinburgh_province, primary_user
+    ):
+        game = self._make_finished_game(classical_variant, sandbox=True)
+        member = game.members.create(user=primary_user, nation=classical_england_nation)
+
+        for ordinal in range(1, 5):
+            self._add_movement_phase(
+                game,
+                ordinal,
+                {member: classical_edinburgh_province},
+                {member: False},
+            )
+
+        classify_outcomes_for_finished_game(game)
+        member.refresh_from_db()
+        assert member.outcome_state is None
+
+    @pytest.mark.django_db
+    def test_only_movement_phases_count(
+        self, classical_variant, classical_england_nation, classical_edinburgh_province, primary_user
+    ):
+        game = self._make_finished_game(classical_variant)
+        member = game.members.create(user=primary_user, nation=classical_england_nation)
+
+        # Three retreat-phase NMRs do not classify as Abandoned
+        for ordinal in range(1, 4):
+            phase = game.phases.create(
+                game=game,
+                variant=game.variant,
+                season="Spring",
+                year=1900 + ordinal,
+                type=PhaseType.RETREAT,
+                status=PhaseStatus.COMPLETED,
+                ordinal=ordinal,
+            )
+            phase.units.create(
+                type="Fleet", nation=classical_england_nation, province=classical_edinburgh_province
+            )
+            phase.phase_states.create(member=member, has_possible_orders=True)
+
+        classify_outcomes_for_finished_game(game)
+        member.refresh_from_db()
+        assert member.outcome_state == MemberOutcomeState.COMPLETED
+
+
+class TestKickInactiveMembers:
+
+    def _make_active_game(self, variant, sandbox=False):
+        return Game.objects.create(
+            name="Kick Test Game",
+            variant=variant,
+            status=GameStatus.ACTIVE,
+            sandbox=sandbox,
+        )
+
+    def _add_movement_phase(self, game, ordinal, member_to_unit, member_to_orders):
+        phase = game.phases.create(
+            game=game,
+            variant=game.variant,
+            season="Spring",
+            year=1900 + ordinal,
+            type=PhaseType.MOVEMENT,
+            status=PhaseStatus.COMPLETED,
+            ordinal=ordinal,
+        )
+        for member, province in member_to_unit.items():
+            phase.units.create(type="Fleet", nation=member.nation, province=province)
+        for member, has_order in member_to_orders.items():
+            phase_state = phase.phase_states.create(member=member, has_possible_orders=True)
+            if has_order:
+                province = member_to_unit.get(member)
+                if province is not None:
+                    phase_state.orders.create(source=province, order_type="Hold")
+        return phase
+
+    @pytest.mark.django_db
+    def test_member_with_three_consecutive_movement_nmrs_is_kicked(
+        self, classical_variant, classical_england_nation, classical_edinburgh_province, primary_user
+    ):
+        game = self._make_active_game(classical_variant)
+        member = game.members.create(user=primary_user, nation=classical_england_nation)
+
+        for ordinal in range(1, 4):
+            self._add_movement_phase(
+                game,
+                ordinal,
+                {member: classical_edinburgh_province},
+                {member: False},
+            )
+
+        kicked = kick_inactive_members(game)
+        member.refresh_from_db()
+        assert member.kicked is True
+        assert kicked == [member]
+
+    @pytest.mark.django_db
+    def test_member_with_two_consecutive_movement_nmrs_not_kicked(
+        self, classical_variant, classical_england_nation, classical_edinburgh_province, primary_user
+    ):
+        game = self._make_active_game(classical_variant)
+        member = game.members.create(user=primary_user, nation=classical_england_nation)
+
+        for ordinal in range(1, 3):
+            self._add_movement_phase(
+                game,
+                ordinal,
+                {member: classical_edinburgh_province},
+                {member: False},
+            )
+
+        kicked = kick_inactive_members(game)
+        member.refresh_from_db()
+        assert member.kicked is False
+        assert kicked == []
+
+    @pytest.mark.django_db
+    def test_member_with_recent_order_not_kicked(
+        self, classical_variant, classical_england_nation, classical_edinburgh_province, primary_user
+    ):
+        game = self._make_active_game(classical_variant)
+        member = game.members.create(user=primary_user, nation=classical_england_nation)
+
+        # Three NMRs followed by an order — the most recent 3 phases include the order, so no kick.
+        for ordinal, has_order in [(1, False), (2, False), (3, False), (4, True)]:
+            self._add_movement_phase(
+                game,
+                ordinal,
+                {member: classical_edinburgh_province},
+                {member: has_order},
+            )
+
+        kicked = kick_inactive_members(game)
+        member.refresh_from_db()
+        assert member.kicked is False
+        assert kicked == []
+
+    @pytest.mark.django_db
+    def test_kick_uses_only_most_recent_three_movement_phases(
+        self, classical_variant, classical_england_nation, classical_edinburgh_province, primary_user
+    ):
+        game = self._make_active_game(classical_variant)
+        member = game.members.create(user=primary_user, nation=classical_england_nation)
+
+        # First three phases NMR, fourth has an order. Must not kick — recent 3 are 2,3,4 with an order at 4.
+        for ordinal, has_order in [(1, False), (2, False), (3, False), (4, True)]:
+            self._add_movement_phase(
+                game,
+                ordinal,
+                {member: classical_edinburgh_province},
+                {member: has_order},
+            )
+
+        kicked = kick_inactive_members(game)
+        member.refresh_from_db()
+        assert member.kicked is False
+
+    @pytest.mark.django_db
+    def test_eliminated_member_not_kicked(
+        self, classical_variant, classical_england_nation, classical_edinburgh_province, primary_user
+    ):
+        game = self._make_active_game(classical_variant)
+        member = game.members.create(user=primary_user, nation=classical_england_nation)
+
+        # Lost units after phase 1 — phases 2, 3 have no units → cannot accumulate streak in last 3.
+        for ordinal in range(1, 4):
+            member_to_unit = {member: classical_edinburgh_province} if ordinal == 1 else {}
+            self._add_movement_phase(
+                game,
+                ordinal,
+                member_to_unit,
+                {member: False},
+            )
+
+        kicked = kick_inactive_members(game)
+        member.refresh_from_db()
+        assert member.kicked is False
+
+    @pytest.mark.django_db
+    def test_game_master_not_kicked(
+        self, classical_variant, classical_england_nation, classical_edinburgh_province, primary_user
+    ):
+        game = self._make_active_game(classical_variant)
+        gm = game.members.create(user=primary_user, is_game_master=True)
+
+        for ordinal in range(1, 4):
+            self._add_movement_phase(game, ordinal, {}, {})
+
+        kicked = kick_inactive_members(game)
+        gm.refresh_from_db()
+        assert gm.kicked is False
+        assert kicked == []
+
+    @pytest.mark.django_db
+    def test_already_kicked_member_skipped(
+        self, classical_variant, classical_england_nation, classical_edinburgh_province, primary_user
+    ):
+        game = self._make_active_game(classical_variant)
+        member = game.members.create(
+            user=primary_user, nation=classical_england_nation, kicked=True
+        )
+
+        for ordinal in range(1, 4):
+            self._add_movement_phase(
+                game,
+                ordinal,
+                {member: classical_edinburgh_province},
+                {member: False},
+            )
+
+        kicked = kick_inactive_members(game)
+        # Already kicked, not re-included in the returned set.
+        assert kicked == []
+
+    @pytest.mark.django_db
+    def test_sandbox_game_no_kicks(
+        self, classical_variant, classical_england_nation, classical_edinburgh_province, primary_user
+    ):
+        game = self._make_active_game(classical_variant, sandbox=True)
+        member = game.members.create(user=primary_user, nation=classical_england_nation)
+
+        for ordinal in range(1, 4):
+            self._add_movement_phase(
+                game,
+                ordinal,
+                {member: classical_edinburgh_province},
+                {member: False},
+            )
+
+        kicked = kick_inactive_members(game)
+        member.refresh_from_db()
+        assert member.kicked is False
+        assert kicked == []
+
+    @pytest.mark.django_db
+    def test_retreat_phases_dont_count_toward_threshold(
+        self, classical_variant, classical_england_nation, classical_edinburgh_province, primary_user
+    ):
+        game = self._make_active_game(classical_variant)
+        member = game.members.create(user=primary_user, nation=classical_england_nation)
+
+        # Two movement-phase NMRs interspersed with retreat phases that also have no orders.
+        # Retreats shouldn't count, so streak is only 2 movement phases — no kick.
+        for ordinal, phase_type in [
+            (1, PhaseType.MOVEMENT),
+            (2, PhaseType.RETREAT),
+            (3, PhaseType.MOVEMENT),
+        ]:
+            phase = game.phases.create(
+                game=game,
+                variant=game.variant,
+                season="Spring",
+                year=1900 + ordinal,
+                type=phase_type,
+                status=PhaseStatus.COMPLETED,
+                ordinal=ordinal,
+            )
+            phase.units.create(
+                type="Fleet", nation=classical_england_nation, province=classical_edinburgh_province
+            )
+            phase.phase_states.create(member=member, has_possible_orders=True)
+
+        kicked = kick_inactive_members(game)
+        member.refresh_from_db()
+        assert member.kicked is False
+        assert kicked == []
+
+    @pytest.mark.django_db
+    def test_multiple_members_kicked_simultaneously(
+        self,
+        classical_variant,
+        classical_england_nation,
+        classical_france_nation,
+        classical_edinburgh_province,
+        classical_paris_province,
+        primary_user,
+        secondary_user,
+    ):
+        game = self._make_active_game(classical_variant)
+        member_a = game.members.create(user=primary_user, nation=classical_england_nation)
+        member_b = game.members.create(user=secondary_user, nation=classical_france_nation)
+
+        for ordinal in range(1, 4):
+            self._add_movement_phase(
+                game,
+                ordinal,
+                {
+                    member_a: classical_edinburgh_province,
+                    member_b: classical_paris_province,
+                },
+                {
+                    member_a: False,
+                    member_b: False,
+                },
+            )
+
+        kicked = kick_inactive_members(game)
+        member_a.refresh_from_db()
+        member_b.refresh_from_db()
+        assert member_a.kicked is True
+        assert member_b.kicked is True
+        assert set(kicked) == {member_a, member_b}
+
+    @pytest.mark.django_db
+    def test_fewer_than_three_movement_phases_no_kicks(
+        self, classical_variant, classical_england_nation, classical_edinburgh_province, primary_user
+    ):
+        game = self._make_active_game(classical_variant)
+        member = game.members.create(user=primary_user, nation=classical_england_nation)
+
+        for ordinal in range(1, 3):
+            self._add_movement_phase(
+                game,
+                ordinal,
+                {member: classical_edinburgh_province},
+                {member: False},
+            )
+
+        kicked = kick_inactive_members(game)
+        member.refresh_from_db()
+        assert member.kicked is False
+        assert kicked == []
