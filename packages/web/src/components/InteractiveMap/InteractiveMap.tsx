@@ -439,24 +439,30 @@ const InteractiveMap = (props: InteractiveMapProps) => {
             )}
             {province.supplyCenter && (
               <g>
-                <circle
-                  cx={province.supplyCenter.x}
-                  cy={province.supplyCenter.y}
-                  r={SUPPLY_CENTER_OUTER_RADIUS}
-                  fill={SUPPLY_CENTER_FILL}
-                  stroke={SUPPLY_CENTER_STROKE}
-                  opacity={SUPPLY_CENTER_OPACITY}
-                  strokeWidth={SUPPLY_CENTER_STROKE_WIDTH}
-                />
-                <circle
-                  cx={province.supplyCenter.x}
-                  cy={province.supplyCenter.y}
-                  r={SUPPLY_CENTER_INNER_RADIUS}
-                  fill={SUPPLY_CENTER_FILL}
-                  stroke={SUPPLY_CENTER_STROKE}
-                  opacity={SUPPLY_CENTER_OPACITY}
-                  strokeWidth={SUPPLY_CENTER_STROKE_WIDTH}
-                />
+                {province.supplyCenter.path ? (
+                  <path d={province.supplyCenter.path} />
+                ) : (
+                  <>
+                    <circle
+                      cx={province.supplyCenter.x}
+                      cy={province.supplyCenter.y}
+                      r={SUPPLY_CENTER_OUTER_RADIUS}
+                      fill={SUPPLY_CENTER_FILL}
+                      stroke={SUPPLY_CENTER_STROKE}
+                      opacity={SUPPLY_CENTER_OPACITY}
+                      strokeWidth={SUPPLY_CENTER_STROKE_WIDTH}
+                    />
+                    <circle
+                      cx={province.supplyCenter.x}
+                      cy={province.supplyCenter.y}
+                      r={SUPPLY_CENTER_INNER_RADIUS}
+                      fill={SUPPLY_CENTER_FILL}
+                      stroke={SUPPLY_CENTER_STROKE}
+                      opacity={SUPPLY_CENTER_OPACITY}
+                      strokeWidth={SUPPLY_CENTER_STROKE_WIDTH}
+                    />
+                  </>
+                )}
               </g>
             )}
           </g>

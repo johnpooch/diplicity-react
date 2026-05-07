@@ -41,10 +41,14 @@ type IPath = {
     id?: string;
 };
 
+interface ISupplyCenter extends IPoint {
+    path?: string;
+}
+
 interface IProvince {
     id: string;
     center: IPoint;
-    supplyCenter: IPoint | undefined;
+    supplyCenter: ISupplyCenter | undefined;
     text: IText[] | undefined;
     path: IPath;
     transform?: string;
@@ -65,4 +69,4 @@ interface IMap {
     namesLayer?: INamesLayer;
 }
 
-export { IMap, IPath, IPoint, IStyles, ICenter, IProvince, IText, INamesLayer }
+export { IMap, IPath, IPoint, IStyles, ICenter, IProvince, IText, INamesLayer, ISupplyCenter }
