@@ -1,4 +1,6 @@
 import django_filters
+from django.db.models import Count, F
+
 from common.constants import (
     GameStatus,
     MinReliability,
@@ -21,6 +23,7 @@ class GameFilter(django_filters.FilterSet):
     min_reliability = django_filters.ChoiceFilter(
         choices=MinReliability.MIN_RELIABILITY_CHOICES
     )
+    ordering = django_filters.CharFilter(method="filter_ordering")
 
     class Meta:
         model = Game
@@ -62,4 +65,15 @@ class GameFilter(django_filters.FilterSet):
         statuses = [s for s in statuses if s in valid]
         if statuses:
             return queryset.filter(status__in=statuses)
+        return queryset
+
+    def filter_ordering(self, queryset, name, value):
+        if value == "slots_remaining":
+            # No kick filter on members: pending games only lose members on
+            # account deletion, so every member row counts toward fill.
+            return queryset.annotate(
+                member_count=Count("members", distinct=True),
+                nation_count=Count("variant__nations", distinct=True),
+                slots_remaining=F("nation_count") - F("member_count"),
+            ).order_by("slots_remaining", "-created_at")
         return queryset
