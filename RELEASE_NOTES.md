@@ -1,5 +1,15 @@
 # Diplicity React - Release Notes
 
+## Implicit Hold Orders & Resolution Indicators (May 2026)
+
+**Release Date:** May 2026
+
+### Bug Fix: Implicit hold orders and resolution crosses now appear correctly after sandbox phase resolution
+
+When viewing a completed movement phase in a sandbox game, resolution crosses (red X) on bounced move arrows were not appearing, and implicit hold orders for unordered units were missing. The map and orders list now correctly show all resolution outcomes — including failed moves, dislodged units, and faint hold octagons for units that held implicitly — when navigating back to a resolved phase.
+
+---
+
 ## Creation Intervention: Suggest Joining a Similar Game (May 5, 2026)
 
 **Release Date:** May 5, 2026

@@ -2288,6 +2288,9 @@ components:
           type: string
           readOnly: true
           nullable: true
+        isImplicit:
+          type: boolean
+          readOnly: true
         selected:
           type: array
           items:
@@ -2295,6 +2298,7 @@ components:
       required:
       - aux
       - complete
+      - isImplicit
       - namedCoast
       - nation
       - options

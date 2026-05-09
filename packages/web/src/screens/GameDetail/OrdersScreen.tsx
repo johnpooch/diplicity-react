@@ -53,6 +53,7 @@ import {
   getGameRetrieveQueryKey,
   getGameOrdersListQueryKey,
   getGameOptionsRetrieveQueryKey,
+  getGamePhaseRetrieveQueryKey,
   Order,
   GameRetrieve,
   Member,
@@ -189,6 +190,12 @@ const OrdersScreen: React.FC = () => {
   const handleResolvePhase = async () => {
     try {
       const result = await resolvePhaseMutation.mutateAsync({ gameId });
+      queryClient.removeQueries({
+        queryKey: getGameOrdersListQueryKey(gameId, selectedPhase),
+      });
+      queryClient.removeQueries({
+        queryKey: getGamePhaseRetrieveQueryKey(gameId, selectedPhase),
+      });
       queryClient.invalidateQueries({
         queryKey: getGameOptionsRetrieveQueryKey(gameId),
       });
