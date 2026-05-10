@@ -1192,6 +1192,60 @@ class TestCreateFromAdjudicationData:
         assert kiel_implicit_order.resolution.status == "OK"
 
     @pytest.mark.django_db
+    def test_implicit_hold_order_for_unit_in_named_coast_uses_parent_province(
+        self,
+        italy_vs_germany_phase_with_orders,
+        italy_vs_germany_stp_province,
+        italy_vs_germany_stp_sc_province,
+        italy_vs_germany_germany_nation,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        phase_state_germany = phase.phase_states.get(member__nation=italy_vs_germany_germany_nation)
+        phase.units.create(
+            province=italy_vs_germany_stp_sc_province,
+            type="Fleet",
+            nation=italy_vs_germany_germany_nation,
+        )
+
+        adjudication_data = {
+            "season": "Spring",
+            "year": 1901,
+            "type": "Retreat",
+            "options": {},
+            "supply_centers": [
+                {"province": "ven", "nation": "Italy"},
+                {"province": "rom", "nation": "Italy"},
+                {"province": "nap", "nation": "Italy"},
+                {"province": "kie", "nation": "Germany"},
+                {"province": "ber", "nation": "Germany"},
+                {"province": "mun", "nation": "Germany"},
+                {"province": "stp", "nation": "Germany"},
+            ],
+            "units": [
+                {"type": "Army", "nation": "Italy", "province": "ven", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Italy", "province": "rom", "dislodged": False, "dislodged_by": None},
+                {"type": "Fleet", "nation": "Italy", "province": "nap", "dislodged": False, "dislodged_by": None},
+                {"type": "Fleet", "nation": "Germany", "province": "kie", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Germany", "province": "ber", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Germany", "province": "mun", "dislodged": False, "dislodged_by": None},
+                {"type": "Fleet", "nation": "Germany", "province": "stp/sc", "dislodged": False, "dislodged_by": None},
+            ],
+            "resolutions": [
+                {"province": "ven", "result": "OK", "by": None},
+                {"province": "kie", "result": "OK", "by": None},
+                {"province": "stp", "result": "OK", "by": None},
+            ],
+        }
+
+        Phase.objects.create_from_adjudication_data(phase, adjudication_data)
+
+        stp_implicit_order = phase.phase_states.get(
+            member__nation=italy_vs_germany_germany_nation
+        ).orders.get(is_implicit=True, source=italy_vs_germany_stp_province)
+        assert stp_implicit_order.order_type == "Hold"
+        assert stp_implicit_order.source.province_id == "stp"
+
+    @pytest.mark.django_db
     def test_no_implicit_hold_orders_for_non_movement_phases(
         self,
         italy_vs_germany_phase_with_orders,

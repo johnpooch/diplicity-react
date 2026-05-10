@@ -149,8 +149,12 @@ def get_options_for_order(options, order):
     if not order.source:
         return list(current_options.keys())
 
+    source_id = order.source.province_id
+    if source_id not in current_options and "/" in source_id:
+        source_id = source_id.split("/")[0]
+
     current_options = _navigate_options(
-        current_options, order.source.province_id, f"Source province {order.source.province_id} not found in options"
+        current_options, source_id, f"Source province {order.source.province_id} not found in options"
     )
 
     if order.order_type:

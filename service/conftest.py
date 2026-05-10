@@ -722,6 +722,18 @@ def italy_vs_germany_ruhr_province(django_db_setup, django_db_blocker, italy_vs_
         return Province.objects.get(province_id="ruh", variant=italy_vs_germany_variant)
 
 
+@pytest.fixture(scope="session")
+def italy_vs_germany_stp_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="stp", variant=italy_vs_germany_variant)
+
+
+@pytest.fixture(scope="session")
+def italy_vs_germany_stp_sc_province(django_db_setup, django_db_blocker, italy_vs_germany_variant):
+    with django_db_blocker.unblock():
+        return Province.objects.get(province_id="stp/sc", variant=italy_vs_germany_variant)
+
+
 # Hundred variant fixtures
 @pytest.fixture(scope="session")
 def hundred_variant(django_db_setup, django_db_blocker):

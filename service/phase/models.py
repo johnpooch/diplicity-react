@@ -385,11 +385,14 @@ class PhaseManager(models.Manager):
                 if previous_phase.type == PhaseType.MOVEMENT:
                     with tracer.start_as_current_span("phase.create_implicit_hold_orders") as implicit_span:
                         explicit_province_ids = {order.source.province_id for order in previous_phase.all_orders}
-                        unit_province_to_nation = {
-                            unit.province.province_id: unit.nation
-                            for unit in previous_phase.units.all()
-                            if not unit.dislodged
-                        }
+                        unit_province_to_nation = {}
+                        for unit in previous_phase.units.all():
+                            if unit.dislodged:
+                                continue
+                            pid = unit.province.province_id
+                            if "/" in pid:
+                                pid = pid.split("/")[0]
+                            unit_province_to_nation[pid] = unit.nation
                         nation_to_phase_state = {
                             ps.member.nation.name: ps
                             for ps in previous_phase.phase_states.all()
