@@ -17,3 +17,28 @@ firebase.initializeApp({
 });
 
 const messaging = firebase.messaging();
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  const data =
+    event.notification.data?.FCM_MSG?.data || event.notification.data;
+  const gameId = data?.game_id;
+
+  const urlToOpen = gameId
+    ? `${self.location.origin}/game/${gameId}`
+    : self.location.origin;
+
+  event.waitUntil(
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clientList) => {
+        for (const client of clientList) {
+          if ("focus" in client) {
+            return client.focus().then(() => client.navigate(urlToOpen));
+          }
+        }
+        return clients.openWindow(urlToOpen);
+      })
+  );
+});
