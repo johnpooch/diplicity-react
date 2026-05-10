@@ -90,19 +90,22 @@ const GuideContent: React.FC = () => (
     <section className="max-w-[720px] mx-auto py-14">
       <SectionNum>I · The premise</SectionNum>
       <SectionHeading>
-        You are a diplomat first, a commander second.
+        Diplomacy is a game about people.
       </SectionHeading>
       <Body className="mt-[18px]">
-        In this game, you move armies and fleets. But you cannot succeed on your
-        own. The game is built around <em>talking</em> to other players, making
-        plans together, and deciding who you trust.
+        Yes, there are armies and fleets. But the game is really about <em>talking </em> 
+        to the other players, making plans together, and figuring out who you
+        can trust.
       </Body>
       <Body>
-        You will negotiate, cooperate, and sometimes betray. There is no
-        randomness, no dice, no luck — everything that happens comes from player
-        decisions. All players submit their orders in secret at the same time,
-        and once revealed, you see who was manipulated successfully — and who
-        wasn't.
+        You cannot win on your own for very long. At some point you need allies,
+        even if those alliances eventually fall apart.
+      </Body>
+      <Body>
+        There are no dice rolls or random events. Every outcome comes from the
+        decisions players make. Everyone submits orders secretly, they are all
+        revealed at the same time, and then you find out whose plans actually
+        worked.
       </Body>
     </section>
 
@@ -113,13 +116,18 @@ const GuideContent: React.FC = () => (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-7 lg:gap-14 items-center">
         <div>
           <SectionNum>II · The goal</SectionNum>
-          <SectionHeading>Control half of all supply centers.</SectionHeading>
+          <SectionHeading>Control enough supply centers to win.</SectionHeading>
           <Body className="mt-[18px]">
-            Supply centers are the key locations on the map. The more you
-            control, the more units you get. The more units you have, the more
-            influence you have.
+            Supply centers are the important territories on the map. They
+            determine how many units you can support.
           </Body>
-          <Body>Controlling half of the supply centers wins the game outright.</Body>
+          <Body>
+            More centers means more units. More units means more influence over
+            the board.
+          </Body>
+          <Body>
+            If you control half the supply centers, you win the game outright.
+          </Body>
         </div>
         <Shot
           src="/guidecontent/fig1.png"
@@ -134,26 +142,31 @@ const GuideContent: React.FC = () => (
     {/* III */}
     <section className="max-w-[720px] mx-auto py-14">
       <SectionNum>III · How a turn works</SectionNum>
-      <SectionHeading>Each turn has a simple rhythm.</SectionHeading>
-      <Body className="mt-[18px]">
-        <strong>First</strong>, you talk to other players. You make plans, agree
-        on moves, or try to avoid being attacked.
+      <SectionHeading>Talk first. Orders second.</SectionHeading>
+<Body className="mt-[18px]">
+        A turn usually starts with conversations. You message other players,
+        discuss plans, coordinate attacks, or try to make sure nobody attacks
+        you.
       </Body>
+
       <Body>
-        <strong>Then</strong>, everyone writes down their orders in secret.
+        After that, everyone submits orders privately.
       </Body>
+
       <Body>
-        <strong>After that</strong>, all orders are revealed and resolved at the
-        same time. There is no turn order — everything happens simultaneously.
+        Once the deadline hits, all orders resolve simultaneously. There is no
+        turn order and no reaction time — you only see the full picture after
+        everything is revealed.
       </Body>
+
       <Body>
-        At the end of each year, your number of supply centers determines
-        whether you gain or lose units.
+        At the end of the year, the number of supply centers you control
+        determines whether you gain or lose units.
       </Body>
+
       <Italic>
-        A year consists of Spring and Fall turns, followed by a Winter
-        adjustment. Only the end of a Fall turn determines control of supply
-        centers.
+        A year consists of Spring and Fall turns, followed by Winter
+        adjustments. Supply centers only count after the Fall turn.
       </Italic>
     </section>
 
@@ -162,7 +175,7 @@ const GuideContent: React.FC = () => (
     {/* IV */}
     <section className="max-w-[720px] mx-auto py-14">
       <SectionNum>IV · Your units</SectionNum>
-      <SectionHeading>Two types. That's all.</SectionHeading>
+      <SectionHeading>There are only two unit types.</SectionHeading>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-7">
         <div className="border border-border rounded-lg p-5 flex items-start gap-4 bg-card">
           <div className="size-11 border-[1.5px] border-foreground flex items-center justify-center font-semibold rounded-full shrink-0 text-foreground">
@@ -173,8 +186,8 @@ const GuideContent: React.FC = () => (
               Army
             </h3>
             <p className="text-sm text-muted-foreground m-0">
-              Moves on land. Cannot enter sea spaces, but can be ferried by
-              friendly fleets.
+              Moves across land territories. Armies cannot move into sea spaces,
+              but fleets can convoy them across water.
             </p>
           </div>
         </div>
@@ -187,7 +200,8 @@ const GuideContent: React.FC = () => (
               Fleet
             </h3>
             <p className="text-sm text-muted-foreground m-0">
-              Moves on water and coasts. Can carry armies across the sea.
+              Moves across water and coastal territories (lands bordering water). Fleets are also what
+              make convoys possible.
             </p>
           </div>
         </div>
@@ -198,11 +212,11 @@ const GuideContent: React.FC = () => (
 
     {/* V */}
     <section className="max-w-[1040px] mx-auto py-14">
-      <SectionNum>V · What units can do</SectionNum>
-      <SectionHeading>Each unit receives one order per turn.</SectionHeading>
+      <SectionNum>V · Orders</SectionNum>
+      <SectionHeading>Every unit gets one order each turn.</SectionHeading>
       <p className="text-[17px] leading-[1.65] text-foreground/80 mt-[18px] max-w-[680px]">
-        There are four kinds of orders. Support is the most important — units
-        are weak alone, but powerful together.
+        There are four kinds of orders, with Support being the most important. A single unit is
+        weak by itself, but coordinated units become difficult to stop.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-8">
         {[
@@ -210,25 +224,25 @@ const GuideContent: React.FC = () => (
             label: "Hold",
             src: "/guidecontent/fig2.png",
             syntax: "Army Budapest Holds",
-            desc: "The unit stays in place and defends its territory - thwarting a potential attack from Galicia.",
+            desc: "The unit stays where it is and defends the territory - here preventing any potential attack from Galicia.",
           },
           {
             label: "Move",
             src: "/guidecontent/fig3.png",
             syntax: "Fleet NRG – Norway",
-            desc: "The unit advances into a neighboring area - capturing the supply center in Norway.",
+            desc: "The unit attempts to move into a neighboring territory - capturing the supply center in Norway (if held until the Adjustment phase).",
           },
           {
             label: "Support",
             src: "/guidecontent/fig4.png",
             syntax: "Army Rumania Supports Army Budapest – Serbia",
-            desc: "One unit reinforces another, making that one stronger in attack. Units can also support hold orders, making their defense stronger.",
+            desc: "Adds strength to another unit, either for attack or defense. Supporting units do not move themselves.",
           },
           {
             label: "Convoy",
             src: "/guidecontent/fig5.png",
             syntax: "Fleet NTH Convoys Army Edinburgh – Holland",
-            desc: "Fleets can ferry an army across water — sometimes across half the map. A convoy succeeds even if the fleet is under attack - unless it has to retreat.",
+            desc: "Fleets allows an army to travel across water. A convoy succeeds even if the fleet is attacked - unless it has to retreat.",
           },
         ].map(({ label, src, syntax, desc }) => (
           <div
@@ -256,18 +270,17 @@ const GuideContent: React.FC = () => (
     <section className="max-w-[1040px] mx-auto py-14">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-7 lg:gap-14 items-center">
         <div className="lg:order-2">
-          <SectionNum>VI · How combat works</SectionNum>
-          <SectionHeading>Strongest side wins.</SectionHeading>
+          <SectionNum>VI · Combat</SectionNum>
+          <SectionHeading>Support decides most battles.</SectionHeading>
           <Body className="mt-[18px]">
-            Every unit has a strength of one. Each support adds one more. The
-            strongest side wins; the loser is dislodged - it needs to retreat or
-            is destroyed.
+            Every unit has a base strength of one. Each supporting unit adds one
+            more strength.
           </Body>
           <Body>
-            A single unit cannot dislodge another unit on its own — you almost
-            always need support to take territory.
+            If the attacking side is stronger, the defending unit is "dislodged" and has to
+            retreat.
           </Body>
-          <Italic>You cannot dislodge your own units, even with support.</Italic>
+          <Italic>You cannot dislodge your own units, even with support. You cannot support an attack against yourself.</Italic>
         </div>
         <div className="lg:order-1">
           <Shot
@@ -285,33 +298,31 @@ const GuideContent: React.FC = () => (
     <section className="max-w-[1040px] mx-auto py-14">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-7 lg:gap-14 items-center">
         <div>
-          <SectionNum>VII · A bounce</SectionNum>
-          <SectionHeading>Equal strength. Neither moves.</SectionHeading>
+          <SectionNum>VII · Bounces</SectionNum>
+          <SectionHeading>Equal strength means nobody moves.</SectionHeading>
           <Body className="mt-[18px]">
-            When two sides are equally matched, neither can advance — both units
-            stay in place.
+            If two opposing sides have the same strength, neither succeeds.
+            Both units stay where they are.
           </Body>
           <div className="border border-border rounded-lg bg-secondary p-5 my-7">
             <div className="text-[11px] tracking-[0.18em] uppercase text-muted-foreground mb-1.5">
               Rule
             </div>
             <div className="text-[17px] font-medium leading-[1.4] text-foreground">
-              Equal strength = no movement. Both sides bounce in place.
+            Equal strength? No one moves. It always results in a bounce.
             </div>
           </div>
           <Body>
-            Even if your attack fails, it still forces the defending player to
-            hold that unit — which can be useful in itself.
+            Even failed attacks can still matter, because they can block another player units from moving.
           </Body>
           <Italic>
-            This also happens if units try to move into each other's space —
-            neither succeeds.
+            This also applies when two units try to swap places; neither succeeds.
           </Italic>
         </div>
         <Shot
           src="/guidecontent/fig7.png"
           label="1 vs 1 · Bounce"
-          caption="Fig. 07 — Equally matched units — nobody moves into the Black Sea."
+          caption="Fig. 07 — Neither side has enough strength to enter the Black Sea."
         />
       </div>
     </section>
@@ -322,21 +333,21 @@ const GuideContent: React.FC = () => (
     <section className="max-w-[1040px] mx-auto py-14">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-7 lg:gap-14 items-center">
         <div>
-          <SectionNum>VIII · One key tactic</SectionNum>
+          <SectionNum>VIII · A key tactic</SectionNum>
           <SectionHeading>Cutting support.</SectionHeading>
           <Body className="mt-[18px]">
             Support only works if the supporting unit is left alone.
           </Body>
           <Body>
-            If you attack a unit that is giving support, its support is canceled
-            — even if your attack doesn't succeed.
+            If you attack a unit that is giving support, whether it succeeds or not, that support is cut.
           </Body>
-          <Italic>This is often the easiest way to break a strong position.</Italic>
+          <Body>This is one of the most important tactical ideas in the game, and
+            often the easiest way to break strong defenses.</Body>
         </div>
         <Shot
           src="/guidecontent/fig8.png"
           label="Cut support"
-          caption="Fig. 08 — Berlin attacks Silesia and bounces, but Galicia loses their support and bounces with Warsaw."
+          caption="Fig. 08 — Berlin attacks Silesia and bounces, but Galicia loses Silesias support and bounces with Warsaw."
         />
       </div>
     </section>
@@ -350,19 +361,16 @@ const GuideContent: React.FC = () => (
           <SectionNum>IX · Retreats</SectionNum>
           <SectionHeading>Dislodged units must retreat.</SectionHeading>
           <Body className="mt-[18px]">
-            A unit that loses a battle is dislodged — it doesn't disappear
-            immediately, but must retreat to an adjacent empty territory.
+            A defeated unit does not disappear immediately. Instead, it must
+            retreat to an adjacent <em>empty</em> territory.
+          </Body>
+          <Body>
+            It cannot retreat to the territory the attack came from, or to any
+            territory where there was a bounce that turn.
           </Body>
           <Italic>
             If there are retreats, players get an extra turn to decide where to
-            send them.
-          </Italic>
-          <Body>
-            It cannot retreat to the space the attack or its support came from, nor to a space
-            where units bounced that same turn.
-          </Body>
-          <Italic>
-            If there is no valid place to retreat, the unit is destroyed.
+            send them. If there is no legal retreat, the unit is destroyed immediately.
           </Italic>
         </div>
         <Shot
@@ -378,33 +386,38 @@ const GuideContent: React.FC = () => (
     {/* X · Supply centers */}
     <section className="max-w-[720px] mx-auto py-14">
       <SectionNum>X · Supply centers</SectionNum>
-      <SectionHeading>Centers are what matter.</SectionHeading>
+      <SectionHeading>Centers determine your strength.</SectionHeading>
       <Body className="mt-[18px]">
-        At the end of the year, you compare how many centers you control with
-        how many units you have. If you have more centers, you build units. If
-        you have fewer, you remove them.
+        At the end of each year, you compare the number of supply centers you
+        control with the number of units you have on the board.
       </Body>
-      <Body>This is how players grow — or fall behind.</Body>
-      <Italic>In most variants, you can only build on empty home supply centers.</Italic>
+      <Body>If you control more centers than units, you build new units. If you
+        control fewer, you must remove some (you decide which).</Body>
+      <Italic>Most variants only allow new units to be built in empty home centers.</Italic>
     </section>
 
     <blockquote className="max-w-[800px] mx-auto text-center text-[clamp(28px,3.5vw,40px)] leading-[1.2] font-semibold tracking-[-0.02em] text-foreground py-16">
-      The rules are simple. The people are not.
+      The rules are simple. The difficult part is playing the people.
     </blockquote>
 
     {/* XI · The real game */}
     <section className="max-w-[720px] mx-auto py-14">
       <SectionNum>XI · The real game</SectionNum>
-      <SectionHeading>Diplomacy.</SectionHeading>
+      <SectionHeading>Games are decided through negotiation.</SectionHeading>
       <Body className="mt-[18px]">
-        You need other players to succeed, especially early on. You'll form
-        alliances and make plans together. But only one player can win, so those
-        alliances don't last forever.
+        You will spend a lot of time making deals, sharing information, and
+        trying to understand what other players actually want.
       </Body>
-      <Body>There are no binding agreements. Players can promise anything.</Body>
+      <Body>Alliances matter, especially early on. But because only one player can
+        win, alliances eventually become unstable.</Body>
       <Body>
-        Good players aren't just tactical — they understand timing, trust, and
-        when to change sides.
+        Nothing is binding. Players can lie, change plans, or turn on each
+        other at any time.
+      </Body>
+      <Body>
+        Strong players are usually not the loudest or most aggressive. They are
+        the ones who manage trust well and recognize the right moment to shift
+        direction.
       </Body>
     </section>
 
@@ -418,24 +431,32 @@ const GuideContent: React.FC = () => (
         Talk to your neighbors. Make simple plans. Use support to help each
         other. Pay attention to who is working with you — and who isn't.
       </Body>
-      <Body>You'll learn quickly by playing.</Body>
-      <Body>
-        Because this is a game of influencing real people, even if you can't
-        win, you still — even with your last unit — have leverage. One unit can
-        shape major battles and change how the game unfolds. Like in politics,
-        even a small party can decide a big vote.
+      <Body>You'll learn quickly by playing.</Body>     <Body className="mt-[18px]">
+        Start simple. Talk to your neighbors. Make basic agreements. Learn how
+        support works and pay attention to who follows through on their word.
       </Body>
+
+      <Body>
+        Most people understand the rules after a few turns. The difficult part
+        is learning how different players think.
+      </Body>
+
+      <Body>
+        Even if you fall behind, you still matter. A single surviving unit can
+        influence negotiations, block movement, or decide who wins a larger
+        conflict.
+      </Body>
+
       <div className="border border-border rounded-lg bg-secondary p-5 my-7">
         <div className="text-[11px] tracking-[0.18em] uppercase text-muted-foreground mb-1.5">
-          Sportsmanship behaviour
+          About pacing
         </div>
+
         <div className="text-[17px] font-medium leading-[1.4] text-foreground">
-          Games move at a real-life pace — sometimes fast bursts of
-          conversation, then long pauses while people wait to respond when they
-          have time in their life. This is part of the experience. Even if
-          you're losing, try to keep playing your turns; it keeps the game fun
-          for everyone and helps you stay part of better, more engaging games in
-          the future.
+          Games move at a real-life pace. Sometimes conversations are constant;
+          sometimes several hours pass while people are at work, asleep, or
+          thinking about their next move. That slower rhythm is part of what
+          makes the diplomacy feel real.
         </div>
       </div>
     </section>
@@ -446,8 +467,8 @@ const GuideContent: React.FC = () => (
     <section className="max-w-[720px] mx-auto py-14">
       <SectionNum>In short</SectionNum>
       <p className="text-[20px] leading-[1.5] text-foreground mt-4">
-        You move units on a map — but you win by working with people, until the
-        moment comes not to.
+        The rules are not very complicated. Understanding the people around the
+        table is the hard part.
       </p>
     </section>
   </article>
