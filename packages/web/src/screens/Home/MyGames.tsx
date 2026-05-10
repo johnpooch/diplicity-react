@@ -174,6 +174,7 @@ const MyGames: React.FC = () => {
 const MyGamesSuspense: React.FC = () => {
   return (
     <ScreenContainer>
+      <ScreenHeader title="My Games" />
       <MyGames />
     </ScreenContainer>
   );
