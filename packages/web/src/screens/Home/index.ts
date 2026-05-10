@@ -21,4 +21,7 @@ export const Home = {
   DeleteAccount: lazy(() =>
     import("./DeleteAccount").then((m) => ({ default: m.DeleteAccount }))
   ),
+  LearnToPlay: lazy(() =>
+    import("./LearnToPlay").then((m) => ({ default: m.LearnToPlay }))
+  ),
 };
