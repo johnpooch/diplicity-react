@@ -247,17 +247,16 @@ const DrawProposalsScreen: React.FC = () => {
         title="Draw Proposals"
         variant="secondary"
         onNavigateBack={handleBack}
-        rightButton={
-          canProposeDraw ? (
-            <Button variant="outline" size="icon" onClick={handleProposeDraw}>
-              <Plus />
-            </Button>
-          ) : undefined
-        }
       />
       <div className="flex-1 overflow-y-auto">
         <Panel>
           <Panel.Content>
+            {canProposeDraw && (
+              <Button variant="outline" className="w-full mb-4" onClick={handleProposeDraw}>
+                <Plus className="size-4" />
+                Propose draw
+              </Button>
+            )}
             <Tabs value={tab} onValueChange={value => setTab(value as TabValue)}>
               <TabsList className="w-full">
                 <TabsTrigger value="active" className="flex-1">

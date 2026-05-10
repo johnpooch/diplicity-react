@@ -242,6 +242,14 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
                             </Suspense>
                           ),
                         },
+                        {
+                          path: "game",
+                          element: (
+                            <Suspense fallback={<RouteFallback />}>
+                              <GameDetail.GameScreen />
+                            </Suspense>
+                          ),
+                        },
                       ],
                     },
                   ],

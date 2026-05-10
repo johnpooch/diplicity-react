@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useRequiredParams } from "@/hooks";
-import { ArrowLeft, Map, Gavel, MessageCircle } from "lucide-react";
+import { ArrowLeft, Map, Gavel, MessageCircle, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Sidebar,
@@ -20,6 +20,7 @@ const navigationItems = [
   { label: "Map", icon: Map, path: "/game/:gameId/phase/:phaseId" },
   { label: "Orders", icon: Gavel, path: "/game/:gameId/phase/:phaseId/orders" },
   { label: "Chat", icon: MessageCircle, path: "/game/:gameId/phase/:phaseId/chat" },
+  { label: "Game", icon: Settings, path: "/game/:gameId/phase/:phaseId/game" },
 ];
 
 interface GameDetailLayoutProps {

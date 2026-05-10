@@ -9,6 +9,7 @@ import {
   Inbox,
   SearchX,
   Star,
+  Vote,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -32,7 +33,6 @@ import {
 } from "@/components/ui/item";
 import { Notice } from "@/components/Notice";
 import { NationFlag } from "@/components/NationFlag";
-import { GameDropdownMenu } from "@/components/GameDropdownMenu";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
 import { PhaseSelect } from "@/components/PhaseSelect";
@@ -190,14 +190,6 @@ const OrdersScreen: React.FC = () => {
     }
   };
 
-  const handleNavigateToGameInfo = () => {
-    navigate(`/game/${gameId}/phase/${phaseId}/game-info`);
-  };
-
-  const handleNavigateToPlayerInfo = () => {
-    navigate(`/game/${gameId}/phase/${phaseId}/player-info`);
-  };
-
   const nationGroups = buildNationGroups(
     isActivePhase,
     phaseStates,
@@ -223,18 +215,11 @@ const OrdersScreen: React.FC = () => {
     <div className="flex flex-col flex-1 min-h-0">
       <GameDetailAppBar
         title={
-          <div className="flex items-center gap-2">
-            <div className="flex-1 flex flex-col items-center gap-0.5">
-              <PhaseSelect />
-              <Suspense fallback={null}>
-                <PhaseGuidance />
-              </Suspense>
-            </div>
-            <GameDropdownMenu
-              game={game}
-              onNavigateToGameInfo={handleNavigateToGameInfo}
-              onNavigateToPlayerInfo={handleNavigateToPlayerInfo}
-            />
+          <div className="flex flex-col items-center gap-0.5">
+            <PhaseSelect />
+            <Suspense fallback={null}>
+              <PhaseGuidance />
+            </Suspense>
           </div>
         }
         onNavigateBack={() => navigate("/")}
@@ -334,39 +319,56 @@ const OrdersScreen: React.FC = () => {
             <>
               <Separator />
               <Panel.Footer>
-                <div className="flex gap-2 justify-end w-full">
-                  {game.sandbox ? (
-                    <Button
-                      disabled={resolvePhaseMutation.isPending}
-                      onClick={handleResolvePhase}
-                    >
-                      <Play className="size-4" />
-                      Resolve phase
-                    </Button>
-                  ) : (
-                    <>
-                      {hasContent ? (
-                        <Button
-                          disabled={confirmOrdersMutation.isPending}
-                          onClick={handleConfirmOrders}
-                        >
-                          {game.phaseConfirmed ? (
+                <div className="flex gap-2 justify-between w-full">
+                  <div>
+                    {!game.sandbox && game.status === "active" && (
+                      <Button
+                        variant="outline"
+                        onClick={() =>
+                          navigate(
+                            `/game/${gameId}/phase/${phaseId}/draw-proposals`
+                          )
+                        }
+                      >
+                        <Vote className="size-4" />
+                        Draw proposals
+                      </Button>
+                    )}
+                  </div>
+                  <div>
+                    {game.sandbox ? (
+                      <Button
+                        disabled={resolvePhaseMutation.isPending}
+                        onClick={handleResolvePhase}
+                      >
+                        <Play className="size-4" />
+                        Resolve phase
+                      </Button>
+                    ) : (
+                      <>
+                        {hasContent ? (
+                          <Button
+                            disabled={confirmOrdersMutation.isPending}
+                            onClick={handleConfirmOrders}
+                          >
+                            {game.phaseConfirmed ? (
+                              <CheckSquare className="size-4" />
+                            ) : (
+                              <Square className="size-4" />
+                            )}
+                            {game.phaseConfirmed
+                              ? "Orders confirmed"
+                              : "Confirm orders"}
+                          </Button>
+                        ) : (
+                          <Button disabled>
                             <CheckSquare className="size-4" />
-                          ) : (
-                            <Square className="size-4" />
-                          )}
-                          {game.phaseConfirmed
-                            ? "Orders confirmed"
-                            : "Confirm orders"}
-                        </Button>
-                      ) : (
-                        <Button disabled>
-                          <CheckSquare className="size-4" />
-                          Orders confirmed
-                        </Button>
-                      )}
-                    </>
-                  )}
+                            Orders confirmed
+                          </Button>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               </Panel.Footer>
             </>
