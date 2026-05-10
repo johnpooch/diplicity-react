@@ -8,7 +8,6 @@ import {
 } from "react-router";
 import { QueryClient } from "@tanstack/react-query";
 import { Login } from "./screens/Login";
-import { LearnToPlayPublic } from "./screens/LearnToPlayPublic";
 import { Register } from "./screens/Register";
 import { CheckEmail } from "./screens/CheckEmail";
 import { ForgotPassword } from "./screens/ForgotPassword";
@@ -254,10 +253,6 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
             {
               path: "/",
               element: <Login />,
-            },
-            {
-              path: "/learn-to-play",
-              element: <LearnToPlayPublic />,
             },
             {
               path: "/register",

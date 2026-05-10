@@ -95,7 +95,6 @@ const Community: React.FC = () => {
 const CommunitySuspense: React.FC = () => {
   return (
     <ScreenContainer>
-      <ScreenHeader title="Community" showUserAvatar />
       <Community />
     </ScreenContainer>
   );

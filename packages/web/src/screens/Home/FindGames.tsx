@@ -191,7 +191,6 @@ const FindGamesSuspense: React.FC = () => {
     <ScreenContainer>
       <ScreenHeader
         title="Find Games"
-        showUserAvatar
         actions={
           <Button
             variant="ghost"
