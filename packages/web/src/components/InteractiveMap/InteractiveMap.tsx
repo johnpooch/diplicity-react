@@ -158,6 +158,20 @@ const InteractiveMap = (props: InteractiveMapProps) => {
     renderableProvinces.includes(province.id)
   );
 
+  const toRgba = (color: string, opacity: number): string => {
+    const hex = color.match(/^#([0-9a-fA-F]{6})$/);
+    if (hex) {
+      const r = parseInt(hex[1].slice(0, 2), 16);
+      const g = parseInt(hex[1].slice(2, 4), 16);
+      const b = parseInt(hex[1].slice(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    }
+    return color.replace(
+      /rgb(a?)\((\d+), (\d+), (\d+)(, [\d.]+)?\)/,
+      `rgba($2, $3, $4, ${opacity})`
+    );
+  };
+
   const getFill = (provinceId: string) => {
     const isSelected = props.selected.includes(provinceId);
     const isHighlighted = props.highlighted?.includes(provinceId);
@@ -168,15 +182,15 @@ const InteractiveMap = (props: InteractiveMapProps) => {
 
     // For supply centers with nation colors
     if (supplyCenter) {
+      const unit = props.phase.units.find(u => u.province.id === provinceId);
+      const nationName = unit ? unit.nation.name : supplyCenter.nation.name;
       const color = props.variant.nations.find(
-        n => n.name === supplyCenter.nation.name
+        n => n.name === nationName
       )?.color;
       if (!color) throw new Error("Color not found");
 
-      return color.replace(
-        /rgb(a?)\((\d+), (\d+), (\d+)(, [\d.]+)?\)/,
-        `rgba($2, $3, $4, ${isSelected ? 0.3 : isHighlighted ? 0.3 : isHovered ? 0.4 : 0.5})`
-      );
+      const opacity = isSelected ? 0.3 : isHighlighted ? 0.3 : isHovered ? 0.6 : 0.5;
+      return toRgba(color, opacity);
     }
 
     // For non-supply center provinces
