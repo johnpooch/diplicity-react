@@ -24,3 +24,5 @@ opentelemetry-instrumentation-django>=0.41b0,<1.0
 opentelemetry-instrumentation-psycopg2>=0.41b0,<1.0
 opentelemetry-instrumentation-requests>=0.41b0,<1.0
 resend>=2.0.0,<3.0
+jsonschema>=4.0.0,<5.0
+PyYAML>=6.0,<7.0
