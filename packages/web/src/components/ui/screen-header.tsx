@@ -11,14 +11,15 @@ interface ScreenHeaderProps {
 
 function ScreenHeader({ title, actions }: ScreenHeaderProps) {
   const { pathname } = useLocation();
-  const onLearnToPlay = pathname.endsWith("/learn-to-play");
+  const mainPaths = ["/", "/find-games", "/create-game", "/community"];
+  const showLearnToPlay = mainPaths.includes(pathname);
 
   return (
     <div className="flex items-center justify-between gap-3">
       <h1 className="text-2xl font-bold">{title}</h1>
       <div className="flex items-center gap-6">
         {actions}
-        {!onLearnToPlay && (
+        {showLearnToPlay && (
           <Link
             to="/learn-to-play"
             className="md:hidden flex items-center justify-center size-8 text-foreground hover:text-foreground transition-colors"

@@ -64,6 +64,9 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
     isActive: location.pathname === item.path,
   }));
 
+  const mainPaths = ["/", "/find-games", "/create-game", "/community"];
+  const showLearnToPlay = mainPaths.includes(location.pathname);
+
   const bottomClasses = cn("border-t bg-background", "block md:hidden");
 
   return (
@@ -95,16 +98,18 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
               />
             </SidebarContent>
             <SidebarFooter>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Learn how to play">
-                    <Link to="/learn-to-play">
-                      <CircleHelp />
-                      <span>Learn how to play</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
+              {showLearnToPlay && (
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Learn how to play">
+                      <Link to="/learn-to-play">
+                        <CircleHelp />
+                        <span>Learn how to play</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              )}
               <Suspense fallback={null}>
                 <SidebarUserArea />
               </Suspense>
