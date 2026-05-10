@@ -1073,6 +1073,35 @@ class TestGetOptionsForOrder:
         assert options == []
 
     @pytest.mark.django_db
+    def test_named_coast_source_falls_back_to_parent_province(self, test_phase_state, classical_stp_sc_province):
+        options = {
+            "England": {
+                "stp": {
+                    "Next": {
+                        "Hold": {"Next": {"stp/sc": {"Next": {}, "Type": "SrcProvince"}}, "Type": "OrderType"},
+                        "Move": {
+                            "Next": {
+                                "stp/sc": {
+                                    "Next": {
+                                        "bot": {"Next": {}, "Type": "Province"},
+                                        "fin": {"Next": {}, "Type": "Province"},
+                                    },
+                                    "Type": "SrcProvince",
+                                }
+                            },
+                            "Type": "OrderType",
+                        },
+                    },
+                    "Type": "Province",
+                }
+            }
+        }
+        order = Order(phase_state=test_phase_state, source=classical_stp_sc_province, order_type=None, target=None, aux=None)
+        result = get_options_for_order(transform_options(options), order)
+        assert "Hold" in result
+        assert "Move" in result
+
+    @pytest.mark.django_db
     def test_invalid_source_raises_error(self, sample_options, test_phase_state, classical_london_province):
         order = Order(
             phase_state=test_phase_state, source=classical_london_province, order_type=None, target=None, aux=None
