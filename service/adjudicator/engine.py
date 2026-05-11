@@ -1051,26 +1051,19 @@ class AttackStrengthDecision(Decision):
         return 1 + active
 
     def _default(self) -> Any:
-        defender_nation = self._defender_nation_optimistic()
+        defender_nation = self._defender_nation(optimistic=True)
         if defender_nation == self.move.unit.nation:
             return 0
         supports = self.context.attack_supports_of(self.move)
         active = sum(1 for s in supports if self.context.support_active(s, defender_nation))
         return 1 + active
 
-    def _defender_nation(self) -> Any:
-        """Returns the effective defender's nation, None for empty, or _UNDECIDED."""
-        h2h = self.context.head_to_head_opponent(self.move)
-        if h2h is not None:
-            return h2h.unit.nation
-        defender_dec = self.context.effective_defender.get(self.move.target)
-        if defender_dec is None or not defender_dec.resolved:
-            return _UNDECIDED
-        defender = defender_dec.value
-        return defender.unit.nation if defender is not None else None
-
-    def _defender_nation_optimistic(self) -> Optional[str]:
-        """Same as _defender_nation but assumes 'defender stays' when undecided."""
+    def _defender_nation(self, optimistic: bool = False) -> Any:
+        """
+        The effective defender's nation, None for empty, or _UNDECIDED.
+        If `optimistic`, assumes 'defender stays' when undecided rather
+        than returning _UNDECIDED.
+        """
         h2h = self.context.head_to_head_opponent(self.move)
         if h2h is not None:
             return h2h.unit.nation
@@ -1078,6 +1071,8 @@ class AttackStrengthDecision(Decision):
         if defender_dec is not None and defender_dec.resolved:
             defender = defender_dec.value
             return defender.unit.nation if defender is not None else None
+        if not optimistic:
+            return _UNDECIDED
         order = self.context.orders.get(self.move.target)
         return order.unit.nation if order is not None else None
 
@@ -1102,13 +1097,13 @@ class DefendStrengthDecision(Decision):
         supports = self.context.attack_supports_of(self.move)
         if not all(self.context.support_determined(s) for s in supports):
             return _UNDECIDED
-        active = sum(1 for s in supports if self.context.support_active(s))
-        return 1 + active
+        return self._strength(supports)
 
     def _default(self) -> Any:
-        supports = self.context.attack_supports_of(self.move)
-        active = sum(1 for s in supports if self.context.support_active(s))
-        return 1 + active
+        return self._strength(self.context.attack_supports_of(self.move))
+
+    def _strength(self, supports: List[SupportOrder]) -> int:
+        return 1 + sum(1 for s in supports if self.context.support_active(s))
 
 
 class HoldStrengthDecision(Decision):
@@ -1129,8 +1124,7 @@ class HoldStrengthDecision(Decision):
         supports = self.context.hold_supports_of(order)
         if not all(self.context.support_determined(s) for s in supports):
             return _UNDECIDED
-        active = sum(1 for s in supports if self.context.support_active(s))
-        return 1 + active
+        return self._strength(supports)
 
     def _default(self) -> Any:
         order = self.context.orders.get(self.province)
@@ -1140,9 +1134,10 @@ class HoldStrengthDecision(Decision):
             move_dec = self.context.move_resolution.get(order)
             if move_dec is not None and move_dec.value == ResolutionType.OK:
                 return 0
-        supports = self.context.hold_supports_of(order)
-        active = sum(1 for s in supports if self.context.support_active(s))
-        return 1 + active
+        return self._strength(self.context.hold_supports_of(order))
+
+    def _strength(self, supports: List[SupportOrder]) -> int:
+        return 1 + sum(1 for s in supports if self.context.support_active(s))
 
 
 class PreventStrengthDecision(Decision):
@@ -1167,8 +1162,7 @@ class PreventStrengthDecision(Decision):
         supports = self.context.attack_supports_of(self.move)
         if not all(self.context.support_determined(s) for s in supports):
             return _UNDECIDED
-        active = sum(1 for s in supports if self.context.support_active(s))
-        return 1 + active
+        return self._strength(supports)
 
     def _default(self) -> Any:
         h2h = self.context.head_to_head_opponent(self.move)
@@ -1176,9 +1170,10 @@ class PreventStrengthDecision(Decision):
             h2h_dec = self.context.move_resolution.get(h2h)
             if h2h_dec is not None and h2h_dec.value == ResolutionType.OK:
                 return 0
-        supports = self.context.attack_supports_of(self.move)
-        active = sum(1 for s in supports if self.context.support_active(s))
-        return 1 + active
+        return self._strength(self.context.attack_supports_of(self.move))
+
+    def _strength(self, supports: List[SupportOrder]) -> int:
+        return 1 + sum(1 for s in supports if self.context.support_active(s))
 
 
 class DislodgementDecision(Decision):
@@ -1205,12 +1200,10 @@ class DislodgementDecision(Decision):
         return False
 
     def _attacker_cannot_succeed(self, attacker: MoveOrder) -> bool:
-        if attacker.status == ResolutionType.ILLEGAL:
-            return True
+        # attackers_into filters out ILLEGAL, so the only way an attacker
+        # in this list can fail is by bouncing.
         move_dec = self.context.move_resolution.get(attacker)
-        if move_dec is not None and move_dec.value == ResolutionType.BOUNCE:
-            return True
-        return False
+        return move_dec is not None and move_dec.value == ResolutionType.BOUNCE
 
 
 class ConvoyPathDecision(Decision):
