@@ -4029,3 +4029,469 @@ def test_h_16_contested_for_both_coasts():
 
     assert not has_unit(result, "france", "Fleet", "spa/sc")
     assert resolution_for(result, "wes") == "ILLEGAL"
+
+
+# === 6.I. BUILDING ===
+
+
+def test_i_1_too_many_build_orders():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_unit("germany", "Army", "ber")
+        .with_unit("germany", "Army", "mun")
+        .with_supply_center("germany", "ber")
+        .with_supply_center("germany", "kie")
+        .with_supply_center("germany", "mun")
+        .with_order(
+            "germany", source=None, order_type="Build", target="war", unit_type="Army"
+        )
+        .with_order(
+            "germany", source=None, order_type="Build", target="kie", unit_type="Army"
+        )
+        .with_order(
+            "germany", source=None, order_type="Build", target="mun", unit_type="Army"
+        )
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert not has_unit(result, "germany", "Army", "war")
+    assert has_unit(result, "germany", "Army", "kie")
+    assert sum(1 for u in result["units"] if u["location"] == "mun") == 1
+    assert resolution_for(result, "war") == "ILLEGAL"
+    assert resolution_for(result, "kie") == "OK"
+    assert resolution_for(result, "mun") == "ILLEGAL"
+
+
+def test_i_2_fleets_cannot_be_built_in_land_areas():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_supply_center("russia", "mos")
+        .with_order(
+            "russia", source=None, order_type="Build", target="mos", unit_type="Fleet"
+        )
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert not has_unit(result, "russia", "Fleet", "mos")
+    assert resolution_for(result, "mos") == "ILLEGAL"
+
+
+def test_i_3_supply_center_must_be_empty_for_building():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_unit("germany", "Army", "ber")
+        .with_supply_center("germany", "ber")
+        .with_supply_center("germany", "kie")
+        .with_order(
+            "germany", source=None, order_type="Build", target="ber", unit_type="Army"
+        )
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert sum(1 for u in result["units"] if u["location"] == "ber") == 1
+    assert resolution_for(result, "ber") == "ILLEGAL"
+
+
+def test_i_4_both_coasts_must_be_empty_for_building():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_unit("russia", "Fleet", "stp/sc")
+        .with_supply_center("russia", "stp")
+        .with_supply_center("russia", "mos")
+        .with_order(
+            "russia",
+            source=None,
+            order_type="Build",
+            target="stp/nc",
+            unit_type="Fleet",
+        )
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert not has_unit(result, "russia", "Fleet", "stp/nc")
+    assert resolution_for(result, "stp/nc") == "ILLEGAL"
+
+
+def test_i_5_building_in_home_supply_center_that_is_not_owned():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_supply_center("germany", "kie")
+        .with_supply_center("germany", "mun")
+        .with_order(
+            "germany", source=None, order_type="Build", target="ber", unit_type="Army"
+        )
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert not has_unit(result, "germany", "Army", "ber")
+    assert resolution_for(result, "ber") == "ILLEGAL"
+
+
+def test_i_6_building_in_owned_non_home_supply_center():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_supply_center("germany", "war")
+        .with_order(
+            "germany", source=None, order_type="Build", target="war", unit_type="Army"
+        )
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert not has_unit(result, "germany", "Army", "war")
+    assert resolution_for(result, "war") == "ILLEGAL"
+
+
+def test_i_7_only_one_build_in_a_home_supply_center():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_supply_center("russia", "mos")
+        .with_supply_center("russia", "war")
+        .with_supply_center("russia", "stp")
+        .with_order(
+            "russia", source=None, order_type="Build", target="mos", unit_type="Army"
+        )
+        .with_order(
+            "russia", source=None, order_type="Build", target="mos", unit_type="Army"
+        )
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert sum(1 for u in result["units"] if u["location"] == "mos") == 1
+    resolutions = [
+        r["resolution"] for r in result["resolutions"] if r["province"] == "mos"
+    ]
+    assert resolutions.count("OK") == 1
+    assert resolutions.count("ILLEGAL") == 1
+
+
+# === 6.J. CIVIL DISORDER AND DISBANDS ===
+
+
+def test_j_1_too_many_disband_orders():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_unit("france", "Army", "par")
+        .with_unit("france", "Army", "pic")
+        .with_supply_center("france", "par")
+        .with_order(
+            "france", source="lyo", order_type="Disband"
+        )
+        .with_order(
+            "france", source="pic", order_type="Disband"
+        )
+        .with_order(
+            "france", source="par", order_type="Disband"
+        )
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert has_unit(result, "france", "Army", "par")
+    assert not has_unit(result, "france", "Army", "pic")
+    assert resolution_for(result, "lyo") == "ILLEGAL"
+    assert resolution_for(result, "pic") == "OK"
+    assert resolution_for(result, "par") == "ILLEGAL"
+
+
+def test_j_2_removing_the_same_unit_twice():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_unit("france", "Army", "par")
+        .with_unit("france", "Army", "pic")
+        .with_unit("france", "Fleet", "bre")
+        .with_supply_center("france", "par")
+        .with_order("france", source="par", order_type="Disband")
+        .with_order("france", source="par", order_type="Disband")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert not has_unit(result, "france", "Army", "par")
+    france_units = [u for u in result["units"] if u["nation"] == "france"]
+    assert len(france_units) == 1
+
+
+def test_j_3_civil_disorder_two_armies_with_different_distance():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_unit("russia", "Army", "lvn")
+        .with_unit("russia", "Army", "swe")
+        .with_supply_center("russia", "stp")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert has_unit(result, "russia", "Army", "lvn")
+    assert not has_unit(result, "russia", "Army", "swe")
+
+
+def test_j_4_civil_disorder_two_armies_with_equal_distance():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_unit("russia", "Army", "lvn")
+        .with_unit("russia", "Army", "ukr")
+        .with_supply_center("russia", "mos")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert not has_unit(result, "russia", "Army", "lvn")
+    assert has_unit(result, "russia", "Army", "ukr")
+
+
+def test_j_5_civil_disorder_two_fleets_with_different_distance():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_unit("russia", "Fleet", "ska")
+        .with_unit("russia", "Fleet", "ber")
+        .with_supply_center("russia", "stp")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert has_unit(result, "russia", "Fleet", "ska")
+    assert not has_unit(result, "russia", "Fleet", "ber")
+
+
+def test_j_6_civil_disorder_two_fleets_with_equal_distance():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_unit("russia", "Fleet", "bot")
+        .with_unit("russia", "Fleet", "nth")
+        .with_supply_center("russia", "mun")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert not has_unit(result, "russia", "Fleet", "bot")
+    assert has_unit(result, "russia", "Fleet", "nth")
+
+
+def test_j_7_civil_disorder_two_fleets_and_army_with_equal_distance():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_unit("russia", "Army", "boh")
+        .with_unit("russia", "Fleet", "ska")
+        .with_unit("russia", "Fleet", "nth")
+        .with_supply_center("russia", "stp")
+        .with_supply_center("russia", "war")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert has_unit(result, "russia", "Army", "boh")
+    assert has_unit(result, "russia", "Fleet", "ska")
+    assert not has_unit(result, "russia", "Fleet", "nth")
+
+
+def test_j_8_civil_disorder_fleet_shorter_than_army():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_unit("russia", "Army", "tyr")
+        .with_unit("russia", "Fleet", "bal")
+        .with_supply_center("russia", "war")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert not has_unit(result, "russia", "Army", "tyr")
+    assert has_unit(result, "russia", "Fleet", "bal")
+
+
+def test_j_9_civil_disorder_must_be_counted_from_both_coasts():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_unit("russia", "Army", "gre")
+        .with_unit("russia", "Army", "sev")
+        .with_unit("russia", "Fleet", "bal")
+        .with_supply_center("russia", "stp")
+        .with_supply_center("russia", "sev")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert not has_unit(result, "russia", "Army", "gre")
+    assert has_unit(result, "russia", "Army", "sev")
+    assert has_unit(result, "russia", "Fleet", "bal")
+
+
+def test_j_9b_civil_disorder_other_coast_for_skagerrak():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_unit("russia", "Army", "gre")
+        .with_unit("russia", "Army", "sev")
+        .with_unit("russia", "Fleet", "ska")
+        .with_supply_center("russia", "stp")
+        .with_supply_center("russia", "sev")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert not has_unit(result, "russia", "Army", "gre")
+    assert has_unit(result, "russia", "Army", "sev")
+    assert has_unit(result, "russia", "Fleet", "ska")
+
+
+def test_j_10_civil_disorder_counting_convoying_distance():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_unit("italy", "Army", "gre")
+        .with_unit("italy", "Army", "pie")
+        .with_supply_center("italy", "nap")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert has_unit(result, "italy", "Army", "gre")
+    assert not has_unit(result, "italy", "Army", "pie")
+
+
+def test_j_11_distance_to_owned_supply_center():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_unit("italy", "Army", "war")
+        .with_unit("italy", "Army", "tus")
+        .with_supply_center("italy", "war")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert has_unit(result, "italy", "Army", "war")
+    assert not has_unit(result, "italy", "Army", "tus")
+
+
+def test_get_options_in_adjustment_phase_includes_builds_for_surplus_nation():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_supply_center("russia", "mos")
+        .with_supply_center("russia", "stp")
+        .build()
+    )
+
+    options = get_options(variant, state)
+    build_targets = {
+        (o["target"], o["unitType"]) for o in options if o["orderType"] == "Build"
+    }
+
+    assert ("mos", "Army") in build_targets
+    assert ("stp", "Army") in build_targets
+    assert ("stp/nc", "Fleet") in build_targets
+    assert ("stp/sc", "Fleet") in build_targets
+    assert ("mos", "Fleet") not in build_targets
+
+
+def test_get_options_in_adjustment_phase_includes_disbands_for_deficit_nation():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_unit("france", "Army", "par")
+        .with_unit("france", "Army", "pic")
+        .build()
+    )
+
+    options = get_options(variant, state)
+    disband_sources = {
+        o["source"] for o in options if o["orderType"] == "Disband"
+    }
+
+    assert disband_sources == {"par", "pic"}
+
+
+def test_get_options_in_adjustment_phase_excludes_occupied_home_centers():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_unit("russia", "Army", "mos")
+        .with_supply_center("russia", "mos")
+        .with_supply_center("russia", "stp")
+        .build()
+    )
+
+    options = get_options(variant, state)
+    build_targets = {o["target"] for o in options if o["orderType"] == "Build"}
+
+    assert "mos" not in build_targets
+    assert "stp/nc" in build_targets
+
+
+def test_get_options_in_adjustment_phase_returns_empty_for_balanced_nations():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_unit("germany", "Army", "ber")
+        .with_supply_center("germany", "ber")
+        .build()
+    )
+
+    options = get_options(variant, state)
+
+    assert options == []

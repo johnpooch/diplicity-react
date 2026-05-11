@@ -278,7 +278,7 @@ class Order(abc.ABC):
     # becomes the order's `failure_reason`. Order subclasses override.
     LEGALITY_CHECKS: ClassVar[List[Type[LegalityCheck]]] = []
 
-    def __init__(self, unit: Unit) -> None:
+    def __init__(self, unit: Optional[Unit]) -> None:
         self.unit = unit
         self.status: Optional[str] = None
         self.failure_reason: Optional[str] = None
@@ -649,7 +649,12 @@ class RetreatOrder(Order):
 
 @Order.register(OrderType.DISBAND)
 class DisbandOrder(Order):
-    """A dislodged unit's instruction to disband instead of retreating."""
+    """
+    Disband an existing unit. Issued in two distinct contexts: by a
+    dislodged unit during the Retreat phase as an alternative to
+    retreating, and by a power during the Adjustment phase to reduce
+    its unit count to match its supply-center count.
+    """
 
     LEGALITY_CHECKS: ClassVar[List[Type[LegalityCheck]]] = []
 
@@ -663,6 +668,46 @@ class DisbandOrder(Order):
         via_convoy: bool,
     ) -> "DisbandOrder":
         return cls(unit)
+
+
+# === Adjustment-phase orders ===
+
+
+@Order.register(OrderType.BUILD)
+class BuildOrder(Order):
+    """
+    Build a new unit at one of the power's vacant home supply centers
+    (or any owned supply center if the variant declares
+    `allow-builds-in-non-home-centers`). Legality is enforced by the
+    AdjustmentPhaseResolver because some checks depend on the full
+    set of submitted builds (e.g. duplicate target) and on aggregates
+    that don't fit the static LegalityCheck protocol.
+    """
+
+    LEGALITY_CHECKS: ClassVar[List[Type[LegalityCheck]]] = []
+
+    def __init__(
+        self, nation: str, location: str, unit_type: Optional[str]
+    ) -> None:
+        super().__init__(unit=None)
+        self.nation = nation
+        self.location = location
+        self.unit_type = unit_type
+
+    @classmethod
+    def _build(
+        cls,
+        unit: Unit,
+        target: Optional[str],
+        aux: Optional[str],
+        unit_type: Optional[str],
+        via_convoy: bool,
+    ) -> "BuildOrder":
+        # Build orders are not constructed via Order.from_wire — they're
+        # parsed directly by AdjustmentPhaseResolver because they have no
+        # existing unit. ValueError makes this drop quietly from Movement
+        # / Retreat parsing paths.
+        raise ValueError("Build orders are only valid in the Adjustment phase")
 
 
 # === Convoy path finding ===
@@ -2229,6 +2274,424 @@ class RetreatPhaseResolver(PhaseResolver):
         return None
 
 
+# === AdjustmentPhaseResolver ===
+
+
+@PhaseResolver.register(Phase.ADJUSTMENT)
+class AdjustmentPhaseResolver(PhaseResolver):
+    """
+    Resolve the Adjustment phase. Each nation reconciles its unit count
+    with its owned-supply-center count: shortfall powers build, surplus
+    powers disband. Excess build / disband orders fail in the order
+    submitted. Disband shortfalls are filled by civil disorder
+    (DATC 6.J.3–6.J.11): remove units furthest from any owned supply
+    center, with fleets preferred over armies and ties broken
+    alphabetically by location id.
+
+    Civil-disorder distance ignores pass restrictions per
+    DATC 6.J.5/6.J.6 footnotes — any adjacency counts as a hop. The
+    target supply centers are the nation's currently-owned ones
+    (DATC 6.J.11, 2023 rules).
+    """
+
+    BUILD_TOO_MANY = "Nation has already built its allowed number of units."
+    BUILD_NOT_SUPPLY_CENTER = "Build location is not a supply center."
+    BUILD_NOT_OWNED = "Build location is not owned by this nation."
+    BUILD_NOT_HOME = "Build location is not a home supply center for this nation."
+    BUILD_OCCUPIED = "Build location is already occupied."
+    BUILD_DUPLICATE_TARGET = (
+        "Another build for this province has already been ordered."
+    )
+    BUILD_INVALID_UNIT_TYPE = "Build order has an invalid unit type."
+    BUILD_FLEET_IN_LANDLOCKED = "Fleets cannot be built in landlocked provinces."
+    BUILD_NEEDS_COAST = (
+        "A fleet build in a multi-coast province must specify a named coast."
+    )
+    DISBAND_NO_SUCH_UNIT = "No unit of this nation exists at the source location."
+    DISBAND_DUPLICATE = "This unit has already been ordered to disband."
+    DISBAND_TOO_MANY = "Nation has already disbanded its required number of units."
+
+    ALLOW_NON_HOME = "allow-builds-in-non-home-centers"
+
+    def __init__(self, state: State, variant: Variant) -> None:
+        self.state = state
+        self.variant = variant
+        self.units_by_loc: Dict[str, Unit] = {
+            u.location: u for u in state.units if not u.dislodged
+        }
+        self.owned_by_nation: Dict[str, List[str]] = {}
+        for sc in state.supply_centers:
+            self.owned_by_nation.setdefault(sc.nation, []).append(sc.province)
+        self.parsed_orders: List[Order] = []
+        self.civil_disorder_disbands: List[Unit] = []
+
+    def resolve(self) -> List[State]:
+        self._parse_orders()
+        self._resolve_orders()
+        self._apply_civil_disorder()
+        return self._build_next_states()
+
+    def _parse_orders(self) -> None:
+        for raw in self.state.orders:
+            if raw.order_type == OrderType.BUILD:
+                target = raw.target if raw.target is not None else raw.source
+                order = BuildOrder(
+                    nation=raw.nation,
+                    location=target if target is not None else "",
+                    unit_type=raw.unit_type,
+                )
+                self.parsed_orders.append(order)
+            elif raw.order_type == OrderType.DISBAND:
+                unit = _unit_for_source(
+                    self.variant, self.units_by_loc, raw.source or ""
+                )
+                if unit is None or unit.nation != raw.nation:
+                    placeholder = DisbandOrder(
+                        Unit(
+                            nation=raw.nation,
+                            type=Unit.ARMY,
+                            location=raw.source or "",
+                        )
+                    )
+                    placeholder.status = ResolutionType.ILLEGAL
+                    placeholder.failure_reason = self.DISBAND_NO_SUCH_UNIT
+                    self.parsed_orders.append(placeholder)
+                else:
+                    self.parsed_orders.append(DisbandOrder(unit))
+
+    def _resolve_orders(self) -> None:
+        for nation in self._nations_with_orders():
+            delta = self._delta_for(nation)
+            if delta > 0:
+                self._resolve_builds_for(nation, delta)
+            elif delta < 0:
+                self._resolve_disbands_for(nation, -delta)
+            else:
+                self._mark_no_op_orders(nation)
+
+    def _nations_with_orders(self) -> List[str]:
+        seen: List[str] = []
+        for order in self.parsed_orders:
+            nation = self._nation_of(order)
+            if nation not in seen:
+                seen.append(nation)
+        return seen
+
+    def _nation_of(self, order: Order) -> str:
+        if isinstance(order, BuildOrder):
+            return order.nation
+        if isinstance(order, DisbandOrder) and order.unit is not None:
+            return order.unit.nation
+        return ""
+
+    def _delta_for(self, nation: str) -> int:
+        owned = len(self.owned_by_nation.get(nation, []))
+        units = sum(1 for u in self.state.units if u.nation == nation and not u.dislodged)
+        return owned - units
+
+    def _resolve_builds_for(self, nation: str, allowed: int) -> None:
+        successful_targets: set = set()
+        successful_count = 0
+        for order in self.parsed_orders:
+            if not isinstance(order, BuildOrder) or order.nation != nation:
+                continue
+            if order.status is not None:
+                continue
+            failure = self._build_failure_reason(order, successful_targets)
+            if failure is not None:
+                order.status = ResolutionType.ILLEGAL
+                order.failure_reason = failure
+                continue
+            if successful_count >= allowed:
+                order.status = ResolutionType.ILLEGAL
+                order.failure_reason = self.BUILD_TOO_MANY
+                continue
+            order.status = ResolutionType.OK
+            successful_targets.add(self.variant.parent_of(order.location))
+            successful_count += 1
+
+    def _build_failure_reason(
+        self, order: BuildOrder, successful_targets: set
+    ) -> Optional[str]:
+        if order.unit_type not in (Unit.ARMY, Unit.FLEET):
+            return self.BUILD_INVALID_UNIT_TYPE
+        if order.location not in self.variant.provinces and order.location not in self.variant.named_coasts:
+            return self.BUILD_NOT_SUPPLY_CENTER
+        parent = self.variant.parent_of(order.location)
+        province = self.variant.provinces.get(parent)
+        if province is None or not province.supply_center:
+            return self.BUILD_NOT_SUPPLY_CENTER
+        owned = set(self.owned_by_nation.get(order.nation, []))
+        if parent not in owned:
+            return self.BUILD_NOT_OWNED
+        if (
+            self.ALLOW_NON_HOME not in self.variant.adjudication_modifiers
+            and province.home_nation != order.nation
+        ):
+            return self.BUILD_NOT_HOME
+        if self._province_occupied(parent):
+            return self.BUILD_OCCUPIED
+        if parent in successful_targets:
+            return self.BUILD_DUPLICATE_TARGET
+        if order.unit_type == Unit.FLEET:
+            if order.location == parent:
+                if self.variant.coasts_of(parent):
+                    return self.BUILD_NEEDS_COAST
+                if not self.variant.has_fleet_access(parent):
+                    return self.BUILD_FLEET_IN_LANDLOCKED
+            else:
+                if order.location not in self.variant.named_coasts:
+                    return self.BUILD_FLEET_IN_LANDLOCKED
+        else:
+            if order.location in self.variant.named_coasts:
+                return self.BUILD_INVALID_UNIT_TYPE
+        return None
+
+    def _province_occupied(self, parent: str) -> bool:
+        for unit in self.units_by_loc.values():
+            if self.variant.parent_of(unit.location) == parent:
+                return True
+        return False
+
+    def _resolve_disbands_for(self, nation: str, required: int) -> None:
+        successful_locations: set = set()
+        successful_count = 0
+        for order in self.parsed_orders:
+            if not isinstance(order, DisbandOrder):
+                continue
+            if order.unit is None or order.unit.nation != nation:
+                continue
+            if order.status == ResolutionType.ILLEGAL:
+                continue
+            if order.status is not None:
+                continue
+            parent = self.variant.parent_of(order.unit.location)
+            if parent in successful_locations:
+                order.status = ResolutionType.ILLEGAL
+                order.failure_reason = self.DISBAND_DUPLICATE
+                continue
+            if successful_count >= required:
+                order.status = ResolutionType.ILLEGAL
+                order.failure_reason = self.DISBAND_TOO_MANY
+                continue
+            order.status = ResolutionType.OK
+            successful_locations.add(parent)
+            successful_count += 1
+
+    def _apply_civil_disorder(self) -> None:
+        for nation in self._all_nations():
+            delta = self._delta_for(nation)
+            if delta >= 0:
+                continue
+            required = -delta
+            already_disbanded = self._disbanded_parents(nation)
+            if len(already_disbanded) >= required:
+                continue
+            shortfall = required - len(already_disbanded)
+            remaining = [
+                u
+                for u in self.state.units
+                if u.nation == nation
+                and not u.dislodged
+                and self.variant.parent_of(u.location) not in already_disbanded
+            ]
+            ranked = self._rank_for_civil_disorder(nation, remaining)
+            for unit in ranked[:shortfall]:
+                self.civil_disorder_disbands.append(unit)
+
+    def _all_nations(self) -> List[str]:
+        seen: List[str] = []
+        for n in self.owned_by_nation:
+            if n not in seen:
+                seen.append(n)
+        for u in self.state.units:
+            if u.nation not in seen:
+                seen.append(u.nation)
+        return seen
+
+    def _disbanded_parents(self, nation: str) -> set:
+        return {
+            self.variant.parent_of(o.unit.location)
+            for o in self.parsed_orders
+            if isinstance(o, DisbandOrder)
+            and o.unit is not None
+            and o.unit.nation == nation
+            and o.status == ResolutionType.OK
+        }
+
+    def _rank_for_civil_disorder(
+        self, nation: str, units: List[Unit]
+    ) -> List[Unit]:
+        owned = self.owned_by_nation.get(nation, [])
+        distances = {
+            id(unit): self._distance_to_owned(unit.location, owned)
+            for unit in units
+        }
+        return sorted(
+            units,
+            key=lambda u: (
+                -distances[id(u)],
+                0 if u.type == Unit.FLEET else 1,
+                u.location,
+            ),
+        )
+
+    def _distance_to_owned(self, start: str, owned: List[str]) -> int:
+        if not owned:
+            return 0
+        target_set = set()
+        for province_id in owned:
+            target_set.add(province_id)
+            for coast in self.variant.coasts_of(province_id):
+                target_set.add(coast)
+        if start in target_set:
+            return 0
+        if self.variant.parent_of(start) in {p for p in owned}:
+            return 0
+        visited = {start}
+        frontier = {start}
+        depth = 0
+        while frontier:
+            depth += 1
+            next_frontier: set = set()
+            for node in frontier:
+                for adjacency in self.variant.adjacencies_of(node):
+                    neighbour = adjacency.to
+                    if neighbour in visited:
+                        continue
+                    visited.add(neighbour)
+                    if neighbour in target_set:
+                        return depth
+                    if self.variant.parent_of(neighbour) in {p for p in owned}:
+                        return depth
+                    next_frontier.add(neighbour)
+            frontier = next_frontier
+        return depth
+
+    def _mark_no_op_orders(self, nation: str) -> None:
+        for order in self.parsed_orders:
+            if self._nation_of(order) != nation:
+                continue
+            if order.status is not None:
+                continue
+            order.status = ResolutionType.ILLEGAL
+            if isinstance(order, BuildOrder):
+                order.failure_reason = self.BUILD_TOO_MANY
+            else:
+                order.failure_reason = self.DISBAND_TOO_MANY
+
+    def _build_next_states(self) -> List[State]:
+        new_units = self._compute_new_units()
+        resolutions = self._compute_resolutions()
+        resolved = State(
+            variant=self.state.variant,
+            phase=self.state.phase,
+            units=new_units,
+            supply_centers=list(self.state.supply_centers),
+            orders=list(self.state.orders),
+            resolutions=resolutions,
+            skipped=False,
+            outcome=None,
+            contested_provinces=(),
+        )
+        next_phase = self._next_phase()
+        if next_phase is None:
+            return [resolved]
+        next_units = [
+            Unit(
+                nation=u.nation,
+                type=u.type,
+                location=u.location,
+                dislodged=False,
+                dislodged_from=None,
+            )
+            for u in new_units
+        ]
+        next_state = State(
+            variant=self.state.variant,
+            phase=next_phase,
+            units=next_units,
+            supply_centers=list(self.state.supply_centers),
+            orders=[],
+            resolutions=None,
+            skipped=False,
+            outcome=None,
+            contested_provinces=(),
+        )
+        return [resolved, next_state]
+
+    def _compute_new_units(self) -> List[Unit]:
+        disbanded_locations: set = {
+            order.unit.location
+            for order in self.parsed_orders
+            if isinstance(order, DisbandOrder)
+            and order.unit is not None
+            and order.status == ResolutionType.OK
+        }
+        disbanded_locations.update(u.location for u in self.civil_disorder_disbands)
+        kept: List[Unit] = []
+        for unit in self.state.units:
+            if unit.dislodged:
+                continue
+            if unit.location in disbanded_locations:
+                continue
+            kept.append(
+                Unit(
+                    nation=unit.nation,
+                    type=unit.type,
+                    location=unit.location,
+                    dislodged=False,
+                    dislodged_from=None,
+                )
+            )
+        for order in self.parsed_orders:
+            if not isinstance(order, BuildOrder):
+                continue
+            if order.status != ResolutionType.OK:
+                continue
+            kept.append(
+                Unit(
+                    nation=order.nation,
+                    type=order.unit_type or Unit.ARMY,
+                    location=order.location,
+                    dislodged=False,
+                    dislodged_from=None,
+                )
+            )
+        return kept
+
+    def _compute_resolutions(self) -> List[Resolution]:
+        resolutions: List[Resolution] = []
+        for order in self.parsed_orders:
+            if isinstance(order, BuildOrder):
+                province = order.location or ""
+            elif isinstance(order, DisbandOrder) and order.unit is not None:
+                province = order.unit.location
+            else:
+                province = ""
+            resolutions.append(
+                Resolution(
+                    province=province,
+                    resolution=order.status or ResolutionType.OK,
+                    reason=order.failure_reason,
+                )
+            )
+        return resolutions
+
+    def _next_phase(self) -> Optional[Phase]:
+        for transition in self.variant.phase_progression.transitions:
+            if (
+                transition.from_season == self.state.phase.season
+                and transition.from_type == self.state.phase.type
+            ):
+                return Phase(
+                    season=transition.to_season,
+                    year=self.state.phase.year + transition.year_delta,
+                    type=transition.to_type,
+                )
+        return None
+
+
 # === Option enumerators ===
 
 
@@ -2479,6 +2942,86 @@ class RetreatOptions:
         return options
 
 
+# === Adjustment-phase option enumerators ===
+
+
+class BuildOptions:
+    @classmethod
+    def for_nation(
+        cls,
+        nation: str,
+        variant: Variant,
+        units_by_loc: Dict[str, Unit],
+        owned_scs: List[str],
+    ) -> List[OrderOption]:
+        options: List[OrderOption] = []
+        allow_non_home = (
+            AdjustmentPhaseResolver.ALLOW_NON_HOME in variant.adjudication_modifiers
+        )
+        occupied_parents = {
+            variant.parent_of(loc) for loc in units_by_loc
+        }
+        for sc in owned_scs:
+            province = variant.provinces.get(sc)
+            if province is None or not province.supply_center:
+                continue
+            if not allow_non_home and province.home_nation != nation:
+                continue
+            if sc in occupied_parents:
+                continue
+            if province.type != ProvinceType.SEA:
+                options.append(
+                    OrderOption(
+                        source=None,
+                        order_type=OrderType.BUILD,
+                        target=sc,
+                        aux=None,
+                        unit_type=Unit.ARMY,
+                        named_coast=None,
+                    )
+                )
+            coasts = variant.coasts_of(sc)
+            if coasts:
+                for coast in coasts:
+                    options.append(
+                        OrderOption(
+                            source=None,
+                            order_type=OrderType.BUILD,
+                            target=coast,
+                            aux=None,
+                            unit_type=Unit.FLEET,
+                            named_coast=None,
+                        )
+                    )
+            elif variant.has_fleet_access(sc):
+                options.append(
+                    OrderOption(
+                        source=None,
+                        order_type=OrderType.BUILD,
+                        target=sc,
+                        aux=None,
+                        unit_type=Unit.FLEET,
+                        named_coast=None,
+                    )
+                )
+        return options
+
+
+class DisbandOptions:
+    @classmethod
+    def for_unit(cls, unit: Unit) -> List[OrderOption]:
+        return [
+            OrderOption(
+                source=unit.location,
+                order_type=OrderType.DISBAND,
+                target=None,
+                aux=None,
+                unit_type=None,
+                named_coast=None,
+            )
+        ]
+
+
 # === OptionsBuilder ===
 
 
@@ -2495,6 +3038,8 @@ class OptionsBuilder:
             return self._movement_options(state)
         if state.phase.type == Phase.RETREAT:
             return self._retreat_options(state)
+        if state.phase.type == Phase.ADJUSTMENT:
+            return self._adjustment_options(state)
         return []
 
     def _movement_options(self, state: State) -> List[OrderOption]:
@@ -2522,3 +3067,43 @@ class OptionsBuilder:
                 unit, self.variant, standing_by_loc, contested
             )
         ]
+
+    def _adjustment_options(self, state: State) -> List[OrderOption]:
+        units_by_loc: Dict[str, Unit] = {
+            u.location: u for u in state.units if not u.dislodged
+        }
+        owned_by_nation: Dict[str, List[str]] = {}
+        for sc in state.supply_centers:
+            owned_by_nation.setdefault(sc.nation, []).append(sc.province)
+        options: List[OrderOption] = []
+        for nation in self._nations_in_state(state):
+            owned = len(owned_by_nation.get(nation, []))
+            units = sum(
+                1 for u in state.units if u.nation == nation and not u.dislodged
+            )
+            delta = owned - units
+            if delta > 0:
+                options.extend(
+                    BuildOptions.for_nation(
+                        nation,
+                        self.variant,
+                        units_by_loc,
+                        owned_by_nation.get(nation, []),
+                    )
+                )
+            elif delta < 0:
+                for unit in state.units:
+                    if unit.dislodged or unit.nation != nation:
+                        continue
+                    options.extend(DisbandOptions.for_unit(unit))
+        return options
+
+    def _nations_in_state(self, state: State) -> List[str]:
+        seen: List[str] = []
+        for sc in state.supply_centers:
+            if sc.nation not in seen:
+                seen.append(sc.nation)
+        for u in state.units:
+            if u.nation not in seen:
+                seen.append(u.nation)
+        return seen

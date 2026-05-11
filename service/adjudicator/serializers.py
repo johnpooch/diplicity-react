@@ -33,6 +33,9 @@ SUPPORTED_UNIT_TYPES = frozenset({Unit.ARMY, Unit.FLEET})
 SUPPORTED_ORDER_TYPES = frozenset(
     {"Move", "Hold", "Support", "Convoy", "Build", "Disband", "Retreat"}
 )
+SUPPORTED_ADJUDICATION_MODIFIERS = frozenset(
+    {"allow-builds-in-non-home-centers"}
+)
 
 
 class VariantValidationError(ValueError):
@@ -179,6 +182,13 @@ def deserialize_variant(data: Dict[str, Any]) -> Variant:
             )
         bucket.add(rule.priority)
 
+    modifiers = tuple(data.get("adjudicationModifiers", []))
+    for tag in modifiers:
+        if tag not in SUPPORTED_ADJUDICATION_MODIFIERS:
+            raise VariantValidationError(
+                f"Unknown adjudication modifier: {tag!r}"
+            )
+
     return Variant(
         id=data["id"],
         name=data["name"],
@@ -188,7 +198,7 @@ def deserialize_variant(data: Dict[str, Any]) -> Variant:
         game_ends_year=data.get("gameEndsYear"),
         draw_after_year=data.get("drawAfterYear"),
         rules=data.get("rules"),
-        adjudication_modifiers=tuple(data.get("adjudicationModifiers", [])),
+        adjudication_modifiers=modifiers,
         phase_progression=phase_progression,
         nations=nations,
         provinces=provinces,
@@ -262,7 +272,7 @@ def deserialize_game_state(data: Dict[str, Any], variant: Variant) -> State:
         orders.append(
             Order(
                 nation=o["nation"],
-                source=o["source"],
+                source=o.get("source"),
                 order_type=o["orderType"],
                 target=o.get("target"),
                 aux=o.get("aux"),

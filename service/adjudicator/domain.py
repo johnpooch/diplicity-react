@@ -229,7 +229,7 @@ class Outcome:
 @dataclass
 class Order:
     nation: str
-    source: str
+    source: Optional[str]
     order_type: str
     target: Optional[str] = None
     aux: Optional[str] = None
