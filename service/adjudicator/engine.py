@@ -5,7 +5,6 @@ from typing import Any, ClassVar, Dict, Iterable, List, Optional, Tuple, Type
 
 from .domain import (
     OrderOption,
-    Pass,
     Phase,
     ProvinceType,
     Resolution,
@@ -125,14 +124,14 @@ class SupportHoldNotSelfSupport(LegalityCheck):
     MESSAGE = "A unit can't support itself."
 
     def passes(self, order: "SupportHoldOrder", variant, units_by_loc, orders_by_loc) -> bool:
-        return order.supported_province != order.unit.location
+        return order.supported_source != order.unit.location
 
 
 class SupportHoldHasSupportedUnit(LegalityCheck):
     MESSAGE = "There's no unit at the supported province."
 
     def passes(self, order: "SupportHoldOrder", variant, units_by_loc, orders_by_loc) -> bool:
-        return order.supported_province in units_by_loc
+        return order.supported_source in units_by_loc
 
 
 class SupportHoldSupporterCanReach(LegalityCheck):
@@ -140,7 +139,7 @@ class SupportHoldSupporterCanReach(LegalityCheck):
 
     def passes(self, order: "SupportHoldOrder", variant, units_by_loc, orders_by_loc) -> bool:
         return variant.can_move(
-            order.unit.location, order.supported_province, order.unit.type
+            order.unit.location, order.supported_source, order.unit.type
         )
 
 
@@ -148,14 +147,14 @@ class SupportMoveNotIntoSelf(LegalityCheck):
     MESSAGE = "A unit can't support an attack into its own province."
 
     def passes(self, order: "SupportMoveOrder", variant, units_by_loc, orders_by_loc) -> bool:
-        return order.destination != order.unit.location
+        return order.target != order.unit.location
 
 
 class SupportMoveSupporterCanReach(LegalityCheck):
-    MESSAGE = "The supporting unit can't reach the destination."
+    MESSAGE = "The supporting unit can't reach the target."
 
     def passes(self, order: "SupportMoveOrder", variant, units_by_loc, orders_by_loc) -> bool:
-        return variant.can_move(order.unit.location, order.destination, order.unit.type)
+        return variant.can_move(order.unit.location, order.target, order.unit.type)
 
 
 class SupportMoveHasSupportedUnit(LegalityCheck):
@@ -166,17 +165,17 @@ class SupportMoveHasSupportedUnit(LegalityCheck):
 
 
 class SupportMoveSupportedCanReach(LegalityCheck):
-    MESSAGE = "The supported unit can't itself reach the destination."
+    MESSAGE = "The supported unit can't itself reach the target."
 
     def passes(self, order: "SupportMoveOrder", variant, units_by_loc, orders_by_loc) -> bool:
         supported = units_by_loc.get(order.supported_source)
         if supported is None:
             return True
-        if variant.can_move(order.supported_source, order.destination, supported.type):
+        if variant.can_move(order.supported_source, order.target, supported.type):
             return True
         if supported.type == Unit.ARMY:
             finder = ConvoyPathFinder(variant, orders_by_loc)
-            return finder.path_exists(order.supported_source, order.destination)
+            return finder.path_exists(order.supported_source, order.target)
         return False
 
 
@@ -206,10 +205,10 @@ class ConvoyTargetsAnArmy(LegalityCheck):
 
 
 class ConvoyDestinationIsLand(LegalityCheck):
-    MESSAGE = "A convoy destination must be a non-sea province."
+    MESSAGE = "A convoy target must be a non-sea province."
 
     def passes(self, order: "ConvoyOrder", variant, units_by_loc, orders_by_loc) -> bool:
-        province = variant.provinces.get(order.destination)
+        province = variant.provinces.get(order.target)
         if province is None:
             return False
         return province.type != ProvinceType.SEA
@@ -417,7 +416,7 @@ class MoveOrder(Order):
         if self.target == self.unit.location:
             self.requires_convoy = False
             return
-        if not _convoyable(variant, self.unit.location, self.target):
+        if not variant.is_convoyable(self.unit.location, self.target):
             self.requires_convoy = False
             return
         direct = variant.can_move(self.unit.location, self.target, Unit.ARMY)
@@ -457,8 +456,8 @@ class SupportOrder(Order):
         if aux is None:
             raise ValueError("Support order requires aux")
         if target is None:
-            return SupportHoldOrder(unit, supported_province=aux)
-        return SupportMoveOrder(unit, supported_source=aux, destination=target)
+            return SupportHoldOrder(unit, supported_source=aux)
+        return SupportMoveOrder(unit, supported_source=aux, target=target)
 
     @abc.abstractmethod
     def cut_exception_location(self) -> Optional[str]:
@@ -482,9 +481,9 @@ class SupportHoldOrder(SupportOrder):
         SupportHoldSupporterCanReach,
     ]
 
-    def __init__(self, unit: Unit, supported_province: str) -> None:
+    def __init__(self, unit: Unit, supported_source: str) -> None:
         super().__init__(unit)
-        self.supported_province = supported_province
+        self.supported_source = supported_source
 
     def cut_exception_location(self) -> Optional[str]:
         """
@@ -507,17 +506,16 @@ class SupportMoveOrder(SupportOrder):
         SupportMoveSupportedCanReach,
     ]
 
-    def __init__(self, unit: Unit, supported_source: str, destination: str) -> None:
+    def __init__(self, unit: Unit, supported_source: str, target: str) -> None:
         super().__init__(unit)
         self.supported_source = supported_source
-        self.destination = destination
+        self.target = target
 
     def cut_exception_location(self) -> Optional[str]:
         """
         Support cannot be cut from the target province.
         """
-        # TODO I notice we are switching between destination and target. I think we should standardize around "target"
-        return self.destination
+        return self.target
 
 
 @Order.register(OrderType.CONVOY)
@@ -535,10 +533,10 @@ class ConvoyOrder(Order):
         ConvoyDestinationIsLand,
     ]
 
-    def __init__(self, unit: Unit, army_source: str, destination: str) -> None:
+    def __init__(self, unit: Unit, army_source: str, target: str) -> None:
         super().__init__(unit)
         self.army_source = army_source
-        self.destination = destination
+        self.target = target
 
     @classmethod
     def _build(
@@ -551,42 +549,10 @@ class ConvoyOrder(Order):
     ) -> "ConvoyOrder":
         if target is None or aux is None:
             raise ValueError("Convoy order requires target and aux")
-        return cls(unit, army_source=aux, destination=target)
+        return cls(unit, army_source=aux, target=target)
 
 
 # === Convoy path finding ===
-
-
-def _has_fleet_access(variant: Variant, prov_id: str) -> bool:
-    """
-    Whether a fleet at some sea province can be adjacent to this
-    province (directly or via a named coast). Inland provinces with no
-    coastal access return False.
-    """
-    province = variant.provinces.get(prov_id)
-    if province is None:
-        return False
-    if province.type == ProvinceType.SEA:
-        return True
-    for adjacency in province.adjacencies:
-        if adjacency.pass_ in (Pass.FLEET, Pass.BOTH):
-            return True
-    for named in variant.named_coasts.values():
-        if named.parent_province == prov_id:
-            return True
-    return False
-
-
-def _convoyable(variant: Variant, source: str, target: str) -> bool:
-    """
-    Whether `source` and `target` are both coastal-touching land
-    provinces — a necessary condition for an army move between them to
-    use a convoy.
-    """
-    target_prov = variant.provinces.get(target)
-    if target_prov is None or target_prov.type == ProvinceType.SEA:
-        return False
-    return _has_fleet_access(variant, source) and _has_fleet_access(variant, target)
 
 
 class ConvoyPathFinder:
@@ -631,7 +597,7 @@ class ConvoyPathFinder:
                 if self._fleet_adjacent_to_coast(sea, destination):
                     return True
                 for adjacency in self.variant.adjacencies_of(sea):
-                    if adjacency.pass_ not in (Pass.FLEET, Pass.BOTH):
+                    if not adjacency.allows(Unit.FLEET):
                         continue
                     neighbour = adjacency.to
                     if neighbour in candidates and neighbour not in visited:
@@ -647,7 +613,7 @@ class ConvoyPathFinder:
             if isinstance(order, ConvoyOrder)
             and order.status != ResolutionType.ILLEGAL
             and order.army_source == army_source
-            and order.destination == destination
+            and order.target == destination
         }
 
     def has_own_convoy(
@@ -662,7 +628,7 @@ class ConvoyPathFinder:
             isinstance(order, ConvoyOrder)
             and order.status != ResolutionType.ILLEGAL
             and order.army_source == army_source
-            and order.destination == destination
+            and order.target == destination
             and order.unit.nation == nation
             for order in self.orders_by_loc.values()
         )
@@ -729,7 +695,7 @@ class ConvoyPathFinder:
             new_frontier: set = set()
             for sea in frontier:
                 for adjacency in self.variant.adjacencies_of(sea):
-                    if adjacency.pass_ not in (Pass.FLEET, Pass.BOTH):
+                    if not adjacency.allows(Unit.FLEET):
                         continue
                     neighbour = adjacency.to
                     if neighbour in visited:
@@ -763,7 +729,7 @@ class ConvoyPathFinder:
                 if self._fleet_adjacent_to_coast(sea, destination):
                     return depth
                 for adjacency in self.variant.adjacencies_of(sea):
-                    if adjacency.pass_ not in (Pass.FLEET, Pass.BOTH):
+                    if not adjacency.allows(Unit.FLEET):
                         continue
                     if adjacency.to in candidates and adjacency.to not in visited:
                         next_frontier.add(adjacency.to)
@@ -793,7 +759,7 @@ class ConvoyPathFinder:
             next_frontier: set = set()
             for sea in frontier:
                 for adjacency in self.variant.adjacencies_of(sea):
-                    if adjacency.pass_ not in (Pass.FLEET, Pass.BOTH):
+                    if not adjacency.allows(Unit.FLEET):
                         continue
                     if adjacency.to in candidates and adjacency.to not in visited:
                         next_frontier.add(adjacency.to)
@@ -817,7 +783,7 @@ class ConvoyPathFinder:
             next_frontier: set = set()
             for sea in frontier:
                 for adjacency in self.variant.adjacencies_of(sea):
-                    if adjacency.pass_ not in (Pass.FLEET, Pass.BOTH):
+                    if not adjacency.allows(Unit.FLEET):
                         continue
                     if adjacency.to in candidates and adjacency.to not in visited:
                         next_frontier.add(adjacency.to)
@@ -831,7 +797,7 @@ class ConvoyPathFinder:
 
     def _fleet_adjacent_to_coast(self, sea_id: str, coastal_id: str) -> bool:
         for adjacency in self.variant.adjacencies_of(sea_id):
-            if adjacency.pass_ not in (Pass.FLEET, Pass.BOTH):
+            if not adjacency.allows(Unit.FLEET):
                 continue
             if adjacency.to == coastal_id:
                 return True
@@ -1422,7 +1388,7 @@ class DecisionContext:
             if order.status == ResolutionType.ILLEGAL:
                 continue
             if not finder.is_on_minimal_chain(
-                order.unit.location, order.army_source, order.destination
+                order.unit.location, order.army_source, order.target
             ):
                 order.status = ResolutionType.ILLEGAL
                 order.failure_reason = (
@@ -1491,7 +1457,7 @@ class DecisionContext:
             for o in self.orders.values()
             if isinstance(o, SupportMoveOrder)
             and o.status != ResolutionType.ILLEGAL
-            and o.destination == move.target
+            and o.target == move.target
             and o.supported_source == move.unit.location
         ]
 
@@ -1502,7 +1468,7 @@ class DecisionContext:
                 continue
             if o.status == ResolutionType.ILLEGAL:
                 continue
-            if o.supported_province != order.unit.location:
+            if o.supported_source != order.unit.location:
                 continue
             if not self.support_matches(o):
                 continue
@@ -1556,7 +1522,7 @@ class DecisionContext:
         MoveOrder targeting the same destination this support claims.
         """
         if isinstance(s, SupportHoldOrder):
-            supported = self.orders.get(s.supported_province)
+            supported = self.orders.get(s.supported_source)
             if supported is None:
                 return False
             if isinstance(supported, MoveOrder) and supported.status != ResolutionType.ILLEGAL:
@@ -1568,7 +1534,7 @@ class DecisionContext:
                 return False
             if supported.status == ResolutionType.ILLEGAL:
                 return False
-            return supported.target == s.destination
+            return supported.target == s.target
         raise TypeError(f"Unknown SupportOrder subclass: {type(s).__name__}")
 
     def is_successfully_moving(self, order: Order) -> bool:
@@ -1965,7 +1931,7 @@ def _sea_fleet_component(
         new_frontier: set = set()
         for sea in frontier:
             for adjacency in variant.adjacencies_of(sea):
-                if adjacency.pass_ not in (Pass.FLEET, Pass.BOTH):
+                if not adjacency.allows(Unit.FLEET):
                     continue
                 if adjacency.to in sea_fleets and adjacency.to not in component:
                     new_frontier.add(adjacency.to)
@@ -1978,7 +1944,7 @@ def _coasts_touching(component: set, variant: Variant) -> set:
     coasts: set = set()
     for sea in component:
         for adjacency in variant.adjacencies_of(sea):
-            if adjacency.pass_ not in (Pass.FLEET, Pass.BOTH):
+            if not adjacency.allows(Unit.FLEET):
                 continue
             target_id = adjacency.to
             named = variant.named_coasts.get(target_id)
@@ -1998,7 +1964,7 @@ def _convoy_reachable_coasts(
     sea_fleets = _sea_fleets_by_loc(variant, units_by_loc)
     start_seas: set = set()
     for adjacency in variant.adjacencies_of(army_source):
-        if adjacency.pass_ not in (Pass.FLEET, Pass.BOTH):
+        if not adjacency.allows(Unit.FLEET):
             continue
         if adjacency.to in sea_fleets:
             start_seas.add(adjacency.to)
@@ -2010,7 +1976,7 @@ def _convoy_reachable_coasts(
         new_frontier: set = set()
         for sea in frontier:
             for adjacency in variant.adjacencies_of(sea):
-                if adjacency.pass_ not in (Pass.FLEET, Pass.BOTH):
+                if not adjacency.allows(Unit.FLEET):
                     continue
                 if adjacency.to in sea_fleets and adjacency.to not in component:
                     new_frontier.add(adjacency.to)

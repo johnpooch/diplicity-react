@@ -120,6 +120,36 @@ class Variant:
                 return adjacency.allows(unit_type)
         return False
 
+    def has_fleet_access(self, prov_id: str) -> bool:
+        """
+        Whether a fleet at some sea province can be adjacent to this
+        province (directly or via a named coast). Inland provinces with no
+        coastal access return False.
+        """
+        province = self.provinces.get(prov_id)
+        if province is None:
+            return False
+        if province.type == ProvinceType.SEA:
+            return True
+        for adjacency in province.adjacencies:
+            if adjacency.allows(Unit.FLEET):
+                return True
+        for named in self.named_coasts.values():
+            if named.parent_province == prov_id:
+                return True
+        return False
+
+    def is_convoyable(self, source: str, target: str) -> bool:
+        """
+        Whether `source` and `target` are both coastal-touching land
+        provinces — a necessary condition for an army move between them
+        to use a convoy.
+        """
+        target_prov = self.provinces.get(target)
+        if target_prov is None or target_prov.type == ProvinceType.SEA:
+            return False
+        return self.has_fleet_access(source) and self.has_fleet_access(target)
+
 
 @dataclass(frozen=True)
 class Phase:
