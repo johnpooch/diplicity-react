@@ -302,23 +302,6 @@ class Order(abc.ABC):
         """
         return None
 
-    def is_legal(
-        self,
-        variant: Variant,
-        units_by_loc: Dict[str, Unit],
-        orders_by_loc: Dict[str, "Order"],
-    ) -> bool:
-        """
-        Whether this order's static form is valid against the variant —
-        adjacency, unit-type compatibility, supported-unit existence,
-        etc. Does not consider resolution-time effects (bounces, support
-        cuts, dislodgements).
-
-        Implemented in terms of `validate`; subclasses customise by
-        declaring `LEGALITY_CHECKS`, not by overriding this method.
-        """
-        return self.validate(variant, units_by_loc, orders_by_loc) is None
-
     def validate(
         self,
         variant: Variant,
@@ -1345,6 +1328,14 @@ class DecisionContext:
         self._build_decisions()
 
     def _parse_orders(self) -> Dict[str, Order]:
+        orders = self._build_initial_orders()
+        self._validate_convoys(orders)
+        self._mark_redundant_convoys_illegal(orders)
+        self._set_convoy_requirements(orders)
+        self._validate_non_convoys(orders)
+        return orders
+
+    def _build_initial_orders(self) -> Dict[str, Order]:
         orders: Dict[str, Order] = {}
         for raw in self.state.orders:
             unit = self.units.get(raw.source)
@@ -1365,15 +1356,20 @@ class DecisionContext:
         for unit in self.units.values():
             if unit.location not in orders:
                 orders[unit.location] = HoldOrder(unit)
+        return orders
 
-        # Phase A: Syntactic convoy validation (independent of other orders).
+    def _validate_convoys(self, orders: Dict[str, Order]) -> None:
+        """Syntactic convoy validation (independent of other orders)."""
         for order in orders.values():
             if isinstance(order, ConvoyOrder):
                 self._validate(order, orders)
 
-        # Phase B: Mark convoys that aren't on any minimal chain as illegal
-        # (DATC 6.G.7, 6.G.19). A convoy fleet is redundant if a chain
-        # exists for the same (army_source, destination) without it.
+    def _mark_redundant_convoys_illegal(self, orders: Dict[str, Order]) -> None:
+        """
+        Mark convoys that aren't on any minimal chain as illegal
+        (DATC 6.G.7, 6.G.19). A convoy fleet is redundant if a chain
+        exists for the same (army_source, target) without it.
+        """
         finder = ConvoyPathFinder(self.variant, orders)
         for order in orders.values():
             if not isinstance(order, ConvoyOrder):
@@ -1388,18 +1384,17 @@ class DecisionContext:
                     "Convoy fleet is not necessary for any convoy route."
                 )
 
-        # Phase C: Determine requires_convoy for Move orders.
+    def _set_convoy_requirements(self, orders: Dict[str, Order]) -> None:
+        """Determine requires_convoy for Move orders."""
         finder = ConvoyPathFinder(self.variant, orders)
         for order in orders.values():
             if isinstance(order, MoveOrder):
                 order.set_convoy_info(self.variant, finder)
 
-        # Phase D: Validate the remaining orders.
+    def _validate_non_convoys(self, orders: Dict[str, Order]) -> None:
         for order in orders.values():
             if not isinstance(order, ConvoyOrder):
                 self._validate(order, orders)
-
-        return orders
 
     def _validate(self, order: Order, orders: Dict[str, Order]) -> None:
         failure = order.validate(self.variant, self.units, orders)
@@ -1529,14 +1524,6 @@ class DecisionContext:
                 return False
             return supported.target == s.target
         raise TypeError(f"Unknown SupportOrder subclass: {type(s).__name__}")
-
-    def is_successfully_moving(self, order: Order) -> bool:
-        if not isinstance(order, MoveOrder):
-            return False
-        if order.status == ResolutionType.ILLEGAL:
-            return False
-        move_dec = self.move_resolution.get(order)
-        return move_dec is not None and move_dec.value == ResolutionType.OK
 
     def head_to_head_opponent(self, move: MoveOrder) -> Optional[MoveOrder]:
         candidate = self.orders.get(move.target)
@@ -1955,26 +1942,14 @@ def _convoy_reachable_coasts(
     army_source: str, variant: Variant, units_by_loc: Dict[str, Unit]
 ) -> set:
     sea_fleets = _sea_fleets_by_loc(variant, units_by_loc)
-    start_seas: set = set()
-    for adjacency in variant.adjacencies_of(army_source):
-        if not adjacency.allows(Unit.FLEET):
-            continue
-        if adjacency.to in sea_fleets:
-            start_seas.add(adjacency.to)
-    if not start_seas:
-        return set()
-    component = set(start_seas)
-    frontier = set(start_seas)
-    while frontier:
-        new_frontier: set = set()
-        for sea in frontier:
-            for adjacency in variant.adjacencies_of(sea):
-                if not adjacency.allows(Unit.FLEET):
-                    continue
-                if adjacency.to in sea_fleets and adjacency.to not in component:
-                    new_frontier.add(adjacency.to)
-        component.update(new_frontier)
-        frontier = new_frontier
+    start_seas = {
+        adjacency.to
+        for adjacency in variant.adjacencies_of(army_source)
+        if adjacency.allows(Unit.FLEET) and adjacency.to in sea_fleets
+    }
+    component: set = set()
+    for sea in start_seas:
+        component |= _sea_fleet_component(sea, variant, units_by_loc)
     return _coasts_touching(component, variant)
 
 
