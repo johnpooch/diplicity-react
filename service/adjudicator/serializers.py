@@ -15,6 +15,7 @@ from .domain import (
     Order,
     OrderOption,
     Outcome,
+    Pass,
     Phase,
     PhaseProgression,
     PhaseTransition,
@@ -24,17 +25,11 @@ from .domain import (
     SupplyCenter,
     Unit,
     Variant,
-    PASS_FLEET,
-    PHASE_ADJUSTMENT,
-    PHASE_MOVEMENT,
-    PHASE_RETREAT,
-    UNIT_ARMY,
-    UNIT_FLEET,
 )
 
 
-SUPPORTED_PHASE_TYPES = frozenset({PHASE_MOVEMENT, PHASE_RETREAT, PHASE_ADJUSTMENT})
-SUPPORTED_UNIT_TYPES = frozenset({UNIT_ARMY, UNIT_FLEET})
+SUPPORTED_PHASE_TYPES = frozenset({Phase.MOVEMENT, Phase.RETREAT, Phase.ADJUSTMENT})
+SUPPORTED_UNIT_TYPES = frozenset({Unit.ARMY, Unit.FLEET})
 SUPPORTED_ORDER_TYPES = frozenset(
     {"Move", "Hold", "Support", "Convoy", "Build", "Disband", "Retreat"}
 )
@@ -134,7 +129,7 @@ def deserialize_variant(data: Dict[str, Any]) -> Variant:
         adjacencies = tuple(
             Adjacency(to=a["to"], pass_=a["pass"]) for a in nc["adjacencies"]
         )
-        if any(a.pass_ != PASS_FLEET for a in adjacencies):
+        if any(a.pass_ != Pass.FLEET for a in adjacencies):
             raise VariantValidationError(
                 f"Named coast {nc['id']} has non-fleet adjacency"
             )
@@ -268,6 +263,7 @@ def deserialize_game_state(data: Dict[str, Any], variant: Variant) -> State:
                 target=o.get("target"),
                 aux=o.get("aux"),
                 unit_type=o.get("unitType"),
+                via_convoy=bool(o.get("viaConvoy", False)),
             )
         )
 
@@ -276,7 +272,11 @@ def deserialize_game_state(data: Dict[str, Any], variant: Variant) -> State:
         resolutions: Optional[List[Resolution]] = None
     else:
         resolutions = [
-            Resolution(province=r["province"], resolution=r["resolution"])
+            Resolution(
+                province=r["province"],
+                resolution=r["resolution"],
+                reason=r.get("reason"),
+            )
             for r in resolutions_raw
         ]
 
@@ -330,6 +330,7 @@ def serialize_game_state(state: State) -> Dict[str, Any]:
                 "target": o.target,
                 "aux": o.aux,
                 "unitType": o.unit_type,
+                "viaConvoy": o.via_convoy,
             }
             for o in state.orders
         ],
@@ -337,7 +338,11 @@ def serialize_game_state(state: State) -> Dict[str, Any]:
             None
             if state.resolutions is None
             else [
-                {"province": r.province, "resolution": r.resolution}
+                {
+                    "province": r.province,
+                    "resolution": r.resolution,
+                    "reason": r.reason,
+                }
                 for r in state.resolutions
             ]
         ),

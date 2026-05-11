@@ -1,29 +1,32 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import ClassVar, Dict, List, Optional, Tuple
 
 
-PASS_ARMY = "army"
-PASS_FLEET = "fleet"
-PASS_BOTH = "both"
+class Pass:
+    ARMY: ClassVar[str] = "army"
+    FLEET: ClassVar[str] = "fleet"
+    BOTH: ClassVar[str] = "both"
 
-PROVINCE_LAND = "land"
-PROVINCE_SEA = "sea"
-PROVINCE_COASTAL = "coastal"
 
-UNIT_ARMY = "Army"
-UNIT_FLEET = "Fleet"
-
-PHASE_MOVEMENT = "Movement"
-PHASE_RETREAT = "Retreat"
-PHASE_ADJUSTMENT = "Adjustment"
+class ProvinceType:
+    LAND: ClassVar[str] = "land"
+    SEA: ClassVar[str] = "sea"
+    COASTAL: ClassVar[str] = "coastal"
 
 
 @dataclass(frozen=True)
 class Adjacency:
     to: str
     pass_: str
+
+    def allows(self, unit_type: str) -> bool:
+        if unit_type == Unit.ARMY:
+            return self.pass_ in (Pass.ARMY, Pass.BOTH)
+        if unit_type == Unit.FLEET:
+            return self.pass_ in (Pass.FLEET, Pass.BOTH)
+        return False
 
 
 @dataclass(frozen=True)
@@ -104,12 +107,29 @@ class Variant:
             return self.provinces[self.named_coasts[location_id].parent_province]
         raise KeyError(location_id)
 
+    def adjacencies_of(self, location_id: str) -> Tuple[Adjacency, ...]:
+        if location_id in self.provinces:
+            return self.provinces[location_id].adjacencies
+        if location_id in self.named_coasts:
+            return self.named_coasts[location_id].adjacencies
+        return ()
+
+    def can_move(self, from_loc: str, to_loc: str, unit_type: str) -> bool:
+        for adjacency in self.adjacencies_of(from_loc):
+            if adjacency.to == to_loc:
+                return adjacency.allows(unit_type)
+        return False
+
 
 @dataclass(frozen=True)
 class Phase:
     season: str
     year: int
     type: str
+
+    MOVEMENT: ClassVar[str] = "Movement"
+    RETREAT: ClassVar[str] = "Retreat"
+    ADJUSTMENT: ClassVar[str] = "Adjustment"
 
 
 @dataclass
@@ -118,6 +138,9 @@ class Unit:
     type: str
     location: str
     dislodged: bool = False
+
+    ARMY: ClassVar[str] = "Army"
+    FLEET: ClassVar[str] = "Fleet"
 
 
 @dataclass
@@ -130,6 +153,7 @@ class SupplyCenter:
 class Resolution:
     province: str
     resolution: str
+    reason: Optional[str] = None
 
 
 @dataclass
@@ -147,6 +171,7 @@ class Order:
     target: Optional[str] = None
     aux: Optional[str] = None
     unit_type: Optional[str] = None
+    via_convoy: bool = False
 
 
 @dataclass
