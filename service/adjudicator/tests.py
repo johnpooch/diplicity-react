@@ -421,10 +421,12 @@ _NAMED_COAST_EDGES: List[Tuple[str, str, str]] = [
     # Spain
     ("spa/nc", "mao", "fleet"),
     ("spa/nc", "gas", "fleet"),
+    ("spa/nc", "por", "fleet"),
     ("spa/sc", "mao", "fleet"),
     ("spa/sc", "wes", "fleet"),
     ("spa/sc", "lyo", "fleet"),
     ("spa/sc", "mar", "fleet"),
+    ("spa/sc", "por", "fleet"),
     # Bulgaria
     ("bul/ec", "bla", "fleet"),
     ("bul/ec", "con", "fleet"),
@@ -559,12 +561,16 @@ def initial_game_state(variant: Dict[str, Any]) -> Dict[str, Any]:
     initial = variant["initialState"]
     return {
         "phase": dict(initial["phase"]),
-        "units": [{**unit, "dislodged": False} for unit in initial["units"]],
+        "units": [
+            {**unit, "dislodged": False, "dislodgedFrom": None}
+            for unit in initial["units"]
+        ],
         "supplyCenters": [dict(sc) for sc in initial["supplyCenters"]],
         "orders": [],
         "resolutions": None,
         "skipped": False,
         "outcome": None,
+        "contestedProvinces": [],
     }
 
 
@@ -580,7 +586,13 @@ class StateBuilder:
         return self
 
     def with_unit(
-        self, nation: str, type_: str, location: str, *, dislodged: bool = False
+        self,
+        nation: str,
+        type_: str,
+        location: str,
+        *,
+        dislodged: bool = False,
+        dislodged_from: Optional[str] = None,
     ) -> "StateBuilder":
         self._state["units"].append(
             {
@@ -588,8 +600,13 @@ class StateBuilder:
                 "type": type_,
                 "location": location,
                 "dislodged": dislodged,
+                "dislodgedFrom": dislodged_from,
             }
         )
+        return self
+
+    def with_contested(self, *provinces: str) -> "StateBuilder":
+        self._state["contestedProvinces"] = list(provinces)
         return self
 
     def with_supply_center(self, nation: str, province: str) -> "StateBuilder":
@@ -3432,3 +3449,583 @@ def test_g_18_the_two_unit_in_one_area_bug_with_double_convoy():
     assert has_unit(result, "england", "Army", "bel")
     assert has_unit(result, "france", "Army", "lon")
     assert resolution_for(result, "yor") == "BOUNCE"
+
+
+# === DATC 6.B: COASTAL ISSUES ===
+
+
+def test_b_1_moving_with_unspecified_coast_when_coast_is_necessary():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Movement")
+        .with_unit("france", "Fleet", "por")
+        .with_order("france", "por", "Move", target="spa")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert has_unit(result, "france", "Fleet", "por")
+    assert resolution_for(result, "por") == "ILLEGAL"
+
+
+def test_b_2_moving_with_unspecified_coast_when_coast_is_not_necessary():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Movement")
+        .with_unit("france", "Fleet", "gas")
+        .with_order("france", "gas", "Move", target="spa")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert has_unit(result, "france", "Fleet", "spa/nc")
+    assert resolution_for(result, "gas") == "OK"
+
+
+def test_b_3_moving_with_wrong_coast_when_coast_is_not_necessary():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Movement")
+        .with_unit("france", "Fleet", "gas")
+        .with_order("france", "gas", "Move", target="spa/sc")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert has_unit(result, "france", "Fleet", "gas")
+    assert resolution_for(result, "gas") == "ILLEGAL"
+
+
+def test_b_4_support_to_unreachable_coast_allowed():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Movement")
+        .with_unit("france", "Fleet", "gas")
+        .with_unit("france", "Fleet", "mar")
+        .with_unit("italy", "Fleet", "wes")
+        .with_order("france", "gas", "Move", target="spa/nc")
+        .with_order("france", "mar", "Support", aux="gas", target="spa/nc")
+        .with_order("italy", "wes", "Move", target="spa/sc")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert has_unit(result, "france", "Fleet", "spa/nc")
+    assert resolution_for(result, "gas") == "OK"
+    assert resolution_for(result, "mar") == "OK"
+    assert resolution_for(result, "wes") == "BOUNCE"
+
+
+def test_b_5_support_from_unreachable_coast_not_allowed():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Movement")
+        .with_unit("france", "Fleet", "mar")
+        .with_unit("france", "Fleet", "spa/nc")
+        .with_unit("italy", "Fleet", "lyo")
+        .with_order("france", "mar", "Move", target="lyo")
+        .with_order("france", "spa/nc", "Support", aux="mar", target="lyo")
+        .with_order("italy", "lyo", "Hold")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert has_unit(result, "italy", "Fleet", "lyo")
+    assert not is_dislodged(result, "lyo")
+    assert resolution_for(result, "spa/nc") == "ILLEGAL"
+    assert resolution_for(result, "mar") == "BOUNCE"
+
+
+def test_b_6_support_can_be_cut_with_other_coast():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Movement")
+        .with_unit("england", "Fleet", "iri")
+        .with_unit("england", "Fleet", "nao")
+        .with_unit("france", "Fleet", "spa/nc")
+        .with_unit("france", "Fleet", "mao")
+        .with_unit("italy", "Fleet", "lyo")
+        .with_order("england", "iri", "Support", aux="nao", target="mao")
+        .with_order("england", "nao", "Move", target="mao")
+        .with_order("france", "spa/nc", "Support", aux="mao")
+        .with_order("france", "mao", "Hold")
+        .with_order("italy", "lyo", "Move", target="spa/sc")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert resolution_for(result, "spa/nc") == "CUT"
+    assert has_unit(result, "england", "Fleet", "mao")
+    assert is_dislodged(result, "mao")
+
+
+def test_b_7_supporting_own_unit_with_unspecified_coast():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Movement")
+        .with_unit("france", "Fleet", "por")
+        .with_unit("france", "Fleet", "mao")
+        .with_unit("italy", "Fleet", "lyo")
+        .with_unit("italy", "Fleet", "wes")
+        .with_order("france", "por", "Support", aux="mao", target="spa")
+        .with_order("france", "mao", "Move", target="spa/nc")
+        .with_order("italy", "lyo", "Support", aux="wes", target="spa/sc")
+        .with_order("italy", "wes", "Move", target="spa/sc")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert resolution_for(result, "wes") == "BOUNCE"
+    assert resolution_for(result, "mao") == "BOUNCE"
+
+
+def test_b_8_supporting_with_unspecified_coast_when_only_one_coast_is_possible():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Movement")
+        .with_unit("france", "Fleet", "por")
+        .with_unit("france", "Fleet", "gas")
+        .with_unit("italy", "Fleet", "lyo")
+        .with_unit("italy", "Fleet", "wes")
+        .with_order("france", "por", "Support", aux="gas", target="spa")
+        .with_order("france", "gas", "Move", target="spa/nc")
+        .with_order("italy", "lyo", "Support", aux="wes", target="spa/sc")
+        .with_order("italy", "wes", "Move", target="spa/sc")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert resolution_for(result, "wes") == "BOUNCE"
+    assert resolution_for(result, "gas") == "BOUNCE"
+
+
+def test_b_9_supporting_with_wrong_coast():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Movement")
+        .with_unit("france", "Fleet", "por")
+        .with_unit("france", "Fleet", "mao")
+        .with_unit("italy", "Fleet", "lyo")
+        .with_unit("italy", "Fleet", "wes")
+        .with_order("france", "por", "Support", aux="mao", target="spa/nc")
+        .with_order("france", "mao", "Move", target="spa/sc")
+        .with_order("italy", "lyo", "Support", aux="wes", target="spa/sc")
+        .with_order("italy", "wes", "Move", target="spa/sc")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert has_unit(result, "italy", "Fleet", "spa/sc")
+    assert resolution_for(result, "mao") == "BOUNCE"
+
+
+def test_b_10_unit_ordered_with_wrong_coast():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Movement")
+        .with_unit("france", "Fleet", "spa/sc")
+        .with_order("france", "spa/nc", "Move", target="lyo")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert has_unit(result, "france", "Fleet", "lyo")
+    assert resolution_for(result, "spa/sc") == "OK"
+
+
+def test_b_11_coast_cannot_be_ordered_to_change():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Movement")
+        .with_unit("france", "Fleet", "spa/nc")
+        .with_order("france", "spa/sc", "Move", target="lyo")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert has_unit(result, "france", "Fleet", "spa/nc")
+    assert resolution_for(result, "spa/nc") == "ILLEGAL"
+
+
+def test_b_12_army_movement_with_coastal_specification():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Movement")
+        .with_unit("france", "Army", "gas")
+        .with_order("france", "gas", "Move", target="spa/nc")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert has_unit(result, "france", "Army", "spa")
+    assert resolution_for(result, "gas") == "OK"
+
+
+def test_b_13_coastal_crawl_not_allowed():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Movement")
+        .with_unit("turkey", "Fleet", "bul/sc")
+        .with_unit("turkey", "Fleet", "con")
+        .with_order("turkey", "bul/sc", "Move", target="con")
+        .with_order("turkey", "con", "Move", target="bul/ec")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert has_unit(result, "turkey", "Fleet", "bul/sc")
+    assert has_unit(result, "turkey", "Fleet", "con")
+    assert resolution_for(result, "bul/sc") == "BOUNCE"
+    assert resolution_for(result, "con") == "BOUNCE"
+
+
+# === DATC 6.H: RETREATING ===
+
+
+def test_h_1_no_supports_during_retreat():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Retreat")
+        .with_unit("austria", "Fleet", "tri", dislodged=True, dislodged_from="tyr")
+        .with_unit("austria", "Army", "ser")
+        .with_unit("italy", "Army", "tri")
+        .with_unit("turkey", "Fleet", "gre", dislodged=True, dislodged_from="ion")
+        .with_unit("italy", "Fleet", "gre")
+        .with_order("austria", "tri", "Retreat", target="alb")
+        .with_order("austria", "ser", "Support", aux="tri", target="alb")
+        .with_order("turkey", "gre", "Retreat", target="alb")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert not has_unit(result, "austria", "Fleet", "alb")
+    assert not has_unit(result, "turkey", "Fleet", "alb")
+    assert not has_unit(result, "austria", "Fleet", "tri", dislodged=True)
+    assert not has_unit(result, "turkey", "Fleet", "gre", dislodged=True)
+    assert resolution_for(result, "tri") == "BOUNCE"
+    assert resolution_for(result, "gre") == "BOUNCE"
+
+
+def test_h_2_no_supports_from_retreating_unit():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Retreat")
+        .with_unit("england", "Fleet", "nwy", dislodged=True, dislodged_from="fin")
+        .with_unit("russia", "Army", "nwy")
+        .with_unit("russia", "Fleet", "edi", dislodged=True, dislodged_from="lvp")
+        .with_unit("england", "Army", "edi")
+        .with_unit("russia", "Fleet", "hol", dislodged=True, dislodged_from="ruh")
+        .with_unit("germany", "Army", "hol")
+        .with_order("england", "nwy", "Retreat", target="nth")
+        .with_order("russia", "edi", "Retreat", target="nth")
+        .with_order("russia", "hol", "Support", aux="edi", target="nth")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert not has_unit(result, "england", "Fleet", "nth")
+    assert not has_unit(result, "russia", "Fleet", "nth")
+    assert resolution_for(result, "nwy") == "BOUNCE"
+    assert resolution_for(result, "edi") == "BOUNCE"
+
+
+def test_h_3_no_convoy_during_retreat():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Retreat")
+        .with_unit("england", "Army", "hol", dislodged=True, dislodged_from="ruh")
+        .with_unit("germany", "Army", "hol")
+        .with_unit("england", "Fleet", "nth")
+        .with_order("england", "hol", "Retreat", target="yor")
+        .with_order("england", "nth", "Convoy", aux="hol", target="yor")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert not has_unit(result, "england", "Army", "yor")
+    assert resolution_for(result, "hol") == "ILLEGAL"
+
+
+def test_h_4_no_other_moves_during_retreat():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Retreat")
+        .with_unit("england", "Army", "hol", dislodged=True, dislodged_from="ruh")
+        .with_unit("germany", "Army", "hol")
+        .with_unit("england", "Fleet", "nth")
+        .with_order("england", "hol", "Retreat", target="bel")
+        .with_order("england", "nth", "Move", target="nrg")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert has_unit(result, "england", "Army", "bel")
+    assert has_unit(result, "england", "Fleet", "nth")
+
+
+def test_h_5_a_unit_may_not_retreat_to_the_area_from_which_it_is_attacked():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Retreat")
+        .with_unit("turkey", "Fleet", "ank", dislodged=True, dislodged_from="bla")
+        .with_unit("russia", "Fleet", "ank")
+        .with_order("turkey", "ank", "Retreat", target="bla")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert not has_unit(result, "turkey", "Fleet", "bla")
+    assert resolution_for(result, "ank") == "ILLEGAL"
+
+
+def test_h_6_unit_may_not_retreat_to_a_contested_area():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Retreat")
+        .with_unit("italy", "Army", "vie", dislodged=True, dislodged_from="tri")
+        .with_unit("austria", "Army", "vie")
+        .with_contested("boh")
+        .with_order("italy", "vie", "Retreat", target="boh")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert not has_unit(result, "italy", "Army", "boh")
+    assert resolution_for(result, "vie") == "ILLEGAL"
+
+
+def test_h_7_multiple_retreat_to_same_area_will_disband_units():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Retreat")
+        .with_unit("italy", "Army", "vie", dislodged=True, dislodged_from="tri")
+        .with_unit("italy", "Army", "boh", dislodged=True, dislodged_from="sil")
+        .with_unit("austria", "Army", "vie")
+        .with_unit("germany", "Army", "boh")
+        .with_order("italy", "vie", "Retreat", target="tyr")
+        .with_order("italy", "boh", "Retreat", target="tyr")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert not has_unit(result, "italy", "Army", "tyr")
+    assert resolution_for(result, "vie") == "BOUNCE"
+    assert resolution_for(result, "boh") == "BOUNCE"
+
+
+def test_h_8_triple_retreat_to_same_area_will_disband_units():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Retreat")
+        .with_unit("england", "Fleet", "nwy", dislodged=True, dislodged_from="fin")
+        .with_unit("russia", "Army", "nwy")
+        .with_unit("russia", "Fleet", "edi", dislodged=True, dislodged_from="lvp")
+        .with_unit("england", "Army", "edi")
+        .with_unit("russia", "Fleet", "hol", dislodged=True, dislodged_from="ruh")
+        .with_unit("germany", "Army", "hol")
+        .with_order("england", "nwy", "Retreat", target="nth")
+        .with_order("russia", "edi", "Retreat", target="nth")
+        .with_order("russia", "hol", "Retreat", target="nth")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert not has_unit(result, "england", "Fleet", "nth")
+    assert not has_unit(result, "russia", "Fleet", "nth")
+    assert resolution_for(result, "nwy") == "BOUNCE"
+    assert resolution_for(result, "edi") == "BOUNCE"
+    assert resolution_for(result, "hol") == "BOUNCE"
+
+
+def test_h_9_dislodged_unit_will_not_make_attackers_area_contested():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Retreat")
+        .with_unit("germany", "Fleet", "kie", dislodged=True, dislodged_from="hel")
+        .with_unit("england", "Fleet", "kie")
+        .with_unit("germany", "Army", "pru")
+        .with_unit("germany", "Army", "sil")
+        .with_unit("russia", "Army", "pru", dislodged=True, dislodged_from="ber")
+        .with_order("germany", "kie", "Retreat", target="ber")
+        .with_order("russia", "pru", "Disband")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert has_unit(result, "germany", "Fleet", "ber")
+    assert resolution_for(result, "kie") == "OK"
+
+
+def test_h_10_not_retreating_to_attacker_does_not_mean_contested():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Retreat")
+        .with_unit("england", "Army", "kie", dislodged=True, dislodged_from="ber")
+        .with_unit("germany", "Army", "kie")
+        .with_unit("germany", "Army", "pru", dislodged=True, dislodged_from="war")
+        .with_unit("russia", "Army", "pru")
+        .with_order("england", "kie", "Retreat", target="ber")
+        .with_order("germany", "pru", "Retreat", target="ber")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert not has_unit(result, "england", "Army", "ber")
+    assert has_unit(result, "germany", "Army", "ber")
+    assert resolution_for(result, "kie") == "ILLEGAL"
+    assert resolution_for(result, "pru") == "OK"
+
+
+def test_h_11_retreat_when_dislodged_by_adjacent_convoy():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Retreat")
+        .with_unit("italy", "Army", "mar", dislodged=True, dislodged_from=None)
+        .with_unit("france", "Army", "mar")
+        .with_order("italy", "mar", "Retreat", target="gas")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert has_unit(result, "italy", "Army", "gas")
+    assert resolution_for(result, "mar") == "OK"
+
+
+def test_h_12_retreat_when_dislodged_by_adjacent_convoy_while_trying_to_do_the_same():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Retreat")
+        .with_unit("england", "Army", "lvp", dislodged=True, dislodged_from=None)
+        .with_unit("russia", "Army", "lvp")
+        .with_order("england", "lvp", "Retreat", target="edi")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert has_unit(result, "england", "Army", "edi")
+    assert resolution_for(result, "lvp") == "OK"
+
+
+def test_h_13_no_retreat_with_convoy_in_movement_phase():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Retreat")
+        .with_unit("england", "Army", "pic", dislodged=True, dislodged_from="par")
+        .with_unit("france", "Army", "pic")
+        .with_unit("england", "Fleet", "eng")
+        .with_order("england", "pic", "Retreat", target="lon")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert not has_unit(result, "england", "Army", "lon")
+    assert resolution_for(result, "pic") == "ILLEGAL"
+
+
+def test_h_14_no_retreat_with_support_in_movement_phase():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Retreat")
+        .with_unit("england", "Army", "pic", dislodged=True, dislodged_from="par")
+        .with_unit("france", "Army", "pic")
+        .with_unit("france", "Army", "bur", dislodged=True, dislodged_from="mar")
+        .with_unit("germany", "Army", "bur")
+        .with_order("england", "pic", "Retreat", target="bel")
+        .with_order("france", "bur", "Retreat", target="bel")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert not has_unit(result, "england", "Army", "bel")
+    assert not has_unit(result, "france", "Army", "bel")
+    assert resolution_for(result, "pic") == "BOUNCE"
+    assert resolution_for(result, "bur") == "BOUNCE"
+
+
+def test_h_15_no_coastal_crawl_in_retreat():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Retreat")
+        .with_unit("england", "Fleet", "por", dislodged=True, dislodged_from="spa/sc")
+        .with_unit("france", "Fleet", "por")
+        .with_order("england", "por", "Retreat", target="spa/nc")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert not has_unit(result, "england", "Fleet", "spa/nc")
+    assert resolution_for(result, "por") == "ILLEGAL"
+
+
+def test_h_16_contested_for_both_coasts():
+    variant = classical_variant()
+    state = (
+        StateBuilder(variant)
+        .at_phase("Spring", 1901, "Retreat")
+        .with_unit("france", "Fleet", "wes", dislodged=True, dislodged_from="tys")
+        .with_unit("italy", "Fleet", "wes")
+        .with_contested("spa")
+        .with_order("france", "wes", "Retreat", target="spa/sc")
+        .build()
+    )
+
+    result = adjudicate_one(variant, state)
+
+    assert not has_unit(result, "france", "Fleet", "spa/sc")
+    assert resolution_for(result, "wes") == "ILLEGAL"

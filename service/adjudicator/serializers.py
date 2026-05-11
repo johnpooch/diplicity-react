@@ -228,12 +228,16 @@ def deserialize_game_state(data: Dict[str, Any], variant: Variant) -> State:
             raise GameStateValidationError(f"Unsupported unit type: {u['type']!r}")
         _validate_nation(variant, u["nation"])
         _validate_location(variant, u["location"])
+        dislodged_from = u.get("dislodgedFrom")
+        if dislodged_from is not None:
+            _validate_location(variant, dislodged_from)
         units.append(
             Unit(
                 nation=u["nation"],
                 type=u["type"],
                 location=u["location"],
                 dislodged=bool(u.get("dislodged", False)),
+                dislodged_from=dislodged_from,
             )
         )
 
@@ -291,6 +295,11 @@ def deserialize_game_state(data: Dict[str, Any], variant: Variant) -> State:
             year=outcome_raw["year"],
         )
 
+    contested_raw = data.get("contestedProvinces", []) or []
+    for prov in contested_raw:
+        if prov not in variant.provinces:
+            raise GameStateValidationError(f"Unknown contested province: {prov!r}")
+
     return State(
         variant=variant,
         phase=phase,
@@ -300,6 +309,7 @@ def deserialize_game_state(data: Dict[str, Any], variant: Variant) -> State:
         resolutions=resolutions,
         skipped=bool(data.get("skipped", False)),
         outcome=outcome,
+        contested_provinces=tuple(contested_raw),
     )
 
 
@@ -316,6 +326,7 @@ def serialize_game_state(state: State) -> Dict[str, Any]:
                 "type": u.type,
                 "location": u.location,
                 "dislodged": u.dislodged,
+                "dislodgedFrom": u.dislodged_from,
             }
             for u in state.units
         ],
@@ -356,6 +367,7 @@ def serialize_game_state(state: State) -> Dict[str, Any]:
                 "year": state.outcome.year,
             }
         ),
+        "contestedProvinces": list(state.contested_provinces),
     }
 
 

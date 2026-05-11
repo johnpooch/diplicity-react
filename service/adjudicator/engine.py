@@ -124,21 +124,21 @@ class SupportHoldNotSelfSupport(LegalityCheck):
     MESSAGE = "A unit can't support itself."
 
     def passes(self, order: "SupportHoldOrder", variant, units_by_loc, orders_by_loc) -> bool:
-        return order.supported_source != order.unit.location
+        return variant.parent_of(order.supported_source) != variant.parent_of(order.unit.location)
 
 
 class SupportHoldHasSupportedUnit(LegalityCheck):
     MESSAGE = "There's no unit at the supported province."
 
     def passes(self, order: "SupportHoldOrder", variant, units_by_loc, orders_by_loc) -> bool:
-        return order.supported_source in units_by_loc
+        return _unit_at(variant, units_by_loc, order.supported_source) is not None
 
 
 class SupportHoldSupporterCanReach(LegalityCheck):
     MESSAGE = "The supporting unit can't reach the supported province."
 
     def passes(self, order: "SupportHoldOrder", variant, units_by_loc, orders_by_loc) -> bool:
-        return variant.can_move(
+        return variant.can_support_to(
             order.unit.location, order.supported_source, order.unit.type
         )
 
@@ -147,36 +147,80 @@ class SupportMoveNotIntoSelf(LegalityCheck):
     MESSAGE = "A unit can't support an attack into its own province."
 
     def passes(self, order: "SupportMoveOrder", variant, units_by_loc, orders_by_loc) -> bool:
-        return order.target != order.unit.location
+        return variant.parent_of(order.target) != variant.parent_of(order.unit.location)
 
 
 class SupportMoveSupporterCanReach(LegalityCheck):
     MESSAGE = "The supporting unit can't reach the target."
 
     def passes(self, order: "SupportMoveOrder", variant, units_by_loc, orders_by_loc) -> bool:
-        return variant.can_move(order.unit.location, order.target, order.unit.type)
+        return variant.can_support_to(order.unit.location, order.target, order.unit.type)
 
 
 class SupportMoveHasSupportedUnit(LegalityCheck):
     MESSAGE = "There's no unit at the supported source province."
 
     def passes(self, order: "SupportMoveOrder", variant, units_by_loc, orders_by_loc) -> bool:
-        return order.supported_source in units_by_loc
+        return _unit_at(variant, units_by_loc, order.supported_source) is not None
 
 
 class SupportMoveSupportedCanReach(LegalityCheck):
     MESSAGE = "The supported unit can't itself reach the target."
 
     def passes(self, order: "SupportMoveOrder", variant, units_by_loc, orders_by_loc) -> bool:
-        supported = units_by_loc.get(order.supported_source)
+        supported = _unit_at(variant, units_by_loc, order.supported_source)
         if supported is None:
             return True
-        if variant.can_move(order.supported_source, order.target, supported.type):
+        if variant.can_move(supported.location, order.target, supported.type):
             return True
+        target_parent = variant.parent_of(order.target)
+        if target_parent != order.target and variant.can_move(
+            supported.location, target_parent, supported.type
+        ):
+            return True
+        for coast in variant.coasts_of(target_parent):
+            if coast != order.target and variant.can_move(
+                supported.location, coast, supported.type
+            ):
+                return True
         if supported.type == Unit.ARMY:
             finder = ConvoyPathFinder(variant, orders_by_loc)
-            return finder.path_exists(order.supported_source, order.target)
+            return finder.path_exists(supported.location, order.target)
         return False
+
+
+def _unit_at(variant: Variant, units_by_loc: Dict[str, Unit], location: str) -> Optional[Unit]:
+    """
+    Strict unit-by-location lookup used for support / supported-unit
+    legality checks. An exact match wins; otherwise, when `location` is
+    a parent province, a unit at any of its named coasts also matches
+    (DATC 6.B.8). A specific named coast that doesn't match exactly does
+    NOT fall back to the unit's actual coast (DATC 6.B.9).
+    """
+    unit = units_by_loc.get(location)
+    if unit is not None:
+        return unit
+    if location not in variant.named_coasts:
+        for loc, candidate in units_by_loc.items():
+            if variant.parent_of(loc) == location:
+                return candidate
+    return None
+
+
+def _unit_for_source(variant: Variant, units_by_loc: Dict[str, Unit], source: str) -> Optional[Unit]:
+    """
+    Lenient unit lookup for the source of a wire-format order. An exact
+    match wins; otherwise, any unit at the same parent province matches,
+    even when the order specifies the wrong named coast (DATC 6.B.10).
+    """
+    unit = units_by_loc.get(source)
+    if unit is not None:
+        return unit
+    parent = variant.parent_of(source)
+    for loc, candidate in units_by_loc.items():
+        if variant.parent_of(loc) == parent:
+            return candidate
+    return None
 
 
 class ConvoyIssuedByFleet(LegalityCheck):
@@ -533,6 +577,92 @@ class ConvoyOrder(Order):
         if target is None or aux is None:
             raise ValueError("Convoy order requires target and aux")
         return cls(unit, army_source=aux, target=target)
+
+
+# === Retreat-phase orders ===
+
+
+class RetreatTargetIsReachable(LegalityCheck):
+    MESSAGE = "The unit can't reach the retreat destination."
+
+    def passes(self, order: "RetreatOrder", variant, units_by_loc, orders_by_loc) -> bool:
+        return variant.can_move(order.unit.location, order.target, order.unit.type)
+
+
+class RetreatTargetIsUnoccupied(LegalityCheck):
+    MESSAGE = "There is already a unit at the retreat destination."
+
+    def passes(self, order: "RetreatOrder", variant, units_by_loc, orders_by_loc) -> bool:
+        for loc in units_by_loc:
+            if variant.parent_of(loc) == variant.parent_of(order.target):
+                return False
+        return True
+
+
+class RetreatNotToAttackerOrigin(LegalityCheck):
+    MESSAGE = "A unit can't retreat to the province its attacker came from."
+
+    def passes(self, order: "RetreatOrder", variant, units_by_loc, orders_by_loc) -> bool:
+        if order.unit.dislodged_from is None:
+            return True
+        return variant.parent_of(order.target) != variant.parent_of(order.unit.dislodged_from)
+
+
+@Order.register(OrderType.RETREAT)
+class RetreatOrder(Order):
+    """
+    A dislodged unit's instruction to relocate to an adjacent unoccupied
+    province. Retreat targets are restricted further by the per-state
+    `contested_provinces` set and the unit's `dislodged_from` field; those
+    restrictions are enforced by the retreat-phase resolver, not by the
+    static LEGALITY_CHECKS list, because they depend on game-state context
+    that isn't passed to LegalityCheck.passes.
+    """
+
+    LEGALITY_CHECKS: ClassVar[List[Type[LegalityCheck]]] = [
+        RetreatTargetIsReachable,
+        RetreatTargetIsUnoccupied,
+        RetreatNotToAttackerOrigin,
+    ]
+
+    def __init__(self, unit: Unit, target: str) -> None:
+        super().__init__(unit)
+        self.target = target
+
+    @classmethod
+    def _build(
+        cls,
+        unit: Unit,
+        target: Optional[str],
+        aux: Optional[str],
+        unit_type: Optional[str],
+        via_convoy: bool,
+    ) -> "RetreatOrder":
+        if target is None:
+            raise ValueError("Retreat order requires target")
+        return cls(unit, target)
+
+    @property
+    def moves_to(self) -> Optional[str]:
+        return self.target
+
+
+@Order.register(OrderType.DISBAND)
+class DisbandOrder(Order):
+    """A dislodged unit's instruction to disband instead of retreating."""
+
+    LEGALITY_CHECKS: ClassVar[List[Type[LegalityCheck]]] = []
+
+    @classmethod
+    def _build(
+        cls,
+        unit: Unit,
+        target: Optional[str],
+        aux: Optional[str],
+        unit_type: Optional[str],
+        via_convoy: bool,
+    ) -> "DisbandOrder":
+        return cls(unit)
 
 
 # === Convoy path finding ===
@@ -933,7 +1063,7 @@ class EffectiveDefenderDecision(Decision):
         self.province = province
 
     def _decide(self) -> Any:
-        order = self.context.orders.get(self.province)
+        order = self.context.order_at(self.province)
         if order is None:
             return None
         if not isinstance(order, MoveOrder) or order.status == ResolutionType.ILLEGAL:
@@ -946,7 +1076,7 @@ class EffectiveDefenderDecision(Decision):
         return order
 
     def _default(self) -> Any:
-        order = self.context.orders.get(self.province)
+        order = self.context.order_at(self.province)
         if order is None:
             return None
         return order
@@ -988,7 +1118,10 @@ class SupportCutDecision(Decision):
             return False
         if attacker.unit.nation == self.support.unit.nation:
             return False
-        if attacker.unit.location == self.support.cut_exception_location():
+        cut_exception = self.support.cut_exception_location()
+        if cut_exception is not None and self.context.variant.parent_of(
+            attacker.unit.location
+        ) == self.context.variant.parent_of(cut_exception):
             return False
         if attacker.requires_convoy:
             path_dec = self.context.convoy_path.get(attacker)
@@ -1050,13 +1183,13 @@ class AttackStrengthDecision(Decision):
         h2h = self.context.head_to_head_opponent(self.move)
         if h2h is not None:
             return h2h.unit.nation
-        defender_dec = self.context.effective_defender.get(self.move.target)
+        defender_dec = self.context.effective_defender_at(self.move.target)
         if defender_dec is not None and defender_dec.resolved:
             defender = defender_dec.value
             return defender.unit.nation if defender is not None else None
         if not optimistic:
             return _UNDECIDED
-        order = self.context.orders.get(self.move.target)
+        order = self.context.order_at(self.move.target)
         return order.unit.nation if order is not None else None
 
     def _possible_defender_nations(self) -> set:
@@ -1065,7 +1198,7 @@ class AttackStrengthDecision(Decision):
         h2h = self.context.head_to_head_opponent(self.move)
         if h2h is not None:
             nations.add(h2h.unit.nation)
-        target_order = self.context.orders.get(self.move.target)
+        target_order = self.context.order_at(self.move.target)
         if target_order is not None:
             nations.add(target_order.unit.nation)
         return nations
@@ -1095,7 +1228,7 @@ class HoldStrengthDecision(Decision):
         self.province = province
 
     def _decide(self) -> Any:
-        order = self.context.orders.get(self.province)
+        order = self.context.order_at(self.province)
         if order is None:
             return 1
         if isinstance(order, MoveOrder) and order.status != ResolutionType.ILLEGAL:
@@ -1110,7 +1243,7 @@ class HoldStrengthDecision(Decision):
         return self._strength(supports)
 
     def _default(self) -> Any:
-        order = self.context.orders.get(self.province)
+        order = self.context.order_at(self.province)
         if order is None:
             return 1
         if isinstance(order, MoveOrder) and order.status != ResolutionType.ILLEGAL:
@@ -1165,7 +1298,7 @@ class DislodgementDecision(Decision):
         self.province = province
 
     def _decide(self) -> Any:
-        defender_dec = self.context.effective_defender.get(self.province)
+        defender_dec = self.context.effective_defender_at(self.province)
         if defender_dec is None or not defender_dec.resolved:
             return _UNDECIDED
         if defender_dec.value is None:
@@ -1289,12 +1422,12 @@ class MoveResolutionDecision(Decision):
         return ResolutionType.OK
 
     def _resolve_against_target(self, attack: int) -> Any:
-        defender_dec = self.context.effective_defender.get(self.move.target)
+        defender_dec = self.context.effective_defender_at(self.move.target)
         if defender_dec is None or not defender_dec.resolved:
             return _UNDECIDED
         if defender_dec.value is None:
             return ResolutionType.OK
-        hold_dec = self.context.hold_strength.get(self.move.target)
+        hold_dec = self.context.hold_strength_at(self.move.target)
         if hold_dec is None or not hold_dec.resolved:
             return _UNDECIDED
         if attack <= hold_dec.value:
@@ -1313,8 +1446,15 @@ class DecisionContext:
             u.location: u for u in state.units if not u.dislodged
         }
         self.orders: Dict[str, Order] = self._parse_orders()
+        self.orders_by_parent: Dict[str, Order] = {
+            variant.parent_of(loc): order for loc, order in self.orders.items()
+        }
         self.convoy_path_finder = ConvoyPathFinder(self.variant, self.orders)
 
+        # Province-keyed decisions are keyed by the parent province id —
+        # a unit at "spa/nc" occupies the parent province "spa", so attacks
+        # on either coast of Spain target the same defender, hold strength,
+        # and dislodgement decision.
         self.effective_defender: Dict[str, EffectiveDefenderDecision] = {}
         self.attack_strength: Dict[MoveOrder, AttackStrengthDecision] = {}
         self.defend_strength: Dict[MoveOrder, DefendStrengthDecision] = {}
@@ -1327,19 +1467,60 @@ class DecisionContext:
 
         self._build_decisions()
 
+    def order_at(self, location: str) -> Optional[Order]:
+        return self.orders_by_parent.get(self.variant.parent_of(location))
+
+    def effective_defender_at(self, location: str) -> Optional[EffectiveDefenderDecision]:
+        return self.effective_defender.get(self.variant.parent_of(location))
+
+    def hold_strength_at(self, location: str) -> Optional[HoldStrengthDecision]:
+        return self.hold_strength.get(self.variant.parent_of(location))
+
+    def dislodgement_at(self, location: str) -> Optional[DislodgementDecision]:
+        return self.dislodgement.get(self.variant.parent_of(location))
+
     def _parse_orders(self) -> Dict[str, Order]:
         orders = self._build_initial_orders()
+        self._normalize_coastal_targets(orders)
         self._validate_convoys(orders)
         self._mark_redundant_convoys_illegal(orders)
         self._set_convoy_requirements(orders)
         self._validate_non_convoys(orders)
         return orders
 
+    def _normalize_coastal_targets(self, orders: Dict[str, Order]) -> None:
+        """
+        Apply DATC 6.B.2 and 6.B.12: an army's named-coast target collapses
+        to the parent province, and a fleet's parent-province target
+        resolves to the only reachable named coast (if exactly one).
+        """
+        for order in orders.values():
+            if not isinstance(order, MoveOrder):
+                continue
+            unit = order.unit
+            target = order.target
+            if unit.type == Unit.ARMY:
+                if target in self.variant.named_coasts:
+                    order.target = self.variant.named_coasts[target].parent_province
+                continue
+            if unit.type == Unit.FLEET and target in self.variant.provinces:
+                coasts = self.variant.coasts_of(target)
+                if not coasts:
+                    continue
+                reachable = [
+                    c for c in coasts
+                    if self.variant.can_move(unit.location, c, Unit.FLEET)
+                ]
+                if len(reachable) == 1:
+                    order.target = reachable[0]
+
     def _build_initial_orders(self) -> Dict[str, Order]:
         orders: Dict[str, Order] = {}
         for raw in self.state.orders:
-            unit = self.units.get(raw.source)
+            unit = _unit_for_source(self.variant, self.units, raw.source)
             if unit is None or unit.nation != raw.nation:
+                continue
+            if unit.location in orders:
                 continue
             try:
                 parsed = Order.from_wire(
@@ -1352,7 +1533,7 @@ class DecisionContext:
                 )
             except ValueError:
                 continue
-            orders[raw.source] = parsed
+            orders[unit.location] = parsed
         for unit in self.units.values():
             if unit.location not in orders:
                 orders[unit.location] = HoldOrder(unit)
@@ -1415,27 +1596,29 @@ class DecisionContext:
                     self.defend_strength[h2h] = DefendStrengthDecision(self, h2h)
             elif isinstance(order, SupportOrder) and order.status != ResolutionType.ILLEGAL:
                 self.support_cut[order] = SupportCutDecision(self, order)
-        for province in self.units:
-            self.effective_defender[province] = EffectiveDefenderDecision(
-                self, province
-            )
-            self.hold_strength[province] = HoldStrengthDecision(self, province)
-            self.dislodgement[province] = DislodgementDecision(self, province)
+        for unit in self.units.values():
+            parent = self.variant.parent_of(unit.location)
+            if parent not in self.effective_defender:
+                self.effective_defender[parent] = EffectiveDefenderDecision(self, parent)
+                self.hold_strength[parent] = HoldStrengthDecision(self, parent)
+                self.dislodgement[parent] = DislodgementDecision(self, parent)
         # Effective-defender decisions are also needed for move targets that
         # don't currently hold a unit (attacks into empty provinces).
         for order in self.orders.values():
             if isinstance(order, MoveOrder) and order.status != ResolutionType.ILLEGAL:
-                if order.target not in self.effective_defender:
-                    self.effective_defender[order.target] = EffectiveDefenderDecision(
-                        self, order.target
+                parent = self.variant.parent_of(order.target)
+                if parent not in self.effective_defender:
+                    self.effective_defender[parent] = EffectiveDefenderDecision(
+                        self, parent
                     )
 
     def attackers_into(self, location: str) -> List[MoveOrder]:
+        parent = self.variant.parent_of(location)
         return [
             o
             for o in self.orders.values()
             if isinstance(o, MoveOrder)
-            and o.target == location
+            and self.variant.parent_of(o.target) == parent
             and o.status != ResolutionType.ILLEGAL
         ]
 
@@ -1445,8 +1628,8 @@ class DecisionContext:
             for o in self.orders.values()
             if isinstance(o, SupportMoveOrder)
             and o.status != ResolutionType.ILLEGAL
-            and o.target == move.target
-            and o.supported_source == move.unit.location
+            and self._support_target_matches(o.target, move.target)
+            and self._support_source_matches(o.supported_source, move.unit.location)
         ]
 
     def hold_supports_of(self, order: Order) -> List[SupportHoldOrder]:
@@ -1456,12 +1639,22 @@ class DecisionContext:
                 continue
             if o.status == ResolutionType.ILLEGAL:
                 continue
-            if o.supported_source != order.unit.location:
+            if not self._support_source_matches(o.supported_source, order.unit.location):
                 continue
             if not self.support_matches(o):
                 continue
             results.append(o)
         return results
+
+    def _support_target_matches(self, support_target: str, actual_target: str) -> bool:
+        if support_target == actual_target:
+            return True
+        return support_target == self.variant.parent_of(actual_target)
+
+    def _support_source_matches(self, support_source: str, actual_location: str) -> bool:
+        if support_source == actual_location:
+            return True
+        return support_source == self.variant.parent_of(actual_location)
 
     def support_active(
         self, s: SupportOrder, defender_nation: Optional[str] = None
@@ -1474,7 +1667,7 @@ class DecisionContext:
         cut_dec = self.support_cut.get(s)
         if cut_dec is not None and cut_dec.value == ResolutionType.CUT:
             return False
-        dis_dec = self.dislodgement.get(s.unit.location)
+        dis_dec = self.dislodgement_at(s.unit.location)
         if dis_dec is not None and dis_dec.value is True:
             return False
         if defender_nation is not None and s.unit.nation == defender_nation:
@@ -1494,7 +1687,7 @@ class DecisionContext:
         cut_dec = self.support_cut.get(s)
         if cut_dec is None or not cut_dec.resolved:
             return False
-        dis_dec = self.dislodgement.get(s.unit.location)
+        dis_dec = self.dislodgement_at(s.unit.location)
         if dis_dec is None or not dis_dec.resolved:
             return False
         return True
@@ -1508,32 +1701,38 @@ class DecisionContext:
 
         Move supports: matched if the supported unit is a non-illegal
         MoveOrder targeting the same destination this support claims.
+
+        Coast specifications: a support that names the parent province
+        matches a supported order specifying a named coast of that same
+        province (DATC 6.B.7, 6.B.8, 6.B.15). A support naming a named
+        coast must match the supported order exactly by parent.
         """
+        supported = self.order_at(s.supported_source)
         if isinstance(s, SupportHoldOrder):
-            supported = self.orders.get(s.supported_source)
             if supported is None:
                 return False
             if isinstance(supported, MoveOrder) and supported.status != ResolutionType.ILLEGAL:
                 return False
             return True
         if isinstance(s, SupportMoveOrder):
-            supported = self.orders.get(s.supported_source)
             if supported is None or not isinstance(supported, MoveOrder):
                 return False
             if supported.status == ResolutionType.ILLEGAL:
                 return False
-            return supported.target == s.target
+            if s.target == supported.target:
+                return True
+            return s.target == self.variant.parent_of(supported.target)
         raise TypeError(f"Unknown SupportOrder subclass: {type(s).__name__}")
 
     def head_to_head_opponent(self, move: MoveOrder) -> Optional[MoveOrder]:
-        candidate = self.orders.get(move.target)
+        candidate = self.order_at(move.target)
         if candidate is None:
             return None
         if not isinstance(candidate, MoveOrder):
             return None
         if candidate.status == ResolutionType.ILLEGAL:
             return None
-        if candidate.target != move.unit.location:
+        if self.variant.parent_of(candidate.target) != self.variant.parent_of(move.unit.location):
             return None
         # A convoyed move is not a head-to-head — the army goes around the
         # opposing unit by sea, so the two never directly contend.
@@ -1702,20 +1901,24 @@ class MovementPhaseResolver(PhaseResolver):
     def _build_next_states(self) -> List[State]:
         ctx = self.adjudication.context
         new_units = self._compute_new_units(ctx)
+        contested = self._compute_contested_provinces(ctx)
         resolutions = [
             Resolution(
                 province=src, resolution=order.status, reason=order.failure_reason
             )
             for src, order in sorted(ctx.orders.items())
         ]
-        resolved = self._resolved_state(new_units, resolutions)
+        resolved = self._resolved_state(new_units, resolutions, contested)
         next_phase = self._next_phase()
         if next_phase is None:
             return [resolved]
-        return [resolved, self._next_state(new_units, next_phase)]
+        return [resolved, self._next_state(new_units, next_phase, contested)]
 
     def _resolved_state(
-        self, new_units: List[Unit], resolutions: List[Resolution]
+        self,
+        new_units: List[Unit],
+        resolutions: List[Resolution],
+        contested: Tuple[str, ...],
     ) -> State:
         return State(
             variant=self.state.variant,
@@ -1726,12 +1929,22 @@ class MovementPhaseResolver(PhaseResolver):
             resolutions=resolutions,
             skipped=False,
             outcome=None,
+            contested_provinces=contested,
         )
 
-    def _next_state(self, new_units: List[Unit], next_phase: Phase) -> State:
+    def _next_state(
+        self,
+        new_units: List[Unit],
+        next_phase: Phase,
+        contested: Tuple[str, ...],
+    ) -> State:
         next_units = [
             Unit(
-                nation=u.nation, type=u.type, location=u.location, dislodged=u.dislodged
+                nation=u.nation,
+                type=u.type,
+                location=u.location,
+                dislodged=u.dislodged,
+                dislodged_from=u.dislodged_from,
             )
             for u in new_units
         ]
@@ -1744,6 +1957,7 @@ class MovementPhaseResolver(PhaseResolver):
             resolutions=None,
             skipped=False,
             outcome=None,
+            contested_provinces=contested,
         )
 
     def _compute_new_units(self, ctx: DecisionContext) -> List[Unit]:
@@ -1756,6 +1970,7 @@ class MovementPhaseResolver(PhaseResolver):
                 type=unit.type,
                 location=unit.location,
                 dislodged=True,
+                dislodged_from=unit.dislodged_from,
             )
         order = ctx.orders.get(unit.location)
         if (
@@ -1769,13 +1984,236 @@ class MovementPhaseResolver(PhaseResolver):
                 location=order.moves_to,
                 dislodged=False,
             )
-        dis_dec = ctx.dislodgement.get(unit.location)
+        dis_dec = ctx.dislodgement_at(unit.location)
+        is_dislodged = dis_dec is not None and dis_dec.value is True
+        dislodged_from = self._dislodger_origin(unit, ctx) if is_dislodged else None
         return Unit(
             nation=unit.nation,
             type=unit.type,
             location=unit.location,
-            dislodged=(dis_dec is not None and dis_dec.value is True),
+            dislodged=is_dislodged,
+            dislodged_from=dislodged_from,
         )
+
+    def _dislodger_origin(self, unit: Unit, ctx: DecisionContext) -> Optional[str]:
+        """
+        The parent province of the attacker that dislodged this unit, or
+        None if the attacker came by convoy (DATC 6.H.11). A convoyed
+        attacker imposes no retreat restriction since it never crossed
+        the contested border directly.
+        """
+        for attacker in ctx.attackers_into(unit.location):
+            move_dec = ctx.move_resolution.get(attacker)
+            if move_dec is None or move_dec.value != ResolutionType.OK:
+                continue
+            if attacker.requires_convoy:
+                return None
+            return self.variant.parent_of(attacker.unit.location)
+        return None
+
+    def _compute_contested_provinces(self, ctx: DecisionContext) -> Tuple[str, ...]:
+        """
+        Provinces where a standoff occurred: at least two non-illegal
+        moves targeted the same parent province and none succeeded.
+        Returned as parent province ids (DATC 6.H.6, 6.H.16).
+        """
+        by_parent: Dict[str, List[MoveOrder]] = {}
+        for order in ctx.orders.values():
+            if not isinstance(order, MoveOrder):
+                continue
+            if order.status == ResolutionType.ILLEGAL:
+                continue
+            parent = self.variant.parent_of(order.target)
+            by_parent.setdefault(parent, []).append(order)
+        contested: List[str] = []
+        for parent, moves in by_parent.items():
+            if len(moves) < 2:
+                continue
+            if any(
+                ctx.move_resolution.get(m) is not None
+                and ctx.move_resolution[m].value == ResolutionType.OK
+                for m in moves
+            ):
+                continue
+            contested.append(parent)
+        return tuple(sorted(contested))
+
+    def _next_phase(self) -> Optional[Phase]:
+        for transition in self.variant.phase_progression.transitions:
+            if (
+                transition.from_season == self.state.phase.season
+                and transition.from_type == self.state.phase.type
+            ):
+                return Phase(
+                    season=transition.to_season,
+                    year=self.state.phase.year + transition.year_delta,
+                    type=transition.to_type,
+                )
+        return None
+
+
+# === RetreatPhaseResolver ===
+
+
+@PhaseResolver.register(Phase.RETREAT)
+class RetreatPhaseResolver(PhaseResolver):
+    """
+    Resolve the Retreat phase: each dislodged unit either retreats to an
+    adjacent unoccupied non-contested province or disbands. Multiple
+    retreats to the same parent province all fail (DATC 6.H.7, 6.H.8).
+    Only RetreatOrder and DisbandOrder are accepted; any other order
+    type is rejected at parse time (DATC 6.H.1-6.H.4).
+    """
+
+    def __init__(self, state: State, variant: Variant) -> None:
+        self.state = state
+        self.variant = variant
+        self.dislodged_units: Dict[str, Unit] = {
+            u.location: u for u in state.units if u.dislodged
+        }
+        self.standing_units: Dict[str, Unit] = {
+            u.location: u for u in state.units if not u.dislodged
+        }
+        self.contested = set(state.contested_provinces)
+        self.orders_by_loc: Dict[str, Order] = {}
+
+    def resolve(self) -> List[State]:
+        self._parse_orders()
+        self._resolve_bounces()
+        return self._build_next_states()
+
+    def _parse_orders(self) -> None:
+        for raw in self.state.orders:
+            unit = _unit_for_source(self.variant, self.dislodged_units, raw.source)
+            if unit is None or unit.nation != raw.nation:
+                continue
+            if raw.order_type not in (OrderType.RETREAT, OrderType.DISBAND):
+                continue
+            if unit.location in self.orders_by_loc:
+                continue
+            try:
+                parsed = Order.from_wire(
+                    raw.order_type, unit, raw.target, raw.aux, raw.unit_type, raw.via_convoy
+                )
+            except ValueError:
+                continue
+            self.orders_by_loc[unit.location] = parsed
+        for loc, unit in self.dislodged_units.items():
+            if loc not in self.orders_by_loc:
+                self.orders_by_loc[loc] = DisbandOrder(unit)
+        self._apply_legality_checks()
+        self._enforce_contested_targets()
+
+    def _apply_legality_checks(self) -> None:
+        for order in self.orders_by_loc.values():
+            failure = order.validate(self.variant, self.standing_units, self.orders_by_loc)
+            if failure is not None:
+                order.status = ResolutionType.ILLEGAL
+                order.failure_reason = failure.MESSAGE
+
+    def _enforce_contested_targets(self) -> None:
+        for order in self.orders_by_loc.values():
+            if not isinstance(order, RetreatOrder):
+                continue
+            if order.status == ResolutionType.ILLEGAL:
+                continue
+            if self.variant.parent_of(order.target) in self.contested:
+                order.status = ResolutionType.ILLEGAL
+                order.failure_reason = "The retreat destination is contested."
+
+    def _resolve_bounces(self) -> None:
+        targets: Dict[str, List[RetreatOrder]] = {}
+        for order in self.orders_by_loc.values():
+            if not isinstance(order, RetreatOrder):
+                continue
+            if order.status == ResolutionType.ILLEGAL:
+                continue
+            targets.setdefault(self.variant.parent_of(order.target), []).append(order)
+        for parent, contenders in targets.items():
+            if len(contenders) >= 2:
+                for retreat in contenders:
+                    retreat.status = ResolutionType.BOUNCE
+                    retreat.failure_reason = (
+                        "Multiple units retreat to the same province; all disband."
+                    )
+        for order in self.orders_by_loc.values():
+            if order.status is None:
+                order.status = ResolutionType.OK
+
+    def _build_next_states(self) -> List[State]:
+        new_units = self._compute_new_units()
+        resolutions = [
+            Resolution(
+                province=src, resolution=order.status, reason=order.failure_reason
+            )
+            for src, order in sorted(self.orders_by_loc.items())
+        ]
+        resolved = State(
+            variant=self.state.variant,
+            phase=self.state.phase,
+            units=new_units,
+            supply_centers=list(self.state.supply_centers),
+            orders=list(self.state.orders),
+            resolutions=resolutions,
+            skipped=False,
+            outcome=None,
+            contested_provinces=tuple(self.state.contested_provinces),
+        )
+        next_phase = self._next_phase()
+        if next_phase is None:
+            return [resolved]
+        next_units = [
+            Unit(
+                nation=u.nation,
+                type=u.type,
+                location=u.location,
+                dislodged=False,
+                dislodged_from=None,
+            )
+            for u in new_units
+        ]
+        next_state = State(
+            variant=self.state.variant,
+            phase=next_phase,
+            units=next_units,
+            supply_centers=list(self.state.supply_centers),
+            orders=[],
+            resolutions=None,
+            skipped=False,
+            outcome=None,
+            contested_provinces=(),
+        )
+        return [resolved, next_state]
+
+    def _compute_new_units(self) -> List[Unit]:
+        new_units: List[Unit] = []
+        for unit in self.state.units:
+            if not unit.dislodged:
+                new_units.append(
+                    Unit(
+                        nation=unit.nation,
+                        type=unit.type,
+                        location=unit.location,
+                        dislodged=False,
+                        dislodged_from=None,
+                    )
+                )
+                continue
+            order = self.orders_by_loc.get(unit.location)
+            if (
+                isinstance(order, RetreatOrder)
+                and order.status == ResolutionType.OK
+            ):
+                new_units.append(
+                    Unit(
+                        nation=unit.nation,
+                        type=unit.type,
+                        location=order.target,
+                        dislodged=False,
+                        dislodged_from=None,
+                    )
+                )
+        return new_units
 
     def _next_phase(self) -> Optional[Phase]:
         for transition in self.variant.phase_progression.transitions:
@@ -1993,19 +2431,73 @@ class SupportOptions:
         return options
 
 
+class RetreatOptions:
+    @classmethod
+    def for_dislodged(
+        cls,
+        unit: Unit,
+        variant: Variant,
+        standing_by_loc: Dict[str, Unit],
+        contested: set,
+    ) -> List[OrderOption]:
+        options: List[OrderOption] = [
+            OrderOption(
+                source=unit.location,
+                order_type=OrderType.DISBAND,
+                target=None,
+                aux=None,
+                unit_type=None,
+                named_coast=None,
+            )
+        ]
+        for adjacency in variant.adjacencies_of(unit.location):
+            if not adjacency.allows(unit.type):
+                continue
+            target = adjacency.to
+            target_parent = variant.parent_of(target)
+            if target_parent in contested:
+                continue
+            if any(
+                variant.parent_of(loc) == target_parent for loc in standing_by_loc
+            ):
+                continue
+            if (
+                unit.dislodged_from is not None
+                and variant.parent_of(unit.dislodged_from) == target_parent
+            ):
+                continue
+            options.append(
+                OrderOption(
+                    source=unit.location,
+                    order_type=OrderType.RETREAT,
+                    target=target,
+                    aux=None,
+                    unit_type=None,
+                    named_coast=None,
+                )
+            )
+        return options
+
+
 # === OptionsBuilder ===
 
 
 class OptionsBuilder:
-    _ENUMERATORS_BY_PHASE: Dict[str, Tuple[type, ...]] = {
-        Phase.MOVEMENT: (HoldOptions, MoveOptions, SupportOptions, ConvoyOptions),
-    }
+    _MOVEMENT_ENUMERATORS: Tuple[type, ...] = (
+        HoldOptions, MoveOptions, SupportOptions, ConvoyOptions,
+    )
 
     def __init__(self, variant: Variant) -> None:
         self.variant = variant
 
     def build(self, state: State) -> List[OrderOption]:
-        enumerators = self._ENUMERATORS_BY_PHASE.get(state.phase.type, ())
+        if state.phase.type == Phase.MOVEMENT:
+            return self._movement_options(state)
+        if state.phase.type == Phase.RETREAT:
+            return self._retreat_options(state)
+        return []
+
+    def _movement_options(self, state: State) -> List[OrderOption]:
         units_by_loc: Dict[str, Unit] = {
             u.location: u for u in state.units if not u.dislodged
         }
@@ -2013,6 +2505,20 @@ class OptionsBuilder:
             option
             for unit in state.units
             if not unit.dislodged
-            for enumerator in enumerators
+            for enumerator in self._MOVEMENT_ENUMERATORS
             for option in enumerator.for_unit(unit, self.variant, units_by_loc)
+        ]
+
+    def _retreat_options(self, state: State) -> List[OrderOption]:
+        standing_by_loc: Dict[str, Unit] = {
+            u.location: u for u in state.units if not u.dislodged
+        }
+        contested = set(state.contested_provinces)
+        return [
+            option
+            for unit in state.units
+            if unit.dislodged
+            for option in RetreatOptions.for_dislodged(
+                unit, self.variant, standing_by_loc, contested
+            )
         ]

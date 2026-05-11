@@ -120,6 +120,38 @@ class Variant:
                 return adjacency.allows(unit_type)
         return False
 
+    def parent_of(self, location_id: str) -> str:
+        named = self.named_coasts.get(location_id)
+        if named is not None:
+            return named.parent_province
+        return location_id
+
+    def coasts_of(self, province_id: str) -> Tuple[str, ...]:
+        return tuple(
+            nc.id for nc in self.named_coasts.values()
+            if nc.parent_province == province_id
+        )
+
+    def can_support_to(self, from_loc: str, to_loc: str, unit_type: str) -> bool:
+        """
+        Whether a unit at `from_loc` can support an order targeting
+        `to_loc`. A supporter can support to a province by any path it
+        could move to, including via any named coast of that province
+        (DATC 6.B.4).
+        """
+        if self.can_move(from_loc, to_loc, unit_type):
+            return True
+        parent = self.parent_of(to_loc)
+        if parent != to_loc and self.can_move(from_loc, parent, unit_type):
+            return True
+        target_parent = parent if parent != to_loc else to_loc
+        for coast in self.coasts_of(target_parent):
+            if coast == to_loc:
+                continue
+            if self.can_move(from_loc, coast, unit_type):
+                return True
+        return False
+
     def has_fleet_access(self, prov_id: str) -> bool:
         """
         Whether a fleet at some sea province can be adjacent to this
@@ -168,6 +200,7 @@ class Unit:
     type: str
     location: str
     dislodged: bool = False
+    dislodged_from: Optional[str] = None
 
     ARMY: ClassVar[str] = "Army"
     FLEET: ClassVar[str] = "Fleet"
@@ -214,6 +247,7 @@ class State:
     resolutions: Optional[List[Resolution]]
     skipped: bool
     outcome: Optional[Outcome]
+    contested_provinces: Tuple[str, ...] = ()
 
 
 @dataclass
