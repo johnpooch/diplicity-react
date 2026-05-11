@@ -10,6 +10,13 @@ import VietnamWarLaos from "./vietnam-war/laos.svg";
 import VietnamWarNorthVietnam from "./vietnam-war/north-vietnam.svg";
 import VietnamWarSouthVietnam from "./vietnam-war/south-vietnam.svg";
 import VietnamWarThailand from "./vietnam-war/thailand.svg";
+import CantonTurkey from "./canton/turkey.svg";
+import CantonBritain from "./canton/britain.svg";
+import CantonChina from "./canton/china.svg";
+import CantonHolland from "./canton/holland.svg";
+import CantonJapan from "./canton/japan.svg";
+import CantonRussia from "./canton/russia.svg";
+import CantonFrance from "./canton/france.svg";
 
 type NationFlags = Record<string, string>;
 
@@ -35,6 +42,15 @@ const Flags: FlagsType = {
         ["north vietnam"]: VietnamWarNorthVietnam,
         ["south vietnam"]: VietnamWarSouthVietnam,
         thailand: VietnamWarThailand,
+    },
+    canton: {
+        turkey: CantonTurkey,
+        britain: CantonBritain,
+        china: CantonChina,
+        holland: CantonHolland,
+        japan: CantonJapan,
+        russia: CantonRussia,
+        france: CantonFrance,
     },
 };
 

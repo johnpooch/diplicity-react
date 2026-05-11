@@ -338,6 +338,9 @@ const InteractiveMap = (props: InteractiveMapProps) => {
       preserveAspectRatio="xMidYMid meet"
     >
       <defs>
+        {map.svgDefs && (
+          <g dangerouslySetInnerHTML={{ __html: map.svgDefs }} />
+        )}
         <marker
           id="arrowhead"
           markerWidth="5"
@@ -390,6 +393,7 @@ const InteractiveMap = (props: InteractiveMapProps) => {
             fill={element.styles.fill}
             stroke={element.styles.stroke}
             strokeWidth={element.styles.strokeWidth}
+            filter={element.styles.filter}
           />
         </g>
       ))}

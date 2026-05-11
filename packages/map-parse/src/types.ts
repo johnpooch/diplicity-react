@@ -20,6 +20,7 @@ interface IStyles {
     fontStyle?: string;
     letterSpacing?: string;
     transform?: string;
+    filter?: string;
 }
 
 type ICenter = {
@@ -67,6 +68,7 @@ interface IMap {
     borders: IPath[];
     impassableProvinces: IPath[];
     namesLayer?: INamesLayer;
+    svgDefs?: string;
 }
 
 export { IMap, IPath, IPoint, IStyles, ICenter, IProvince, IText, INamesLayer, ISupplyCenter }

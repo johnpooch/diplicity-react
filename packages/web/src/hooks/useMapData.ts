@@ -21,6 +21,7 @@ export type MapData = {
       fill: string;
       stroke: string;
       strokeWidth: number;
+      filter?: string;
     };
   }>;
   borders: Array<{
@@ -51,6 +52,7 @@ export type MapData = {
       };
     }>;
   };
+  svgDefs?: string;
 };
 
 const isJsonResponse = (response: Response): boolean => {
