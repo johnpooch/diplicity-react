@@ -467,52 +467,6 @@ class SupportOrder(Order):
         """
         ...
 
-    @abc.abstractmethod
-    def is_matched(self, ctx: "DecisionContext") -> bool:
-        # TODO: I think that this should be a decision. We should avoid passing decision context to the order classes.
-        """
-        Whether the supported unit is doing what this support claims.
-        """
-        ...
-
-    def is_active(
-        self, ctx: "DecisionContext", defender_nation: Optional[str] = None
-    ) -> bool:
-        # TODO: I think that this should be a decision. We should avoid passing decision context to the order classes.
-        """
-        Whether this support contributes strength right now.
-        """
-        if self.status == ResolutionType.ILLEGAL:
-            return False
-        cut_dec = ctx.support_cut.get(self)
-        if cut_dec is not None and cut_dec.value == ResolutionType.CUT:
-            return False
-        dis_dec = ctx.dislodgement.get(self.unit.location)
-        if dis_dec is not None and dis_dec.value is True:
-            return False
-        if defender_nation is not None and self.unit.nation == defender_nation:
-            return False
-        return True
-
-    def is_determined(
-        self, ctx: "DecisionContext", defender_nation: Optional[str] = None
-    ) -> bool:
-        # TODO: I think that this should be a decision. We should avoid passing decision context to the order classes.
-        """
-        Whether is_active can return a final answer right now.
-        """
-        if self.status == ResolutionType.ILLEGAL:
-            return True
-        if defender_nation is not None and self.unit.nation == defender_nation:
-            return True
-        cut_dec = ctx.support_cut.get(self)
-        if cut_dec is None or not cut_dec.resolved:
-            return False
-        dis_dec = ctx.dislodgement.get(self.unit.location)
-        if dis_dec is None or not dis_dec.resolved:
-            return False
-        return True
-
 
 class SupportHoldOrder(SupportOrder):
     """
@@ -537,23 +491,6 @@ class SupportHoldOrder(SupportOrder):
         Hold supports have no cut exception — any foreign attacker cuts them.
         """
         return None
-
-    def is_matched(self, ctx: "DecisionContext") -> bool:
-        """
-        Matched if the supported unit exists and was not ordered to a
-        non-illegal Move. A Hold support claims "the unit at this
-        province is staying put" — a legal Move falsifies the claim,
-        whether the move succeeds, bounces, or has a disrupted convoy
-        (DATC 6.D.7, 6.D.8). An illegal Move is "ignored" per DATC and
-        the unit effectively holds, so Hold support still applies
-        (DATC 6.D.28).
-        """
-        supported = ctx.orders.get(self.supported_province)
-        if supported is None:
-            return False
-        if isinstance(supported, MoveOrder) and supported.status != ResolutionType.ILLEGAL:
-            return False
-        return True
 
 
 class SupportMoveOrder(SupportOrder):
@@ -581,25 +518,6 @@ class SupportMoveOrder(SupportOrder):
         """
         # TODO I notice we are switching between destination and target. I think we should standardize around "target"
         return self.destination
-
-    def is_matched(self, ctx: "DecisionContext") -> bool:
-        """
-        Matched if the supported unit is a MoveOrder targeting the same
-        destination this support claims. A Move support claims "the
-        unit at the supported source is moving to this destination" —
-        if the unit isn't actually moving, or is moving somewhere else,
-        the claim is falsified.
-
-        ILLEGAL supports are also unmatched (the supported move was
-        rejected at parse time).
-        """
-        # TODO This should be a decision.
-        supported = ctx.orders.get(self.supported_source)
-        if supported is None or not isinstance(supported, MoveOrder):
-            return False
-        if supported.status == ResolutionType.ILLEGAL:
-            return False
-        return supported.target == self.destination
 
 
 @Order.register(OrderType.CONVOY)
@@ -1161,9 +1079,9 @@ class AttackStrengthDecision(Decision):
         if defender_nation == self.move.unit.nation:
             return 0
         supports = self.context.attack_supports_of(self.move)
-        if not all(s.is_determined(self.context, defender_nation) for s in supports):
+        if not all(self.context.support_determined(s, defender_nation) for s in supports):
             return _UNDECIDED
-        active = sum(1 for s in supports if s.is_active(self.context, defender_nation))
+        active = sum(1 for s in supports if self.context.support_active(s, defender_nation))
         return 1 + active
 
     def _default(self) -> Any:
@@ -1171,7 +1089,7 @@ class AttackStrengthDecision(Decision):
         if defender_nation == self.move.unit.nation:
             return 0
         supports = self.context.attack_supports_of(self.move)
-        active = sum(1 for s in supports if s.is_active(self.context, defender_nation))
+        active = sum(1 for s in supports if self.context.support_active(s, defender_nation))
         return 1 + active
 
     def _defender_nation(self) -> Any:
@@ -1216,14 +1134,14 @@ class DefendStrengthDecision(Decision):
 
     def _decide(self) -> Any:
         supports = self.context.attack_supports_of(self.move)
-        if not all(s.is_determined(self.context) for s in supports):
+        if not all(self.context.support_determined(s) for s in supports):
             return _UNDECIDED
-        active = sum(1 for s in supports if s.is_active(self.context))
+        active = sum(1 for s in supports if self.context.support_active(s))
         return 1 + active
 
     def _default(self) -> Any:
         supports = self.context.attack_supports_of(self.move)
-        active = sum(1 for s in supports if s.is_active(self.context))
+        active = sum(1 for s in supports if self.context.support_active(s))
         return 1 + active
 
 
@@ -1243,9 +1161,9 @@ class HoldStrengthDecision(Decision):
             if move_dec.value == ResolutionType.OK:
                 return 0
         supports = self.context.hold_supports_of(order)
-        if not all(s.is_determined(self.context) for s in supports):
+        if not all(self.context.support_determined(s) for s in supports):
             return _UNDECIDED
-        active = sum(1 for s in supports if s.is_active(self.context))
+        active = sum(1 for s in supports if self.context.support_active(s))
         return 1 + active
 
     def _default(self) -> Any:
@@ -1257,7 +1175,7 @@ class HoldStrengthDecision(Decision):
             if move_dec is not None and move_dec.value == ResolutionType.OK:
                 return 0
         supports = self.context.hold_supports_of(order)
-        active = sum(1 for s in supports if s.is_active(self.context))
+        active = sum(1 for s in supports if self.context.support_active(s))
         return 1 + active
 
 
@@ -1281,9 +1199,9 @@ class PreventStrengthDecision(Decision):
             if h2h_dec is None or not h2h_dec.resolved:
                 return _UNDECIDED
         supports = self.context.attack_supports_of(self.move)
-        if not all(s.is_determined(self.context) for s in supports):
+        if not all(self.context.support_determined(s) for s in supports):
             return _UNDECIDED
-        active = sum(1 for s in supports if s.is_active(self.context))
+        active = sum(1 for s in supports if self.context.support_active(s))
         return 1 + active
 
     def _default(self) -> Any:
@@ -1293,7 +1211,7 @@ class PreventStrengthDecision(Decision):
             if h2h_dec is not None and h2h_dec.value == ResolutionType.OK:
                 return 0
         supports = self.context.attack_supports_of(self.move)
-        active = sum(1 for s in supports if s.is_active(self.context))
+        active = sum(1 for s in supports if self.context.support_active(s))
         return 1 + active
 
 
@@ -1586,14 +1504,72 @@ class DecisionContext:
                 continue
             if o.supported_province != order.unit.location:
                 continue
-            supported = self.orders.get(o.supported_province)
-            if isinstance(supported, MoveOrder) and supported.status != ResolutionType.ILLEGAL:
-                # A legal Move order (whether it succeeds, bounces, or
-                # has a disrupted convoy) means the unit isn't holding,
-                # so Hold support doesn't apply (DATC 6.D.7, 6.D.8).
+            if not self.support_matches(o):
                 continue
             results.append(o)
         return results
+
+    def support_active(
+        self, s: SupportOrder, defender_nation: Optional[str] = None
+    ) -> bool:
+        """
+        Whether this support contributes strength right now.
+        """
+        if s.status == ResolutionType.ILLEGAL:
+            return False
+        cut_dec = self.support_cut.get(s)
+        if cut_dec is not None and cut_dec.value == ResolutionType.CUT:
+            return False
+        dis_dec = self.dislodgement.get(s.unit.location)
+        if dis_dec is not None and dis_dec.value is True:
+            return False
+        if defender_nation is not None and s.unit.nation == defender_nation:
+            return False
+        return True
+
+    def support_determined(
+        self, s: SupportOrder, defender_nation: Optional[str] = None
+    ) -> bool:
+        """
+        Whether support_active can return a final answer right now.
+        """
+        if s.status == ResolutionType.ILLEGAL:
+            return True
+        if defender_nation is not None and s.unit.nation == defender_nation:
+            return True
+        cut_dec = self.support_cut.get(s)
+        if cut_dec is None or not cut_dec.resolved:
+            return False
+        dis_dec = self.dislodgement.get(s.unit.location)
+        if dis_dec is None or not dis_dec.resolved:
+            return False
+        return True
+
+    def support_matches(self, s: SupportOrder) -> bool:
+        """
+        Whether the supported unit is doing what this support claims.
+
+        Hold supports: matched if the supported unit exists and was not
+        ordered to a non-illegal Move (DATC 6.D.7, 6.D.8, 6.D.28).
+
+        Move supports: matched if the supported unit is a non-illegal
+        MoveOrder targeting the same destination this support claims.
+        """
+        if isinstance(s, SupportHoldOrder):
+            supported = self.orders.get(s.supported_province)
+            if supported is None:
+                return False
+            if isinstance(supported, MoveOrder) and supported.status != ResolutionType.ILLEGAL:
+                return False
+            return True
+        if isinstance(s, SupportMoveOrder):
+            supported = self.orders.get(s.supported_source)
+            if supported is None or not isinstance(supported, MoveOrder):
+                return False
+            if supported.status == ResolutionType.ILLEGAL:
+                return False
+            return supported.target == s.destination
+        raise TypeError(f"Unknown SupportOrder subclass: {type(s).__name__}")
 
     def is_successfully_moving(self, order: Order) -> bool:
         if not isinstance(order, MoveOrder):
@@ -1676,7 +1652,7 @@ class Adjudication:
                 move_dec = ctx.move_resolution.get(order)
                 order.status = move_dec.value if move_dec is not None else ResolutionType.OK
             elif isinstance(order, SupportOrder):
-                if not order.is_matched(ctx):
+                if not ctx.support_matches(order):
                     order.status = ResolutionType.CUT
                 else:
                     cut_dec = ctx.support_cut.get(order)
@@ -1725,13 +1701,13 @@ class Adjudication:
         ctx = self.context
         for move in cycle:
             attack = 1 + sum(
-                1 for s in ctx.attack_supports_of(move) if s.is_active(ctx)
+                1 for s in ctx.attack_supports_of(move) if ctx.support_active(s)
             )
             for other in ctx.attackers_into(move.target):
                 if other is move:
                     continue
                 prevent = 1 + sum(
-                    1 for s in ctx.attack_supports_of(other) if s.is_active(ctx)
+                    1 for s in ctx.attack_supports_of(other) if ctx.support_active(s)
                 )
                 if attack <= prevent:
                     return False
