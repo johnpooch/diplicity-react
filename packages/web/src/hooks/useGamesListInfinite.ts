@@ -12,11 +12,16 @@ const getNextPageParam = (lastPage: Awaited<ReturnType<typeof gamesList>>) => {
   return page ? Number(page) : undefined;
 };
 
-export const useGamesListInfinite = (params?: GamesListParams) => {
+interface UseGamesListInfiniteOptions {
+  refetchInterval?: number;
+}
+
+export const useGamesListInfinite = (params?: GamesListParams, options?: UseGamesListInfiniteOptions) => {
   return useSuspenseInfiniteQuery({
     queryKey: [...getGamesListQueryKey(params), "infinite"],
     queryFn: ({ pageParam }) => gamesList({ ...params, page: pageParam }),
     initialPageParam: 1,
     getNextPageParam,
+    ...options,
   });
 };

@@ -89,7 +89,7 @@ const GameTabContent: React.FC<GameTabContentProps> = ({
   status,
 }) => {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useGamesListInfinite({ mine: true, status: statusFilter });
+    useGamesListInfinite({ mine: true, status: statusFilter }, { refetchInterval: 30000 });
   const { data: variants } = useVariantsListSuspense();
 
   const games = data.pages.flatMap(page => page.results);
