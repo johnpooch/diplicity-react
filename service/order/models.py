@@ -134,6 +134,7 @@ class Order(BaseModel):
     objects = OrderManager()
 
     phase_state = models.ForeignKey("phase.PhaseState", on_delete=models.CASCADE, related_name="orders")
+    is_implicit = models.BooleanField(default=False)
     order_type = models.CharField(max_length=50, choices=OrderType.ORDER_TYPE_CHOICES, null=True, blank=True)
     source = models.ForeignKey(
         "province.Province", on_delete=models.CASCADE, related_name="source_orders", null=True, blank=True

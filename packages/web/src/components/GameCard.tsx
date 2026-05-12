@@ -20,12 +20,23 @@ import {
   GameList,
   useGameJoinCreate,
   useGamePhaseRetrieve,
+  useGamePhaseStatesList,
   getGamesListQueryKey,
 } from "../api/generated/endpoints";
 import { formatTimeAgo, getGameLandingPath } from "../util";
 import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
+
+const formatPhaseDuration = (duration: string): string => {
+  const match = duration.match(/^(\d+)\s*_?(hours?|days?|weeks?)$/i);
+  if (!match) return duration;
+  const n = match[1];
+  const unit = match[2].toLowerCase();
+  if (unit.startsWith("hour")) return `${n} ${n === "1" ? "hr" : "hrs"}`;
+  if (unit.startsWith("day")) return `${n}d`;
+  return `${n}w`;
+};
 
 export interface GameCardProps {
   game: GameList;
@@ -40,6 +51,11 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const { data: phase } = useGamePhaseRetrieve(game.id, phaseId);
+  const isActiveMember =
+    game.status === "active" && game.members.some(m => m.isCurrentUser);
+  const { data: phaseStates } = useGamePhaseStatesList(game.id, {
+    query: { enabled: isActiveMember },
+  });
   const joinGameMutation = useGameJoinCreate();
 
   const handleClickGame = () => {
@@ -120,15 +136,8 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
                 {game.private && <Lock className="h-3 w-3" />}
                 <span>
                   {variant.name} •{" "}
-                  {game.movementPhaseDuration || "Resolve when ready"}
-                </span>
-              </div>
-              {game.status === "pending" ? (
-                <p>Created {formatTimeAgo(game.createdAt)}</p>
-              ) : phase ? (
-                <p>
-                  {phase.season} {phase.year} • {phase.type}
-                  {phase.status === "active" && phase.scheduledResolution && (
+                  {game.movementPhaseDuration ? formatPhaseDuration(game.movementPhaseDuration) : "Resolve when ready"}
+                  {phase?.status === "active" && phase.scheduledResolution && (
                     <>
                       {" • "}
                       <RemainingTimeDisplay
@@ -138,6 +147,24 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
                       />
                     </>
                   )}
+                </span>
+              </div>
+              {game.status === "pending" ? (
+                <p>Created {formatTimeAgo(game.createdAt)}</p>
+              ) : phase ? (
+                <p>
+                  {phase.season} {phase.year} • {phase.type}
+                  {phase.status === "active" && (() => {
+                    const userState = phaseStates?.find(
+                      ps => ps.member.isCurrentUser
+                    );
+                    if (!userState) return null;
+                    if (userState.ordersConfirmed)
+                      return " • Orders confirmed";
+                    if (userState.orderableProvinces.length === 0)
+                      return " • No orders needed";
+                    return " • Orders pending";
+                  })()}
                 </p>
               ) : (
                 <Skeleton className="w-24 h-4" />
