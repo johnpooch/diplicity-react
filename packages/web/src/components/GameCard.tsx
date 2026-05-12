@@ -51,6 +51,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const { data: phase } = useGamePhaseRetrieve(game.id, phaseId);
+  const isSandbox = game.sandbox;
   const isActiveMember =
     game.status === "active" && game.members.some(m => m.isCurrentUser);
   const { data: phaseStates } = useGamePhaseStatesList(game.id, {
@@ -137,7 +138,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
                 <span>
                   {variant.name} •{" "}
                   {game.movementPhaseDuration ? formatPhaseDuration(game.movementPhaseDuration) : "Resolve when ready"}
-                  {phase?.status === "active" && phase.scheduledResolution && (
+                  {!isSandbox && phase?.status === "active" && phase.scheduledResolution && (
                     <>
                       {" • "}
                       <RemainingTimeDisplay
@@ -154,7 +155,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
               ) : phase ? (
                 <p>
                   {phase.season} {phase.year} • {phase.type}
-                  {phase.status === "active" && (() => {
+                  {!isSandbox && phase.status === "active" && (() => {
                     const userState = phaseStates?.find(
                       ps => ps.member.isCurrentUser
                     );
@@ -172,7 +173,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
             </CardDescription>
           </div>
         </CardHeader>
-        {!game.sandbox && (
+        {!isSandbox && (
           <CardFooter className="p-0 flex justify-between items-center">
             <button
               onClick={handleClickPlayerInfo}
