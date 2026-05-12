@@ -42,6 +42,18 @@ type MessageDisplayItem = {
   formattedTime: string;
 };
 
+const formatMessageTime = (createdAt: string): string => {
+  const date = new Date(createdAt);
+  const today = new Date();
+  const isToday =
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate();
+  const time = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (isToday) return time;
+  return `${date.toLocaleDateString([], { month: "short", day: "numeric" })} ${time}`;
+};
+
 const buildMessageItems = (
   messages: readonly ChannelMessageType[]
 ): MessageDisplayItem[] => {
@@ -60,10 +72,7 @@ const buildMessageItems = (
       },
       isCurrentUser: msg.sender.isCurrentUser,
       showAvatar,
-      formattedTime: new Date(msg.createdAt).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      formattedTime: formatMessageTime(msg.createdAt),
     };
   });
 };
