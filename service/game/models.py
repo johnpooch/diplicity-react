@@ -4,7 +4,9 @@ import uuid
 
 from django.db import models, transaction
 from django.utils import timezone
-from django.db.models import Prefetch
+from django.db.models import Count, IntegerField, OuterRef, Prefetch, Subquery, Value
+from django.db.models.functions import Coalesce
+from django.apps import apps as django_apps
 from opentelemetry import trace
 from common.constants import (
     DeadlineMode,
@@ -146,6 +148,36 @@ class GameQuerySet(models.QuerySet):
         )
 
 
+    def with_unread_counts(self, user):
+        if not user.is_authenticated:
+            return self.annotate(total_unread_message_count=Value(0, output_field=IntegerField()))
+
+        ChannelMessage = django_apps.get_model("channel", "ChannelMessage")
+        ChannelMember = django_apps.get_model("channel", "ChannelMember")
+
+        last_read_subquery = Subquery(
+            ChannelMember.objects.filter(
+                channel_id=OuterRef("channel_id"),
+                member__user=user,
+            ).values("last_read_at")[:1]
+        )
+
+        unread_count = Subquery(
+            ChannelMessage.objects.filter(
+                channel__game_id=OuterRef("pk"),
+                channel__member_channels__member__user=user,
+                created_at__gt=last_read_subquery,
+            ).order_by().values("channel__game_id").annotate(
+                cnt=Count("id", distinct=True)
+            ).values("cnt"),
+            output_field=IntegerField(),
+        )
+
+        return self.annotate(
+            total_unread_message_count=Coalesce(unread_count, Value(0, output_field=IntegerField()))
+        )
+
+
 class GameManager(models.Manager):
     def get_queryset(self):
         return GameQuerySet(self.model, using=self._db)
@@ -158,6 +190,9 @@ class GameManager(models.Manager):
 
     def with_related_data(self):
         return self.get_queryset().with_related_data()
+
+    def with_unread_counts(self, user):
+        return self.get_queryset().with_unread_counts(user)
 
     def create_from_template(self, variant, **kwargs):
         template_phase = variant.template_phase

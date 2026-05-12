@@ -71,23 +71,7 @@ class GameListSerializer(serializers.Serializer):
 
     @extend_schema_field(serializers.IntegerField)
     def get_total_unread_message_count(self, obj):
-        user = self.context["request"].user
-        if not user.is_authenticated:
-            return 0
-        return (
-            ChannelMessage.objects.filter(
-                channel__game=obj,
-                channel__member_channels__member__user=user,
-                created_at__gt=Subquery(
-                    ChannelMember.objects.filter(
-                        channel=OuterRef("channel"),
-                        member__user=user,
-                    ).values("last_read_at")[:1]
-                ),
-            )
-            .distinct()
-            .count()
-        )
+        return getattr(obj, "total_unread_message_count", 0)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):
