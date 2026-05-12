@@ -292,7 +292,7 @@ export function GameDropdownMenu({
         <DropdownMenuItem
           onClick={() => {
             navigator.clipboard.writeText(
-              `${window.location.origin}/game/${game.id}`
+              `https://diplicity.com/game/${game.id}`
             );
             toast.success("Link copied to clipboard");
           }}
