@@ -40,6 +40,14 @@ const TIMEZONE_ABBREVS: Record<string, string> = {
   UTC: "UTC",
 };
 
+function formatFreqTime(frequency: string, time: string, tz: string): string {
+  if (frequency === "hourly") {
+    return `every hour from ${time} ${tz}`;
+  }
+  const label = FREQUENCY_LABELS[frequency] ?? frequency;
+  return `${label.toLowerCase()} at ${time} ${tz}`;
+}
+
 function formatTime12Hour(time: string): string {
   const [hoursStr, minutesStr] = time.split(":");
   const hours = parseInt(hoursStr, 10);
@@ -65,22 +73,23 @@ export const DeadlineSummary: React.FC<DeadlineSummaryProps> = ({ game }) => {
       return <span>Select time, timezone, and frequency</span>;
     }
 
-    const freq = FREQUENCY_LABELS[movementFrequency] ?? movementFrequency;
     const tz = TIMEZONE_ABBREVS[fixedDeadlineTimezone] ?? fixedDeadlineTimezone;
     const time = formatTime12Hour(fixedDeadlineTime);
 
     if (!retreatFrequency || retreatFrequency === movementFrequency) {
       return (
         <span>
-          Phases resolve {freq.toLowerCase()} at {time} {tz}
+          Phases resolve {formatFreqTime(movementFrequency, time, tz)},
+          regardless of whether players confirmed their orders.
         </span>
       );
     }
 
-    const retreatFreq = FREQUENCY_LABELS[retreatFrequency] ?? retreatFrequency;
     return (
       <span>
-        Phases resolve Movement: {freq.toLowerCase()} at {time} {tz}, Retreat: {retreatFreq.toLowerCase()}
+        Phases resolve Movement: {formatFreqTime(movementFrequency, time, tz)},
+        Retreat: {formatFreqTime(retreatFrequency, time, tz)}, regardless of
+        whether players confirmed their orders.
       </span>
     );
   }
@@ -93,13 +102,19 @@ export const DeadlineSummary: React.FC<DeadlineSummaryProps> = ({ game }) => {
     !retreatPhaseDuration ||
     retreatPhaseDuration === movementPhaseDuration
   ) {
-    return <span>Phases resolve every {movementPhaseDuration}</span>;
+    return (
+      <span>
+        Phases resolve every {movementPhaseDuration}, but earlier if all players
+        confirmed their orders.
+      </span>
+    );
   }
 
   return (
     <span>
       Movement: {movementPhaseDuration}, Retreat/Adjustment:{" "}
-      {retreatPhaseDuration}
+      {retreatPhaseDuration}. Both will resolve earlier if all players confirmed
+      their orders.
     </span>
   );
 };
