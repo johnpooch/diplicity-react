@@ -81,5 +81,13 @@
     "Gulf-of-Bothnia": "bot",
     "Helgoland": "hel",
     "Bight": "hel",
-    "ADRIATIC-SEA": "adr"
+    "ADRIATIC-SEA": "adr",
+    "EC": "bul/ec",
+    "SC": "bul/sc",
+    "NC": "stp/nc",
+    "text128": "stp/sc",
+    "text135": "spa/sc",
+    "text139": "spa/nc",
+    "LVN": "lvn",
+    "LVP": "lvp"
 }
