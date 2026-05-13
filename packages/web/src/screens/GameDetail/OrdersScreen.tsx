@@ -343,7 +343,7 @@ const OrdersScreen: React.FC = () => {
                       <Play className="size-4" />
                       Resolve phase
                     </Button>
-                  ) : (
+                  ) : game.deadlineMode !== "fixed_time" && (
                     <>
                       {hasContent ? (
                         <Button
