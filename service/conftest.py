@@ -11,7 +11,7 @@ from variant.models import Variant
 from nation.models import Nation
 from province.models import Province
 from rest_framework.test import APIClient
-from common.constants import PhaseStatus, UnitType, GameStatus
+from common.constants import PhaseStatus, UnitType, GameStatus, DeadlineMode
 
 User = get_user_model()
 
@@ -74,6 +74,7 @@ def base_active_game_for_primary_user(db, classical_variant):
         name="Primary User's Active Game",
         variant=classical_variant,
         status=GameStatus.ACTIVE,
+        deadline_mode=DeadlineMode.DURATION,
     )
 
 
