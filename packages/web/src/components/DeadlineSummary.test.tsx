@@ -123,7 +123,9 @@ describe("DeadlineSummary", () => {
           }}
         />
       );
-      expect(screen.getByText(/every hour from 2:30 PM CT/i)).toBeInTheDocument();
+      // first phase ends at 14:30 + 1h = 15:30
+      expect(screen.getByText(/The first phase ends at 3:30 PM CT/i)).toBeInTheDocument();
+      expect(screen.getByText(/after that every hour/i)).toBeInTheDocument();
     });
 
     it("renders fixed-time summary with weekly frequency", () => {
@@ -301,8 +303,26 @@ describe("DeadlineSummary", () => {
         />
       );
       expect(
-        screen.getByText(/Movement: daily at 9:00 PM GMT, Retreat: every hour from 9:00 PM GMT/i)
+        screen.getByText(/Movement: daily at 9:00 PM GMT, Retreat: every hour at 9:00 PM GMT/i)
       ).toBeInTheDocument();
+    });
+
+    it("renders hourly movement with non-hourly retreat", () => {
+      render(
+        <DeadlineSummary
+          game={{
+            movementPhaseDuration: null,
+            deadlineMode: "fixed_time",
+            fixedDeadlineTime: "21:00",
+            fixedDeadlineTimezone: "Europe/London",
+            movementFrequency: "hourly",
+            retreatFrequency: "daily",
+          }}
+        />
+      );
+      // first phase ends at 21:00 + 1h = 22:00
+      expect(screen.getByText(/The first phase ends at 10:00 PM GMT/i)).toBeInTheDocument();
+      expect(screen.getByText(/after that Movement: every hour and Retreat\/Adjustment: daily at 9:00 PM GMT/i)).toBeInTheDocument();
     });
   });
 });
