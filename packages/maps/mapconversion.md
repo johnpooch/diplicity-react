@@ -79,9 +79,9 @@ The serializer handles this automatically: after applying the text-element `font
 2. If they differ, confirm the serializer's tspan-style override is in effect (i.e. the tspan has `style="...font-size:Xpx..."`, not just a `font-size` attribute).
 
 The cascade applied by the serializer is:
-1. Text element inline style `font-size`
+1. Text element inline style (all properties)
 2. Overridden by text element `font-size` attribute (if present) — handles matrix-transform inflation
-3. Overridden by first tspan's inline style `font-size` (if present) — handles Inkscape sub-province labels
+3. All first-tspan inline style properties are merged in last, overriding everything above — handles Inkscape sub-province labels where the tspan carries the real font specification (family, size, weight, style)
 
 ### 6. Sub-province text labels and the renderer
 

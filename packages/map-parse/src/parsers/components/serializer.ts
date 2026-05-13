@@ -127,17 +127,16 @@ class TextSerializer extends TypeValidatedSerializer<SVGTextElement, IText> {
             parsedStyles.fontSize = `${fontSizeAttr}px`;
         }
 
-        // A tspan-level font-size style overrides the text element's font-size in SVG rendering.
-        // When the text element has no font-size attribute but its tspan carries the correct size
-        // (e.g. Inkscape sub-province abbreviation labels), extract it so the renderer uses the
-        // right size.
+        // Tspan inline styles override text-element styles in SVG cascade. Merge all first-tspan
+        // style properties into parsedStyles so font-family, font-size, etc. reflect the actual
+        // rendered appearance (e.g. Inkscape sub-province labels where the text element carries
+        // placeholder styles but the tspan holds the real font specification).
         const firstTspan = tspanElements[0];
         if (firstTspan) {
-            const tspanStyle = firstTspan.getAttribute("style") || "";
-            const tspanParsed = this.styleParser.parse(tspanStyle);
-            if (tspanParsed.fontSize) {
-                parsedStyles.fontSize = tspanParsed.fontSize;
-            }
+            const tspanParsed = this.styleParser.parse(firstTspan.getAttribute("style") || "");
+            Object.assign(parsedStyles, Object.fromEntries(
+                Object.entries(tspanParsed).filter(([, v]) => v !== undefined)
+            ));
         }
 
         const transform = element.getAttribute("transform") || "";
