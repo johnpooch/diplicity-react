@@ -28,9 +28,16 @@ type ICenter = {
     center: IPoint;
 }
 
+interface ITspan {
+    value: string;
+    x: number;
+    y: number;
+}
+
 interface IText {
     id: string;
     value: string;
+    tspans: ITspan[];
     styles: IStyles;
     point: IPoint;
     transform?: string;
@@ -71,4 +78,4 @@ interface IMap {
     svgDefs?: string;
 }
 
-export { IMap, IPath, IPoint, IStyles, ICenter, IProvince, IText, INamesLayer, ISupplyCenter }
+export { IMap, IPath, IPoint, IStyles, ICenter, IProvince, IText, ITspan, INamesLayer, ISupplyCenter }

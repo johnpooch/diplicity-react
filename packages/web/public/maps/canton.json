@@ -31,6 +31,13 @@
         {
           "id": "dam",
           "value": "Damascus",
+          "tspans": [
+            {
+              "value": "Damascus",
+              "x": -438.13849,
+              "y": 574.58521
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -77,6 +84,13 @@
         {
           "id": "sia",
           "value": "Siam",
+          "tspans": [
+            {
+              "value": "Siam",
+              "x": 1329.7423,
+              "y": 1032.0537
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -119,6 +133,13 @@
         {
           "id": "bul",
           "value": "Bulgaria",
+          "tspans": [
+            {
+              "value": "Bulgaria",
+              "x": -212.79443,
+              "y": 406.6149
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -162,6 +183,13 @@
         {
           "id": "can",
           "value": "Canton",
+          "tspans": [
+            {
+              "value": "Canton",
+              "x": 1282.9241,
+              "y": 1146.1415
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -200,7 +228,32 @@
         "x": 1539.8929,
         "y": 862.65359
       },
-      "text": []
+      "text": [
+        {
+          "id": "can/sc",
+          "value": "SC",
+          "tspans": [
+            {
+              "value": "SC",
+              "x": 1559.62,
+              "y": 838.85638
+            }
+          ],
+          "styles": {
+            "fill": "#000000",
+            "stroke": "none",
+            "fillOpacity": "1",
+            "fontSize": "14px",
+            "fontFamily": "LibreBaskerville-Regular, 'Libre Baskerville'",
+            "fontWeight": "normal"
+          },
+          "transform": "rotate(2)",
+          "point": {
+            "x": 1559.62,
+            "y": 838.85638
+          }
+        }
+      ]
     },
     {
       "id": "can/ec",
@@ -223,7 +276,32 @@
         "x": 1660.3836,
         "y": 778.6284
       },
-      "text": []
+      "text": [
+        {
+          "id": "can/ec",
+          "value": "EC",
+          "tspans": [
+            {
+              "value": "EC",
+              "x": 1695.0098,
+              "y": 729.50293
+            }
+          ],
+          "styles": {
+            "fill": "#000000",
+            "stroke": "none",
+            "fillOpacity": "1",
+            "fontSize": "14px",
+            "fontFamily": "LibreBaskerville-Regular, 'Libre Baskerville'",
+            "fontWeight": "normal"
+          },
+          "transform": "rotate(2)",
+          "point": {
+            "x": 1695.0098,
+            "y": 729.50293
+          }
+        }
+      ]
     },
     {
       "id": "dam/wc",
@@ -246,7 +324,32 @@
         "x": 223.24843,
         "y": 602.90272
       },
-      "text": []
+      "text": [
+        {
+          "id": "dam/wc",
+          "value": "WC",
+          "tspans": [
+            {
+              "value": "WC",
+              "x": 221.75862,
+              "y": 603.46582
+            }
+          ],
+          "styles": {
+            "fill": "#000000",
+            "stroke": "none",
+            "fillOpacity": "1",
+            "fontSize": "14px",
+            "fontFamily": "LibreBaskerville-Regular, 'Libre Baskerville'",
+            "fontWeight": "normal"
+          },
+          "transform": "rotate(2)",
+          "point": {
+            "x": 221.75862,
+            "y": 603.46582
+          }
+        }
+      ]
     },
     {
       "id": "dam/sc",
@@ -269,7 +372,32 @@
         "x": 180.70936,
         "y": 729.77848
       },
-      "text": []
+      "text": [
+        {
+          "id": "dam/sc",
+          "value": "SC",
+          "tspans": [
+            {
+              "value": "SC",
+              "x": 191.14165,
+              "y": 734.59991
+            }
+          ],
+          "styles": {
+            "fill": "#000000",
+            "stroke": "none",
+            "fillOpacity": "1",
+            "fontSize": "14px",
+            "fontFamily": "LibreBaskerville-Regular, 'Libre Baskerville'",
+            "fontWeight": "normal"
+          },
+          "transform": "rotate(2)",
+          "point": {
+            "x": 191.14165,
+            "y": 734.59991
+          }
+        }
+      ]
     },
     {
       "id": "sia/wc",
@@ -292,7 +420,32 @@
         "x": 1336.7122,
         "y": 1180.681
       },
-      "text": []
+      "text": [
+        {
+          "id": "sia/wc",
+          "value": "WC",
+          "tspans": [
+            {
+              "value": "WC",
+              "x": 1350.021,
+              "y": 1145.5902
+            }
+          ],
+          "styles": {
+            "fill": "#000000",
+            "stroke": "none",
+            "fillOpacity": "1",
+            "fontSize": "14px",
+            "fontFamily": "LibreBaskerville-Regular, 'Libre Baskerville'",
+            "fontWeight": "normal"
+          },
+          "transform": "rotate(2)",
+          "point": {
+            "x": 1350.021,
+            "y": 1145.5902
+          }
+        }
+      ]
     },
     {
       "id": "sia/ec",
@@ -315,7 +468,32 @@
         "x": 1368.5358,
         "y": 1063.1118
       },
-      "text": []
+      "text": [
+        {
+          "id": "sia/ec",
+          "value": "EC",
+          "tspans": [
+            {
+              "value": "EC",
+              "x": 1389.7069,
+              "y": 1029.5997
+            }
+          ],
+          "styles": {
+            "fill": "#000000",
+            "stroke": "none",
+            "fillOpacity": "1",
+            "fontSize": "14px",
+            "fontFamily": "LibreBaskerville-Regular, 'Libre Baskerville'",
+            "fontWeight": "normal"
+          },
+          "transform": "rotate(2)",
+          "point": {
+            "x": 1389.7069,
+            "y": 1029.5997
+          }
+        }
+      ]
     },
     {
       "id": "bul/ec",
@@ -338,7 +516,32 @@
         "x": 56.600754,
         "y": 433.13674
       },
-      "text": []
+      "text": [
+        {
+          "id": "bul/ec",
+          "value": "EC",
+          "tspans": [
+            {
+              "value": "EC",
+              "x": 80.996765,
+              "y": 447.74368
+            }
+          ],
+          "styles": {
+            "fill": "#000000",
+            "stroke": "none",
+            "fillOpacity": "1",
+            "fontSize": "14px",
+            "fontFamily": "LibreBaskerville-Regular, 'Libre Baskerville'",
+            "fontWeight": "normal"
+          },
+          "transform": "rotate(2)",
+          "point": {
+            "x": 80.996765,
+            "y": 447.74368
+          }
+        }
+      ]
     },
     {
       "id": "bul/sc",
@@ -361,7 +564,32 @@
         "x": 20.647364,
         "y": 469.2448
       },
-      "text": []
+      "text": [
+        {
+          "id": "bul/sc",
+          "value": "SC",
+          "tspans": [
+            {
+              "value": "SC",
+              "x": 24.406429,
+              "y": 499.77014
+            }
+          ],
+          "styles": {
+            "fill": "#000000",
+            "stroke": "none",
+            "fillOpacity": "1",
+            "fontSize": "14px",
+            "fontFamily": "LibreBaskerville-Regular, 'Libre Baskerville'",
+            "fontWeight": "normal"
+          },
+          "transform": "rotate(2)",
+          "point": {
+            "x": 24.406429,
+            "y": 499.77014
+          }
+        }
+      ]
     },
     {
       "id": "pse",
@@ -388,6 +616,13 @@
         {
           "id": "pse",
           "value": "PSE",
+          "tspans": [
+            {
+              "value": "PSE",
+              "x": 1840.9319,
+              "y": 703.99994
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -407,6 +642,13 @@
         {
           "id": "pse",
           "value": "Philippine Sea",
+          "tspans": [
+            {
+              "value": "Philippine Sea",
+              "x": 1820.8688,
+              "y": 716.99994
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -448,7 +690,19 @@
       "text": [
         {
           "id": "yel",
-          "value": "YELLOWSEA",
+          "value": "YELLOW SEA",
+          "tspans": [
+            {
+              "value": "YELLOW",
+              "x": 1330.7758,
+              "y": 1079.7732
+            },
+            {
+              "value": "SEA",
+              "x": 1351.7037,
+              "y": 1099.7732
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -491,6 +745,13 @@
         {
           "id": "soo",
           "value": "SEA OF OKHOTSK",
+          "tspans": [
+            {
+              "value": "SEA OF OKHOTSK",
+              "x": 1897.3083,
+              "y": 48.491077
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -533,7 +794,19 @@
       "text": [
         {
           "id": "cpo",
-          "value": "CENTRAL PACIFICOCEAN",
+          "value": "CENTRAL PACIFIC OCEAN",
+          "tspans": [
+            {
+              "value": "CENTRAL PACIFIC",
+              "x": -161.94012,
+              "y": 2114.373
+            },
+            {
+              "value": "OCEAN",
+              "x": -83.840157,
+              "y": 2138.373
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -577,6 +850,13 @@
         {
           "id": "cel",
           "value": "CELEBES SEA",
+          "tspans": [
+            {
+              "value": "CELEBES SEA",
+              "x": 1716.1171,
+              "y": 1366.6754
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -624,6 +904,13 @@
         {
           "id": "phi",
           "value": "Philippines",
+          "tspans": [
+            {
+              "value": "Philippines",
+              "x": 1670.5914,
+              "y": -1134.214
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -665,6 +952,13 @@
         {
           "id": "bla",
           "value": "BLA",
+          "tspans": [
+            {
+              "value": "BLA",
+              "x": 149.07794,
+              "y": 430.79761
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -684,6 +978,13 @@
         {
           "id": "bla",
           "value": "Black Sea",
+          "tspans": [
+            {
+              "value": "Black Sea",
+              "x": 143.84201,
+              "y": 446.79761
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -726,6 +1027,13 @@
         {
           "id": "med",
           "value": "MED",
+          "tspans": [
+            {
+              "value": "MED",
+              "x": 50.451092,
+              "y": 620.86499
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -745,6 +1053,13 @@
         {
           "id": "med",
           "value": "Mediterranean Sea",
+          "tspans": [
+            {
+              "value": "Mediterranean Sea",
+              "x": 21.763165,
+              "y": 636.86499
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -841,6 +1156,13 @@
         {
           "id": "aki",
           "value": "Akita",
+          "tspans": [
+            {
+              "value": "Akita",
+              "x": 254.90477,
+              "y": 1972.7631
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -882,6 +1204,13 @@
         {
           "id": "yes",
           "value": "Yeso",
+          "tspans": [
+            {
+              "value": "Yeso",
+              "x": 1987.252,
+              "y": 142.56145
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -1010,6 +1339,13 @@
         {
           "id": "sha",
           "value": "Shanghai",
+          "tspans": [
+            {
+              "value": "Shanghai",
+              "x": 1679.7349,
+              "y": 122.95766
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -1052,6 +1388,13 @@
         {
           "id": "yun",
           "value": "Yunnan",
+          "tspans": [
+            {
+              "value": "Yunnan",
+              "x": 1477.1654,
+              "y": 509.3093
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -1099,6 +1442,13 @@
         {
           "id": "chu",
           "value": "Chungking",
+          "tspans": [
+            {
+              "value": "Chungking",
+              "x": 1352.7061,
+              "y": 639.99994
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -1141,6 +1491,13 @@
         {
           "id": "asm",
           "value": "Assam",
+          "tspans": [
+            {
+              "value": "Assam",
+              "x": 1212.6348,
+              "y": 703.27356
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -1183,6 +1540,13 @@
         {
           "id": "kan",
           "value": "Kansu",
+          "tspans": [
+            {
+              "value": "Kansu",
+              "x": 1332.8975,
+              "y": -21.300135
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -1229,6 +1593,13 @@
         {
           "id": "pek",
           "value": "Peking",
+          "tspans": [
+            {
+              "value": "Peking",
+              "x": 1357.9861,
+              "y": 702.97522
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -1275,6 +1646,13 @@
         {
           "id": "man",
           "value": "Manchuria",
+          "tspans": [
+            {
+              "value": "Manchuria",
+              "x": 1618.8698,
+              "y": 279.5434
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -1318,6 +1696,13 @@
         {
           "id": "mon",
           "value": "Mongolia",
+          "tspans": [
+            {
+              "value": "Mongolia",
+              "x": 1244.2284,
+              "y": 354.15652
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -1364,6 +1749,13 @@
         {
           "id": "tib",
           "value": "Tibet",
+          "tspans": [
+            {
+              "value": "Tibet",
+              "x": 1076.168,
+              "y": 604.99994
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -1406,6 +1798,13 @@
         {
           "id": "sin",
           "value": "Sinkiang",
+          "tspans": [
+            {
+              "value": "Sinkiang",
+              "x": 1011.9,
+              "y": 406.35107
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -1449,6 +1848,13 @@
         {
           "id": "tom",
           "value": "Tomsk",
+          "tspans": [
+            {
+              "value": "Tomsk",
+              "x": 923.63763,
+              "y": 406.25223
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -1492,6 +1898,13 @@
         {
           "id": "kas",
           "value": "Kashmir",
+          "tspans": [
+            {
+              "value": "Kashmir",
+              "x": 893.95795,
+              "y": 574.76898
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -1538,6 +1951,13 @@
         {
           "id": "afg",
           "value": "Afghanistan",
+          "tspans": [
+            {
+              "value": "Afghanistan",
+              "x": 217.01987,
+              "y": 903.14514
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -1580,6 +2000,13 @@
         {
           "id": "tur",
           "value": "Turkestan",
+          "tspans": [
+            {
+              "value": "Turkestan",
+              "x": 518.30353,
+              "y": 595.10913
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -1623,6 +2050,13 @@
         {
           "id": "sib",
           "value": "Siberia",
+          "tspans": [
+            {
+              "value": "Siberia",
+              "x": 832.97247,
+              "y": 71.53389
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -1666,6 +2100,13 @@
         {
           "id": "kaz",
           "value": "Kazakhstan",
+          "tspans": [
+            {
+              "value": "Kazakhstan",
+              "x": 500.98346,
+              "y": 387.83267
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -1712,6 +2153,13 @@
         {
           "id": "mos",
           "value": "Moscow",
+          "tspans": [
+            {
+              "value": "Moscow",
+              "x": 291.00003,
+              "y": 96
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -1758,6 +2206,13 @@
         {
           "id": "sev",
           "value": "Sevastopol",
+          "tspans": [
+            {
+              "value": "Sevastopol",
+              "x": 133.38423,
+              "y": 255.76236
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -1804,6 +2259,13 @@
         {
           "id": "rum",
           "value": "Rumania",
+          "tspans": [
+            {
+              "value": "Rumania",
+              "x": 103.07482,
+              "y": 366.06647
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -1846,6 +2308,13 @@
         {
           "id": "arm",
           "value": "Armenia",
+          "tspans": [
+            {
+              "value": "Armenia",
+              "x": 485.77289,
+              "y": 85.780876
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -1892,6 +2361,13 @@
         {
           "id": "bag",
           "value": "Baghdad",
+          "tspans": [
+            {
+              "value": "Baghdad",
+              "x": 279.80899,
+              "y": 649.55035
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -1938,6 +2414,13 @@
         {
           "id": "per",
           "value": "Persia",
+          "tspans": [
+            {
+              "value": "Persia",
+              "x": 439.54453,
+              "y": 662.47876
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -1984,6 +2467,13 @@
         {
           "id": "bal",
           "value": "Baluchistan",
+          "tspans": [
+            {
+              "value": "Baluchistan",
+              "x": -8.624507,
+              "y": 1039.1506
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -2031,6 +2521,13 @@
         {
           "id": "del",
           "value": "Delhi",
+          "tspans": [
+            {
+              "value": "Delhi",
+              "x": 886.02802,
+              "y": 769.8089
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -2077,6 +2574,13 @@
         {
           "id": "cal",
           "value": "Calcutta",
+          "tspans": [
+            {
+              "value": "Calcutta",
+              "x": 829.5307,
+              "y": 1060.3802
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -2124,6 +2628,13 @@
         {
           "id": "bur",
           "value": "Burma",
+          "tspans": [
+            {
+              "value": "Burma",
+              "x": 1259.0615,
+              "y": 867.73102
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -2170,6 +2681,13 @@
         {
           "id": "cam",
           "value": "Cambodia",
+          "tspans": [
+            {
+              "value": "Cambodia",
+              "x": 984.47369,
+              "y": 1525.8807
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -2212,6 +2730,13 @@
         {
           "id": "lao",
           "value": "Laos",
+          "tspans": [
+            {
+              "value": "Laos",
+              "x": 1662.0109,
+              "y": -258.39474
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -2257,6 +2782,13 @@
         {
           "id": "hue",
           "value": "Hue",
+          "tspans": [
+            {
+              "value": "Hue",
+              "x": 1455.4127,
+              "y": 1151.1198
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -2303,6 +2835,13 @@
         {
           "id": "sai",
           "value": "Saigon",
+          "tspans": [
+            {
+              "value": "Saigon",
+              "x": 705.5141,
+              "y": 1734.2
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -2344,6 +2883,13 @@
         {
           "id": "bom",
           "value": "Bombay",
+          "tspans": [
+            {
+              "value": "Bombay",
+              "x": 1011.8439,
+              "y": 737.55591
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -2389,6 +2935,13 @@
         {
           "id": "mad",
           "value": "Madras",
+          "tspans": [
+            {
+              "value": "Madras",
+              "x": 952.2973,
+              "y": 938.6131
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -2458,6 +3011,13 @@
         {
           "id": "bor",
           "value": "Borneo",
+          "tspans": [
+            {
+              "value": "Borneo",
+              "x": 1585.2086,
+              "y": 1304
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -2500,6 +3060,13 @@
         {
           "id": "kar",
           "value": "KAR",
+          "tspans": [
+            {
+              "value": "KAR",
+              "x": 560.79047,
+              "y": 1848.1796
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -2519,6 +3086,13 @@
         {
           "id": "kar",
           "value": "Karimata Strait",
+          "tspans": [
+            {
+              "value": "Karimata Strait",
+              "x": 532.67206,
+              "y": 1870.9465
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -2561,6 +3135,13 @@
         {
           "id": "jse",
           "value": "JAVA SEA",
+          "tspans": [
+            {
+              "value": "JAVA SEA",
+              "x": 1813.5925,
+              "y": 862.35858
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -2604,6 +3185,13 @@
         {
           "id": "gos",
           "value": "GOS",
+          "tspans": [
+            {
+              "value": "GOS",
+              "x": 1425.7611,
+              "y": 1129.1859
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -2623,6 +3211,13 @@
         {
           "id": "gos",
           "value": "Gulf of Siam",
+          "tspans": [
+            {
+              "value": "Gulf of Siam",
+              "x": 1413.1641,
+              "y": 1145.1573
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -2665,6 +3260,13 @@
         {
           "id": "ban",
           "value": "BANDA SEA",
+          "tspans": [
+            {
+              "value": "BANDA SEA",
+              "x": 1846.9219,
+              "y": 1408
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -2712,6 +3314,13 @@
         {
           "id": "mal",
           "value": "Malaya",
+          "tspans": [
+            {
+              "value": "Malaya",
+              "x": 1817.3822,
+              "y": 456.77603
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -2809,6 +3418,13 @@
         {
           "id": "gom",
           "value": "GOM",
+          "tspans": [
+            {
+              "value": "GOM",
+              "x": 1714.5868,
+              "y": -19.420855
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -2828,6 +3444,13 @@
         {
           "id": "gom",
           "value": "Gulf of Martaban",
+          "tspans": [
+            {
+              "value": "Gulf of Martaban",
+              "x": 1691.7136,
+              "y": -2.1341219
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -2869,7 +3492,24 @@
       "text": [
         {
           "id": "bob",
-          "value": "BAYOFBENGAL",
+          "value": "BAY OF BENGAL",
+          "tspans": [
+            {
+              "value": "BAY",
+              "x": 1073.355,
+              "y": 1034
+            },
+            {
+              "value": "OF",
+              "x": 1081.87,
+              "y": 1058
+            },
+            {
+              "value": "BENGAL",
+              "x": 1042.9399,
+              "y": 1082
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -2913,6 +3553,13 @@
         {
           "id": "egy",
           "value": "Egypt",
+          "tspans": [
+            {
+              "value": "Egypt",
+              "x": 37.000004,
+              "y": 768.99994
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -2955,6 +3602,13 @@
         {
           "id": "red",
           "value": "RED SEA",
+          "tspans": [
+            {
+              "value": "RED SEA",
+              "x": 826.59174,
+              "y": 315.8486
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -2998,6 +3652,13 @@
         {
           "id": "eio",
           "value": "EIO",
+          "tspans": [
+            {
+              "value": "EIO",
+              "x": 1174.0317,
+              "y": 1219.7317
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -3017,6 +3678,13 @@
         {
           "id": "eio",
           "value": "East Indian Ocean",
+          "tspans": [
+            {
+              "value": "East Indian Ocean",
+              "x": 1142.0291,
+              "y": 1239.7012
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -3059,6 +3727,13 @@
         {
           "id": "sio",
           "value": "SOUTH INDIAN OCEAN",
+          "tspans": [
+            {
+              "value": "SOUTH INDIAN OCEAN",
+              "x": 1001.14,
+              "y": 1455
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -3102,6 +3777,13 @@
         {
           "id": "ara",
           "value": "Arabia",
+          "tspans": [
+            {
+              "value": "Arabia",
+              "x": 271.6658,
+              "y": 913.22638
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -3145,6 +3827,13 @@
         {
           "id": "pgu",
           "value": "PGU",
+          "tspans": [
+            {
+              "value": "PGU",
+              "x": 626.65656,
+              "y": 837.24567
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -3164,6 +3853,13 @@
         {
           "id": "pgu",
           "value": "Persian Gulf",
+          "tspans": [
+            {
+              "value": "Persian Gulf",
+              "x": 612.33643,
+              "y": 852.4787
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -3206,6 +3902,13 @@
         {
           "id": "amu",
           "value": "Amur",
+          "tspans": [
+            {
+              "value": "Amur",
+              "x": 1241.0217,
+              "y": 897.69183
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -3251,6 +3954,13 @@
         {
           "id": "irk",
           "value": "Irkutsk",
+          "tspans": [
+            {
+              "value": "Irkutsk",
+              "x": 1230.5334,
+              "y": 239.20592
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -3297,6 +4007,13 @@
         {
           "id": "kha",
           "value": "Khabarovsk",
+          "tspans": [
+            {
+              "value": "Khabarovsk",
+              "x": 1739.5599,
+              "y": 36.666721
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -3336,12 +4053,19 @@
         {
           "id": "mar",
           "value": "Primorsky Krai",
+          "tspans": [
+            {
+              "value": "Primorsky Krai",
+              "x": 612.37769,
+              "y": 1652.307
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1.87697",
             "fillOpacity": "1",
-            "fontSize": "30.0316px",
+            "fontSize": "16px",
             "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic"
@@ -3381,6 +4105,13 @@
         {
           "id": "con",
           "value": "Constantinople",
+          "tspans": [
+            {
+              "value": "Constantinople",
+              "x": 101.36842,
+              "y": 530.55035
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -3425,6 +4156,13 @@
         {
           "id": "sas",
           "value": "Sasebo",
+          "tspans": [
+            {
+              "value": "Sasebo",
+              "x": -577.41974,
+              "y": 1850.0033
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -3465,6 +4203,13 @@
         {
           "id": "shi",
           "value": "Shikoku",
+          "tspans": [
+            {
+              "value": "Shikoku",
+              "x": 1189.1135,
+              "y": 1557.5304
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -3509,6 +4254,13 @@
         {
           "id": "kyo",
           "value": "Kyoto",
+          "tspans": [
+            {
+              "value": "Kyoto",
+              "x": 1179.3711,
+              "y": 1521.7615
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -3547,6 +4299,13 @@
         {
           "id": "soj",
           "value": "SEA OF JAPAN",
+          "tspans": [
+            {
+              "value": "SEA OF JAPAN",
+              "x": 1144.1031,
+              "y": 1451.3531
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -3590,6 +4349,13 @@
         {
           "id": "ecs",
           "value": "ECS",
+          "tspans": [
+            {
+              "value": "ECS",
+              "x": 1419.7898,
+              "y": 1226.4014
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -3609,6 +4375,13 @@
         {
           "id": "ecs",
           "value": "East China Sea",
+          "tspans": [
+            {
+              "value": "East China Sea",
+              "x": 1394.3574,
+              "y": 1245.3159
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -3650,7 +4423,24 @@
       "text": [
         {
           "id": "scs",
-          "value": "SOUTHCHINASEA",
+          "value": "SOUTH CHINA SEA",
+          "tspans": [
+            {
+              "value": "SOUTH",
+              "x": 1586.801,
+              "y": 973.99994
+            },
+            {
+              "value": "CHINA",
+              "x": 1589.241,
+              "y": 997.99994
+            },
+            {
+              "value": "SEA",
+              "x": 1608.621,
+              "y": 1022
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -3693,7 +4483,19 @@
       "text": [
         {
           "id": "wio",
-          "value": "WEST INDIANOCEAN",
+          "value": "WEST INDIAN OCEAN",
+          "tspans": [
+            {
+              "value": "WEST INDIAN",
+              "x": 524.03497,
+              "y": 1344
+            },
+            {
+              "value": "OCEAN",
+              "x": 571.69501,
+              "y": 1368
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
@@ -3737,6 +4539,13 @@
         {
           "id": "ase",
           "value": "ARABIAN SEA",
+          "tspans": [
+            {
+              "value": "ARABIAN SEA",
+              "x": 195.62759,
+              "y": 1184.3684
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",

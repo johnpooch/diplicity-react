@@ -11,6 +11,7 @@ export type MapData = {
     text?: Array<{
       point: { x: number; y: number };
       value: string;
+      tspans?: Array<{ value: string; x: number; y: number }>;
       styles: React.CSSProperties;
       transform?: string;
     }>;
