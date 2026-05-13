@@ -69,7 +69,21 @@ Some labels use a full `matrix(a,b,c,d,e,f)` transform (e.g. Primorsky Krai) rat
 
 The serializer always prefers the `font-size` attribute over the style value, so this is handled automatically. If a label with a matrix transform appears too large in the rendered output, check that the SVG element has an explicit `font-size` attribute set to the correct visual size — if it is missing, the inflated style value will be used instead.
 
-### 5. Sub-province text labels and the renderer
+### 5. Tspan-level font-size overrides
+
+In some Inkscape files (seen in the Hundred variant), sub-province abbreviation labels have a large `font-size` in the text element's `style` attribute (e.g. `font-size:40px`) but the **tspan** carries the correct intended size in its own `style` (e.g. `font-size:18.6667px`). In native SVG the tspan style overrides the parent text element style, so the visual output uses the tspan value — but without special handling the serializer would emit the inflated text-element size.
+
+The serializer handles this automatically: after applying the text-element `font-size` attribute (see pitfall 4), it checks whether the first tspan's `style` attribute contains a `font-size`, and if so uses that as the final value. No ids.json change is needed, but if an abbreviation label appears too large, verify:
+
+1. The text element's style `font-size` value vs the tspan's style `font-size` value.
+2. If they differ, confirm the serializer's tspan-style override is in effect (i.e. the tspan has `style="...font-size:Xpx..."`, not just a `font-size` attribute).
+
+The cascade applied by the serializer is:
+1. Text element inline style `font-size`
+2. Overridden by text element `font-size` attribute (if present) — handles matrix-transform inflation
+3. Overridden by first tspan's inline style `font-size` (if present) — handles Inkscape sub-province labels
+
+### 6. Sub-province text labels and the renderer
 
 Text labels are rendered in two passes in `InteractiveMap.tsx`:
 
