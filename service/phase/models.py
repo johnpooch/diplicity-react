@@ -7,7 +7,7 @@ from django.utils import timezone
 from opentelemetry import trace
 from common.models import BaseModel
 from datetime import timedelta
-from common.constants import PhaseStatus, PhaseType, GameStatus
+from common.constants import PhaseStatus, PhaseType, GameStatus, DeadlineMode
 from adjudication.service import resolve
 from member.models import Member
 from order.models import OrderResolution, Order
@@ -58,8 +58,11 @@ class PhaseQuerySet(models.QuerySet):
             & ~Q(game__status=GameStatus.ABANDONED)
             & (
                 (Q(scheduled_resolution__isnull=False) & Q(scheduled_resolution__lte=timezone.now()))
-                | ~Exists(
-                    PhaseState.objects.filter(phase=OuterRef("pk"), has_possible_orders=True, orders_confirmed=False)
+                | (
+                    ~Q(game__deadline_mode=DeadlineMode.FIXED_TIME)
+                    & ~Exists(
+                        PhaseState.objects.filter(phase=OuterRef("pk"), has_possible_orders=True, orders_confirmed=False)
+                    )
                 )
             )
         )
