@@ -44,6 +44,10 @@ const FREQUENCY_INTERVAL_MINUTES: Record<string, number> = {
   hourly: 60,
 };
 
+const FREQUENCY_INTERVAL_LABELS: Record<string, string> = {
+  hourly: "1 hour",
+};
+
 function isSubDaily(frequency: string): boolean {
   return frequency in FREQUENCY_INTERVAL_MINUTES;
 }
@@ -114,6 +118,17 @@ export const DeadlineSummary: React.FC<DeadlineSummaryProps> = ({ game }) => {
           The first phase ends at {firstEnd} {tz}, after that Movement: every
           hour and Retreat/Adjustment: {retreatDisplay}, regardless of whether
           players confirmed their orders.
+        </span>
+      );
+    }
+
+    if (retreatFrequency && isSubDaily(retreatFrequency)) {
+      const intervalLabel = FREQUENCY_INTERVAL_LABELS[retreatFrequency] ?? retreatFrequency;
+      return (
+        <span>
+          Movement resolves {formatFreqTime(movementFrequency, time, tz)}.
+          Retreat/Adjustment resolves {intervalLabel} after movement, regardless
+          of whether players confirmed their orders.
         </span>
       );
     }
