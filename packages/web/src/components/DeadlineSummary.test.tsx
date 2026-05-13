@@ -306,7 +306,7 @@ describe("DeadlineSummary", () => {
         screen.getByText(/Movement resolves daily at 9:00 PM GMT/i)
       ).toBeInTheDocument();
       expect(
-        screen.getByText(/Retreat\/Adjustment resolves 1 hour after movement/i)
+        screen.getByText(/Retreat\/Adjustment resolves 1 hour later/i)
       ).toBeInTheDocument();
     });
 

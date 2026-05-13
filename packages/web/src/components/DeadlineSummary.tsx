@@ -127,7 +127,7 @@ export const DeadlineSummary: React.FC<DeadlineSummaryProps> = ({ game }) => {
       return (
         <span>
           Movement resolves {formatFreqTime(movementFrequency, time, tz)}.
-          Retreat/Adjustment resolves {intervalLabel} after movement, regardless
+          Retreat/Adjustment resolves {intervalLabel} later, regardless
           of whether players confirmed their orders.
         </span>
       );
