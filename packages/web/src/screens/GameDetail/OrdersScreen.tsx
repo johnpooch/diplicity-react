@@ -330,7 +330,7 @@ const OrdersScreen: React.FC = () => {
             )}
           </Panel.Content>
 
-          {canModifyOrders && (
+          {canModifyOrders && (game.sandbox || game.deadlineMode !== "fixed_time") && (
             <>
               <Separator />
               <Panel.Footer>
@@ -343,29 +343,25 @@ const OrdersScreen: React.FC = () => {
                       <Play className="size-4" />
                       Resolve phase
                     </Button>
-                  ) : game.deadlineMode !== "fixed_time" && (
-                    <>
-                      {hasContent ? (
-                        <Button
-                          disabled={confirmOrdersMutation.isPending}
-                          onClick={handleConfirmOrders}
-                        >
-                          {game.phaseConfirmed ? (
-                            <CheckSquare className="size-4" />
-                          ) : (
-                            <Square className="size-4" />
-                          )}
-                          {game.phaseConfirmed
-                            ? "Orders confirmed"
-                            : "Confirm orders"}
-                        </Button>
+                  ) : hasContent ? (
+                    <Button
+                      disabled={confirmOrdersMutation.isPending}
+                      onClick={handleConfirmOrders}
+                    >
+                      {game.phaseConfirmed ? (
+                        <CheckSquare className="size-4" />
                       ) : (
-                        <Button disabled>
-                          <CheckSquare className="size-4" />
-                          Orders confirmed
-                        </Button>
+                        <Square className="size-4" />
                       )}
-                    </>
+                      {game.phaseConfirmed
+                        ? "Orders confirmed"
+                        : "Confirm orders"}
+                    </Button>
+                  ) : (
+                    <Button disabled>
+                      <CheckSquare className="size-4" />
+                      Orders confirmed
+                    </Button>
                   )}
                 </div>
               </Panel.Footer>
