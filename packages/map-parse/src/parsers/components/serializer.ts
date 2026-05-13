@@ -1,5 +1,5 @@
 import { IStyleParser } from "../util/style-parser";
-import { ICenter, IPath, IText } from "../../types";
+import { ICenter, IPath, IText, ITspan } from "../../types";
 import { ICenterParser } from "../util/center-parser";
 
 /**
@@ -98,36 +98,55 @@ class TextSerializer extends TypeValidatedSerializer<SVGTextElement, IText> {
     }
 
     protected serializeElement(element: SVGTextElement): IText {
-        const tspan = element.querySelector("tspan") as SVGTSpanElement;
+        const tspanElements = Array.from(element.querySelectorAll("tspan")) as SVGTSpanElement[];
+
+        const tspans: ITspan[] = tspanElements.map(ts => ({
+            value: ts.textContent || "",
+            x: parseFloat(ts.getAttribute("x") || "0"),
+            y: parseFloat(ts.getAttribute("y") || "0"),
+        }));
 
         const fallbackTextPoint = {
             x: parseFloat(element.getAttribute("x") || "0"),
             y: parseFloat(element.getAttribute("y") || "0"),
-        }
-        const textPoint = {
-            x: parseFloat(tspan.getAttribute("x") || "0"),
-            y: parseFloat(tspan.getAttribute("y") || "0"),
-        }
+        };
 
-        const point = {
-            x: textPoint.x || fallbackTextPoint.x,
-            y: textPoint.y || fallbackTextPoint.y,
-        }
+        const point = tspans.length > 0
+            ? { x: tspans[0].x || fallbackTextPoint.x, y: tspans[0].y || fallbackTextPoint.y }
+            : fallbackTextPoint;
 
-        if (element.textContent === "Norwegian Sea") {
-            console.log("Text element:", element);
-            console.log("styles", element.getAttribute("style"));
-        }
+        const value = tspans.map(ts => ts.value).join(" ");
 
         const parsedStyles = this.styleParser.parse(element.getAttribute("style") || "");
+
+        // The font-size attribute holds the intended visual size. When Inkscape decomposes
+        // a matrix transform it writes a computed (incorrect) value into the style, so the
+        // attribute must take precedence.
+        const fontSizeAttr = element.getAttribute("font-size");
+        if (fontSizeAttr) {
+            parsedStyles.fontSize = `${fontSizeAttr}px`;
+        }
+
+        // Tspan inline styles override text-element styles in SVG cascade. Merge all first-tspan
+        // style properties into parsedStyles so font-family, font-size, etc. reflect the actual
+        // rendered appearance (e.g. Inkscape sub-province labels where the text element carries
+        // placeholder styles but the tspan holds the real font specification).
+        const firstTspan = tspanElements[0];
+        if (firstTspan) {
+            const tspanParsed = this.styleParser.parse(firstTspan.getAttribute("style") || "");
+            Object.assign(parsedStyles, Object.fromEntries(
+                Object.entries(tspanParsed).filter(([, v]) => v !== undefined)
+            ));
+        }
 
         const transform = element.getAttribute("transform") || "";
 
         return {
             id: element.getAttribute("id") || "",
-            value: element.textContent || "",
+            value,
+            tspans,
             styles: parsedStyles,
-            transform: transform,
+            transform,
             point,
         };
     }

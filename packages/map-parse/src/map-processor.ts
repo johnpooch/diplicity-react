@@ -204,6 +204,23 @@ class MapProcessor implements IMapProcessor {
             }
         });
 
+        // Collect SVG filter defs referenced by background elements
+        const referencedFilterIds = new Set<string>();
+        for (const el of backgroundElements) {
+            const filterMatch = el.styles.filter?.match(/url\(#([^)]+)\)/);
+            if (filterMatch) referencedFilterIds.add(filterMatch[1]);
+        }
+        let svgDefs: string | undefined;
+        if (referencedFilterIds.size > 0) {
+            const defsEl = svgElement.querySelector("defs");
+            const parts: string[] = [];
+            for (const id of referencedFilterIds) {
+                const filterEl = defsEl?.querySelector(`#${id}`);
+                if (filterEl) parts.push(filterEl.outerHTML);
+            }
+            if (parts.length > 0) svgDefs = parts.join("\n");
+        }
+
         return {
             width,
             height,
@@ -214,6 +231,7 @@ class MapProcessor implements IMapProcessor {
             namesLayer: labelElements.length > 0
                 ? { transform: namesTransform, elements: labelElements }
                 : undefined,
+            svgDefs,
         }
     }
 }

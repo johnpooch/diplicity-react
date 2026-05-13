@@ -11,6 +11,7 @@ export type MapData = {
     text?: Array<{
       point: { x: number; y: number };
       value: string;
+      tspans?: Array<{ value: string; x: number; y: number }>;
       styles: React.CSSProperties;
       transform?: string;
     }>;
@@ -21,6 +22,7 @@ export type MapData = {
       fill: string;
       stroke: string;
       strokeWidth: number;
+      filter?: string;
     };
   }>;
   borders: Array<{
@@ -51,6 +53,7 @@ export type MapData = {
       };
     }>;
   };
+  svgDefs?: string;
 };
 
 const isJsonResponse = (response: Response): boolean => {

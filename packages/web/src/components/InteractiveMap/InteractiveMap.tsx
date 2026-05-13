@@ -151,6 +151,16 @@ const InteractiveMap = (props: InteractiveMapProps) => {
   // At this point map is guaranteed to be defined (either from prop or loaded)
   if (!map) return null;
 
+  const renderProvinceText = (province: (typeof map.provinces)[number], keyPrefix: string) =>
+    province.text?.map((text, index) => (
+      <text key={`${keyPrefix}-${index}`} style={text.styles} transform={text.transform}>
+        {text.tspans && text.tspans.length > 0
+          ? text.tspans.map((ts, i) => <tspan key={i} x={ts.x} y={ts.y}>{ts.value}</tspan>)
+          : <tspan x={text.point.x} y={text.point.y}>{text.value}</tspan>
+        }
+      </text>
+    ));
+
   // Determine which provinces should be rendered
   const renderableProvinces =
     props.renderableProvinces || map.provinces.map(p => p.id);
@@ -352,6 +362,9 @@ const InteractiveMap = (props: InteractiveMapProps) => {
       preserveAspectRatio="xMidYMid meet"
     >
       <defs>
+        {map.svgDefs && (
+          <g dangerouslySetInnerHTML={{ __html: map.svgDefs }} />
+        )}
         <marker
           id="arrowhead"
           markerWidth="5"
@@ -404,6 +417,7 @@ const InteractiveMap = (props: InteractiveMapProps) => {
             fill={element.styles.fill}
             stroke={element.styles.stroke}
             strokeWidth={element.styles.strokeWidth}
+            filter={element.styles.filter}
           />
         </g>
       ))}
@@ -482,22 +496,11 @@ const InteractiveMap = (props: InteractiveMapProps) => {
           </g>
         );
       })}
-      {provincesToRender.map(
-        province =>
-          province.text &&
-          province.text.map((text, index) => (
-            <text
-              key={`${province.id}-${index}`}
-              x={text.point.x}
-              y={text.point.y}
-              style={text.styles}
-              fontSize={text.styles.fontSize}
-              transform={text.transform}
-            >
-              {text.value}
-            </text>
-          ))
-      )}
+      {provincesToRender.map(province => renderProvinceText(province, province.id))}
+      {map.provinces
+        .filter(province => !renderableProvinces.includes(province.id))
+        .map(province => renderProvinceText(province, `unlinked-${province.id}`))
+      }
       {map.borders.map((element, index) => (
         <path
           key={`${element.id}-${index}`}

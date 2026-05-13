@@ -21,7 +21,37 @@
         "x": 106.29556,
         "y": 322.21298
       },
-      "text": []
+      "text": [
+        {
+          "id": "thp",
+          "value": "The Pale",
+          "tspans": [
+            {
+              "value": "The",
+              "x": 102.1375,
+              "y": 324
+            },
+            {
+              "value": "Pale",
+              "x": 100.769,
+              "y": 342
+            }
+          ],
+          "styles": {
+            "fill": "#000000",
+            "fontSize": "14px",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
+            "fontWeight": "normal",
+            "fontStyle": "italic",
+            "letterSpacing": "0.175"
+          },
+          "transform": "rotate(-3.0000011,115.00286,327.99878)",
+          "point": {
+            "x": 102.1375,
+            "y": 324
+          }
+        }
+      ]
     },
     {
       "id": "sco",
@@ -50,6 +80,13 @@
         {
           "id": "sco",
           "value": "Scotland",
+          "tspans": [
+            {
+              "value": "Scotland",
+              "x": 164.048,
+              "y": 149
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -88,6 +125,13 @@
         {
           "id": "not",
           "value": "Northumbria",
+          "tspans": [
+            {
+              "value": "Northumbria",
+              "x": 211.608,
+              "y": 287
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -127,6 +171,13 @@
         {
           "id": "ang",
           "value": "Anglia",
+          "tspans": [
+            {
+              "value": "Anglia",
+              "x": 298.97601,
+              "y": 374
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -166,6 +217,13 @@
         {
           "id": "wal",
           "value": "Wales",
+          "tspans": [
+            {
+              "value": "Wales",
+              "x": 172.532,
+              "y": 393
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -208,6 +266,13 @@
         {
           "id": "dev",
           "value": "Devon",
+          "tspans": [
+            {
+              "value": "Devon",
+              "x": 218.5,
+              "y": 442
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -250,6 +315,13 @@
         {
           "id": "lon",
           "value": "London",
+          "tspans": [
+            {
+              "value": "London",
+              "x": 283.216,
+              "y": 448
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -292,6 +364,13 @@
         {
           "id": "lux",
           "value": "Luxembourg",
+          "tspans": [
+            {
+              "value": "Luxembourg",
+              "x": 483.608,
+              "y": 447
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -330,6 +409,13 @@
         {
           "id": "fri",
           "value": "Friesland",
+          "tspans": [
+            {
+              "value": "Friesland",
+              "x": 543.508,
+              "y": 328
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -372,6 +458,13 @@
         {
           "id": "hol",
           "value": "Holland",
+          "tspans": [
+            {
+              "value": "Holland",
+              "x": 456.78,
+              "y": 392
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -415,6 +508,13 @@
         {
           "id": "fla",
           "value": "Flanders",
+          "tspans": [
+            {
+              "value": "Flanders",
+              "x": 416.01199,
+              "y": 466
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -454,6 +554,13 @@
         {
           "id": "lor",
           "value": "Lorraine",
+          "tspans": [
+            {
+              "value": "Lorraine",
+              "x": 488.15201,
+              "y": 561
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -493,6 +600,13 @@
         {
           "id": "als",
           "value": "Alsace",
+          "tspans": [
+            {
+              "value": "Alsace",
+              "x": 580.28802,
+              "y": 563
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -535,6 +649,13 @@
         {
           "id": "cal",
           "value": "Calais",
+          "tspans": [
+            {
+              "value": "Calais",
+              "x": 398.76001,
+              "y": 501
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -577,6 +698,13 @@
         {
           "id": "dij",
           "value": "Dijon",
+          "tspans": [
+            {
+              "value": "Dijon",
+              "x": 433.52399,
+              "y": 555
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -619,6 +747,13 @@
         {
           "id": "par",
           "value": "Paris",
+          "tspans": [
+            {
+              "value": "Paris",
+              "x": 370.15201,
+              "y": 538
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -657,6 +792,13 @@
         {
           "id": "cha",
           "value": "Charlerois",
+          "tspans": [
+            {
+              "value": "Charlerois",
+              "x": 426.10999,
+              "y": 638
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "12px",
@@ -699,6 +841,13 @@
         {
           "id": "orl",
           "value": "Orleanais",
+          "tspans": [
+            {
+              "value": "Orleanais",
+              "x": 321.78799,
+              "y": 612
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -742,6 +891,13 @@
         {
           "id": "can",
           "value": "Cantons",
+          "tspans": [
+            {
+              "value": "Cantons",
+              "x": 538.73999,
+              "y": 646
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -784,6 +940,13 @@
         {
           "id": "nom",
           "value": "Normandy",
+          "tspans": [
+            {
+              "value": "Normandy",
+              "x": 270.20001,
+              "y": 539
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -826,6 +989,13 @@
         {
           "id": "dau",
           "value": "Dauphine",
+          "tspans": [
+            {
+              "value": "Dauphine",
+              "x": 436.43201,
+              "y": 693
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -864,6 +1034,13 @@
         {
           "id": "lim",
           "value": "Limousin",
+          "tspans": [
+            {
+              "value": "Limousin",
+              "x": 320.9162,
+              "y": 726.7016
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -903,6 +1080,13 @@
         {
           "id": "sav",
           "value": "Savoy",
+          "tspans": [
+            {
+              "value": "Savoy",
+              "x": 576.73199,
+              "y": 716
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -941,6 +1125,13 @@
         {
           "id": "pro",
           "value": "Provence",
+          "tspans": [
+            {
+              "value": "Provence",
+              "x": 450.43201,
+              "y": 773
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -980,6 +1171,13 @@
         {
           "id": "poi",
           "value": "Poitou",
+          "tspans": [
+            {
+              "value": "Poitou",
+              "x": 310.56799,
+              "y": 675
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -1018,6 +1216,13 @@
         {
           "id": "anj",
           "value": "Anjou",
+          "tspans": [
+            {
+              "value": "Anjou",
+              "x": 286.9552,
+              "y": 587.92572
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -1060,6 +1265,13 @@
         {
           "id": "brt",
           "value": "Brittany",
+          "tspans": [
+            {
+              "value": "Brittany",
+              "x": 219.828,
+              "y": 605
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -1102,6 +1314,13 @@
         {
           "id": "guy",
           "value": "Guyenne",
+          "tspans": [
+            {
+              "value": "Guyenne",
+              "x": 259.91599,
+              "y": 766
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -1145,6 +1364,13 @@
         {
           "id": "tou",
           "value": "Toulouse",
+          "tspans": [
+            {
+              "value": "Toulouse",
+              "x": 328.92157,
+              "y": 790
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -1183,6 +1409,13 @@
         {
           "id": "ara",
           "value": "Aragon",
+          "tspans": [
+            {
+              "value": "Aragon",
+              "x": 276.51999,
+              "y": 853
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -1226,6 +1459,13 @@
         {
           "id": "cas",
           "value": "Castile",
+          "tspans": [
+            {
+              "value": "Castile",
+              "x": 125.38,
+              "y": 932
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -1264,6 +1504,13 @@
         {
           "id": "bis",
           "value": "BISCAY",
+          "tspans": [
+            {
+              "value": "BISCAY",
+              "x": 136.92999,
+              "y": 715
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "20px",
@@ -1303,6 +1550,13 @@
         {
           "id": "iri",
           "value": "Irish Sea",
+          "tspans": [
+            {
+              "value": "Irish Sea",
+              "x": 157.51401,
+              "y": 319
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "12px",
@@ -1319,6 +1573,13 @@
         {
           "id": "iri",
           "value": "IRI",
+          "tspans": [
+            {
+              "value": "IRI",
+              "x": 163.14792,
+              "y": 304
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -1358,6 +1619,18 @@
         {
           "id": "eng",
           "value": "English Channel",
+          "tspans": [
+            {
+              "value": "English",
+              "x": 211.826,
+              "y": 520
+            },
+            {
+              "value": "Channel",
+              "x": 209.63,
+              "y": 535
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "12px",
@@ -1367,13 +1640,20 @@
           },
           "transform": "",
           "point": {
-            "x": 200,
-            "y": 500
+            "x": 211.826,
+            "y": 520
           }
         },
         {
           "id": "eng",
           "value": "ENG",
+          "tspans": [
+            {
+              "value": "ENG",
+              "x": 209.89192,
+              "y": 500
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -1384,8 +1664,8 @@
           },
           "transform": "",
           "point": {
-            "x": 218,
-            "y": 485
+            "x": 209.89192,
+            "y": 500
           }
         }
       ]
@@ -1413,6 +1693,18 @@
         {
           "id": "brs",
           "value": "Bristol Channel",
+          "tspans": [
+            {
+              "value": "Bristol",
+              "x": 122.25,
+              "y": 542
+            },
+            {
+              "value": "Channel",
+              "x": 117.63,
+              "y": 557
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "12px",
@@ -1422,13 +1714,20 @@
           },
           "transform": "",
           "point": {
-            "x": 112,
+            "x": 122.25,
             "y": 542
           }
         },
         {
           "id": "brs",
           "value": "BRS",
+          "tspans": [
+            {
+              "value": "BRS",
+              "x": 120.23592,
+              "y": 523
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -1467,7 +1766,19 @@
       "text": [
         {
           "id": "thw",
-          "value": "THE",
+          "value": "THE WASH",
+          "tspans": [
+            {
+              "value": "THE",
+              "x": 470.065,
+              "y": 250
+            },
+            {
+              "value": "WASH",
+              "x": 460.39001,
+              "y": 274
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "20px",
@@ -1480,23 +1791,6 @@
           "point": {
             "x": 470.065,
             "y": 250
-          }
-        },
-        {
-          "id": "thw",
-          "value": "WASH",
-          "styles": {
-            "fill": "#000000",
-            "fontSize": "20px",
-            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
-            "fontWeight": "normal",
-            "fontStyle": "italic",
-            "letterSpacing": "3.75"
-          },
-          "transform": "rotate(-9.9999875,500.00091,254.99963)",
-          "point": {
-            "x": 460.39001,
-            "y": 274
           }
         }
       ]
@@ -1524,6 +1818,13 @@
         {
           "id": "nos",
           "value": "NORTH SEA",
+          "tspans": [
+            {
+              "value": "NORTH SEA",
+              "x": 296.80499,
+              "y": 149
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "20px",
@@ -1563,6 +1864,13 @@
         {
           "id": "atl",
           "value": "Atlantic Sea",
+          "tspans": [
+            {
+              "value": "Atlantic Sea",
+              "x": 22.878,
+              "y": 641
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "12px",
@@ -1579,6 +1887,13 @@
         {
           "id": "atl",
           "value": "ATL",
+          "tspans": [
+            {
+              "value": "ATL",
+              "x": 35.331924,
+              "y": 620
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -1618,6 +1933,13 @@
         {
           "id": "str",
           "value": "STR",
+          "tspans": [
+            {
+              "value": "STR",
+              "x": 363.89194,
+              "y": 409
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "16px",
@@ -1635,6 +1957,13 @@
         {
           "id": "str",
           "value": "of Dover",
+          "tspans": [
+            {
+              "value": "of Dover",
+              "x": 365.48801,
+              "y": 424
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "12px",
@@ -1645,13 +1974,20 @@
           },
           "transform": "rotate(-42.999973,391.00032,419.50018)",
           "point": {
-            "x": 375,
-            "y": 423
+            "x": 365.48801,
+            "y": 424
           }
         },
         {
           "id": "str",
           "value": "Strait",
+          "tspans": [
+            {
+              "value": "Strait",
+              "x": 306.44199,
+              "y": 478
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "12px",
@@ -1691,6 +2027,13 @@
         {
           "id": "med",
           "value": "MEDITERRANEAN",
+          "tspans": [
+            {
+              "value": "MEDITERRANEAN",
+              "x": 321.63501,
+              "y": 1010
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "20px",
@@ -1730,12 +2073,19 @@
         {
           "id": "ara/sc",
           "value": "SC",
+          "tspans": [
+            {
+              "value": "SC",
+              "x": 301.81714,
+              "y": 906.94299
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "fillOpacity": "1",
-            "fontSize": "40px",
-            "fontFamily": "sans-serif",
+            "fontSize": "18.6667px",
+            "fontFamily": "LibreBaskerville-Regular, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "normal",
             "letterSpacing": "0px"
@@ -1771,12 +2121,19 @@
         {
           "id": "ara/nc",
           "value": "NC",
+          "tspans": [
+            {
+              "value": "NC",
+              "x": 231.42874,
+              "y": 812.74829
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "fillOpacity": "1",
-            "fontSize": "40px",
-            "fontFamily": "sans-serif",
+            "fontSize": "18.6667px",
+            "fontFamily": "LibreBaskerville-Regular, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "normal",
             "letterSpacing": "0px"
@@ -1808,7 +2165,34 @@
         "x": 289.29556,
         "y": 258.21298
       },
-      "text": []
+      "text": [
+        {
+          "id": "not/ec",
+          "value": "EC",
+          "tspans": [
+            {
+              "value": "EC",
+              "x": 244.7843,
+              "y": 254.76295
+            }
+          ],
+          "styles": {
+            "fill": "#000000",
+            "stroke": "none",
+            "fillOpacity": "1",
+            "fontSize": "18.6667px",
+            "fontFamily": "LibreBaskerville-Regular, 'Libre Baskerville'",
+            "fontWeight": "normal",
+            "fontStyle": "normal",
+            "letterSpacing": "0px"
+          },
+          "transform": "",
+          "point": {
+            "x": 244.7843,
+            "y": 254.76295
+          }
+        }
+      ]
     },
     {
       "id": "not/wc",
@@ -1829,7 +2213,34 @@
         "x": 240.29556,
         "y": 290.21298
       },
-      "text": []
+      "text": [
+        {
+          "id": "not/wc",
+          "value": "WC",
+          "tspans": [
+            {
+              "value": "WC",
+              "x": 229.49057,
+              "y": 313.21844
+            }
+          ],
+          "styles": {
+            "fill": "#000000",
+            "stroke": "none",
+            "fillOpacity": "1",
+            "fontSize": "18.6667px",
+            "fontFamily": "LibreBaskerville-Regular, 'Libre Baskerville'",
+            "fontWeight": "normal",
+            "fontStyle": "normal",
+            "letterSpacing": "0px"
+          },
+          "transform": "",
+          "point": {
+            "x": 229.49057,
+            "y": 313.21844
+          }
+        }
+      ]
     },
     {
       "id": "min",
@@ -1854,6 +2265,13 @@
         {
           "id": "min",
           "value": "MINCH",
+          "tspans": [
+            {
+              "value": "MINCH",
+              "x": 11.475,
+              "y": 185
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "fontSize": "20px",
@@ -1874,7 +2292,7 @@
   "backgroundElements": [
     {
       "id": "Sea",
-      "d": "M0 0 L0661 0 L0661 01081 L0 01081 Z",
+      "d": "M 0.40523809 -1.6209524 L 662.40523809 -1.6209524 L 662.40523809 1082.3790476 L 0.40523809 1082.3790476 Z",
       "styles": {
         "fill": "#d4d1ad"
       }
@@ -1888,7 +2306,8 @@
         "strokeWidth": "2.5",
         "strokeDasharray": "none",
         "strokeOpacity": "1",
-        "strokeMiterlimit": "4"
+        "strokeMiterlimit": "4",
+        "filter": "url(#filter3594)"
       }
     },
     {
@@ -2428,5 +2847,6 @@
       }
     }
   ],
-  "impassableProvinces": []
+  "impassableProvinces": [],
+  "svgDefs": "<filter xmlns=\"http://www.w3.org/2000/svg\" height=\"1.0154681\" y=\"-0.007734072\" width=\"1.0253051\" x=\"-0.012652568\" id=\"filter3594\" style=\"color-interpolation-filters:sRGB\" xmlns:ns1=\"http://www.inkscape.org/namespaces/inkscape\" ns1:collect=\"always\">\n      <feGaussianBlur id=\"feGaussianBlur3596\" stdDeviation=\"3.49\" ns1:collect=\"always\"/>\n    </filter>"
 }

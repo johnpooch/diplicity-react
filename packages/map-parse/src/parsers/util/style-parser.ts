@@ -28,6 +28,7 @@ class StyleParser implements IStyleParser {
         'font-style': 'fontStyle',
         'letter-spacing': 'letterSpacing',
         'transform': 'transform',
+        'filter': 'filter',
     };
 
     constructor(cssParser: ICssParser) {

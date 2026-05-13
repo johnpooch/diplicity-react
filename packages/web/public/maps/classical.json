@@ -31,14 +31,20 @@
         {
           "id": "tun",
           "value": "Tunis",
+          "tspans": [
+            {
+              "value": "Tunis",
+              "x": 583.89038,
+              "y": 1318.4242
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
-            "fontStyle": "normal"
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "bold"
           },
           "transform": "rotate(1)",
           "point": {
@@ -77,13 +83,20 @@
         {
           "id": "sev",
           "value": "Sevastopol",
+          "tspans": [
+            {
+              "value": "Sevastopol",
+              "x": 1351.7241,
+              "y": 811.24335
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "normal",
             "fontStyle": "normal"
           },
           "transform": "rotate(-1)",
@@ -123,14 +136,20 @@
         {
           "id": "ser",
           "value": "Serbia",
+          "tspans": [
+            {
+              "value": "Serbia",
+              "x": 1308.8326,
+              "y": -461.13901
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
-            "fontStyle": "normal"
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "bold"
           },
           "transform": "rotate(69)",
           "point": {
@@ -169,14 +188,20 @@
         {
           "id": "vie",
           "value": "Vienna",
+          "tspans": [
+            {
+              "value": "Vienna",
+              "x": 1059.3024,
+              "y": 562.84833
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
-            "fontStyle": "normal"
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "bold"
           },
           "transform": "rotate(22)",
           "point": {
@@ -215,14 +240,20 @@
         {
           "id": "swe",
           "value": "Sweden",
+          "tspans": [
+            {
+              "value": "Sweden",
+              "x": 724.06073,
+              "y": 468.75381
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
-            "fontStyle": "normal"
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "bold"
           },
           "transform": "",
           "point": {
@@ -261,14 +292,20 @@
         {
           "id": "por",
           "value": "Portugal",
+          "tspans": [
+            {
+              "value": "Portugal",
+              "x": -903.6347,
+              "y": 613.40924
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
             "fontWeight": "bold",
-            "fontStyle": "normal",
             "letterSpacing": "-0.5"
           },
           "transform": "rotate(-62)",
@@ -308,13 +345,20 @@
         {
           "id": "edi",
           "value": "Edinburgh",
+          "tspans": [
+            {
+              "value": "Edinburgh",
+              "x": 571.31104,
+              "y": -281.43948
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "normal",
             "fontStyle": "normal"
           },
           "transform": "rotate(79)",
@@ -350,12 +394,19 @@
         {
           "id": "alb",
           "value": "Albania",
+          "tspans": [
+            {
+              "value": "Albania",
+              "x": 1229.0223,
+              "y": -666.58679
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic",
             "letterSpacing": "1"
@@ -393,12 +444,19 @@
         {
           "id": "pie",
           "value": "Piedmont",
+          "tspans": [
+            {
+              "value": "Piedmont",
+              "x": 497.26654,
+              "y": 1012.7062
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic",
             "letterSpacing": "0.5"
@@ -436,12 +494,19 @@
         {
           "id": "apu",
           "value": "Apulia",
+          "tspans": [
+            {
+              "value": "Apulia",
+              "x": 1235.8694,
+              "y": 487.85934
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic",
             "letterSpacing": "1"
@@ -479,12 +544,19 @@
         {
           "id": "pru",
           "value": "Prussia",
+          "tspans": [
+            {
+              "value": "Prussia",
+              "x": 465.21808,
+              "y": 961.36377
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic"
           },
@@ -521,12 +593,19 @@
         {
           "id": "pic",
           "value": "Picardy",
+          "tspans": [
+            {
+              "value": "Picardy",
+              "x": 402.63971,
+              "y": 818.74243
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic"
           },
@@ -567,14 +646,20 @@
         {
           "id": "spa",
           "value": "Spain",
+          "tspans": [
+            {
+              "value": "Spain",
+              "x": 143.11626,
+              "y": 1101.5227
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
-            "fontStyle": "normal"
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "bold"
           },
           "transform": "rotate(-4)",
           "point": {
@@ -613,13 +698,20 @@
         {
           "id": "bre",
           "value": "Brest",
+          "tspans": [
+            {
+              "value": "Brest",
+              "x": 594.9176,
+              "y": 675.07043
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "normal",
             "fontStyle": "normal"
           },
           "transform": "rotate(19.8)",
@@ -655,12 +747,19 @@
         {
           "id": "fin",
           "value": "Finland",
+          "tspans": [
+            {
+              "value": "Finland",
+              "x": 860.70776,
+              "y": 473.60425
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic"
           },
@@ -697,12 +796,19 @@
         {
           "id": "arm",
           "value": "Armenia",
+          "tspans": [
+            {
+              "value": "Armenia",
+              "x": 1411.4347,
+              "y": 1109.5834
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic"
           },
@@ -743,14 +849,20 @@
         {
           "id": "rom",
           "value": "Rome",
+          "tspans": [
+            {
+              "value": "Rome",
+              "x": 1234.413,
+              "y": 311.88766
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
-            "fontStyle": "normal"
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "bold"
           },
           "transform": "rotate(44)",
           "point": {
@@ -785,12 +897,19 @@
         {
           "id": "gol",
           "value": "GOL",
+          "tspans": [
+            {
+              "value": "GOL",
+              "x": 467.19199,
+              "y": 1087.7694
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
-            "fontSize": "15.16666698px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontSize": "16px",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic",
             "letterSpacing": "3"
@@ -804,19 +923,26 @@
         {
           "id": "gol",
           "value": "Gulf of Lyon",
+          "tspans": [
+            {
+              "value": "Gulf of Lyon",
+              "x": 453.19199,
+              "y": 1102.7694
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
-            "fontSize": "15.1667px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontSize": "12px",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic"
           },
           "transform": "",
           "point": {
-            "x": 445.19199,
-            "y": 1104.7694
+            "x": 453.19199,
+            "y": 1102.7694
           }
         }
       ]
@@ -850,14 +976,20 @@
         {
           "id": "par",
           "value": "Paris",
+          "tspans": [
+            {
+              "value": "Paris",
+              "x": 392.42465,
+              "y": 873.87158
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
-            "fontStyle": "normal"
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "bold"
           },
           "transform": "rotate(-1)",
           "point": {
@@ -892,12 +1024,19 @@
         {
           "id": "wal",
           "value": "Wales",
+          "tspans": [
+            {
+              "value": "Wales",
+              "x": 741.84558,
+              "y": 151.29619
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic"
           },
@@ -934,12 +1073,19 @@
         {
           "id": "naf",
           "value": "N. Africa",
+          "tspans": [
+            {
+              "value": "N. Africa",
+              "x": 251.59637,
+              "y": 1318.8353
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "20px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic"
           },
@@ -980,13 +1126,20 @@
         {
           "id": "smy",
           "value": "Smyrna",
+          "tspans": [
+            {
+              "value": "Smyrna",
+              "x": 953.25513,
+              "y": 1417.4423
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "normal",
             "fontStyle": "normal",
             "letterSpacing": "0.3"
           },
@@ -1022,21 +1175,33 @@
       "text": [
         {
           "id": "eng",
-          "value": "ENGLISHCHANNEL",
+          "value": "ENGLISH CHANNEL",
+          "tspans": [
+            {
+              "value": "ENGLISH",
+              "x": 222.54822,
+              "y": 781.18921
+            },
+            {
+              "value": "CHANNEL",
+              "x": 232.13321,
+              "y": 801.18921
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
-            "strokeWidth": "0.858439",
-            "fontSize": "13.0197px",
-            "fontFamily": "'Libre Baskerville'",
+            "strokeWidth": "1",
+            "fontSize": "16px",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic",
-            "letterSpacing": "2.57532"
+            "letterSpacing": "3"
           },
           "transform": "rotate(-3)",
           "point": {
-            "x": 222.52942,
-            "y": 778.82953
+            "x": 222.54822,
+            "y": 781.18921
           }
         }
       ]
@@ -1066,12 +1231,19 @@
         {
           "id": "mid",
           "value": "MID ATLANTIC",
+          "tspans": [
+            {
+              "value": "MID ATLANTIC",
+              "x": -27.124723,
+              "y": 862.82489
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
-            "fontSize": "15.16666698px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontSize": "20px",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic",
             "letterSpacing": "2"
@@ -1113,14 +1285,20 @@
         {
           "id": "hol",
           "value": "Holland",
+          "tspans": [
+            {
+              "value": "Holland",
+              "x": 32.482983,
+              "y": 903.47369
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
             "fontWeight": "bold",
-            "fontStyle": "normal",
             "letterSpacing": "0.3"
           },
           "transform": "rotate(-33)",
@@ -1160,14 +1338,20 @@
         {
           "id": "lon",
           "value": "London",
+          "tspans": [
+            {
+              "value": "London",
+              "x": 262.08569,
+              "y": 772.11609
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
-            "fontStyle": "normal"
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "bold"
           },
           "transform": "rotate(-9)",
           "point": {
@@ -1202,12 +1386,19 @@
         {
           "id": "ukr",
           "value": "Ukraine",
+          "tspans": [
+            {
+              "value": "Ukraine",
+              "x": 787.67822,
+              "y": 1110.4774
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic"
           },
@@ -1244,12 +1435,19 @@
         {
           "id": "wes",
           "value": "WEST MEDITERRANEAN",
+          "tspans": [
+            {
+              "value": "WEST MEDITERRANEAN",
+              "x": 143.2724,
+              "y": 1256.1332
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
-            "fontSize": "15.16666698px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontSize": "16px",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic",
             "letterSpacing": "3"
@@ -1291,13 +1489,20 @@
         {
           "id": "mos",
           "value": "Moscow",
+          "tspans": [
+            {
+              "value": "Moscow",
+              "x": 1233.6033,
+              "y": 565.67206
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "normal",
             "fontStyle": "normal"
           },
           "transform": "rotate(-3)",
@@ -1337,13 +1542,20 @@
         {
           "id": "nap",
           "value": "Naples",
+          "tspans": [
+            {
+              "value": "Naples",
+              "x": 1296.7502,
+              "y": 400.91229
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "normal",
             "fontStyle": "normal"
           },
           "transform": "rotate(40)",
@@ -1383,14 +1595,20 @@
         {
           "id": "gre",
           "value": "Greece",
+          "tspans": [
+            {
+              "value": "Greece",
+              "x": 1387.006,
+              "y": 484.52112
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
-            "fontStyle": "normal"
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "bold"
           },
           "transform": "rotate(33)",
           "point": {
@@ -1425,12 +1643,19 @@
         {
           "id": "ska",
           "value": "SKA",
+          "tspans": [
+            {
+              "value": "SKA",
+              "x": 494.99185,
+              "y": 664.86725
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
-            "fontSize": "15.16666698px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontSize": "16px",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic",
             "letterSpacing": "4"
@@ -1468,12 +1693,19 @@
         {
           "id": "tyr",
           "value": "Tyrolia",
+          "tspans": [
+            {
+              "value": "Tyrolia",
+              "x": 649.40149,
+              "y": 932.71466
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic",
             "letterSpacing": "0.5"
@@ -1511,12 +1743,19 @@
         {
           "id": "nat",
           "value": "N. ATLANTIC",
+          "tspans": [
+            {
+              "value": "N. ATLANTIC",
+              "x": 47.623047,
+              "y": 438.62216
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
-            "fontSize": "15.16666698px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontSize": "20px",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic",
             "letterSpacing": "3.75"
@@ -1558,13 +1797,20 @@
         {
           "id": "kie",
           "value": "Kiel",
+          "tspans": [
+            {
+              "value": "Kiel",
+              "x": 606.93793,
+              "y": 713.5484
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "normal",
             "fontStyle": "normal"
           },
           "transform": "",
@@ -1604,13 +1850,20 @@
         {
           "id": "mun",
           "value": "Munich",
+          "tspans": [
+            {
+              "value": "Munich",
+              "x": 611.52991,
+              "y": 866.28656
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "normal",
             "fontStyle": "normal",
             "letterSpacing": "0.3"
           },
@@ -1647,12 +1900,19 @@
         {
           "id": "bla",
           "value": "BLACK SEA",
+          "tspans": [
+            {
+              "value": "BLACK SEA",
+              "x": 1031.1193,
+              "y": 1159.3712
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
-            "fontSize": "15.16666698px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontSize": "16px",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic",
             "letterSpacing": "3"
@@ -1694,14 +1954,20 @@
         {
           "id": "war",
           "value": "Warsaw",
+          "tspans": [
+            {
+              "value": "Warsaw",
+              "x": 866.53564,
+              "y": 778.31152
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
-            "fontStyle": "normal"
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "bold"
           },
           "transform": "rotate(-2)",
           "point": {
@@ -1736,12 +2002,19 @@
         {
           "id": "cly",
           "value": "Clyde",
+          "tspans": [
+            {
+              "value": "Clyde",
+              "x": -222.91415,
+              "y": 603.71216
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic"
           },
@@ -1771,27 +2044,34 @@
         "fillOpacity": "1"
       },
       "center": {
-        "x": 579.75441,
-        "y": 800.89178
+        "x": 574.66888,
+        "y": 783.52159
       },
       "text": [
         {
           "id": "ruh",
           "value": "Ruhr",
+          "tspans": [
+            {
+              "value": "Ruhr",
+              "x": 168.0829,
+              "y": 975.23688
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
-            "fontStyle": "normal",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
+            "fontWeight": "normal",
+            "fontStyle": "italic",
             "letterSpacing": "0.3"
           },
-          "transform": "rotate(-12.994847)",
+          "transform": "rotate(-25)",
           "point": {
-            "x": 356.77747,
-            "y": 930.06299
+            "x": 168.0829,
+            "y": 975.23688
           }
         }
       ]
@@ -1825,13 +2105,20 @@
         {
           "id": "mar",
           "value": "Marseilles",
+          "tspans": [
+            {
+              "value": "Marseilles",
+              "x": 287.17596,
+              "y": 1059.7118
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "normal",
             "fontStyle": "normal"
           },
           "transform": "rotate(-8)",
@@ -1867,30 +2154,44 @@
         {
           "id": "tys",
           "value": "Tyrrhenian Sea",
+          "tspans": [
+            {
+              "value": "Tyrrhenian Sea",
+              "x": 624.19202,
+              "y": 1190.7694
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
-            "fontSize": "15.1667px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontSize": "12px",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic"
           },
           "transform": "",
           "point": {
-            "x": 619.19202,
-            "y": 1192.7694
+            "x": 624.19202,
+            "y": 1190.7694
           }
         },
         {
           "id": "tys",
           "value": "TYS",
+          "tspans": [
+            {
+              "value": "TYS",
+              "x": 651.29877,
+              "y": 1176.6666
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
-            "fontSize": "15.16666698px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontSize": "16px",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic"
           },
@@ -1927,12 +2228,19 @@
         {
           "id": "aeg",
           "value": "AEGEAN SEA",
+          "tspans": [
+            {
+              "value": "AEGEAN SEA",
+              "x": 1505.2748,
+              "y": -335.57724
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
-            "fontSize": "15.16666698px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontSize": "16px",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic",
             "letterSpacing": "3"
@@ -1974,14 +2282,20 @@
         {
           "id": "rum",
           "value": "Rumania",
+          "tspans": [
+            {
+              "value": "Rumania",
+              "x": 906.7063,
+              "y": 1056.5618
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
-            "fontStyle": "normal"
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "bold"
           },
           "transform": "rotate(-4)",
           "point": {
@@ -2016,12 +2330,19 @@
         {
           "id": "bur",
           "value": "Burgundy",
+          "tspans": [
+            {
+              "value": "Burgundy",
+              "x": -422.6123,
+              "y": 959.49921
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic"
           },
@@ -2058,12 +2379,19 @@
         {
           "id": "nrg",
           "value": "NRG",
+          "tspans": [
+            {
+              "value": "NRG",
+              "x": 512.80786,
+              "y": 249.45255
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
-            "fontSize": "15.16666698px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontSize": "16px",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic",
             "letterSpacing": "3"
@@ -2077,12 +2405,19 @@
         {
           "id": "nrg",
           "value": "Norwegian Sea",
+          "tspans": [
+            {
+              "value": "Norwegian Sea",
+              "x": 492.28937,
+              "y": 264.39169
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
-            "fontSize": "15.16666698px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontSize": "12px",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic"
           },
@@ -2119,12 +2454,19 @@
         {
           "id": "tus",
           "value": "Tuscany",
+          "tspans": [
+            {
+              "value": "Tuscany",
+              "x": 1163.7209,
+              "y": 262.78284
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic",
             "letterSpacing": "0.5"
@@ -2162,12 +2504,19 @@
         {
           "id": "gas",
           "value": "Gascony",
+          "tspans": [
+            {
+              "value": "Gascony",
+              "x": 101.97352,
+              "y": 1029.7653
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic",
             "letterSpacing": "0.5"
@@ -2209,14 +2558,20 @@
         {
           "id": "nwy",
           "value": "Norway",
+          "tspans": [
+            {
+              "value": "Norway",
+              "x": 550.82184,
+              "y": 496.1937
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
-            "fontStyle": "normal"
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "bold"
           },
           "transform": "rotate(-8)",
           "point": {
@@ -2251,12 +2606,19 @@
         {
           "id": "nth",
           "value": "NTH",
+          "tspans": [
+            {
+              "value": "NTH",
+              "x": 383.94171,
+              "y": 628.38013
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
-            "fontSize": "15.16666698px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontSize": "16px",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic",
             "letterSpacing": "3"
@@ -2270,12 +2632,19 @@
         {
           "id": "nth",
           "value": "North Sea",
+          "tspans": [
+            {
+              "value": "North Sea",
+              "x": 379.37543,
+              "y": 645.39313
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
-            "fontSize": "15.16666698px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontSize": "12px",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic"
           },
@@ -2312,12 +2681,19 @@
         {
           "id": "gal",
           "value": "Galicia",
+          "tspans": [
+            {
+              "value": "Galicia",
+              "x": 1158.8909,
+              "y": 420.66037
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic"
           },
@@ -2358,14 +2734,20 @@
         {
           "id": "bul",
           "value": "Bulgaria",
+          "tspans": [
+            {
+              "value": "Bulgaria",
+              "x": 953.11902,
+              "y": 1079.1096
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
-            "fontStyle": "normal"
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "bold"
           },
           "transform": "rotate(-1)",
           "point": {
@@ -2404,13 +2786,20 @@
         {
           "id": "ven",
           "value": "Venice",
+          "tspans": [
+            {
+              "value": "Venice",
+              "x": -201.94553,
+              "y": 1168.4766
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "normal",
             "fontStyle": "normal",
             "letterSpacing": "1"
           },
@@ -2447,12 +2836,19 @@
         {
           "id": "adr",
           "value": "ADRIATIC SEA",
+          "tspans": [
+            {
+              "value": "ADRIATIC SEA",
+              "x": 1205.963,
+              "y": 284.85971
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic",
             "letterSpacing": "3"
@@ -2490,12 +2886,19 @@
         {
           "id": "eas",
           "value": "EAST MED",
+          "tspans": [
+            {
+              "value": "EAST MED",
+              "x": 1136.281,
+              "y": 1323.0511
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
-            "fontSize": "15.16666698px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontSize": "16px",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic",
             "letterSpacing": "3"
@@ -2537,13 +2940,20 @@
         {
           "id": "ank",
           "value": "Ankara",
+          "tspans": [
+            {
+              "value": "Ankara",
+              "x": 928.82635,
+              "y": 1362.9812
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "normal",
             "fontStyle": "normal"
           },
           "transform": "rotate(-14)",
@@ -2583,14 +2993,20 @@
         {
           "id": "bud",
           "value": "Budapest",
+          "tspans": [
+            {
+              "value": "Budapest",
+              "x": 876.65649,
+              "y": 935.73401
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
-            "fontStyle": "normal"
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "bold"
           },
           "transform": "",
           "point": {
@@ -2629,13 +3045,20 @@
         {
           "id": "tri",
           "value": "Trieste",
+          "tspans": [
+            {
+              "value": "Trieste",
+              "x": 1237.8912,
+              "y": 300.11441
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "normal",
             "fontStyle": "normal"
           },
           "transform": "rotate(39)",
@@ -2670,13 +3093,45 @@
       "text": [
         {
           "id": "lvn",
+          "value": "LVN",
+          "tspans": [
+            {
+              "value": "LVN",
+              "x": 945.86572,
+              "y": 560.6571
+            }
+          ],
+          "styles": {
+            "fill": "#000000",
+            "stroke": "none",
+            "strokeWidth": "1",
+            "fontSize": "16px",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
+            "fontWeight": "normal",
+            "fontStyle": "italic"
+          },
+          "transform": "",
+          "point": {
+            "x": 945.86572,
+            "y": 560.6571
+          }
+        },
+        {
+          "id": "lvn",
           "value": "Livonia",
+          "tspans": [
+            {
+              "value": "Livonia",
+              "x": 940.86572,
+              "y": 578.6571
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "12px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic"
           },
@@ -2713,12 +3168,19 @@
         {
           "id": "bar",
           "value": "BARENTS SEA",
+          "tspans": [
+            {
+              "value": "BARENTS SEA",
+              "x": 918.98529,
+              "y": -221.88521
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
-            "fontSize": "15.16666698px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontSize": "16px",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic",
             "letterSpacing": "4"
@@ -2759,20 +3221,51 @@
       "text": [
         {
           "id": "lvp",
+          "value": "LVP",
+          "tspans": [
+            {
+              "value": "LVP",
+              "x": 418.94147,
+              "y": 587.88684
+            }
+          ],
+          "styles": {
+            "fill": "#000000",
+            "stroke": "none",
+            "strokeWidth": "1",
+            "fontSize": "16px",
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "bold"
+          },
+          "transform": "rotate(5)",
+          "point": {
+            "x": 418.94147,
+            "y": 587.88684
+          }
+        },
+        {
+          "id": "lvp",
           "value": "Liverpool",
+          "tspans": [
+            {
+              "value": "Liverpool",
+              "x": 402.55045,
+              "y": 599.2334
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "12px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "normal",
             "fontStyle": "normal"
           },
           "transform": "rotate(5)",
           "point": {
-            "x": 400.75861,
-            "y": 599.03528
+            "x": 402.55045,
+            "y": 599.2334
           }
         }
       ]
@@ -2806,14 +3299,20 @@
         {
           "id": "bel",
           "value": "Belgium",
+          "tspans": [
+            {
+              "value": "Belgium",
+              "x": 805.9118,
+              "y": 382.95563
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
-            "fontStyle": "normal"
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "bold"
           },
           "transform": "rotate(32)",
           "point": {
@@ -2848,12 +3347,19 @@
         {
           "id": "syr",
           "value": "Syria",
+          "tspans": [
+            {
+              "value": "Syria",
+              "x": 1425.6772,
+              "y": 1277.7191
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic"
           },
@@ -2890,12 +3396,19 @@
         {
           "id": "iri",
           "value": "IRISH SEA",
+          "tspans": [
+            {
+              "value": "IRISH SEA",
+              "x": -182.3685,
+              "y": 734.67438
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
-            "fontSize": "15.16666698px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontSize": "16px",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic",
             "letterSpacing": "3"
@@ -2933,12 +3446,19 @@
         {
           "id": "bot",
           "value": "BOT",
+          "tspans": [
+            {
+              "value": "BOT",
+              "x": 807.74084,
+              "y": 527.78339
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
-            "fontSize": "15.16666698px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontSize": "16px",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic",
             "letterSpacing": "2"
@@ -2952,19 +3472,26 @@
         {
           "id": "bot",
           "value": "Gulf of Bothnia",
+          "tspans": [
+            {
+              "value": "Gulf of Bothnia",
+              "x": 783.4873,
+              "y": 543.67926
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
-            "strokeWidth": "0.838065",
-            "fontSize": "12.7107px",
-            "fontFamily": "'Libre Baskerville'",
+            "strokeWidth": "1",
+            "fontSize": "12px",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic"
           },
           "transform": "rotate(-4)",
           "point": {
-            "x": 783.75281,
-            "y": 540.53101
+            "x": 783.4873,
+            "y": 543.67926
           }
         }
       ]
@@ -2994,12 +3521,19 @@
         {
           "id": "hel",
           "value": "HEL",
+          "tspans": [
+            {
+              "value": "HEL",
+              "x": 460.99426,
+              "y": 702.05139
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
-            "fontSize": "15.16666698px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontSize": "16px",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic",
             "letterSpacing": "4"
@@ -3013,37 +3547,51 @@
         {
           "id": "hel",
           "value": "Helgoland",
+          "tspans": [
+            {
+              "value": "Helgoland",
+              "x": 448.51733,
+              "y": 716.87073
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
-            "strokeWidth": "0.874934",
-            "fontSize": "13.2698px",
-            "fontFamily": "'Libre Baskerville'",
+            "strokeWidth": "1",
+            "fontSize": "12px",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic"
           },
           "transform": "rotate(-8)",
           "point": {
-            "x": 449.41882,
-            "y": 718.77924
+            "x": 448.51733,
+            "y": 716.87073
           }
         },
         {
           "id": "hel",
           "value": "Bight",
+          "tspans": [
+            {
+              "value": "Bight",
+              "x": 463.612,
+              "y": 731.38879
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
-            "strokeWidth": "0.874934",
-            "fontSize": "13.2698px",
-            "fontFamily": "'Libre Baskerville'",
+            "strokeWidth": "1",
+            "fontSize": "12px",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic"
           },
           "transform": "rotate(-8)",
           "point": {
-            "x": 466.13248,
-            "y": 734.47357
+            "x": 463.612,
+            "y": 731.38879
           }
         }
       ]
@@ -3072,13 +3620,25 @@
       "text": [
         {
           "id": "yor",
-          "value": "Yorkshire",
+          "value": "York shire",
+          "tspans": [
+            {
+              "value": "York",
+              "x": 272.83041,
+              "y": 733.66229
+            },
+            {
+              "value": "shire",
+              "x": 272.83041,
+              "y": 747.66229
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic"
           },
@@ -3115,12 +3675,19 @@
         {
           "id": "boh",
           "value": "Bohemia",
+          "tspans": [
+            {
+              "value": "Bohemia",
+              "x": 715.72333,
+              "y": 836.16528
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic"
           },
@@ -3157,12 +3724,19 @@
         {
           "id": "ion",
           "value": "IONIAN SEA",
+          "tspans": [
+            {
+              "value": "IONIAN SEA",
+              "x": 588.73065,
+              "y": 1418.955
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic",
             "letterSpacing": "3"
@@ -3204,12 +3778,19 @@
         {
           "id": "stp",
           "value": "St. Petersburg",
+          "tspans": [
+            {
+              "value": "St. Petersburg",
+              "x": 837.04779,
+              "y": 803.82404
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
             "fontWeight": "bold",
             "fontStyle": "normal"
           },
@@ -3250,14 +3831,20 @@
         {
           "id": "den",
           "value": "Denmark",
+          "tspans": [
+            {
+              "value": "Denmark",
+              "x": 773.63776,
+              "y": 362.68149
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
-            "fontStyle": "normal"
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "bold"
           },
           "transform": "rotate(19)",
           "point": {
@@ -3296,14 +3883,20 @@
         {
           "id": "ber",
           "value": "Berlin",
+          "tspans": [
+            {
+              "value": "Berlin",
+              "x": 674.79681,
+              "y": 737.53027
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
-            "fontStyle": "normal"
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "bold"
           },
           "transform": "",
           "point": {
@@ -3338,12 +3931,19 @@
         {
           "id": "bal",
           "value": "BALTIC SEA",
+          "tspans": [
+            {
+              "value": "BALTIC SEA",
+              "x": 172.81987,
+              "y": 978.69696
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
-            "fontSize": "15.16666698px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontSize": "16px",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic",
             "letterSpacing": "4"
@@ -3381,12 +3981,19 @@
         {
           "id": "sil",
           "value": "Silesia",
+          "tspans": [
+            {
+              "value": "Silesia",
+              "x": 866.32587,
+              "y": 626.27386
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
+            "fontFamily": "LibreBaskerville-Italic, 'Libre Baskerville'",
             "fontWeight": "normal",
             "fontStyle": "italic"
           },
@@ -3427,14 +4034,20 @@
         {
           "id": "con",
           "value": "Constantinople",
+          "tspans": [
+            {
+              "value": "Constantinople",
+              "x": 1414.3816,
+              "y": 583.78656
+            }
+          ],
           "styles": {
             "fill": "#000000",
             "stroke": "none",
             "strokeWidth": "1",
             "fontSize": "16px",
-            "fontFamily": "'Libre Baskerville'",
-            "fontWeight": "bold",
-            "fontStyle": "normal"
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "bold"
           },
           "transform": "rotate(24)",
           "point": {
@@ -3465,7 +4078,32 @@
         "x": 228.53589,
         "y": 1184.8202
       },
-      "text": []
+      "text": [
+        {
+          "id": "spa/sc",
+          "value": "SC",
+          "tspans": [
+            {
+              "value": "SC",
+              "x": 418.8399,
+              "y": 1151.2832
+            }
+          ],
+          "styles": {
+            "fill": "#000000",
+            "stroke": "none",
+            "strokeWidth": "1",
+            "fontSize": "12px",
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "bold"
+          },
+          "transform": "rotate(10)",
+          "point": {
+            "x": 418.8399,
+            "y": 1151.2832
+          }
+        }
+      ]
     },
     {
       "id": "spa/nc",
@@ -3488,7 +4126,32 @@
         "x": 225.98032,
         "y": 1008.6608
       },
-      "text": []
+      "text": [
+        {
+          "id": "spa/nc",
+          "value": "NC",
+          "tspans": [
+            {
+              "value": "NC",
+              "x": 558.62531,
+              "y": 837.90442
+            }
+          ],
+          "styles": {
+            "fill": "#000000",
+            "stroke": "none",
+            "strokeWidth": "1",
+            "fontSize": "12px",
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "bold"
+          },
+          "transform": "rotate(21)",
+          "point": {
+            "x": 558.62531,
+            "y": 837.90442
+          }
+        }
+      ]
     },
     {
       "id": "stp/nc",
@@ -3511,7 +4174,32 @@
         "x": 1161.0508,
         "y": 211.46877
       },
-      "text": []
+      "text": [
+        {
+          "id": "stp/nc",
+          "value": "NC",
+          "tspans": [
+            {
+              "value": "NC",
+              "x": 1113.7767,
+              "y": 251.95259
+            }
+          ],
+          "styles": {
+            "fill": "#000000",
+            "stroke": "none",
+            "strokeWidth": "1",
+            "fontSize": "12px",
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "bold"
+          },
+          "transform": "rotate(-2)",
+          "point": {
+            "x": 1113.7767,
+            "y": 251.95259
+          }
+        }
+      ]
     },
     {
       "id": "stp/sc",
@@ -3534,7 +4222,32 @@
         "x": 1032.6036,
         "y": 462.18202
       },
-      "text": []
+      "text": [
+        {
+          "id": "stp/sc",
+          "value": "SC",
+          "tspans": [
+            {
+              "value": "SC",
+              "x": 997.19202,
+              "y": 462.26962
+            }
+          ],
+          "styles": {
+            "fill": "#000000",
+            "stroke": "none",
+            "strokeWidth": "1",
+            "fontSize": "12px",
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "bold"
+          },
+          "transform": "",
+          "point": {
+            "x": 997.19202,
+            "y": 462.26962
+          }
+        }
+      ]
     },
     {
       "id": "bul/sc",
@@ -3557,7 +4270,32 @@
         "x": 1008.2018,
         "y": 1101.6554
       },
-      "text": []
+      "text": [
+        {
+          "id": "bul/sc",
+          "value": "SC",
+          "tspans": [
+            {
+              "value": "SC",
+              "x": 876.54443,
+              "y": 1219.8241
+            }
+          ],
+          "styles": {
+            "fill": "#000000",
+            "stroke": "none",
+            "strokeWidth": "1",
+            "fontSize": "12px",
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "bold"
+          },
+          "transform": "rotate(-6)",
+          "point": {
+            "x": 876.54443,
+            "y": 1219.8241
+          }
+        }
+      ]
     },
     {
       "id": "bul/ec",
@@ -3580,13 +4318,38 @@
         "x": 1058.0297,
         "y": 1027.2925
       },
-      "text": []
+      "text": [
+        {
+          "id": "bul/ec",
+          "value": "EC",
+          "tspans": [
+            {
+              "value": "EC",
+              "x": -416.16891,
+              "y": 1435.1688
+            }
+          ],
+          "styles": {
+            "fill": "#000000",
+            "stroke": "none",
+            "strokeWidth": "1",
+            "fontSize": "12px",
+            "fontFamily": "LibreBaskerville-Bold, 'Libre Baskerville'",
+            "fontWeight": "bold"
+          },
+          "transform": "rotate(-62)",
+          "point": {
+            "x": -416.16891,
+            "y": 1435.1688
+          }
+        }
+      ]
     }
   ],
   "backgroundElements": [
     {
       "id": "background-rect",
-      "d": "M0 0 L01523 0 L01523 01357 L0 01357 Z",
+      "d": "M 0 0 L 1523 0 L 1523 1357 L 0 1357 Z",
       "styles": {
         "fill": "#d4d0ad",
         "stroke": "#979797"
@@ -3601,7 +4364,8 @@
         "strokeWidth": "4",
         "strokeDasharray": "none",
         "strokeOpacity": "1",
-        "strokeMiterlimit": "4"
+        "strokeMiterlimit": "4",
+        "filter": "url(#filter848)"
       }
     },
     {
@@ -4474,5 +5238,6 @@
         "strokeWidth": "1"
       }
     }
-  ]
+  ],
+  "svgDefs": "<filter xmlns=\"http://www.w3.org/2000/svg\" height=\"1.0232975\" y=\"-0.011648731\" width=\"1.0207954\" x=\"-0.010397691\" id=\"filter848\" style=\"color-interpolation-filters:sRGB\" xmlns:ns1=\"http://www.inkscape.org/namespaces/inkscape\" ns1:collect=\"always\">\n      <feGaussianBlur id=\"feGaussianBlur850\" stdDeviation=\"5.7648684\" ns1:collect=\"always\"/>\n    </filter>"
 }
