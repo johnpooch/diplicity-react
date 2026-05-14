@@ -69,6 +69,7 @@ class Variant(BaseModel):
     description = models.TextField()
     author = models.CharField(max_length=200, blank=True)
     solo_victory_sc_count = models.IntegerField(default=18)
+    json_definition = models.JSONField(null=True, blank=True)
 
     @property
     def template_phase(self):
