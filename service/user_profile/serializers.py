@@ -6,6 +6,13 @@ class UserProfileSerializer(serializers.Serializer):
     name = serializers.CharField(min_length=2, max_length=255)
     picture = serializers.CharField(read_only=True, allow_null=True)
     email = serializers.CharField(source="user.email", read_only=True)
+    reliability_tier = serializers.CharField(read_only=True)
+    reliability_games_finished = serializers.IntegerField(
+        source="games_finished", read_only=True
+    )
+    reliability_games_abandoned_recent = serializers.IntegerField(
+        source="games_abandoned_recent", read_only=True
+    )
 
     def validate_name(self, value):
         value = value.strip()

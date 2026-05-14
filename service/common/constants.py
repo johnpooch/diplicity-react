@@ -16,6 +16,48 @@ class GameStatus:
         (ABANDONED, "Abandoned"),
     )
 
+    FINISHED_STATUSES = (COMPLETED, ABANDONED)
+
+
+class MemberOutcomeState:
+    COMPLETED = "completed"
+    ABANDONED = "abandoned"
+
+    OUTCOME_STATE_CHOICES = (
+        (COMPLETED, "Completed"),
+        (ABANDONED, "Abandoned"),
+    )
+
+
+class ReliabilityTier:
+    NEW_PLAYER = "new_player"
+    RELIABLE = "reliable"
+    UNRELIABLE = "unreliable"
+
+    TIER_CHOICES = (
+        (NEW_PLAYER, "New Player"),
+        (RELIABLE, "Reliable"),
+        (UNRELIABLE, "Unreliable"),
+    )
+
+
+class MinReliability:
+    OPEN = "open"
+    RELIABLE_AND_NEW = "reliable_and_new"
+    RELIABLE_ONLY = "reliable_only"
+
+    MIN_RELIABILITY_CHOICES = (
+        (OPEN, "Open"),
+        (RELIABLE_AND_NEW, "Reliable + New Players"),
+        (RELIABLE_ONLY, "Reliable only"),
+    )
+
+
+ABANDONMENT_NMR_THRESHOLD = 3
+RELIABILITY_MIN_GAMES = 3
+RELIABILITY_WINDOW_SIZE = 10
+RELIABILITY_ABANDONED_THRESHOLD = 2
+
 
 class MovementPhaseDuration:
     ONE_HOUR = "1 hour"

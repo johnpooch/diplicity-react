@@ -82,6 +82,12 @@ export interface ChannelMember {
   /** @nullable */
   readonly picture: string | null;
   readonly isCurrentUser: boolean;
+  /** @nullable */
+  readonly reliabilityTier: string | null;
+  /** @nullable */
+  readonly reliabilityGamesFinished: number | null;
+  /** @nullable */
+  readonly reliabilityGamesAbandonedRecent: number | null;
   nation: Nation;
 }
 
@@ -120,6 +126,12 @@ export interface DrawVoteMember {
   /** @nullable */
   readonly picture: string | null;
   readonly isCurrentUser: boolean;
+  /** @nullable */
+  readonly reliabilityTier: string | null;
+  /** @nullable */
+  readonly reliabilityGamesFinished: number | null;
+  /** @nullable */
+  readonly reliabilityGamesAbandonedRecent: number | null;
   /** @nullable */
   nation: string | null;
 }
@@ -297,6 +309,20 @@ export const PressTypeEnum = {
   no_press: "no_press",
 } as const;
 
+/**
+ * * `open` - Open
+ * `reliable_and_new` - Reliable + New Players
+ * `reliable_only` - Reliable only
+ */
+export type MinReliabilityEnum =
+  (typeof MinReliabilityEnum)[keyof typeof MinReliabilityEnum];
+
+export const MinReliabilityEnum = {
+  open: "open",
+  reliable_and_new: "reliable_and_new",
+  reliable_only: "reliable_only",
+} as const;
+
 export interface GameCreate {
   readonly id: string;
   name: string;
@@ -322,6 +348,7 @@ export interface GameCreate {
    */
   nmrExtensionsAllowed?: number;
   pressType?: PressTypeEnum;
+  minReliability?: MinReliabilityEnum;
 }
 
 export interface GameCreateSandbox {
@@ -340,6 +367,12 @@ export interface Member {
   /** @nullable */
   readonly picture: string | null;
   readonly isCurrentUser: boolean;
+  /** @nullable */
+  readonly reliabilityTier: string | null;
+  /** @nullable */
+  readonly reliabilityGamesFinished: number | null;
+  /** @nullable */
+  readonly reliabilityGamesAbandonedRecent: number | null;
   /** @nullable */
   readonly nation: string | null;
   readonly eliminated: boolean;
@@ -391,6 +424,7 @@ export interface GameList {
   /** @nullable */
   readonly retreatFrequency: string | null;
   readonly pressType: string;
+  readonly minReliability: string;
 }
 
 export interface GameFindSimilar {
@@ -434,6 +468,7 @@ export interface GameRetrieve {
   /** @nullable */
   readonly retreatFrequency: string | null;
   readonly pressType: string;
+  readonly minReliability: string;
   readonly totalUnreadMessageCount: number;
 }
 
@@ -584,6 +619,9 @@ export interface PatchedUserProfile {
   /** @nullable */
   readonly picture?: string | null;
   readonly email?: string;
+  readonly reliabilityTier?: string;
+  readonly reliabilityGamesFinished?: number;
+  readonly reliabilityGamesAbandonedRecent?: number;
 }
 
 /**
@@ -678,6 +716,9 @@ export interface UserProfile {
   /** @nullable */
   readonly picture: string | null;
   readonly email: string;
+  readonly reliabilityTier: string;
+  readonly reliabilityGamesFinished: number;
+  readonly reliabilityGamesAbandonedRecent: number;
 }
 
 export interface Variant {
@@ -828,6 +869,13 @@ export type ApiSchemaRetrieve200Four = { [key: string]: unknown };
 
 export type GamesListParams = {
   can_join?: boolean;
+  include_ineligible?: boolean;
+  /**
+   * * `open` - Open
+   * `reliable_and_new` - Reliable + New Players
+   * `reliable_only` - Reliable only
+   */
+  min_reliability?: GamesListMinReliability;
   mine?: boolean;
   /**
    * * `1 hour` - 1 hour
@@ -857,6 +905,15 @@ export type GamesListParams = {
   status?: string;
   variant?: string;
 };
+
+export type GamesListMinReliability =
+  (typeof GamesListMinReliability)[keyof typeof GamesListMinReliability];
+
+export const GamesListMinReliability = {
+  open: "open",
+  reliable_and_new: "reliable_and_new",
+  reliable_only: "reliable_only",
+} as const;
 
 export type GamesListMovementPhaseDuration =
   | (typeof GamesListMovementPhaseDuration)[keyof typeof GamesListMovementPhaseDuration]

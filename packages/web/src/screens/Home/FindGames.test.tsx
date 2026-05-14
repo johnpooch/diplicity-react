@@ -185,6 +185,41 @@ describe("FindGames", () => {
     expect(screen.getAllByTestId("game-card")).toHaveLength(1);
   });
 
+  it("does not pass include_ineligible by default", () => {
+    renderFindGames();
+
+    const calls = mockUseGamesListInfinite.mock.calls;
+    expect(calls[calls.length - 1][0]).not.toHaveProperty("include_ineligible");
+  });
+
+  it("passes include_ineligible=true when show_ineligible URL param is true", () => {
+    renderFindGames(["/?show_ineligible=true"]);
+
+    expect(mockUseGamesListInfinite).toHaveBeenCalledWith(
+      expect.objectContaining({ include_ineligible: true })
+    );
+  });
+
+  it("toggling the show-all checkbox sets the URL param and updates the query", async () => {
+    renderFindGames();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /toggle filters/i })
+    );
+
+    const checkbox = screen.getByRole("checkbox", {
+      name: /show all games/i,
+    });
+    expect(checkbox).not.toBeChecked();
+
+    await userEvent.click(checkbox);
+
+    expect(checkbox).toBeChecked();
+    expect(mockUseGamesListInfinite).toHaveBeenLastCalledWith(
+      expect.objectContaining({ include_ineligible: true })
+    );
+  });
+
   it("does not render the Fastest Start or More games headers when the top game has fewer than 3 members", () => {
     const buildMember = (id: number) => ({ id, user: { id, username: `u${id}` } });
     const buildGame = (id: string, memberCount: number) => ({

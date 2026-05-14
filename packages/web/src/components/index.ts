@@ -12,3 +12,4 @@ export * from "./GameDropdownMenu";
 export * from "./GameInfoContent";
 export * from "./PlayerInfoContent";
 export * from "./NationFlag";
+export * from "./ReliabilityBadge";

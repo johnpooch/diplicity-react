@@ -2,6 +2,7 @@ import React, { Suspense, useState } from "react";
 import { Check, X, Pencil } from "lucide-react";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
+import { ReliabilityBadge } from "@/components/ReliabilityBadge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
@@ -150,7 +151,7 @@ const Profile: React.FC = () => {
                 </Button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-lg font-medium">{userProfile?.name}</span>
                 <Button
                   size="icon"
@@ -160,6 +161,11 @@ const Profile: React.FC = () => {
                 >
                   <Pencil className="size-4" />
                 </Button>
+                <ReliabilityBadge
+                  tier={userProfile.reliabilityTier}
+                  gamesFinished={userProfile.reliabilityGamesFinished}
+                  gamesAbandonedRecent={userProfile.reliabilityGamesAbandonedRecent}
+                />
               </div>
             )}
             {saveNameError && (

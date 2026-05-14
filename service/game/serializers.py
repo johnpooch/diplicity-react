@@ -6,7 +6,7 @@ from django.db.models import Count, Q, Subquery, OuterRef
 from django.apps import apps
 from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
-from common.constants import DeadlineMode, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType
+from common.constants import DeadlineMode, MinReliability, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType
 from member.serializers import MemberSerializer
 from unit.models import Unit
 from supply_center.models import SupplyCenter
@@ -67,6 +67,7 @@ class GameListSerializer(serializers.Serializer):
     movement_frequency = serializers.CharField(read_only=True, allow_null=True)
     retreat_frequency = serializers.CharField(read_only=True, allow_null=True)
     press_type = serializers.CharField(read_only=True)
+    min_reliability = serializers.CharField(read_only=True)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):
@@ -134,6 +135,7 @@ class GameRetrieveSerializer(serializers.Serializer):
     movement_frequency = serializers.CharField(read_only=True, allow_null=True)
     retreat_frequency = serializers.CharField(read_only=True, allow_null=True)
     press_type = serializers.CharField(read_only=True)
+    min_reliability = serializers.CharField(read_only=True)
     total_unread_message_count = serializers.SerializerMethodField()
 
     @extend_schema_field(serializers.IntegerField)
@@ -247,6 +249,10 @@ class GameCreateSerializer(serializers.Serializer):
         choices=PressType.PRESS_TYPE_CHOICES,
         default=PressType.FULL_PRESS,
     )
+    min_reliability = serializers.ChoiceField(
+        choices=MinReliability.MIN_RELIABILITY_CHOICES,
+        default=MinReliability.OPEN,
+    )
 
     def validate_variant_id(self, value):
         if not Variant.objects.filter(id=value).exists():
@@ -305,6 +311,7 @@ class GameCreateSerializer(serializers.Serializer):
                 retreat_frequency=validated_data.get("retreat_frequency"),
                 nmr_extensions_allowed=validated_data["nmr_extensions_allowed"],
                 press_type=validated_data["press_type"],
+                min_reliability=validated_data["min_reliability"],
             )
 
             creator_member = game.members.create(user=request.user, is_game_master=True)

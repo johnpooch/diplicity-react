@@ -3,6 +3,7 @@ import { Shield, Star, Trophy } from "lucide-react";
 
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
 import { NationFlag } from "@/components/NationFlag";
+import { ReliabilityBadge } from "@/components/ReliabilityBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
@@ -77,6 +78,13 @@ export const PlayerInfoContent: React.FC = () => {
                         <Trophy className="size-3" />
                         {game.victory?.type === "solo" ? "Winner" : "Draw"}
                       </Badge>
+                    )}
+                    {!member.isGameMaster && (
+                      <ReliabilityBadge
+                        tier={member.reliabilityTier}
+                        gamesFinished={member.reliabilityGamesFinished}
+                        gamesAbandonedRecent={member.reliabilityGamesAbandonedRecent}
+                      />
                     )}
                   </div>
 

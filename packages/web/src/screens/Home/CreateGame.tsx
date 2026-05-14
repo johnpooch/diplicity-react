@@ -89,7 +89,28 @@ const standardGameSchema = z.object({
     .optional()
     .nullable(),
   nmrExtensionsAllowed: z.enum(["0", "1", "2"] as const),
+  minReliability: z.enum(["open", "reliable_and_new", "reliable_only"] as const),
 });
+
+const MIN_RELIABILITY_OPTIONS = [
+  {
+    value: "open" as const,
+    label: "Open",
+    description:
+      "Anyone can join. Fills fastest, but may include unreliable players.",
+  },
+  {
+    value: "reliable_and_new" as const,
+    label: "Reliable + New Players",
+    description:
+      "Reliable players and newcomers can join. Excludes players with a history of abandoning games.",
+  },
+  {
+    value: "reliable_only" as const,
+    label: "Reliable only",
+    description: "Only Reliable players can join. Slowest to fill, highest commitment.",
+  },
+];
 
 const sandboxGameSchema = z.object({
   sandboxGame: z.object({
@@ -249,6 +270,7 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
       movementFrequency: "daily",
       retreatFrequency: null,
       nmrExtensionsAllowed: "0",
+      minReliability: "open",
     },
   });
 
@@ -327,6 +349,41 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
                 </div>
               </FormItem>
             )}
+          />
+
+          <FormField
+            control={form.control}
+            name="minReliability"
+            render={({ field }) => {
+              const selected = MIN_RELIABILITY_OPTIONS.find(
+                o => o.value === field.value
+              );
+              return (
+                <FormItem>
+                  <FormLabel>Reliability requirement</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    disabled={isSubmitting}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {MIN_RELIABILITY_OPTIONS.map(option => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>{selected?.description}</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              );
+            }}
           />
         </div>
 
@@ -777,6 +834,7 @@ const CreateGame: React.FC = () => {
           retreatFrequency:
             data.deadlineMode === "fixed_time" ? data.retreatFrequency : null,
           nmrExtensionsAllowed: parseInt(data.nmrExtensionsAllowed, 10),
+          minReliability: data.minReliability,
         },
       });
       toast.success("Game created successfully");

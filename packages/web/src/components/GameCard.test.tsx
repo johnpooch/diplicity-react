@@ -4,13 +4,7 @@ import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GameCard } from "./GameCard";
-import {
-  mockGames,
-  mockSandboxGames,
-  mockPhaseMovement,
-  mockPendingGames,
-  mockActiveGames,
-} from "@/mocks";
+import type { GameList, Member } from "@/api/generated/endpoints";
 
 const mockNavigate = vi.fn();
 const mockUseIsMobile = vi.fn();
@@ -31,13 +25,67 @@ vi.mock("@/api/generated/endpoints", async () => {
   const actual = await vi.importActual("@/api/generated/endpoints");
   return {
     ...actual,
-    useGamePhaseRetrieve: () => ({ data: mockPhaseMovement }),
+    useGamePhaseRetrieve: () => ({ data: null }),
     useGameJoinCreate: () => ({
       mutateAsync: vi.fn(),
       isPending: false,
     }),
     getGamesListQueryKey: () => ["games"],
   };
+});
+
+const buildMember = (overrides: Partial<Member> = {}): Member => ({
+  id: 1,
+  name: "Alice",
+  picture: null,
+  nation: "Austria",
+  isCurrentUser: false,
+  eliminated: false,
+  kicked: false,
+  isGameMaster: false,
+  nmrExtensionsRemaining: 0,
+  reliabilityTier: "reliable",
+  reliabilityGamesFinished: 5,
+  reliabilityGamesAbandonedRecent: 0,
+  ...overrides,
+});
+
+const baseMembers: Member[] = [
+  buildMember({ id: 1, name: "Alice", isGameMaster: true }),
+  buildMember({ id: 2, name: "Bob", nation: "England" }),
+  buildMember({ id: 3, name: "Charlie", nation: "France" }),
+];
+
+const buildGame = (overrides: Partial<GameList> = {}): GameList => ({
+  id: "game-1",
+  name: "Test Game",
+  status: "active",
+  createdAt: "2026-04-20T10:00:00Z",
+  canJoin: false,
+  canLeave: true,
+  canDelete: false,
+  variantId: "Classical",
+  phases: [1],
+  currentPhaseId: 1,
+  private: false,
+  anonymous: false,
+  movementPhaseDuration: "24 hours",
+  retreatPhaseDuration: null,
+  nationAssignment: "random",
+  members: baseMembers,
+  victory: null,
+  sandbox: false,
+  isPaused: false,
+  pausedAt: null,
+  nmrExtensionsAllowed: 0,
+  deadlineMode: "duration",
+  fixedDeadlineTime: null,
+  fixedDeadlineTimezone: null,
+  movementFrequency: null,
+  retreatFrequency: null,
+  pressType: "full_press",
+  minReliability: "open",
+  ...overrides,
 });
 
 const renderGameCard = (props: React.ComponentProps<typeof GameCard>) => {
@@ -69,29 +117,28 @@ describe("GameCard", () => {
   describe("click navigation", () => {
     it("navigates pending games to game-info on desktop", async () => {
       mockUseIsMobile.mockReturnValue(false);
-      renderGameCard({ game: mockPendingGames[0], ...defaultProps });
-      await userEvent.click(
-        screen.getByRole("button", { name: mockPendingGames[0].name })
-      );
-      expect(mockNavigate).toHaveBeenCalledWith(
-        `/game-info/${mockPendingGames[0].id}`
-      );
+      const game = buildGame({ id: "pending-1", name: "Pending Game", status: "pending" });
+      renderGameCard({ game, ...defaultProps });
+      await userEvent.click(screen.getByRole("button", { name: game.name }));
+      expect(mockNavigate).toHaveBeenCalledWith(`/game-info/${game.id}`);
     });
 
     it("navigates pending games to game-info on mobile", async () => {
       mockUseIsMobile.mockReturnValue(true);
-      renderGameCard({ game: mockPendingGames[0], ...defaultProps });
-      await userEvent.click(
-        screen.getByRole("button", { name: mockPendingGames[0].name })
-      );
-      expect(mockNavigate).toHaveBeenCalledWith(
-        `/game-info/${mockPendingGames[0].id}`
-      );
+      const game = buildGame({ id: "pending-1", name: "Pending Game", status: "pending" });
+      renderGameCard({ game, ...defaultProps });
+      await userEvent.click(screen.getByRole("button", { name: game.name }));
+      expect(mockNavigate).toHaveBeenCalledWith(`/game-info/${game.id}`);
     });
 
     it("navigates active games on mobile to the phase index", async () => {
       mockUseIsMobile.mockReturnValue(true);
-      const game = mockActiveGames[0];
+      const game = buildGame({
+        id: "active-1",
+        name: "Active Game",
+        status: "active",
+        currentPhaseId: 42,
+      });
       renderGameCard({ game, ...defaultProps });
       await userEvent.click(screen.getByRole("button", { name: game.name }));
       expect(mockNavigate).toHaveBeenCalledWith(
@@ -101,7 +148,12 @@ describe("GameCard", () => {
 
     it("navigates active games on desktop to the orders sub-route", async () => {
       mockUseIsMobile.mockReturnValue(false);
-      const game = mockActiveGames[0];
+      const game = buildGame({
+        id: "active-1",
+        name: "Active Game",
+        status: "active",
+        currentPhaseId: 42,
+      });
       renderGameCard({ game, ...defaultProps });
       await userEvent.click(screen.getByRole("button", { name: game.name }));
       expect(mockNavigate).toHaveBeenCalledWith(
@@ -113,7 +165,7 @@ describe("GameCard", () => {
   describe("sandbox visual treatment", () => {
     it("displays a Sandbox badge when game.sandbox is true", () => {
       renderGameCard({
-        game: mockSandboxGames[0],
+        game: buildGame({ sandbox: true }),
         ...defaultProps,
       });
       expect(screen.getByText("Sandbox")).toBeInTheDocument();
@@ -121,18 +173,19 @@ describe("GameCard", () => {
 
     it("does not display a Sandbox badge when game.sandbox is false", () => {
       renderGameCard({
-        game: mockGames[0],
+        game: buildGame({ sandbox: false }),
         ...defaultProps,
       });
       expect(screen.queryByText("Sandbox")).not.toBeInTheDocument();
     });
 
     it("hides avatar group for sandbox games", () => {
+      const sandboxGame = buildGame({ sandbox: true });
       renderGameCard({
-        game: mockSandboxGames[0],
+        game: sandboxGame,
         ...defaultProps,
       });
-      for (const member of mockSandboxGames[0].members.slice(0, 7)) {
+      for (const member of sandboxGame.members) {
         expect(
           screen.queryByText(member.name?.[0]?.toUpperCase() ?? "?")
         ).not.toBeInTheDocument();
@@ -141,7 +194,7 @@ describe("GameCard", () => {
 
     it("shows avatar group for non-sandbox games", () => {
       renderGameCard({
-        game: mockGames[0],
+        game: buildGame({ sandbox: false }),
         ...defaultProps,
       });
       expect(screen.getByText("A")).toBeInTheDocument();

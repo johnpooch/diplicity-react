@@ -123,6 +123,9 @@ const matchedGame: GameList = {
       kicked: false,
       isGameMaster: true,
       nmrExtensionsRemaining: 0,
+      reliabilityTier: null,
+      reliabilityGamesFinished: null,
+      reliabilityGamesAbandonedRecent: null,
     },
     {
       id: 100,
@@ -134,6 +137,9 @@ const matchedGame: GameList = {
       kicked: false,
       isGameMaster: false,
       nmrExtensionsRemaining: 0,
+      reliabilityTier: null,
+      reliabilityGamesFinished: null,
+      reliabilityGamesAbandonedRecent: null,
     },
   ],
   victory: null,
@@ -147,6 +153,7 @@ const matchedGame: GameList = {
   movementFrequency: null,
   retreatFrequency: null,
   pressType: "full_press",
+  minReliability: "open",
 };
 
 const renderCreateGame = () => {
@@ -304,5 +311,86 @@ describe("CreateGame — find-similar intervention", () => {
 
     expect(createGameMutateAsync).not.toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith("/game-info/matched-game");
+  });
+});
+
+describe("CreateGame — minReliability dropdown", () => {
+  let createGameMutateAsync: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    createGameMutateAsync = vi.fn().mockResolvedValue({ id: "created-game" });
+
+    mockedUseVariantsListSuspense.mockReturnValue({
+      data: variantsFixture,
+    } as unknown as ReturnType<typeof useVariantsListSuspense>);
+
+    mockedUseGameCreate.mockReturnValue({
+      mutateAsync: createGameMutateAsync,
+      isPending: false,
+    } as unknown as ReturnType<typeof useGameCreate>);
+
+    mockedUseSandboxGameCreate.mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    } as unknown as ReturnType<typeof useSandboxGameCreate>);
+
+    stubFindSimilar(null);
+  });
+
+  it("defaults to Open and submits minReliability=open", async () => {
+    const user = userEvent.setup();
+    renderCreateGame();
+
+    expect(
+      screen.getByRole("combobox", { name: /reliability requirement/i })
+    ).toHaveTextContent("Open");
+    expect(
+      screen.getByText(
+        /Anyone can join\. Fills fastest, but may include unreliable players\./
+      )
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /create game/i }));
+
+    await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
+    expect(createGameMutateAsync.mock.calls[0][0].data.minReliability).toBe(
+      "open"
+    );
+  });
+
+  it("submits the selected reliability tier", async () => {
+    const user = userEvent.setup();
+    renderCreateGame();
+
+    await user.click(screen.getByRole("combobox", { name: /reliability requirement/i }));
+    await user.click(screen.getByRole("option", { name: /^Reliable only$/ }));
+
+    expect(
+      screen.getByText(
+        /Only Reliable players can join\. Slowest to fill, highest commitment\./
+      )
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /create game/i }));
+
+    await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
+    expect(createGameMutateAsync.mock.calls[0][0].data.minReliability).toBe(
+      "reliable_only"
+    );
+  });
+
+  it("shows the Reliable + New Players description when selected", async () => {
+    const user = userEvent.setup();
+    renderCreateGame();
+
+    await user.click(screen.getByRole("combobox", { name: /reliability requirement/i }));
+    await user.click(screen.getByRole("option", { name: /Reliable \+ New Players/ }));
+
+    expect(
+      screen.getByText(
+        /Reliable players and newcomers can join\. Excludes players with a history of abandoning games\./
+      )
+    ).toBeInTheDocument();
   });
 });

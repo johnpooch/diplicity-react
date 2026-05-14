@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from common.constants import MemberOutcomeState
 from common.models import BaseModel
 
 User = get_user_model()
@@ -15,6 +16,12 @@ class Member(BaseModel):
     kicked = models.BooleanField(default=False)
     is_game_master = models.BooleanField(default=False)
     nmr_extensions_remaining = models.PositiveSmallIntegerField(default=0)
+    outcome_state = models.CharField(
+        max_length=20,
+        choices=MemberOutcomeState.OUTCOME_STATE_CHOICES,
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         indexes = [

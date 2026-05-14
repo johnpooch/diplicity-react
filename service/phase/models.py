@@ -10,6 +10,7 @@ from datetime import timedelta
 from common.constants import PhaseStatus, PhaseType, GameStatus
 from adjudication.service import resolve
 from member.models import Member
+from member.utils import classify_outcomes_for_finished_game, kick_inactive_members
 from order.models import OrderResolution, Order
 from phase.utils import transform_options
 from province.models import Province
@@ -59,7 +60,12 @@ class PhaseQuerySet(models.QuerySet):
             & (
                 (Q(scheduled_resolution__isnull=False) & Q(scheduled_resolution__lte=timezone.now()))
                 | ~Exists(
-                    PhaseState.objects.filter(phase=OuterRef("pk"), has_possible_orders=True, orders_confirmed=False)
+                    PhaseState.objects.filter(
+                        phase=OuterRef("pk"),
+                        has_possible_orders=True,
+                        orders_confirmed=False,
+                        member__kicked=False,
+                    )
                 )
             )
         )
@@ -137,7 +143,9 @@ class PhaseManager(models.Manager):
 
     def _check_and_apply_nmr_extensions(self, phase):
         unconfirmed = phase.phase_states.filter(
-            has_possible_orders=True, orders_confirmed=False
+            has_possible_orders=True,
+            orders_confirmed=False,
+            member__kicked=False,
         ).select_related('member')
 
         members_with_extensions = [
@@ -304,6 +312,8 @@ class PhaseManager(models.Manager):
                 with transaction.atomic():
                     new_phase = self.create_from_adjudication_data(phase, adjudication_data)
 
+                    kick_inactive_members(new_phase.game)
+
                     victory = Victory.objects.try_create_victory(new_phase)
 
                     if victory:
@@ -313,6 +323,8 @@ class PhaseManager(models.Manager):
                         new_phase.status = PhaseStatus.COMPLETED
                         new_phase.scheduled_resolution = None
                         new_phase.save()
+
+                        classify_outcomes_for_finished_game(new_phase.game)
                     elif self._check_abandonment(new_phase.game):
                         new_phase.game.status = GameStatus.ABANDONED
                         new_phase.game.save()
@@ -320,6 +332,8 @@ class PhaseManager(models.Manager):
                         new_phase.status = PhaseStatus.COMPLETED
                         new_phase.scheduled_resolution = None
                         new_phase.save()
+
+                        classify_outcomes_for_finished_game(new_phase.game)
 
                     return new_phase
 
@@ -592,7 +606,13 @@ class Phase(BaseModel):
     def phase_states_with_possible_orders(self):
         nations = self.nations_with_possible_orders
         logger.info(f"Nations with possible orders: {nations}")
-        return [phase_state for phase_state in self.phase_states.all() if phase_state.member.nation.name in nations]
+        return [
+            phase_state
+            for phase_state in self.phase_states.all()
+            if not phase_state.member.kicked
+            and phase_state.member.nation
+            and phase_state.member.nation.name in nations
+        ]
 
     @property
     def should_resolve_immediately(self):

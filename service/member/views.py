@@ -5,13 +5,19 @@ from drf_spectacular.utils import extend_schema
 from .models import Member
 from .serializers import MemberSerializer
 from common.serializers import EmptySerializer
-from common.permissions import IsPendingGame, IsNotGameMember, IsSpaceAvailable, IsGameMember
+from common.permissions import IsPendingGame, IsNotGameMember, IsSpaceAvailable, IsGameMember, MeetsGameMinReliability
 from common.views import SelectedGameMixin
 
 
 class MemberCreateView(SelectedGameMixin, generics.CreateAPIView):
     serializer_class = MemberSerializer
-    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsNotGameMember, IsSpaceAvailable]
+    permission_classes = [
+        permissions.IsAuthenticated,
+        IsPendingGame,
+        IsNotGameMember,
+        IsSpaceAvailable,
+        MeetsGameMinReliability,
+    ]
 
     @extend_schema(request=EmptySerializer)
     def create(self, request, *args, **kwargs):

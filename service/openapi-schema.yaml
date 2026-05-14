@@ -912,6 +912,22 @@ paths:
         schema:
           type: boolean
       - in: query
+        name: include_ineligible
+        schema:
+          type: boolean
+      - in: query
+        name: min_reliability
+        schema:
+          type: string
+          enum:
+          - open
+          - reliable_and_new
+          - reliable_only
+        description: |-
+          * `open` - Open
+          * `reliable_and_new` - Reliable + New Players
+          * `reliable_only` - Reliable only
+      - in: query
         name: mine
         schema:
           type: boolean
@@ -1511,6 +1527,18 @@ components:
         isCurrentUser:
           type: boolean
           readOnly: true
+        reliabilityTier:
+          type: string
+          nullable: true
+          readOnly: true
+        reliabilityGamesFinished:
+          type: integer
+          nullable: true
+          readOnly: true
+        reliabilityGamesAbandonedRecent:
+          type: integer
+          nullable: true
+          readOnly: true
         nation:
           $ref: '#/components/schemas/Nation'
       required:
@@ -1519,6 +1547,9 @@ components:
       - name
       - nation
       - picture
+      - reliabilityGamesAbandonedRecent
+      - reliabilityGamesFinished
+      - reliabilityTier
     ChannelMessage:
       type: object
       properties:
@@ -1633,6 +1664,18 @@ components:
         isCurrentUser:
           type: boolean
           readOnly: true
+        reliabilityTier:
+          type: string
+          nullable: true
+          readOnly: true
+        reliabilityGamesFinished:
+          type: integer
+          nullable: true
+          readOnly: true
+        reliabilityGamesAbandonedRecent:
+          type: integer
+          nullable: true
+          readOnly: true
         nation:
           type: string
           nullable: true
@@ -1642,6 +1685,9 @@ components:
       - name
       - nation
       - picture
+      - reliabilityGamesAbandonedRecent
+      - reliabilityGamesFinished
+      - reliabilityTier
     DrawVoteUpdate:
       type: object
       properties:
@@ -1848,6 +1894,10 @@ components:
           allOf:
           - $ref: '#/components/schemas/PressTypeEnum'
           default: full_press
+        minReliability:
+          allOf:
+          - $ref: '#/components/schemas/MinReliabilityEnum'
+          default: open
       required:
       - id
       - name
@@ -1985,6 +2035,9 @@ components:
         pressType:
           type: string
           readOnly: true
+        minReliability:
+          type: string
+          readOnly: true
       required:
       - anonymous
       - canDelete
@@ -1998,6 +2051,7 @@ components:
       - id
       - isPaused
       - members
+      - minReliability
       - movementFrequency
       - movementPhaseDuration
       - name
@@ -2117,6 +2171,9 @@ components:
         pressType:
           type: string
           readOnly: true
+        minReliability:
+          type: string
+          readOnly: true
         totalUnreadMessageCount:
           type: integer
           readOnly: true
@@ -2133,6 +2190,7 @@ components:
       - id
       - isPaused
       - members
+      - minReliability
       - movementFrequency
       - movementPhaseDuration
       - name
@@ -2166,6 +2224,18 @@ components:
         isCurrentUser:
           type: boolean
           readOnly: true
+        reliabilityTier:
+          type: string
+          nullable: true
+          readOnly: true
+        reliabilityGamesFinished:
+          type: integer
+          nullable: true
+          readOnly: true
+        reliabilityGamesAbandonedRecent:
+          type: integer
+          nullable: true
+          readOnly: true
         nation:
           type: string
           readOnly: true
@@ -2192,6 +2262,19 @@ components:
       - nation
       - nmrExtensionsRemaining
       - picture
+      - reliabilityGamesAbandonedRecent
+      - reliabilityGamesFinished
+      - reliabilityTier
+    MinReliabilityEnum:
+      enum:
+      - open
+      - reliable_and_new
+      - reliable_only
+      type: string
+      description: |-
+        * `open` - Open
+        * `reliable_and_new` - Reliable + New Players
+        * `reliable_only` - Reliable only
     MovementFrequencyEnum:
       enum:
       - hourly
@@ -2464,6 +2547,15 @@ components:
           nullable: true
         email:
           type: string
+          readOnly: true
+        reliabilityTier:
+          type: string
+          readOnly: true
+        reliabilityGamesFinished:
+          type: integer
+          readOnly: true
+        reliabilityGamesAbandonedRecent:
+          type: integer
           readOnly: true
     PhaseList:
       type: object
@@ -2738,11 +2830,23 @@ components:
         email:
           type: string
           readOnly: true
+        reliabilityTier:
+          type: string
+          readOnly: true
+        reliabilityGamesFinished:
+          type: integer
+          readOnly: true
+        reliabilityGamesAbandonedRecent:
+          type: integer
+          readOnly: true
       required:
       - email
       - id
       - name
       - picture
+      - reliabilityGamesAbandonedRecent
+      - reliabilityGamesFinished
+      - reliabilityTier
     Variant:
       type: object
       properties:

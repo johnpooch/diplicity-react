@@ -12,6 +12,9 @@ class BaseMemberSerializer(serializers.Serializer):
     name = serializers.SerializerMethodField()
     picture = serializers.SerializerMethodField()
     is_current_user = serializers.SerializerMethodField()
+    reliability_tier = serializers.SerializerMethodField()
+    reliability_games_finished = serializers.SerializerMethodField()
+    reliability_games_abandoned_recent = serializers.SerializerMethodField()
 
     def _is_current_user(self, obj):
         if obj.user is None:
@@ -53,6 +56,24 @@ class BaseMemberSerializer(serializers.Serializer):
     @extend_schema_field(serializers.BooleanField)
     def get_is_current_user(self, obj):
         return self._is_current_user(obj)
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_reliability_tier(self, obj):
+        if obj.user is None:
+            return None
+        return obj.user.profile.reliability_tier
+
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
+    def get_reliability_games_finished(self, obj):
+        if obj.user is None:
+            return None
+        return obj.user.profile.games_finished
+
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
+    def get_reliability_games_abandoned_recent(self, obj):
+        if obj.user is None:
+            return None
+        return obj.user.profile.games_abandoned_recent
 
 
 class MemberSerializer(BaseMemberSerializer):
