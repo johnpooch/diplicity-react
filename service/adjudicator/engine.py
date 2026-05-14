@@ -5,6 +5,7 @@ from typing import Any, ClassVar, Dict, Iterable, List, Optional, Tuple, Type
 
 from .domain import (
     OrderOption,
+    Outcome,
     Phase,
     ProvinceType,
     Resolution,
@@ -51,20 +52,74 @@ class Engine:
 
     def adjudicate(self, state: State) -> List[State]:
         """
-        Resolve the orders for a phase.
+        Resolve the orders for a phase and advance to the next phase
+        requiring player input.
 
-        Returns a list with two elements: the input state with `resolutions`
-        populated (what just happened), and the next phase to be played
-        with `resolutions=None` (where input is needed next).
-
-        If the phase has no successor (game over), only the resolved input
-        state is returned.
-
-        TODO (Phase 7): when the next phase requires no orders (e.g. a
-        Retreat phase with no dislodgements), auto-resolve it and append
-        the phase after.
+        Returns a list of GameStates: the input state with `resolutions`
+        populated, zero or more skipped intermediate phases (Retreat with
+        no dislodgements, Adjustment with balanced SC / unit counts), and
+        the next phase requiring input with `resolutions=None`. If an
+        Adjustment phase resolution triggers a solo victory, the
+        triggering GameState carries `outcome` and no further GameStates
+        are generated.
         """
-        return PhaseResolver.for_state(state, self.variant).resolve()
+        results: List[State] = []
+        current = state
+        is_skip = False
+        while True:
+            produced = PhaseResolver.for_state(current, self.variant).resolve()
+            resolved = produced[0]
+            if is_skip:
+                resolved.skipped = True
+                resolved.resolutions = []
+            results.append(resolved)
+            if resolved.phase.type == Phase.ADJUSTMENT:
+                outcome = self._solo_outcome(resolved)
+                if outcome is not None:
+                    resolved.outcome = outcome
+                    return results
+            if len(produced) < 2:
+                return results
+            next_state = produced[1]
+            if not self._is_skippable(next_state):
+                results.append(next_state)
+                return results
+            current = next_state
+            is_skip = True
+
+    def _is_skippable(self, state: State) -> bool:
+        if state.phase.type == Phase.RETREAT:
+            return not any(unit.dislodged for unit in state.units)
+        if state.phase.type == Phase.ADJUSTMENT:
+            return self._adjustment_is_balanced(state)
+        return False
+
+    def _adjustment_is_balanced(self, state: State) -> bool:
+        owned: Dict[str, int] = {}
+        for sc in state.supply_centers:
+            owned[sc.nation] = owned.get(sc.nation, 0) + 1
+        units: Dict[str, int] = {}
+        for unit in state.units:
+            if unit.dislodged:
+                continue
+            units[unit.nation] = units.get(unit.nation, 0) + 1
+        for nation in set(owned) | set(units):
+            if owned.get(nation, 0) != units.get(nation, 0):
+                return False
+        return True
+
+    def _solo_outcome(self, state: State) -> Optional[Outcome]:
+        threshold = self.variant.solo_victory_supply_centers
+        owned: Dict[str, int] = {}
+        for sc in state.supply_centers:
+            owned[sc.nation] = owned.get(sc.nation, 0) + 1
+        winners = tuple(
+            nation for nation, _ in sorted(owned.items(), key=lambda kv: (-kv[1], kv[0]))
+            if owned[nation] >= threshold
+        )
+        if not winners:
+            return None
+        return Outcome(winners=winners, reason="solo", year=state.phase.year)
 
     def get_options(self, state: State) -> List[OrderOption]:
         """
@@ -116,7 +171,14 @@ class MoveTargetIsReachable(LegalityCheck):
         if variant.can_move(order.unit.location, order.target, order.unit.type):
             return True
         if order.unit.type == Unit.ARMY and order.requires_convoy:
-            return True
+            # A non-adjacent move is illegal only when no fleet could ever
+            # have convoyed it. If fleets are positioned to convoy but were
+            # ordered otherwise, the move is a failed convoy, not an illegal
+            # order — the army still tried to move (DATC 6.D.8 vs 6.D.32).
+            finder = ConvoyPathFinder(variant, orders_by_loc)
+            return finder.could_be_convoyed(
+                order.unit.location, order.target, units_by_loc
+            )
         return False
 
 
@@ -736,16 +798,40 @@ class ConvoyPathFinder:
         destination: str,
         excluded: Optional[set] = None,
     ) -> bool:
-        if army_source == destination:
-            return False
         candidates = self._candidates(army_source, destination)
         if excluded is not None:
             candidates = candidates - excluded
-        if not candidates:
+        return self._chain_through(army_source, destination, candidates)
+
+    def could_be_convoyed(
+        self, army_source: str, destination: str, units_by_loc: Dict[str, Unit]
+    ) -> bool:
+        """
+        Whether a convoy chain is physically possible — every step is a
+        sea province occupied by a fleet — regardless of convoy orders.
+        Distinguishes a failed convoy (the army still tried to move, so
+        it can't receive hold support; DATC 6.D.8) from an illegal order
+        (no fleet could ever have convoyed it; DATC 6.D.32).
+        """
+        occupied_seas = {
+            loc
+            for loc, unit in units_by_loc.items()
+            if unit.type == Unit.FLEET
+            and self.variant.provinces.get(loc) is not None
+            and self.variant.provinces[loc].type == ProvinceType.SEA
+        }
+        return self._chain_through(army_source, destination, occupied_seas)
+
+    def _chain_through(
+        self, army_source: str, destination: str, sea_provinces: set
+    ) -> bool:
+        if army_source == destination:
+            return False
+        if not sea_provinces:
             return False
         frontier = {
             sea
-            for sea in candidates
+            for sea in sea_provinces
             if self._fleet_adjacent_to_coast(sea, army_source)
         }
         visited = set(frontier)
@@ -758,7 +844,7 @@ class ConvoyPathFinder:
                     if not adjacency.allows(Unit.FLEET):
                         continue
                     neighbour = adjacency.to
-                    if neighbour in candidates and neighbour not in visited:
+                    if neighbour in sea_provinces and neighbour not in visited:
                         new_frontier.add(neighbour)
             visited.update(new_frontier)
             frontier = new_frontier
@@ -1853,12 +1939,13 @@ class Adjudication:
                 order.status = ResolutionType.OK
 
     def _resolve_cycles(self) -> None:
+        variant = self.context.variant
         unresolved = [
             move
             for move, dec in self.context.move_resolution.items()
             if not dec.resolved
         ]
-        by_source = {m.unit.location: m for m in unresolved}
+        by_source = {variant.parent_of(m.unit.location): m for m in unresolved}
         for move in unresolved:
             if self.context.move_resolution[move].resolved:
                 continue
@@ -1870,19 +1957,22 @@ class Adjudication:
     def _trace_cycle(
         self, start: MoveOrder, by_source: Dict[str, MoveOrder]
     ) -> Optional[List[MoveOrder]]:
+        variant = self.context.variant
+        start_parent = variant.parent_of(start.unit.location)
         chain = [start]
-        seen = {start.unit.location}
+        seen = {start_parent}
         current = start
         while True:
-            nxt = by_source.get(current.target)
+            nxt = by_source.get(variant.parent_of(current.target))
             if nxt is None:
                 return None
-            if nxt.unit.location == start.unit.location:
+            nxt_parent = variant.parent_of(nxt.unit.location)
+            if nxt_parent == start_parent:
                 return chain
-            if nxt.unit.location in seen:
+            if nxt_parent in seen:
                 return None
             chain.append(nxt)
-            seen.add(nxt.unit.location)
+            seen.add(nxt_parent)
             current = nxt
 
     def _cycle_is_clean(self, cycle: List[MoveOrder]) -> bool:
