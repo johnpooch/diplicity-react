@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { ProvinceTable } from "@/components/common/ProvinceTable";
 import { ProvinceLayer } from "@/components/map/ProvinceLayer";
+import { DecorativeLayer } from "@/components/map/DecorativeLayer";
 import { useVariant } from "@/hooks/useVariant";
 import type { Province } from "@/types/variant";
 import { validateProvinceId, isUniqueId } from "@/utils/idSuggestion";
@@ -156,12 +157,7 @@ export function PhaseProvinces() {
                 className="w-full h-auto border rounded-lg bg-muted"
                 style={{ maxHeight: calculateMapMaxHeight(dimensions) }}
               >
-                {decorativeElements.map((element) => (
-                  <g
-                    key={element.id}
-                    dangerouslySetInnerHTML={{ __html: element.content }}
-                  />
-                ))}
+                <DecorativeLayer elements={decorativeElements} />
 
                 <ProvinceLayer
                   provinces={provinces}

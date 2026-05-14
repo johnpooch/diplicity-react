@@ -11,11 +11,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ProvinceLayer } from "@/components/map/ProvinceLayer";
+import { DecorativeLayer } from "@/components/map/DecorativeLayer";
 import { MarkerLayer, type SelectedElement } from "@/components/map/MarkerLayer";
 import { LabelLayer } from "@/components/map/LabelLayer";
 import { useVariant } from "@/hooks/useVariant";
 import { resetToAutoPosition, resetLabelToAutoPosition } from "@/utils/positionReset";
-import type { Position } from "@/types/variant";
+import type { Position, DecorativeElement } from "@/types/variant";
 import type { MarkerType } from "@/components/map/DraggableMarker";
 import { RotateCcw, Check } from "lucide-react";
 import { calculateMapMaxHeight } from "@/utils/mapSizing";
@@ -51,9 +52,18 @@ export function PhaseVisualEditor() {
     labels: true,
   });
   const [editingLabel, setEditingLabel] = useState<EditingLabel | null>(null);
+  const [decorativeLayerVisibility, setDecorativeLayerVisibility] = useState<Record<string, boolean>>({});
 
   const provinces = useMemo(() => variant?.provinces ?? [], [variant?.provinces]);
   const nations = useMemo(() => variant?.nations ?? [], [variant?.nations]);
+
+  const hiddenLayerIds = useMemo(() => {
+    const hidden = new Set<string>();
+    Object.entries(decorativeLayerVisibility).forEach(([id, visible]) => {
+      if (!visible) hidden.add(id);
+    });
+    return hidden;
+  }, [decorativeLayerVisibility]);
 
   const selectedProvince = useMemo(() => {
     if (!selectedElement) return null;
@@ -178,6 +188,13 @@ export function PhaseVisualEditor() {
     setVisibility((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
+  const toggleDecorativeLayer = useCallback((id: string) => {
+    setDecorativeLayerVisibility((prev) => ({
+      ...prev,
+      [id]: !(prev[id] ?? true),
+    }));
+  }, []);
+
   if (!variant) {
     return null;
   }
@@ -200,7 +217,8 @@ export function PhaseVisualEditor() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex gap-4 items-start">
+      <div className="min-w-0 flex-1 space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>Visual Editor</CardTitle>
@@ -262,12 +280,7 @@ export function PhaseVisualEditor() {
                 style={{ maxHeight: calculateMapMaxHeight(dimensions) }}
                 onClick={handleSvgClick}
               >
-                {decorativeElements.map((element) => (
-                  <g
-                    key={element.id}
-                    dangerouslySetInnerHTML={{ __html: element.content }}
-                  />
-                ))}
+                <DecorativeLayer elements={decorativeElements} hiddenIds={hiddenLayerIds} />
 
                 <ProvinceLayer
                   provinces={provinces}
@@ -455,6 +468,71 @@ export function PhaseVisualEditor() {
           </div>
         </CardContent>
       </Card>
+      </div>
+
+      {decorativeElements.length > 0 && (
+        <Card className="w-48 shrink-0">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Layers</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {decorativeElements.map((layer) => (
+              <LayerTreeItem
+                key={layer.id}
+                element={layer}
+                visibility={decorativeLayerVisibility}
+                onToggle={toggleDecorativeLayer}
+                depth={0}
+              />
+            ))}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function LayerTreeItem({
+  element,
+  visibility,
+  onToggle,
+  depth,
+}: {
+  element: DecorativeElement;
+  visibility: Record<string, boolean>;
+  onToggle: (id: string) => void;
+  depth: number;
+}) {
+  const visible = visibility[element.id] ?? true;
+  const children = element.children ?? [];
+  return (
+    <div>
+      <div
+        className="flex items-center gap-2"
+        style={{ paddingLeft: `${depth * 12}px` }}
+      >
+        <Checkbox
+          id={`layer-${element.id}`}
+          checked={visible}
+          onCheckedChange={() => onToggle(element.id)}
+        />
+        <label
+          htmlFor={`layer-${element.id}`}
+          className="cursor-pointer truncate text-sm"
+          title={element.id}
+        >
+          {element.id.split("/").pop()}
+        </label>
+      </div>
+      {children.map((child) => (
+        <LayerTreeItem
+          key={child.id}
+          element={child}
+          visibility={visibility}
+          onToggle={onToggle}
+          depth={depth + 1}
+        />
+      ))}
     </div>
   );
 }

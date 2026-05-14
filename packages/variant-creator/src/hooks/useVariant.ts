@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import type { VariantDefinition, Nation, Province, Position, Label } from "@/types/variant";
+import type { VariantDefinition, Nation, Province, Position, Label, TextElement } from "@/types/variant";
 
 const STORAGE_KEY = "variant-creator-draft";
+const RAW_SVG_KEY = "variant-creator-raw-svg";
 
 function loadFromStorage(): VariantDefinition | null {
   try {
@@ -23,6 +24,9 @@ export function useVariant() {
   const [variant, setVariant] = useState<VariantDefinition | null>(() => {
     return loadFromStorage();
   });
+  const [rawSvg, setRawSvgState] = useState<string | null>(() => {
+    try { return localStorage.getItem(RAW_SVG_KEY); } catch { return null; }
+  });
 
   useEffect(() => {
     if (variant) {
@@ -34,9 +38,16 @@ export function useVariant() {
     }
   }, [variant]);
 
+  const setRawSvg = useCallback((svgContent: string) => {
+    try { localStorage.setItem(RAW_SVG_KEY, svgContent); } catch { /* full */ }
+    setRawSvgState(svgContent);
+  }, []);
+
   const clearDraft = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(RAW_SVG_KEY);
     setVariant(null);
+    setRawSvgState(null);
   }, []);
 
   const updateMetadata = useCallback((updates: Partial<VariantMetadata>) => {
@@ -147,10 +158,19 @@ export function useVariant() {
     []
   );
 
+  const setTextElements = useCallback((textElements: TextElement[]) => {
+    setVariant((prev) => {
+      if (!prev) return null;
+      return { ...prev, textElements };
+    });
+  }, []);
+
   return {
     variant,
     setVariant,
     clearDraft,
+    rawSvg,
+    setRawSvg,
     updateMetadata,
     addNation,
     updateNation,
@@ -160,6 +180,7 @@ export function useVariant() {
     setProvinces,
     updateProvincePosition,
     updateProvinceLabel,
+    setTextElements,
   };
 }
 

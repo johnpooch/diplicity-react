@@ -9,10 +9,26 @@ import type {
 } from "@/types/variant";
 
 export function findLayerByName(doc: Document, name: string): Element | null {
-  const byLabel = doc.querySelector(`g[inkscape\\:label="${name}"]`);
-  if (byLabel) return byLabel;
+  if (name.includes("/")) return findLayerByPath(doc, name);
+  const allGroups = Array.from(doc.getElementsByTagName("g"));
+  return (
+    allGroups.find((g) => g.getAttribute("inkscape:label") === name) ??
+    allGroups.find((g) => g.getAttribute("id") === name) ??
+    null
+  );
+}
 
-  return doc.querySelector(`g[id="${name}"]`);
+function findLayerByPath(doc: Document, path: string): Element | null {
+  const parts = path.split("/");
+  let current: Element = doc.documentElement;
+  for (const part of parts) {
+    const found = Array.from(current.children).find(
+      (child) => child.tagName.toLowerCase() === "g" && getLayerName(child) === part
+    );
+    if (!found) return null;
+    current = found;
+  }
+  return current === doc.documentElement ? null : current;
 }
 
 export function validateSvg(svgString: string): SvgValidationResult {
@@ -35,29 +51,58 @@ export function validateSvg(svgString: string): SvgValidationResult {
     };
   }
 
-  const provincesLayer = findLayerByName(doc, "provinces");
-  if (!provincesLayer) {
-    return {
-      valid: false,
-      error: {
-        code: "MISSING_PROVINCES_LAYER",
-        message: "SVG must contain a layer named 'provinces'",
-      },
-    };
-  }
-
-  const paths = provincesLayer.querySelectorAll("path");
-  if (paths.length === 0) {
-    return {
-      valid: false,
-      error: {
-        code: "EMPTY_PROVINCES_LAYER",
-        message: "Provinces layer must contain at least one path element",
-      },
-    };
-  }
-
   return { valid: true };
+}
+
+export interface SvgLayer {
+  name: string;
+  path: string;
+  children: SvgLayer[];
+}
+
+export function extractLayerTree(svgString: string): SvgLayer[] {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(svgString, "image/svg+xml");
+  return buildLayerChildren(doc.documentElement, null);
+}
+
+function buildLayerChildren(parent: Element, parentPath: string | null): SvgLayer[] {
+  const result: SvgLayer[] = [];
+  Array.from(parent.children).forEach((child) => {
+    if (!isUserNamedLayer(child)) return;
+    const name = getLayerName(child);
+    if (!name) return;
+    const path = parentPath ? `${parentPath}/${name}` : name;
+    result.push({ name, path, children: buildLayerChildren(child, path) });
+  });
+  return result;
+}
+
+export function flattenLayerTree(layers: SvgLayer[]): SvgLayer[] {
+  const result: SvgLayer[] = [];
+  function traverse(layer: SvgLayer) {
+    result.push(layer);
+    layer.children.forEach(traverse);
+  }
+  layers.forEach(traverse);
+  return result;
+}
+
+export function extractLayerNames(svgString: string): string[] {
+  return flattenLayerTree(extractLayerTree(svgString)).map((l) => l.path);
+}
+
+export interface LayerNameMapping {
+  provinces?: string;
+  text?: string;
+  namedCoasts?: string;
+}
+
+export function parseTextLayer(svgString: string, layerName: string): TextElement[] {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(svgString, "image/svg+xml");
+  const layer = findLayerByName(doc, layerName);
+  return extractTextElements(layer);
 }
 
 function extractDimensions(svg: SVGSVGElement): Dimensions {
@@ -74,13 +119,55 @@ function extractDimensions(svg: SVGSVGElement): Dimensions {
   return { width, height };
 }
 
+function circleToPath(el: Element): string {
+  const cx = parseFloat(el.getAttribute("cx") ?? "0");
+  const cy = parseFloat(el.getAttribute("cy") ?? "0");
+  const r = parseFloat(el.getAttribute("r") ?? "0");
+  return `M ${cx - r},${cy} a ${r},${r} 0 1,0 ${r * 2},0 a ${r},${r} 0 1,0 ${-r * 2},0 Z`;
+}
+
+function ellipseToPath(el: Element): string {
+  const cx = parseFloat(el.getAttribute("cx") ?? "0");
+  const cy = parseFloat(el.getAttribute("cy") ?? "0");
+  const rx = parseFloat(el.getAttribute("rx") ?? "0");
+  const ry = parseFloat(el.getAttribute("ry") ?? "0");
+  return `M ${cx - rx},${cy} a ${rx},${ry} 0 1,0 ${rx * 2},0 a ${rx},${ry} 0 1,0 ${-rx * 2},0 Z`;
+}
+
+function rectToPath(el: Element): string {
+  const x = parseFloat(el.getAttribute("x") ?? "0");
+  const y = parseFloat(el.getAttribute("y") ?? "0");
+  const w = parseFloat(el.getAttribute("width") ?? "0");
+  const h = parseFloat(el.getAttribute("height") ?? "0");
+  return `M ${x},${y} H ${x + w} V ${y + h} H ${x} Z`;
+}
+
+function elementToProvincePath(el: Element): ProvincePath | null {
+  const tag = el.tagName.toLowerCase();
+  let d: string;
+  if (tag === "path") {
+    d = el.getAttribute("d") ?? "";
+  } else if (tag === "circle") {
+    d = circleToPath(el);
+  } else if (tag === "ellipse") {
+    d = ellipseToPath(el);
+  } else if (tag === "rect") {
+    d = rectToPath(el);
+  } else {
+    return null;
+  }
+  return {
+    elementId: el.getAttribute("id"),
+    d,
+    fill: el.getAttribute("fill"),
+  };
+}
+
 function extractProvincePaths(provincesLayer: Element): ProvincePath[] {
-  const paths = provincesLayer.querySelectorAll("path");
-  return Array.from(paths).map(path => ({
-    elementId: path.getAttribute("id"),
-    d: path.getAttribute("d") ?? "",
-    fill: path.getAttribute("fill"),
-  }));
+  const elements = provincesLayer.querySelectorAll("path, circle, ellipse, rect");
+  return Array.from(elements)
+    .map(elementToProvincePath)
+    .filter((p): p is ProvincePath => p !== null);
 }
 
 function extractCoastPaths(coastsLayer: Element | null): CoastPath[] {
@@ -163,56 +250,105 @@ function getLayerName(group: Element): string | null {
   );
 }
 
-function serializeGroupContent(group: Element): string {
-  return group.innerHTML;
-}
-
 function extractDecorativeLayers(
   doc: Document,
   excludeLayerNames: string[]
 ): DecorativeElement[] {
   const svg = doc.documentElement;
-  const decorative: DecorativeElement[] = [];
+  const result: DecorativeElement[] = [];
+  let unnamedIndex = 0;
 
-  Array.from(svg.children).forEach((child, index) => {
+  Array.from(svg.children).forEach((child) => {
     if (child.tagName.toLowerCase() !== "g") return;
-
     const name = getLayerName(child);
     if (name && excludeLayerNames.includes(name)) return;
 
-    decorative.push({
-      id: name ?? `decorative_${index}`,
-      type: "group",
-      content: serializeGroupContent(child),
-      styles: {},
-    });
+    if (!name) {
+      result.push({
+        id: `decorative_${unnamedIndex++}`,
+        type: "group",
+        content: child.innerHTML,
+        children: [],
+        styles: {},
+      });
+    } else {
+      result.push(extractNamedDecorativeGroup(child, null));
+    }
   });
 
-  return decorative;
+  return result;
 }
 
-export function parseSvg(svgString: string): ParsedSvg {
+function isInkscapeDocument(doc: Document): boolean {
+  const attrs = doc.documentElement.attributes;
+  for (let i = 0; i < attrs.length; i++) {
+    if (attrs[i].value === "http://www.inkscape.org/namespaces/inkscape") return true;
+  }
+  return false;
+}
+
+function isUserNamedLayer(element: Element): boolean {
+  if (element.tagName.toLowerCase() !== "g") return false;
+  // Inkscape marks every user layer with inkscape:groupmode="layer"
+  if (element.getAttribute("inkscape:groupmode") === "layer") return true;
+  // Belt-and-suspenders: also accept explicit inkscape:label
+  if (element.getAttribute("inkscape:label") !== null) return true;
+  // For non-Inkscape SVGs (Figma, Illustrator, etc.) any id-named group is a user layer
+  const doc = element.ownerDocument;
+  if (doc && !isInkscapeDocument(doc)) {
+    return element.getAttribute("id") !== null;
+  }
+  return false;
+}
+
+function extractNamedDecorativeGroup(
+  element: Element,
+  parentPath: string | null
+): DecorativeElement {
+  const name = getLayerName(element)!;
+  const path = parentPath ? `${parentPath}/${name}` : name;
+
+  const children: DecorativeElement[] = [];
+  Array.from(element.children).forEach((child) => {
+    if (isUserNamedLayer(child)) {
+      children.push(extractNamedDecorativeGroup(child, path));
+    }
+  });
+
+  const content = Array.from(element.children)
+    .filter((child) => !isUserNamedLayer(child))
+    .map((child) => child.outerHTML)
+    .join("");
+
+  return { id: path, type: "group", content, children, styles: {} };
+}
+
+export function parseSvg(svgString: string, mapping?: LayerNameMapping): ParsedSvg {
   const parser = new DOMParser();
   const doc = parser.parseFromString(svgString, "image/svg+xml");
   const svg = doc.documentElement as unknown as SVGSVGElement;
 
   const dimensions = extractDimensions(svg);
 
-  const provincesLayer = findLayerByName(doc, "provinces");
+  const provincesLayerName = mapping?.provinces ?? "provinces";
+  const textLayerName = mapping?.text ?? "text";
+  const coastsLayerName = mapping?.namedCoasts ?? "named-coasts";
+
+  const provincesLayer = findLayerByName(doc, provincesLayerName);
   const provincePaths = provincesLayer
     ? extractProvincePaths(provincesLayer)
     : [];
 
-  const coastsLayer = findLayerByName(doc, "named-coasts");
+  const coastsLayer = findLayerByName(doc, coastsLayerName);
   const coastPaths = extractCoastPaths(coastsLayer);
 
-  const textLayer = findLayerByName(doc, "text");
+  const textLayer = findLayerByName(doc, textLayerName);
   const textElements = extractTextElements(textLayer);
 
   const decorativeElements = extractDecorativeLayers(doc, [
-    "provinces",
-    "named-coasts",
-    "text",
+    provincesLayerName,
+    coastsLayerName,
+    textLayerName,
   ]);
 
   return {

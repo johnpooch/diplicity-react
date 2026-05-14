@@ -6,6 +6,7 @@ import { PhaseProvinces } from "@/components/wizard/PhaseProvinces";
 import { PhaseTextAssoc } from "@/components/wizard/PhaseTextAssoc";
 import { PhaseAdjacencies } from "@/components/wizard/PhaseAdjacencies";
 import { PhaseVisualEditor } from "@/components/wizard/PhaseVisualEditor";
+import { PhaseExport } from "@/components/wizard/PhaseExport";
 
 const WIZARD_PHASES = [
   { path: "0", title: "Variant Setup", component: PhaseSetup },
@@ -13,6 +14,7 @@ const WIZARD_PHASES = [
   { path: "2", title: "Province Details", component: PhaseProvinces },
   { path: "3", title: "Adjacencies", component: PhaseAdjacencies },
   { path: "4", title: "Visual Editor", component: PhaseVisualEditor },
+  { path: "5", title: "Review & Export", component: PhaseExport },
 ];
 
 function WizardOutlet() {

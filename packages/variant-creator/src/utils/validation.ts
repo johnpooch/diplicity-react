@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { VariantDefinition } from "@/types/variant";
+import type { VariantDefinition, DecorativeElement } from "@/types/variant";
 
 const PositionSchema = z.object({
   x: z.number(),
@@ -57,12 +57,15 @@ const NationSchema = z.object({
   color: z.string(),
 });
 
-const DecorativeElementSchema = z.object({
-  id: z.string(),
-  type: z.enum(["path", "text", "group"]),
-  content: z.string(),
-  styles: z.record(z.string(), z.string()).optional(),
-});
+const DecorativeElementSchema: z.ZodType<DecorativeElement> = z.lazy(() =>
+  z.object({
+    id: z.string(),
+    type: z.enum(["path", "text", "group"]),
+    content: z.string(),
+    children: z.array(DecorativeElementSchema).optional(),
+    styles: z.record(z.string(), z.string()).optional(),
+  })
+);
 
 const DimensionsSchema = z.object({
   width: z.number().positive(),
@@ -83,6 +86,7 @@ export const VariantDefinitionSchema = z.object({
   author: z.string(),
   version: z.string(),
   soloVictorySCCount: z.number().nonnegative(),
+  startYear: z.number().int().optional().default(1901),
   nations: z.array(NationSchema),
   provinces: z.array(ProvinceSchema),
   namedCoasts: z.array(NamedCoastSchema),

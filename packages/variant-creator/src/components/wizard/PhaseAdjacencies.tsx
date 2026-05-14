@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ProvinceLayer } from "@/components/map/ProvinceLayer";
+import { DecorativeLayer } from "@/components/map/DecorativeLayer";
 import { useVariant } from "@/hooks/useVariant";
 import {
   detectAllAdjacencies,
@@ -162,12 +163,7 @@ export function PhaseAdjacencies() {
                 className="w-full h-auto border rounded-lg bg-muted"
                 style={{ maxHeight: calculateMapMaxHeight(dimensions) }}
               >
-                {decorativeElements.map((element) => (
-                  <g
-                    key={element.id}
-                    dangerouslySetInnerHTML={{ __html: element.content }}
-                  />
-                ))}
+                <DecorativeLayer elements={decorativeElements} />
 
                 <ProvinceLayer
                   provinces={provinces}

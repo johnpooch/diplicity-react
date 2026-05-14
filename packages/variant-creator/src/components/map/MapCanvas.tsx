@@ -1,4 +1,5 @@
 import type { VariantDefinition } from "@/types/variant";
+import { DecorativeLayer } from "@/components/map/DecorativeLayer";
 
 interface MapCanvasProps {
   variant: VariantDefinition;
@@ -13,12 +14,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({ variant }) => {
       className="w-full h-auto border rounded-lg"
       style={{ maxHeight: "60vh" }}
     >
-      {decorativeElements.map(element => (
-        <g
-          key={element.id}
-          dangerouslySetInnerHTML={{ __html: element.content }}
-        />
-      ))}
+      <DecorativeLayer elements={decorativeElements} />
 
       {provinces.map(province => (
         <path

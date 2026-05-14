@@ -51,6 +51,9 @@ const phaseSetupSchema = z.object({
     .number()
     .min(1, "Must be at least 1")
     .int("Must be a whole number"),
+  startYear: z
+    .number()
+    .int("Must be a whole number"),
   nations: z
     .array(nationSchema)
     .min(2, "At least 2 nations are required")
@@ -86,6 +89,7 @@ export function PhaseSetup() {
       description: variant?.description || "",
       author: variant?.author || "",
       soloVictorySCCount: variant?.soloVictorySCCount || 18,
+      startYear: variant?.startYear ?? 1901,
       nations: variant?.nations?.length ? variant.nations : DEFAULT_NATIONS,
     },
     mode: "onChange",
@@ -101,6 +105,7 @@ export function PhaseSetup() {
   const watchedDescription = watch("description");
   const watchedAuthor = watch("author");
   const watchedSoloVictorySCCount = watch("soloVictorySCCount");
+  const watchedStartYear = watch("startYear");
 
   useEffect(() => {
     updateMetadata({
@@ -108,6 +113,7 @@ export function PhaseSetup() {
       description: watchedDescription,
       author: watchedAuthor,
       soloVictorySCCount: Number(watchedSoloVictorySCCount) || 0,
+      startYear: Number(watchedStartYear) || 1901,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally only sync when values change
   }, [
@@ -115,6 +121,7 @@ export function PhaseSetup() {
     watchedDescription,
     watchedAuthor,
     watchedSoloVictorySCCount,
+    watchedStartYear,
   ]);
 
   const nationsJson = JSON.stringify(watchedNations);
@@ -210,6 +217,21 @@ export function PhaseSetup() {
               {errors.soloVictorySCCount && (
                 <p className="text-sm text-destructive">
                   {errors.soloVictorySCCount.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor={`${formId}-start-year`}>Start Year *</Label>
+              <Input
+                id={`${formId}-start-year`}
+                type="number"
+                {...register("startYear", { valueAsNumber: true })}
+                aria-invalid={!!errors.startYear}
+              />
+              {errors.startYear && (
+                <p className="text-sm text-destructive">
+                  {errors.startYear.message}
                 </p>
               )}
             </div>

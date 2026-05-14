@@ -16,17 +16,19 @@ import {
 } from "@/components/ui/select";
 import { ProvinceLayer } from "@/components/map/ProvinceLayer";
 import { TextLayer } from "@/components/map/TextLayer";
+import { DecorativeLayer } from "@/components/map/DecorativeLayer";
 import { useVariant } from "@/hooks/useVariant";
 import {
   autoAssociateText,
   syncAssociationsToProvinces,
   buildAssociationsFromProvinces,
 } from "@/utils/textAssociation";
+import { extractLayerTree, flattenLayerTree, parseTextLayer } from "@/utils/svg";
 import { Wand2, X } from "lucide-react";
 import { calculateMapMaxHeight } from "@/utils/mapSizing";
 
 export function PhaseTextAssoc() {
-  const { variant, setProvinces } = useVariant();
+  const { variant, setProvinces, rawSvg, setTextElements } = useVariant();
   const [selectedTextIndex, setSelectedTextIndex] = useState<number | null>(
     null
   );
@@ -114,11 +116,26 @@ export function PhaseTextAssoc() {
     return count;
   }, [associations]);
 
+  const availableLayerTree = useMemo(
+    () => (rawSvg ? extractLayerTree(rawSvg) : []),
+    [rawSvg]
+  );
+  const flatLayers = useMemo(
+    () => flattenLayerTree(availableLayerTree),
+    [availableLayerTree]
+  );
+  const [remapLayer, setRemapLayer] = useState<string>("");
+
   if (!variant) {
     return null;
   }
 
   const { dimensions, decorativeElements, nations } = variant;
+
+  const handleApplyTextLayer = () => {
+    if (!rawSvg || !remapLayer) return;
+    setTextElements(parseTextLayer(rawSvg, remapLayer));
+  };
 
   if (textElements.length === 0) {
     return (
@@ -127,16 +144,43 @@ export function PhaseTextAssoc() {
           <CardHeader>
             <CardTitle>Text Association</CardTitle>
             <CardDescription>
-              No text elements found in the SVG. You can proceed to the next
-              phase.
+              No text elements were loaded from the SVG.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              The uploaded SVG does not contain a text layer, or the text layer
-              is empty. Province labels can be generated automatically in a
-              later phase.
-            </p>
+          <CardContent className="space-y-4">
+            {flatLayers.length > 0 ? (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  Your SVG&apos;s text layer may be named differently. Select
+                  the layer containing province labels and click Apply.
+                </p>
+                <div className="flex items-center gap-2">
+                  <Select value={remapLayer} onValueChange={setRemapLayer}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Select a layer…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {flatLayers.map((layer) => (
+                        <SelectItem key={layer.path} value={layer.path}>
+                          {layer.path.split("/").join(" › ")}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    onClick={handleApplyTextLayer}
+                    disabled={!remapLayer}
+                  >
+                    Apply
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <p className="text-muted-foreground">
+                The uploaded SVG does not contain a text layer. Province labels
+                can be generated automatically in a later phase.
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -164,12 +208,7 @@ export function PhaseTextAssoc() {
                 className="w-full h-auto border rounded-lg bg-muted"
                 style={{ maxHeight: calculateMapMaxHeight(dimensions) }}
               >
-                {decorativeElements.map((element) => (
-                  <g
-                    key={element.id}
-                    dangerouslySetInnerHTML={{ __html: element.content }}
-                  />
-                ))}
+                <DecorativeLayer elements={decorativeElements} />
 
                 <ProvinceLayer
                   provinces={provinces}

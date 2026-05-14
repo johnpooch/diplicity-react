@@ -16,18 +16,23 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useVariant } from "@/hooks/useVariant";
 import { downloadVariantJson } from "@/utils/export";
-import { parseSvg } from "@/utils/svg";
+import { parseSvg, extractLayerTree, flattenLayerTree } from "@/utils/svg";
 import { createInitialVariant } from "@/utils/variantFactory";
+import { LayerMappingDialog } from "@/components/common/LayerMappingDialog";
 import type { SvgValidationResult } from "@/types/svg";
 import type { JsonValidationResult } from "@/utils/validation";
 import type { VariantDefinition } from "@/types/variant";
+import type { LayerNameMapping, SvgLayer } from "@/utils/svg";
 
 export function LandingPage() {
   const navigate = useNavigate();
-  const { variant, setVariant, clearDraft } = useVariant();
+  const { variant, setVariant, clearDraft, setRawSvg } = useVariant();
   const [pendingVariant, setPendingVariant] =
     useState<VariantDefinition | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [pendingSvgContent, setPendingSvgContent] = useState<string | null>(null);
+  const [pendingLayerNames, setPendingLayerNames] = useState<SvgLayer[]>([]);
+  const [showLayerMappingDialog, setShowLayerMappingDialog] = useState(false);
 
   const applyVariant = (newVariant: VariantDefinition) => {
     if (variant) {
@@ -39,15 +44,44 @@ export function LandingPage() {
     }
   };
 
+  const parseSvgAndApply = (svgContent: string, mapping?: LayerNameMapping) => {
+    const parsed = parseSvg(svgContent, mapping);
+    const initialVariant = createInitialVariant(parsed);
+    setRawSvg(svgContent);
+    applyVariant(initialVariant);
+  };
+
   const handleSvgFileValidated = (
     result: SvgValidationResult,
     svgContent: string
   ) => {
-    if (result.valid) {
-      const parsed = parseSvg(svgContent);
-      const initialVariant = createInitialVariant(parsed);
-      applyVariant(initialVariant);
+    if (!result.valid) return;
+
+    const layerTree = extractLayerTree(svgContent);
+    const flatLayers = flattenLayerTree(layerTree);
+    const hasProvinces = flatLayers.some((l) => l.name === "provinces");
+    const hasText = flatLayers.some((l) => l.name === "text");
+
+    if (hasProvinces && hasText) {
+      parseSvgAndApply(svgContent);
+    } else {
+      setPendingSvgContent(svgContent);
+      setPendingLayerNames(layerTree);
+      setShowLayerMappingDialog(true);
     }
+  };
+
+  const handleLayerMappingConfirm = (mapping: LayerNameMapping) => {
+    setShowLayerMappingDialog(false);
+    if (pendingSvgContent) {
+      parseSvgAndApply(pendingSvgContent, mapping);
+      setPendingSvgContent(null);
+    }
+  };
+
+  const handleLayerMappingCancel = () => {
+    setShowLayerMappingDialog(false);
+    setPendingSvgContent(null);
   };
 
   const handleJsonFileValidated = (
@@ -130,6 +164,15 @@ export function LandingPage() {
           </div>
         )}
       </div>
+
+      {showLayerMappingDialog && (
+        <LayerMappingDialog
+          open={showLayerMappingDialog}
+          layers={pendingLayerNames}
+          onConfirm={handleLayerMappingConfirm}
+          onCancel={handleLayerMappingCancel}
+        />
+      )}
 
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <AlertDialogContent>

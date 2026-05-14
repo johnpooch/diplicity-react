@@ -52,6 +52,7 @@ export interface DecorativeElement {
   id: string;
   type: "path" | "text" | "group";
   content: string;
+  children?: DecorativeElement[];
   styles?: Record<string, string>;
 }
 
@@ -66,6 +67,7 @@ export interface VariantDefinition {
   author: string;
   version: string;
   soloVictorySCCount: number;
+  startYear: number;
   nations: Nation[];
   provinces: Province[];
   namedCoasts: NamedCoast[];
