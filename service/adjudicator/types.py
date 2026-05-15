@@ -1,6 +1,6 @@
 """Shared types for the adjudicator: orders, checks, state, and views.
 
-Lives in its own module because both `engine_v2.py` (the orchestration
+Lives in its own module because both `engine.py` (the orchestration
 layer) and `resolution.py` (the strength solver) need to construct,
 inspect, and type-check these values. Putting them here breaks the
 otherwise-circular import between those two modules.

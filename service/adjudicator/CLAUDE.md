@@ -1,6 +1,6 @@
 # CLAUDE.md — Adjudicator architectural guide
 
-This file describes the architecture of the Diplomacy adjudicator in `engine_v2.py` and the rules a coding agent must follow when extending it. The architecture was designed deliberately; deviations from it will be rejected even if they produce working code.
+This file describes the architecture of the Diplomacy adjudicator in `engine.py` and the rules a coding agent must follow when extending it. The architecture was designed deliberately; deviations from it will be rejected even if they produce working code.
 
 **The optimization target is pattern consistency.** This codebase is structured so that the location and shape of any piece of code can be inferred mechanically from its category. If you find yourself wanting to write something that doesn't fit a category, the answer is to ask, not to improvise.
 
@@ -21,7 +21,7 @@ Reducers may read from state through the view interface, and produce a new state
 
 ## The eight categories
 
-Every class and function in `engine_v2.py` belongs to exactly one of these categories. Each has a fixed shape, naming convention, and registration mechanism.
+Every class and function in `engine.py` belongs to exactly one of these categories. Each has a fixed shape, naming convention, and registration mechanism.
 
 ### State
 

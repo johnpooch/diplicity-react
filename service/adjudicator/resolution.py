@@ -1,12 +1,12 @@
 """Movement-phase strength-and-cut resolver.
 
 This module owns the only iterative inner loop in the adjudicator. Every
-other reducer in `engine_v2.py` is a single-pass pure transformation;
+other reducer in `engine.py` is a single-pass pure transformation;
 strength resolution genuinely is not — support cuts, attack/defense/
 prevent/hold strengths, and Move statuses form a graph of mutually-
 dependent unknowns. The eight-category model in CLAUDE.md fits
 single-pass transformations; it fits this problem awkwardly. Pulling the
-solver out of `engine_v2.py` makes that paradigm split explicit instead
+solver out of `engine.py` makes that paradigm split explicit instead
 of hiding it inside one reducer's helpers.
 
 The internal representation is an explicit Decision graph:
@@ -48,7 +48,7 @@ solver — that is local state, not part of the engine's frozen
 `AdjudicationState`.
 
 The module's only public symbol is `resolve_strengths_and_cuts`. The
-adaptor reducer in `engine_v2.py` (`ResolveStrengthsAndCutsReducer`)
+adaptor reducer in `engine.py` (`ResolveStrengthsAndCutsReducer`)
 calls this function and nothing else.
 
 Future scope: alternative paradox-resolution rules (the all-hold
