@@ -27,14 +27,14 @@ export function WizardLayout({ children }: WizardLayoutProps) {
   const totalPhases = PHASE_TITLES.length;
 
   if (!variant) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/variant-creator" replace />;
   }
 
   const canGoNext = currentPhase < WIZARD_PHASES.length - 1;
 
   const handlePrevious = () => {
     if (currentPhase === 0) {
-      navigate("/");
+      navigate("/variant-creator");
     } else {
       navigate(`/phase/${currentPhase - 1}`);
     }

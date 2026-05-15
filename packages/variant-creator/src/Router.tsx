@@ -1,5 +1,7 @@
 import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
+import { HomePage } from "@/components/HomePage";
 import { LandingPage } from "@/components/LandingPage";
+import { DSvgCreator } from "@/components/dsvg/DSvgCreator";
 import { WizardLayout } from "@/components/wizard/WizardLayout";
 import { PhaseSetup } from "@/components/wizard/PhaseSetup";
 import { PhaseProvinces } from "@/components/wizard/PhaseProvinces";
@@ -28,7 +30,15 @@ function WizardOutlet() {
 export const router = createBrowserRouter([
   {
     path: "/",
+    element: <HomePage />,
+  },
+  {
+    path: "/variant-creator",
     element: <LandingPage />,
+  },
+  {
+    path: "/dsvg-creator",
+    element: <DSvgCreator />,
   },
   {
     path: "/phase",
