@@ -4954,8 +4954,8 @@ def make_variant(*, allow_non_home: bool = False) -> Variant:
         landlocked home SC of north (used for the fleet-in-landlocked
         build test).
       - "mid"               : coastal SC, no home nation (neutral SC).
-      - "mlc"               : coastal SC, no home, with two named coasts
-        (mlc/nc, mlc/sc) — used for the fleet-multi-coast test.
+      - "mlc"               : coastal SC, home of north, with two named
+        coasts (mlc/nc, mlc/sc) — used for the fleet-multi-coast test.
       - "iso", "far"        : coastal non-SC; iso is adjacent to mid,
         far is not adjacent to anywhere relevant.
       - "sea"               : sea province providing fleet adjacencies.
@@ -8857,3 +8857,1131 @@ def test_path_through_two_fleet_chain_succeeds():
     state = _cv_path_state(_cv_two_sea_chain_map())
 
     assert convoy_path_exists(state, "a", "b", ["sea1", "sea2"]) is True
+
+
+
+
+# ======================================================================
+# Order options
+# ======================================================================
+
+from .domain import OrderOption  # noqa: E402
+from .options import get_options  # noqa: E402
+
+
+def _opt_sig(option: OrderOption):
+    return (
+        option.source,
+        option.order_type,
+        option.target,
+        option.aux,
+        option.unit_type,
+        option.named_coast,
+    )
+
+
+def _unit_at_any(state: State, location: str) -> Optional[Unit]:
+    for u in state.units:
+        if u.location == location:
+            return u
+    return None
+
+
+def _option_to_wire_orders(option: OrderOption, state: State) -> List[RawOrder]:
+    """Translate an OrderOption into one or more wire RawOrders ready for
+    Engine.adjudicate. Handles:
+      - SupportHold target rewrite (target=aux=loc → target=None)
+      - SupportMove-via-convoy: also submits matching ConvoyOrders for
+        every sea-province fleet, satisfying SupportMoveSupportedCanReach.
+      - Build/Disband nation lookup from supply-center ownership or unit.
+    """
+    variant = state.variant
+    if option.order_type == "Build":
+        sc_parent = variant.parent_of(option.source)
+        sc = next(
+            (sc for sc in state.supply_centers if sc.province == sc_parent), None
+        )
+        nation = sc.nation if sc else ""
+    else:
+        unit = _unit_at_any(state, option.source)
+        nation = unit.nation if unit else ""
+    wire_target = option.target
+    if option.order_type == "Support" and option.target == option.aux:
+        wire_target = None
+    primary = RawOrder(
+        nation=nation,
+        source=option.source,
+        order_type=option.order_type,
+        target=wire_target,
+        aux=option.aux,
+        unit_type=option.unit_type,
+    )
+    co_orders: List[RawOrder] = []
+    if option.order_type == "Support" and option.target != option.aux:
+        mover = _unit_at_any(state, option.aux)
+        if (
+            mover is not None
+            and not mover.dislodged
+            and mover.type == Unit.ARMY
+            and not variant.can_move(option.aux, option.target, Unit.ARMY)
+        ):
+            source_parent = variant.parent_of(option.aux)
+            target_parent = variant.parent_of(option.target)
+            if source_parent != target_parent:
+                for u in state.units:
+                    if u.dislodged or u.type != Unit.FLEET:
+                        continue
+                    if u.location == option.source:
+                        # supporter can't also convoy — same unit, one order
+                        continue
+                    u_parent = variant.parent_of(u.location)
+                    province = variant.provinces.get(u_parent)
+                    if province is None or province.type != ProvinceType.SEA:
+                        continue
+                    co_orders.append(
+                        RawOrder(
+                            nation=u.nation,
+                            source=u.location,
+                            order_type="Convoy",
+                            target=target_parent,
+                            aux=source_parent,
+                        )
+                    )
+    return [primary, *co_orders]
+
+
+def _wire_canonical_sig(raw: RawOrder, state: State):
+    """Compute the canonical OrderOption signature for a wire order, so
+    property test (2) can check membership against get_options output.
+    Returns None when the wire order is malformed for its claimed type
+    (which the engine's parser silently re-categorizes — e.g. Move with
+    target=None becomes Hold). Those cases are excluded from the
+    'engine accepted it' set because the engine didn't actually accept
+    the claimed order type."""
+    if raw.source is None:
+        return None
+    if raw.order_type == "Hold":
+        return (raw.source, "Hold", None, None, None, None)
+    if raw.order_type == "Move":
+        if raw.target is None:
+            return None
+        # Mirror parser's army-to-coast normalization (DATC 6.B.12):
+        # an army ordered to a named coast moves to the bare parent.
+        target = raw.target
+        unit = _unit_at_any(state, raw.source)
+        if unit is not None and not unit.dislodged and unit.type == Unit.ARMY:
+            parent = state.variant.parent_of(target)
+            if target != parent:
+                target = parent
+        return (raw.source, "Move", target, None, None, None)
+    if raw.order_type == "Support":
+        if raw.aux is None:
+            return None
+        # Self-support (aux's parent == source's parent) is nonsensical;
+        # the engine currently has no explicit check for it and returns
+        # status=CUT (unmatched) rather than ILLEGAL. Options correctly
+        # don't enumerate it, so we exclude it from the expected set.
+        if state.variant.parent_of(raw.aux) == state.variant.parent_of(raw.source):
+            return None
+        if raw.target is None:
+            return (raw.source, "Support", raw.aux, raw.aux, None, None)
+        return (raw.source, "Support", raw.target, raw.aux, None, None)
+    if raw.order_type == "Convoy":
+        if raw.target is None or raw.aux is None:
+            return None
+        # Convoy endpoints are army positions; armies don't distinguish
+        # coasts, so options normalize both to parents.
+        target_parent = state.variant.parent_of(raw.target)
+        aux_parent = state.variant.parent_of(raw.aux)
+        return (raw.source, "Convoy", target_parent, aux_parent, None, None)
+    if raw.order_type == "Retreat":
+        if raw.target is None:
+            return None
+        return (raw.source, "Retreat", raw.target, None, None, None)
+    if raw.order_type == "Disband":
+        return (raw.source, "Disband", None, None, None, None)
+    if raw.order_type == "Build":
+        if raw.unit_type is None:
+            return None
+        return (raw.source, "Build", raw.source, None, raw.unit_type, None)
+    return None
+
+
+def _engine_accepts(state: State, wire_orders: List[RawOrder]) -> bool:
+    """Run adjudicate with the wire orders and report whether the first
+    order's source resolution is anything other than ILLEGAL."""
+    test_state = State(
+        variant=state.variant,
+        phase=state.phase,
+        units=list(state.units),
+        supply_centers=list(state.supply_centers),
+        orders=list(wire_orders),
+        resolutions=None,
+        skipped=False,
+        outcome=None,
+        contested_provinces=tuple(state.contested_provinces),
+    )
+    result = Engine().adjudicate(test_state)
+    if not result or not result[0].resolutions:
+        return False
+    target_source = wire_orders[0].source
+    for r in result[0].resolutions:
+        if r.province == target_source:
+            return r.resolution != Status.ILLEGAL
+    return False
+
+
+# === Property test (1): every emitted option is accepted by the engine ===
+
+
+def _property_state_movement() -> State:
+    """A movement-phase fixture with enough texture to exercise Hold,
+    Move, Support, Convoy, named-coast destinations, and convoy paths
+    without too much combinatorial blowup for the property tests."""
+    variant = make_variant()
+    return make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=NORTH, type=Unit.FLEET, location="sea"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="mid"),
+        ],
+        supply_centers=[
+            SupplyCenter(nation=NORTH, province="lhs"),
+            SupplyCenter(nation=SOUTH, province="rhs"),
+        ],
+    )
+
+
+def _property_state_retreat() -> State:
+    variant = make_variant()
+    return make_state(
+        variant,
+        phase_type=Phase.RETREAT,
+        units=[
+            Unit(
+                nation=NORTH,
+                type=Unit.ARMY,
+                location="mid",
+                dislodged=True,
+                dislodged_from="lhs",
+            ),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="iso"),
+        ],
+    )
+
+
+def _property_state_adjustment_build() -> State:
+    variant = make_variant()
+    return make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[],
+        supply_centers=[
+            SupplyCenter(nation=NORTH, province="lhs"),
+            SupplyCenter(nation=NORTH, province="ldd"),
+        ],
+    )
+
+
+def _property_state_adjustment_disband() -> State:
+    variant = make_variant()
+    return make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="mid"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="iso"),
+        ],
+        supply_centers=[SupplyCenter(nation=NORTH, province="lhs")],
+    )
+
+
+@pytest.mark.parametrize(
+    "state_factory",
+    [
+        _property_state_movement,
+        _property_state_retreat,
+        _property_state_adjustment_build,
+        _property_state_adjustment_disband,
+    ],
+)
+def test_options_property_every_option_is_legal(state_factory):
+    state = state_factory()
+    options = get_options(state)
+    assert options, "fixture produced no options to test"
+    for option in options:
+        wire = _option_to_wire_orders(option, state)
+        assert _engine_accepts(
+            state, wire
+        ), f"engine rejected option {option!r}; wire={wire!r}"
+
+
+# === Property test (2): every legal singleton order appears in options ===
+
+
+def _enumerate_movement_singletons(state: State):
+    variant = state.variant
+    locations = [None, *variant.provinces.keys(), *variant.named_coasts.keys()]
+    sources = [u.location for u in state.units if not u.dislodged]
+    for source in sources:
+        unit = _unit_at_any(state, source)
+        if unit is None or unit.dislodged:
+            continue
+        for order_type in ("Hold", "Move", "Support", "Convoy"):
+            for target in locations:
+                for aux in locations:
+                    yield RawOrder(
+                        nation=unit.nation,
+                        source=source,
+                        order_type=order_type,
+                        target=target,
+                        aux=aux,
+                    )
+
+
+def _enumerate_retreat_singletons(state: State):
+    variant = state.variant
+    locations = [None, *variant.provinces.keys(), *variant.named_coasts.keys()]
+    sources = [u.location for u in state.units if u.dislodged]
+    for source in sources:
+        unit = _unit_at_any(state, source)
+        if unit is None or not unit.dislodged:
+            continue
+        for order_type in ("Retreat", "Disband"):
+            for target in locations:
+                yield RawOrder(
+                    nation=unit.nation,
+                    source=source,
+                    order_type=order_type,
+                    target=target,
+                )
+
+
+def _enumerate_adjustment_singletons(state: State):
+    variant = state.variant
+    locations = [*variant.provinces.keys(), *variant.named_coasts.keys()]
+    # Build candidates from supply-center ownership.
+    for sc in state.supply_centers:
+        for loc in locations:
+            for unit_type in (Unit.ARMY, Unit.FLEET):
+                yield RawOrder(
+                    nation=sc.nation,
+                    source=loc,
+                    order_type="Build",
+                    target=loc,
+                    unit_type=unit_type,
+                )
+    # Disband candidates from existing units.
+    for u in state.units:
+        if u.dislodged:
+            continue
+        yield RawOrder(
+            nation=u.nation,
+            source=u.location,
+            order_type="Disband",
+        )
+
+
+def _options_for_state(state: State):
+    return {_opt_sig(o) for o in get_options(state)}
+
+
+def test_options_property_no_legal_movement_order_missing():
+    state = _property_state_movement()
+    option_set = _options_for_state(state)
+    for raw in _enumerate_movement_singletons(state):
+        if not _engine_accepts(state, [raw]):
+            continue
+        sig = _wire_canonical_sig(raw, state)
+        if sig is None:
+            continue
+        assert sig in option_set, (
+            f"engine accepted singleton {raw!r} (canonical sig {sig!r}) "
+            "but the option set did not include it"
+        )
+
+
+def test_options_property_no_legal_retreat_order_missing():
+    state = _property_state_retreat()
+    option_set = _options_for_state(state)
+    for raw in _enumerate_retreat_singletons(state):
+        if not _engine_accepts(state, [raw]):
+            continue
+        sig = _wire_canonical_sig(raw, state)
+        if sig is None:
+            continue
+        assert sig in option_set, (
+            f"engine accepted singleton {raw!r} (canonical sig {sig!r}) "
+            "but the option set did not include it"
+        )
+
+
+def test_options_property_no_legal_adjustment_build_order_missing():
+    state = _property_state_adjustment_build()
+    option_set = _options_for_state(state)
+    for raw in _enumerate_adjustment_singletons(state):
+        if not _engine_accepts(state, [raw]):
+            continue
+        sig = _wire_canonical_sig(raw, state)
+        if sig is None:
+            continue
+        assert sig in option_set, (
+            f"engine accepted singleton {raw!r} (canonical sig {sig!r}) "
+            "but the option set did not include it"
+        )
+
+
+def test_options_property_no_legal_adjustment_disband_order_missing():
+    state = _property_state_adjustment_disband()
+    option_set = _options_for_state(state)
+    for raw in _enumerate_adjustment_singletons(state):
+        if not _engine_accepts(state, [raw]):
+            continue
+        sig = _wire_canonical_sig(raw, state)
+        if sig is None:
+            continue
+        assert sig in option_set, (
+            f"engine accepted singleton {raw!r} (canonical sig {sig!r}) "
+            "but the option set did not include it"
+        )
+
+
+# === Targeted Movement-phase tests ===
+
+
+def test_options_movement_hold_per_unit():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="rhs"),
+        ],
+    )
+    options = get_options(state)
+    holds = [o for o in options if o.order_type == "Hold"]
+    assert {o.source for o in holds} == {"lhs", "rhs"}
+
+
+def test_options_movement_army_move_targets_are_adjacent_land():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[Unit(nation=NORTH, type=Unit.ARMY, location="lhs")],
+    )
+    options = get_options(state)
+    moves = {o.target for o in options if o.order_type == "Move" and o.source == "lhs"}
+    # lhs army-adjacent: rhs (both), mid (both), ldd (army). Not sea (fleet-only).
+    # lhs is coastal, so could also convoy to mid via sea-fleet — but no fleets
+    # exist in this fixture, so no convoy paths.
+    assert moves == {"rhs", "mid", "ldd"}
+
+
+def test_options_movement_army_includes_convoy_destinations_when_fleet_chain_exists():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=NORTH, type=Unit.FLEET, location="sea"),
+        ],
+    )
+    options = get_options(state)
+    moves = {o.target for o in options if o.order_type == "Move" and o.source == "lhs"}
+    # Direct: rhs, mid, ldd. Convoy via sea: iso, mlc (both coastal).
+    assert {"rhs", "mid", "ldd", "iso", "mlc"}.issubset(moves)
+
+
+def test_options_movement_fleet_at_multi_coast_destination_emits_one_option_per_coast():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[Unit(nation=NORTH, type=Unit.FLEET, location="sea")],
+    )
+    options = get_options(state)
+    fleet_moves = {
+        o.target for o in options if o.order_type == "Move" and o.source == "sea"
+    }
+    # sea↔lhs/rhs/mid/iso (fleet); sea↔mlc/nc (fleet); sea↔mlc/sc (fleet).
+    # The bare mlc parent is not directly reachable for a fleet.
+    assert "mlc/nc" in fleet_moves
+    assert "mlc/sc" in fleet_moves
+    assert "mlc" not in fleet_moves
+
+
+def test_options_movement_army_move_to_named_coast_is_excluded():
+    """DATC 6.B.12: armies ignore named coasts; target must be a parent."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[Unit(nation=NORTH, type=Unit.ARMY, location="iso")],
+    )
+    options = get_options(state)
+    move_targets = {
+        o.target for o in options if o.order_type == "Move" and o.source == "iso"
+    }
+    assert "mlc/nc" not in move_targets
+    assert "mlc/sc" not in move_targets
+
+
+def test_options_movement_support_hold_format_is_target_equals_aux():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="mid"),
+        ],
+    )
+    options = get_options(state)
+    support_hold = [
+        o
+        for o in options
+        if o.order_type == "Support" and o.source == "lhs" and o.target == o.aux
+    ]
+    # lhs can SupportHold mid (adjacent, occupied). Cannot SupportHold rhs (no unit there).
+    assert any(o.target == "mid" for o in support_hold)
+    assert not any(o.target == "rhs" for o in support_hold)
+
+
+def test_options_movement_support_move_includes_adjacent_movers():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="rhs"),
+        ],
+    )
+    options = get_options(state)
+    # lhs supports rhs→mid: target=mid, aux=rhs
+    sm = [
+        o
+        for o in options
+        if o.order_type == "Support"
+        and o.source == "lhs"
+        and o.target == "mid"
+        and o.aux == "rhs"
+    ]
+    assert len(sm) == 1
+
+
+def test_options_movement_support_move_excludes_self_target():
+    """DATC 6.D.6: a unit can't support an attack into its own province."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="mid"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="rhs"),
+        ],
+    )
+    options = get_options(state)
+    self_target_supports = [
+        o
+        for o in options
+        if o.order_type == "Support" and o.source == "mid" and o.target == "mid"
+    ]
+    assert self_target_supports == []
+
+
+def test_options_movement_support_move_via_convoy_emitted():
+    """SupportMove can support a convoyed army between coastal provinces
+    even when no convoy is yet submitted — matches godip semantics."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            # iso can support to lhs (iso-mid-lhs? — actually iso is adjacent
+            # to mid only, not lhs). Let's use mid as supporter, lhs as mover
+            # via convoy to iso.
+            Unit(nation=NORTH, type=Unit.ARMY, location="mid"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=NORTH, type=Unit.FLEET, location="sea"),
+        ],
+    )
+    options = get_options(state)
+    # mid (supporter, adjacent to iso) supports lhs→iso (via sea convoy).
+    via_convoy = [
+        o
+        for o in options
+        if o.order_type == "Support"
+        and o.source == "mid"
+        and o.target == "iso"
+        and o.aux == "lhs"
+    ]
+    assert len(via_convoy) == 1
+
+
+def test_options_movement_support_of_unit_on_named_coast_uses_parent_in_path():
+    """A unit at a named coast is referenced by its bare parent in the
+    Support option's aux field — matches godip's TestSupportSTPOpts.
+    The supporter doesn't need to know which coast the supported unit
+    sits on; that's a property of the supported unit's location."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.FLEET, location="mlc/nc"),
+            # An iso army can support a move from mlc to anywhere mlc/nc could
+            # go via sea. mlc/nc-only fleet edge is to sea — convoy-only moves
+            # for an army at mlc, no direct moves from mlc/nc as fleet.
+            Unit(nation=NORTH, type=Unit.ARMY, location="iso"),
+        ],
+    )
+    options = get_options(state)
+    # iso supports mlc-to-iso? No — that'd be into iso's own province.
+    # iso supports mlc-holding: aux should be the bare parent "mlc", not "mlc/nc".
+    support_holds_from_iso = [
+        o
+        for o in options
+        if o.order_type == "Support"
+        and o.source == "iso"
+        and o.target == o.aux
+    ]
+    assert any(o.aux == "mlc" for o in support_holds_from_iso)
+    assert not any(o.aux == "mlc/nc" for o in support_holds_from_iso)
+
+
+def test_options_movement_support_changes_when_supported_unit_moves_coasts():
+    """The godip TestSupportSTPOpts case: support reachability depends
+    on where the supported unit physically sits. mlc/nc is sea-adjacent
+    but mlc/sc is symmetric in this fixture, so we exercise the
+    presence-vs-absence axis by removing the unit instead."""
+    variant = make_variant()
+    state_with_fleet = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.FLEET, location="mlc/nc"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="iso"),
+        ],
+    )
+    options_with = get_options(state_with_fleet)
+    sh = [
+        o
+        for o in options_with
+        if o.order_type == "Support"
+        and o.source == "iso"
+        and o.aux == "mlc"
+        and o.target == "mlc"
+    ]
+    assert len(sh) == 1, "SupportHold mlc from iso should exist when fleet sits there"
+    state_without = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[Unit(nation=NORTH, type=Unit.ARMY, location="iso")],
+    )
+    options_without = get_options(state_without)
+    sh = [
+        o
+        for o in options_without
+        if o.order_type == "Support"
+        and o.source == "iso"
+        and o.aux == "mlc"
+    ]
+    assert sh == [], "SupportHold mlc should disappear without a unit there"
+
+
+def test_options_movement_convoy_only_for_fleets_in_sea():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=NORTH, type=Unit.FLEET, location="sea"),
+        ],
+    )
+    options = get_options(state)
+    convoy_sources = {o.source for o in options if o.order_type == "Convoy"}
+    assert convoy_sources == {"sea"}
+
+
+def test_options_movement_convoy_pairs_army_source_and_coastal_targets():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=NORTH, type=Unit.FLEET, location="sea"),
+        ],
+    )
+    options = get_options(state)
+    convoys = [(o.aux, o.target) for o in options if o.order_type == "Convoy"]
+    # Army source must be lhs (the only army). Coastal targets reachable
+    # from the sea fleet: rhs, mid, iso, mlc (all coastal with fleet access).
+    # lhs itself is excluded (same as source).
+    assert ("lhs", "rhs") in convoys
+    assert ("lhs", "mid") in convoys
+    assert ("lhs", "iso") in convoys
+    assert ("lhs", "mlc") in convoys
+    assert ("lhs", "lhs") not in convoys
+
+
+def test_options_movement_no_convoy_when_no_army_present():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[Unit(nation=NORTH, type=Unit.FLEET, location="sea")],
+    )
+    options = get_options(state)
+    assert [o for o in options if o.order_type == "Convoy"] == []
+
+
+# === Targeted Retreat-phase tests ===
+
+
+def test_options_retreat_disband_always_emitted_for_dislodged_unit():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.RETREAT,
+        units=[
+            Unit(
+                nation=NORTH,
+                type=Unit.ARMY,
+                location="mid",
+                dislodged=True,
+                dislodged_from="lhs",
+            ),
+        ],
+    )
+    options = get_options(state)
+    disbands = [o for o in options if o.order_type == "Disband"]
+    assert len(disbands) == 1
+    assert disbands[0].source == "mid"
+
+
+def test_options_retreat_excludes_attacker_origin():
+    """DATC 6.H.3: cannot retreat to the parent the attacker came from."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.RETREAT,
+        units=[
+            Unit(
+                nation=NORTH,
+                type=Unit.ARMY,
+                location="mid",
+                dislodged=True,
+                dislodged_from="lhs",
+            ),
+        ],
+    )
+    options = get_options(state)
+    retreat_targets = {o.target for o in options if o.order_type == "Retreat"}
+    assert "lhs" not in retreat_targets
+    # rhs, iso are adjacent and unoccupied/uncontested; they should appear.
+    assert "rhs" in retreat_targets
+    assert "iso" in retreat_targets
+
+
+def test_options_retreat_excludes_occupied_destinations():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.RETREAT,
+        units=[
+            Unit(
+                nation=NORTH,
+                type=Unit.ARMY,
+                location="mid",
+                dislodged=True,
+                dislodged_from="lhs",
+            ),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="rhs"),
+        ],
+    )
+    options = get_options(state)
+    retreat_targets = {o.target for o in options if o.order_type == "Retreat"}
+    assert "rhs" not in retreat_targets
+
+
+def test_options_retreat_excludes_contested_destinations():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.RETREAT,
+        units=[
+            Unit(
+                nation=NORTH,
+                type=Unit.ARMY,
+                location="mid",
+                dislodged=True,
+                dislodged_from="lhs",
+            ),
+        ],
+        contested=["iso"],
+    )
+    options = get_options(state)
+    retreat_targets = {o.target for o in options if o.order_type == "Retreat"}
+    assert "iso" not in retreat_targets
+
+
+def test_options_retreat_all_exclusion_rules_together():
+    """One displaced unit, four blockers in one scene:
+    - lhs is the attacker's origin (DATC 6.H.3).
+    - rhs is occupied (DATC 6.H.2).
+    - iso is contested (DATC 6.H.6).
+    - far is not adjacent (DATC 6.H.1).
+    Only ldd remains as a legal retreat target."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.RETREAT,
+        units=[
+            Unit(
+                nation=NORTH,
+                type=Unit.ARMY,
+                location="mid",
+                dislodged=True,
+                dislodged_from="lhs",
+            ),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="rhs"),
+        ],
+        contested=["iso"],
+    )
+    options = get_options(state)
+    retreat_targets = {o.target for o in options if o.order_type == "Retreat"}
+    assert "lhs" not in retreat_targets  # attacker origin
+    assert "rhs" not in retreat_targets  # occupied
+    assert "iso" not in retreat_targets  # contested
+    assert "far" not in retreat_targets  # not adjacent
+    # mid is adjacent to lhs, rhs, iso, sea, and via the army-only ldd
+    # edge through neither. Only valid retreat from mid is ldd? No — mid
+    # is adjacent only to lhs/rhs/iso/sea. With those all excluded, no
+    # retreat options remain.
+    assert retreat_targets == set()
+    # Disband still emitted.
+    assert any(o.order_type == "Disband" and o.source == "mid" for o in options)
+
+
+def test_options_retreat_no_via_convoy_paths():
+    """Retreats can't use convoys even when a fleet chain physically
+    exists (DATC 6.H — no convoy retreats). lhs-to-iso would be
+    convoy-reachable for a movement-phase move, but not for a retreat."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.RETREAT,
+        units=[
+            Unit(
+                nation=NORTH,
+                type=Unit.ARMY,
+                location="lhs",
+                dislodged=True,
+                dislodged_from="ldd",
+            ),
+            Unit(nation=NORTH, type=Unit.FLEET, location="sea"),
+        ],
+    )
+    options = get_options(state)
+    retreat_targets = {o.target for o in options if o.order_type == "Retreat"}
+    # iso/mlc are coastal but non-adjacent to lhs; retreat must not use
+    # the fleet chain at sea even though it exists.
+    assert "iso" not in retreat_targets
+    assert "mlc" not in retreat_targets
+    # Adjacent unoccupied destinations remain valid.
+    assert "rhs" in retreat_targets
+    assert "mid" in retreat_targets
+
+
+def test_options_retreat_no_options_when_no_dislodged_units():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.RETREAT,
+        units=[Unit(nation=NORTH, type=Unit.ARMY, location="lhs")],
+    )
+    options = get_options(state)
+    assert options == []
+
+
+# === Targeted Adjustment-phase tests ===
+
+
+def test_options_adjustment_build_emits_army_and_fleet_for_coastal_home_center():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[],
+        supply_centers=[SupplyCenter(nation=NORTH, province="lhs")],
+    )
+    options = get_options(state)
+    builds_at_lhs = [
+        o for o in options if o.order_type == "Build" and o.source == "lhs"
+    ]
+    types = {o.unit_type for o in builds_at_lhs}
+    assert types == {Unit.ARMY, Unit.FLEET}
+
+
+def test_options_adjustment_build_excludes_fleet_at_landlocked_sc():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[],
+        supply_centers=[SupplyCenter(nation=NORTH, province="ldd")],
+    )
+    options = get_options(state)
+    builds = [o for o in options if o.order_type == "Build" and o.source == "ldd"]
+    types = {o.unit_type for o in builds}
+    assert Unit.ARMY in types
+    assert Unit.FLEET not in types
+
+
+def test_options_adjustment_build_at_multi_coast_emits_one_fleet_per_coast():
+    """mlc is a NORTH home center with two named coasts. Expect one Army
+    option at the parent, one Fleet option per coast, and no Fleet
+    option at the bare parent (BuildFleetCoastIsSpecified rejects)."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[],
+        supply_centers=[SupplyCenter(nation=NORTH, province="mlc")],
+    )
+    options = get_options(state)
+    builds = [o for o in options if o.order_type == "Build"]
+    army_builds = [b for b in builds if b.unit_type == Unit.ARMY]
+    assert [b.source for b in army_builds] == ["mlc"]
+    fleet_builds = [b for b in builds if b.unit_type == Unit.FLEET]
+    assert {b.source for b in fleet_builds} == {"mlc/nc", "mlc/sc"}
+
+
+def test_options_adjustment_build_at_non_home_multi_coast_requires_modifier():
+    """SOUTH doesn't have mlc as a home center; without the modifier no
+    builds at mlc. With the modifier, the same multi-coast structure as
+    the home case (Army at parent, Fleet per coast)."""
+    base_state_kwargs = dict(
+        phase_type=Phase.ADJUSTMENT,
+        units=[],
+        supply_centers=[
+            # SOUTH owns rhs (home) so allowed_builds > 0, and owns mlc
+            # (non-home for SOUTH) to exercise the modifier.
+            SupplyCenter(nation=SOUTH, province="rhs"),
+            SupplyCenter(nation=SOUTH, province="mlc"),
+        ],
+    )
+    no_mod = make_variant()
+    state = make_state(no_mod, **base_state_kwargs)
+    options = get_options(state)
+    mlc_builds = [
+        o for o in options if o.order_type == "Build" and o.source.startswith("mlc")
+    ]
+    assert mlc_builds == []
+
+    with_mod = make_variant(allow_non_home=True)
+    state = make_state(with_mod, **base_state_kwargs)
+    options = get_options(state)
+    mlc_builds = [
+        o for o in options if o.order_type == "Build" and o.source.startswith("mlc")
+    ]
+    fleet_sources = {o.source for o in mlc_builds if o.unit_type == Unit.FLEET}
+    army_sources = {o.source for o in mlc_builds if o.unit_type == Unit.ARMY}
+    assert fleet_sources == {"mlc/nc", "mlc/sc"}
+    assert army_sources == {"mlc"}
+
+
+def test_options_adjustment_build_excludes_occupied_sc():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[Unit(nation=NORTH, type=Unit.ARMY, location="lhs")],
+        supply_centers=[
+            SupplyCenter(nation=NORTH, province="lhs"),
+            SupplyCenter(nation=NORTH, province="ldd"),
+        ],
+    )
+    options = get_options(state)
+    build_sources = {
+        o.source for o in options if o.order_type == "Build"
+    }
+    assert "lhs" not in build_sources
+    assert "ldd" in build_sources
+
+
+def test_options_adjustment_build_excludes_non_home_sc_without_modifier():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[],
+        supply_centers=[
+            SupplyCenter(nation=NORTH, province="lhs"),
+            SupplyCenter(nation=NORTH, province="mid"),
+        ],
+    )
+    options = get_options(state)
+    build_sources = {o.source for o in options if o.order_type == "Build"}
+    assert "mid" not in build_sources
+    assert "lhs" in build_sources
+
+
+def test_options_adjustment_no_builds_when_no_allowed_builds():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        # 1 SC, 1 unit -> allowed_builds = 0.
+        units=[Unit(nation=NORTH, type=Unit.ARMY, location="rhs")],
+        supply_centers=[SupplyCenter(nation=NORTH, province="lhs")],
+    )
+    options = get_options(state)
+    assert [o for o in options if o.order_type == "Build"] == []
+
+
+def test_options_adjustment_disband_only_when_surplus():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="mid"),
+        ],
+        supply_centers=[SupplyCenter(nation=NORTH, province="lhs")],
+    )
+    options = get_options(state)
+    disbands = [o for o in options if o.order_type == "Disband"]
+    sources = {o.source for o in disbands}
+    assert sources == {"lhs", "mid"}
+
+
+def test_options_adjustment_no_builds_at_captured_home_center():
+    """SOUTH captures NORTH's home SC (lhs) and owns its own home (rhs).
+    SOUTH cannot build at lhs because it's not a SOUTH home center; the
+    capture doesn't grant home-center status."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[],
+        supply_centers=[
+            SupplyCenter(nation=SOUTH, province="rhs"),
+            SupplyCenter(nation=SOUTH, province="lhs"),
+        ],
+    )
+    options = get_options(state)
+    build_sources = {o.source for o in options if o.order_type == "Build"}
+    # SOUTH can build at its own home (rhs) but not at captured lhs.
+    assert "rhs" in build_sources
+    assert "lhs" not in build_sources
+
+
+def test_options_adjustment_captured_home_center_buildable_with_modifier():
+    """The complement of the captured-home-center test: with the
+    allow-builds-in-non-home-centers modifier, SOUTH can build at the
+    captured lhs."""
+    variant = make_variant(allow_non_home=True)
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[],
+        supply_centers=[
+            SupplyCenter(nation=SOUTH, province="rhs"),
+            SupplyCenter(nation=SOUTH, province="lhs"),
+        ],
+    )
+    options = get_options(state)
+    build_sources = {o.source for o in options if o.order_type == "Build"}
+    assert "lhs" in build_sources
+    assert "rhs" in build_sources
+
+
+def test_options_adjustment_no_disbands_when_no_surplus():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[Unit(nation=NORTH, type=Unit.ARMY, location="lhs")],
+        supply_centers=[SupplyCenter(nation=NORTH, province="lhs")],
+    )
+    options = get_options(state)
+    assert [o for o in options if o.order_type == "Disband"] == []
+
+
+# === Generic / boundary ===
+
+
+def test_options_empty_state_movement_returns_empty_list():
+    variant = make_variant()
+    state = make_state(variant, phase_type=Phase.MOVEMENT, units=[])
+    assert get_options(state) == []
+
+
+def test_options_returns_options_for_all_nations():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="rhs"),
+        ],
+    )
+    options = get_options(state)
+    sources = {o.source for o in options if o.order_type == "Hold"}
+    assert sources == {"lhs", "rhs"}
+
+
+def test_options_unsupported_phase_raises():
+    variant = make_variant()
+    state = make_state(variant, phase_type=Phase.MOVEMENT, units=[])
+    bad = State(
+        variant=state.variant,
+        phase=Phase(season="Spring", year=1901, type="Unknown"),
+        units=[],
+        supply_centers=[],
+        orders=[],
+        resolutions=None,
+        skipped=False,
+        outcome=None,
+    )
+    with pytest.raises(NotImplementedError):
+        get_options(bad)
+
+
+def test_options_named_coast_field_is_always_none():
+    """Coast id lives in the location field per godip convention; the
+    separate named_coast field on OrderOption is intentionally unused."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[Unit(nation=NORTH, type=Unit.FLEET, location="sea")],
+    )
+    options = get_options(state)
+    assert all(o.named_coast is None for o in options)
+
+
+def test_options_movement_unit_type_is_none_for_existing_unit_orders():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[Unit(nation=NORTH, type=Unit.ARMY, location="lhs")],
+    )
+    options = get_options(state)
+    # unit_type is only populated for Build options.
+    non_build = [o for o in options if o.order_type != "Build"]
+    assert all(o.unit_type is None for o in non_build)
+
