@@ -192,8 +192,7 @@ const InteractiveMap = (props: InteractiveMapProps) => {
 
     // For supply centers with nation colors
     if (supplyCenter) {
-      const unit = props.phase.units.find(u => u.province.id === provinceId);
-      const nationName = unit ? unit.nation.name : supplyCenter.nation.name;
+      const nationName = supplyCenter.nation.name;
       const color = props.variant.nations.find(
         n => n.name === nationName
       )?.color;
