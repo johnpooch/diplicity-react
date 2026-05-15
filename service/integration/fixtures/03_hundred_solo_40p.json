@@ -1,0 +1,7203 @@
+{
+  "schema_version": 1,
+  "source": {
+    "original_game_id_hash": "603da47d24ff",
+    "captured_at": "2026-05-12T10:18:53.606220+00:00",
+    "captured_from": "database"
+  },
+  "variant": "Hundred",
+  "outcome": {
+    "type": "solo",
+    "winners": [
+      "England"
+    ],
+    "winning_phase_ordinal": 40
+  },
+  "phases": [
+    {
+      "ordinal": 1,
+      "season": "Year",
+      "year": 1425,
+      "type": "Movement",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "Burgundy",
+        "England",
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "dij",
+            "Move",
+            "cal"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "fla",
+            "Support",
+            "dij",
+            "cal"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "hol",
+            "Move",
+            "str"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "lux",
+            "Support",
+            "dij",
+            "dij"
+          ],
+          "expected_resolution": "ErrInvalidSupporteeOrder"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "cal",
+            "Support",
+            "nom",
+            "nom"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "dev",
+            "Move",
+            "eng"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "guy",
+            "Move",
+            "tou"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "lon",
+            "Move",
+            "str"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "nom",
+            "Support",
+            "cal",
+            "cal"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "dau",
+            "Move",
+            "dij"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "orl",
+            "Support",
+            "par",
+            "par"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "par",
+            "Support",
+            "dau",
+            "dij"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "pro",
+            "Move",
+            "dau"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "tou",
+            "Hold"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": true
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "hol",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "lux",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "eng",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "tou",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "cal": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "Burgundy",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "England",
+          "orl": "France",
+          "par": "France",
+          "tou": "France"
+        }
+      }
+    },
+    {
+      "ordinal": 2,
+      "season": "Year",
+      "year": 1425,
+      "type": "Retreat",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "Burgundy"
+      ],
+      "orders": [
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "dij",
+            "Move",
+            "can"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "can",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "hol",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "lux",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "eng",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "tou",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "cal": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "Burgundy",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "England",
+          "orl": "France",
+          "par": "France",
+          "tou": "France"
+        }
+      }
+    },
+    {
+      "ordinal": 3,
+      "season": "Year",
+      "year": 1430,
+      "type": "Movement",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "Burgundy",
+        "England",
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "can",
+            "Support",
+            "lux",
+            "dij"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "fla",
+            "Support",
+            "lux",
+            "dij"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "hol",
+            "Move",
+            "str"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "lux",
+            "Move",
+            "dij"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "cal",
+            "Support",
+            "nom",
+            "nom"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "eng",
+            "Move",
+            "brt"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "guy",
+            "Support",
+            "eng",
+            "brt"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "lon",
+            "Support",
+            "cal",
+            "cal"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "nom",
+            "Support",
+            "cal",
+            "cal"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "dau",
+            "Move",
+            "can"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "dij",
+            "Support",
+            "dau",
+            "can"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "orl",
+            "Support",
+            "par",
+            "par"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "par",
+            "Support",
+            "dij",
+            "dij"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "can",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "lux",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "str",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "tou",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "cal": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "Burgundy",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "England",
+          "orl": "France",
+          "par": "France",
+          "tou": "France"
+        }
+      }
+    },
+    {
+      "ordinal": 4,
+      "season": "Year",
+      "year": 1430,
+      "type": "Retreat",
+      "resolution_trigger": "auto",
+      "non_confirming_nations": [],
+      "orders": [],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "can",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "lux",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "str",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "tou",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "England",
+          "can": "Burgundy",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "England",
+          "orl": "France",
+          "par": "France",
+          "tou": "France"
+        }
+      }
+    },
+    {
+      "ordinal": 5,
+      "season": "Year",
+      "year": 1430,
+      "type": "Adjustment",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "England"
+      ],
+      "orders": [
+        {
+          "nation": "England",
+          "selected": [
+            "dev",
+            "Build",
+            "Army"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "can",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "lux",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "str",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "dev",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "tou",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "England",
+          "can": "Burgundy",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "England",
+          "orl": "France",
+          "par": "France",
+          "tou": "France"
+        }
+      }
+    },
+    {
+      "ordinal": 6,
+      "season": "Year",
+      "year": 1435,
+      "type": "Movement",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "Burgundy",
+        "England",
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "can",
+            "Support",
+            "lux",
+            "dij"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "fla",
+            "Support",
+            "lux",
+            "dij"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "lux",
+            "Move",
+            "dij"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "str",
+            "Support",
+            "fla",
+            "fla"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "dau",
+            "Support",
+            "dij",
+            "can"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "dij",
+            "Move",
+            "can"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "orl",
+            "Move",
+            "nom"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "par",
+            "Move",
+            "dij"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "tou",
+            "Move",
+            "guy"
+          ],
+          "expected_resolution": "ErrBounce"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "can",
+            "dislodged": true
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "str",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "dev",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "can",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "tou",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "England",
+          "can": "Burgundy",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "England",
+          "orl": "France",
+          "par": "France",
+          "tou": "France"
+        }
+      }
+    },
+    {
+      "ordinal": 7,
+      "season": "Year",
+      "year": 1435,
+      "type": "Retreat",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "Burgundy"
+      ],
+      "orders": [],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "str",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "dev",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "can",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "tou",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "England",
+          "can": "Burgundy",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "England",
+          "orl": "France",
+          "par": "France",
+          "tou": "France"
+        }
+      }
+    },
+    {
+      "ordinal": 8,
+      "season": "Year",
+      "year": 1440,
+      "type": "Movement",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "Burgundy",
+        "England",
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "England",
+          "selected": [
+            "brt",
+            "Move",
+            "nom"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "cal",
+            "Support",
+            "nom",
+            "par"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "dev",
+            "Move",
+            "not"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "guy",
+            "Move",
+            "tou"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "lon",
+            "Support",
+            "cal",
+            "cal"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "nom",
+            "Move",
+            "par"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "can",
+            "Support",
+            "dau",
+            "dij"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "dau",
+            "Move",
+            "dij"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "orl",
+            "Support",
+            "par",
+            "par"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "par",
+            "Support",
+            "dau",
+            "dij"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": true
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "str",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "not",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "can",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "tou",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "England",
+          "can": "Burgundy",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "England",
+          "orl": "France",
+          "par": "France",
+          "tou": "France"
+        }
+      }
+    },
+    {
+      "ordinal": 9,
+      "season": "Year",
+      "year": 1440,
+      "type": "Retreat",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "Burgundy"
+      ],
+      "orders": [
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "dij",
+            "Move",
+            "lux"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "lux",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "str",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "not",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "can",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "tou",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "England",
+          "can": "France",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "England",
+          "orl": "France",
+          "par": "France",
+          "tou": "France"
+        }
+      }
+    },
+    {
+      "ordinal": 10,
+      "season": "Year",
+      "year": 1440,
+      "type": "Adjustment",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "France",
+          "selected": [
+            "dau",
+            "Build",
+            "Army"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "lux",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "str",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "not",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "can",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "tou",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "England",
+          "can": "France",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "England",
+          "orl": "France",
+          "par": "France",
+          "tou": "France"
+        }
+      }
+    },
+    {
+      "ordinal": 11,
+      "season": "Year",
+      "year": 1445,
+      "type": "Movement",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "Burgundy",
+        "England",
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "fla",
+            "Support",
+            "str",
+            "cal"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "lux",
+            "Hold"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "str",
+            "Move",
+            "cal"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "brt",
+            "Move",
+            "bis"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "cal",
+            "Support",
+            "nom",
+            "nom"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "guy",
+            "Move",
+            "tou"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "lon",
+            "Support",
+            "cal",
+            "cal"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "nom",
+            "Support",
+            "cal",
+            "cal"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "can",
+            "Move",
+            "lor"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "dau",
+            "Move",
+            "lim"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "dij",
+            "Support",
+            "can",
+            "lor"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "orl",
+            "Support",
+            "par",
+            "nom"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "par",
+            "Move",
+            "nom"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "tou",
+            "Move",
+            "guy"
+          ],
+          "expected_resolution": "ErrBounce"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "lux",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "str",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "bis",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "nom",
+            "dislodged": true
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "not",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "lim",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "lor",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "tou",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "England",
+          "can": "France",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "England",
+          "orl": "France",
+          "par": "France",
+          "tou": "France"
+        }
+      }
+    },
+    {
+      "ordinal": 12,
+      "season": "Year",
+      "year": 1445,
+      "type": "Retreat",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "England"
+      ],
+      "orders": [
+        {
+          "nation": "England",
+          "selected": [
+            "nom",
+            "Move",
+            "brt"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "lux",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "str",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "bis",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "not",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "lim",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "lor",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "tou",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "England",
+          "can": "France",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "England",
+          "orl": "France",
+          "par": "France",
+          "tou": "France"
+        }
+      }
+    },
+    {
+      "ordinal": 13,
+      "season": "Year",
+      "year": 1450,
+      "type": "Movement",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "Burgundy",
+        "England",
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "fla",
+            "Move",
+            "cal"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "lux",
+            "Move",
+            "lor"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "str",
+            "Support",
+            "fla",
+            "cal"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "bis",
+            "Move",
+            "cas"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "brt",
+            "Support",
+            "cal",
+            "nom"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "cal",
+            "Move",
+            "nom"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "guy",
+            "Move",
+            "tou"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "lon",
+            "Move",
+            "cal"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "not",
+            "Move",
+            "sco"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "dij",
+            "Move",
+            "par"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "lim",
+            "Move",
+            "poi"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "lor",
+            "Move",
+            "dij"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "nom",
+            "Support",
+            "dij",
+            "par"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "orl",
+            "Support",
+            "nom",
+            "nom"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "tou",
+            "Support",
+            "lim",
+            "poi"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "lor",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "str",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "cas",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "sco",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "poi",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "tou",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "England",
+          "can": "France",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "England",
+          "orl": "France",
+          "par": "France",
+          "tou": "France"
+        }
+      }
+    },
+    {
+      "ordinal": 14,
+      "season": "Year",
+      "year": 1450,
+      "type": "Retreat",
+      "resolution_trigger": "auto",
+      "non_confirming_nations": [],
+      "orders": [],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "lor",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "str",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "cas",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "sco",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "poi",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "tou",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "Burgundy",
+          "can": "France",
+          "cas": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "France",
+          "orl": "France",
+          "par": "France",
+          "sco": "England",
+          "tou": "France"
+        }
+      }
+    },
+    {
+      "ordinal": 15,
+      "season": "Year",
+      "year": 1450,
+      "type": "Adjustment",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "Burgundy",
+        "England",
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "fla",
+            "Build",
+            "Army"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "dev",
+            "Build",
+            "Fleet"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "can",
+            "Build",
+            "Army"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "lor",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "str",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "cas",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "dev",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "sco",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "can",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "poi",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "tou",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "Burgundy",
+          "can": "France",
+          "cas": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "France",
+          "orl": "France",
+          "par": "France",
+          "sco": "England",
+          "tou": "France"
+        }
+      }
+    },
+    {
+      "ordinal": 16,
+      "season": "Year",
+      "year": 1455,
+      "type": "Movement",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "Burgundy",
+        "England",
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "cal",
+            "Move",
+            "nom"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "fla",
+            "Support",
+            "lor",
+            "dij"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "lor",
+            "Move",
+            "dij"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "str",
+            "Support",
+            "cal",
+            "nom"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "brt",
+            "Support",
+            "guy",
+            "guy"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "cas",
+            "Move",
+            "med"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "dev",
+            "Move",
+            "eng"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "guy",
+            "Support",
+            "brt",
+            "brt"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "lon",
+            "Hold"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "sco",
+            "Move",
+            "not"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "can",
+            "Support",
+            "dij",
+            "dij"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "dij",
+            "Hold"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "nom",
+            "Support",
+            "orl",
+            "brt"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "orl",
+            "Move",
+            "brt"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "par",
+            "Support",
+            "dij",
+            "dij"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "poi",
+            "Support",
+            "tou",
+            "guy"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "tou",
+            "Move",
+            "guy"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "lor",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "str",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "eng",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": true
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "med",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "not",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "can",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "nom",
+            "dislodged": true
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "poi",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "Burgundy",
+          "can": "France",
+          "cas": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "France",
+          "orl": "France",
+          "par": "France",
+          "sco": "England",
+          "tou": "France"
+        }
+      }
+    },
+    {
+      "ordinal": 17,
+      "season": "Year",
+      "year": 1455,
+      "type": "Retreat",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "England",
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "England",
+          "selected": [
+            "guy",
+            "Move",
+            "ara"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "nom",
+            "Move",
+            "anj"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "lor",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "str",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "ara",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "eng",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "med",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "not",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "anj",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "can",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "poi",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "Burgundy",
+          "can": "France",
+          "cas": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "France",
+          "orl": "France",
+          "par": "France",
+          "sco": "England",
+          "tou": "France"
+        }
+      }
+    },
+    {
+      "ordinal": 18,
+      "season": "Year",
+      "year": 1460,
+      "type": "Movement",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "Burgundy",
+        "England",
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "fla",
+            "Move",
+            "cal"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "lor",
+            "Move",
+            "lux"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "nom",
+            "Support",
+            "fla",
+            "cal"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "str",
+            "Support",
+            "nom",
+            "nom"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "ara",
+            "Support",
+            "brt",
+            "guy"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "brt",
+            "Move",
+            "guy"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "eng",
+            "Move",
+            "brt"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "lon",
+            "Support",
+            "fla",
+            "cal"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "med",
+            "Move",
+            "tou"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "not",
+            "Move",
+            "dev"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "anj",
+            "Support",
+            "poi",
+            "brt"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "can",
+            "Support",
+            "dij",
+            "dij"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "dij",
+            "Support",
+            "par",
+            "cal"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "guy",
+            "Support",
+            "poi",
+            "brt"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "orl",
+            "Move",
+            "nom"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "par",
+            "Move",
+            "cal"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "poi",
+            "Move",
+            "brt"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "lux",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "str",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "ara",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "dev",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "eng",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "tou",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "anj",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "can",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": true
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "Burgundy",
+          "can": "France",
+          "cas": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "France",
+          "orl": "France",
+          "par": "France",
+          "sco": "England",
+          "tou": "France"
+        }
+      }
+    },
+    {
+      "ordinal": 19,
+      "season": "Year",
+      "year": 1460,
+      "type": "Retreat",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "France",
+          "selected": [
+            "guy",
+            "Move",
+            "poi"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "lux",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "str",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "ara",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "dev",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "eng",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "tou",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "anj",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "can",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "poi",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "France",
+          "cal": "Burgundy",
+          "can": "France",
+          "cas": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "Burgundy",
+          "orl": "France",
+          "par": "France",
+          "sco": "England",
+          "tou": "England"
+        }
+      }
+    },
+    {
+      "ordinal": 20,
+      "season": "Year",
+      "year": 1460,
+      "type": "Adjustment",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "Burgundy",
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "France",
+          "selected": [
+            "poi",
+            "Disband"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "lux",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "str",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "ara",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "dev",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "eng",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "tou",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "anj",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "can",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "France",
+          "cal": "Burgundy",
+          "can": "France",
+          "cas": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "Burgundy",
+          "orl": "France",
+          "par": "France",
+          "sco": "England",
+          "tou": "England"
+        }
+      }
+    },
+    {
+      "ordinal": 21,
+      "season": "Year",
+      "year": 1465,
+      "type": "Movement",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "Burgundy",
+        "England",
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "fla",
+            "Move",
+            "cal"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "lux",
+            "Move",
+            "dij"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "str",
+            "Support",
+            "nom",
+            "nom"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "ara",
+            "Move",
+            "tou"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "dev",
+            "Move",
+            "brt"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "eng",
+            "Convoy",
+            "dev",
+            "brt"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "guy",
+            "Support",
+            "dev",
+            "brt"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "lon",
+            "Support",
+            "fla",
+            "cal"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "tou",
+            "Move",
+            "med"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "anj",
+            "Support",
+            "orl",
+            "nom"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "brt",
+            "Support",
+            "orl",
+            "nom"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "can",
+            "Move",
+            "dau"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "dij",
+            "Move",
+            "cal"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "orl",
+            "Move",
+            "nom"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "par",
+            "Support",
+            "orl",
+            "nom"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "lux",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "str",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "eng",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "med",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "tou",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "anj",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "brt",
+            "dislodged": true
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "France",
+          "cal": "Burgundy",
+          "can": "France",
+          "cas": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "Burgundy",
+          "orl": "France",
+          "par": "France",
+          "sco": "England",
+          "tou": "England"
+        }
+      }
+    },
+    {
+      "ordinal": 22,
+      "season": "Year",
+      "year": 1465,
+      "type": "Retreat",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "France",
+          "selected": [
+            "brt",
+            "Move",
+            "orl"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "lux",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "str",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "eng",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "med",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "tou",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "anj",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "France",
+          "cal": "Burgundy",
+          "can": "France",
+          "cas": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "Burgundy",
+          "orl": "France",
+          "par": "France",
+          "sco": "England",
+          "tou": "England"
+        }
+      }
+    },
+    {
+      "ordinal": 23,
+      "season": "Year",
+      "year": 1470,
+      "type": "Movement",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "Burgundy",
+        "England",
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "cal",
+            "Support",
+            "str",
+            "nom"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "lux",
+            "Move",
+            "dij"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "str",
+            "Move",
+            "nom"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "brt",
+            "Support",
+            "str",
+            "nom"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "eng",
+            "Support",
+            "str",
+            "nom"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "guy",
+            "Support",
+            "brt",
+            "brt"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "lon",
+            "Support",
+            "cal",
+            "cal"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "med",
+            "Convoy",
+            "tou",
+            "sav"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "tou",
+            "Move",
+            "sav"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "anj",
+            "Move",
+            "brt"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "dau",
+            "Move",
+            "dij"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "dij",
+            "Move",
+            "fla"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "nom",
+            "Support",
+            "anj",
+            "brt"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "orl",
+            "Support",
+            "anj",
+            "brt"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "par",
+            "Support",
+            "nom",
+            "nom"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "lux",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "eng",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "med",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "sav",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "anj",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "France",
+          "cal": "Burgundy",
+          "can": "France",
+          "cas": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "Burgundy",
+          "orl": "France",
+          "par": "France",
+          "sco": "England",
+          "tou": "England"
+        }
+      }
+    },
+    {
+      "ordinal": 24,
+      "season": "Year",
+      "year": 1470,
+      "type": "Retreat",
+      "resolution_trigger": "auto",
+      "non_confirming_nations": [],
+      "orders": [],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "lux",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "eng",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "med",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "sav",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "anj",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "Burgundy",
+          "can": "France",
+          "cas": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "France",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "Burgundy",
+          "orl": "France",
+          "par": "France",
+          "sco": "England",
+          "tou": "England"
+        }
+      }
+    },
+    {
+      "ordinal": 25,
+      "season": "Year",
+      "year": 1470,
+      "type": "Adjustment",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "Burgundy",
+        "England",
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "hol",
+            "Build",
+            "Army"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "dev",
+            "Build",
+            "Fleet"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "dij",
+            "Build",
+            "Army"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "hol",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "lux",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "dev",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "eng",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "med",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "sav",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "anj",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "Burgundy",
+          "can": "France",
+          "cas": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "France",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "Burgundy",
+          "orl": "France",
+          "par": "France",
+          "sco": "England",
+          "tou": "England"
+        }
+      }
+    },
+    {
+      "ordinal": 26,
+      "season": "Year",
+      "year": 1475,
+      "type": "Movement",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "Burgundy",
+        "England",
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "cal",
+            "Support",
+            "hol",
+            "fla"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "hol",
+            "Move",
+            "fla"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "lux",
+            "Move",
+            "dij"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "nom",
+            "Support",
+            "cal",
+            "cal"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "brt",
+            "Support",
+            "nom",
+            "nom"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "dev",
+            "Move",
+            "brs"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "eng",
+            "Support",
+            "nom",
+            "nom"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "guy",
+            "Support",
+            "brt",
+            "brt"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "lon",
+            "Support",
+            "cal",
+            "cal"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "med",
+            "Hold"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "sav",
+            "Move",
+            "dau"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "anj",
+            "Move",
+            "nom"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "dij",
+            "Move",
+            "can"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "fla",
+            "Move",
+            "cal"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "orl",
+            "Support",
+            "anj",
+            "nom"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "par",
+            "Support",
+            "anj",
+            "nom"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "brs",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "eng",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "med",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "sav",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "anj",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "can",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": true
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "Burgundy",
+          "can": "France",
+          "cas": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "France",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "Burgundy",
+          "orl": "France",
+          "par": "France",
+          "sco": "England",
+          "tou": "England"
+        }
+      }
+    },
+    {
+      "ordinal": 27,
+      "season": "Year",
+      "year": 1475,
+      "type": "Retreat",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "France",
+          "selected": [
+            "fla",
+            "Move",
+            "lux"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "brs",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "eng",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "med",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "sav",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "anj",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "can",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "lux",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "Burgundy",
+          "can": "France",
+          "cas": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "France",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "Burgundy",
+          "orl": "France",
+          "par": "France",
+          "sco": "England",
+          "tou": "England"
+        }
+      }
+    },
+    {
+      "ordinal": 28,
+      "season": "Year",
+      "year": 1480,
+      "type": "Movement",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "Burgundy",
+        "England",
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "cal",
+            "Support",
+            "dij",
+            "par"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "dij",
+            "Move",
+            "par"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "fla",
+            "Move",
+            "dij"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "nom",
+            "Hold"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "brs",
+            "Move",
+            "brt"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "brt",
+            "Move",
+            "orl"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "eng",
+            "Support",
+            "brs",
+            "brt"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "guy",
+            "Move",
+            "tou"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "lon",
+            "Support",
+            "cal",
+            "cal"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "sav",
+            "Move",
+            "dau"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "anj",
+            "Move",
+            "nom"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "can",
+            "Support",
+            "lux",
+            "dij"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "dau",
+            "Support",
+            "lux",
+            "dij"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "lux",
+            "Move",
+            "dij"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "orl",
+            "Support",
+            "par",
+            "par"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "par",
+            "Support",
+            "lux",
+            "dij"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "brs",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "eng",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "med",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "sav",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "tou",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "anj",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "can",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": true
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "Burgundy",
+          "can": "France",
+          "cas": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "France",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "Burgundy",
+          "orl": "France",
+          "par": "France",
+          "sco": "England",
+          "tou": "England"
+        }
+      }
+    },
+    {
+      "ordinal": 29,
+      "season": "Year",
+      "year": 1480,
+      "type": "Retreat",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "France",
+          "selected": [
+            "par",
+            "Move",
+            "cha"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "brs",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "eng",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "med",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "sav",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "tou",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "anj",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "can",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "cha",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "Burgundy",
+          "can": "France",
+          "cas": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "Burgundy",
+          "orl": "France",
+          "par": "Burgundy",
+          "sco": "England",
+          "tou": "England"
+        }
+      }
+    },
+    {
+      "ordinal": 30,
+      "season": "Year",
+      "year": 1480,
+      "type": "Adjustment",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "Burgundy",
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "hol",
+            "Build",
+            "Army"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "anj",
+            "Disband"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "cha",
+            "Disband"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "hol",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "brs",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "eng",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "med",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "sav",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "tou",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "can",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "Burgundy",
+          "can": "France",
+          "cas": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "Burgundy",
+          "orl": "France",
+          "par": "Burgundy",
+          "sco": "England",
+          "tou": "England"
+        }
+      }
+    },
+    {
+      "ordinal": 31,
+      "season": "Year",
+      "year": 1485,
+      "type": "Movement",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "Burgundy",
+        "England",
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "England",
+          "selected": [
+            "brs",
+            "Move",
+            "brt"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "brt",
+            "Move",
+            "poi"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "eng",
+            "Support",
+            "brs",
+            "brt"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "sav",
+            "Move",
+            "dau"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "tou",
+            "Move",
+            "lim"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "can",
+            "Support",
+            "dij",
+            "dij"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "dau",
+            "Support",
+            "orl",
+            "par"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "dij",
+            "Support",
+            "orl",
+            "par"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "orl",
+            "Move",
+            "par"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "hol",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "par",
+            "dislodged": true
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "eng",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "lim",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "med",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "poi",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "sav",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "can",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "Burgundy",
+          "can": "France",
+          "cas": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "Burgundy",
+          "orl": "France",
+          "par": "Burgundy",
+          "sco": "England",
+          "tou": "England"
+        }
+      }
+    },
+    {
+      "ordinal": 32,
+      "season": "Year",
+      "year": 1485,
+      "type": "Retreat",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "Burgundy"
+      ],
+      "orders": [
+        {
+          "nation": "Burgundy",
+          "selected": [
+            "par",
+            "Move",
+            "cha"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "cha",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "hol",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "eng",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "lim",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "med",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "poi",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "sav",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "can",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "Burgundy",
+          "can": "France",
+          "cas": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "Burgundy",
+          "orl": "France",
+          "par": "Burgundy",
+          "sco": "England",
+          "tou": "England"
+        }
+      }
+    },
+    {
+      "ordinal": 33,
+      "season": "Year",
+      "year": 1490,
+      "type": "Movement",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "Burgundy",
+        "England",
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "England",
+          "selected": [
+            "brt",
+            "Hold"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "eng",
+            "Hold"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "lim",
+            "Support",
+            "poi",
+            "orl"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "lon",
+            "Hold"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "med",
+            "Hold"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "poi",
+            "Move",
+            "orl"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "sav",
+            "Move",
+            "dau"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "can",
+            "Move",
+            "sav"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "dau",
+            "Support",
+            "can",
+            "sav"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "dij",
+            "Support",
+            "par",
+            "cal"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "par",
+            "Move",
+            "cal"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "cha",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "hol",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "eng",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "lim",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "med",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "sav",
+            "dislodged": true
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "sav",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "Burgundy",
+          "can": "France",
+          "cas": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "Burgundy",
+          "orl": "France",
+          "par": "Burgundy",
+          "sco": "England",
+          "tou": "England"
+        }
+      }
+    },
+    {
+      "ordinal": 34,
+      "season": "Year",
+      "year": 1490,
+      "type": "Retreat",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "England"
+      ],
+      "orders": [
+        {
+          "nation": "England",
+          "selected": [
+            "sav",
+            "Move",
+            "pro"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "cha",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "hol",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "eng",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "lim",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "med",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "pro",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "sav",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "France",
+          "can": "France",
+          "cas": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "Burgundy",
+          "orl": "England",
+          "par": "Burgundy",
+          "sco": "England",
+          "tou": "England"
+        }
+      }
+    },
+    {
+      "ordinal": 35,
+      "season": "Year",
+      "year": 1490,
+      "type": "Adjustment",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "Burgundy",
+        "England"
+      ],
+      "orders": [
+        {
+          "nation": "England",
+          "selected": [
+            "guy",
+            "Build",
+            "Army"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "cha",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "hol",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "eng",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "guy",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "lim",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "med",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "pro",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "sav",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "France",
+          "can": "France",
+          "cas": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "Burgundy",
+          "orl": "England",
+          "par": "Burgundy",
+          "sco": "England",
+          "tou": "England"
+        }
+      }
+    },
+    {
+      "ordinal": 36,
+      "season": "Year",
+      "year": 1495,
+      "type": "Movement",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "Burgundy",
+        "England",
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "England",
+          "selected": [
+            "guy",
+            "Move",
+            "tou"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "lim",
+            "Support",
+            "pro",
+            "dau"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "med",
+            "Move",
+            "sav"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "orl",
+            "Support",
+            "pro",
+            "dau"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "pro",
+            "Move",
+            "dau"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "cal",
+            "Move",
+            "par"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "dau",
+            "Support",
+            "cal",
+            "par"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "dij",
+            "Support",
+            "dau",
+            "dau"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "sav",
+            "Support",
+            "dau",
+            "dau"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "cha",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "hol",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "eng",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "lim",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "med",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "tou",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": true
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "sav",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "France",
+          "can": "France",
+          "cas": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "Burgundy",
+          "orl": "England",
+          "par": "Burgundy",
+          "sco": "England",
+          "tou": "England"
+        }
+      }
+    },
+    {
+      "ordinal": 37,
+      "season": "Year",
+      "year": 1495,
+      "type": "Retreat",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "France",
+          "selected": [
+            "dau",
+            "Move",
+            "can"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "cha",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "hol",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "eng",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "lim",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "med",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "tou",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "can",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "sav",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "France",
+          "can": "France",
+          "cas": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "Burgundy",
+          "orl": "England",
+          "par": "Burgundy",
+          "sco": "England",
+          "tou": "England"
+        }
+      }
+    },
+    {
+      "ordinal": 38,
+      "season": "Year",
+      "year": 1500,
+      "type": "Movement",
+      "resolution_trigger": "deadline",
+      "non_confirming_nations": [
+        "Burgundy",
+        "England",
+        "France"
+      ],
+      "orders": [
+        {
+          "nation": "England",
+          "selected": [
+            "dau",
+            "Move",
+            "par"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "eng",
+            "Move",
+            "str"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "lim",
+            "Move",
+            "dau"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "lon",
+            "Move",
+            "cal"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "med",
+            "Move",
+            "sav"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "orl",
+            "Support",
+            "dau",
+            "par"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "England",
+          "selected": [
+            "tou",
+            "Move",
+            "pro"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "can",
+            "Support",
+            "sav",
+            "dau"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "dij",
+            "Support",
+            "sav",
+            "dau"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "par",
+            "Support",
+            "sav",
+            "dau"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        },
+        {
+          "nation": "France",
+          "selected": [
+            "sav",
+            "Move",
+            "dau"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "cha",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "hol",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "lim",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "pro",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "sav",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "str",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "can",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "France",
+          "can": "France",
+          "cas": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "Burgundy",
+          "orl": "England",
+          "par": "Burgundy",
+          "sco": "England",
+          "tou": "England"
+        }
+      }
+    },
+    {
+      "ordinal": 39,
+      "season": "Year",
+      "year": 1500,
+      "type": "Retreat",
+      "resolution_trigger": "auto",
+      "non_confirming_nations": [],
+      "orders": [],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "cha",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "fla",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Army",
+            "province": "hol",
+            "dislodged": false
+          },
+          {
+            "nation": "Burgundy",
+            "type": "Fleet",
+            "province": "nom",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "brt",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "cal",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "lim",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "orl",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Army",
+            "province": "pro",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "sav",
+            "dislodged": false
+          },
+          {
+            "nation": "England",
+            "type": "Fleet",
+            "province": "str",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "can",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dau",
+            "dislodged": false
+          },
+          {
+            "nation": "France",
+            "type": "Army",
+            "province": "dij",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "brt": "England",
+          "cal": "England",
+          "can": "France",
+          "cas": "England",
+          "dau": "France",
+          "dev": "England",
+          "dij": "France",
+          "fla": "Burgundy",
+          "guy": "England",
+          "hol": "Burgundy",
+          "lon": "England",
+          "lux": "Burgundy",
+          "nom": "Burgundy",
+          "orl": "England",
+          "par": "England",
+          "sco": "England",
+          "tou": "England"
+        }
+      }
+    },
+    {
+      "ordinal": 40,
+      "season": "Year",
+      "year": 1500,
+      "type": "Adjustment",
+      "resolution_trigger": "terminal",
+      "non_confirming_nations": [],
+      "orders": [],
+      "expected_state_after": null
+    }
+  ]
+}
