@@ -207,6 +207,29 @@ const OrdersScreen: React.FC = () => {
   );
   const hasContent = nationGroups.length > 0;
 
+  const footerButton = (() => {
+    if (!canModifyOrders) return null;
+    if (game.sandbox) return (
+      <Button disabled={resolvePhaseMutation.isPending} onClick={handleResolvePhase}>
+        <Play className="size-4" />
+        Resolve phase
+      </Button>
+    );
+    if (game.deadlineMode === "fixed_time") return null;
+    if (hasContent) return (
+      <Button disabled={confirmOrdersMutation.isPending} onClick={handleConfirmOrders}>
+        {game.phaseConfirmed ? <CheckSquare className="size-4" /> : <Square className="size-4" />}
+        {game.phaseConfirmed ? "Orders confirmed" : "Confirm orders"}
+      </Button>
+    );
+    return (
+      <Button disabled>
+        <CheckSquare className="size-4" />
+        Orders confirmed
+      </Button>
+    );
+  })();
+
   const emptyState = isActivePhase
     ? {
         icon: Inbox,
@@ -330,43 +353,12 @@ const OrdersScreen: React.FC = () => {
             )}
           </Panel.Content>
 
-          {canModifyOrders && (
+          {footerButton && (
             <>
               <Separator />
               <Panel.Footer>
                 <div className="flex gap-2 justify-end w-full">
-                  {game.sandbox ? (
-                    <Button
-                      disabled={resolvePhaseMutation.isPending}
-                      onClick={handleResolvePhase}
-                    >
-                      <Play className="size-4" />
-                      Resolve phase
-                    </Button>
-                  ) : (
-                    <>
-                      {hasContent ? (
-                        <Button
-                          disabled={confirmOrdersMutation.isPending}
-                          onClick={handleConfirmOrders}
-                        >
-                          {game.phaseConfirmed ? (
-                            <CheckSquare className="size-4" />
-                          ) : (
-                            <Square className="size-4" />
-                          )}
-                          {game.phaseConfirmed
-                            ? "Orders confirmed"
-                            : "Confirm orders"}
-                        </Button>
-                      ) : (
-                        <Button disabled>
-                          <CheckSquare className="size-4" />
-                          Orders confirmed
-                        </Button>
-                      )}
-                    </>
-                  )}
+                  {footerButton}
                 </div>
               </Panel.Footer>
             </>

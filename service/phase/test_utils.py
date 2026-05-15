@@ -21,7 +21,7 @@ class TestCalculateNextFixedDeadline:
         result = calculate_next_fixed_deadline(target_time, frequency, tz_name)
         assert result > timezone.now()
 
-    def test_hourly_returns_top_of_next_hour(self):
+    def test_hourly_subsequent_advances_to_next_minute_mark(self):
         target_time = time(21, 0)
         tz_name = "America/New_York"
         reference = datetime(2024, 6, 15, 14, 30, 0, tzinfo=ZoneInfo("America/New_York"))
@@ -35,7 +35,7 @@ class TestCalculateNextFixedDeadline:
         assert local_result.minute == 0
         assert local_result.second == 0
 
-    def test_hourly_at_top_of_hour_goes_to_next(self):
+    def test_hourly_subsequent_at_exact_mark_advances_one_interval(self):
         target_time = time(21, 0)
         tz_name = "America/New_York"
         reference = datetime(2024, 6, 15, 14, 0, 0, tzinfo=ZoneInfo("America/New_York"))
@@ -47,6 +47,48 @@ class TestCalculateNextFixedDeadline:
         local_result = result.astimezone(ZoneInfo(tz_name))
         assert local_result.hour == 15
         assert local_result.minute == 0
+
+    def test_hourly_first_phase_uses_target_time_plus_interval(self):
+        target_time = time(15, 0)
+        tz_name = "America/New_York"
+        reference = datetime(2024, 6, 15, 13, 47, 0, tzinfo=ZoneInfo("America/New_York"))
+
+        result = calculate_next_fixed_deadline(
+            target_time, PhaseFrequency.HOURLY, tz_name, reference_time=reference, is_first_phase=True
+        )
+
+        local_result = result.astimezone(ZoneInfo(tz_name))
+        assert local_result.day == 15
+        assert local_result.hour == 16
+        assert local_result.minute == 0
+
+    def test_hourly_first_phase_target_passed_advances_to_next_day(self):
+        target_time = time(15, 0)
+        tz_name = "America/New_York"
+        reference = datetime(2024, 6, 15, 15, 30, 0, tzinfo=ZoneInfo("America/New_York"))
+
+        result = calculate_next_fixed_deadline(
+            target_time, PhaseFrequency.HOURLY, tz_name, reference_time=reference, is_first_phase=True
+        )
+
+        local_result = result.astimezone(ZoneInfo(tz_name))
+        assert local_result.day == 16
+        assert local_result.hour == 16
+        assert local_result.minute == 0
+
+    def test_hourly_first_phase_with_nonzero_minutes(self):
+        target_time = time(15, 30)
+        tz_name = "America/New_York"
+        reference = datetime(2024, 6, 15, 13, 0, 0, tzinfo=ZoneInfo("America/New_York"))
+
+        result = calculate_next_fixed_deadline(
+            target_time, PhaseFrequency.HOURLY, tz_name, reference_time=reference, is_first_phase=True
+        )
+
+        local_result = result.astimezone(ZoneInfo(tz_name))
+        assert local_result.day == 15
+        assert local_result.hour == 16
+        assert local_result.minute == 30
 
     def test_daily_uses_target_time_same_day(self):
         target_time = time(21, 0)

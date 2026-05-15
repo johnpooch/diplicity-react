@@ -2018,6 +2018,52 @@ class TestFilterDuePhasesBasicFiltering:
 
         assert phase in phases
 
+    @pytest.mark.django_db
+    def test_filter_due_phases_fixed_time_all_confirmed_does_not_resolve_early(
+        self, phase_factory, classical_variant, classical_england_nation, classical_france_nation
+    ):
+        game = Game.objects.create(
+            variant=classical_variant,
+            name="Fixed Time Game",
+            status=GameStatus.ACTIVE,
+            deadline_mode=DeadlineMode.FIXED_TIME,
+        )
+        phase = phase_factory(
+            game=game,
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
+                {"nation": classical_france_nation, "has_possible_orders": True, "orders_confirmed": True},
+            ],
+        )
+
+        phases = Phase.objects.filter_due_phases()
+
+        assert phase not in phases
+
+    @pytest.mark.django_db
+    def test_filter_due_phases_fixed_time_resolves_at_scheduled_time(
+        self, phase_factory, classical_variant, classical_england_nation, classical_france_nation
+    ):
+        game = Game.objects.create(
+            variant=classical_variant,
+            name="Fixed Time Game",
+            status=GameStatus.ACTIVE,
+            deadline_mode=DeadlineMode.FIXED_TIME,
+        )
+        phase = phase_factory(
+            game=game,
+            scheduled_resolution=timezone.now() - timedelta(seconds=1),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
+                {"nation": classical_france_nation, "has_possible_orders": True, "orders_confirmed": True},
+            ],
+        )
+
+        phases = Phase.objects.filter_due_phases()
+
+        assert phase in phases
+
 
 class TestPhaseAdminQueryPerformance:
 

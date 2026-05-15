@@ -304,11 +304,20 @@ def _group_named_coasts(provinces):
     return result
 
 
+FREQUENCY_INTERVALS = {
+    PhaseFrequency.HOURLY: timedelta(hours=1),
+    PhaseFrequency.DAILY: timedelta(days=1),
+    PhaseFrequency.EVERY_2_DAYS: timedelta(days=2),
+    PhaseFrequency.WEEKLY: timedelta(weeks=1),
+}
+
+
 def calculate_next_fixed_deadline(
     target_time,
     frequency,
     tz_name,
     reference_time=None,
+    is_first_phase=False,
 ):
     if reference_time is None:
         reference_time = timezone.now()
@@ -317,8 +326,25 @@ def calculate_next_fixed_deadline(
     local_now = reference_time.astimezone(tz)
 
     if frequency == PhaseFrequency.HOURLY:
-        next_deadline = local_now.replace(minute=0, second=0, microsecond=0)
-        next_deadline += timedelta(hours=1)
+        if is_first_phase:
+            candidate = local_now.replace(
+                hour=target_time.hour,
+                minute=target_time.minute,
+                second=0,
+                microsecond=0,
+            )
+            if candidate <= local_now:
+                candidate += timedelta(days=1)
+            next_deadline = candidate + FREQUENCY_INTERVALS[frequency]
+        else:
+            candidate = local_now.replace(
+                minute=target_time.minute,
+                second=0,
+                microsecond=0,
+            )
+            if candidate <= local_now:
+                candidate += FREQUENCY_INTERVALS[frequency]
+            next_deadline = candidate
     elif frequency == PhaseFrequency.DAILY:
         candidate = local_now.replace(
             hour=target_time.hour,

@@ -382,7 +382,7 @@ class Game(BaseModel):
         else:
             return self.effective_retreat_frequency
 
-    def get_scheduled_resolution(self, phase_type):
+    def get_scheduled_resolution(self, phase_type, is_first_phase=False):
         if self.deadline_mode == DeadlineMode.FIXED_TIME:
             frequency = self.get_phase_frequency(phase_type)
             if not frequency or not self.fixed_deadline_time or not self.fixed_deadline_timezone:
@@ -391,6 +391,7 @@ class Game(BaseModel):
                 target_time=self.fixed_deadline_time,
                 frequency=frequency,
                 tz_name=self.fixed_deadline_timezone,
+                is_first_phase=is_first_phase,
             )
         else:
             phase_duration_seconds = self.get_phase_duration_seconds(phase_type)
@@ -449,7 +450,7 @@ class Game(BaseModel):
 
         current_phase.status = PhaseStatus.ACTIVE
         current_phase.options = adjudication_data["options"]
-        current_phase.scheduled_resolution = self.get_scheduled_resolution(current_phase.type)
+        current_phase.scheduled_resolution = self.get_scheduled_resolution(current_phase.type, is_first_phase=True)
         current_phase.save()
 
         # Use prefetched nations if available, otherwise fetch
