@@ -4,3 +4,7 @@ line-length = 120
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "project.settings"
 python_files = ["test*.py"]
+# test_replay runs full-game fixture replays and takes ~15 minutes.
+# Excluded from the default run (CI and local); invoke explicitly when
+# needed: `pytest integration/test_replay.py`.
+addopts = "--ignore=integration/test_replay.py"
