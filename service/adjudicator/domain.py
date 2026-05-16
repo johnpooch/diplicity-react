@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import ClassVar, Dict, List, Optional, Tuple
+from typing import ClassVar, Dict, List, Optional, Tuple, Union
 
 
 class Pass:
@@ -83,15 +83,41 @@ class DominanceRule:
     dependencies: Tuple[DominanceDependency, ...]
 
 
+class VictoryConditionType:
+    SUPPLY_CENTER_MAJORITY: ClassVar[str] = "supply-center-majority"
+    TIMED_RESOLUTION: ClassVar[str] = "timed-resolution"
+    PROVINCE_CONTROL: ClassVar[str] = "province-control"
+
+
+@dataclass(frozen=True)
+class SupplyCenterMajorityVictory:
+    supply_centers: int
+
+
+@dataclass(frozen=True)
+class TimedResolutionVictory:
+    year: int
+    resolution: str
+
+
+@dataclass(frozen=True)
+class ProvinceControlVictory:
+    provinces: Tuple[str, ...]
+    year: Optional[int]
+
+
+VictoryCondition = Union[
+    SupplyCenterMajorityVictory, TimedResolutionVictory, ProvinceControlVictory
+]
+
+
 @dataclass(frozen=True)
 class Variant:
     id: str
     name: str
     description: str
     author: str
-    solo_victory_supply_centers: int
-    game_ends_year: Optional[int]
-    draw_after_year: Optional[int]
+    victory_conditions: Tuple[VictoryCondition, ...]
     rules: Optional[str]
     adjudication_modifiers: Tuple[str, ...]
     phase_progression: PhaseProgression
