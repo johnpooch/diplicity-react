@@ -4,7 +4,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('province', '0013_add_canton_provinces'),
+        ('province', '0014_province_home_nation'),
     ]
 
     operations = [

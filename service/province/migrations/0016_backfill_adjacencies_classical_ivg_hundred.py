@@ -261,7 +261,7 @@ def clear_adjacencies(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("province", "0014_add_province_adjacencies"),
+        ("province", "0015_add_province_adjacencies"),
     ]
 
     operations = [

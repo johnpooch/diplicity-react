@@ -395,7 +395,7 @@ def clear_adjacencies(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("province", "0015_backfill_adjacencies_classical_ivg_hundred"),
+        ("province", "0016_backfill_adjacencies_classical_ivg_hundred"),
     ]
 
     operations = [
