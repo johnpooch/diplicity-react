@@ -9,6 +9,7 @@ class Province(models.Model):
     supply_center = models.BooleanField(default=False)
     variant = models.ForeignKey("variant.Variant", on_delete=models.CASCADE, related_name="provinces")
     parent = models.ForeignKey("self", null=True, blank=True, on_delete=models.PROTECT, related_name="named_coasts")
+    adjacencies = models.JSONField(default=list)
 
     class Meta:
         ordering = ["name"]

@@ -472,7 +472,12 @@ $defs:
             - coastal: either
 
           Provinces that have multiple named coasts are typed `land`. Their
-          coasts live in `namedCoasts` and carry their own fleet adjacencies.
+          coasts live in `namedCoasts` and carry the coast-specific fleet
+          adjacencies. A multi-coast parent may itself also carry fleet
+          adjacencies when the variant's map (in godip) declares them on both
+          endpoints — godip's Classical does this, while several other variants
+          leave the parent land-only. A `land`-typed province can therefore
+          legitimately appear with fleet edges.
       supplyCenter:
         type: boolean
         description: Whether holding this province contributes to the supply-center count.
@@ -508,9 +513,12 @@ $defs:
             - For sea-to-sea or sea-to-coastal pairs, use `pass: fleet`.
             - For land-to-land pairs, use `pass: army`.
 
-          When a fleet edge targets a province that has named coasts, the
-          `to` field references the specific named coast (e.g. "bul/ec"), not
-          the parent. Army edges always reference parent provinces.
+          A fleet edge into a province that has named coasts normally
+          references the specific named coast (e.g. "bul/ec"). A variant's map
+          may additionally declare a fleet edge to the parent province itself;
+          because symmetry is required, such a parent edge is only valid when
+          the variant declares it on both endpoints (godip's Classical does,
+          for `stp`/`spa`/`bul`). Army edges always reference parent provinces.
         items:
           $ref: "#/$defs/Adjacency"
 
