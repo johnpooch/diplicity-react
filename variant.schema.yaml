@@ -2,8 +2,8 @@ $schema: https://json-schema.org/draft/2020-12/schema
 $id: https://diplicity.com/schemas/variant.schema.yaml
 title: Variant
 description: |
-  A complete definition of a Diplomacy variant — map, nations, initial state,
-  rules, and rendering data — in a single language-neutral document.
+  The definition of a Diplomacy variant (excluding rendering data) — map topology,
+  nations, initial state, and rules — in a single language-neutral document.
 type: object
 additionalProperties: false
 required:
@@ -12,14 +12,12 @@ required:
   - name
   - description
   - author
-  - soloVictorySupplyCenters
+  - victoryConditions
   - phaseProgression
   - nations
   - provinces
   - namedCoasts
   - initialState
-  - dimensions
-  - decorativeElements
 
 properties:
   schemaVersion:
@@ -40,75 +38,56 @@ properties:
 
   name:
     type: string
-    description: Human-readable name shown in UI (e.g. "Classical").
+    description: Human-readable name shown in UI.
+    examples:
+      - "Classical"
 
   description:
     type: string
     description: |
       Short prose description of the variant for the variant catalogue.
       One or two sentences — the equivalent of a tagline.
+    examples:
+      - "The original game of Diplomacy."
 
   rules:
     type: string
     description: |
-      Optional long-form, player-facing rules text in Markdown.
-
-      `description` is the catalogue blurb; `rules` is where variant-specific
-      mechanics that a player needs to read get explained — dominance-rule
-      logic, non-standard build phase frequency, alternate victory
-      conditions, etc.
-
-      Adjudication does not consume this field. The web UI renders it on the
-      variant detail page.
+      Optional long-form, player-facing rules text.
+      Free-form text.
     examples:
-      - |
-        ## Victory
-
-        The first nation to control 18 supply centers (a majority of the 34
-        on the board) wins outright. There is no fixed end year — games
-        continue until a solo or until the surviving players agree to a
-        draw.
-
-        ## Build phase
-
-        Each year, after Fall Retreat, every nation builds new units in its
-        unoccupied home supply centers (up to its current SC count) or
-        disbands surplus units.
+      - "The first nation to control 18 supply centers (a majority of the 34 on the board) wins outright. There is no fixed end year — games continue until a solo or until the surviving players agree to a draw."
 
   author:
     type: string
     description: |
       Free-form attribution for the variant designer (e.g. "Allan B. Calhamer").
       Not a user account; just credit text.
+    examples:
+      - "Allan B. Calhamer"
 
-  soloVictorySupplyCenters:
-    type: integer
-    minimum: 1
+  victoryConditions:
+    type: array
+    minItems: 1
     description: |
-      Number of supply centers a single nation must control to win the game
-      outright. For Classical, this is 18 (a majority of the 34 SCs). The
-      adjudicator checks this each adjustment phase.
+      The ways a game on this variant can end. Each entry is a condition the
+      adjudicator evaluates after the relevant phase; the first condition to
+      fire ends the game. A variant may declare several at once (e.g. a solo
+      threshold *and* a fixed historical end year).
 
-  gameEndsYear:
-    type: integer
-    description: |
-      Optional. Calendar year at the end of which the game terminates
-      regardless of solo victory. The nation with the most supply centers at
-      termination wins; ties produce a shared victory among the leaders.
-
-      Used by variants with a fixed historical end (e.g. godip's `hundred`
-      ends in 1453). Omit for open-ended variants like Classical.
-
-  drawAfterYear:
-    type: integer
-    description: |
-      Optional. Calendar year after which an unfinished game is forced into
-      a shared draw among all surviving nations, regardless of supply-center
-      counts. Distinct from `gameEndsYear` (which decides by SC count); use
-      this for variants whose rules treat any unresolved long game as a
-      draw rather than a leader-takes-it.
-
-      Omit for open-ended variants like Classical.
+      Only declarative, game-state-derivable conditions belong here. Victory
+      rules that need bespoke logic (per-player secret objectives, vote-based
+      scoring, etc.) are not modelled.
+    items:
+      $ref: "#/$defs/VictoryCondition"
+    examples:
+      - - type: supply-center-majority
+          supplyCenters: 18
+      - - type: supply-center-majority
+          supplyCenters: 18
+        - type: timed-resolution
+          year: 1453
+          resolution: most-supply-centers
 
   adjudicationModifiers:
     type: array
@@ -116,12 +95,6 @@ properties:
       Behavioral toggles the adjudicator recognizes as opt-ins or opt-outs of
       its default rules. Each entry is a string tag from a fixed vocabulary
       defined by the adjudicator (e.g. "allow-builds-in-non-home-centers").
-
-      Unknown tags must cause variant load to fail — typos should not silently
-      change rules.
-
-      Parametric values (e.g. solo-victory threshold) are not modifiers; they
-      live in their own top-level fields.
     items:
       type: string
     uniqueItems: true
@@ -222,7 +195,7 @@ properties:
 
       Impassable regions (e.g. Switzerland in Classical) are not provinces —
       they have no presence in the data model and exist only as visual gaps
-      drawn by the renderer's `decorativeElements`.
+      in the SVG.
     minItems: 1
     items:
       $ref: "#/$defs/Province"
@@ -344,37 +317,6 @@ properties:
     items:
       $ref: "#/$defs/DominanceRule"
 
-  dimensions:
-    type: object
-    description: |
-      SVG canvas dimensions used by the renderer. Rendering only — stripped
-      before the variant is sent to the adjudicator.
-    additionalProperties: false
-    required: [width, height]
-    properties:
-      width: { type: number, exclusiveMinimum: 0 }
-      height: { type: number, exclusiveMinimum: 0 }
-    examples:
-      - { width: 1835, height: 1360 }
-
-  decorativeElements:
-    type: array
-    description: |
-      SVG primitives that aren't tied to a specific province — coastlines,
-      borders between non-adjacent territories, terrain shading, ornamental
-      labels, and visual representations of impassable regions. Rendering
-      only; ignored by the adjudicator.
-    items:
-      $ref: "#/$defs/DecorativeElement"
-
-  textElements:
-    type: array
-    description: |
-      Optional standalone text elements (titles, legends, decorative labels)
-      that aren't attached to any province. Rendering only.
-    items:
-      $ref: "#/$defs/TextElement"
-
 $defs:
   PhaseType:
     enum: [Movement, Retreat, Adjustment]
@@ -418,6 +360,76 @@ $defs:
               multiple years per cycle (e.g. godip's `hundred` variant uses
               5-year jumps).
 
+  VictoryCondition:
+    description: |
+      A single way a game can end. Discriminator: `type`.
+        - supply-center-majority — a nation solos by controlling enough SCs
+        - timed-resolution       — at a fixed calendar year, the game ends and
+                                   is decided by SC count or forced to a draw
+        - province-control       — a nation wins by holding a specific set of
+                                   provinces, optionally only from a given year
+    examples:
+      - type: supply-center-majority
+        supplyCenters: 18
+      - type: timed-resolution
+        year: 1453
+        resolution: most-supply-centers
+      - type: province-control
+        provinces: [stp, mos]
+        year: 1911
+    oneOf:
+      - type: object
+        additionalProperties: false
+        required: [type, supplyCenters]
+        properties:
+          type: { const: supply-center-majority }
+          supplyCenters:
+            type: integer
+            minimum: 1
+            description: |
+              Number of supply centers a single nation must control to win
+              outright. For Classical this is 18 (a majority of the 34 SCs).
+              Checked each adjustment phase.
+      - type: object
+        additionalProperties: false
+        required: [type, year, resolution]
+        properties:
+          type: { const: timed-resolution }
+          year:
+            type: integer
+            description: |
+              Calendar year at the end of which the game terminates regardless
+              of any solo. Used by variants with a fixed historical end
+              (e.g. godip's `hundred` ends in 1453).
+          resolution:
+            enum: [most-supply-centers, shared-draw]
+            description: |
+              How the terminated game is decided:
+                - most-supply-centers — the nation with the most SCs wins;
+                  ties produce a shared victory among the leaders
+                - shared-draw         — all surviving nations share a draw
+                  regardless of SC counts
+      - type: object
+        additionalProperties: false
+        required: [type, provinces]
+        properties:
+          type: { const: province-control }
+          provinces:
+            type: array
+            minItems: 1
+            uniqueItems: true
+            description: |
+              Province ids a single nation must simultaneously control to win.
+              Always parent province ids, never named coasts.
+            items:
+              type: string
+          year:
+            type: integer
+            description: |
+              Optional. If present, the condition is only evaluated from this
+              calendar year onward (e.g. Wall of Ice decides in winter 1911).
+              Omit to evaluate every phase.
+
   Province:
     type: object
     additionalProperties: false
@@ -427,10 +439,6 @@ $defs:
       - type
       - supplyCenter
       - adjacencies
-      - path
-      - labels
-      - unitPosition
-      - dislodgedUnitPosition
     examples:
       - id: stp
         name: St. Petersburg
@@ -442,14 +450,6 @@ $defs:
           - { to: mos, pass: army }
           - { to: fin, pass: army }
           - { to: nwy, pass: army }
-        path: "M 1430 220 L 1500 230 L 1520 280 Z"
-        labels:
-          - text: "St. Petersburg"
-            position: { x: 1465, y: 240 }
-            source: svg
-        unitPosition:          { x: 1465, y: 250 }
-        dislodgedUnitPosition: { x: 1480, y: 265 }
-        supplyCenterPosition:  { x: 1450, y: 235 }
     properties:
       id:
         type: string
@@ -514,35 +514,6 @@ $defs:
         items:
           $ref: "#/$defs/Adjacency"
 
-      path:
-        type: string
-        description: |
-          SVG `d` attribute for the province polygon. Rendering only.
-        examples:
-          - "M 1430 220 L 1500 230 L 1520 280 Z"
-      labels:
-        type: array
-        description: |
-          Province text labels (typically the province name). Some are
-          imported from the source SVG; others are generated by the
-          variant-creator wizard. Rendering only.
-        items:
-          $ref: "#/$defs/Label"
-      unitPosition:
-        $ref: "#/$defs/Position"
-        description: |
-          Coordinates where a unit icon is drawn on the map. Rendering only.
-      dislodgedUnitPosition:
-        $ref: "#/$defs/Position"
-        description: |
-          Coordinates for a dislodged-unit icon, offset from `unitPosition`
-          so both can be visible simultaneously. Rendering only.
-      supplyCenterPosition:
-        $ref: "#/$defs/Position"
-        description: |
-          Coordinates for the supply-center marker. Required if `supplyCenter`
-          is true; absent otherwise. Rendering only.
-
   NamedCoast:
     type: object
     additionalProperties: false
@@ -551,9 +522,6 @@ $defs:
       - name
       - parentProvince
       - adjacencies
-      - path
-      - unitPosition
-      - dislodgedUnitPosition
     examples:
       - id: stp/sc
         name: "St. Petersburg (SC)"
@@ -562,9 +530,6 @@ $defs:
           - { to: bot, pass: fleet }
           - { to: lvn, pass: fleet }
           - { to: fin, pass: fleet }
-        path: "M 1430 280 L 1500 290 L 1520 330 Z"
-        unitPosition:          { x: 1465, y: 305 }
-        dislodgedUnitPosition: { x: 1480, y: 320 }
     properties:
       id:
         type: string
@@ -587,17 +552,6 @@ $defs:
           fleets — armies use the parent province.
         items:
           $ref: "#/$defs/Adjacency"
-      path:
-        type: string
-        description: |
-          SVG `d` attribute for the coast highlight (a sliver along the
-          parent province's coastline). Rendering only.
-      unitPosition:
-        $ref: "#/$defs/Position"
-        description: Rendering only.
-      dislodgedUnitPosition:
-        $ref: "#/$defs/Position"
-        description: Rendering only.
 
   Adjacency:
     type: object
@@ -667,119 +621,3 @@ $defs:
               description: |
                 Nation id, or the literal "Neutral" to require the province
                 be unowned.
-
-  Position:
-    type: object
-    additionalProperties: false
-    required: [x, y]
-    properties:
-      x: { type: number }
-      y: { type: number }
-
-  Label:
-    type: object
-    additionalProperties: false
-    required: [text, position]
-    examples:
-      - text: "St. Petersburg"
-        position: { x: 1465, y: 240 }
-        source: svg
-      - text: "Mid-Atlantic"
-        position: { x: 200, y: 800 }
-        rotation: -15
-        source: generated
-        style: { fontSize: 14, fill: "#333" }
-    properties:
-      text:
-        type: string
-      position:
-        $ref: "#/$defs/Position"
-      rotation:
-        type: number
-        description: Rotation in degrees. Defaults to 0 if omitted.
-      source:
-        enum: [svg, generated]
-        description: |
-          Whether this label came from the source SVG import or was generated
-          by the variant-creator wizard.
-      style:
-        type: object
-        additionalProperties: true
-        description: Optional rendering style overrides (font size, fill, etc.).
-
-  DecorativeElement:
-    description: |
-      Polymorphic SVG primitive. Discriminator: `kind`.
-        - kind: path  — an SVG path with optional fill / stroke
-        - kind: text  — standalone text at a position
-        - kind: group — a named group of children, rendered together
-    examples:
-      - kind: path
-        d: "M 100 200 L 300 400 L 500 200 Z"
-        fill: "#cce6ff"
-        stroke: "#0066cc"
-        strokeWidth: 1
-      - kind: text
-        text: "Mediterranean Sea"
-        position: { x: 800, y: 950 }
-        rotation: -10
-        style: { fontSize: 24, fill: "#0066cc", fontStyle: italic }
-      - kind: group
-        id: coastlines
-        children:
-          - kind: path
-            d: "M 0 500 L 1835 500"
-            stroke: "#000"
-            strokeWidth: 2
-    oneOf:
-      - type: object
-        additionalProperties: false
-        required: [kind, d]
-        properties:
-          kind: { const: path }
-          d: { type: string }
-          fill: { type: string }
-          stroke: { type: string }
-          strokeWidth: { type: number }
-      - type: object
-        additionalProperties: false
-        required: [kind, text, position]
-        properties:
-          kind: { const: text }
-          text: { type: string }
-          position: { $ref: "#/$defs/Position" }
-          rotation: { type: number }
-          style:
-            type: object
-            additionalProperties: true
-      - type: object
-        additionalProperties: false
-        required: [kind, children]
-        properties:
-          kind: { const: group }
-          id: { type: string }
-          children:
-            type: array
-            items:
-              $ref: "#/$defs/DecorativeElement"
-
-  TextElement:
-    type: object
-    additionalProperties: false
-    required: [text, position]
-    examples:
-      - text: "Diplomacy — Classical"
-        position: { x: 50, y: 50 }
-        style: { fontSize: 32, fill: "#222", fontWeight: bold }
-    properties:
-      text:
-        type: string
-      position:
-        $ref: "#/$defs/Position"
-      rotation:
-        type: number
-        description: Rotation in degrees. Defaults to 0 if omitted.
-      style:
-        type: object
-        additionalProperties: true
-        description: Optional rendering style overrides.
