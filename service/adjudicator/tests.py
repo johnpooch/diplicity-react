@@ -32,6 +32,7 @@ from .domain import (
     Resolution,
     State,
     SupplyCenter,
+    SupplyCenterMajorityVictory,
     Unit,
     Variant,
 )
@@ -112,15 +113,6 @@ def _datc_classical_phase_progression() -> Dict[str, Any]:
     }
 
 
-def _datc_stub_geometry() -> Dict[str, Any]:
-    return {
-        "path": "M 0 0 L 1 0 L 1 1 L 0 1 Z",
-        "labels": [],
-        "unitPosition": {"x": 0, "y": 0},
-        "dislodgedUnitPosition": {"x": 0, "y": 0},
-    }
-
-
 def _datc_province(
     province_id: str,
     name: str,
@@ -135,12 +127,9 @@ def _datc_province(
         "type": type_,
         "supplyCenter": supply_center,
         "adjacencies": adjacencies,
-        **_datc_stub_geometry(),
     }
     if home_nation is not None:
         p["homeNation"] = home_nation
-    if supply_center:
-        p["supplyCenterPosition"] = {"x": 0, "y": 0}
     return p
 
 
@@ -152,9 +141,6 @@ def _datc_named_coast(
         "name": name,
         "parentProvince": parent,
         "adjacencies": adjacencies,
-        "path": "M 0 0 L 1 0 L 1 1 Z",
-        "unitPosition": {"x": 0, "y": 0},
-        "dislodgedUnitPosition": {"x": 0, "y": 0},
     }
 
 
@@ -562,7 +548,9 @@ def _datc_classical_variant() -> Dict[str, Any]:
         "name": "Classical",
         "description": "The original game of Diplomacy.",
         "author": "Allan B. Calhamer",
-        "soloVictorySupplyCenters": 18,
+        "victoryConditions": [
+            {"type": "supply-center-majority", "supplyCenters": 18}
+        ],
         "phaseProgression": _datc_classical_phase_progression(),
         "nations": [
             {"id": "austria", "name": "Austria", "color": "#F44336"},
@@ -626,8 +614,6 @@ def _datc_classical_variant() -> Dict[str, Any]:
                 {"nation": "turkey", "province": "smy"},
             ],
         },
-        "dimensions": {"width": 1000, "height": 1000},
-        "decorativeElements": [],
     }
 
 
@@ -5040,9 +5026,7 @@ def make_variant(*, allow_non_home: bool = False) -> Variant:
         name="Test",
         description="",
         author="",
-        solo_victory_supply_centers=99,
-        game_ends_year=None,
-        draw_after_year=None,
+        victory_conditions=(SupplyCenterMajorityVictory(supply_centers=99),),
         rules=None,
         adjudication_modifiers=(
             ("allow-builds-in-non-home-centers",) if allow_non_home else ()
@@ -7112,9 +7096,7 @@ def _c2_make_chain_variant() -> Variant:
         name="Chain",
         description="",
         author="",
-        solo_victory_supply_centers=99,
-        game_ends_year=None,
-        draw_after_year=None,
+        victory_conditions=(SupplyCenterMajorityVictory(supply_centers=99),),
         rules=None,
         adjudication_modifiers=(),
         phase_progression=progression,
@@ -7479,9 +7461,7 @@ def _res_make_variant() -> Variant:
         name="Resolution Test",
         description="",
         author="",
-        solo_victory_supply_centers=99,
-        game_ends_year=None,
-        draw_after_year=None,
+        victory_conditions=(SupplyCenterMajorityVictory(supply_centers=99),),
         rules=None,
         adjudication_modifiers=(),
         phase_progression=progression,
@@ -7766,9 +7746,7 @@ def _res_make_convoy_variant() -> Variant:
         name="Convoy Test",
         description="",
         author="",
-        solo_victory_supply_centers=99,
-        game_ends_year=None,
-        draw_after_year=None,
+        victory_conditions=(SupplyCenterMajorityVictory(supply_centers=99),),
         rules=None,
         adjudication_modifiers=(),
         phase_progression=progression,
@@ -8668,9 +8646,7 @@ def _cv_path_variant(provinces) -> Variant:
         name="Path Test",
         description="",
         author="",
-        solo_victory_supply_centers=99,
-        game_ends_year=None,
-        draw_after_year=None,
+        victory_conditions=(SupplyCenterMajorityVictory(supply_centers=99),),
         rules=None,
         adjudication_modifiers=(),
         phase_progression=progression,
