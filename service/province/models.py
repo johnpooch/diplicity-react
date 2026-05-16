@@ -16,6 +16,7 @@ class Province(models.Model):
         on_delete=models.SET_NULL,
         related_name="home_provinces",
     )
+    adjacencies = models.JSONField(default=list)
 
     class Meta:
         ordering = ["name"]

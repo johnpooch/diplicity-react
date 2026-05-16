@@ -26,3 +26,40 @@ class TestHomeNationBackfill:
 
         assert wales.supply_center is False
         assert wales.home_nation is None
+
+
+class TestAdjacencyBackfill:
+
+    @pytest.mark.django_db
+    def test_adjacencies_backfilled(self, classical_variant):
+        stp = Province.objects.get(province_id="stp", variant=classical_variant)
+
+        assert stp.adjacencies == [
+            {"to": "bar", "pass": "fleet"},
+            {"to": "bot", "pass": "fleet"},
+            {"to": "fin", "pass": "army"},
+            {"to": "lvn", "pass": "army"},
+            {"to": "mos", "pass": "army"},
+            {"to": "nwy", "pass": "army"},
+        ]
+
+    @pytest.mark.django_db
+    def test_every_province_has_adjacencies(self):
+        assert not Province.objects.filter(adjacencies=[]).exists()
+
+    @pytest.mark.django_db
+    def test_adjacencies_are_symmetric(self):
+        variant_ids = Province.objects.values_list(
+            "variant_id", flat=True
+        ).distinct()
+        for variant_id in variant_ids:
+            edges = {
+                (province.province_id, adjacency["to"], adjacency["pass"])
+                for province in Province.objects.filter(variant_id=variant_id)
+                for adjacency in province.adjacencies
+            }
+            for source, target, pass_ in edges:
+                assert (target, source, pass_) in edges, (
+                    f"{variant_id}: {source} -> {target} ({pass_}) "
+                    f"is not mirrored on the other side"
+                )
