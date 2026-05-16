@@ -20,11 +20,16 @@ from .domain import (
     PhaseProgression,
     PhaseTransition,
     Province,
+    ProvinceControlVictory,
     Resolution,
     State,
     SupplyCenter,
+    SupplyCenterMajorityVictory,
+    TimedResolutionVictory,
     Unit,
     Variant,
+    VictoryCondition,
+    VictoryConditionType,
 )
 
 
@@ -104,6 +109,19 @@ def _validate_adjacency_symmetry(
                     f"Adjacency {named_coast.id} -> {adjacency.to} ({adjacency.pass_}) "
                     f"is not mirrored on the other side"
                 )
+
+
+def _deserialize_victory_condition(data: Dict[str, Any]) -> VictoryCondition:
+    type_ = data["type"]
+    if type_ == VictoryConditionType.SUPPLY_CENTER_MAJORITY:
+        return SupplyCenterMajorityVictory(supply_centers=data["supplyCenters"])
+    if type_ == VictoryConditionType.TIMED_RESOLUTION:
+        return TimedResolutionVictory(year=data["year"], resolution=data["resolution"])
+    if type_ == VictoryConditionType.PROVINCE_CONTROL:
+        return ProvinceControlVictory(
+            provinces=tuple(data["provinces"]), year=data.get("year")
+        )
+    raise VariantValidationError(f"Unknown victory condition type: {type_!r}")
 
 
 def deserialize_variant(data: Dict[str, Any]) -> Variant:
@@ -194,9 +212,9 @@ def deserialize_variant(data: Dict[str, Any]) -> Variant:
         name=data["name"],
         description=data["description"],
         author=data["author"],
-        solo_victory_supply_centers=data["soloVictorySupplyCenters"],
-        game_ends_year=data.get("gameEndsYear"),
-        draw_after_year=data.get("drawAfterYear"),
+        victory_conditions=tuple(
+            _deserialize_victory_condition(vc) for vc in data["victoryConditions"]
+        ),
         rules=data.get("rules"),
         adjudication_modifiers=modifiers,
         phase_progression=phase_progression,
