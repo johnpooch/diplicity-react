@@ -9,6 +9,13 @@ class Province(models.Model):
     supply_center = models.BooleanField(default=False)
     variant = models.ForeignKey("variant.Variant", on_delete=models.CASCADE, related_name="provinces")
     parent = models.ForeignKey("self", null=True, blank=True, on_delete=models.PROTECT, related_name="named_coasts")
+    home_nation = models.ForeignKey(
+        "nation.Nation",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="home_provinces",
+    )
 
     class Meta:
         ordering = ["name"]
