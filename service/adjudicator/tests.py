@@ -9603,6 +9603,96 @@ def test_options_movement_no_convoy_when_no_army_present():
     assert [o for o in options if o.order_type == "Convoy"] == []
 
 
+def _convoy_options_two_sea_variant() -> Variant:
+    """Two sea provinces, s1 and s2, fleet-adjacent to each other so the
+    sea graph is one connected component (as on the classical map). A
+    fleet in s1 can therefore *topologically* reach `far` via s2 — but
+    with no fleet actually in s2, no real convoy chain does."""
+    edges = _edges(
+        ("home", "s1", "fleet"),
+        ("near", "s1", "fleet"),
+        ("far", "s2", "fleet"),
+        ("s1", "s2", "fleet"),
+    )
+    provinces = {
+        "home": _province("home", ProvinceType.COASTAL, adj=edges.get("home", ())),
+        "near": _province("near", ProvinceType.COASTAL, adj=edges.get("near", ())),
+        "far": _province("far", ProvinceType.COASTAL, adj=edges.get("far", ())),
+        "s1": _province("s1", ProvinceType.SEA, adj=edges.get("s1", ())),
+        "s2": _province("s2", ProvinceType.SEA, adj=edges.get("s2", ())),
+    }
+    progression = PhaseProgression(
+        seasons=("Spring",),
+        transitions=(
+            PhaseTransition(
+                from_season="Spring",
+                from_type=Phase.MOVEMENT,
+                to_season="Spring",
+                to_type=Phase.RETREAT,
+                year_delta=0,
+            ),
+        ),
+    )
+    return Variant(
+        id="convoy-options-two-sea",
+        name="Convoy Options Two Sea",
+        description="",
+        author="",
+        victory_conditions=(SupplyCenterMajorityVictory(supply_centers=99),),
+        rules=None,
+        adjudication_modifiers=(),
+        phase_progression=progression,
+        nations=(
+            Nation(id=NORTH, name="North", color="#000000"),
+            Nation(id=SOUTH, name="South", color="#ffffff"),
+        ),
+        provinces=provinces,
+        named_coasts={},
+        dominance_rules=(),
+    )
+
+
+def test_options_movement_convoy_only_for_coasts_reachable_via_on_board_fleets():
+    """`_convoy_options` enumerates convoys over the fleets actually on
+    the board, not the whole sea graph. A fleet in s1 with an adjacent
+    army in `home` can convoy to `near` (s1 touches both) but not to
+    `far` — reaching `far` needs a fleet in s2, and there is none. The
+    topological reach check alone would wrongly offer the `far` convoy
+    because s1→s2→far is a connected sea path."""
+    variant = _convoy_options_two_sea_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="home"),
+            Unit(nation=NORTH, type=Unit.FLEET, location="s1"),
+        ],
+    )
+    convoys = {
+        (o.aux, o.target) for o in get_options(state) if o.order_type == "Convoy"
+    }
+    assert ("home", "near") in convoys
+    assert ("home", "far") not in convoys
+
+    # Place a fleet in s2 and the s1→s2→far chain becomes real: `far`
+    # is now a legitimate convoy destination.
+    state_with_s2 = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="home"),
+            Unit(nation=NORTH, type=Unit.FLEET, location="s1"),
+            Unit(nation=NORTH, type=Unit.FLEET, location="s2"),
+        ],
+    )
+    convoys_with_s2 = {
+        (o.aux, o.target)
+        for o in get_options(state_with_s2)
+        if o.order_type == "Convoy"
+    }
+    assert ("home", "far") in convoys_with_s2
+
+
 # === Targeted Retreat-phase tests ===
 
 
