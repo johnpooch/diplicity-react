@@ -18,7 +18,15 @@ def _path_ids(layer):
     ]
 
 
-def test_converts_to_six_canonical_layers(make_godip_svg):
+def _circles(layer):
+    return [element for element in layer.iter() if _local_name(element.tag) == "circle"]
+
+
+def _circle_ids(layer):
+    return {circle.get("id") for circle in _circles(layer)}
+
+
+def test_converts_to_canonical_layers(make_godip_svg):
     dsvg, warnings = convert_godip_dsvg(make_godip_svg())
 
     assert list(_layers(dsvg)) == DSVG_LAYER_ORDER
@@ -82,6 +90,32 @@ def test_provinces_and_named_coasts_are_hidden(make_godip_svg):
         assert "display:none" in (layers[layer_id].get("style") or "")
 
 
+def test_unit_positions_and_supply_centers_are_hidden(make_godip_svg):
+    layers = _layers(convert_godip_dsvg(make_godip_svg())[0])
+
+    for layer_id in ("unit-positions", "supply-centers"):
+        assert "display:none" in (layers[layer_id].get("style") or "")
+
+
+def test_godip_centers_become_unit_positions(make_godip_svg):
+    dsvg, _ = convert_godip_dsvg(make_godip_svg())
+
+    assert _circle_ids(_layers(dsvg)["unit-positions"]) == {"fra", "fra/nc", "ber"}
+
+
+def test_godip_supply_centers_layer_mapped(make_godip_svg):
+    dsvg, _ = convert_godip_dsvg(make_godip_svg())
+
+    assert _circle_ids(_layers(dsvg)["supply-centers"]) == {"ber"}
+
+
+def test_center_path_converted_to_circle_at_moveto_anchor(make_godip_svg):
+    dsvg, _ = convert_godip_dsvg(make_godip_svg())
+
+    fra = [c for c in _circles(_layers(dsvg)["unit-positions"]) if c.get("id") == "fra"][0]
+    assert (fra.get("cx"), fra.get("cy")) == ("20", "21")
+
+
 def test_missing_layers_are_synthesized(make_godip_svg):
     svg = make_godip_svg(layers={"background": "", "provinces": ""})
 
@@ -89,6 +123,32 @@ def test_missing_layers_are_synthesized(make_godip_svg):
 
     assert list(_layers(dsvg)) == DSVG_LAYER_ORDER
     assert validate_dsvg(dsvg) == []
+
+
+def test_missing_center_layers_are_warned(make_godip_svg):
+    svg = make_godip_svg(layers={"background": "", "provinces": ""})
+
+    _, warnings = convert_godip_dsvg(svg)
+
+    assert "Input has no 'province-centers' layer." in warnings
+    assert "Input has no 'supply-centers' layer." in warnings
+
+
+def test_province_centers_without_named_coasts_warns(make_godip_svg):
+    svg = make_godip_svg(
+        layers={
+            "background": "",
+            "provinces": "",
+            "province-centers": '<path id="fraCenter" d="m 1,2 c 0,0"/>',
+            "supply-centers": '<path id="berCenter" d="m 3,4 c 0,0"/>',
+            "foreground": "",
+            "names": "",
+        }
+    )
+
+    _, warnings = convert_godip_dsvg(svg)
+
+    assert "'unit-positions' layer has no named-coast entries." in warnings
 
 
 def test_province_subgroup_is_flattened():
@@ -113,6 +173,8 @@ def test_supply_centers_foreground_copy_is_dropped(make_godip_svg):
         layers={
             "background": "",
             "provinces": "",
+            "province-centers": '<path id="fra/ncCenter" d="m 1,2 c 0,0"/>',
+            "supply-centers": '<path id="berCenter" d="m 3,4 c 0,0"/>',
             "foreground": "",
             "names": "",
         }

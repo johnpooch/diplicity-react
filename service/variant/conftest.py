@@ -8,7 +8,14 @@ from variant.utils import DSVG_HIDDEN_LAYERS, DSVG_LAYER_ORDER
 
 @pytest.fixture
 def make_dsvg():
-    def _make(layer_ids=None, hidden_layers=DSVG_HIDDEN_LAYERS, province_ids=None, named_coast_ids=None):
+    def _make(
+        layer_ids=None,
+        hidden_layers=DSVG_HIDDEN_LAYERS,
+        province_ids=None,
+        named_coast_ids=None,
+        unit_position_ids=None,
+        supply_center_ids=None,
+    ):
         if layer_ids is None:
             layer_ids = DSVG_LAYER_ORDER
 
@@ -20,6 +27,14 @@ def make_dsvg():
                 for path_id in path_ids
             )
 
+        def _circles(circle_ids):
+            if circle_ids is None:
+                return ""
+            return "".join(
+                f'<circle id="{circle_id}" cx="0" cy="0"/>' if circle_id is not None else "<circle/>"
+                for circle_id in circle_ids
+            )
+
         def _layer(layer_id):
             style = ' style="display:none"' if layer_id in hidden_layers else ""
             content = ""
@@ -27,6 +42,10 @@ def make_dsvg():
                 content = _paths(province_ids)
             elif layer_id == "named-coasts":
                 content = _paths(named_coast_ids)
+            elif layer_id == "unit-positions":
+                content = _circles(unit_position_ids)
+            elif layer_id == "supply-centers":
+                content = _circles(supply_center_ids)
             return f'  <g id="{layer_id}"{style}>{content}</g>'
 
         layers = "\n".join(_layer(layer_id) for layer_id in layer_ids)
@@ -81,8 +100,11 @@ def make_godip_svg():
                     '<polygon inkscape:label="ber" id="poly1" points="2,2 3,3 4,4"/>'
                     '<path inkscape:label="fra/nc" id="path2" d="M5 5 L6 6 Z"/>'
                 ),
-                "supply-centers": '<circle id="sc1" r="2"/>',
-                "province-centers": '<circle id="pc1" r="1"/>',
+                "supply-centers": '<path id="berCenter" d="m 10,11 c 1,1 2,2 3,3"/>',
+                "province-centers": (
+                    '<path id="fraCenter" d="m 20,21 c 1,1 2,2 3,3"/>'
+                    '<path id="fra/ncCenter" d="m 30,31 c 1,1 2,2 3,3"/>'
+                ),
                 "highlights": "",
                 "foreground": '<path id="coast" d="M0 0 L9 9"/>',
                 "names": '<text id="France">France</text>',
@@ -121,7 +143,11 @@ def dsvg_variant(db):
         author="Test",
     )
     france = Province.objects.create(
-        province_id="fra", name="France", type=ProvinceType.COASTAL, variant=variant
+        province_id="fra",
+        name="France",
+        type=ProvinceType.COASTAL,
+        supply_center=True,
+        variant=variant,
     )
     Province.objects.create(province_id="ger", name="Germany", type=ProvinceType.LAND, variant=variant)
     Province.objects.create(

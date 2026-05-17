@@ -16,11 +16,11 @@ def test_missing_layer_is_reported(make_dsvg):
 
 
 def test_layers_out_of_order_is_reported(make_dsvg):
-    layer_ids = ["provinces", "background", "named-coasts", "province-names", "borders", "foreground"]
+    layer_ids = ["provinces", "background"] + DSVG_LAYER_ORDER[2:]
 
     errors = validate_dsvg(make_dsvg(layer_ids=layer_ids))
 
-    assert any(error.code == "LAYER_OUT_OF_ORDER" for error in errors)
+    assert [error.code for error in errors] == ["LAYER_OUT_OF_ORDER"]
 
 
 def test_unexpected_layer_is_reported(make_dsvg):
@@ -32,13 +32,25 @@ def test_unexpected_layer_is_reported(make_dsvg):
 
 
 def test_unhidden_provinces_layer_is_reported(make_dsvg):
-    errors = validate_dsvg(make_dsvg(hidden_layers=("named-coasts",)))
+    errors = validate_dsvg(make_dsvg(hidden_layers=("named-coasts", "unit-positions", "supply-centers")))
 
     assert [error.code for error in errors] == ["LAYER_NOT_HIDDEN"]
 
 
 def test_unhidden_named_coasts_layer_is_reported(make_dsvg):
-    errors = validate_dsvg(make_dsvg(hidden_layers=("provinces",)))
+    errors = validate_dsvg(make_dsvg(hidden_layers=("provinces", "unit-positions", "supply-centers")))
+
+    assert [error.code for error in errors] == ["LAYER_NOT_HIDDEN"]
+
+
+def test_unhidden_unit_positions_layer_is_reported(make_dsvg):
+    errors = validate_dsvg(make_dsvg(hidden_layers=("provinces", "named-coasts", "supply-centers")))
+
+    assert [error.code for error in errors] == ["LAYER_NOT_HIDDEN"]
+
+
+def test_unhidden_supply_centers_layer_is_reported(make_dsvg):
+    errors = validate_dsvg(make_dsvg(hidden_layers=("provinces", "named-coasts", "unit-positions")))
 
     assert [error.code for error in errors] == ["LAYER_NOT_HIDDEN"]
 
@@ -64,7 +76,12 @@ def test_valid_province_and_named_coast_paths_pass(make_dsvg):
 @pytest.mark.django_db
 def test_unknown_province_is_reported(make_dsvg, dsvg_variant):
     errors = validate_dsvg(
-        make_dsvg(province_ids=["fra", "ger", "xyz"], named_coast_ids=["fra/nc"]),
+        make_dsvg(
+            province_ids=["fra", "ger", "xyz"],
+            named_coast_ids=["fra/nc"],
+            unit_position_ids=["fra", "ger", "fra/nc"],
+            supply_center_ids=["fra"],
+        ),
         variant=dsvg_variant,
     )
 
@@ -74,7 +91,13 @@ def test_unknown_province_is_reported(make_dsvg, dsvg_variant):
 @pytest.mark.django_db
 def test_missing_province_is_reported(make_dsvg, dsvg_variant):
     errors = validate_dsvg(
-        make_dsvg(province_ids=["fra"], named_coast_ids=["fra/nc"]), variant=dsvg_variant
+        make_dsvg(
+            province_ids=["fra"],
+            named_coast_ids=["fra/nc"],
+            unit_position_ids=["fra", "ger", "fra/nc"],
+            supply_center_ids=["fra"],
+        ),
+        variant=dsvg_variant,
     )
 
     assert [error.code for error in errors] == ["MISSING_PROVINCE"]
@@ -83,7 +106,13 @@ def test_missing_province_is_reported(make_dsvg, dsvg_variant):
 @pytest.mark.django_db
 def test_dsvg_matching_variant_passes(make_dsvg, dsvg_variant):
     errors = validate_dsvg(
-        make_dsvg(province_ids=["fra", "ger"], named_coast_ids=["fra/nc"]), variant=dsvg_variant
+        make_dsvg(
+            province_ids=["fra", "ger"],
+            named_coast_ids=["fra/nc"],
+            unit_position_ids=["fra", "ger", "fra/nc"],
+            supply_center_ids=["fra"],
+        ),
+        variant=dsvg_variant,
     )
 
     assert errors == []
@@ -92,7 +121,12 @@ def test_dsvg_matching_variant_passes(make_dsvg, dsvg_variant):
 @pytest.mark.django_db
 def test_unknown_named_coast_is_reported(make_dsvg, dsvg_variant):
     errors = validate_dsvg(
-        make_dsvg(province_ids=["fra", "ger"], named_coast_ids=["fra/nc", "xyz/nc"]),
+        make_dsvg(
+            province_ids=["fra", "ger"],
+            named_coast_ids=["fra/nc", "xyz/nc"],
+            unit_position_ids=["fra", "ger", "fra/nc"],
+            supply_center_ids=["fra"],
+        ),
         variant=dsvg_variant,
     )
 
@@ -102,10 +136,76 @@ def test_unknown_named_coast_is_reported(make_dsvg, dsvg_variant):
 @pytest.mark.django_db
 def test_missing_named_coast_is_reported(make_dsvg, dsvg_variant):
     errors = validate_dsvg(
-        make_dsvg(province_ids=["fra", "ger"], named_coast_ids=[]), variant=dsvg_variant
+        make_dsvg(
+            province_ids=["fra", "ger"],
+            named_coast_ids=[],
+            unit_position_ids=["fra", "ger", "fra/nc"],
+            supply_center_ids=["fra"],
+        ),
+        variant=dsvg_variant,
     )
 
     assert [error.code for error in errors] == ["MISSING_NAMED_COAST"]
+
+
+@pytest.mark.django_db
+def test_unknown_unit_position_is_reported(make_dsvg, dsvg_variant):
+    errors = validate_dsvg(
+        make_dsvg(
+            province_ids=["fra", "ger"],
+            named_coast_ids=["fra/nc"],
+            unit_position_ids=["fra", "ger", "fra/nc", "zzz"],
+            supply_center_ids=["fra"],
+        ),
+        variant=dsvg_variant,
+    )
+
+    assert [error.code for error in errors] == ["UNKNOWN_UNIT_POSITION"]
+
+
+@pytest.mark.django_db
+def test_missing_unit_position_is_reported(make_dsvg, dsvg_variant):
+    errors = validate_dsvg(
+        make_dsvg(
+            province_ids=["fra", "ger"],
+            named_coast_ids=["fra/nc"],
+            unit_position_ids=["fra", "ger"],
+            supply_center_ids=["fra"],
+        ),
+        variant=dsvg_variant,
+    )
+
+    assert [error.code for error in errors] == ["MISSING_UNIT_POSITION"]
+
+
+@pytest.mark.django_db
+def test_unknown_supply_center_is_reported(make_dsvg, dsvg_variant):
+    errors = validate_dsvg(
+        make_dsvg(
+            province_ids=["fra", "ger"],
+            named_coast_ids=["fra/nc"],
+            unit_position_ids=["fra", "ger", "fra/nc"],
+            supply_center_ids=["fra", "ger"],
+        ),
+        variant=dsvg_variant,
+    )
+
+    assert [error.code for error in errors] == ["UNKNOWN_SUPPLY_CENTER"]
+
+
+@pytest.mark.django_db
+def test_missing_supply_center_is_reported(make_dsvg, dsvg_variant):
+    errors = validate_dsvg(
+        make_dsvg(
+            province_ids=["fra", "ger"],
+            named_coast_ids=["fra/nc"],
+            unit_position_ids=["fra", "ger", "fra/nc"],
+            supply_center_ids=[],
+        ),
+        variant=dsvg_variant,
+    )
+
+    assert [error.code for error in errors] == ["MISSING_SUPPLY_CENTER"]
 
 
 def test_malformed_xml_is_reported():
