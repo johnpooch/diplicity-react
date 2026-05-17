@@ -545,9 +545,14 @@ export const mockVariants: Variant[] = [
     name: "Classical Diplomacy",
     description: "The original Diplomacy game",
     author: "Allan B. Calhamer",
+    rules: "The first to 18 Supply Centers (SC) is the winner.",
     nations: mockNations,
     provinces: mockProvinces,
-    soloVictoryScCount: 18,
+    victoryConditions: {
+      soloVictorySupplyCenters: 18,
+      gameEndsYear: null,
+      drawAfterYear: null,
+    },
     templatePhase: {
       id: 1,
       ordinal: 1,
@@ -569,9 +574,14 @@ export const mockVariants: Variant[] = [
     name: "Italy vs Germany",
     description: "A 2-player variant",
     author: "Unknown",
+    rules: "The first to 18 supply centers is the winner.",
     nations: [mockNations[4], mockNations[3]],
     provinces: mockProvinces.slice(3, 5),
-    soloVictoryScCount: 4,
+    victoryConditions: {
+      soloVictorySupplyCenters: 4,
+      gameEndsYear: null,
+      drawAfterYear: null,
+    },
     templatePhase: {
       id: 2,
       ordinal: 1,

@@ -2754,8 +2754,10 @@ components:
           type: string
         author:
           type: string
-        soloVictoryScCount:
-          type: integer
+        rules:
+          type: string
+        victoryConditions:
+          $ref: '#/components/schemas/VictoryConditions'
         nations:
           type: array
           items:
@@ -2772,8 +2774,9 @@ components:
       - name
       - nations
       - provinces
-      - soloVictoryScCount
+      - rules
       - templatePhase
+      - victoryConditions
     VerifyEmail:
       type: object
       properties:
@@ -2818,6 +2821,21 @@ components:
       - members
       - type
       - winningPhaseId
+    VictoryConditions:
+      type: object
+      properties:
+        soloVictorySupplyCenters:
+          type: integer
+        gameEndsYear:
+          type: integer
+          nullable: true
+        drawAfterYear:
+          type: integer
+          nullable: true
+      required:
+      - drawAfterYear
+      - gameEndsYear
+      - soloVictorySupplyCenters
   securitySchemes:
     jwtAuth:
       type: http

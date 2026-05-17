@@ -98,7 +98,12 @@ const mockVariant = {
   id: "standard",
   name: "Standard",
   description: "",
-  soloVictoryScCount: 18,
+  rules: "",
+  victoryConditions: {
+    soloVictorySupplyCenters: 18,
+    gameEndsYear: null,
+    drawAfterYear: null,
+  },
   nations: [england],
   provinces: [lon, nth],
   templatePhase: {},
