@@ -1174,3 +1174,38 @@ def test_resolve_survives_shadow_failure(classical_variant, primary_user, monkey
 
     assert result is malformed
     assert ShadowAdjudicationDiff.objects.filter(phase=phase).count() == 0
+
+
+from io import StringIO
+from django.core.management import call_command
+from django.core.management.base import CommandError
+from phase.utils import phase_to_canonical_game_state
+
+
+@pytest.mark.django_db
+def test_replay_shadow_diff_reports_diff(classical_variant, primary_user):
+    phase = _classical_movement_phase(classical_variant, primary_user)
+    record = ShadowAdjudicationDiff.objects.create(
+        phase=phase,
+        tier="tier_1",
+        pre_state=phase_to_canonical_game_state(phase),
+        godip_response={
+            "season": "Fall", "year": 2099, "type": "Movement",
+            "units": [], "supply_centers": [], "resolutions": [], "options": {},
+        },
+        python_response=[],
+        diff_summary={},
+    )
+    out = StringIO()
+    call_command("replay_shadow_diff", str(record.id), stdout=out)
+    output = out.getvalue()
+
+    assert f"ShadowAdjudicationDiff {record.id}" in output
+    assert "recorded tier: tier_1" in output
+    assert "replay tier: tier_1" in output
+
+
+@pytest.mark.django_db
+def test_replay_shadow_diff_missing_id(db):
+    with pytest.raises(CommandError):
+        call_command("replay_shadow_diff", "999999")

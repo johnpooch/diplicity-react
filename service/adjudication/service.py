@@ -152,6 +152,20 @@ def resolve(phase):
         return godip_response
 
 
+def compute_shadow_diff(canonical_variant, pre_state, godip_response):
+    """Adjudicate pre_state with the Python engine and diff the result
+    against a godip response. Returns (StructuredDiff, python_states)."""
+    variant = deserialize_variant(canonical_variant)
+    state = deserialize_game_state(pre_state, variant)
+    python_states = Engine().adjudicate(state)
+    options = get_options(python_states[-1])
+    diff = diff_canonical(
+        canonicalize_godip_response(godip_response),
+        canonicalize_python_response(python_states, options),
+    )
+    return diff, python_states
+
+
 def _run_shadow_comparison(phase, canonical_variant, pre_state, godip_response):
     """Run the Python adjudicator alongside godip and compare the outcomes.
 
@@ -161,14 +175,8 @@ def _run_shadow_comparison(phase, canonical_variant, pre_state, godip_response):
     """
     try:
         with tracer.start_as_current_span("adjudication.shadow_comparison"):
-            variant = deserialize_variant(canonical_variant)
-            state = deserialize_game_state(pre_state, variant)
-            python_states = Engine().adjudicate(state)
-            options = get_options(python_states[-1])
-
-            diff = diff_canonical(
-                canonicalize_godip_response(godip_response),
-                canonicalize_python_response(python_states, options),
+            diff, python_states = compute_shadow_diff(
+                canonical_variant, pre_state, godip_response
             )
 
             if diff.matched:
