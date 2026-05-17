@@ -63,6 +63,7 @@ const SUPPLY_CENTER_OPACITY_ACTIVE = 0.3;
 const SUPPLY_CENTER_OPACITY_DEFAULT = 0.5;
 
 const UNIT_RADIUS = 10;
+const UNIT_OFFSET_RADIUS = 5;
 const DISLODGED_OFFSET = 8;
 const SUPPLY_CENTER_OUTER_RADIUS = 7;
 const SUPPLY_CENTER_INNER_RADIUS = 4;
@@ -162,11 +163,11 @@ const provinceFill = (provinceId: string, state: RenderState): ProvinceFill => {
 };
 
 const provinceFillsLayer = (
-  provincePaths: Map<string, string>,
+  regionPaths: Map<string, string>,
   state: RenderState
 ): string => {
   const parts: string[] = [];
-  for (const [id, d] of provincePaths) {
+  for (const [id, d] of regionPaths) {
     const style = provinceFill(id, state);
     if (style.fill === DEFAULT_FILL && style.stroke === "none") {
       continue;
@@ -454,6 +455,7 @@ const supportOrderParts = (
           x2: target.x,
           y2: target.y,
           offset: UNIT_RADIUS,
+          endOffset: UNIT_RADIUS + UNIT_OFFSET_RADIUS,
           lineWidth: ORDER_LINE_WIDTH,
           fill: color,
           stroke: SUCCESS_COLOR,
@@ -646,7 +648,13 @@ export class DiplicityMap {
     const { viewBox, defs, background, provinceNames, borders, foreground } =
       this.parsed;
     const viewBoxAttr = `${viewBox.minX} ${viewBox.minY} ${viewBox.width} ${viewBox.height}`;
-    const fills = provinceFillsLayer(this.parsed.provincePaths, state);
+    const fills = provinceFillsLayer(
+      new Map([
+        ...this.parsed.provincePaths,
+        ...this.parsed.namedCoastPaths,
+      ]),
+      state
+    );
     const markers = supplyCenterMarkersLayer(this.parsed.supplyCenters);
     const units = unitsLayer(this.parsed.unitPositions, state);
     const orders = ordersLayer(this.parsed.unitPositions, state);

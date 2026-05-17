@@ -83,7 +83,9 @@ const CLASSICAL_SCENE: RenderState = {
     { type: "Build", nation: "France", source: "mar", unitType: "Army" },
   ],
   selected: ["mun"],
-  highlighted: ["gal"],
+  // gal: a plain province; stp: a province that has named coasts;
+  // spa/nc: a named coast highlighted on its own.
+  highlighted: ["gal", "stp", "spa/nc"],
 };
 
 describe("DiplicityMap classical board", () => {

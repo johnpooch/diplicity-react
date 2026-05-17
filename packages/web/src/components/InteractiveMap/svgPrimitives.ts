@@ -325,6 +325,7 @@ export type SupportHoldArrowOptions = {
   x2: number;
   y2: number;
   offset: number;
+  endOffset?: number;
   lineWidth: number;
   fill: string;
   stroke: string;
@@ -335,12 +336,11 @@ export type SupportHoldArrowOptions = {
 
 export const supportHoldArrow = (o: SupportHoldArrowOptions): string => {
   const angle = Math.atan2(o.y2 - o.y1, o.x2 - o.x1);
-  const offsetX = o.offset * Math.cos(angle);
-  const offsetY = o.offset * Math.sin(angle);
-  const startX = o.x1 + offsetX;
-  const startY = o.y1 + offsetY;
-  const endX = o.x2 - offsetX - Math.cos(angle);
-  const endY = o.y2 - offsetY - Math.sin(angle);
+  const endOffset = o.endOffset ?? o.offset;
+  const startX = o.x1 + o.offset * Math.cos(angle);
+  const startY = o.y1 + o.offset * Math.sin(angle);
+  const endX = o.x2 - endOffset * Math.cos(angle) - Math.cos(angle);
+  const endY = o.y2 - endOffset * Math.sin(angle) - Math.sin(angle);
   const centerX = (startX + endX) / 2;
   const centerY = (startY + endY) / 2;
   const d = `M ${n(startX)} ${n(startY)} L ${n(endX)} ${n(endY)}`;

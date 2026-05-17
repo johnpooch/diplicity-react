@@ -111,6 +111,23 @@ describe("DiplicityMap province fills", () => {
     expect(svg).toContain(`d="${provincePaths.get("beta")}"`);
   });
 
+  test("highlights a named coast", () => {
+    const svg = new DiplicityMap(TOY_DSVG).render({
+      highlighted: ["alpha/nc"],
+    });
+    const { namedCoastPaths } = parseDsvg(TOY_DSVG);
+    expect(svg).toContain(`d="${namedCoastPaths.get("alpha/nc")}"`);
+    expect(svg).toContain('fill="url(#highlightedStripes)"');
+  });
+
+  test("fills and strokes a selected named coast", () => {
+    const svg = new DiplicityMap(TOY_DSVG).render({ selected: ["alpha/nc"] });
+    const { namedCoastPaths } = parseDsvg(TOY_DSVG);
+    expect(svg).toContain(
+      `d="${namedCoastPaths.get("alpha/nc")}" fill="rgba(255, 255, 255, 0.8)"`
+    );
+  });
+
   test("throws when a supply center's nation has no colour", () => {
     expect(() =>
       new DiplicityMap(TOY_DSVG).render({
