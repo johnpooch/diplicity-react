@@ -1097,3 +1097,80 @@ def test_shadow_adjudication_diff_persists(phase_spring_1901_movement):
     assert diff.created_at is not None
     assert diff.diff_summary["tier"] == "tier_1"
     assert phase_spring_1901_movement.shadow_adjudication_diffs.count() == 1
+
+
+from nation.models import Nation
+from province.models import Province
+from common.constants import PhaseStatus
+
+
+def _classical_movement_phase(classical_variant, primary_user):
+    game = Game.objects.create(
+        name="Shadow Test Game", variant=classical_variant, status=GameStatus.ACTIVE
+    )
+    england = Member.objects.create(
+        game=game,
+        user=primary_user,
+        nation=Nation.objects.get(name="England", variant=classical_variant),
+    )
+    phase = Phase.objects.create(
+        game=game,
+        variant=classical_variant,
+        season="Spring",
+        year=1901,
+        type="Movement",
+        status=PhaseStatus.ACTIVE,
+        ordinal=1,
+    )
+    provinces = {p.province_id: p for p in classical_variant.provinces.all()}
+    phase.units.create(type=UnitType.FLEET, nation=england.nation, province=provinces["edi"])
+    phase.units.create(type=UnitType.ARMY, nation=england.nation, province=provinces["lvp"])
+    phase_state = phase.phase_states.create(member=england)
+    phase_state.orders.create(source=provinces["edi"], order_type=OrderType.HOLD)
+    phase_state.orders.create(
+        source=provinces["lvp"], order_type=OrderType.MOVE, target=provinces["yor"]
+    )
+    return phase
+
+
+@pytest.mark.django_db
+def test_resolve_persists_shadow_mismatch(classical_variant, primary_user, monkeypatch):
+    phase = _classical_movement_phase(classical_variant, primary_user)
+    fake_godip = {
+        "season": "Fall",
+        "year": 2099,
+        "type": "Movement",
+        "units": [],
+        "supply_centers": [],
+        "resolutions": [],
+        "options": {},
+    }
+    monkeypatch.setattr(
+        adjudication_service, "_make_adjudication_request", lambda *a, **k: fake_godip
+    )
+
+    result = adjudication_service.resolve(phase)
+
+    assert result is fake_godip
+    diff = ShadowAdjudicationDiff.objects.filter(phase=phase).first()
+    assert diff is not None
+    assert diff.tier == "tier_1"
+    assert diff.godip_response == fake_godip
+    assert diff.pre_state["phase"]["type"] == "Movement"
+    assert diff.diff_summary["tier"] == "tier_1"
+
+
+@pytest.mark.django_db
+def test_resolve_survives_shadow_failure(classical_variant, primary_user, monkeypatch):
+    phase = _classical_movement_phase(classical_variant, primary_user)
+    # A malformed godip response makes the shadow comparison raise; resolve
+    # must still return the godip response and persist nothing.
+    malformed = {"unexpected": "shape"}
+    monkeypatch.setattr(
+        adjudication_service, "_make_adjudication_request", lambda *a, **k: malformed
+    )
+
+    result = adjudication_service.resolve(phase)
+
+    assert result is malformed
+    assert ShadowAdjudicationDiff.objects.filter(phase=phase).count() == 0

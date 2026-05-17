@@ -2,13 +2,34 @@ import json
 import logging
 import requests
 
-from opentelemetry import trace
+from django.db import transaction
+from opentelemetry import metrics, trace
 
+from .canonical import (
+    canonicalize_godip_response,
+    canonicalize_python_response,
+    diff_canonical,
+)
+from .models import ShadowAdjudicationDiff
 from .serializers import AdjudicationSerializer
+from adjudicator.engine import Engine
+from adjudicator.options import get_options
+from adjudicator.serializers import (
+    deserialize_game_state,
+    deserialize_variant,
+    serialize_game_state,
+)
 from common.constants import ADJUDICATION_BASE_URL
+from phase.utils import phase_to_canonical_game_state
+from variant.utils import variant_to_canonical_dict
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
+
+_meter = metrics.get_meter(__name__)
+_shadow_matches_counter = _meter.create_counter("adjudication.shadow.matches")
+_shadow_mismatches_counter = _meter.create_counter("adjudication.shadow.mismatches")
+_shadow_errors_counter = _meter.create_counter("adjudication.shadow.errors")
 
 
 def _make_adjudication_request(phase, endpoint, method="GET", data=None):
@@ -107,7 +128,70 @@ def resolve(phase):
         span.set_attribute("game.id", str(phase.game.id))
         logger.info(f"Resolving adjudication for phase {phase.id} of game {phase.game.id}")
 
+        # Snapshot the pre-adjudication state before godip is called, so the
+        # shadow comparison runs against the inputs godip saw.
+        canonical_variant = None
+        pre_state = None
+        try:
+            canonical_variant = variant_to_canonical_dict(phase.variant)
+            pre_state = phase_to_canonical_game_state(phase)
+        except Exception:
+            _shadow_errors_counter.add(1)
+            logger.exception("Failed to capture shadow-mode inputs for phase %s", phase.id)
+
         with tracer.start_as_current_span("adjudication.serialize_request"):
             serialized_phase = AdjudicationSerializer(phase, context={"game": phase.game}).data
 
-        return _make_adjudication_request(phase, "resolve-with-options", method="POST", data=serialized_phase)
+        godip_response = _make_adjudication_request(
+            phase, "resolve-with-options", method="POST", data=serialized_phase
+        )
+
+        if canonical_variant is not None and pre_state is not None:
+            _run_shadow_comparison(phase, canonical_variant, pre_state, godip_response)
+
+        return godip_response
+
+
+def _run_shadow_comparison(phase, canonical_variant, pre_state, godip_response):
+    """Run the Python adjudicator alongside godip and compare the outcomes.
+
+    Never raises: a shadow-mode failure must not affect the user-facing
+    resolution flow. Matches increment a telemetry counter; mismatches
+    additionally persist a ShadowAdjudicationDiff row for later replay.
+    """
+    try:
+        with tracer.start_as_current_span("adjudication.shadow_comparison"):
+            variant = deserialize_variant(canonical_variant)
+            state = deserialize_game_state(pre_state, variant)
+            python_states = Engine().adjudicate(state)
+            options = get_options(python_states[-1])
+
+            diff = diff_canonical(
+                canonicalize_godip_response(godip_response),
+                canonicalize_python_response(python_states, options),
+            )
+
+            if diff.matched:
+                _shadow_matches_counter.add(1)
+                return
+
+            _shadow_mismatches_counter.add(1)
+            with transaction.atomic():
+                ShadowAdjudicationDiff.objects.create(
+                    phase=phase,
+                    tier=diff.tier,
+                    pre_state=pre_state,
+                    godip_response=godip_response,
+                    python_response=[serialize_game_state(s) for s in python_states],
+                    diff_summary=diff.to_dict(),
+                )
+            logger.warning(
+                "Shadow adjudication mismatch for phase %s (%s): tier=%s diff=%s",
+                phase.id,
+                phase.name,
+                diff.tier,
+                diff.to_dict(),
+            )
+    except Exception:
+        _shadow_errors_counter.add(1)
+        logger.exception("Shadow adjudication comparison failed for phase %s", phase.id)
