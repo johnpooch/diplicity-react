@@ -9,6 +9,7 @@ from .domain import (
     Phase,
     Resolution,
     State,
+    SupplyCenter,
     Unit,
 )
 from .resolution import resolve_strengths_and_cuts
@@ -178,6 +179,17 @@ class Actions:
         """Compute the Retreat-phase post-resolution units list: standing
         units kept, successful retreats relocated, all other dislodged
         units removed, dislodged flags cleared."""
+
+    @dataclass(frozen=True)
+    class UpdateSupplyCenterOwnership(Action):
+        """Retreat-phase: recompute supply-center ownership for the next
+        phase. When the next phase is an Adjustment phase, ownership is
+        recounted from the post-retreat unit positions — every
+        supply-center province occupied by a unit transfers to that
+        unit's nation, and unoccupied supply centers keep their current
+        owner. When the next phase is not an Adjustment phase, current
+        ownership is carried through unchanged. Writes
+        next_supply_centers."""
 
     @dataclass(frozen=True)
     class ApplyAdjustmentOutcomes(Action):
@@ -997,6 +1009,45 @@ class ApplyRetreatOutcomesReducer(Reducer):
         return state.replace(next_units=tuple(next_units))
 
 
+class UpdateSupplyCenterOwnershipReducer(Reducer):
+    """Recompute supply-center ownership for the next phase. When the
+    next phase is an Adjustment phase, ownership is recounted from the
+    post-retreat unit positions (next_units): every supply-center
+    province occupied by a unit transfers to that unit's nation, and
+    unoccupied supply centers keep their current owner. When the next
+    phase is not an Adjustment phase, current ownership is carried
+    through unchanged. Writes next_supply_centers."""
+
+    ACTION = Actions.UpdateSupplyCenterOwnership
+
+    @classmethod
+    def reduce(cls, state: StateView, action: Action) -> StateView:
+        next_phase = state.next_phase()
+        if next_phase is None or next_phase.type != Phase.ADJUSTMENT:
+            return state.replace(next_supply_centers=state.supply_centers())
+        variant = state.variant()
+        occupant_by_province: Dict[str, str] = {}
+        for unit in state.next_units():
+            occupant_by_province[variant.parent_of(unit.location)] = unit.nation
+        current_by_province = {sc.province: sc for sc in state.supply_centers()}
+        updated: List[SupplyCenter] = []
+        for province_id, province in sorted(variant.provinces.items()):
+            if not province.supply_center:
+                continue
+            occupant = occupant_by_province.get(province_id)
+            current = current_by_province.get(province_id)
+            if occupant is None:
+                if current is not None:
+                    updated.append(current)
+            elif current is None:
+                updated.append(SupplyCenter(nation=occupant, province=province_id))
+            elif current.nation == occupant:
+                updated.append(current)
+            else:
+                updated.append(replace(current, nation=occupant))
+        return state.replace(next_supply_centers=tuple(updated))
+
+
 class ApplyAdjustmentOutcomesReducer(Reducer):
     """Compute the Adjustment-phase post-resolution units list. First,
     drop units removed this phase — both those explicitly disbanded by
@@ -1148,7 +1199,12 @@ class RetreatPhaseResolver(PhaseResolver):
     2. ApplyLegalityChecks     — reachable / unoccupied / not-attacker / not-contested.
     3. ResolveRetreatBounces   — standoffs mark all competitors BOUNCE.
     4. FinalizeStatuses        — remaining undecided -> OK.
-    5. ApplyRetreatOutcomes    — relocate or remove dislodged units."""
+    5. ApplyRetreatOutcomes    — relocate or remove dislodged units.
+    6. UpdateSupplyCenterOwnership
+                               — recompute supply-center ownership from
+                                 the post-retreat positions when the next
+                                 phase is Adjustment; carry it through
+                                 unchanged otherwise."""
 
     PHASE_TYPE = Phase.RETREAT
 
@@ -1158,6 +1214,7 @@ class RetreatPhaseResolver(PhaseResolver):
         Actions.ResolveRetreatBounces,
         Actions.FinalizeStatuses,
         Actions.ApplyRetreatOutcomes,
+        Actions.UpdateSupplyCenterOwnership,
     )
 
 
@@ -1258,7 +1315,10 @@ class Engine:
     ) -> List[State]:
         """Build the resolved State from `adj` (resolutions populated,
         units replaced with next_units) and, if applicable, a fresh
-        next-phase State carrying those units forward."""
+        next-phase State carrying those units forward. The next-phase
+        State takes its supply-center ownership from next_supply_centers
+        when a reducer recomputed it (Retreat phase), otherwise the
+        input ownership is carried through unchanged."""
         resolutions: List[Resolution] = []
         for order, resolution in zip(adj.parsed_orders, adj.resolutions):
             resolutions.append(
@@ -1294,7 +1354,7 @@ class Engine:
             variant=original.variant,
             phase=nxt,
             units=list(adj.next_units),
-            supply_centers=list(original.supply_centers),
+            supply_centers=list(adj.next_supply_centers or original.supply_centers),
             orders=[],
             resolutions=None,
             skipped=False,

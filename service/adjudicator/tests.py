@@ -41,6 +41,7 @@ from .engine import (
     Engine,
     MovementPhaseResolver,
     Status,
+    UpdateSupplyCenterOwnershipReducer,
 )
 from .resolution import resolve_strengths_and_cuts
 from .serializers import (
@@ -6896,6 +6897,88 @@ def test_adjustment_phase_mixes_builds_explicit_disbands_and_civil_disorder():
     assert _unit_at(result, "rhs") is not None
     assert _unit_at(result, "mid") is None
     assert _unit_at(result, "iso") is None
+
+
+# === Supply-center ownership ===
+
+
+def test_supply_center_ownership_recomputes_into_adjustment_phase():
+    """In the Retreat -> Adjustment transition, a supply center occupied
+    by a unit transfers to that unit's nation while an unoccupied supply
+    center keeps its current owner."""
+    state = AdjudicationState(
+        variant=make_variant(),
+        phase=Phase(season="Spring", year=1901, type=Phase.RETREAT),
+        units=(),
+        supply_centers=(
+            SupplyCenter(nation=SOUTH, province="rhs"),
+            SupplyCenter(nation=SOUTH, province="mid"),
+        ),
+        raw_orders=(),
+        contested_provinces=(),
+        next_units=(Unit(nation=NORTH, type=Unit.ARMY, location="rhs"),),
+    )
+
+    result = UpdateSupplyCenterOwnershipReducer.reduce(
+        StateView(state), Actions.UpdateSupplyCenterOwnership()
+    )
+
+    owners = {sc.province: sc.nation for sc in result.next_supply_centers()}
+    assert owners == {"rhs": NORTH, "mid": SOUTH}
+
+
+def test_supply_center_ownership_passes_through_when_next_phase_not_adjustment():
+    """Outside the transition into an Adjustment phase, ownership is
+    carried through unchanged even when a unit stands on a supply center
+    it does not own."""
+    state = AdjudicationState(
+        variant=make_variant(),
+        phase=Phase(season="Spring", year=1901, type=Phase.MOVEMENT),
+        units=(),
+        supply_centers=(SupplyCenter(nation=SOUTH, province="rhs"),),
+        raw_orders=(),
+        contested_provinces=(),
+        next_units=(Unit(nation=NORTH, type=Unit.ARMY, location="rhs"),),
+    )
+
+    result = UpdateSupplyCenterOwnershipReducer.reduce(
+        StateView(state), Actions.UpdateSupplyCenterOwnership()
+    )
+
+    owners = {sc.province: sc.nation for sc in result.next_supply_centers()}
+    assert owners == {"rhs": SOUTH}
+
+
+def test_retreat_into_supply_center_transfers_ownership_to_next_phase():
+    """A unit that retreats into a supply center owns it in the
+    Adjustment phase that follows; the resolved Retreat state keeps the
+    pre-resolution ownership."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.RETREAT,
+        units=[
+            Unit(
+                nation=NORTH,
+                type=Unit.ARMY,
+                location="mid",
+                dislodged=True,
+                dislodged_from="lhs",
+            ),
+        ],
+        supply_centers=[SupplyCenter(nation=SOUTH, province="rhs")],
+        orders=[
+            RawOrder(nation=NORTH, source="mid", order_type="Retreat", target="rhs"),
+        ],
+    )
+
+    resolved, next_state = Engine().adjudicate(state)
+
+    resolved_owners = {sc.province: sc.nation for sc in resolved.supply_centers}
+    next_owners = {sc.province: sc.nation for sc in next_state.supply_centers}
+    assert next_state.phase.type == Phase.ADJUSTMENT
+    assert resolved_owners == {"rhs": SOUTH}
+    assert next_owners == {"rhs": NORTH}
 
 
 # === Engine error tests ===
