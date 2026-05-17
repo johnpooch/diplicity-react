@@ -9375,6 +9375,54 @@ def test_options_movement_fleet_at_multi_coast_destination_emits_one_option_per_
     assert "mlc" not in fleet_moves
 
 
+def test_options_movement_fleet_move_to_bare_multi_coast_parent_is_excluded():
+    """A fleet's move options into a multi-coast province are the named
+    coasts, never the bare parent — even when the variant graph carries a
+    fleet edge to the bare parent. godip's fleet adjacencies connect to
+    named coasts; the option generator must match that. A comparable army
+    still moves to the bare parent."""
+    variant = make_variant()
+    # Inject a fleet edge between "sea" and the bare "mlc" parent — an
+    # edge a godip-correct graph would not have. The option generator
+    # must still not offer the bare parent to a fleet.
+    sea = variant.provinces["sea"]
+    mlc = variant.provinces["mlc"]
+    provinces = dict(variant.provinces)
+    provinces["sea"] = replace(
+        sea, adjacencies=sea.adjacencies + (Adjacency(to="mlc", pass_="fleet"),)
+    )
+    provinces["mlc"] = replace(
+        mlc, adjacencies=mlc.adjacencies + (Adjacency(to="sea", pass_="fleet"),)
+    )
+    variant = replace(variant, provinces=provinces)
+
+    fleet_state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[Unit(nation=NORTH, type=Unit.FLEET, location="sea")],
+    )
+    fleet_moves = {
+        o.target
+        for o in get_options(fleet_state)
+        if o.order_type == "Move" and o.source == "sea"
+    }
+    assert "mlc/nc" in fleet_moves
+    assert "mlc/sc" in fleet_moves
+    assert "mlc" not in fleet_moves
+
+    army_state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[Unit(nation=NORTH, type=Unit.ARMY, location="iso")],
+    )
+    army_moves = {
+        o.target
+        for o in get_options(army_state)
+        if o.order_type == "Move" and o.source == "iso"
+    }
+    assert "mlc" in army_moves
+
+
 def test_options_movement_army_move_to_named_coast_is_excluded():
     """DATC 6.B.12: armies ignore named coasts; target must be a parent."""
     variant = make_variant()
