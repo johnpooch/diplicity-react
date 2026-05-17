@@ -2754,6 +2754,8 @@ components:
           type: string
         author:
           type: string
+        rules:
+          type: string
         victoryConditions:
           $ref: '#/components/schemas/VictoryConditions'
         nations:
@@ -2772,6 +2774,7 @@ components:
       - name
       - nations
       - provinces
+      - rules
       - templatePhase
       - victoryConditions
     VerifyEmail:
