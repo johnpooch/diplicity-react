@@ -134,6 +134,8 @@ def _movement_options(view: StateView) -> List[OrderOption]:
 def _move_is_orderable(
     view: StateView, order: MoveOrder, sea_fleet_locs: Tuple[str, ...]
 ) -> bool:
+    if _fleet_target_is_bare_multi_coast(view, order):
+        return False
     for check_cls in MoveOrder.LEGALITY_CHECKS:
         if check_cls.check(view, order):
             continue
@@ -163,6 +165,19 @@ def _move_has_convoy_path(
     if not sea_fleet_locs:
         return False
     return convoy_path_exists(view, source_parent, target_parent, sea_fleet_locs)
+
+
+def _fleet_target_is_bare_multi_coast(view: StateView, order: MoveOrder) -> bool:
+    """A fleet enters a multi-coast province only via a specific named
+    coast, never the bare parent — godip models this in its fleet
+    adjacency graph. Armies are unaffected: they move to the bare parent
+    and ignore coasts."""
+    if order.unit_type != Unit.FLEET:
+        return False
+    variant = view.variant()
+    if order.target != variant.parent_of(order.target):
+        return False
+    return bool(variant.coasts_of(order.target))
 
 
 def _support_options(
