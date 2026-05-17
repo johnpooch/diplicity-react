@@ -13,10 +13,15 @@ from common.constants import PhaseStatus, PhaseType, OrderType, UnitType, GameSt
 from game.models import Game
 from .models import Phase, PhaseState
 from .serializers import PhaseStateSerializer
-from .utils import transform_options
+from .utils import transform_options, phase_to_canonical_game_state
 from order.models import Order, OrderResolution
 from supply_center.models import SupplyCenter
 from unit.models import Unit
+from member.models import Member
+from nation.models import Nation
+from province.models import Province
+from adjudicator.serializers import deserialize_variant, deserialize_game_state
+from variant.utils import variant_to_canonical_dict
 
 
 @pytest.mark.django_db
@@ -2839,3 +2844,194 @@ class TestPhaseDurationByPhaseType:
         expected_seconds = 48 * 60 * 60
         actual_seconds = (new_phase.scheduled_resolution - now).total_seconds()
         assert abs(actual_seconds - expected_seconds) < 5
+
+
+class TestPhaseToCanonicalGameState:
+
+    def _game_with_members(self, variant, primary_user, secondary_user):
+        game = Game.objects.create(
+            name="Converter Test Game", variant=variant, status=GameStatus.ACTIVE
+        )
+        england = Member.objects.create(
+            game=game,
+            user=primary_user,
+            nation=Nation.objects.get(name="England", variant=variant),
+        )
+        france = Member.objects.create(
+            game=game,
+            user=secondary_user,
+            nation=Nation.objects.get(name="France", variant=variant),
+        )
+        return game, england, france
+
+    @pytest.mark.django_db
+    def test_movement_phase_round_trips(self, classical_variant, primary_user, secondary_user):
+        game, england, france = self._game_with_members(
+            classical_variant, primary_user, secondary_user
+        )
+        provinces = {p.province_id: p for p in classical_variant.provinces.all()}
+        phase = Phase.objects.create(
+            game=game,
+            variant=classical_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            status=PhaseStatus.ACTIVE,
+            ordinal=1,
+        )
+        phase.units.create(type=UnitType.FLEET, nation=england.nation, province=provinces["edi"])
+        phase.units.create(type=UnitType.ARMY, nation=england.nation, province=provinces["lon"])
+        phase.units.create(type=UnitType.ARMY, nation=england.nation, province=provinces["yor"])
+        phase.units.create(type=UnitType.FLEET, nation=france.nation, province=provinces["bre"])
+        phase.units.create(type=UnitType.ARMY, nation=france.nation, province=provinces["par"])
+        phase.units.create(type=UnitType.FLEET, nation=france.nation, province=provinces["mar"])
+
+        for province_id in ("edi", "lon"):
+            phase.supply_centers.create(nation=england.nation, province=provinces[province_id])
+        for province_id in ("bre", "par", "mar"):
+            phase.supply_centers.create(nation=france.nation, province=provinces[province_id])
+
+        england_state = phase.phase_states.create(member=england)
+        france_state = phase.phase_states.create(member=france)
+        england_state.orders.create(
+            source=provinces["edi"], order_type=OrderType.MOVE, target=provinces["nth"]
+        )
+        england_state.orders.create(source=provinces["lon"], order_type=OrderType.HOLD)
+        england_state.orders.create(
+            source=provinces["yor"],
+            order_type=OrderType.SUPPORT,
+            aux=provinces["edi"],
+            target=provinces["nth"],
+        )
+        france_state.orders.create(
+            source=provinces["bre"],
+            order_type=OrderType.CONVOY,
+            aux=provinces["par"],
+            target=provinces["lon"],
+        )
+        france_state.orders.create(
+            source=provinces["par"], order_type=OrderType.MOVE_VIA_CONVOY, target=provinces["lon"]
+        )
+        france_state.orders.create(
+            source=provinces["mar"],
+            order_type=OrderType.MOVE,
+            target=provinces["spa"],
+            named_coast=provinces["spa/sc"],
+        )
+
+        data = phase_to_canonical_game_state(phase)
+        domain_variant = deserialize_variant(variant_to_canonical_dict(classical_variant))
+        deserialize_game_state(data, domain_variant)
+
+        assert data["phase"] == {"season": "Spring", "year": 1901, "type": "Movement"}
+        assert len(data["units"]) == 6
+        assert len(data["supplyCenters"]) == 5
+
+        orders_by_source = {o["source"]: o for o in data["orders"]}
+        # MoveViaConvoy collapses to a Move carrying viaConvoy.
+        assert orders_by_source["par"]["orderType"] == "Move"
+        assert orders_by_source["par"]["viaConvoy"] is True
+        assert orders_by_source["edi"]["viaConvoy"] is False
+        # A named-coast move addresses the coast as its target.
+        assert orders_by_source["mar"]["target"] == "spa/sc"
+
+    @pytest.mark.django_db
+    def test_retreat_phase_round_trips(self, classical_variant, primary_user, secondary_user):
+        game, england, france = self._game_with_members(
+            classical_variant, primary_user, secondary_user
+        )
+        provinces = {p.province_id: p for p in classical_variant.provinces.all()}
+        phase = Phase.objects.create(
+            game=game,
+            variant=classical_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.RETREAT,
+            status=PhaseStatus.ACTIVE,
+            ordinal=1,
+        )
+        dislodger = phase.units.create(
+            type=UnitType.ARMY, nation=france.nation, province=provinces["wal"]
+        )
+        phase.units.create(
+            type=UnitType.ARMY,
+            nation=england.nation,
+            province=provinces["lon"],
+            dislodged=True,
+            dislodged_by=dislodger,
+        )
+        # A unit dislodged by a convoyed army has no recorded dislodger.
+        phase.units.create(
+            type=UnitType.ARMY, nation=france.nation, province=provinces["lvp"], dislodged=True
+        )
+
+        phase.supply_centers.create(nation=england.nation, province=provinces["lon"])
+        phase.supply_centers.create(nation=france.nation, province=provinces["lvp"])
+
+        england_state = phase.phase_states.create(member=england)
+        france_state = phase.phase_states.create(member=france)
+        # Django records a retreat as a Move order in a retreat phase.
+        england_state.orders.create(
+            source=provinces["lon"], order_type=OrderType.MOVE, target=provinces["yor"]
+        )
+        france_state.orders.create(source=provinces["lvp"], order_type=OrderType.DISBAND)
+
+        data = phase_to_canonical_game_state(phase)
+        domain_variant = deserialize_variant(variant_to_canonical_dict(classical_variant))
+        deserialize_game_state(data, domain_variant)
+
+        units_by_location = {u["location"]: u for u in data["units"]}
+        assert units_by_location["lon"]["dislodged"] is True
+        assert units_by_location["lon"]["dislodgedFrom"] == "wal"
+        assert units_by_location["lvp"]["dislodgedFrom"] is None
+        assert units_by_location["wal"]["dislodged"] is False
+
+        orders_by_source = {o["source"]: o for o in data["orders"]}
+        assert orders_by_source["lon"]["orderType"] == "Retreat"
+        assert orders_by_source["lvp"]["orderType"] == "Disband"
+
+    @pytest.mark.django_db
+    def test_adjustment_phase_round_trips(self, classical_variant, primary_user, secondary_user):
+        game, england, france = self._game_with_members(
+            classical_variant, primary_user, secondary_user
+        )
+        provinces = {p.province_id: p for p in classical_variant.provinces.all()}
+        phase = Phase.objects.create(
+            game=game,
+            variant=classical_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.ADJUSTMENT,
+            status=PhaseStatus.ACTIVE,
+            ordinal=1,
+        )
+        phase.units.create(type=UnitType.FLEET, nation=england.nation, province=provinces["lon"])
+        phase.units.create(type=UnitType.ARMY, nation=france.nation, province=provinces["par"])
+
+        for province_id in ("lon", "edi"):
+            phase.supply_centers.create(nation=england.nation, province=provinces[province_id])
+        for province_id in ("par", "bre", "mar"):
+            phase.supply_centers.create(nation=france.nation, province=provinces[province_id])
+
+        england_state = phase.phase_states.create(member=england)
+        france_state = phase.phase_states.create(member=france)
+        england_state.orders.create(
+            source=provinces["edi"], order_type=OrderType.BUILD, unit_type=UnitType.ARMY
+        )
+        england_state.orders.create(
+            source=provinces["stp"],
+            order_type=OrderType.BUILD,
+            unit_type=UnitType.FLEET,
+            named_coast=provinces["stp/nc"],
+        )
+        france_state.orders.create(source=provinces["par"], order_type=OrderType.DISBAND)
+
+        data = phase_to_canonical_game_state(phase)
+        domain_variant = deserialize_variant(variant_to_canonical_dict(classical_variant))
+        deserialize_game_state(data, domain_variant)
+
+        assert data["phase"] == {"season": "Fall", "year": 1901, "type": "Adjustment"}
+        orders_by_unit_type = {o["unitType"]: o for o in data["orders"] if o["orderType"] == "Build"}
+        # A fleet build on a multi-coast province addresses the coast as its source.
+        assert orders_by_unit_type["Fleet"]["source"] == "stp/nc"
+        assert orders_by_unit_type["Army"]["source"] == "edi"

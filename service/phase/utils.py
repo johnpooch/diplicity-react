@@ -3,7 +3,7 @@ from zoneinfo import ZoneInfo
 
 from django.utils import timezone
 
-from common.constants import PhaseFrequency
+from common.constants import OrderType, PhaseFrequency, PhaseType
 
 
 def transform_options(raw_options):
@@ -388,3 +388,81 @@ def calculate_next_fixed_deadline(
         raise ValueError(f"Unknown frequency: {frequency}")
 
     return next_deadline
+
+
+def _parent_province_id(province):
+    if province.parent_id is not None:
+        return province.parent.province_id
+    return province.province_id
+
+
+def _canonical_order(order, phase_type):
+    # Django/godip use a Move order in a retreat phase to mean a retreat;
+    # the canonical adjudicator has a distinct Retreat order type. Django's
+    # MoveViaConvoy collapses to a Move with viaConvoy set.
+    via_convoy = False
+    if phase_type == PhaseType.RETREAT:
+        order_type = "Retreat" if order.order_type == OrderType.MOVE else order.order_type
+    elif order.order_type == OrderType.MOVE_VIA_CONVOY:
+        order_type = OrderType.MOVE
+        via_convoy = True
+    else:
+        order_type = order.order_type
+
+    source = order.source.province_id if order.source_id is not None else None
+    target = order.target.province_id if order.target_id is not None else None
+    aux = order.aux.province_id if order.aux_id is not None else None
+
+    # A named coast addresses the build location for builds and the
+    # destination for moves.
+    if order.named_coast_id is not None:
+        if order.order_type == OrderType.BUILD:
+            source = order.named_coast.province_id
+        else:
+            target = order.named_coast.province_id
+
+    return {
+        "nation": order.nation.nation_id,
+        "source": source,
+        "orderType": order_type,
+        "target": target,
+        "aux": aux,
+        "unitType": order.unit_type,
+        "viaConvoy": via_convoy,
+    }
+
+
+def phase_to_canonical_game_state(phase):
+    return {
+        "phase": {
+            "season": phase.season,
+            "year": phase.year,
+            "type": phase.type,
+        },
+        "units": [
+            {
+                "nation": unit.nation.nation_id,
+                "type": unit.type,
+                "location": unit.province.province_id,
+                "dislodged": unit.dislodged,
+                "dislodgedFrom": (
+                    _parent_province_id(unit.dislodged_by.province)
+                    if unit.dislodged_by_id is not None
+                    else None
+                ),
+            }
+            for unit in phase.units.all()
+        ],
+        "supplyCenters": [
+            {
+                "nation": supply_center.nation.nation_id,
+                "province": supply_center.province.province_id,
+            }
+            for supply_center in phase.supply_centers.all()
+        ],
+        "orders": [
+            _canonical_order(order, phase.type)
+            for phase_state in phase.phase_states.all()
+            for order in phase_state.orders.all()
+        ],
+    }
