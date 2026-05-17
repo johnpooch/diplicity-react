@@ -17,7 +17,27 @@ DSVG_HIDDEN_LAYERS = ("provinces", "named-coasts")
 
 SVG_NAMESPACE = "http://www.w3.org/2000/svg"
 XLINK_NAMESPACE = "http://www.w3.org/1999/xlink"
+INKSCAPE_NAMESPACE = "http://www.inkscape.org/namespaces/inkscape"
 _ALLOWED_ATTRIBUTE_NAMESPACES = (SVG_NAMESPACE, XLINK_NAMESPACE)
+
+GODIP_LAYER_TARGETS = {
+    "background": "background",
+    "provinces": "provinces",
+    "foreground": "foreground",
+    "names": "province-names",
+}
+
+GODIP_RUNTIME_LAYERS = {
+    "units",
+    "orders",
+    "supply-centers",
+    "province-centers",
+    "highlights",
+}
+
+GODIP_DECORATIVE_LAYERS = {"noise"}
+
+_GODIP_IGNORED_ELEMENTS = {"metadata", "namedview", "title", "desc"}
 
 
 def _namespace(tag):
@@ -50,6 +70,150 @@ def normalize_dsvg(svg):
 
     etree.cleanup_namespaces(root)
     return etree.tostring(root).decode()
+
+
+def _svg_element(local_name):
+    return etree.Element(f"{{{SVG_NAMESPACE}}}{local_name}")
+
+
+def _polygon_to_path(polygon):
+    path = _svg_element("path")
+    for name, value in polygon.attrib.items():
+        if _local_name(name) != "points":
+            path.set(name, value)
+    points = " ".join(polygon.get("points", "").split())
+    path.set("d", f"M {points} Z")
+    return path
+
+
+def _flatten_province_group(group):
+    path = _svg_element("path")
+    province_id = group.get("id")
+    if province_id:
+        path.set("id", province_id)
+    style = group.get("style")
+    if style:
+        path.set("style", style)
+    segments = []
+    for element in group.iter():
+        local = _local_name(element.tag)
+        if local == "path" and element.get("d"):
+            segments.append(element.get("d"))
+        elif local == "polygon" and element.get("points"):
+            segments.append("M " + " ".join(element.get("points").split()) + " Z")
+    path.set("d", " ".join(segments))
+    return path
+
+
+def _godip_province_path(element):
+    local = _local_name(element.tag)
+    if local == "path":
+        return element
+    if local == "polygon":
+        return _polygon_to_path(element)
+    if local == "g":
+        return _flatten_province_group(element)
+    return None
+
+
+def convert_godip_dsvg(svg):
+    root = etree.fromstring(svg.encode())
+
+    label_attribute = f"{{{INKSCAPE_NAMESPACE}}}label"
+    for element in root.iter():
+        if not isinstance(element.tag, str):
+            continue
+        label = element.get(label_attribute)
+        if label:
+            element.set("id", label)
+
+    warnings = []
+    defs_elements = []
+    godip_layers = {}
+    noise_elements = []
+
+    for child in list(root):
+        if not isinstance(child.tag, str):
+            continue
+        local = _local_name(child.tag)
+        child_id = child.get("id")
+        if local in ("defs", "style"):
+            defs_elements.append(child)
+            continue
+        if child_id in GODIP_DECORATIVE_LAYERS:
+            noise_elements.append(child)
+            continue
+        if local != "g":
+            if local not in _GODIP_IGNORED_ELEMENTS:
+                warnings.append(f"Dropped unrecognized top-level <{local}> element (id={child_id!r}).")
+            continue
+        if child_id in GODIP_LAYER_TARGETS:
+            godip_layers[GODIP_LAYER_TARGETS[child_id]] = child
+        elif child_id in GODIP_RUNTIME_LAYERS or (child_id or "").split(" ")[0] in GODIP_RUNTIME_LAYERS:
+            continue
+        else:
+            warnings.append(f"Dropped unrecognized layer <g id={child_id!r}>.")
+
+    provinces_layer = _svg_element("g")
+    provinces_layer.set("id", "provinces")
+    provinces_layer.set("style", "display:none")
+    named_coasts_layer = _svg_element("g")
+    named_coasts_layer.set("id", "named-coasts")
+    named_coasts_layer.set("style", "display:none")
+
+    godip_provinces = godip_layers.get("provinces")
+    if godip_provinces is None:
+        warnings.append("Input has no 'provinces' layer.")
+    else:
+        for element in list(godip_provinces):
+            path = _godip_province_path(element)
+            if path is None:
+                warnings.append(
+                    f"Dropped non-province <{_local_name(element.tag)}> in provinces layer."
+                )
+                continue
+            if "/" in (path.get("id") or ""):
+                named_coasts_layer.append(path)
+            else:
+                provinces_layer.append(path)
+
+    background_layer = godip_layers.get("background")
+    if background_layer is None:
+        background_layer = _svg_element("g")
+        warnings.append("Synthesized empty 'background' layer.")
+    background_layer.set("id", "background")
+
+    province_names_layer = godip_layers.get("province-names")
+    if province_names_layer is None:
+        province_names_layer = _svg_element("g")
+    province_names_layer.set("id", "province-names")
+
+    borders_layer = _svg_element("g")
+    borders_layer.set("id", "borders")
+
+    foreground_layer = godip_layers.get("foreground")
+    if foreground_layer is None:
+        foreground_layer = _svg_element("g")
+    foreground_layer.set("id", "foreground")
+    for noise in noise_elements:
+        if _local_name(noise.tag) == "g":
+            for element in list(noise):
+                foreground_layer.append(element)
+        else:
+            foreground_layer.append(noise)
+
+    for child in list(root):
+        root.remove(child)
+    for defs in defs_elements:
+        root.append(defs)
+    root.append(background_layer)
+    root.append(provinces_layer)
+    root.append(named_coasts_layer)
+    root.append(province_names_layer)
+    root.append(borders_layer)
+    root.append(foreground_layer)
+
+    return normalize_dsvg(etree.tostring(root).decode()), warnings
 
 
 @dataclass(frozen=True)
