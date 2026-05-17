@@ -1,22 +1,11 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { describe, test, expect } from "vitest";
 import { DiplicityMap, type RenderState } from "./mapRenderer";
-
-const here = (import.meta as { dirname: string }).dirname;
-const classicalPath = resolve(
-  here,
-  "../../../../../service/variant/data/svg/classical.d.svg"
-);
-
-// The converted classical map embeds a base64 woff2 font and raster
-// pattern tiles. They bloat the golden artifact, render as broken images
-// in viewers that don't resolve the round-tripped href namespace, and are
-// passthrough artwork unrelated to the renderer geometry under test, so
-// strip them.
-const CLASSICAL_DSVG = readFileSync(classicalPath, "utf8")
-  .replace(/<style id="embeddingfonts"[\s\S]*?<\/style>/, "")
-  .replace(/<image\b[^>]*>/g, "");
+// Vendored copy of the converted classical map (service/variant/data/svg/
+// classical.d.svg) with the embedded woff2 font and raster pattern tiles
+// stripped. The web package's CI test image is built from packages/web
+// alone, so the test cannot reach the backend file; the stripped artwork
+// is passthrough irrelevant to the renderer geometry under test.
+import CLASSICAL_DSVG from "./classicalMap.dsvg?raw";
 
 const CLASSICAL_SCENE: RenderState = {
   // Nation colours from the classical variant (service/variant/data/classical.json).
