@@ -2758,6 +2758,10 @@ components:
           type: string
         victoryConditions:
           $ref: '#/components/schemas/VictoryConditions'
+        svgUrl:
+          type: string
+          nullable: true
+          readOnly: true
         nations:
           type: array
           items:
@@ -2775,6 +2779,7 @@ components:
       - nations
       - provinces
       - rules
+      - svgUrl
       - templatePhase
       - victoryConditions
     VerifyEmail:
