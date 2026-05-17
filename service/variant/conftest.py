@@ -71,6 +71,48 @@ def make_editor_dsvg():
 
 
 @pytest.fixture
+def make_godip_svg():
+    def _make(layers=None):
+        if layers is None:
+            layers = {
+                "background": '<rect id="sea" width="100" height="100"/>',
+                "provinces": (
+                    '<path inkscape:label="fra" id="path1" d="M0 0 L1 1 Z"/>'
+                    '<polygon inkscape:label="ber" id="poly1" points="2,2 3,3 4,4"/>'
+                    '<path inkscape:label="fra/nc" id="path2" d="M5 5 L6 6 Z"/>'
+                ),
+                "supply-centers": '<circle id="sc1" r="2"/>',
+                "province-centers": '<circle id="pc1" r="1"/>',
+                "highlights": "",
+                "foreground": '<path id="coast" d="M0 0 L9 9"/>',
+                "names": '<text id="France">France</text>',
+                "units": "",
+                "orders": "",
+            }
+        layer_xml = "".join(
+            f'<g inkscape:groupmode="layer" inkscape:label="{layer_id}" id="{layer_id}">'
+            f"{content}</g>"
+            for layer_id, content in layers.items()
+        )
+        noise = (
+            '<g inkscape:groupmode="layer" inkscape:label="noise" id="layer99">'
+            '<rect id="Noise" width="100" height="100"/></g>'
+        )
+        return (
+            '<svg xmlns="http://www.w3.org/2000/svg" '
+            'xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" '
+            'xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" '
+            'viewBox="0 0 100 100">'
+            '<sodipodi:namedview id="namedview1"/>'
+            '<defs id="defs1"><linearGradient id="grad1"/></defs>'
+            f"{layer_xml}{noise}"
+            "</svg>"
+        )
+
+    return _make
+
+
+@pytest.fixture
 def dsvg_variant(db):
     variant = Variant.objects.create(
         id="dsvg-test-variant",
