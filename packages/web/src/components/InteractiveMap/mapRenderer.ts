@@ -668,13 +668,13 @@ export class DiplicityMap {
     }
     parts.push(layer("province-names", provinceNames));
     parts.push(layer("borders", borders));
+    parts.push(layer("foreground", foreground));
     if (units) {
       parts.push(layer("units", units));
     }
     if (orders) {
       parts.push(layer("orders", orders));
     }
-    parts.push(layer("foreground", foreground));
     parts.push("</svg>");
     return parts.join("\n");
   }

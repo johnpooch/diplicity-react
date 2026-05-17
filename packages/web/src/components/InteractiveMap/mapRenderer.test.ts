@@ -374,9 +374,9 @@ describe("DiplicityMap layering", () => {
       "supply-center-markers",
       "province-names",
       "borders",
+      "foreground",
       "units",
       "orders",
-      "foreground",
     ].map((id) => svg.indexOf(`id="${id}"`));
     expect(positions.every((index) => index >= 0)).toBe(true);
     expect(positions).toEqual([...positions].sort((a, b) => a - b));

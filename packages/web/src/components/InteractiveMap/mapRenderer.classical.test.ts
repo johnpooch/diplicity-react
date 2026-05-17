@@ -9,23 +9,25 @@ const classicalPath = resolve(
   "../../../../../service/variant/data/svg/classical.d.svg"
 );
 
-// The converted classical map embeds a base64 woff2 font (~2MB). It is
-// irrelevant to the rendered geometry, so strip it to keep the golden
-// artifact small enough to review.
-const CLASSICAL_DSVG = readFileSync(classicalPath, "utf8").replace(
-  /<style id="embeddingfonts"[\s\S]*?<\/style>/,
-  ""
-);
+// The converted classical map embeds a base64 woff2 font and raster
+// pattern tiles. They bloat the golden artifact, render as broken images
+// in viewers that don't resolve the round-tripped href namespace, and are
+// passthrough artwork unrelated to the renderer geometry under test, so
+// strip them.
+const CLASSICAL_DSVG = readFileSync(classicalPath, "utf8")
+  .replace(/<style id="embeddingfonts"[\s\S]*?<\/style>/, "")
+  .replace(/<image\b[^>]*>/g, "");
 
 const CLASSICAL_SCENE: RenderState = {
+  // Nation colours from the classical variant (service/variant/data/classical.json).
   nationColors: {
-    England: "#22408f",
-    France: "#5fa8d3",
-    Germany: "#4a4a4a",
-    Austria: "#c14242",
-    Italy: "#3f9f6f",
-    Russia: "#9a7b4f",
-    Turkey: "#d4b13a",
+    Austria: "#F44336",
+    England: "#2196F3",
+    France: "#80DEEA",
+    Germany: "#90A4AE",
+    Italy: "#4CAF50",
+    Russia: "#F5F5F5",
+    Turkey: "#FFC107",
   },
   supplyCenters: [
     { province: "lon", nation: "England" },
