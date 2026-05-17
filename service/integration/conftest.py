@@ -1,8 +1,20 @@
+import os
+
 import pytest
 from rest_framework.test import APIClient
 
 from django.contrib.auth.models import User
 from user_profile.models import UserProfile
+
+
+@pytest.fixture(autouse=True)
+def _shadow_strict(settings):
+    """Opt-in strict shadow mode for the integration suite. With SHADOW_STRICT
+    set in the environment, every resolve() turns a shadow divergence into a
+    raised ShadowDivergenceError, so the integration tests enforce Python
+    adjudicator correctness. Without it the suite stays green by default."""
+    if os.getenv("SHADOW_STRICT"):
+        settings.SHADOW_STRICT = True
 
 
 @pytest.fixture(scope="session")

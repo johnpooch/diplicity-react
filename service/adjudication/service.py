@@ -2,6 +2,7 @@ import json
 import logging
 import requests
 
+from django.conf import settings
 from django.db import transaction
 from opentelemetry import metrics, trace
 
@@ -30,6 +31,28 @@ _meter = metrics.get_meter(__name__)
 _shadow_matches_counter = _meter.create_counter("adjudication.shadow.matches")
 _shadow_mismatches_counter = _meter.create_counter("adjudication.shadow.mismatches")
 _shadow_errors_counter = _meter.create_counter("adjudication.shadow.errors")
+
+
+class ShadowDivergenceError(Exception):
+    """Raised in SHADOW_STRICT mode when the Python adjudicator diverges from
+    godip — either a structured diff mismatch or an engine error. Carries the
+    tier and structured diff so a failing test points at the exact phase."""
+
+    def __init__(self, phase, tier=None, diff=None, cause=None):
+        self.phase = phase
+        self.tier = tier
+        self.diff = diff
+        if cause is not None:
+            message = (
+                f"Shadow adjudicator error for phase {phase.id} "
+                f"({phase.name}): {cause!r}"
+            )
+        else:
+            message = (
+                f"Shadow adjudication mismatch for phase {phase.id} "
+                f"({phase.name}): tier={tier} diff={diff}"
+            )
+        super().__init__(message)
 
 
 def _make_adjudication_request(phase, endpoint, method="GET", data=None):
@@ -169,21 +192,37 @@ def compute_shadow_diff(canonical_variant, pre_state, godip_response):
 def _run_shadow_comparison(phase, canonical_variant, pre_state, godip_response):
     """Run the Python adjudicator alongside godip and compare the outcomes.
 
-    Never raises: a shadow-mode failure must not affect the user-facing
-    resolution flow. Matches increment a telemetry counter; mismatches
-    additionally persist a ShadowAdjudicationDiff row for later replay.
+    In the default (non-strict) mode this never raises: a shadow-mode failure
+    must not affect the user-facing resolution flow. Matches increment a
+    telemetry counter; mismatches additionally persist a ShadowAdjudicationDiff
+    row for later replay.
+
+    When SHADOW_STRICT is enabled, both an engine error and a structured-diff
+    mismatch raise ShadowDivergenceError so the integration-test harness fails
+    loudly. Errors hard-fail too — a pure table comparison is blind to engine
+    crashes.
     """
-    try:
-        with tracer.start_as_current_span("adjudication.shadow_comparison"):
+    strict = settings.SHADOW_STRICT
+    with tracer.start_as_current_span("adjudication.shadow_comparison"):
+        try:
             diff, python_states = compute_shadow_diff(
                 canonical_variant, pre_state, godip_response
             )
+        except Exception as exc:
+            _shadow_errors_counter.add(1)
+            logger.exception(
+                "Shadow adjudication comparison failed for phase %s", phase.id
+            )
+            if strict:
+                raise ShadowDivergenceError(phase, cause=exc) from exc
+            return
 
-            if diff.matched:
-                _shadow_matches_counter.add(1)
-                return
+        if diff.matched:
+            _shadow_matches_counter.add(1)
+            return
 
-            _shadow_mismatches_counter.add(1)
+        _shadow_mismatches_counter.add(1)
+        try:
             with transaction.atomic():
                 ShadowAdjudicationDiff.objects.create(
                     phase=phase,
@@ -193,13 +232,17 @@ def _run_shadow_comparison(phase, canonical_variant, pre_state, godip_response):
                     python_response=[serialize_game_state(s) for s in python_states],
                     diff_summary=diff.to_dict(),
                 )
-            logger.warning(
-                "Shadow adjudication mismatch for phase %s (%s): tier=%s diff=%s",
-                phase.id,
-                phase.name,
-                diff.tier,
-                diff.to_dict(),
+        except Exception:
+            _shadow_errors_counter.add(1)
+            logger.exception(
+                "Failed to persist shadow adjudication diff for phase %s", phase.id
             )
-    except Exception:
-        _shadow_errors_counter.add(1)
-        logger.exception("Shadow adjudication comparison failed for phase %s", phase.id)
+        logger.warning(
+            "Shadow adjudication mismatch for phase %s (%s): tier=%s diff=%s",
+            phase.id,
+            phase.name,
+            diff.tier,
+            diff.to_dict(),
+        )
+        if strict:
+            raise ShadowDivergenceError(phase, tier=diff.tier, diff=diff.to_dict())
