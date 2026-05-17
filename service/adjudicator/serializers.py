@@ -173,6 +173,8 @@ def deserialize_variant(data: Dict[str, Any]) -> Variant:
                 to_season=t["to"]["season"],
                 to_type=t["to"]["type"],
                 year_delta=t["to"]["yearDelta"],
+                year_mod=t.get("condition", {}).get("yearMod"),
+                year_mod_value=t.get("condition", {}).get("yearModValue"),
             )
             for t in pp["transitions"]
         ),
