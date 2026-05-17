@@ -48,7 +48,7 @@ class VariantQuerySet(models.QuerySet):
             to_attr="template_phases",
         )
 
-        return self.prefetch_related(
+        return self.select_related("svg").defer("svg__svg").prefetch_related(
             # Variant data with optimized template phase
             "provinces__parent",
             "provinces__named_coasts",

@@ -695,6 +695,8 @@ export interface Variant {
   author?: string;
   rules: string;
   victoryConditions: VictoryConditions;
+  /** @nullable */
+  readonly svgUrl: string | null;
   nations: Nation[];
   provinces: Province[];
   templatePhase: PhaseRetrieve;
