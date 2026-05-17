@@ -175,6 +175,50 @@ jobs:
           echo "ERROR: Staging Postgres did not become ready in time."
           exit 1
 
+      - name: Stop staging Django service
+        env:
+          ENV_ID: ${{ steps.create_env.outputs.env_id }}
+        run: |
+          if [ "$ENV_ID" = "$PROD_ENV_ID" ]; then
+            echo "ERROR: ENV_ID matches PROD_ENV_ID — refusing to stop production deployments."
+            exit 1
+          fi
+
+          echo "Querying staging Django deployments..."
+          LIST_PAYLOAD=$(jq -n \
+            --arg projectId "$PROJECT_ID" \
+            --arg envId "$ENV_ID" \
+            --arg serviceId "$DJANGO_SERVICE_ID" \
+            '{
+              query: "query($input: DeploymentListInput!) { deployments(input: $input, first: 20) { edges { node { id status } } } }",
+              variables: { input: { projectId: $projectId, environmentId: $envId, serviceId: $serviceId } }
+            }')
+
+          RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
+            -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$LIST_PAYLOAD")
+          echo "Deployments response: $RESULT"
+
+          ACTIVE_IDS=$(echo "$RESULT" | jq -r '.data.deployments.edges[].node | select(.status | IN("REMOVED","REMOVING","FAILED","CRASHED","SKIPPED") | not) | .id')
+
+          if [ -z "$ACTIVE_IDS" ]; then
+            echo "No active Django deployment to stop."
+          else
+            for DEP_ID in $ACTIVE_IDS; do
+              echo "Stopping deployment $DEP_ID..."
+              STOP_PAYLOAD=$(jq -n --arg id "$DEP_ID" \
+                '{query: "mutation($id: String!) { deploymentStop(id: $id) }", variables: {id: $id}}')
+              STOP_RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
+                -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d "$STOP_PAYLOAD")
+              echo "Stop response: $STOP_RESULT"
+            done
+            echo "Waiting 15s for connections to drain..."
+            sleep 15
+          fi
+
       - name: Clone production database to staging
         env:
           PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
@@ -186,11 +230,15 @@ jobs:
           echo "Dumping production database..."
           $PG_BIN/pg_dump "$PRODUCTION_DATABASE_URL" --no-owner --no-acl --format=custom -f dump.pgdata
 
+          echo "Terminating leftover connections to staging database..."
+          psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -c \
+            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid();"
+
           echo "Wiping staging database for clean restore..."
-          psql "$STAGING_DB_URL" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+          psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
 
           echo "Restoring to staging database..."
-          $PG_BIN/pg_restore --no-owner --no-acl -d "$STAGING_DB_URL" dump.pgdata
+          $PG_BIN/pg_restore --no-owner --no-acl --clean --if-exists -d "$STAGING_DB_URL" dump.pgdata
 
           rm dump.pgdata
           echo "Database clone complete."
