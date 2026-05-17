@@ -98,6 +98,7 @@ const mockVariant = {
   id: "standard",
   name: "Standard",
   description: "",
+  rules: "",
   victoryConditions: {
     soloVictorySupplyCenters: 18,
     gameEndsYear: null,

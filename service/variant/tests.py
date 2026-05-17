@@ -17,13 +17,15 @@ def test_list_variants_success(authenticated_client, classical_variant):
     response = authenticated_client.get(url)
     assert response.status_code == status.HTTP_200_OK
     assert len(response.data) == 6
-    assert response.data[0]["id"] == classical_variant.id
-    assert response.data[0]["name"] == classical_variant.name
-    assert response.data[1]["id"] == "italy-vs-germany"
-    assert response.data[1]["name"] == "Italy vs Germany"
 
-    classical_variant_data = next((v for v in response.data if v["id"] == classical_variant.id), None)
-    assert classical_variant_data is not None
+    variants_by_id = {v["id"]: v for v in response.data}
+    assert variants_by_id[classical_variant.id]["name"] == classical_variant.name
+    assert variants_by_id["italy-vs-germany"]["name"] == "Italy vs Germany"
+
+    classical_variant_data = variants_by_id[classical_variant.id]
+
+    assert "rules" in classical_variant_data
+    assert classical_variant_data["rules"].startswith("The first to 18 Supply Centers")
 
     assert "template_phase" in classical_variant_data
     template_phase = classical_variant_data["template_phase"]
@@ -127,3 +129,29 @@ class TestPhaseProgressionBackfill:
         for variant in Variant.objects.all():
             assert variant.phase_progression["seasons"]
             assert variant.phase_progression["transitions"]
+
+
+class TestRulesBackfill:
+
+    @pytest.mark.django_db
+    def test_classical_rules(self, classical_variant):
+        assert classical_variant.rules == (
+            "The first to 18 Supply Centers (SC) is the winner.\n"
+            "Kiel and Constantinople have a canal, so fleets can exit on either side.\n"
+            "Armies can move from Denmark to Kiel."
+        )
+
+    @pytest.mark.django_db
+    def test_hundred_rules(self, hundred_variant):
+        assert hundred_variant.rules.startswith(
+            "First to 9 Supply Centers (SC) is the winner."
+        )
+
+    @pytest.mark.django_db
+    def test_every_in_db_variant_has_rules(self, classical_variant):
+        in_db_ids = {
+            "classical", "italy-vs-germany", "hundred",
+            "youngstown-redux", "vietnam-war", "canton",
+        }
+        for variant in Variant.objects.filter(id__in=in_db_ids):
+            assert variant.rules

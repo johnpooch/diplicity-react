@@ -81,6 +81,7 @@ const variantsFixture = [
     id: "classical",
     name: "Classical",
     description: "",
+    rules: "",
     victoryConditions: {
       soloVictorySupplyCenters: 18,
       gameEndsYear: null,

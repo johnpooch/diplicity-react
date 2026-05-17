@@ -693,6 +693,7 @@ export interface Variant {
   name: string;
   description: string;
   author?: string;
+  rules: string;
   victoryConditions: VictoryConditions;
   nations: Nation[];
   provinces: Province[];

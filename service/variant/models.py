@@ -93,6 +93,7 @@ class Variant(BaseModel):
     victory_conditions = models.JSONField(default=default_victory_conditions)
     adjudication_modifiers = models.JSONField(default=list)
     phase_progression = models.JSONField(default=default_phase_progression)
+    rules = models.TextField(blank=True, default="")
 
     @property
     def template_phase(self):
