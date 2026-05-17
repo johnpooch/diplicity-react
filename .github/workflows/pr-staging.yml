@@ -184,40 +184,67 @@ jobs:
             exit 1
           fi
 
-          echo "Querying staging Django deployments..."
           LIST_PAYLOAD=$(jq -n \
             --arg projectId "$PROJECT_ID" \
             --arg envId "$ENV_ID" \
             --arg serviceId "$DJANGO_SERVICE_ID" \
             '{
-              query: "query($input: DeploymentListInput!) { deployments(input: $input, first: 20) { edges { node { id status } } } }",
+              query: "query($input: DeploymentListInput!) { deployments(input: $input, first: 1) { edges { node { id status } } } }",
               variables: { input: { projectId: $projectId, environmentId: $envId, serviceId: $serviceId } }
             }')
 
-          RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
-            -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "$LIST_PAYLOAD")
-          echo "Deployments response: $RESULT"
+          # Railway refuses to stop a deployment that is still building, so wait
+          # for the forked Django deployment to finish and reach SUCCESS, then
+          # stop it. Once stopped it stays down until the explicit deploy step,
+          # so the clone runs against an idle database.
+          echo "Waiting for the staging Django deployment to become stoppable..."
+          for i in $(seq 1 60); do
+            RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
+              -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "$LIST_PAYLOAD")
+            STATUS=$(echo "$RESULT" | jq -r '.data.deployments.edges[0].node.status // empty')
+            DEP_ID=$(echo "$RESULT" | jq -r '.data.deployments.edges[0].node.id // empty')
 
-          ACTIVE_IDS=$(echo "$RESULT" | jq -r '.data.deployments.edges[].node | select(.status | IN("REMOVED","REMOVING","FAILED","CRASHED","SKIPPED") | not) | .id')
+            case "$STATUS" in
+              SUCCESS)
+                echo "Deployment $DEP_ID is running. Stopping it..."
+                STOP_PAYLOAD=$(jq -n --arg id "$DEP_ID" \
+                  '{query: "mutation($id: String!) { deploymentStop(id: $id) }", variables: {id: $id}}')
+                STOP_RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
+                  -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
+                  -H "Content-Type: application/json" \
+                  -d "$STOP_PAYLOAD")
+                echo "Stop response: $STOP_RESULT"
+                if [ "$(echo "$STOP_RESULT" | jq -r '.data.deploymentStop // empty')" = "true" ]; then
+                  echo "Django deployment stopped."
+                  STOPPED=true
+                  break
+                fi
+                echo "Attempt $i/60: stop not accepted yet, retrying in 10s..."
+                ;;
+              CRASHED|FAILED|REMOVED|REMOVING|SKIPPED|SLEEPING)
+                echo "Deployment status is $STATUS — Django is not running, nothing to stop."
+                STOPPED=true
+                break
+                ;;
+              "")
+                echo "Attempt $i/60: no Django deployment yet, waiting 10s..."
+                ;;
+              *)
+                echo "Attempt $i/60: deployment status is $STATUS, waiting 10s..."
+                ;;
+            esac
+            sleep 10
+          done
 
-          if [ -z "$ACTIVE_IDS" ]; then
-            echo "No active Django deployment to stop."
-          else
-            for DEP_ID in $ACTIVE_IDS; do
-              echo "Stopping deployment $DEP_ID..."
-              STOP_PAYLOAD=$(jq -n --arg id "$DEP_ID" \
-                '{query: "mutation($id: String!) { deploymentStop(id: $id) }", variables: {id: $id}}')
-              STOP_RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
-                -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
-                -H "Content-Type: application/json" \
-                -d "$STOP_PAYLOAD")
-              echo "Stop response: $STOP_RESULT"
-            done
-            echo "Waiting 15s for connections to drain..."
-            sleep 15
+          if [ "$STOPPED" != "true" ]; then
+            echo "ERROR: Django deployment never reached a stoppable state — aborting before the clone."
+            exit 1
           fi
+
+          echo "Waiting 20s for the container to terminate and release connections..."
+          sleep 20
 
       - name: Clone production database to staging
         env:
