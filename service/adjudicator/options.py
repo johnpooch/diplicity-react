@@ -25,12 +25,13 @@ from __future__ import annotations
 
 from typing import List, Tuple
 
-from .convoy import convoy_path_exists
+from .convoy import convoy_path_exists, convoy_path_through_fleet
 from .domain import OrderOption, Phase, ProvinceType, State, Unit
 from .types import (
     AdjudicationState,
     AdjustmentDisbandOrder,
     BuildOrder,
+    ConvoyFleetReachesEndpointsCheck,
     ConvoyOrder,
     MoveOrder,
     MoveTargetIsReachableCheck,
@@ -122,7 +123,11 @@ def _movement_options(view: StateView) -> List[OrderOption]:
         if unit.type == Unit.FLEET and view.province(
             variant.parent_of(source_loc)
         ).is_sea():
-            options.extend(_convoy_options(view, unit, source_loc, standing_items))
+            options.extend(
+                _convoy_options(
+                    view, unit, source_loc, sea_fleet_locs, standing_items
+                )
+            )
     return options
 
 
@@ -268,6 +273,7 @@ def _convoy_options(
     view: StateView,
     fleet: Unit,
     source_loc: str,
+    sea_fleet_locs: Tuple[str, ...],
     standing_items: Tuple[Tuple[str, Unit], ...],
 ) -> List[OrderOption]:
     options: List[OrderOption] = []
@@ -291,7 +297,7 @@ def _convoy_options(
                 army_target=army_target,
                 unit_type=fleet.type,
             )
-            if all(c.check(view, order) for c in ConvoyOrder.LEGALITY_CHECKS):
+            if _convoy_is_orderable(view, order, sea_fleet_locs):
                 options.append(
                     OrderOption(
                         source=source_loc,
@@ -303,6 +309,38 @@ def _convoy_options(
                     )
                 )
     return options
+
+
+def _convoy_is_orderable(
+    view: StateView, order: ConvoyOrder, sea_fleet_locs: Tuple[str, ...]
+) -> bool:
+    # ConvoyFleetReachesEndpointsCheck is the engine's order-legality
+    # check: a purely topological reachability test that is intentionally
+    # lenient. Options instead require a convoy chain through the fleets
+    # actually on the board, with this fleet on it — strictly stronger,
+    # so it fully replaces the topological check rather than supplementing
+    # it. See the module docstring and docs/options-design.md.
+    for check_cls in ConvoyOrder.LEGALITY_CHECKS:
+        if check_cls is ConvoyFleetReachesEndpointsCheck:
+            continue
+        if not check_cls.check(view, order):
+            return False
+    return _convoy_has_real_path(view, order, sea_fleet_locs)
+
+
+def _convoy_has_real_path(
+    view: StateView, order: ConvoyOrder, sea_fleet_locs: Tuple[str, ...]
+) -> bool:
+    if not sea_fleet_locs:
+        return False
+    variant = view.variant()
+    return convoy_path_through_fleet(
+        view,
+        variant.parent_of(order.army_source),
+        variant.parent_of(order.army_target),
+        order.source,
+        sea_fleet_locs,
+    )
 
 
 # === Retreat phase ===
