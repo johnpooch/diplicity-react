@@ -6,7 +6,14 @@ from django.test.utils import override_settings
 from django.db import connection
 from rest_framework import status
 
+from adjudicator.serializers import deserialize_variant
 from variant.models import Variant, default_phase_progression
+from variant.utils import variant_to_canonical_dict
+
+IN_DB_VARIANT_IDS = {
+    "classical", "italy-vs-germany", "hundred",
+    "youngstown-redux", "vietnam-war", "canton",
+}
 
 viewname = "variant-list"
 
@@ -149,9 +156,42 @@ class TestRulesBackfill:
 
     @pytest.mark.django_db
     def test_every_in_db_variant_has_rules(self, classical_variant):
-        in_db_ids = {
-            "classical", "italy-vs-germany", "hundred",
-            "youngstown-redux", "vietnam-war", "canton",
-        }
-        for variant in Variant.objects.filter(id__in=in_db_ids):
+        for variant in Variant.objects.filter(id__in=IN_DB_VARIANT_IDS):
             assert variant.rules
+
+
+class TestVariantToCanonicalDict:
+
+    @pytest.mark.django_db
+    def test_round_trips_every_in_db_variant(self, classical_variant):
+        variants = list(Variant.objects.filter(id__in=IN_DB_VARIANT_IDS))
+        assert len(variants) == len(IN_DB_VARIANT_IDS)
+        for variant in variants:
+            canonical = variant_to_canonical_dict(variant)
+            deserialize_variant(canonical)
+
+    @pytest.mark.django_db
+    def test_classical_structure(self, classical_variant):
+        canonical = variant_to_canonical_dict(classical_variant)
+
+        assert canonical["schemaVersion"] == 1
+        assert canonical["id"] == "classical"
+        assert canonical["victoryConditions"] == [
+            {"type": "supply-center-majority", "supplyCenters": 18}
+        ]
+
+        # Named coasts are split out of provinces into their own collection.
+        province_types = {p["type"] for p in canonical["provinces"]}
+        assert province_types <= {"land", "sea", "coastal"}
+        named_coast_ids = {nc["id"] for nc in canonical["namedCoasts"]}
+        assert named_coast_ids == {"stp/nc", "stp/sc", "bul/ec", "bul/sc", "spa/nc", "spa/sc"}
+        for named_coast in canonical["namedCoasts"]:
+            assert named_coast["parentProvince"] == named_coast["id"].split("/")[0]
+
+        home_nations = {p["id"]: p["homeNation"] for p in canonical["provinces"] if "homeNation" in p}
+        assert home_nations["par"] == "france"
+
+        initial_state = canonical["initialState"]
+        assert initial_state["phase"] == {"season": "Spring", "year": 1901, "type": "Movement"}
+        assert len(initial_state["units"]) == 22
+        assert len(initial_state["supplyCenters"]) == 22
