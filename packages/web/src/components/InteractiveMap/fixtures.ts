@@ -1,39 +1,39 @@
-export const TOY_DSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+export const TOY_DSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
   <defs><style>.label{font-family:serif}</style></defs>
-  <g id="background"><rect width="200" height="100" fill="#cce"/></g>
+  <g id="background"><rect width="600" height="400" fill="#cce"/></g>
   <g id="provinces" style="display:none">
-    <path id="alpha" d="M0 0 L10 0 L10 10 Z"/>
-    <path id="beta" d="M20 0 L30 0 L30 10 Z"/>
-    <path id="gamma" d="M40 0 L50 0 L50 10 Z"/>
+    <path id="alpha" d="M90 70 L230 60 L240 200 L100 210 Z"/>
+    <path id="beta" d="M235 235 L375 230 L380 370 L240 360 Z"/>
+    <path id="gamma" d="M385 70 L525 65 L530 200 L390 205 Z"/>
   </g>
   <g id="named-coasts" style="display:none">
-    <path id="alpha/nc" d="M0 0 L5 0 L5 5 Z"/>
+    <path id="alpha/nc" d="M230 95 L280 90 L275 140 Z"/>
   </g>
   <g id="unit-positions" style="display:none">
-    <circle id="alpha" cx="5" cy="5"/>
-    <circle id="beta" cx="25" cy="5"/>
-    <circle id="gamma" cx="45" cy="5"/>
-    <circle id="alpha/nc" cx="2" cy="3"/>
+    <circle id="alpha" cx="150" cy="130"/>
+    <circle id="beta" cx="300" cy="300"/>
+    <circle id="gamma" cx="450" cy="130"/>
+    <circle id="alpha/nc" cx="210" cy="110"/>
   </g>
   <g id="supply-centers" style="display:none">
-    <circle id="alpha" cx="5" cy="8"/>
-    <circle id="gamma" cx="45" cy="8"/>
+    <circle id="alpha" cx="110" cy="175"/>
+    <circle id="gamma" cx="490" cy="175"/>
   </g>
-  <g id="province-names"><text x="5" y="9">A</text></g>
-  <g id="borders"><path d="M10 0 L10 10"/></g>
-  <g id="foreground"><circle cx="100" cy="50" r="2"/></g>
+  <g id="province-names"><text x="135" y="100">A</text></g>
+  <g id="borders"><path d="M310 60 L310 230 L240 360"/></g>
+  <g id="foreground"><circle cx="300" cy="200" r="3"/></g>
 </svg>`;
 
-export const CONVOY_DSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 90">
-  <g id="background"><rect width="120" height="90" fill="#cce"/></g>
+export const CONVOY_DSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360">
+  <g id="background"><rect width="600" height="360" fill="#cce"/></g>
   <g id="provinces" style="display:none">
-    <path id="alpha" d="M10 10 L30 10 L30 30 Z"/>
-    <path id="beta" d="M50 60 L70 60 L70 80 Z"/>
-    <path id="gamma" d="M90 10 L110 10 L110 30 Z"/>
+    <path id="alpha" d="M60 60 L190 65 L185 185 L65 180 Z"/>
+    <path id="beta" d="M235 220 L370 225 L365 335 L240 330 Z"/>
+    <path id="gamma" d="M415 60 L545 65 L540 185 L420 180 Z"/>
   </g>
   <g id="unit-positions" style="display:none">
-    <circle id="alpha" cx="20" cy="20"/>
-    <circle id="beta" cx="60" cy="70"/>
-    <circle id="gamma" cx="100" cy="20"/>
+    <circle id="alpha" cx="120" cy="120"/>
+    <circle id="beta" cx="300" cy="280"/>
+    <circle id="gamma" cx="480" cy="120"/>
   </g>
 </svg>`;

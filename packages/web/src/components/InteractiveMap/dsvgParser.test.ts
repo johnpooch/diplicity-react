@@ -7,33 +7,33 @@ describe("parseDsvg", () => {
     expect(parseDsvg(TOY_DSVG).viewBox).toEqual({
       minX: 0,
       minY: 0,
-      width: 200,
-      height: 100,
+      width: 600,
+      height: 400,
     });
   });
 
   test("maps province ids to their path data", () => {
     const { provincePaths } = parseDsvg(TOY_DSVG);
     expect([...provincePaths.keys()]).toEqual(["alpha", "beta", "gamma"]);
-    expect(provincePaths.get("alpha")).toBe("M0 0 L10 0 L10 10 Z");
+    expect(provincePaths.get("alpha")).toBe("M90 70 L230 60 L240 200 L100 210 Z");
   });
 
   test("keeps named coasts separate from provinces", () => {
     const { provincePaths, namedCoastPaths } = parseDsvg(TOY_DSVG);
     expect(provincePaths.has("alpha/nc")).toBe(false);
-    expect(namedCoastPaths.get("alpha/nc")).toBe("M0 0 L5 0 L5 5 Z");
+    expect(namedCoastPaths.get("alpha/nc")).toBe("M230 95 L280 90 L275 140 Z");
   });
 
   test("maps unit positions for provinces and named coasts", () => {
     const { unitPositions } = parseDsvg(TOY_DSVG);
-    expect(unitPositions.get("beta")).toEqual({ x: 25, y: 5 });
-    expect(unitPositions.get("alpha/nc")).toEqual({ x: 2, y: 3 });
+    expect(unitPositions.get("beta")).toEqual({ x: 300, y: 300 });
+    expect(unitPositions.get("alpha/nc")).toEqual({ x: 210, y: 110 });
   });
 
   test("maps supply-center positions", () => {
     const { supplyCenters } = parseDsvg(TOY_DSVG);
     expect([...supplyCenters.keys()]).toEqual(["alpha", "gamma"]);
-    expect(supplyCenters.get("gamma")).toEqual({ x: 45, y: 8 });
+    expect(supplyCenters.get("gamma")).toEqual({ x: 490, y: 175 });
   });
 
   test("exposes the visible layers as inert markup", () => {

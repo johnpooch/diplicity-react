@@ -1,19 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
 <defs><style>.label{font-family:serif}</style></defs>
 <defs><pattern patternTransform="rotate(45)" height="8" width="8" patternUnits="userSpaceOnUse" id="highlightedStripes"><line stroke-width="2" stroke-opacity="0.6" stroke="#FFFFFF" y2="8" x2="0" y1="0" x1="0"/></pattern></defs>
-<g id="background"><rect width="200" height="100" fill="#cce"/></g>
-<g id="province-fills"><path d="M0 0 L10 0 L10 10 Z" fill="rgba(27, 79, 156, 0.5)" stroke="none" stroke-width="1"/>
-<path d="M20 0 L30 0 L30 10 Z" fill="rgba(255, 255, 255, 0.8)" stroke="white" stroke-width="5"/>
-<path d="M40 0 L50 0 L50 10 Z" fill="rgba(59, 156, 59, 0.3)" stroke="#FFFFFF" stroke-width="5"><animate attributeName="stroke-width" values="5;7;5" dur="2s" repeatCount="indefinite"/></path>
-<path d="M40 0 L50 0 L50 10 Z" fill="url(#highlightedStripes)" stroke="none" pointer-events="none"/></g>
-<g id="supply-center-markers"><g><circle cx="5" cy="8" r="7" fill="white" stroke="black" stroke-width="2" opacity="0.8"/><circle cx="5" cy="8" r="4" fill="white" stroke="black" stroke-width="2" opacity="0.8"/></g>
-<g><circle cx="45" cy="8" r="7" fill="white" stroke="black" stroke-width="2" opacity="0.8"/><circle cx="45" cy="8" r="4" fill="white" stroke="black" stroke-width="2" opacity="0.8"/></g></g>
-<g id="province-names"><text x="5" y="9">A</text></g>
-<g id="borders"><path d="M10 0 L10 10"/></g>
-<g id="units"><g><circle cx="5" cy="5" r="10" fill="#1b4f9c" stroke="black" stroke-width="2"/><text x="5" y="10" font-size="15" font-weight="bold" fill="black" text-anchor="middle">A</text></g>
-<g><circle cx="33" cy="13" r="10" fill="#3b9c3b" stroke="black" stroke-width="2" opacity="0.7"/><text x="33" y="18" font-size="15" font-weight="bold" fill="black" text-anchor="middle">F</text></g></g>
-<g id="orders"><g><polygon points="20.68,11.49 11.49,20.68 -1.49,20.68 -10.68,11.49 -10.68,-1.49 -1.49,-10.68 11.49,-10.68 20.68,-1.49" fill="transparent" stroke="rgba(0,0,0,1)" stroke-width="3"/><g transform="rotate(45, 5, 20.68)"><g><line x1="-3" y1="20.68" x2="13" y2="20.68" stroke="black" stroke-width="7"/><line x1="5" y1="12.68" x2="5" y2="28.68" stroke="black" stroke-width="7"/></g><g><line x1="-1" y1="20.68" x2="11" y2="20.68" stroke="red" stroke-width="3"/><line x1="5" y1="14.68" x2="5" y2="26.68" stroke="red" stroke-width="3"/></g></g></g>
-<g><circle cx="45" cy="5" r="10" fill="#3b9c3b" stroke="black" stroke-width="2" opacity="0.6"/><text x="45" y="10" font-size="15" font-weight="bold" fill="black" text-anchor="middle" opacity="0.6">F</text><g transform="rotate(90, 53, -3)"><g><line x1="47" y1="-3" x2="59" y2="-3" stroke="white" stroke-width="5"/><line x1="53" y1="-9" x2="53" y2="3" stroke="white" stroke-width="5"/></g><g><line x1="48" y1="-3" x2="58" y2="-3" stroke="green" stroke-width="3"/><line x1="53" y1="-8" x2="53" y2="2" stroke="green" stroke-width="3"/></g></g></g>
-<g transform="rotate(90, 43, 7)"><g><line x1="43" y1="1" x2="43" y2="13" stroke="white" stroke-width="5"/></g><g><line x1="43" y1="2" x2="43" y2="12" stroke="red" stroke-width="3"/></g></g></g>
-<g id="foreground"><circle cx="100" cy="50" r="2"/></g>
+<g id="background"><rect width="600" height="400" fill="#cce"/></g>
+<g id="province-fills"><path d="M90 70 L230 60 L240 200 L100 210 Z" fill="rgba(27, 79, 156, 0.5)" stroke="none" stroke-width="1"/>
+<path d="M235 235 L375 230 L380 370 L240 360 Z" fill="rgba(255, 255, 255, 0.8)" stroke="white" stroke-width="5"/>
+<path d="M385 70 L525 65 L530 200 L390 205 Z" fill="rgba(59, 156, 59, 0.3)" stroke="#FFFFFF" stroke-width="5"><animate attributeName="stroke-width" values="5;7;5" dur="2s" repeatCount="indefinite"/></path>
+<path d="M385 70 L525 65 L530 200 L390 205 Z" fill="url(#highlightedStripes)" stroke="none" pointer-events="none"/></g>
+<g id="supply-center-markers"><g><circle cx="110" cy="175" r="7" fill="white" stroke="black" stroke-width="2" opacity="0.8"/><circle cx="110" cy="175" r="4" fill="white" stroke="black" stroke-width="2" opacity="0.8"/></g>
+<g><circle cx="490" cy="175" r="7" fill="white" stroke="black" stroke-width="2" opacity="0.8"/><circle cx="490" cy="175" r="4" fill="white" stroke="black" stroke-width="2" opacity="0.8"/></g></g>
+<g id="province-names"><text x="135" y="100">A</text></g>
+<g id="borders"><path d="M310 60 L310 230 L240 360"/></g>
+<g id="units"><g><circle cx="150" cy="130" r="10" fill="#1b4f9c" stroke="black" stroke-width="2"/><text x="150" y="135" font-size="15" font-weight="bold" fill="black" text-anchor="middle">A</text></g>
+<g><circle cx="308" cy="308" r="10" fill="#3b9c3b" stroke="black" stroke-width="2" opacity="0.7"/><text x="308" y="313" font-size="15" font-weight="bold" fill="black" text-anchor="middle">F</text></g></g>
+<g id="orders"><g><polygon points="165.68,136.49 156.49,145.68 143.51,145.68 134.32,136.49 134.32,123.51 143.51,114.32 156.49,114.32 165.68,123.51" fill="transparent" stroke="rgba(0,0,0,1)" stroke-width="3"/><g transform="rotate(45, 150, 145.68)"><g><line x1="142" y1="145.68" x2="158" y2="145.68" stroke="black" stroke-width="7"/><line x1="150" y1="137.68" x2="150" y2="153.68" stroke="black" stroke-width="7"/></g><g><line x1="144" y1="145.68" x2="156" y2="145.68" stroke="red" stroke-width="3"/><line x1="150" y1="139.68" x2="150" y2="151.68" stroke="red" stroke-width="3"/></g></g></g>
+<g><circle cx="450" cy="130" r="10" fill="#3b9c3b" stroke="black" stroke-width="2" opacity="0.6"/><text x="450" y="135" font-size="15" font-weight="bold" fill="black" text-anchor="middle" opacity="0.6">F</text><g transform="rotate(90, 458, 122)"><g><line x1="452" y1="122" x2="464" y2="122" stroke="white" stroke-width="5"/><line x1="458" y1="116" x2="458" y2="128" stroke="white" stroke-width="5"/></g><g><line x1="453" y1="122" x2="463" y2="122" stroke="green" stroke-width="3"/><line x1="458" y1="117" x2="458" y2="127" stroke="green" stroke-width="3"/></g></g></g>
+<g transform="rotate(90, 318, 302)"><g><line x1="318" y1="296" x2="318" y2="308" stroke="white" stroke-width="5"/></g><g><line x1="318" y1="297" x2="318" y2="307" stroke="red" stroke-width="3"/></g></g></g>
+<g id="foreground"><circle cx="300" cy="200" r="3"/></g>
 </svg>

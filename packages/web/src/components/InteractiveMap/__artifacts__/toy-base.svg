@@ -1,9 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
 <defs><style>.label{font-family:serif}</style></defs>
-<g id="background"><rect width="200" height="100" fill="#cce"/></g>
-<g id="supply-center-markers"><g><circle cx="5" cy="8" r="7" fill="white" stroke="black" stroke-width="2" opacity="0.8"/><circle cx="5" cy="8" r="4" fill="white" stroke="black" stroke-width="2" opacity="0.8"/></g>
-<g><circle cx="45" cy="8" r="7" fill="white" stroke="black" stroke-width="2" opacity="0.8"/><circle cx="45" cy="8" r="4" fill="white" stroke="black" stroke-width="2" opacity="0.8"/></g></g>
-<g id="province-names"><text x="5" y="9">A</text></g>
-<g id="borders"><path d="M10 0 L10 10"/></g>
-<g id="foreground"><circle cx="100" cy="50" r="2"/></g>
+<g id="background"><rect width="600" height="400" fill="#cce"/></g>
+<g id="supply-center-markers"><g><circle cx="110" cy="175" r="7" fill="white" stroke="black" stroke-width="2" opacity="0.8"/><circle cx="110" cy="175" r="4" fill="white" stroke="black" stroke-width="2" opacity="0.8"/></g>
+<g><circle cx="490" cy="175" r="7" fill="white" stroke="black" stroke-width="2" opacity="0.8"/><circle cx="490" cy="175" r="4" fill="white" stroke="black" stroke-width="2" opacity="0.8"/></g></g>
+<g id="province-names"><text x="135" y="100">A</text></g>
+<g id="borders"><path d="M310 60 L310 230 L240 360"/></g>
+<g id="foreground"><circle cx="300" cy="200" r="3"/></g>
 </svg>

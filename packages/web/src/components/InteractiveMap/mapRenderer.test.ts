@@ -1,5 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { DiplicityMap, type RenderState } from "./mapRenderer";
+import { parseDsvg } from "./dsvgParser";
 import { TOY_DSVG, CONVOY_DSVG } from "./fixtures";
 
 const CONVOY_SCENE: RenderState = {
@@ -48,7 +49,7 @@ describe("DiplicityMap static base", () => {
   test("renders an svg root carrying the dSVG viewBox", () => {
     const svg = new DiplicityMap(TOY_DSVG).render();
     expect(svg.startsWith("<svg")).toBe(true);
-    expect(svg).toContain('viewBox="0 0 200 100"');
+    expect(svg).toContain('viewBox="0 0 600 400"');
   });
 
   test("omits the hidden metadata layers from the rendered output", () => {
@@ -105,8 +106,9 @@ describe("DiplicityMap province fills", () => {
 
   test("omits provinces with nothing to draw", () => {
     const svg = new DiplicityMap(TOY_DSVG).render({ selected: ["beta"] });
-    expect(svg).not.toContain('d="M0 0 L10 0 L10 10 Z"');
-    expect(svg).toContain('d="M20 0 L30 0 L30 10 Z"');
+    const { provincePaths } = parseDsvg(TOY_DSVG);
+    expect(svg).not.toContain(`d="${provincePaths.get("alpha")}"`);
+    expect(svg).toContain(`d="${provincePaths.get("beta")}"`);
   });
 
   test("throws when a supply center's nation has no colour", () => {
@@ -122,8 +124,8 @@ describe("DiplicityMap supply-center markers", () => {
   test("draws a marker at each supply-center position, even without state", () => {
     const svg = new DiplicityMap(TOY_DSVG).render();
     expect(svg).toContain('id="supply-center-markers"');
-    expect(svg).toContain('cx="5" cy="8" r="7"');
-    expect(svg).toContain('cx="45" cy="8" r="7"');
+    expect(svg).toContain('cx="110" cy="175" r="7"');
+    expect(svg).toContain('cx="490" cy="175" r="7"');
   });
 });
 
@@ -134,7 +136,7 @@ describe("DiplicityMap units", () => {
       units: [{ province: "alpha", nation: "England", type: "Army" }],
     });
     expect(svg).toContain('id="units"');
-    expect(svg).toContain('cx="5" cy="5" r="10" fill="#1b4f9c"');
+    expect(svg).toContain('cx="150" cy="130" r="10" fill="#1b4f9c"');
     expect(svg).toContain(">A</text>");
   });
 
@@ -153,7 +155,7 @@ describe("DiplicityMap units", () => {
         { province: "beta", nation: "France", type: "Fleet", dislodged: true },
       ],
     });
-    expect(svg).toContain('cx="33" cy="13"');
+    expect(svg).toContain('cx="308" cy="308"');
     expect(svg).toContain("translate(");
   });
 
@@ -165,7 +167,7 @@ describe("DiplicityMap units", () => {
         { province: "alpha", nation: "England", type: "Army" },
       ],
     });
-    expect(svg.indexOf('cx="5" cy="5"')).toBeLessThan(svg.indexOf('cx="33"'));
+    expect(svg.indexOf('cx="150" cy="130"')).toBeLessThan(svg.indexOf('cx="308"'));
   });
 
   test("throws when a unit's nation has no colour", () => {

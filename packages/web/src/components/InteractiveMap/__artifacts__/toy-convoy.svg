@@ -1,11 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 90">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360">
 
-<g id="background"><rect width="120" height="90" fill="#cce"/></g>
+<g id="background"><rect width="600" height="360" fill="#cce"/></g>
 <g id="province-names"></g>
 <g id="borders"></g>
-<g id="units"><g><circle cx="20" cy="20" r="10" fill="#1b4f9c" stroke="black" stroke-width="2"/><text x="20" y="25" font-size="15" font-weight="bold" fill="black" text-anchor="middle">A</text></g>
-<g><circle cx="60" cy="70" r="10" fill="#1b4f9c" stroke="black" stroke-width="2"/><text x="60" y="75" font-size="15" font-weight="bold" fill="black" text-anchor="middle">F</text></g></g>
-<g id="orders"><g><path d="M 26.25 27.81 L 43.12 48.9 Q 59.5 62.19 74.38 52.03 L 88.76 34.06" fill="none" stroke="rgba(0,0,0,1)" stroke-width="8" stroke-dasharray="none"/><path d="M 26.25 27.81 L 43.12 48.9 Q 59.5 62.19 74.38 52.03 L 88.76 34.06" fill="none" stroke="#1b4f9c" stroke-width="3" stroke-dasharray="none"/><path d="M 87.58 33.12 L 84.07 30.31 L 93.75 27.81 L 93.44 37.8 L 89.93 34.99" fill="#1b4f9c" stroke="rgba(0,0,0,1)" stroke-width="2.5"/></g>
-<g><path d="M 60 55 C 66.67 54.69 66.67 54.06 60 53.75 C 53.33 53.44 53.33 52.81 60 52.5" fill="none" stroke="rgba(0,0,0,1)" stroke-width="8" stroke-dasharray="none"/><path d="M 60 55 C 66.67 54.69 66.67 54.06 60 53.75 C 53.33 53.44 53.33 52.81 60 52.5" fill="none" stroke="#1b4f9c" stroke-width="3" stroke-dasharray="none"/><circle cx="60" cy="52.5" r="5" fill="white" stroke="black" stroke-width="2.5"/></g></g>
+<g id="units"><g><circle cx="120" cy="120" r="10" fill="#1b4f9c" stroke="black" stroke-width="2"/><text x="120" y="125" font-size="15" font-weight="bold" fill="black" text-anchor="middle">A</text></g>
+<g><circle cx="300" cy="280" r="10" fill="#1b4f9c" stroke="black" stroke-width="2"/><text x="300" y="285" font-size="15" font-weight="bold" fill="black" text-anchor="middle">F</text></g></g>
+<g id="orders"><g><path d="M 127.47 126.64 L 213.74 203.32 Q 299.4 249.86 383.27 205.98 L 466.55 131.96" fill="none" stroke="rgba(0,0,0,1)" stroke-width="8" stroke-dasharray="none"/><path d="M 127.47 126.64 L 213.74 203.32 Q 299.4 249.86 383.27 205.98 L 466.55 131.96" fill="none" stroke="#1b4f9c" stroke-width="3" stroke-dasharray="none"/><path d="M 465.55 130.84 L 462.56 127.47 L 472.53 126.64 L 470.53 136.44 L 467.54 133.08" fill="#1b4f9c" stroke="rgba(0,0,0,1)" stroke-width="2.5"/></g>
+<g><path d="M 300 265 C 306.67 262.44 306.67 257.31 300 254.75 C 293.33 252.19 293.33 247.06 300 244.5 C 306.67 241.94 306.67 236.81 300 234.25 C 293.33 231.69 293.33 226.56 300 224" fill="none" stroke="rgba(0,0,0,1)" stroke-width="8" stroke-dasharray="none"/><path d="M 300 265 C 306.67 262.44 306.67 257.31 300 254.75 C 293.33 252.19 293.33 247.06 300 244.5 C 306.67 241.94 306.67 236.81 300 234.25 C 293.33 231.69 293.33 226.56 300 224" fill="none" stroke="#1b4f9c" stroke-width="3" stroke-dasharray="none"/><circle cx="300" cy="224" r="5" fill="white" stroke="black" stroke-width="2.5"/></g></g>
 <g id="foreground"></g>
 </svg>
