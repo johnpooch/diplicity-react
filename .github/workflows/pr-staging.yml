@@ -175,6 +175,77 @@ jobs:
           echo "ERROR: Staging Postgres did not become ready in time."
           exit 1
 
+      - name: Stop staging Django service
+        env:
+          ENV_ID: ${{ steps.create_env.outputs.env_id }}
+        run: |
+          if [ "$ENV_ID" = "$PROD_ENV_ID" ]; then
+            echo "ERROR: ENV_ID matches PROD_ENV_ID — refusing to stop production deployments."
+            exit 1
+          fi
+
+          LIST_PAYLOAD=$(jq -n \
+            --arg projectId "$PROJECT_ID" \
+            --arg envId "$ENV_ID" \
+            --arg serviceId "$DJANGO_SERVICE_ID" \
+            '{
+              query: "query($input: DeploymentListInput!) { deployments(input: $input, first: 1) { edges { node { id status } } } }",
+              variables: { input: { projectId: $projectId, environmentId: $envId, serviceId: $serviceId } }
+            }')
+
+          # Railway refuses to stop a deployment that is still building, so wait
+          # for the forked Django deployment to finish and reach SUCCESS, then
+          # stop it. Once stopped it stays down until the explicit deploy step,
+          # so the clone runs against an idle database.
+          echo "Waiting for the staging Django deployment to become stoppable..."
+          for i in $(seq 1 60); do
+            RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
+              -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "$LIST_PAYLOAD")
+            STATUS=$(echo "$RESULT" | jq -r '.data.deployments.edges[0].node.status // empty')
+            DEP_ID=$(echo "$RESULT" | jq -r '.data.deployments.edges[0].node.id // empty')
+
+            case "$STATUS" in
+              SUCCESS)
+                echo "Deployment $DEP_ID is running. Stopping it..."
+                STOP_PAYLOAD=$(jq -n --arg id "$DEP_ID" \
+                  '{query: "mutation($id: String!) { deploymentStop(id: $id) }", variables: {id: $id}}')
+                STOP_RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
+                  -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
+                  -H "Content-Type: application/json" \
+                  -d "$STOP_PAYLOAD")
+                echo "Stop response: $STOP_RESULT"
+                if [ "$(echo "$STOP_RESULT" | jq -r '.data.deploymentStop // empty')" = "true" ]; then
+                  echo "Django deployment stopped."
+                  STOPPED=true
+                  break
+                fi
+                echo "Attempt $i/60: stop not accepted yet, retrying in 10s..."
+                ;;
+              CRASHED|FAILED|REMOVED|REMOVING|SKIPPED|SLEEPING)
+                echo "Deployment status is $STATUS — Django is not running, nothing to stop."
+                STOPPED=true
+                break
+                ;;
+              "")
+                echo "Attempt $i/60: no Django deployment yet, waiting 10s..."
+                ;;
+              *)
+                echo "Attempt $i/60: deployment status is $STATUS, waiting 10s..."
+                ;;
+            esac
+            sleep 10
+          done
+
+          if [ "$STOPPED" != "true" ]; then
+            echo "ERROR: Django deployment never reached a stoppable state — aborting before the clone."
+            exit 1
+          fi
+
+          echo "Waiting 20s for the container to terminate and release connections..."
+          sleep 20
+
       - name: Clone production database to staging
         env:
           PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
@@ -186,11 +257,15 @@ jobs:
           echo "Dumping production database..."
           $PG_BIN/pg_dump "$PRODUCTION_DATABASE_URL" --no-owner --no-acl --format=custom -f dump.pgdata
 
+          echo "Terminating leftover connections to staging database..."
+          psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -c \
+            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid();"
+
           echo "Wiping staging database for clean restore..."
-          psql "$STAGING_DB_URL" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+          psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
 
           echo "Restoring to staging database..."
-          $PG_BIN/pg_restore --no-owner --no-acl -d "$STAGING_DB_URL" dump.pgdata
+          $PG_BIN/pg_restore --no-owner --no-acl --clean --if-exists -d "$STAGING_DB_URL" dump.pgdata
 
           rm dump.pgdata
           echo "Database clone complete."

@@ -1,3 +1,5 @@
+import hashlib
+
 from django.db import models
 from django.db.models import Prefetch
 
@@ -46,7 +48,7 @@ class VariantQuerySet(models.QuerySet):
             to_attr="template_phases",
         )
 
-        return self.prefetch_related(
+        return self.select_related("svg").defer("svg__svg").prefetch_related(
             # Variant data with optimized template phase
             "provinces__parent",
             "provinces__named_coasts",
@@ -130,3 +132,16 @@ class Variant(BaseModel):
             if phase.game is None and phase.status == PhaseStatus.TEMPLATE:
                 return phase
         return None
+
+
+class VariantSvg(BaseModel):
+    variant = models.OneToOneField(Variant, on_delete=models.CASCADE, related_name="svg")
+    svg = models.TextField()
+    content_hash = models.CharField(max_length=64, editable=False)
+
+    def save(self, *args, **kwargs):
+        self.content_hash = hashlib.sha256(self.svg.encode()).hexdigest()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.variant_id} SVG"

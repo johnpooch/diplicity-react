@@ -975,6 +975,14 @@ class AdjudicationState:
     Populated by ApplyMovementOutcomes; empty outside Movement. Carried
     forward by the Engine into the next phase's State.contested_provinces."""
 
+    next_supply_centers: Tuple[SupplyCenter, ...] = ()
+    """Supply-center ownership as it should appear after this phase
+    resolves. Populated by UpdateSupplyCenterOwnership (Retreat phase
+    only): recomputed from post-retreat unit positions when the next
+    phase is Adjustment, copied through unchanged otherwise. Empty
+    until that reducer runs; consumed by the Engine when building the
+    next phase's State."""
+
 
 # === Views ===
 
@@ -1211,6 +1219,9 @@ class StateView:
     def raw_orders(self) -> Tuple[RawOrder, ...]:
         return self._state.raw_orders
 
+    def supply_centers(self) -> Tuple[SupplyCenter, ...]:
+        return self._state.supply_centers
+
     def contested_provinces(self) -> frozenset:
         return frozenset(self._state.contested_provinces)
 
@@ -1219,6 +1230,9 @@ class StateView:
 
     def next_units(self) -> Tuple[Unit, ...]:
         return self._state.next_units
+
+    def next_supply_centers(self) -> Tuple[SupplyCenter, ...]:
+        return self._state.next_supply_centers
 
     def civil_disorder_disbands(self) -> Tuple[str, ...]:
         return self._state.civil_disorder_disbands

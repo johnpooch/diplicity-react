@@ -1,7 +1,12 @@
+from typing import Optional
+
+from django.urls import reverse
 from rest_framework import serializers
 from province.serializers import ProvinceSerializer
 from nation.serializers import NationSerializer
 from phase.serializers import PhaseRetrieveSerializer
+
+from .models import VariantSvg
 
 
 class VictoryConditionsSerializer(serializers.Serializer):
@@ -17,9 +22,22 @@ class VariantSerializer(serializers.Serializer):
     author = serializers.CharField(required=False)
     rules = serializers.CharField(allow_blank=True)
     victory_conditions = VictoryConditionsSerializer(source="victory_conditions_summary")
+    svg_url = serializers.SerializerMethodField()
     nations = NationSerializer(many=True)
     provinces = ProvinceSerializer(many=True)
     template_phase = PhaseRetrieveSerializer()
+
+    def get_svg_url(self, variant) -> Optional[str]:
+        try:
+            variant_svg = variant.svg
+        except VariantSvg.DoesNotExist:
+            return None
+        path = reverse(
+            "variant-svg",
+            kwargs={"variant_id": variant.id, "content_hash": variant_svg.content_hash},
+        )
+        request = self.context.get("request")
+        return request.build_absolute_uri(path) if request else path
 
 
 class GameListVariantSerializer(serializers.Serializer):

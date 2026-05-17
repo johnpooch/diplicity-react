@@ -64,6 +64,26 @@ def test_list_variants_unauthenticated(unauthenticated_client):
     assert len(response.data) >= 1
 
 
+@pytest.mark.django_db
+def test_list_variants_includes_svg_url(authenticated_client):
+    response = authenticated_client.get(reverse(viewname))
+
+    classical = {v["id"]: v for v in response.data}["classical"]
+    assert classical["svg_url"] is not None
+    assert "/variants/classical/svg/" in classical["svg_url"]
+    assert classical["svg_url"].endswith(".svg")
+
+
+@pytest.mark.django_db
+def test_svg_url_is_null_when_variant_has_no_svg(authenticated_client):
+    Variant.objects.create(id="no-svg", name="No SVG", description="", author="")
+
+    response = authenticated_client.get(reverse(viewname))
+
+    no_svg = {v["id"]: v for v in response.data}["no-svg"]
+    assert no_svg["svg_url"] is None
+
+
 class TestVariantListViewQueryPerformance:
 
     @pytest.mark.django_db
