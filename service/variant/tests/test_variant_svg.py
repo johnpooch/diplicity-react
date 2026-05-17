@@ -6,7 +6,7 @@ from django.db import IntegrityError
 
 from variant.admin import VariantSvgAdminForm
 from variant.models import Variant, VariantSvg
-from variant.utils import normalize_dsvg
+from variant.utils import normalize_dsvg, validate_dsvg
 
 
 def _upload(svg):
@@ -92,3 +92,24 @@ def test_admin_form_normalizes_uploaded_svg(make_editor_dsvg):
     instance = form.save()
     assert "inkscape" not in instance.svg
     assert "<!--" not in instance.svg
+
+
+@pytest.mark.django_db
+def test_backfill_creates_an_svg_for_each_in_db_variant():
+    expected = {"classical", "italy-vs-germany", "hundred", "vietnam-war", "canton", "youngstown-redux"}
+
+    assert set(VariantSvg.objects.values_list("variant_id", flat=True)) == expected
+
+
+@pytest.mark.django_db
+def test_backfilled_svgs_validate_against_their_variant():
+    for variant_svg in VariantSvg.objects.select_related("variant"):
+        assert validate_dsvg(variant_svg.svg, variant_svg.variant) == []
+
+
+@pytest.mark.django_db
+def test_italy_vs_germany_reuses_the_classical_svg():
+    classical = VariantSvg.objects.get(variant_id="classical")
+    italy_vs_germany = VariantSvg.objects.get(variant_id="italy-vs-germany")
+
+    assert italy_vs_germany.content_hash == classical.content_hash
