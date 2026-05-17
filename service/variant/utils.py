@@ -4,32 +4,6 @@ from common.constants import ProvinceType
 SCHEMA_VERSION = 1
 
 
-def _victory_conditions(victory_conditions):
-    conditions = [
-        {
-            "type": "supply-center-majority",
-            "supplyCenters": victory_conditions["soloVictorySupplyCenters"],
-        }
-    ]
-    if victory_conditions.get("gameEndsYear") is not None:
-        conditions.append(
-            {
-                "type": "timed-resolution",
-                "year": victory_conditions["gameEndsYear"],
-                "resolution": "most-supply-centers",
-            }
-        )
-    if victory_conditions.get("drawAfterYear") is not None:
-        conditions.append(
-            {
-                "type": "timed-resolution",
-                "year": victory_conditions["drawAfterYear"],
-                "resolution": "shared-draw",
-            }
-        )
-    return conditions
-
-
 def variant_to_canonical_dict(variant):
     nations = list(variant.nations.all())
     provinces = list(variant.provinces.all())
@@ -68,7 +42,7 @@ def variant_to_canonical_dict(variant):
         "description": variant.description,
         "author": variant.author,
         "rules": variant.rules,
-        "victoryConditions": _victory_conditions(variant.victory_conditions),
+        "victoryConditions": variant.victory_conditions,
         "adjudicationModifiers": variant.adjudication_modifiers,
         "phaseProgression": variant.phase_progression,
         "nations": [

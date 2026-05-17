@@ -34,6 +34,12 @@ def test_list_variants_success(authenticated_client, classical_variant):
     assert "rules" in classical_variant_data
     assert classical_variant_data["rules"].startswith("The first to 18 Supply Centers")
 
+    assert classical_variant_data["victory_conditions"] == {
+        "solo_victory_supply_centers": 18,
+        "game_ends_year": None,
+        "draw_after_year": None,
+    }
+
     assert "template_phase" in classical_variant_data
     template_phase = classical_variant_data["template_phase"]
 
