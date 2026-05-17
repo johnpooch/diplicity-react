@@ -1209,3 +1209,53 @@ def test_replay_shadow_diff_reports_diff(classical_variant, primary_user):
 def test_replay_shadow_diff_missing_id(db):
     with pytest.raises(CommandError):
         call_command("replay_shadow_diff", "999999")
+
+
+def _make_diff(phase, tier):
+    return ShadowAdjudicationDiff.objects.create(
+        phase=phase,
+        tier=tier,
+        pre_state={},
+        godip_response={},
+        python_response=[],
+        diff_summary={},
+    )
+
+
+@pytest.mark.django_db
+def test_shadow_summary_aggregates_by_tier_and_phase(classical_variant, primary_user):
+    phase_a = _classical_movement_phase(classical_variant, primary_user)
+    phase_b = _classical_movement_phase(classical_variant, primary_user)
+    for tier in ("tier_1", "tier_1", "tier_2"):
+        _make_diff(phase_a, tier)
+    _make_diff(phase_b, "tier_3")
+
+    out = StringIO()
+    call_command("shadow_summary", "--total-resolutions", "100", stdout=out)
+    output = out.getvalue()
+
+    assert "mismatches recorded: 4" in output
+    assert "tier_1: 2" in output
+    assert "tier_2: 1" in output
+    assert "tier_3: 1" in output
+    assert "96.00%" in output
+    assert f"phase {phase_a.id}" in output
+
+
+@pytest.mark.django_db
+def test_shadow_summary_since_filter(classical_variant, primary_user):
+    phase = _classical_movement_phase(classical_variant, primary_user)
+    old = _make_diff(phase, "tier_1")
+    ShadowAdjudicationDiff.objects.filter(pk=old.pk).update(created_at="2020-01-01T00:00:00Z")
+    _make_diff(phase, "tier_2")
+
+    out = StringIO()
+    call_command("shadow_summary", "--since", "2024-01-01", stdout=out)
+
+    assert "mismatches recorded: 1" in out.getvalue()
+
+
+@pytest.mark.django_db
+def test_shadow_summary_rejects_bad_since(db):
+    with pytest.raises(CommandError):
+        call_command("shadow_summary", "--since", "not-a-date")
