@@ -41,7 +41,11 @@ def test_variant_has_at_most_one_svg(dsvg_variant):
 
 @pytest.mark.django_db
 def test_admin_form_accepts_valid_upload(dsvg_variant, make_dsvg):
-    svg = make_dsvg(province_ids=["fra", "ger"], named_coast_ids=["fra/nc"])
+    svg = make_dsvg(
+        province_ids=["fra", "ger"],
+        named_coast_ids=["fra/nc"],
+        unit_position_ids=["fra", "ger", "fra/nc"],
+    )
 
     form = VariantSvgAdminForm(data={"variant": dsvg_variant.pk}, files={"svg_file": _upload(svg)})
 
