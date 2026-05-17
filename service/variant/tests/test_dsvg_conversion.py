@@ -18,12 +18,14 @@ def _path_ids(layer):
     ]
 
 
-def _circles(layer):
-    return [element for element in layer.iter() if _local_name(element.tag) == "circle"]
-
-
 def _circle_ids(layer):
-    return {circle.get("id") for circle in _circles(layer)}
+    return {
+        element.get("id") for element in layer.iter() if _local_name(element.tag) == "circle"
+    }
+
+
+def _ids(layer):
+    return {element.get("id") for element in layer.iter()}
 
 
 def test_converts_to_canonical_layers(make_godip_svg):
@@ -90,11 +92,10 @@ def test_provinces_and_named_coasts_are_hidden(make_godip_svg):
         assert "display:none" in (layers[layer_id].get("style") or "")
 
 
-def test_unit_positions_and_supply_centers_are_hidden(make_godip_svg):
+def test_unit_positions_layer_is_hidden(make_godip_svg):
     layers = _layers(convert_godip_dsvg(make_godip_svg())[0])
 
-    for layer_id in ("unit-positions", "supply-centers"):
-        assert "display:none" in (layers[layer_id].get("style") or "")
+    assert "display:none" in (layers["unit-positions"].get("style") or "")
 
 
 def test_godip_centers_become_unit_positions(make_godip_svg):
@@ -103,17 +104,35 @@ def test_godip_centers_become_unit_positions(make_godip_svg):
     assert _circle_ids(_layers(dsvg)["unit-positions"]) == {"fra", "fra/nc", "ber"}
 
 
-def test_godip_supply_centers_layer_mapped(make_godip_svg):
-    dsvg, _ = convert_godip_dsvg(make_godip_svg())
-
-    assert _circle_ids(_layers(dsvg)["supply-centers"]) == {"ber"}
-
-
 def test_center_path_converted_to_circle_at_moveto_anchor(make_godip_svg):
     dsvg, _ = convert_godip_dsvg(make_godip_svg())
 
-    fra = [c for c in _circles(_layers(dsvg)["unit-positions"]) if c.get("id") == "fra"][0]
+    fra = [
+        el
+        for el in _layers(dsvg)["unit-positions"].iter()
+        if el.get("id") == "fra" and _local_name(el.tag) == "circle"
+    ][0]
     assert (fra.get("cx"), fra.get("cy")) == ("20", "21")
+
+
+def test_supply_centers_foreground_copy_folded_into_foreground(make_godip_svg):
+    dsvg, warnings = convert_godip_dsvg(make_godip_svg())
+
+    assert "sc-ring" in _ids(_layers(dsvg)["foreground"])
+    assert warnings == []
+
+
+def test_hidden_godip_supply_centers_not_folded_into_foreground(make_godip_svg):
+    dsvg, _ = convert_godip_dsvg(make_godip_svg())
+
+    assert "berCenter" not in dsvg
+
+
+def test_visible_godip_supply_centers_folded_into_foreground(make_godip_svg):
+    dsvg, _ = convert_godip_dsvg(make_godip_svg(supply_centers_visible=True))
+
+    assert "berCenter" in _path_ids(_layers(dsvg)["foreground"])
+    assert _circle_ids(_layers(dsvg)["unit-positions"]) == {"fra", "fra/nc", "ber"}
 
 
 def test_missing_layers_are_synthesized(make_godip_svg):
@@ -166,26 +185,3 @@ def test_province_subgroup_is_flattened():
     assert len(paths) == 1
     assert paths[0].get("id") == "fra"
     assert paths[0].get("d") == "M0 0 L1 1 M2 2 L3 3"
-
-
-def test_supply_centers_foreground_copy_is_dropped(make_godip_svg):
-    svg = make_godip_svg(
-        layers={
-            "background": "",
-            "provinces": "",
-            "province-centers": '<path id="fra/ncCenter" d="m 1,2 c 0,0"/>',
-            "supply-centers": '<path id="berCenter" d="m 3,4 c 0,0"/>',
-            "foreground": "",
-            "names": "",
-        }
-    )
-    svg = svg.replace(
-        "</svg>",
-        '<g inkscape:label="supply-centers foreground copy" id="g1374">'
-        '<circle id="sc-copy" r="1"/></g></svg>',
-    )
-
-    dsvg, warnings = convert_godip_dsvg(svg)
-
-    assert "sc-copy" not in dsvg
-    assert warnings == []
