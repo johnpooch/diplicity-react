@@ -9532,6 +9532,41 @@ def test_options_movement_support_move_via_convoy_emitted():
     assert len(via_convoy) == 1
 
 
+def test_options_movement_support_move_targets_bare_province_not_named_coast():
+    """A support is given to a province, never a named coast. When a mover
+    can advance into a multi-coast province, the supporter gets exactly one
+    support-for-a-move option — targeting the bare parent, not one option
+    per coast. Mirrors godip, where a support targets the move's Super()."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            # army at iso can move into the multi-coast province mlc
+            Unit(nation=NORTH, type=Unit.ARMY, location="iso"),
+            # fleet at sea can support a move to mlc (via either named coast)
+            Unit(nation=NORTH, type=Unit.FLEET, location="sea"),
+        ],
+    )
+    options = get_options(state)
+    support_into_mlc = [
+        o
+        for o in options
+        if o.order_type == "Support"
+        and o.source == "sea"
+        and o.aux == "iso"
+        and variant.parent_of(o.target) == "mlc"
+    ]
+    assert len(support_into_mlc) == 1
+    assert support_into_mlc[0].target == "mlc"
+    named_coast_targets = {
+        o.target
+        for o in options
+        if o.order_type == "Support" and o.target in ("mlc/nc", "mlc/sc")
+    }
+    assert named_coast_targets == set()
+
+
 def test_options_movement_support_of_unit_on_named_coast_uses_parent_in_path():
     """A unit at a named coast is referenced by its bare parent in the
     Support option's aux field — matches godip's TestSupportSTPOpts.

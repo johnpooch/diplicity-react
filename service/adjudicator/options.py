@@ -117,7 +117,7 @@ def _movement_options(view: StateView) -> List[OrderOption]:
                 )
         options.extend(
             _support_options(
-                view, unit, source_loc, sea_fleet_locs, all_locations, standing_items
+                view, unit, source_loc, sea_fleet_locs, standing_items
             )
         )
         if unit.type == Unit.FLEET and view.province(
@@ -185,7 +185,6 @@ def _support_options(
     supporter: Unit,
     source_loc: str,
     sea_fleet_locs: Tuple[str, ...],
-    all_locations: Tuple[str, ...],
     standing_items: Tuple[Tuple[str, Unit], ...],
 ) -> List[OrderOption]:
     options: List[OrderOption] = []
@@ -215,8 +214,10 @@ def _support_options(
     for mover_loc, mover in standing_items:
         if variant.parent_of(mover_loc) == source_parent:
             continue
-        for target in all_locations:
-            if variant.parent_of(target) == source_parent:
+        # A support is given to a province, never a named coast — enumerate
+        # bare provinces only so a multi-coast target yields a single option.
+        for target in variant.provinces:
+            if target == source_parent:
                 continue
             order = SupportMoveOrder(
                 nation=supporter.nation,
