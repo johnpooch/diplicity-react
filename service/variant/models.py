@@ -6,6 +6,10 @@ from common.constants import PhaseStatus
 from phase.models import Phase
 
 
+def default_victory_conditions():
+    return {"soloVictorySupplyCenters": 18, "gameEndsYear": None, "drawAfterYear": None}
+
+
 class VariantQuerySet(models.QuerySet):
 
     def with_related_data(self):
@@ -68,7 +72,7 @@ class Variant(BaseModel):
     name = models.CharField(max_length=100)
     description = models.TextField()
     author = models.CharField(max_length=200, blank=True)
-    solo_victory_sc_count = models.IntegerField(default=18)
+    victory_conditions = models.JSONField(default=default_victory_conditions)
     adjudication_modifiers = models.JSONField(default=list)
 
     @property

@@ -547,7 +547,11 @@ export const mockVariants: Variant[] = [
     author: "Allan B. Calhamer",
     nations: mockNations,
     provinces: mockProvinces,
-    soloVictoryScCount: 18,
+    victoryConditions: {
+      soloVictorySupplyCenters: 18,
+      gameEndsYear: null,
+      drawAfterYear: null,
+    },
     templatePhase: {
       id: 1,
       ordinal: 1,
@@ -571,7 +575,11 @@ export const mockVariants: Variant[] = [
     author: "Unknown",
     nations: [mockNations[4], mockNations[3]],
     provinces: mockProvinces.slice(3, 5),
-    soloVictoryScCount: 4,
+    victoryConditions: {
+      soloVictorySupplyCenters: 4,
+      gameEndsYear: null,
+      drawAfterYear: null,
+    },
     templatePhase: {
       id: 2,
       ordinal: 1,

@@ -81,7 +81,11 @@ const variantsFixture = [
     id: "classical",
     name: "Classical",
     description: "",
-    soloVictoryScCount: 18,
+    victoryConditions: {
+      soloVictorySupplyCenters: 18,
+      gameEndsYear: null,
+      drawAfterYear: null,
+    },
     nations: [
       { id: 1, name: "England" },
       { id: 2, name: "France" },

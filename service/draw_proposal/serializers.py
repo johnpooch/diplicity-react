@@ -85,7 +85,7 @@ class DrawProposalSerializer(serializers.Serializer):
             nation__in=included_nations
         ).count()
 
-        victory_threshold = game.variant.solo_victory_sc_count
+        victory_threshold = game.variant.victory_conditions["soloVictorySupplyCenters"]
         if combined_sc_count < victory_threshold:
             raise serializers.ValidationError(
                 f"Combined SC count ({combined_sc_count}) must be at least "
