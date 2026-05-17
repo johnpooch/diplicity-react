@@ -1,3 +1,4 @@
+import re
 import xml.etree.ElementTree as ElementTree
 from dataclasses import dataclass
 
@@ -8,12 +9,13 @@ DSVG_LAYER_ORDER = [
     "background",
     "provinces",
     "named-coasts",
+    "unit-positions",
     "province-names",
     "borders",
     "foreground",
 ]
 
-DSVG_HIDDEN_LAYERS = ("provinces", "named-coasts")
+DSVG_HIDDEN_LAYERS = ("provinces", "named-coasts", "unit-positions")
 
 SVG_NAMESPACE = "http://www.w3.org/2000/svg"
 XLINK_NAMESPACE = "http://www.w3.org/1999/xlink"
@@ -25,17 +27,22 @@ GODIP_LAYER_TARGETS = {
     "provinces": "provinces",
     "foreground": "foreground",
     "names": "province-names",
+    "province-centers": "unit-positions",
 }
 
 GODIP_RUNTIME_LAYERS = {
     "units",
     "orders",
-    "supply-centers",
-    "province-centers",
     "highlights",
 }
 
+GODIP_SUPPLY_CENTER_LAYER = "supply-centers"
+GODIP_SUPPLY_CENTER_ART_LAYER = "supply-centers foreground copy"
+
 GODIP_DECORATIVE_LAYERS = {"noise"}
+
+_GODIP_CENTER_SUFFIX = "Center"
+_COORDINATE_PATTERN = re.compile(r"-?\d*\.?\d+(?:[eE][-+]?\d+)?")
 
 _GODIP_IGNORED_ELEMENTS = {"metadata", "namedview", "title", "desc"}
 
@@ -116,6 +123,31 @@ def _godip_province_path(element):
     return None
 
 
+def _godip_center_anchor(d):
+    if not d:
+        return None
+    numbers = _COORDINATE_PATTERN.findall(d)
+    if len(numbers) < 2:
+        return None
+    return numbers[0], numbers[1]
+
+
+def _godip_center_circle(element):
+    if _local_name(element.tag) != "path":
+        return None
+    element_id = element.get("id") or ""
+    if element_id.endswith(_GODIP_CENTER_SUFFIX):
+        element_id = element_id[: -len(_GODIP_CENTER_SUFFIX)]
+    anchor = _godip_center_anchor(element.get("d"))
+    if not element_id or anchor is None:
+        return None
+    circle = _svg_element("circle")
+    circle.set("id", element_id)
+    circle.set("cx", anchor[0])
+    circle.set("cy", anchor[1])
+    return circle
+
+
 def convert_godip_dsvg(svg):
     root = etree.fromstring(svg.encode())
 
@@ -131,6 +163,8 @@ def convert_godip_dsvg(svg):
     defs_elements = []
     godip_layers = {}
     noise_elements = []
+    godip_supply_centers = None
+    supply_center_art = []
 
     for child in list(root):
         if not isinstance(child.tag, str):
@@ -149,7 +183,13 @@ def convert_godip_dsvg(svg):
             continue
         if child_id in GODIP_LAYER_TARGETS:
             godip_layers[GODIP_LAYER_TARGETS[child_id]] = child
-        elif child_id in GODIP_RUNTIME_LAYERS or (child_id or "").split(" ")[0] in GODIP_RUNTIME_LAYERS:
+        elif child_id == GODIP_SUPPLY_CENTER_LAYER:
+            godip_supply_centers = child
+            if not _is_hidden(child):
+                supply_center_art.append(child)
+        elif child_id == GODIP_SUPPLY_CENTER_ART_LAYER:
+            supply_center_art.append(child)
+        elif child_id in GODIP_RUNTIME_LAYERS:
             continue
         else:
             warnings.append(f"Dropped unrecognized layer <g id={child_id!r}>.")
@@ -177,6 +217,34 @@ def convert_godip_dsvg(svg):
             else:
                 provinces_layer.append(path)
 
+    unit_positions_layer = _svg_element("g")
+    unit_positions_layer.set("id", "unit-positions")
+    unit_positions_layer.set("style", "display:none")
+
+    godip_province_centers = godip_layers.get("unit-positions")
+    if godip_province_centers is None:
+        warnings.append("Input has no 'province-centers' layer.")
+    if godip_supply_centers is None:
+        warnings.append("Input has no 'supply-centers' layer.")
+
+    for source_layer, source_name in (
+        (godip_province_centers, "province-centers"),
+        (godip_supply_centers, "supply-centers"),
+    ):
+        if source_layer is None:
+            continue
+        for element in list(source_layer):
+            circle = _godip_center_circle(element)
+            if circle is None:
+                warnings.append(
+                    f"Dropped non-position <{_local_name(element.tag)}> in '{source_name}' layer."
+                )
+                continue
+            unit_positions_layer.append(circle)
+
+    if not any("/" in (circle.get("id") or "") for circle in unit_positions_layer):
+        warnings.append("'unit-positions' layer has no named-coast entries.")
+
     background_layer = godip_layers.get("background")
     if background_layer is None:
         background_layer = _svg_element("g")
@@ -201,6 +269,9 @@ def convert_godip_dsvg(svg):
                 foreground_layer.append(element)
         else:
             foreground_layer.append(noise)
+    for art_layer in supply_center_art:
+        for element in list(art_layer):
+            foreground_layer.append(element)
 
     for child in list(root):
         root.remove(child)
@@ -209,6 +280,7 @@ def convert_godip_dsvg(svg):
     root.append(background_layer)
     root.append(provinces_layer)
     root.append(named_coasts_layer)
+    root.append(unit_positions_layer)
     root.append(province_names_layer)
     root.append(borders_layer)
     root.append(foreground_layer)
@@ -345,6 +417,29 @@ def validate_dsvg(svg, variant=None):
                 DsvgValidationError(
                     "MISSING_NAMED_COAST",
                     f"Variant named coast '{named_coast_id}' has no path in the 'named-coasts' layer.",
+                )
+            )
+
+    unit_positions_layer = layers_by_id.get("unit-positions")
+    if variant is not None and unit_positions_layer is not None:
+        svg_unit_position_ids = {
+            element.get("id")
+            for element in unit_positions_layer.iter()
+            if _local_name(element.tag) == "circle" and element.get("id")
+        }
+        variant_position_ids = set(variant.provinces.values_list("province_id", flat=True))
+        for position_id in sorted(svg_unit_position_ids - variant_position_ids):
+            errors.append(
+                DsvgValidationError(
+                    "UNKNOWN_UNIT_POSITION",
+                    f"Unit position '{position_id}' is not a province or named coast of variant '{variant.id}'.",
+                )
+            )
+        for position_id in sorted(variant_position_ids - svg_unit_position_ids):
+            errors.append(
+                DsvgValidationError(
+                    "MISSING_UNIT_POSITION",
+                    f"Variant province or named coast '{position_id}' has no circle in the 'unit-positions' layer.",
                 )
             )
 
