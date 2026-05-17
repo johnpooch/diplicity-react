@@ -1,5 +1,5 @@
 def check_for_solo_winner(game, phase):
-    required_sc_count = game.variant.solo_victory_sc_count
+    required_sc_count = game.variant.victory_conditions["soloVictorySupplyCenters"]
 
     sc_counts = {}
     for member in game.members.all():

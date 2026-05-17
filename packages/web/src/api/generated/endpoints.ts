@@ -680,12 +680,20 @@ export interface UserProfile {
   readonly email: string;
 }
 
+export interface VictoryConditions {
+  soloVictorySupplyCenters: number;
+  /** @nullable */
+  gameEndsYear: number | null;
+  /** @nullable */
+  drawAfterYear: number | null;
+}
+
 export interface Variant {
   id: string;
   name: string;
   description: string;
   author?: string;
-  soloVictoryScCount: number;
+  victoryConditions: VictoryConditions;
   nations: Nation[];
   provinces: Province[];
   templatePhase: PhaseRetrieve;

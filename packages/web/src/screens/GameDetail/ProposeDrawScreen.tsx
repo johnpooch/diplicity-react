@@ -46,7 +46,8 @@ const ProposeDrawScreen: React.FC = () => {
   const createProposalMutation = useGamesDrawProposalsCreateCreate();
 
   const variant = variants.find(v => v.id === game.variantId);
-  const victoryThreshold = variant?.soloVictoryScCount ?? 18;
+  const victoryThreshold =
+    variant?.victoryConditions.soloVictorySupplyCenters ?? 18;
 
   const currentMember = game.members.find(m => m.isCurrentUser);
   const activeMembers = game.members.filter(m => !m.eliminated && !m.kicked);
