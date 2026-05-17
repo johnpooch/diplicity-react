@@ -10182,3 +10182,109 @@ def test_options_movement_unit_type_is_none_for_existing_unit_orders():
     non_build = [o for o in options if o.order_type != "Build"]
     assert all(o.unit_type is None for o in non_build)
 
+
+# === Phase progression (next_phase) ===
+
+
+def _hundred_progression(reverse: bool = False) -> PhaseProgression:
+    """A year-conditional progression mirroring the Hundred variant: a
+    Retreat in a year%10==5 year skips Adjustment and advances to the
+    next Movement (+5); a Retreat in a year%10==0 year goes to
+    Adjustment."""
+    transitions = (
+        PhaseTransition(
+            from_season="Year",
+            from_type=Phase.MOVEMENT,
+            to_season="Year",
+            to_type=Phase.RETREAT,
+            year_delta=0,
+        ),
+        PhaseTransition(
+            from_season="Year",
+            from_type=Phase.RETREAT,
+            to_season="Year",
+            to_type=Phase.MOVEMENT,
+            year_delta=5,
+            year_mod=10,
+            year_mod_value=5,
+        ),
+        PhaseTransition(
+            from_season="Year",
+            from_type=Phase.RETREAT,
+            to_season="Year",
+            to_type=Phase.ADJUSTMENT,
+            year_delta=0,
+            year_mod=10,
+            year_mod_value=0,
+        ),
+        PhaseTransition(
+            from_season="Year",
+            from_type=Phase.ADJUSTMENT,
+            to_season="Year",
+            to_type=Phase.MOVEMENT,
+            year_delta=5,
+        ),
+    )
+    if reverse:
+        transitions = tuple(reversed(transitions))
+    return PhaseProgression(seasons=("Year",), transitions=transitions)
+
+
+def _next_phase(variant: Variant, phase: Phase) -> Optional[Phase]:
+    state = AdjudicationState(
+        variant=variant,
+        phase=phase,
+        units=(),
+        supply_centers=(),
+        raw_orders=(),
+        contested_provinces=(),
+    )
+    return StateView(state).next_phase()
+
+
+def test_next_phase_conditional_retreat_skips_adjustment_in_year_mod_5():
+    variant = replace(make_variant(), phase_progression=_hundred_progression())
+    nxt = _next_phase(variant, Phase(season="Year", year=1425, type=Phase.RETREAT))
+    assert nxt == Phase(season="Year", year=1430, type=Phase.MOVEMENT)
+
+
+def test_next_phase_conditional_retreat_goes_to_adjustment_in_year_mod_0():
+    variant = replace(make_variant(), phase_progression=_hundred_progression())
+    nxt = _next_phase(variant, Phase(season="Year", year=1430, type=Phase.RETREAT))
+    assert nxt == Phase(season="Year", year=1430, type=Phase.ADJUSTMENT)
+
+
+def test_next_phase_conditional_progression_unconditional_transitions_progress():
+    variant = replace(make_variant(), phase_progression=_hundred_progression())
+    assert _next_phase(
+        variant, Phase(season="Year", year=1425, type=Phase.MOVEMENT)
+    ) == Phase(season="Year", year=1425, type=Phase.RETREAT)
+    assert _next_phase(
+        variant, Phase(season="Year", year=1430, type=Phase.ADJUSTMENT)
+    ) == Phase(season="Year", year=1435, type=Phase.MOVEMENT)
+
+
+def test_next_phase_conditional_resolution_is_independent_of_transition_order():
+    variant = replace(
+        make_variant(), phase_progression=_hundred_progression(reverse=True)
+    )
+    assert _next_phase(
+        variant, Phase(season="Year", year=1425, type=Phase.RETREAT)
+    ) == Phase(season="Year", year=1430, type=Phase.MOVEMENT)
+    assert _next_phase(
+        variant, Phase(season="Year", year=1430, type=Phase.RETREAT)
+    ) == Phase(season="Year", year=1430, type=Phase.ADJUSTMENT)
+
+
+def test_next_phase_unconditional_classical_variant_progresses_through_cycle():
+    variant = make_variant()
+    assert _next_phase(
+        variant, Phase(season="Spring", year=1901, type=Phase.MOVEMENT)
+    ) == Phase(season="Spring", year=1901, type=Phase.RETREAT)
+    assert _next_phase(
+        variant, Phase(season="Spring", year=1901, type=Phase.RETREAT)
+    ) == Phase(season="Spring", year=1901, type=Phase.ADJUSTMENT)
+    assert _next_phase(
+        variant, Phase(season="Spring", year=1901, type=Phase.ADJUSTMENT)
+    ) == Phase(season="Spring", year=1902, type=Phase.MOVEMENT)
+

@@ -21,6 +21,7 @@ from .domain import (
 )
 from .domain import (
     Phase,
+    PhaseTransition,
     ProvinceType,
     SupplyCenter,
     Unit,
@@ -1256,16 +1257,29 @@ class StateView:
         return OrdersView(self._state)
 
     def next_phase(self) -> Optional[Phase]:
+        phase = self._state.phase
+        fallback: Optional[PhaseTransition] = None
         for transition in self._state.variant.phase_progression.transitions:
             if (
-                transition.from_season == self._state.phase.season
-                and transition.from_type == self._state.phase.type
+                transition.from_season != phase.season
+                or transition.from_type != phase.type
             ):
-                return Phase(
-                    season=transition.to_season,
-                    year=self._state.phase.year + transition.year_delta,
-                    type=transition.to_type,
-                )
+                continue
+            if transition.year_mod is not None:
+                if phase.year % transition.year_mod == transition.year_mod_value:
+                    return Phase(
+                        season=transition.to_season,
+                        year=phase.year + transition.year_delta,
+                        type=transition.to_type,
+                    )
+            elif fallback is None:
+                fallback = transition
+        if fallback is not None:
+            return Phase(
+                season=fallback.to_season,
+                year=phase.year + fallback.year_delta,
+                type=fallback.to_type,
+            )
         return None
 
     def replace(self, **kwargs) -> "StateView":
