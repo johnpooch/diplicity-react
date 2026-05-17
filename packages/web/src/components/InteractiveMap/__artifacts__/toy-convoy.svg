@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360">
+
+<g id="background"><rect width="600" height="360" fill="#cce"/></g>
+<g id="province-names"></g>
+<g id="borders"></g>
+<g id="foreground"></g>
+<g id="units"><g><circle cx="120" cy="120" r="10" fill="#1b4f9c" stroke="black" stroke-width="2"/><text x="120" y="125" font-size="15" font-weight="bold" fill="black" text-anchor="middle">A</text></g>
+<g><circle cx="300" cy="280" r="10" fill="#1b4f9c" stroke="black" stroke-width="2"/><text x="300" y="285" font-size="15" font-weight="bold" fill="black" text-anchor="middle">F</text></g></g>
+<g id="orders"><g><path d="M 127.47 126.64 L 213.74 203.32 Q 299.4 249.86 383.27 205.98 L 466.55 131.96" fill="none" stroke="rgba(0,0,0,1)" stroke-width="8" stroke-dasharray="none"/><path d="M 127.47 126.64 L 213.74 203.32 Q 299.4 249.86 383.27 205.98 L 466.55 131.96" fill="none" stroke="#1b4f9c" stroke-width="3" stroke-dasharray="none"/><path d="M 465.55 130.84 L 462.56 127.47 L 472.53 126.64 L 470.53 136.44 L 467.54 133.08" fill="#1b4f9c" stroke="rgba(0,0,0,1)" stroke-width="2.5"/></g>
+<g><path d="M 300 270 C 306.67 267.13 306.67 261.38 300 258.5 C 293.33 255.63 293.33 249.88 300 247 C 306.67 244.13 306.67 238.38 300 235.5 C 293.33 232.63 293.33 226.88 300 224" fill="none" stroke="rgba(0,0,0,1)" stroke-width="8" stroke-dasharray="none"/><path d="M 300 270 C 306.67 267.13 306.67 261.38 300 258.5 C 293.33 255.63 293.33 249.88 300 247 C 306.67 244.13 306.67 238.38 300 235.5 C 293.33 232.63 293.33 226.88 300 224" fill="none" stroke="#1b4f9c" stroke-width="3" stroke-dasharray="none"/><circle cx="300" cy="224" r="5" fill="white" stroke="black" stroke-width="2.5"/></g></g>
+</svg>

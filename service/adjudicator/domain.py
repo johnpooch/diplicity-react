@@ -61,6 +61,10 @@ class PhaseTransition:
     to_season: str
     to_type: str
     year_delta: int
+    # When set, this transition fires only if phase.year % year_mod == year_mod_value.
+    # When both are None the transition is unconditional.
+    year_mod: Optional[int] = None
+    year_mod_value: Optional[int] = None
 
 
 @dataclass(frozen=True)
