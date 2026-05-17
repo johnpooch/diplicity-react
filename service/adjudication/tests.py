@@ -1076,3 +1076,24 @@ class TestCanonicalizers:
         godip = canonicalize_godip_response(_godip_validated_data())
         python = canonicalize_python_response(states, options)
         assert diff_canonical(godip, python).matched
+
+
+from adjudication.models import ShadowAdjudicationDiff
+
+
+@pytest.mark.django_db
+def test_shadow_adjudication_diff_persists(phase_spring_1901_movement):
+    diff = ShadowAdjudicationDiff.objects.create(
+        phase=phase_spring_1901_movement,
+        tier=ShadowAdjudicationDiff.TIER_1,
+        pre_state={"phase": {"season": "Spring", "year": 1901, "type": "Movement"}},
+        godip_response={"units": []},
+        python_response={"units": []},
+        diff_summary={"tier": "tier_1", "fields": []},
+    )
+    diff.refresh_from_db()
+
+    assert diff.tier == "tier_1"
+    assert diff.created_at is not None
+    assert diff.diff_summary["tier"] == "tier_1"
+    assert phase_spring_1901_movement.shadow_adjudication_diffs.count() == 1
