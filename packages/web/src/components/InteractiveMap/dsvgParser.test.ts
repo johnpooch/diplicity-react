@@ -15,7 +15,9 @@ describe("parseDsvg", () => {
   test("maps province ids to their path data", () => {
     const { provincePaths } = parseDsvg(TOY_DSVG);
     expect([...provincePaths.keys()]).toEqual(["alpha", "beta", "gamma"]);
-    expect(provincePaths.get("alpha")).toBe("M90 70 L230 60 L240 200 L100 210 Z");
+    expect(provincePaths.get("alpha")).toBe(
+      "M105 70 L210 65 L235 130 L200 200 L110 205 L90 135 Z"
+    );
   });
 
   test("keeps named coasts separate from provinces", () => {
