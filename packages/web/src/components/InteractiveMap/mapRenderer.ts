@@ -63,7 +63,6 @@ const SUPPLY_CENTER_OPACITY_ACTIVE = 0.3;
 const SUPPLY_CENTER_OPACITY_DEFAULT = 0.5;
 
 const UNIT_RADIUS = 10;
-const UNIT_OFFSET_RADIUS = 5;
 const DISLODGED_OFFSET = 8;
 const SUPPLY_CENTER_OUTER_RADIUS = 7;
 const SUPPLY_CENTER_INNER_RADIUS = 4;
@@ -454,7 +453,7 @@ const supportOrderParts = (
           y1: source.y,
           x2: target.x,
           y2: target.y,
-          offset: UNIT_RADIUS + UNIT_OFFSET_RADIUS,
+          offset: UNIT_RADIUS,
           lineWidth: ORDER_LINE_WIDTH,
           fill: color,
           stroke: SUCCESS_COLOR,
@@ -588,7 +587,7 @@ const convoyOrderParts = (
         x3: aux.x,
         y3: aux.y,
         lineWidth: ORDER_LINE_WIDTH,
-        offset: UNIT_RADIUS + UNIT_OFFSET_RADIUS,
+        offset: UNIT_RADIUS,
         stroke: SUCCESS_COLOR,
         strokeWidth: ORDER_STROKE_WIDTH,
         fill: nationColor(state, order.nation),
