@@ -6,7 +6,7 @@ from django.test.utils import override_settings
 from django.db import connection
 from rest_framework import status
 
-from variant.models import Variant
+from variant.models import Variant, default_phase_progression
 
 viewname = "variant-list"
 
@@ -101,3 +101,29 @@ class TestVariantListViewQueryPerformance:
         # due to prefetch_related optimization
         query_count = len(connection.queries)
         assert query_count == 16
+
+
+class TestPhaseProgressionBackfill:
+
+    @pytest.mark.django_db
+    def test_classical_phase_progression(self, classical_variant):
+        assert classical_variant.phase_progression == default_phase_progression()
+
+    @pytest.mark.django_db
+    def test_hundred_phase_progression(self, hundred_variant):
+        progression = hundred_variant.phase_progression
+        assert progression["seasons"] == ["Year"]
+
+        adjustment_to_movement = next(
+            t for t in progression["transitions"]
+            if t["from"]["type"] == "Adjustment"
+        )
+        assert adjustment_to_movement["to"]["type"] == "Movement"
+        assert adjustment_to_movement["to"]["yearDelta"] == 5
+
+    @pytest.mark.django_db
+    def test_every_variant_has_phase_progression(self, classical_variant):
+        assert not Variant.objects.filter(phase_progression={}).exists()
+        for variant in Variant.objects.all():
+            assert variant.phase_progression["seasons"]
+            assert variant.phase_progression["transitions"]
