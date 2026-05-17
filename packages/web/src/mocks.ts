@@ -553,6 +553,7 @@ export const mockVariants: Variant[] = [
       gameEndsYear: null,
       drawAfterYear: null,
     },
+    svgUrl: null,
     templatePhase: {
       id: 1,
       ordinal: 1,
@@ -582,6 +583,7 @@ export const mockVariants: Variant[] = [
       gameEndsYear: null,
       drawAfterYear: null,
     },
+    svgUrl: null,
     templatePhase: {
       id: 2,
       ordinal: 1,
