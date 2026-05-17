@@ -10,6 +10,24 @@ def default_victory_conditions():
     return {"soloVictorySupplyCenters": 18, "gameEndsYear": None, "drawAfterYear": None}
 
 
+def default_phase_progression():
+    return {
+        "seasons": ["Spring", "Fall"],
+        "transitions": [
+            {"from": {"season": "Spring", "type": "Movement"},
+             "to": {"season": "Spring", "type": "Retreat", "yearDelta": 0}},
+            {"from": {"season": "Spring", "type": "Retreat"},
+             "to": {"season": "Fall", "type": "Movement", "yearDelta": 0}},
+            {"from": {"season": "Fall", "type": "Movement"},
+             "to": {"season": "Fall", "type": "Retreat", "yearDelta": 0}},
+            {"from": {"season": "Fall", "type": "Retreat"},
+             "to": {"season": "Fall", "type": "Adjustment", "yearDelta": 0}},
+            {"from": {"season": "Fall", "type": "Adjustment"},
+             "to": {"season": "Spring", "type": "Movement", "yearDelta": 1}},
+        ],
+    }
+
+
 class VariantQuerySet(models.QuerySet):
 
     def with_related_data(self):
@@ -74,6 +92,7 @@ class Variant(BaseModel):
     author = models.CharField(max_length=200, blank=True)
     victory_conditions = models.JSONField(default=default_victory_conditions)
     adjudication_modifiers = models.JSONField(default=list)
+    phase_progression = models.JSONField(default=default_phase_progression)
 
     @property
     def template_phase(self):
