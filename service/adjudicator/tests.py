@@ -743,6 +743,15 @@ def _datc_resolution_for(state: Dict[str, Any], province: str) -> Optional[str]:
     return None
 
 
+def _datc_resolution_reason_for(
+    state: Dict[str, Any], province: str
+) -> Optional[str]:
+    for r in state.get("resolutions") or []:
+        if r["province"] == province:
+            return r.get("reason")
+    return None
+
+
 def _datc_is_dislodged(state: Dict[str, Any], location: str) -> bool:
     return any(u["location"] == location and u["dislodged"] for u in state["units"])
 
@@ -10518,4 +10527,42 @@ def test_next_phase_unconditional_classical_variant_progresses_through_cycle():
     assert _next_phase(
         variant, Phase(season="Spring", year=1901, type=Phase.ADJUSTMENT)
     ) == Phase(season="Spring", year=1902, type=Phase.MOVEMENT)
+
+
+def test_dislodged_convoying_fleet_disrupts_convoyed_move():
+    # Germany's army at den is convoyed to nwy by the fleet at nth (and
+    # supported by the fleet at swe). England's fleet at eng moves to nth
+    # supported by the fleet at nrg, dislodging the convoying fleet. The
+    # sole convoying fleet is dislodged so the convoyed move must fail
+    # outright (no intact convoy path) and the convoy order itself must
+    # reflect the disruption rather than resolving OK.
+    variant = _datc_classical_variant()
+    state = (
+        _DatcStateBuilder(variant)
+        .at_phase("Spring", 1901, "Movement")
+        .with_unit("germany", "Army", "den")
+        .with_unit("germany", "Fleet", "nth")
+        .with_unit("germany", "Fleet", "swe")
+        .with_unit("england", "Fleet", "eng")
+        .with_unit("england", "Fleet", "nrg")
+        .with_order("germany", "den", "Move", target="nwy", via_convoy=True)
+        .with_order("germany", "nth", "Convoy", aux="den", target="nwy")
+        .with_order("germany", "swe", "Support", aux="den", target="nwy")
+        .with_order("england", "eng", "Move", target="nth")
+        .with_order("england", "nrg", "Support", aux="eng", target="nth")
+        .build()
+    )
+
+    result = _datc_adjudicate_one(variant, state)
+
+    assert _datc_is_dislodged(result, "nth")
+    assert _datc_has_unit(result, "germany", "Army", "den")
+    assert not _datc_has_unit(result, "germany", "Army", "nwy")
+    assert _datc_resolution_for(result, "den") == "BOUNCE"
+    assert _datc_resolution_reason_for(result, "den") == "The convoy was disrupted."
+    assert _datc_resolution_for(result, "nth") == "BOUNCE"
+    assert (
+        _datc_resolution_reason_for(result, "nth")
+        == "The convoying fleet was dislodged."
+    )
 

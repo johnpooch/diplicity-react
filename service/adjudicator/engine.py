@@ -857,9 +857,11 @@ class FinalizeStatusesReducer(Reducer):
     Support orders read their final status from support_matched plus
     support_cut: an unmatched support reports CUT (it never attached to
     the supported behavior), a matched support reports the resolved
-    support_cut value. All other still-undecided orders become OK. After
-    this runs, every entry in order_status is one of
-    Status.{OK,ILLEGAL,BOUNCE,CUT}."""
+    support_cut value. Convoy orders whose convoying fleet was dislodged
+    by a successful attack report BOUNCE with a disruption reason
+    (matches godip's ErrConvoyDislodged). All other still-undecided
+    orders become OK. After this runs, every entry in order_status is one
+    of Status.{OK,ILLEGAL,BOUNCE,CUT}."""
 
     ACTION = Actions.FinalizeStatuses
 
@@ -877,8 +879,34 @@ class FinalizeStatusesReducer(Reducer):
                 else:
                     resolutions[i] = replace(r, status=Status.CUT)
                 continue
+            if isinstance(order, ConvoyOrder) and cls._convoy_fleet_dislodged(
+                state, order
+            ):
+                resolutions[i] = replace(
+                    r,
+                    status=Status.BOUNCE,
+                    failure_reason="The convoying fleet was dislodged.",
+                )
+                continue
             resolutions[i] = replace(r, status=Status.OK)
         return state.replace(resolutions=tuple(resolutions))
+
+    @classmethod
+    def _convoy_fleet_dislodged(
+        cls, state: StateView, order: ConvoyOrder
+    ) -> bool:
+        variant = state.variant()
+        fleet_parent = variant.parent_of(order.source)
+        resolutions = state.resolutions()
+        for j, other in enumerate(state.parsed_orders()):
+            if not isinstance(other, MoveOrder):
+                continue
+            if resolutions[j].status != Status.OK:
+                continue
+            if variant.parent_of(other.target) != fleet_parent:
+                continue
+            return True
+        return False
 
 
 class ApplyMovementOutcomesReducer(Reducer):
