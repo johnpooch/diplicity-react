@@ -4815,16 +4815,20 @@ def test_j_6_civil_disorder_two_fleets_with_equal_distance():
     state = (
         _DatcStateBuilder(variant)
         .at_phase("Fall", 1901, "Adjustment")
-        .with_unit("russia", "Fleet", "bot")
-        .with_unit("russia", "Fleet", "nth")
-        .with_supply_center("russia", "mun")
+        .with_unit("russia", "Army", "mos")
+        .with_unit("russia", "Army", "stp")
+        .with_unit("russia", "Fleet", "ska")
+        .with_unit("russia", "Fleet", "bal")
+        .with_supply_center("russia", "mos")
+        .with_supply_center("russia", "stp")
+        .with_supply_center("russia", "war")
         .build()
     )
 
     result = _datc_adjudicate_one(variant, state)
 
-    assert not _datc_has_unit(result, "russia", "Fleet", "bot")
-    assert _datc_has_unit(result, "russia", "Fleet", "nth")
+    assert not _datc_has_unit(result, "russia", "Fleet", "bal")
+    assert _datc_has_unit(result, "russia", "Fleet", "ska")
 
 
 def test_j_7_civil_disorder_two_fleets_and_army_with_equal_distance():
@@ -4909,19 +4913,30 @@ def test_j_10_civil_disorder_counting_convoying_distance():
     state = (
         _DatcStateBuilder(variant)
         .at_phase("Fall", 1901, "Adjustment")
+        .with_unit("italy", "Army", "ven")
+        .with_unit("italy", "Fleet", "ion")
         .with_unit("italy", "Army", "gre")
-        .with_unit("italy", "Army", "pie")
+        .with_unit("italy", "Army", "sil")
+        .with_supply_center("italy", "ven")
+        .with_supply_center("italy", "rom")
         .with_supply_center("italy", "nap")
         .build()
     )
 
     result = _datc_adjudicate_one(variant, state)
 
+    assert _datc_has_unit(result, "italy", "Army", "ven")
+    assert _datc_has_unit(result, "italy", "Fleet", "ion")
     assert _datc_has_unit(result, "italy", "Army", "gre")
-    assert not _datc_has_unit(result, "italy", "Army", "pie")
+    assert not _datc_has_unit(result, "italy", "Army", "sil")
 
 
-def test_j_11_distance_to_owned_supply_center():
+def test_j_11_distance_is_measured_from_home_centers_not_owned():
+    # Civil-disorder distance is measured from the nation's home
+    # centres (Italy: rom, ven, nap), not from currently-owned SCs:
+    # war (Italy's only owned SC here, but a Russian home) is
+    # furthest from Italian home and disbands; tus (adjacent to
+    # ven and rom) stays.
     variant = _datc_classical_variant()
     state = (
         _DatcStateBuilder(variant)
@@ -4934,8 +4949,85 @@ def test_j_11_distance_to_owned_supply_center():
 
     result = _datc_adjudicate_one(variant, state)
 
-    assert _datc_has_unit(result, "italy", "Army", "war")
-    assert not _datc_has_unit(result, "italy", "Army", "tus")
+    assert not _datc_has_unit(result, "italy", "Army", "war")
+    assert _datc_has_unit(result, "italy", "Army", "tus")
+
+
+def test_j_12_civil_disorder_austria_disbands_munich_not_bohemia():
+    # Austria has 4 armies (boh, bud, mun, vie) and 3 SCs owned,
+    # no orders submitted. Distances to Austria's home triangle
+    # (vie, bud, tri): vie=0, bud=0, boh=1, mun=2. Munich is
+    # furthest from home and is the unit godip selects, even
+    # though Bohemia would be the choice if distance were measured
+    # from currently-owned (non-home) supply centres.
+    variant = _datc_classical_variant()
+    state = (
+        _DatcStateBuilder(variant)
+        .at_phase("Fall", 1903, "Adjustment")
+        .with_unit("austria", "Army", "boh")
+        .with_unit("austria", "Army", "bud")
+        .with_unit("austria", "Army", "mun")
+        .with_unit("austria", "Army", "vie")
+        .with_supply_center("austria", "vie")
+        .with_supply_center("austria", "bud")
+        .with_supply_center("austria", "tri")
+        .build()
+    )
+
+    result = _datc_adjudicate_one(variant, state)
+
+    assert not _datc_has_unit(result, "austria", "Army", "mun")
+    assert _datc_has_unit(result, "austria", "Army", "boh")
+    assert _datc_has_unit(result, "austria", "Army", "bud")
+    assert _datc_has_unit(result, "austria", "Army", "vie")
+
+
+def test_j_13_civil_disorder_distance_tie_breaks_fleet_before_army():
+    # Italy: 3 units (A ven, A tyr, F adr) and 2 owned SCs → must
+    # disband one. Distances to Italy's home (rom, ven, nap):
+    # ven=0, tyr=1 (tyr-ven), adr=1 (adr-ven). tyr and adr tie at
+    # distance 1; Fleet-before-Army selects adr.
+    variant = _datc_classical_variant()
+    state = (
+        _DatcStateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_unit("italy", "Army", "ven")
+        .with_unit("italy", "Army", "tyr")
+        .with_unit("italy", "Fleet", "adr")
+        .with_supply_center("italy", "ven")
+        .with_supply_center("italy", "rom")
+        .build()
+    )
+
+    result = _datc_adjudicate_one(variant, state)
+
+    assert not _datc_has_unit(result, "italy", "Fleet", "adr")
+    assert _datc_has_unit(result, "italy", "Army", "tyr")
+    assert _datc_has_unit(result, "italy", "Army", "ven")
+
+
+def test_j_14_civil_disorder_same_distance_same_type_breaks_alphabetically():
+    # Russia: 3 armies (mos, lvn, ukr), 2 owned SCs → 1 disband.
+    # Distances to home (mos, stp, sev, war): mos=0, lvn=1, ukr=1.
+    # Both lvn and ukr are armies at distance 1; the alphabetical
+    # tie-break by location id picks "lvn" (< "ukr").
+    variant = _datc_classical_variant()
+    state = (
+        _DatcStateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_unit("russia", "Army", "mos")
+        .with_unit("russia", "Army", "lvn")
+        .with_unit("russia", "Army", "ukr")
+        .with_supply_center("russia", "mos")
+        .with_supply_center("russia", "stp")
+        .build()
+    )
+
+    result = _datc_adjudicate_one(variant, state)
+
+    assert not _datc_has_unit(result, "russia", "Army", "lvn")
+    assert _datc_has_unit(result, "russia", "Army", "ukr")
+    assert _datc_has_unit(result, "russia", "Army", "mos")
 
 
 # === Phase 7: empty-phase skipping and outcome ===
