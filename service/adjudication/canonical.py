@@ -24,6 +24,12 @@ _GODIP_STATUS_MAP = {
     "OK": "OK",
     "ErrBounce": "BOUNCE",
     "ErrSupportBroken": "CUT",
+    # A convoyed move whose convoy fails — the convoying fleet was dislodged,
+    # or no convoy path resolved — does not move and exerts no force. The
+    # Python engine reports that outcome as a BOUNCE, so godip's distinct
+    # convoy-failure codes are bridged to the same canonical status.
+    "ErrConvoyDislodged": "BOUNCE",
+    "ErrMissingConvoyPath": "BOUNCE",
 }
 
 
