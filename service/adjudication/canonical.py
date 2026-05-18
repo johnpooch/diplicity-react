@@ -185,6 +185,15 @@ def canonicalize_python_response(states, options) -> CanonicalAdjudication:
         for supply_center in final.supply_centers
     }
 
+    # In a Retreat phase godip reports resolutions only for submitted orders;
+    # a dislodged unit given no order is disbanded without a resolution entry.
+    # The Python engine resolves an inferred default Disband for it, so filter
+    # those out to match godip.
+    resolved_is_retreat = resolved.phase.type == "Retreat"
+    ordered_provinces = {
+        final.variant.parent_of(order.source) for order in resolved.orders
+    }
+
     # Retreat-phase options belong to the dislodged units. A standing unit
     # (the dislodger) can occupy the same province as the unit it dislodged,
     # so it must not shadow the dislodged unit's nation.
@@ -236,6 +245,8 @@ def canonicalize_python_response(states, options) -> CanonicalAdjudication:
         resolution_statuses=frozenset(
             (final.variant.parent_of(resolution.province), resolution.resolution)
             for resolution in (resolved.resolutions or [])
+            if not resolved_is_retreat
+            or final.variant.parent_of(resolution.province) in ordered_provinces
         ),
         options_by_nation=frozenset(options_by_nation),
     )
