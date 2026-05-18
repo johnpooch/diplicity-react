@@ -855,8 +855,9 @@ class ApplyCivilDisorderReducer(Reducer):
 class FinalizeStatusesReducer(Reducer):
     """Promote any order whose status is still None to its final value.
     Support orders read their final status from support_matched plus
-    support_cut: an unmatched support reports CUT (it never attached to
-    the supported behavior), a matched support reports the resolved
+    support_cut: an unmatched support reports ILLEGAL (the supportee was
+    not ordered to perform the supported action, matching godip's
+    ErrInvalidSupporteeOrder), a matched support reports the resolved
     support_cut value. Convoy orders whose convoying fleet was dislodged
     by a successful attack report BOUNCE with a disruption reason
     (matches godip's ErrConvoyDislodged). All other still-undecided
@@ -877,7 +878,11 @@ class FinalizeStatusesReducer(Reducer):
                 if r.support_matched:
                     resolutions[i] = replace(r, status=r.support_cut or Status.OK)
                 else:
-                    resolutions[i] = replace(r, status=Status.CUT)
+                    resolutions[i] = replace(
+                        r,
+                        status=Status.ILLEGAL,
+                        failure_reason="The supported unit was not ordered to perform the supported action.",
+                    )
                 continue
             if isinstance(order, ConvoyOrder) and cls._convoy_fleet_dislodged(
                 state, order

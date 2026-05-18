@@ -1505,7 +1505,7 @@ def test_d_7_support_to_hold_on_moving_unit_not_allowed():
     assert _datc_has_unit(result, "russia", "Fleet", "bal")
     assert _datc_is_dislodged(result, "bal")
     assert _datc_resolution_for(result, "bal") == "BOUNCE"
-    assert _datc_resolution_for(result, "pru") == "CUT"
+    assert _datc_resolution_for(result, "pru") == "ILLEGAL"
 
 
 def test_d_8_failed_convoy_cannot_receive_hold_support():
@@ -1537,7 +1537,7 @@ def test_d_8_failed_convoy_cannot_receive_hold_support():
         u["location"] == "gre" and u["nation"] == "turkey"
         for u in result["units"]
     )
-    assert _datc_resolution_for(result, "bul") == "CUT"
+    assert _datc_resolution_for(result, "bul") == "ILLEGAL"
     assert _datc_resolution_for(result, "gre") == "BOUNCE"
 
 
@@ -1561,7 +1561,7 @@ def test_d_9_support_to_move_on_holding_unit_not_allowed():
 
     assert _datc_has_unit(result, "italy", "Army", "tri")
     assert _datc_is_dislodged(result, "tri")
-    assert _datc_resolution_for(result, "alb") == "CUT"
+    assert _datc_resolution_for(result, "alb") == "ILLEGAL"
 
 
 def test_d_10_self_dislodgment_prohibited():
@@ -5801,7 +5801,9 @@ def test_support_hold_for_moving_unit_is_unmatched():
             Unit(nation=NORTH, type=Unit.ARMY, location="rhs"),
             # An incoming attacker so the support is observably moot:
             # without the support the holder is still safe (strength 1
-            # vs strength 1) but the support reports CUT (i.e. unmatched).
+            # vs strength 1) but the support reports ILLEGAL (the
+            # supportee is moving, not holding — godip's
+            # ErrInvalidSupporteeOrder).
             Unit(nation=SOUTH, type=Unit.ARMY, location="lhs"),
         ],
         orders=[
@@ -5813,8 +5815,8 @@ def test_support_hold_for_moving_unit_is_unmatched():
 
     result = Engine().adjudicate(state)
 
-    # Mid is moving, so the SupportHold for it is unmatched -> CUT.
-    assert _resolution(result, "rhs") == Status.CUT
+    # Mid is moving, so the SupportHold for it is unmatched -> ILLEGAL.
+    assert _resolution(result, "rhs") == Status.ILLEGAL
 
 
 def test_support_move_for_wrong_target_is_unmatched():
@@ -5845,7 +5847,91 @@ def test_support_move_for_wrong_target_is_unmatched():
     result = Engine().adjudicate(state)
 
     # Support's claimed target (rhs) doesn't match lhs's actual target (mid).
-    assert _resolution(result, "mid") == Status.CUT
+    assert _resolution(result, "mid") == Status.ILLEGAL
+
+
+def test_unmatched_support_status_does_not_change_board_outcome():
+    """An unmatched support reports ILLEGAL (godip's ErrInvalidSupporteeOrder)
+    but already contributes no strength, so unit positions are the same
+    as if the support had been omitted entirely."""
+    variant = make_variant()
+    base_units = [
+        Unit(nation=NORTH, type=Unit.ARMY, location="mid"),
+        Unit(nation=NORTH, type=Unit.ARMY, location="rhs"),
+        Unit(nation=SOUTH, type=Unit.ARMY, location="lhs"),
+    ]
+    # rhs supports mid to hold, but mid is actually moving to iso —
+    # so rhs's SupportHold is unmatched.
+    with_support = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=list(base_units),
+        orders=[
+            RawOrder(nation=NORTH, source="mid", order_type="Move", target="iso"),
+            RawOrder(nation=NORTH, source="rhs", order_type="Support", aux="mid"),
+            RawOrder(nation=SOUTH, source="lhs", order_type="Move", target="mid"),
+        ],
+    )
+    # Same state without the support.
+    without_support = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=list(base_units),
+        orders=[
+            RawOrder(nation=NORTH, source="mid", order_type="Move", target="iso"),
+            RawOrder(nation=NORTH, source="rhs", order_type="Hold"),
+            RawOrder(nation=SOUTH, source="lhs", order_type="Move", target="mid"),
+        ],
+    )
+
+    result_with = Engine().adjudicate(with_support)
+    result_without = Engine().adjudicate(without_support)
+
+    assert _resolution(result_with, "rhs") == Status.ILLEGAL
+    # Mid and lhs (and the resulting board positions) resolve identically
+    # whether or not the unmatched support was issued.
+    assert _resolution(result_with, "mid") == _resolution(result_without, "mid")
+    assert _resolution(result_with, "lhs") == _resolution(result_without, "lhs")
+    by_loc_with = sorted(
+        (u.location, u.nation, u.type, u.dislodged) for u in result_with[0].units
+    )
+    by_loc_without = sorted(
+        (u.location, u.nation, u.type, u.dislodged) for u in result_without[0].units
+    )
+    assert by_loc_with == by_loc_without
+
+
+def test_support_for_move_supportee_isnt_making_resolves_illegal():
+    """The scenario from the bug report: a SupportMove naming a move
+    its supportee isn't ordered to make resolves ILLEGAL, regardless of
+    whether the supporting unit is itself attacked."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            # Supporter (lhs) claims to support mid -> rhs.
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            # Supportee (mid) is ordered to hold, not move to rhs.
+            Unit(nation=NORTH, type=Unit.ARMY, location="mid"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="rhs"),
+        ],
+        orders=[
+            RawOrder(
+                nation=NORTH,
+                source="lhs",
+                order_type="Support",
+                aux="mid",
+                target="rhs",
+            ),
+            RawOrder(nation=NORTH, source="mid", order_type="Hold"),
+            RawOrder(nation=SOUTH, source="rhs", order_type="Hold"),
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _resolution(result, "lhs") == Status.ILLEGAL
 
 
 def test_supported_move_dislodges_holder():
@@ -9257,6 +9343,8 @@ def _option_to_wire_orders(option: OrderOption, state: State) -> List[RawOrder]:
     """Translate an OrderOption into one or more wire RawOrders ready for
     Engine.adjudicate. Handles:
       - SupportHold target rewrite (target=aux=loc → target=None)
+      - SupportMove: also submits a matching MoveOrder for the supportee,
+        so the support is matched (an unmatched support resolves ILLEGAL).
       - SupportMove-via-convoy: also submits matching ConvoyOrders for
         every sea-province fleet, satisfying SupportMoveSupportedCanReach.
       - Build/Disband nation lookup from supply-center ownership or unit.
@@ -9285,6 +9373,15 @@ def _option_to_wire_orders(option: OrderOption, state: State) -> List[RawOrder]:
     co_orders: List[RawOrder] = []
     if option.order_type == "Support" and option.target != option.aux:
         mover = _unit_at_any(state, option.aux)
+        if mover is not None and not mover.dislodged:
+            co_orders.append(
+                RawOrder(
+                    nation=mover.nation,
+                    source=option.aux,
+                    order_type="Move",
+                    target=option.target,
+                )
+            )
         if (
             mover is not None
             and not mover.dislodged
