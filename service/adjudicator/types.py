@@ -1039,6 +1039,17 @@ class NationView:
             if sc.nation == self._nation
         )
 
+    def home_supply_centers(self) -> frozenset:
+        """Provinces statically assigned to this nation as home
+        supply centres by the variant, regardless of current
+        ownership. Matches godip's Graph().SCs(n), which is the
+        source set used by SortedUnits for civil-disorder distance."""
+        return frozenset(
+            pid
+            for pid, province in self._state.variant.provinces.items()
+            if province.home_nation == self._nation
+        )
+
     def standing_unit_count(self) -> int:
         return sum(
             1 for u in self._state.units if u.nation == self._nation and not u.dislodged
@@ -1052,22 +1063,27 @@ class NationView:
 
     def civil_disorder_ranking(self) -> Tuple[Unit, ...]:
         """Units of this nation ordered for civil-disorder selection:
-        furthest-from-owned-SC first, fleets before armies on ties,
-        location id alphabetical on further ties (DATC 6.J.5/6.J.6).
-        Adjacency is treated as unweighted regardless of pass type for
-        the distance computation."""
+        furthest-from-home-SC first, fleets before armies on ties,
+        location id alphabetical on further ties. Mirrors godip's
+        SortedUnits (phase.go) — sort by shortestDistance to the
+        nation's home supply centres (Graph().SCs(n)) descending,
+        with Fleet-before-Army and province-id alphabetical tie
+        breaks. Adjacency is unweighted regardless of pass type:
+        godip's shortestDistance keeps the minimum of a type-filtered
+        and an unfiltered path lookup, and the unfiltered (raw-graph)
+        path is always at least as short."""
         units = tuple(
             u for u in self._state.units
             if u.nation == self._nation and not u.dislodged
         )
-        if not self.owned_supply_centers():
+        if not self.home_supply_centers():
             return tuple(
                 sorted(
                     units,
                     key=lambda u: (0 if u.type == Unit.FLEET else 1, u.location),
                 )
             )
-        distances = self._distance_from_owned()
+        distances = self._distance_from_home()
         variant = self._state.variant
         def unit_distance(unit: Unit) -> int:
             if unit.location in distances:
@@ -1086,23 +1102,27 @@ class NationView:
 
     def _bfs_source_nodes(self) -> set:
         """Build the BFS source set for civil-disorder distance
-        computation: every owned supply center, plus every named coast
-        belonging to one of those provinces. Named coasts are included
-        because a fleet can occupy a coast and we want its distance
-        measured from that coast, not from the parent."""
+        computation: every home supply center of this nation, plus
+        every named coast belonging to one of those provinces. Named
+        coasts are included because a fleet can occupy a coast and
+        we want its distance measured from that coast, not from the
+        parent."""
         variant = self._state.variant
-        sources: set = set(self.owned_supply_centers())
-        for province_id in self.owned_supply_centers():
+        home = self.home_supply_centers()
+        sources: set = set(home)
+        for province_id in home:
             for coast in variant.coasts_of(province_id):
                 sources.add(coast)
         return sources
 
-    def _distance_from_owned(self) -> Dict[str, int]:
+    def _distance_from_home(self) -> Dict[str, int]:
         """Unweighted BFS distance from each reachable node to the
-        nearest owned supply center (or named coast thereof). Pass type
-        is ignored — distances are over the raw adjacency graph,
-        matching DATC 6.J.5/6's intent of 'furthest from home.' Returns
-        a map from node id to distance; unreachable nodes are absent."""
+        nearest home supply center of this nation (or named coast
+        thereof). Pass type is ignored — distances are over the raw
+        adjacency graph, matching the effective behaviour of godip's
+        shortestDistance (whose unfiltered path is always at least
+        as short as the type-filtered one). Returns a map from node
+        id to distance; unreachable nodes are absent."""
         variant = self._state.variant
         sources = self._bfs_source_nodes()
         if not sources:
