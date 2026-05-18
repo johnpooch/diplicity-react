@@ -925,12 +925,18 @@ def test_a_5_move_to_own_sector_with_convoy():
 
     result = _datc_adjudicate_one(variant, state)
 
+    # Yorkshire's self-move is impossible — the order is illegal.
     assert _datc_resolution_for(result, "yor") == "ILLEGAL"
-    # Liverpool's support is for a Yorkshire that ordered Move; the support
-    # doesn't apply, regardless of how Yorkshire's order resolves.
-    assert _datc_resolution_for(result, "lvp") != "OK"
-    assert _datc_has_unit(result, "germany", "Fleet", "yor")
-    assert _datc_is_dislodged(result, "yor")
+    # Liverpool's order encodes target == aux, which the parser treats as
+    # support-to-hold (godip convention: a support order whose from and to
+    # are the same is a support-to-hold). Yorkshire stays put because its
+    # move is illegal, so Liverpool's support matches and resolves OK.
+    assert _datc_resolution_for(result, "lvp") == "OK"
+    # With +1 defensive support from Liverpool, Yorkshire matches London's
+    # supported attack and the move bounces — Yorkshire is not dislodged.
+    assert _datc_resolution_for(result, "lon") == "BOUNCE"
+    assert _datc_has_unit(result, "england", "Army", "yor")
+    assert not _datc_is_dislodged(result, "yor")
 
 
 def test_a_6_ordering_a_unit_of_another_country():
@@ -8528,6 +8534,68 @@ def test_convoy_missing_target_falls_back_to_hold_and_resolves_ok():
     result = Engine().adjudicate(state)
 
     assert _cv_resolution(result, "sea") == Status.OK
+
+
+def test_support_with_target_equal_to_aux_parses_to_support_hold_and_resolves_ok():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="mid"),
+        ],
+        orders=[
+            RawOrder(
+                nation=NORTH,
+                source="lhs",
+                order_type="Support",
+                aux="mid",
+                target="mid",
+            ),
+            RawOrder(nation=NORTH, source="mid", order_type="Hold"),
+        ],
+    )
+
+    engine = Engine()
+    adj = engine._to_adjudication_state(state)
+    adj = engine.dispatch(adj, Actions.ParseMovementOrders())
+    lhs_order = next(o for o in adj.parsed_orders if o.source == "lhs")
+    assert isinstance(lhs_order, SupportHoldOrder)
+
+    result = Engine().adjudicate(state)
+    assert _cv_resolution(result, "lhs") == Status.OK
+
+
+def test_support_with_target_none_parses_to_support_hold_and_resolves_ok():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="mid"),
+        ],
+        orders=[
+            RawOrder(
+                nation=NORTH,
+                source="lhs",
+                order_type="Support",
+                aux="mid",
+                target=None,
+            ),
+            RawOrder(nation=NORTH, source="mid", order_type="Hold"),
+        ],
+    )
+
+    engine = Engine()
+    adj = engine._to_adjudication_state(state)
+    adj = engine.dispatch(adj, Actions.ParseMovementOrders())
+    lhs_order = next(o for o in adj.parsed_orders if o.source == "lhs")
+    assert isinstance(lhs_order, SupportHoldOrder)
+
+    result = Engine().adjudicate(state)
+    assert _cv_resolution(result, "lhs") == Status.OK
 
 
 # === Legality check tests ===

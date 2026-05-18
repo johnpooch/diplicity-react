@@ -289,7 +289,11 @@ class ParseMovementOrdersReducer(Reducer):
                     unit_type=unit.type,
                 )
             elif raw.order_type == OrderType.SUPPORT and raw.aux is not None:
-                if raw.target is None:
+                # A Support is a support-to-hold when the supported unit is
+                # not moving — encoded either as target=None or as
+                # target == aux (godip: support targets [supporter, supportee]
+                # with from == to). Only target != aux is a support-to-move.
+                if raw.target is None or raw.target == raw.aux:
                     by_loc[unit.location] = SupportHoldOrder(
                         nation=unit.nation,
                         source=unit.location,
