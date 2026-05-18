@@ -174,25 +174,44 @@ def canonicalize_python_response(states, options) -> CanonicalAdjudication:
     final = states[-1]
     name_of = {nation.id: nation.name for nation in final.variant.nations}
 
-    unit_nation_by_location = {unit.location: unit.nation for unit in final.units}
+    standing_nation_by_location = {
+        unit.location: unit.nation for unit in final.units if not unit.dislodged
+    }
+    dislodged_nation_by_location = {
+        unit.location: unit.nation for unit in final.units if unit.dislodged
+    }
     sc_nation_by_province = {
         supply_center.province: supply_center.nation
         for supply_center in final.supply_centers
     }
 
+    # Retreat-phase options belong to the dislodged units. A standing unit
+    # (the dislodger) can occupy the same province as the unit it dislodged,
+    # so it must not shadow the dislodged unit's nation.
+    is_retreat_phase = final.phase.type == "Retreat"
     options_by_nation = set()
     for option in options:
-        nation_id = unit_nation_by_location.get(option.source)
-        if nation_id is None:
-            parent = final.variant.parent_of(option.source)
-            nation_id = sc_nation_by_province.get(parent)
+        if is_retreat_phase:
+            nation_id = dislodged_nation_by_location.get(option.source)
+        else:
+            nation_id = standing_nation_by_location.get(option.source)
+            if nation_id is None:
+                parent = final.variant.parent_of(option.source)
+                nation_id = sc_nation_by_province.get(parent)
         if nation_id is None:
             continue
+        # godip keys an existing unit's options by its parent province even
+        # when the unit sits on a named coast; only Build options carry the
+        # coast itself. Normalize Python's source to match.
+        if option.order_type == "Build":
+            option_source = option.source
+        else:
+            option_source = final.variant.parent_of(option.source)
         options_by_nation.add(
             (
                 name_of.get(nation_id, nation_id),
                 option.order_type,
-                option.source,
+                option_source,
                 option.target,
                 option.aux,
                 option.unit_type,
@@ -215,7 +234,7 @@ def canonicalize_python_response(states, options) -> CanonicalAdjudication:
             for sc in final.supply_centers
         ),
         resolution_statuses=frozenset(
-            (resolution.province, resolution.resolution)
+            (final.variant.parent_of(resolution.province), resolution.resolution)
             for resolution in (resolved.resolutions or [])
         ),
         options_by_nation=frozenset(options_by_nation),
