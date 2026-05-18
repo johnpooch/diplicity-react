@@ -6,8 +6,7 @@ import { ScreenContainer } from "@/components/ui/screen-container";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
 import { Button } from "@/components/ui/button";
 
-const DISCORD_URL =
-  "https://discord.com/channels/565625522407604254/697344626859704340";
+const DISCORD_URL = "https://discord.gg/2TkZbBRPW";
 
 const GITHUB_DISCUSSIONS_URL =
   "https://github.com/johnpooch/diplicity-react/discussions";
