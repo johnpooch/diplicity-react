@@ -1520,7 +1520,14 @@ def test_d_8_failed_convoy_cannot_receive_hold_support():
     result = _datc_adjudicate_one(variant, state)
 
     assert _datc_has_unit(result, "austria", "Army", "gre")
-    assert _datc_is_dislodged(result, "gre")
+    # A gre was dislodged (the attempted convoyed move bounced) and
+    # auto-disbanded with no legal retreat: alb is the attacker's
+    # origin; ser and bul are occupied; aeg and ion are sea provinces
+    # that an army cannot reach.
+    assert not any(
+        u["location"] == "gre" and u["nation"] == "turkey"
+        for u in result["units"]
+    )
     assert _datc_resolution_for(result, "bul") == "CUT"
     assert _datc_resolution_for(result, "gre") == "BOUNCE"
 
@@ -1759,7 +1766,13 @@ def test_d_18_surviving_unit_will_sustain_support():
     result = _datc_adjudicate_one(variant, state)
 
     assert _datc_has_unit(result, "russia", "Fleet", "ank")
-    assert _datc_is_dislodged(result, "ank")
+    # F ank was dislodged and auto-disbanded — every fleet-adjacent
+    # province is blocked: bla is the attacker's origin; con and smy
+    # are occupied by units that held their ground.
+    assert not any(
+        u["location"] == "ank" and u["nation"] == "turkey"
+        for u in result["units"]
+    )
     assert _datc_resolution_for(result, "ank") == "BOUNCE"
 
 
@@ -1784,7 +1797,14 @@ def test_d_19_even_when_surviving_is_in_alternative_way():
     assert _datc_has_unit(result, "russia", "Fleet", "con")
     assert not _datc_is_dislodged(result, "con")
     assert _datc_has_unit(result, "russia", "Fleet", "ank")
-    assert _datc_is_dislodged(result, "ank")
+    # F ank was dislodged and auto-disbanded — bla is the attacker's
+    # origin, smy and con are both occupied (smy is the russian army's
+    # parent province, con is held by the russian fleet that supported
+    # the attack), and arm is not fleet-reachable from ank.
+    assert not any(
+        u["location"] == "ank" and u["nation"] == "turkey"
+        for u in result["units"]
+    )
     assert _datc_resolution_for(result, "bla") == "OK"
     assert _datc_resolution_for(result, "ank") == "BOUNCE"
 
@@ -2146,7 +2166,14 @@ def test_d_34_support_targeting_own_province_not_allowed():
     result = _datc_adjudicate_one(variant, state)
 
     assert _datc_has_unit(result, "germany", "Army", "pru")
-    assert _datc_is_dislodged(result, "pru")
+    # A pru was dislodged and auto-disbanded — every adjacent army
+    # province is blocked: ber is the attacker's origin; sil, war,
+    # and lvn are all occupied (the lvn attack bounced against
+    # germany's stronger move, so russia A lvn stayed put).
+    assert not any(
+        u["location"] == "pru" and u["nation"] == "italy"
+        for u in result["units"]
+    )
     assert _datc_resolution_for(result, "pru") == "ILLEGAL"
 
 
@@ -3172,8 +3199,15 @@ def test_f_21_dads_army_convoy():
 
     result = _datc_adjudicate_one(variant, state)
 
-    # Szykman: support of Clyde is cut, NAO dislodged.
-    assert _datc_is_dislodged(result, "nao")
+    # Szykman: support of Clyde is cut, NAO dislodged. With every
+    # fleet-adjacent province to NAO blocked (mao is the attacker's
+    # origin; iri, nrg, cly are occupied; lvp is occupied because
+    # the convoyed lvp->cly move fails when NAO is dislodged), the
+    # english fleet is auto-disbanded.
+    assert not any(
+        u["location"] == "nao" and u["nation"] == "england"
+        for u in result["units"]
+    )
     assert _datc_has_unit(result, "france", "Fleet", "nao")
 
 
@@ -3574,7 +3608,13 @@ def test_g_10_swapped_or_an_head_to_head_battle():
     # NOR-SWE is via convoy (explicit), so it's not head-to-head with SWE-NOR.
     # NOR dislodges SWE. SWE-NOR and NRG-NOR mutually bounce.
     assert _datc_has_unit(result, "england", "Army", "swe")
-    assert _datc_is_dislodged(result, "swe")
+    # A swe was dislodged and auto-disbanded — every army-adjacent
+    # province is blocked: nwy is the attacker's origin; den and fin
+    # are occupied by the supporting english fleets.
+    assert not any(
+        u["location"] == "swe" and u["nation"] == "russia"
+        for u in result["units"]
+    )
     assert _datc_resolution_for(result, "swe") == "BOUNCE"
     assert _datc_resolution_for(result, "nrg") == "BOUNCE"
 
@@ -3685,9 +3725,14 @@ def test_g_14_bounce_by_convoy_to_adjacent_province():
     result = _datc_adjudicate_one(variant, state)
 
     # NOR-SWE attacks SWE with strength 3; A SWE is dislodged. SWE-NOR
-    # and NRG-NOR mutually bounce.
+    # and NRG-NOR mutually bounce. A swe is then auto-disbanded — every
+    # army-adjacent province is blocked: nwy is the attacker's origin;
+    # den and fin are occupied by the supporting english fleets.
     assert _datc_has_unit(result, "england", "Army", "swe")
-    assert _datc_is_dislodged(result, "swe")
+    assert not any(
+        u["location"] == "swe" and u["nation"] == "russia"
+        for u in result["units"]
+    )
     assert _datc_resolution_for(result, "nrg") == "BOUNCE"
 
 
@@ -5344,6 +5389,89 @@ def test_hold_and_move_coexist_in_one_phase():
     assert _unit_at(result, "lhs") is not None
     assert _unit_at(result, "mid") is not None
     assert _unit_at(result, "rhs") is None
+
+
+def test_dislodged_unit_with_no_legal_retreat_is_auto_disbanded():
+    """A dislodged unit with zero legal retreat targets is removed as
+    the Movement phase resolves, mirroring godip's Movement
+    post-processing. The unit must not appear in the post-Movement
+    units list — neither standing nor dislodged."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="rhs"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="mid"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="iso"),
+        ],
+        orders=[
+            RawOrder(nation=NORTH, source="lhs", order_type="Move", target="mid"),
+            RawOrder(
+                nation=NORTH, source="rhs", order_type="Support",
+                aux="lhs", target="mid",
+            ),
+            RawOrder(nation=SOUTH, source="mid", order_type="Hold"),
+            RawOrder(nation=SOUTH, source="iso", order_type="Hold"),
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    occupant = _unit_at(result, "mid")
+    assert occupant is not None
+    assert occupant.nation == NORTH
+    # The southern army at mid was dislodged with no legal retreat:
+    # lhs is the attacker's origin, rhs and iso are occupied, and sea
+    # is unreachable for an army. It must be gone from both the
+    # resolved Movement state and the next-phase Retreat state.
+    for emitted in result:
+        assert all(u.nation != SOUTH for u in emitted.units if u.location == "mid")
+        assert not any(u.dislodged for u in emitted.units)
+
+
+def test_dislodged_unit_with_legal_retreat_is_carried_forward():
+    """A dislodged unit that still has at least one legal retreat
+    target is preserved as dislodged in the post-Movement units list,
+    so the following Retreat phase can resolve its retreat order."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="rhs"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="mid"),
+            # iso intentionally left empty so the dislodged south unit
+            # at mid has a legal retreat target.
+        ],
+        orders=[
+            RawOrder(nation=NORTH, source="lhs", order_type="Move", target="mid"),
+            RawOrder(
+                nation=NORTH, source="rhs", order_type="Support",
+                aux="lhs", target="mid",
+            ),
+            RawOrder(nation=SOUTH, source="mid", order_type="Hold"),
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    occupant = _unit_at(result, "mid")
+    assert occupant is not None
+    assert occupant.nation == NORTH
+    dislodged = [u for u in result[0].units if u.dislodged]
+    assert len(dislodged) == 1
+    assert dislodged[0].nation == SOUTH
+    assert dislodged[0].location == "mid"
+    assert dislodged[0].dislodged_from == "lhs"
+    # The dislodged unit is also carried into the next Retreat-phase
+    # state so its retreat can be resolved there.
+    assert any(
+        u.dislodged and u.nation == SOUTH and u.location == "mid"
+        for u in result[1].units
+    )
 
 
 # === Support, cuts, head-to-head, self-dislodgement, multi-way contests ===
