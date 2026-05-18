@@ -939,8 +939,11 @@ class ApplyMovementOutcomesReducer(Reducer):
         """Produce the post-Movement units list. Units whose Move
         resolved OK relocate; units whose location is the target parent
         of another unit's successful Move become dislodged (with
-        dislodged_from set to the attacker's source parent); all other
-        units pass through unchanged. Head-to-head winners relocate as
+        dislodged_from set to the attacker's source parent, except when
+        the attacker arrived via convoy — DATC's convoy retreat
+        exception: a convoyed attacker leaves no attacker-origin
+        restriction on the dislodged unit's retreat); all other units
+        pass through unchanged. Head-to-head winners relocate as
         usual; their h2h opponents bounce and are dislodged by the
         winner's move just like any other defender. Same-nation
         dislodgement cannot occur here because the resolver already
@@ -949,7 +952,7 @@ class ApplyMovementOutcomesReducer(Reducer):
         resolutions = state.resolutions()
         variant = state.variant()
         moves_out: Dict[str, str] = {}
-        attackers_by_parent: Dict[str, str] = {}
+        attackers_by_parent: Dict[str, Tuple[str, bool]] = {}
         for i, order in enumerate(parsed):
             if not isinstance(order, MoveOrder):
                 continue
@@ -957,7 +960,8 @@ class ApplyMovementOutcomesReducer(Reducer):
                 continue
             moves_out[order.source] = order.target
             attackers_by_parent.setdefault(
-                variant.parent_of(order.target), order.source
+                variant.parent_of(order.target),
+                (order.source, resolutions[i].via_convoy),
             )
         next_units: List[Unit] = []
         for unit in state.units().all():
@@ -974,13 +978,18 @@ class ApplyMovementOutcomesReducer(Reducer):
                     )
                 )
                 continue
-            attacker_source = attackers_by_parent.get(variant.parent_of(unit.location))
-            if attacker_source is not None:
+            attacker = attackers_by_parent.get(variant.parent_of(unit.location))
+            if attacker is not None:
+                attacker_source, attacker_via_convoy = attacker
                 next_units.append(
                     replace(
                         unit,
                         dislodged=True,
-                        dislodged_from=variant.parent_of(attacker_source),
+                        dislodged_from=(
+                            None
+                            if attacker_via_convoy
+                            else variant.parent_of(attacker_source)
+                        ),
                     )
                 )
                 continue
