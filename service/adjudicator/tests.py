@@ -6026,6 +6026,108 @@ def test_support_for_move_supportee_isnt_making_resolves_illegal():
     assert _resolution(result, "lhs") == Status.ILLEGAL
 
 
+def test_unmatched_support_that_is_cut_resolves_cut():
+    """A support that is both unmatched (the supportee isn't doing the
+    supported action) and cut (the supporter is attacked by a foreign
+    unit) must resolve as CUT, not ILLEGAL. Matches godip's precedence:
+    ErrSupportBroken is returned before ErrInvalidSupporteeOrder."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            # Supporter (rhs) supports mid to hold.
+            Unit(nation=NORTH, type=Unit.ARMY, location="rhs"),
+            # Supportee (mid) is moving away, so the support is unmatched.
+            Unit(nation=NORTH, type=Unit.ARMY, location="mid"),
+            # Foreign attacker into rhs cuts the support.
+            Unit(nation=SOUTH, type=Unit.ARMY, location="lhs"),
+        ],
+        orders=[
+            RawOrder(nation=NORTH, source="rhs", order_type="Support", aux="mid"),
+            RawOrder(nation=NORTH, source="mid", order_type="Move", target="iso"),
+            RawOrder(nation=SOUTH, source="lhs", order_type="Move", target="rhs"),
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _resolution(result, "rhs") == Status.CUT
+
+
+def test_unmatched_support_that_is_uncut_resolves_illegal():
+    """Symmetric counterpart to the cut case: an unmatched support with
+    no attacker on the supporter stays ILLEGAL."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="rhs"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="mid"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="lhs"),
+        ],
+        orders=[
+            RawOrder(nation=NORTH, source="rhs", order_type="Support", aux="mid"),
+            RawOrder(nation=NORTH, source="mid", order_type="Move", target="iso"),
+            # lhs holds — no attack on rhs.
+            RawOrder(nation=SOUTH, source="lhs", order_type="Hold"),
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _resolution(result, "rhs") == Status.ILLEGAL
+
+
+def test_matched_support_that_is_cut_resolves_cut():
+    """Baseline: a support that is matched but cut resolves to CUT."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="rhs"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="mid"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="lhs"),
+        ],
+        orders=[
+            RawOrder(nation=NORTH, source="rhs", order_type="Support", aux="mid"),
+            # mid holds, so the SupportHold is matched.
+            RawOrder(nation=NORTH, source="mid", order_type="Hold"),
+            # lhs attacks rhs, cutting the support.
+            RawOrder(nation=SOUTH, source="lhs", order_type="Move", target="rhs"),
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _resolution(result, "rhs") == Status.CUT
+
+
+def test_matched_support_that_is_uncut_resolves_ok():
+    """Baseline: a support that is matched and not attacked resolves OK."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="rhs"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="mid"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="lhs"),
+        ],
+        orders=[
+            RawOrder(nation=NORTH, source="rhs", order_type="Support", aux="mid"),
+            RawOrder(nation=NORTH, source="mid", order_type="Hold"),
+            RawOrder(nation=SOUTH, source="lhs", order_type="Hold"),
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _resolution(result, "rhs") == Status.OK
+
+
 def test_supported_move_dislodges_holder():
     variant = make_variant()
     state = make_state(
