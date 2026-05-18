@@ -854,15 +854,16 @@ class ApplyCivilDisorderReducer(Reducer):
 
 class FinalizeStatusesReducer(Reducer):
     """Promote any order whose status is still None to its final value.
-    Support orders read their final status from support_matched plus
-    support_cut: an unmatched support reports ILLEGAL (the supportee was
-    not ordered to perform the supported action, matching godip's
-    ErrInvalidSupporteeOrder), a matched support reports the resolved
-    support_cut value. Convoy orders whose convoying fleet was dislodged
-    by a successful attack report BOUNCE with a disruption reason
-    (matches godip's ErrConvoyDislodged). All other still-undecided
-    orders become OK. After this runs, every entry in order_status is one
-    of Status.{OK,ILLEGAL,BOUNCE,CUT}."""
+    Support orders read their final status from support_cut and
+    support_matched in that precedence: a cut support reports CUT
+    (matching godip's ErrSupportBroken), an uncut but unmatched support
+    reports ILLEGAL (the supportee was not ordered to perform the
+    supported action, matching godip's ErrInvalidSupporteeOrder), and a
+    matched uncut support reports OK. Convoy orders whose convoying
+    fleet was dislodged by a successful attack report BOUNCE with a
+    disruption reason (matches godip's ErrConvoyDislodged). All other
+    still-undecided orders become OK. After this runs, every entry in
+    order_status is one of Status.{OK,ILLEGAL,BOUNCE,CUT}."""
 
     ACTION = Actions.FinalizeStatuses
 
@@ -875,8 +876,10 @@ class FinalizeStatusesReducer(Reducer):
             if r.status is not None:
                 continue
             if isinstance(order, (SupportHoldOrder, SupportMoveOrder)):
-                if r.support_matched:
-                    resolutions[i] = replace(r, status=r.support_cut or Status.OK)
+                if r.support_cut == Status.CUT:
+                    resolutions[i] = replace(r, status=Status.CUT)
+                elif r.support_matched:
+                    resolutions[i] = replace(r, status=Status.OK)
                 else:
                     resolutions[i] = replace(
                         r,
