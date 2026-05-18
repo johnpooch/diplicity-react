@@ -5483,6 +5483,108 @@ def test_dislodged_unit_with_legal_retreat_is_carried_forward():
     )
 
 
+def test_dislodgement_by_convoyed_attacker_does_not_block_retreat_to_origin():
+    """DATC convoy retreat exception: a unit dislodged by an attacker
+    that arrived via convoy has no recorded attacker-origin, so the
+    attacker's origin remains a legal retreat target. The attacker
+    travelled by sea, so its origin is not the adjacent land province
+    the dislodged unit would otherwise be barred from retreating to.
+    godip mirrors this by skipping SetDislodger for convoyed attacks."""
+    variant = make_variant()
+    movement = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=NORTH, type=Unit.FLEET, location="sea"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="rhs"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="mid"),
+        ],
+        orders=[
+            RawOrder(
+                nation=NORTH, source="lhs", order_type="Move",
+                target="mid", via_convoy=True,
+            ),
+            RawOrder(
+                nation=NORTH, source="sea", order_type="Convoy",
+                aux="lhs", target="mid",
+            ),
+            RawOrder(
+                nation=NORTH, source="rhs", order_type="Support",
+                aux="lhs", target="mid",
+            ),
+            RawOrder(nation=SOUTH, source="mid", order_type="Hold"),
+        ],
+    )
+
+    movement_result = Engine().adjudicate(movement)
+
+    occupant = _unit_at(movement_result, "mid")
+    assert occupant is not None
+    assert occupant.nation == NORTH
+    dislodged = [u for u in movement_result[0].units if u.dislodged]
+    assert len(dislodged) == 1
+    assert dislodged[0].nation == SOUTH
+    assert dislodged[0].location == "mid"
+    assert dislodged[0].dislodged_from is None
+
+    # End-to-end: the dislodged unit can retreat to the attacker's
+    # origin (lhs), which would be barred if dislodged_from were set.
+    retreat_state = replace(
+        movement_result[1],
+        orders=[
+            RawOrder(nation=SOUTH, source="mid", order_type="Retreat", target="lhs"),
+        ],
+    )
+    retreat_result = Engine().adjudicate(retreat_state)
+
+    assert _resolution(retreat_result, "mid") == Status.OK
+    lhs_unit = _unit_at(retreat_result, "lhs")
+    assert lhs_unit is not None
+    assert lhs_unit.nation == SOUTH
+
+
+def test_dislodgement_by_adjacent_attacker_blocks_retreat_to_origin():
+    """Control: when the dislodging attacker entered by a normal
+    adjacent Move (no convoy), dislodged_from records its origin and
+    the dislodged unit's retreat there is rejected (DATC 6.H.3)."""
+    variant = make_variant()
+    movement = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="rhs"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="mid"),
+        ],
+        orders=[
+            RawOrder(nation=NORTH, source="lhs", order_type="Move", target="mid"),
+            RawOrder(
+                nation=NORTH, source="rhs", order_type="Support",
+                aux="lhs", target="mid",
+            ),
+            RawOrder(nation=SOUTH, source="mid", order_type="Hold"),
+        ],
+    )
+
+    movement_result = Engine().adjudicate(movement)
+
+    dislodged = [u for u in movement_result[0].units if u.dislodged]
+    assert len(dislodged) == 1
+    assert dislodged[0].nation == SOUTH
+    assert dislodged[0].dislodged_from == "lhs"
+
+    retreat_state = replace(
+        movement_result[1],
+        orders=[
+            RawOrder(nation=SOUTH, source="mid", order_type="Retreat", target="lhs"),
+        ],
+    )
+    retreat_result = Engine().adjudicate(retreat_state)
+
+    assert _resolution(retreat_result, "mid") == Status.ILLEGAL
+
+
 # === Support, cuts, head-to-head, self-dislodgement, multi-way contests ===
 
 
