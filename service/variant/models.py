@@ -140,6 +140,9 @@ class VariantSvg(BaseModel):
     content_hash = models.CharField(max_length=64, editable=False)
 
     def save(self, *args, **kwargs):
+        from variant.utils import normalize_dsvg
+
+        self.svg = normalize_dsvg(self.svg)
         self.content_hash = hashlib.sha256(self.svg.encode()).hexdigest()
         super().save(*args, **kwargs)
 

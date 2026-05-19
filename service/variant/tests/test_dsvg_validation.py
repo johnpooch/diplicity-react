@@ -61,6 +61,29 @@ def test_named_coast_path_with_invalid_id_is_reported(make_dsvg):
     assert [error.code for error in errors] == ["NAMED_COAST_INVALID_ID"]
 
 
+def test_unit_position_circle_without_visible_radius_is_reported():
+    svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
+        '<g id="background"/>'
+        '<g id="provinces" style="display:none"/>'
+        '<g id="named-coasts" style="display:none"/>'
+        '<g id="unit-positions" style="display:none">'
+        '<circle id="alpha" cx="0" cy="0"/>'
+        '<circle id="beta" cx="0" cy="0" r="0"/>'
+        "</g>"
+        '<g id="province-names"/>'
+        '<g id="borders"/>'
+        '<g id="foreground"/>'
+        "</svg>"
+    )
+
+    errors = validate_dsvg(svg)
+
+    assert [error.code for error in errors] == ["MARKER_NOT_VISIBLE"]
+    assert "alpha" in errors[0].message
+    assert "beta" in errors[0].message
+
+
 def test_valid_province_and_named_coast_paths_pass(make_dsvg):
     errors = validate_dsvg(make_dsvg(province_ids=["fra", "ger"], named_coast_ids=["stp/nc"]))
 

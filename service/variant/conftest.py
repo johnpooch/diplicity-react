@@ -30,7 +30,9 @@ def make_dsvg():
             if circle_ids is None:
                 return ""
             return "".join(
-                f'<circle id="{circle_id}" cx="0" cy="0"/>' if circle_id is not None else "<circle/>"
+                f'<circle id="{circle_id}" cx="0" cy="0" r="10"/>'
+                if circle_id is not None
+                else '<circle r="10"/>'
                 for circle_id in circle_ids
             )
 
