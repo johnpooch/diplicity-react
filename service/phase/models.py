@@ -49,6 +49,20 @@ class PhaseQuerySet(models.QuerySet):
             "phase_states__orders__resolution",
         )
 
+    def with_canonical_state_data(self):
+        return self.prefetch_related(
+            "units__nation",
+            "units__province",
+            "units__dislodged_by__province__parent",
+            "supply_centers__nation",
+            "supply_centers__province",
+            "phase_states__member__nation",
+            "phase_states__orders__source",
+            "phase_states__orders__target",
+            "phase_states__orders__aux",
+            "phase_states__orders__named_coast",
+        )
+
     def filter_due_phases(self):
         deadline_passed = (
             Q(scheduled_resolution__isnull=False)
@@ -76,6 +90,9 @@ class PhaseManager(models.Manager):
 
     def with_adjudication_data(self):
         return self.get_queryset().with_adjudication_data()
+
+    def with_canonical_state_data(self):
+        return self.get_queryset().with_canonical_state_data()
 
     def filter_due_phases(self):
         return self.get_queryset().filter_due_phases()
