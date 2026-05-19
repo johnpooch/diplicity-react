@@ -21,7 +21,7 @@ class VariantSerializer(serializers.Serializer):
     description = serializers.CharField()
     author = serializers.CharField(required=False)
     rules = serializers.CharField(allow_blank=True)
-    victory_conditions = VictoryConditionsSerializer()
+    victory_conditions = VictoryConditionsSerializer(source="victory_conditions_summary")
     svg_url = serializers.SerializerMethodField()
     nations = NationSerializer(many=True)
     provinces = ProvinceSerializer(many=True)

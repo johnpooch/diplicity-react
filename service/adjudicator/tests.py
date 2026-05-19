@@ -743,6 +743,15 @@ def _datc_resolution_for(state: Dict[str, Any], province: str) -> Optional[str]:
     return None
 
 
+def _datc_resolution_reason_for(
+    state: Dict[str, Any], province: str
+) -> Optional[str]:
+    for r in state.get("resolutions") or []:
+        if r["province"] == province:
+            return r.get("reason")
+    return None
+
+
 def _datc_is_dislodged(state: Dict[str, Any], location: str) -> bool:
     return any(u["location"] == location and u["dislodged"] for u in state["units"])
 
@@ -925,12 +934,18 @@ def test_a_5_move_to_own_sector_with_convoy():
 
     result = _datc_adjudicate_one(variant, state)
 
+    # Yorkshire's self-move is impossible — the order is illegal.
     assert _datc_resolution_for(result, "yor") == "ILLEGAL"
-    # Liverpool's support is for a Yorkshire that ordered Move; the support
-    # doesn't apply, regardless of how Yorkshire's order resolves.
-    assert _datc_resolution_for(result, "lvp") != "OK"
-    assert _datc_has_unit(result, "germany", "Fleet", "yor")
-    assert _datc_is_dislodged(result, "yor")
+    # Liverpool's order encodes target == aux, which the parser treats as
+    # support-to-hold (godip convention: a support order whose from and to
+    # are the same is a support-to-hold). Yorkshire stays put because its
+    # move is illegal, so Liverpool's support matches and resolves OK.
+    assert _datc_resolution_for(result, "lvp") == "OK"
+    # With +1 defensive support from Liverpool, Yorkshire matches London's
+    # supported attack and the move bounces — Yorkshire is not dislodged.
+    assert _datc_resolution_for(result, "lon") == "BOUNCE"
+    assert _datc_has_unit(result, "england", "Army", "yor")
+    assert not _datc_is_dislodged(result, "yor")
 
 
 def test_a_6_ordering_a_unit_of_another_country():
@@ -1490,7 +1505,7 @@ def test_d_7_support_to_hold_on_moving_unit_not_allowed():
     assert _datc_has_unit(result, "russia", "Fleet", "bal")
     assert _datc_is_dislodged(result, "bal")
     assert _datc_resolution_for(result, "bal") == "BOUNCE"
-    assert _datc_resolution_for(result, "pru") == "CUT"
+    assert _datc_resolution_for(result, "pru") == "ILLEGAL"
 
 
 def test_d_8_failed_convoy_cannot_receive_hold_support():
@@ -1514,8 +1529,15 @@ def test_d_8_failed_convoy_cannot_receive_hold_support():
     result = _datc_adjudicate_one(variant, state)
 
     assert _datc_has_unit(result, "austria", "Army", "gre")
-    assert _datc_is_dislodged(result, "gre")
-    assert _datc_resolution_for(result, "bul") == "CUT"
+    # A gre was dislodged (the attempted convoyed move bounced) and
+    # auto-disbanded with no legal retreat: alb is the attacker's
+    # origin; ser and bul are occupied; aeg and ion are sea provinces
+    # that an army cannot reach.
+    assert not any(
+        u["location"] == "gre" and u["nation"] == "turkey"
+        for u in result["units"]
+    )
+    assert _datc_resolution_for(result, "bul") == "ILLEGAL"
     assert _datc_resolution_for(result, "gre") == "BOUNCE"
 
 
@@ -1539,7 +1561,7 @@ def test_d_9_support_to_move_on_holding_unit_not_allowed():
 
     assert _datc_has_unit(result, "italy", "Army", "tri")
     assert _datc_is_dislodged(result, "tri")
-    assert _datc_resolution_for(result, "alb") == "CUT"
+    assert _datc_resolution_for(result, "alb") == "ILLEGAL"
 
 
 def test_d_10_self_dislodgment_prohibited():
@@ -1753,7 +1775,13 @@ def test_d_18_surviving_unit_will_sustain_support():
     result = _datc_adjudicate_one(variant, state)
 
     assert _datc_has_unit(result, "russia", "Fleet", "ank")
-    assert _datc_is_dislodged(result, "ank")
+    # F ank was dislodged and auto-disbanded — every fleet-adjacent
+    # province is blocked: bla is the attacker's origin; con and smy
+    # are occupied by units that held their ground.
+    assert not any(
+        u["location"] == "ank" and u["nation"] == "turkey"
+        for u in result["units"]
+    )
     assert _datc_resolution_for(result, "ank") == "BOUNCE"
 
 
@@ -1778,7 +1806,14 @@ def test_d_19_even_when_surviving_is_in_alternative_way():
     assert _datc_has_unit(result, "russia", "Fleet", "con")
     assert not _datc_is_dislodged(result, "con")
     assert _datc_has_unit(result, "russia", "Fleet", "ank")
-    assert _datc_is_dislodged(result, "ank")
+    # F ank was dislodged and auto-disbanded — bla is the attacker's
+    # origin, smy and con are both occupied (smy is the russian army's
+    # parent province, con is held by the russian fleet that supported
+    # the attack), and arm is not fleet-reachable from ank.
+    assert not any(
+        u["location"] == "ank" and u["nation"] == "turkey"
+        for u in result["units"]
+    )
     assert _datc_resolution_for(result, "bla") == "OK"
     assert _datc_resolution_for(result, "ank") == "BOUNCE"
 
@@ -2140,7 +2175,14 @@ def test_d_34_support_targeting_own_province_not_allowed():
     result = _datc_adjudicate_one(variant, state)
 
     assert _datc_has_unit(result, "germany", "Army", "pru")
-    assert _datc_is_dislodged(result, "pru")
+    # A pru was dislodged and auto-disbanded — every adjacent army
+    # province is blocked: ber is the attacker's origin; sil, war,
+    # and lvn are all occupied (the lvn attack bounced against
+    # germany's stronger move, so russia A lvn stayed put).
+    assert not any(
+        u["location"] == "pru" and u["nation"] == "italy"
+        for u in result["units"]
+    )
     assert _datc_resolution_for(result, "pru") == "ILLEGAL"
 
 
@@ -3166,8 +3208,15 @@ def test_f_21_dads_army_convoy():
 
     result = _datc_adjudicate_one(variant, state)
 
-    # Szykman: support of Clyde is cut, NAO dislodged.
-    assert _datc_is_dislodged(result, "nao")
+    # Szykman: support of Clyde is cut, NAO dislodged. With every
+    # fleet-adjacent province to NAO blocked (mao is the attacker's
+    # origin; iri, nrg, cly are occupied; lvp is occupied because
+    # the convoyed lvp->cly move fails when NAO is dislodged), the
+    # english fleet is auto-disbanded.
+    assert not any(
+        u["location"] == "nao" and u["nation"] == "england"
+        for u in result["units"]
+    )
     assert _datc_has_unit(result, "france", "Fleet", "nao")
 
 
@@ -3568,7 +3617,13 @@ def test_g_10_swapped_or_an_head_to_head_battle():
     # NOR-SWE is via convoy (explicit), so it's not head-to-head with SWE-NOR.
     # NOR dislodges SWE. SWE-NOR and NRG-NOR mutually bounce.
     assert _datc_has_unit(result, "england", "Army", "swe")
-    assert _datc_is_dislodged(result, "swe")
+    # A swe was dislodged and auto-disbanded — every army-adjacent
+    # province is blocked: nwy is the attacker's origin; den and fin
+    # are occupied by the supporting english fleets.
+    assert not any(
+        u["location"] == "swe" and u["nation"] == "russia"
+        for u in result["units"]
+    )
     assert _datc_resolution_for(result, "swe") == "BOUNCE"
     assert _datc_resolution_for(result, "nrg") == "BOUNCE"
 
@@ -3679,9 +3734,14 @@ def test_g_14_bounce_by_convoy_to_adjacent_province():
     result = _datc_adjudicate_one(variant, state)
 
     # NOR-SWE attacks SWE with strength 3; A SWE is dislodged. SWE-NOR
-    # and NRG-NOR mutually bounce.
+    # and NRG-NOR mutually bounce. A swe is then auto-disbanded — every
+    # army-adjacent province is blocked: nwy is the attacker's origin;
+    # den and fin are occupied by the supporting english fleets.
     assert _datc_has_unit(result, "england", "Army", "swe")
-    assert _datc_is_dislodged(result, "swe")
+    assert not any(
+        u["location"] == "swe" and u["nation"] == "russia"
+        for u in result["units"]
+    )
     assert _datc_resolution_for(result, "nrg") == "BOUNCE"
 
 
@@ -4755,16 +4815,20 @@ def test_j_6_civil_disorder_two_fleets_with_equal_distance():
     state = (
         _DatcStateBuilder(variant)
         .at_phase("Fall", 1901, "Adjustment")
-        .with_unit("russia", "Fleet", "bot")
-        .with_unit("russia", "Fleet", "nth")
-        .with_supply_center("russia", "mun")
+        .with_unit("russia", "Army", "mos")
+        .with_unit("russia", "Army", "stp")
+        .with_unit("russia", "Fleet", "ska")
+        .with_unit("russia", "Fleet", "bal")
+        .with_supply_center("russia", "mos")
+        .with_supply_center("russia", "stp")
+        .with_supply_center("russia", "war")
         .build()
     )
 
     result = _datc_adjudicate_one(variant, state)
 
-    assert not _datc_has_unit(result, "russia", "Fleet", "bot")
-    assert _datc_has_unit(result, "russia", "Fleet", "nth")
+    assert not _datc_has_unit(result, "russia", "Fleet", "bal")
+    assert _datc_has_unit(result, "russia", "Fleet", "ska")
 
 
 def test_j_7_civil_disorder_two_fleets_and_army_with_equal_distance():
@@ -4849,19 +4913,30 @@ def test_j_10_civil_disorder_counting_convoying_distance():
     state = (
         _DatcStateBuilder(variant)
         .at_phase("Fall", 1901, "Adjustment")
+        .with_unit("italy", "Army", "ven")
+        .with_unit("italy", "Fleet", "ion")
         .with_unit("italy", "Army", "gre")
-        .with_unit("italy", "Army", "pie")
+        .with_unit("italy", "Army", "sil")
+        .with_supply_center("italy", "ven")
+        .with_supply_center("italy", "rom")
         .with_supply_center("italy", "nap")
         .build()
     )
 
     result = _datc_adjudicate_one(variant, state)
 
+    assert _datc_has_unit(result, "italy", "Army", "ven")
+    assert _datc_has_unit(result, "italy", "Fleet", "ion")
     assert _datc_has_unit(result, "italy", "Army", "gre")
-    assert not _datc_has_unit(result, "italy", "Army", "pie")
+    assert not _datc_has_unit(result, "italy", "Army", "sil")
 
 
-def test_j_11_distance_to_owned_supply_center():
+def test_j_11_distance_is_measured_from_home_centers_not_owned():
+    # Civil-disorder distance is measured from the nation's home
+    # centres (Italy: rom, ven, nap), not from currently-owned SCs:
+    # war (Italy's only owned SC here, but a Russian home) is
+    # furthest from Italian home and disbands; tus (adjacent to
+    # ven and rom) stays.
     variant = _datc_classical_variant()
     state = (
         _DatcStateBuilder(variant)
@@ -4874,8 +4949,85 @@ def test_j_11_distance_to_owned_supply_center():
 
     result = _datc_adjudicate_one(variant, state)
 
-    assert _datc_has_unit(result, "italy", "Army", "war")
-    assert not _datc_has_unit(result, "italy", "Army", "tus")
+    assert not _datc_has_unit(result, "italy", "Army", "war")
+    assert _datc_has_unit(result, "italy", "Army", "tus")
+
+
+def test_j_12_civil_disorder_austria_disbands_munich_not_bohemia():
+    # Austria has 4 armies (boh, bud, mun, vie) and 3 SCs owned,
+    # no orders submitted. Distances to Austria's home triangle
+    # (vie, bud, tri): vie=0, bud=0, boh=1, mun=2. Munich is
+    # furthest from home and is the unit godip selects, even
+    # though Bohemia would be the choice if distance were measured
+    # from currently-owned (non-home) supply centres.
+    variant = _datc_classical_variant()
+    state = (
+        _DatcStateBuilder(variant)
+        .at_phase("Fall", 1903, "Adjustment")
+        .with_unit("austria", "Army", "boh")
+        .with_unit("austria", "Army", "bud")
+        .with_unit("austria", "Army", "mun")
+        .with_unit("austria", "Army", "vie")
+        .with_supply_center("austria", "vie")
+        .with_supply_center("austria", "bud")
+        .with_supply_center("austria", "tri")
+        .build()
+    )
+
+    result = _datc_adjudicate_one(variant, state)
+
+    assert not _datc_has_unit(result, "austria", "Army", "mun")
+    assert _datc_has_unit(result, "austria", "Army", "boh")
+    assert _datc_has_unit(result, "austria", "Army", "bud")
+    assert _datc_has_unit(result, "austria", "Army", "vie")
+
+
+def test_j_13_civil_disorder_distance_tie_breaks_fleet_before_army():
+    # Italy: 3 units (A ven, A tyr, F adr) and 2 owned SCs → must
+    # disband one. Distances to Italy's home (rom, ven, nap):
+    # ven=0, tyr=1 (tyr-ven), adr=1 (adr-ven). tyr and adr tie at
+    # distance 1; Fleet-before-Army selects adr.
+    variant = _datc_classical_variant()
+    state = (
+        _DatcStateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_unit("italy", "Army", "ven")
+        .with_unit("italy", "Army", "tyr")
+        .with_unit("italy", "Fleet", "adr")
+        .with_supply_center("italy", "ven")
+        .with_supply_center("italy", "rom")
+        .build()
+    )
+
+    result = _datc_adjudicate_one(variant, state)
+
+    assert not _datc_has_unit(result, "italy", "Fleet", "adr")
+    assert _datc_has_unit(result, "italy", "Army", "tyr")
+    assert _datc_has_unit(result, "italy", "Army", "ven")
+
+
+def test_j_14_civil_disorder_same_distance_same_type_breaks_alphabetically():
+    # Russia: 3 armies (mos, lvn, ukr), 2 owned SCs → 1 disband.
+    # Distances to home (mos, stp, sev, war): mos=0, lvn=1, ukr=1.
+    # Both lvn and ukr are armies at distance 1; the alphabetical
+    # tie-break by location id picks "lvn" (< "ukr").
+    variant = _datc_classical_variant()
+    state = (
+        _DatcStateBuilder(variant)
+        .at_phase("Fall", 1901, "Adjustment")
+        .with_unit("russia", "Army", "mos")
+        .with_unit("russia", "Army", "lvn")
+        .with_unit("russia", "Army", "ukr")
+        .with_supply_center("russia", "mos")
+        .with_supply_center("russia", "stp")
+        .build()
+    )
+
+    result = _datc_adjudicate_one(variant, state)
+
+    assert not _datc_has_unit(result, "russia", "Army", "lvn")
+    assert _datc_has_unit(result, "russia", "Army", "ukr")
+    assert _datc_has_unit(result, "russia", "Army", "mos")
 
 
 # === Phase 7: empty-phase skipping and outcome ===
@@ -5340,6 +5492,191 @@ def test_hold_and_move_coexist_in_one_phase():
     assert _unit_at(result, "rhs") is None
 
 
+def test_dislodged_unit_with_no_legal_retreat_is_auto_disbanded():
+    """A dislodged unit with zero legal retreat targets is removed as
+    the Movement phase resolves, mirroring godip's Movement
+    post-processing. The unit must not appear in the post-Movement
+    units list — neither standing nor dislodged."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="rhs"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="mid"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="iso"),
+        ],
+        orders=[
+            RawOrder(nation=NORTH, source="lhs", order_type="Move", target="mid"),
+            RawOrder(
+                nation=NORTH, source="rhs", order_type="Support",
+                aux="lhs", target="mid",
+            ),
+            RawOrder(nation=SOUTH, source="mid", order_type="Hold"),
+            RawOrder(nation=SOUTH, source="iso", order_type="Hold"),
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    occupant = _unit_at(result, "mid")
+    assert occupant is not None
+    assert occupant.nation == NORTH
+    # The southern army at mid was dislodged with no legal retreat:
+    # lhs is the attacker's origin, rhs and iso are occupied, and sea
+    # is unreachable for an army. It must be gone from both the
+    # resolved Movement state and the next-phase Retreat state.
+    for emitted in result:
+        assert all(u.nation != SOUTH for u in emitted.units if u.location == "mid")
+        assert not any(u.dislodged for u in emitted.units)
+
+
+def test_dislodged_unit_with_legal_retreat_is_carried_forward():
+    """A dislodged unit that still has at least one legal retreat
+    target is preserved as dislodged in the post-Movement units list,
+    so the following Retreat phase can resolve its retreat order."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="rhs"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="mid"),
+            # iso intentionally left empty so the dislodged south unit
+            # at mid has a legal retreat target.
+        ],
+        orders=[
+            RawOrder(nation=NORTH, source="lhs", order_type="Move", target="mid"),
+            RawOrder(
+                nation=NORTH, source="rhs", order_type="Support",
+                aux="lhs", target="mid",
+            ),
+            RawOrder(nation=SOUTH, source="mid", order_type="Hold"),
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    occupant = _unit_at(result, "mid")
+    assert occupant is not None
+    assert occupant.nation == NORTH
+    dislodged = [u for u in result[0].units if u.dislodged]
+    assert len(dislodged) == 1
+    assert dislodged[0].nation == SOUTH
+    assert dislodged[0].location == "mid"
+    assert dislodged[0].dislodged_from == "lhs"
+    # The dislodged unit is also carried into the next Retreat-phase
+    # state so its retreat can be resolved there.
+    assert any(
+        u.dislodged and u.nation == SOUTH and u.location == "mid"
+        for u in result[1].units
+    )
+
+
+def test_dislodgement_by_convoyed_attacker_does_not_block_retreat_to_origin():
+    """DATC convoy retreat exception: a unit dislodged by an attacker
+    that arrived via convoy has no recorded attacker-origin, so the
+    attacker's origin remains a legal retreat target. The attacker
+    travelled by sea, so its origin is not the adjacent land province
+    the dislodged unit would otherwise be barred from retreating to.
+    godip mirrors this by skipping SetDislodger for convoyed attacks."""
+    variant = make_variant()
+    movement = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=NORTH, type=Unit.FLEET, location="sea"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="rhs"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="mid"),
+        ],
+        orders=[
+            RawOrder(
+                nation=NORTH, source="lhs", order_type="Move",
+                target="mid", via_convoy=True,
+            ),
+            RawOrder(
+                nation=NORTH, source="sea", order_type="Convoy",
+                aux="lhs", target="mid",
+            ),
+            RawOrder(
+                nation=NORTH, source="rhs", order_type="Support",
+                aux="lhs", target="mid",
+            ),
+            RawOrder(nation=SOUTH, source="mid", order_type="Hold"),
+        ],
+    )
+
+    movement_result = Engine().adjudicate(movement)
+
+    occupant = _unit_at(movement_result, "mid")
+    assert occupant is not None
+    assert occupant.nation == NORTH
+    dislodged = [u for u in movement_result[0].units if u.dislodged]
+    assert len(dislodged) == 1
+    assert dislodged[0].nation == SOUTH
+    assert dislodged[0].location == "mid"
+    assert dislodged[0].dislodged_from is None
+
+    # End-to-end: the dislodged unit can retreat to the attacker's
+    # origin (lhs), which would be barred if dislodged_from were set.
+    retreat_state = replace(
+        movement_result[1],
+        orders=[
+            RawOrder(nation=SOUTH, source="mid", order_type="Retreat", target="lhs"),
+        ],
+    )
+    retreat_result = Engine().adjudicate(retreat_state)
+
+    assert _resolution(retreat_result, "mid") == Status.OK
+    lhs_unit = _unit_at(retreat_result, "lhs")
+    assert lhs_unit is not None
+    assert lhs_unit.nation == SOUTH
+
+
+def test_dislodgement_by_adjacent_attacker_blocks_retreat_to_origin():
+    """Control: when the dislodging attacker entered by a normal
+    adjacent Move (no convoy), dislodged_from records its origin and
+    the dislodged unit's retreat there is rejected (DATC 6.H.3)."""
+    variant = make_variant()
+    movement = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="rhs"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="mid"),
+        ],
+        orders=[
+            RawOrder(nation=NORTH, source="lhs", order_type="Move", target="mid"),
+            RawOrder(
+                nation=NORTH, source="rhs", order_type="Support",
+                aux="lhs", target="mid",
+            ),
+            RawOrder(nation=SOUTH, source="mid", order_type="Hold"),
+        ],
+    )
+
+    movement_result = Engine().adjudicate(movement)
+
+    dislodged = [u for u in movement_result[0].units if u.dislodged]
+    assert len(dislodged) == 1
+    assert dislodged[0].nation == SOUTH
+    assert dislodged[0].dislodged_from == "lhs"
+
+    retreat_state = replace(
+        movement_result[1],
+        orders=[
+            RawOrder(nation=SOUTH, source="mid", order_type="Retreat", target="lhs"),
+        ],
+    )
+    retreat_result = Engine().adjudicate(retreat_state)
+
+    assert _resolution(retreat_result, "mid") == Status.ILLEGAL
+
+
 # === Support, cuts, head-to-head, self-dislodgement, multi-way contests ===
 
 
@@ -5556,7 +5893,9 @@ def test_support_hold_for_moving_unit_is_unmatched():
             Unit(nation=NORTH, type=Unit.ARMY, location="rhs"),
             # An incoming attacker so the support is observably moot:
             # without the support the holder is still safe (strength 1
-            # vs strength 1) but the support reports CUT (i.e. unmatched).
+            # vs strength 1) but the support reports ILLEGAL (the
+            # supportee is moving, not holding — godip's
+            # ErrInvalidSupporteeOrder).
             Unit(nation=SOUTH, type=Unit.ARMY, location="lhs"),
         ],
         orders=[
@@ -5568,8 +5907,8 @@ def test_support_hold_for_moving_unit_is_unmatched():
 
     result = Engine().adjudicate(state)
 
-    # Mid is moving, so the SupportHold for it is unmatched -> CUT.
-    assert _resolution(result, "rhs") == Status.CUT
+    # Mid is moving, so the SupportHold for it is unmatched -> ILLEGAL.
+    assert _resolution(result, "rhs") == Status.ILLEGAL
 
 
 def test_support_move_for_wrong_target_is_unmatched():
@@ -5600,7 +5939,193 @@ def test_support_move_for_wrong_target_is_unmatched():
     result = Engine().adjudicate(state)
 
     # Support's claimed target (rhs) doesn't match lhs's actual target (mid).
-    assert _resolution(result, "mid") == Status.CUT
+    assert _resolution(result, "mid") == Status.ILLEGAL
+
+
+def test_unmatched_support_status_does_not_change_board_outcome():
+    """An unmatched support reports ILLEGAL (godip's ErrInvalidSupporteeOrder)
+    but already contributes no strength, so unit positions are the same
+    as if the support had been omitted entirely."""
+    variant = make_variant()
+    base_units = [
+        Unit(nation=NORTH, type=Unit.ARMY, location="mid"),
+        Unit(nation=NORTH, type=Unit.ARMY, location="rhs"),
+        Unit(nation=SOUTH, type=Unit.ARMY, location="lhs"),
+    ]
+    # rhs supports mid to hold, but mid is actually moving to iso —
+    # so rhs's SupportHold is unmatched.
+    with_support = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=list(base_units),
+        orders=[
+            RawOrder(nation=NORTH, source="mid", order_type="Move", target="iso"),
+            RawOrder(nation=NORTH, source="rhs", order_type="Support", aux="mid"),
+            RawOrder(nation=SOUTH, source="lhs", order_type="Move", target="mid"),
+        ],
+    )
+    # Same state without the support.
+    without_support = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=list(base_units),
+        orders=[
+            RawOrder(nation=NORTH, source="mid", order_type="Move", target="iso"),
+            RawOrder(nation=NORTH, source="rhs", order_type="Hold"),
+            RawOrder(nation=SOUTH, source="lhs", order_type="Move", target="mid"),
+        ],
+    )
+
+    result_with = Engine().adjudicate(with_support)
+    result_without = Engine().adjudicate(without_support)
+
+    assert _resolution(result_with, "rhs") == Status.ILLEGAL
+    # Mid and lhs (and the resulting board positions) resolve identically
+    # whether or not the unmatched support was issued.
+    assert _resolution(result_with, "mid") == _resolution(result_without, "mid")
+    assert _resolution(result_with, "lhs") == _resolution(result_without, "lhs")
+    by_loc_with = sorted(
+        (u.location, u.nation, u.type, u.dislodged) for u in result_with[0].units
+    )
+    by_loc_without = sorted(
+        (u.location, u.nation, u.type, u.dislodged) for u in result_without[0].units
+    )
+    assert by_loc_with == by_loc_without
+
+
+def test_support_for_move_supportee_isnt_making_resolves_illegal():
+    """The scenario from the bug report: a SupportMove naming a move
+    its supportee isn't ordered to make resolves ILLEGAL, regardless of
+    whether the supporting unit is itself attacked."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            # Supporter (lhs) claims to support mid -> rhs.
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            # Supportee (mid) is ordered to hold, not move to rhs.
+            Unit(nation=NORTH, type=Unit.ARMY, location="mid"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="rhs"),
+        ],
+        orders=[
+            RawOrder(
+                nation=NORTH,
+                source="lhs",
+                order_type="Support",
+                aux="mid",
+                target="rhs",
+            ),
+            RawOrder(nation=NORTH, source="mid", order_type="Hold"),
+            RawOrder(nation=SOUTH, source="rhs", order_type="Hold"),
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _resolution(result, "lhs") == Status.ILLEGAL
+
+
+def test_unmatched_support_that_is_cut_resolves_cut():
+    """A support that is both unmatched (the supportee isn't doing the
+    supported action) and cut (the supporter is attacked by a foreign
+    unit) must resolve as CUT, not ILLEGAL. Matches godip's precedence:
+    ErrSupportBroken is returned before ErrInvalidSupporteeOrder."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            # Supporter (rhs) supports mid to hold.
+            Unit(nation=NORTH, type=Unit.ARMY, location="rhs"),
+            # Supportee (mid) is moving away, so the support is unmatched.
+            Unit(nation=NORTH, type=Unit.ARMY, location="mid"),
+            # Foreign attacker into rhs cuts the support.
+            Unit(nation=SOUTH, type=Unit.ARMY, location="lhs"),
+        ],
+        orders=[
+            RawOrder(nation=NORTH, source="rhs", order_type="Support", aux="mid"),
+            RawOrder(nation=NORTH, source="mid", order_type="Move", target="iso"),
+            RawOrder(nation=SOUTH, source="lhs", order_type="Move", target="rhs"),
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _resolution(result, "rhs") == Status.CUT
+
+
+def test_unmatched_support_that_is_uncut_resolves_illegal():
+    """Symmetric counterpart to the cut case: an unmatched support with
+    no attacker on the supporter stays ILLEGAL."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="rhs"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="mid"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="lhs"),
+        ],
+        orders=[
+            RawOrder(nation=NORTH, source="rhs", order_type="Support", aux="mid"),
+            RawOrder(nation=NORTH, source="mid", order_type="Move", target="iso"),
+            # lhs holds — no attack on rhs.
+            RawOrder(nation=SOUTH, source="lhs", order_type="Hold"),
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _resolution(result, "rhs") == Status.ILLEGAL
+
+
+def test_matched_support_that_is_cut_resolves_cut():
+    """Baseline: a support that is matched but cut resolves to CUT."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="rhs"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="mid"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="lhs"),
+        ],
+        orders=[
+            RawOrder(nation=NORTH, source="rhs", order_type="Support", aux="mid"),
+            # mid holds, so the SupportHold is matched.
+            RawOrder(nation=NORTH, source="mid", order_type="Hold"),
+            # lhs attacks rhs, cutting the support.
+            RawOrder(nation=SOUTH, source="lhs", order_type="Move", target="rhs"),
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _resolution(result, "rhs") == Status.CUT
+
+
+def test_matched_support_that_is_uncut_resolves_ok():
+    """Baseline: a support that is matched and not attacked resolves OK."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="rhs"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="mid"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="lhs"),
+        ],
+        orders=[
+            RawOrder(nation=NORTH, source="rhs", order_type="Support", aux="mid"),
+            RawOrder(nation=NORTH, source="mid", order_type="Hold"),
+            RawOrder(nation=SOUTH, source="lhs", order_type="Hold"),
+        ],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _resolution(result, "rhs") == Status.OK
 
 
 def test_supported_move_dislodges_holder():
@@ -8530,6 +9055,68 @@ def test_convoy_missing_target_falls_back_to_hold_and_resolves_ok():
     assert _cv_resolution(result, "sea") == Status.OK
 
 
+def test_support_with_target_equal_to_aux_parses_to_support_hold_and_resolves_ok():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="mid"),
+        ],
+        orders=[
+            RawOrder(
+                nation=NORTH,
+                source="lhs",
+                order_type="Support",
+                aux="mid",
+                target="mid",
+            ),
+            RawOrder(nation=NORTH, source="mid", order_type="Hold"),
+        ],
+    )
+
+    engine = Engine()
+    adj = engine._to_adjudication_state(state)
+    adj = engine.dispatch(adj, Actions.ParseMovementOrders())
+    lhs_order = next(o for o in adj.parsed_orders if o.source == "lhs")
+    assert isinstance(lhs_order, SupportHoldOrder)
+
+    result = Engine().adjudicate(state)
+    assert _cv_resolution(result, "lhs") == Status.OK
+
+
+def test_support_with_target_none_parses_to_support_hold_and_resolves_ok():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="mid"),
+        ],
+        orders=[
+            RawOrder(
+                nation=NORTH,
+                source="lhs",
+                order_type="Support",
+                aux="mid",
+                target=None,
+            ),
+            RawOrder(nation=NORTH, source="mid", order_type="Hold"),
+        ],
+    )
+
+    engine = Engine()
+    adj = engine._to_adjudication_state(state)
+    adj = engine.dispatch(adj, Actions.ParseMovementOrders())
+    lhs_order = next(o for o in adj.parsed_orders if o.source == "lhs")
+    assert isinstance(lhs_order, SupportHoldOrder)
+
+    result = Engine().adjudicate(state)
+    assert _cv_resolution(result, "lhs") == Status.OK
+
+
 # === Legality check tests ===
 
 
@@ -8950,6 +9537,8 @@ def _option_to_wire_orders(option: OrderOption, state: State) -> List[RawOrder]:
     """Translate an OrderOption into one or more wire RawOrders ready for
     Engine.adjudicate. Handles:
       - SupportHold target rewrite (target=aux=loc → target=None)
+      - SupportMove: also submits a matching MoveOrder for the supportee,
+        so the support is matched (an unmatched support resolves ILLEGAL).
       - SupportMove-via-convoy: also submits matching ConvoyOrders for
         every sea-province fleet, satisfying SupportMoveSupportedCanReach.
       - Build/Disband nation lookup from supply-center ownership or unit.
@@ -8978,6 +9567,15 @@ def _option_to_wire_orders(option: OrderOption, state: State) -> List[RawOrder]:
     co_orders: List[RawOrder] = []
     if option.order_type == "Support" and option.target != option.aux:
         mover = _unit_at_any(state, option.aux)
+        if mover is not None and not mover.dislodged:
+            co_orders.append(
+                RawOrder(
+                    nation=mover.nation,
+                    source=option.aux,
+                    order_type="Move",
+                    target=option.target,
+                )
+            )
         if (
             mover is not None
             and not mover.dislodged
@@ -10322,4 +10920,42 @@ def test_next_phase_unconditional_classical_variant_progresses_through_cycle():
     assert _next_phase(
         variant, Phase(season="Spring", year=1901, type=Phase.ADJUSTMENT)
     ) == Phase(season="Spring", year=1902, type=Phase.MOVEMENT)
+
+
+def test_dislodged_convoying_fleet_disrupts_convoyed_move():
+    # Germany's army at den is convoyed to nwy by the fleet at nth (and
+    # supported by the fleet at swe). England's fleet at eng moves to nth
+    # supported by the fleet at nrg, dislodging the convoying fleet. The
+    # sole convoying fleet is dislodged so the convoyed move must fail
+    # outright (no intact convoy path) and the convoy order itself must
+    # reflect the disruption rather than resolving OK.
+    variant = _datc_classical_variant()
+    state = (
+        _DatcStateBuilder(variant)
+        .at_phase("Spring", 1901, "Movement")
+        .with_unit("germany", "Army", "den")
+        .with_unit("germany", "Fleet", "nth")
+        .with_unit("germany", "Fleet", "swe")
+        .with_unit("england", "Fleet", "eng")
+        .with_unit("england", "Fleet", "nrg")
+        .with_order("germany", "den", "Move", target="nwy", via_convoy=True)
+        .with_order("germany", "nth", "Convoy", aux="den", target="nwy")
+        .with_order("germany", "swe", "Support", aux="den", target="nwy")
+        .with_order("england", "eng", "Move", target="nth")
+        .with_order("england", "nrg", "Support", aux="eng", target="nth")
+        .build()
+    )
+
+    result = _datc_adjudicate_one(variant, state)
+
+    assert _datc_is_dislodged(result, "nth")
+    assert _datc_has_unit(result, "germany", "Army", "den")
+    assert not _datc_has_unit(result, "germany", "Army", "nwy")
+    assert _datc_resolution_for(result, "den") == "BOUNCE"
+    assert _datc_resolution_reason_for(result, "den") == "The convoy was disrupted."
+    assert _datc_resolution_for(result, "nth") == "BOUNCE"
+    assert (
+        _datc_resolution_reason_for(result, "nth")
+        == "The convoying fleet was dislodged."
+    )
 

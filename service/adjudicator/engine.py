@@ -171,8 +171,10 @@ class Actions:
 
     @dataclass(frozen=True)
     class ApplyMovementOutcomes(Action):
-        """Compute the Movement-phase post-resolution units list. For
-        Hold-only, this is just the input units."""
+        """Compute the Movement-phase post-resolution units list and the
+        set of contested provinces, then drop any dislodged unit with
+        no legal retreat (auto-disband). For Hold-only, this is just
+        the input units."""
 
     @dataclass(frozen=True)
     class ApplyRetreatOutcomes(Action):
@@ -289,7 +291,11 @@ class ParseMovementOrdersReducer(Reducer):
                     unit_type=unit.type,
                 )
             elif raw.order_type == OrderType.SUPPORT and raw.aux is not None:
-                if raw.target is None:
+                # A Support is a support-to-hold when the supported unit is
+                # not moving — encoded either as target=None or as
+                # target == aux (godip: support targets [supporter, supportee]
+                # with from == to). Only target != aux is a support-to-move.
+                if raw.target is None or raw.target == raw.aux:
                     by_loc[unit.location] = SupportHoldOrder(
                         nation=unit.nation,
                         source=unit.location,
@@ -848,12 +854,16 @@ class ApplyCivilDisorderReducer(Reducer):
 
 class FinalizeStatusesReducer(Reducer):
     """Promote any order whose status is still None to its final value.
-    Support orders read their final status from support_matched plus
-    support_cut: an unmatched support reports CUT (it never attached to
-    the supported behavior), a matched support reports the resolved
-    support_cut value. All other still-undecided orders become OK. After
-    this runs, every entry in order_status is one of
-    Status.{OK,ILLEGAL,BOUNCE,CUT}."""
+    Support orders read their final status from support_cut and
+    support_matched in that precedence: a cut support reports CUT
+    (matching godip's ErrSupportBroken), an uncut but unmatched support
+    reports ILLEGAL (the supportee was not ordered to perform the
+    supported action, matching godip's ErrInvalidSupporteeOrder), and a
+    matched uncut support reports OK. Convoy orders whose convoying
+    fleet was dislodged by a successful attack report BOUNCE with a
+    disruption reason (matches godip's ErrConvoyDislodged). All other
+    still-undecided orders become OK. After this runs, every entry in
+    order_status is one of Status.{OK,ILLEGAL,BOUNCE,CUT}."""
 
     ACTION = Actions.FinalizeStatuses
 
@@ -866,13 +876,45 @@ class FinalizeStatusesReducer(Reducer):
             if r.status is not None:
                 continue
             if isinstance(order, (SupportHoldOrder, SupportMoveOrder)):
-                if r.support_matched:
-                    resolutions[i] = replace(r, status=r.support_cut or Status.OK)
-                else:
+                if r.support_cut == Status.CUT:
                     resolutions[i] = replace(r, status=Status.CUT)
+                elif r.support_matched:
+                    resolutions[i] = replace(r, status=Status.OK)
+                else:
+                    resolutions[i] = replace(
+                        r,
+                        status=Status.ILLEGAL,
+                        failure_reason="The supported unit was not ordered to perform the supported action.",
+                    )
+                continue
+            if isinstance(order, ConvoyOrder) and cls._convoy_fleet_dislodged(
+                state, order
+            ):
+                resolutions[i] = replace(
+                    r,
+                    status=Status.BOUNCE,
+                    failure_reason="The convoying fleet was dislodged.",
+                )
                 continue
             resolutions[i] = replace(r, status=Status.OK)
         return state.replace(resolutions=tuple(resolutions))
+
+    @classmethod
+    def _convoy_fleet_dislodged(
+        cls, state: StateView, order: ConvoyOrder
+    ) -> bool:
+        variant = state.variant()
+        fleet_parent = variant.parent_of(order.source)
+        resolutions = state.resolutions()
+        for j, other in enumerate(state.parsed_orders()):
+            if not isinstance(other, MoveOrder):
+                continue
+            if resolutions[j].status != Status.OK:
+                continue
+            if variant.parent_of(other.target) != fleet_parent:
+                continue
+            return True
+        return False
 
 
 class ApplyMovementOutcomesReducer(Reducer):
@@ -885,7 +927,11 @@ class ApplyMovementOutcomesReducer(Reducer):
     resolver already bounced the move and no dislodgement occurs. All
     other standing units pass through unchanged. The contested-provinces
     output collects every parent province where two or more non-ILLEGAL
-    Moves competed and none succeeded (a stand-off per DATC 6.H.6)."""
+    Moves competed and none succeeded (a stand-off per DATC 6.H.6).
+    Finally, any dislodged unit with no legal retreat target is removed
+    from next_units — a unit that could not retreat during the following
+    Retreat phase is disbanded as the Movement phase resolves rather
+    than carried forward."""
 
     ACTION = Actions.ApplyMovementOutcomes
 
@@ -893,6 +939,7 @@ class ApplyMovementOutcomesReducer(Reducer):
     def reduce(cls, state: StateView, action: Action) -> StateView:
         state = cls._compute_next_units(state)
         state = cls._compute_next_contested_provinces(state)
+        state = cls._drop_dislodged_units_with_no_retreat(state)
         return state
 
     @classmethod
@@ -900,8 +947,11 @@ class ApplyMovementOutcomesReducer(Reducer):
         """Produce the post-Movement units list. Units whose Move
         resolved OK relocate; units whose location is the target parent
         of another unit's successful Move become dislodged (with
-        dislodged_from set to the attacker's source parent); all other
-        units pass through unchanged. Head-to-head winners relocate as
+        dislodged_from set to the attacker's source parent, except when
+        the attacker arrived via convoy — DATC's convoy retreat
+        exception: a convoyed attacker leaves no attacker-origin
+        restriction on the dislodged unit's retreat); all other units
+        pass through unchanged. Head-to-head winners relocate as
         usual; their h2h opponents bounce and are dislodged by the
         winner's move just like any other defender. Same-nation
         dislodgement cannot occur here because the resolver already
@@ -910,7 +960,7 @@ class ApplyMovementOutcomesReducer(Reducer):
         resolutions = state.resolutions()
         variant = state.variant()
         moves_out: Dict[str, str] = {}
-        attackers_by_parent: Dict[str, str] = {}
+        attackers_by_parent: Dict[str, Tuple[str, bool]] = {}
         for i, order in enumerate(parsed):
             if not isinstance(order, MoveOrder):
                 continue
@@ -918,7 +968,8 @@ class ApplyMovementOutcomesReducer(Reducer):
                 continue
             moves_out[order.source] = order.target
             attackers_by_parent.setdefault(
-                variant.parent_of(order.target), order.source
+                variant.parent_of(order.target),
+                (order.source, resolutions[i].via_convoy),
             )
         next_units: List[Unit] = []
         for unit in state.units().all():
@@ -935,13 +986,18 @@ class ApplyMovementOutcomesReducer(Reducer):
                     )
                 )
                 continue
-            attacker_source = attackers_by_parent.get(variant.parent_of(unit.location))
-            if attacker_source is not None:
+            attacker = attackers_by_parent.get(variant.parent_of(unit.location))
+            if attacker is not None:
+                attacker_source, attacker_via_convoy = attacker
                 next_units.append(
                     replace(
                         unit,
                         dislodged=True,
-                        dislodged_from=variant.parent_of(attacker_source),
+                        dislodged_from=(
+                            None
+                            if attacker_via_convoy
+                            else variant.parent_of(attacker_source)
+                        ),
                     )
                 )
                 continue
@@ -974,6 +1030,53 @@ class ApplyMovementOutcomesReducer(Reducer):
                 continue
             contested.append(parent)
         return state.replace(next_contested_provinces=tuple(sorted(contested)))
+
+    @classmethod
+    def _drop_dislodged_units_with_no_retreat(cls, state: StateView) -> StateView:
+        """Remove from next_units any dislodged unit that has no legal
+        retreat target. A unit that would enter the following Retreat
+        phase with zero retreat options is disbanded as the Movement
+        phase resolves — godip applies this same rule in its Movement
+        post-processing. Retreat-legality is reused from
+        RetreatOrder.LEGALITY_CHECKS, evaluated against a state-view
+        whose units list is the post-Movement next_units and whose
+        contested_provinces is the standoff set produced by
+        _compute_next_contested_provinces — i.e. the world as the
+        Retreat phase would see it."""
+        next_units = state.next_units()
+        if not any(u.dislodged for u in next_units):
+            return state
+        post_movement = state.replace(
+            units=next_units,
+            contested_provinces=state.next_contested_provinces(),
+        )
+        variant = state.variant()
+        candidate_targets = tuple(variant.provinces.keys()) + tuple(
+            variant.named_coasts.keys()
+        )
+        kept: List[Unit] = []
+        for unit in next_units:
+            if not unit.dislodged:
+                kept.append(unit)
+                continue
+            has_retreat = False
+            for target in candidate_targets:
+                order = RetreatOrder(
+                    nation=unit.nation,
+                    source=unit.location,
+                    target=target,
+                    unit_type=unit.type,
+                    dislodged_from=unit.dislodged_from,
+                )
+                if all(
+                    c.check(post_movement, order)
+                    for c in RetreatOrder.LEGALITY_CHECKS
+                ):
+                    has_retreat = True
+                    break
+            if has_retreat:
+                kept.append(unit)
+        return state.replace(next_units=tuple(kept))
 
 
 class ApplyRetreatOutcomesReducer(Reducer):

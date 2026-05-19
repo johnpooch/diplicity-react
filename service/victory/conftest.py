@@ -92,11 +92,12 @@ def game_factory(db):
 
         variant_solo_victory_sc_count = kwargs.pop('variant__solo_victory_sc_count', None)
         if variant_solo_victory_sc_count is not None:
-            variant.victory_conditions = {
-                "soloVictorySupplyCenters": variant_solo_victory_sc_count,
-                "gameEndsYear": None,
-                "drawAfterYear": None,
-            }
+            variant.victory_conditions = [
+                {
+                    "type": "supply-center-majority",
+                    "supplyCenters": variant_solo_victory_sc_count,
+                }
+            ]
             variant.save()
 
         return Game.objects.create(

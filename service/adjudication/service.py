@@ -2,13 +2,61 @@ import json
 import logging
 import requests
 
-from opentelemetry import trace
+from django.conf import settings
+from django.db import transaction
+from opentelemetry import metrics, trace
 
+from .canonical import (
+    canonicalize_godip_response,
+    canonicalize_python_response,
+    diff_canonical,
+    is_known_difference,
+)
+from .models import ShadowAdjudicationDiff
 from .serializers import AdjudicationSerializer
+from adjudicator.engine import Engine
+from adjudicator.options import get_options
+from adjudicator.serializers import (
+    deserialize_game_state,
+    deserialize_variant,
+    serialize_game_state,
+)
 from common.constants import ADJUDICATION_BASE_URL
+from phase.utils import phase_to_canonical_game_state
+from variant.utils import variant_to_canonical_dict
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
+
+_meter = metrics.get_meter(__name__)
+_shadow_matches_counter = _meter.create_counter("adjudication.shadow.matches")
+_shadow_mismatches_counter = _meter.create_counter("adjudication.shadow.mismatches")
+_shadow_errors_counter = _meter.create_counter("adjudication.shadow.errors")
+_shadow_known_differences_counter = _meter.create_counter(
+    "adjudication.shadow.known_differences"
+)
+
+
+class ShadowDivergenceError(Exception):
+    """Raised in SHADOW_STRICT mode when the Python adjudicator diverges from
+    godip — either a structured diff mismatch or an engine error. Carries the
+    tier and structured diff so a failing test points at the exact phase."""
+
+    def __init__(self, phase, tier=None, diff=None, cause=None):
+        self.phase = phase
+        self.tier = tier
+        self.diff = diff
+        if cause is not None:
+            message = (
+                f"Shadow adjudicator error for phase {phase.id} "
+                f"({phase.name}): {cause!r}"
+            )
+        else:
+            message = (
+                f"Shadow adjudication mismatch for phase {phase.id} "
+                f"({phase.name}): tier={tier} diff={diff}"
+            )
+        super().__init__(message)
 
 
 def _make_adjudication_request(phase, endpoint, method="GET", data=None):
@@ -107,7 +155,114 @@ def resolve(phase):
         span.set_attribute("game.id", str(phase.game.id))
         logger.info(f"Resolving adjudication for phase {phase.id} of game {phase.game.id}")
 
+        # Snapshot the pre-adjudication state before godip is called, so the
+        # shadow comparison runs against the inputs godip saw.
+        canonical_variant = None
+        pre_state = None
+        try:
+            canonical_variant = variant_to_canonical_dict(phase.variant)
+            pre_state = phase_to_canonical_game_state(phase)
+        except Exception:
+            _shadow_errors_counter.add(1)
+            logger.exception("Failed to capture shadow-mode inputs for phase %s", phase.id)
+
         with tracer.start_as_current_span("adjudication.serialize_request"):
             serialized_phase = AdjudicationSerializer(phase, context={"game": phase.game}).data
 
-        return _make_adjudication_request(phase, "resolve-with-options", method="POST", data=serialized_phase)
+        godip_response = _make_adjudication_request(
+            phase, "resolve-with-options", method="POST", data=serialized_phase
+        )
+
+        if canonical_variant is not None and pre_state is not None:
+            _run_shadow_comparison(phase, canonical_variant, pre_state, godip_response)
+
+        return godip_response
+
+
+def compute_shadow_diff(canonical_variant, pre_state, godip_response):
+    """Adjudicate pre_state with the Python engine and diff the result
+    against a godip response. Returns (StructuredDiff, python_states)."""
+    variant = deserialize_variant(canonical_variant)
+    state = deserialize_game_state(pre_state, variant)
+    python_states = Engine().adjudicate(state)
+    options = get_options(python_states[-1])
+    diff = diff_canonical(
+        canonicalize_godip_response(godip_response),
+        canonicalize_python_response(python_states, options),
+    )
+    return diff, python_states
+
+
+def _run_shadow_comparison(phase, canonical_variant, pre_state, godip_response):
+    """Run the Python adjudicator alongside godip and compare the outcomes.
+
+    In the default (non-strict) mode this never raises: a shadow-mode failure
+    must not affect the user-facing resolution flow. Matches increment a
+    telemetry counter; mismatches additionally persist a ShadowAdjudicationDiff
+    row for later replay.
+
+    A diff matching a documented known difference (see is_known_difference)
+    is treated as an accepted divergence: it increments its own counter and
+    never persists a row or raises, even under SHADOW_STRICT.
+
+    When SHADOW_STRICT is enabled, both an engine error and a structured-diff
+    mismatch raise ShadowDivergenceError so the integration-test harness fails
+    loudly. Errors hard-fail too — a pure table comparison is blind to engine
+    crashes.
+    """
+    strict = settings.SHADOW_STRICT
+    with tracer.start_as_current_span("adjudication.shadow_comparison"):
+        try:
+            diff, python_states = compute_shadow_diff(
+                canonical_variant, pre_state, godip_response
+            )
+        except Exception as exc:
+            _shadow_errors_counter.add(1)
+            logger.exception(
+                "Shadow adjudication comparison failed for phase %s", phase.id
+            )
+            if strict:
+                raise ShadowDivergenceError(phase, cause=exc) from exc
+            return
+
+        if diff.matched:
+            _shadow_matches_counter.add(1)
+            return
+
+        if is_known_difference(diff):
+            _shadow_known_differences_counter.add(1)
+            logger.info(
+                "Shadow adjudication known difference for phase %s (%s): "
+                "tier=%s diff=%s",
+                phase.id,
+                phase.name,
+                diff.tier,
+                diff.to_dict(),
+            )
+            return
+
+        _shadow_mismatches_counter.add(1)
+        try:
+            with transaction.atomic():
+                ShadowAdjudicationDiff.objects.create(
+                    phase=phase,
+                    tier=diff.tier,
+                    pre_state=pre_state,
+                    godip_response=godip_response,
+                    python_response=[serialize_game_state(s) for s in python_states],
+                    diff_summary=diff.to_dict(),
+                )
+        except Exception:
+            _shadow_errors_counter.add(1)
+            logger.exception(
+                "Failed to persist shadow adjudication diff for phase %s", phase.id
+            )
+        logger.warning(
+            "Shadow adjudication mismatch for phase %s (%s): tier=%s diff=%s",
+            phase.id,
+            phase.name,
+            diff.tier,
+            diff.to_dict(),
+        )
+        if strict:
+            raise ShadowDivergenceError(phase, tier=diff.tier, diff=diff.to_dict())
