@@ -186,6 +186,19 @@ class TestRulesBackfill:
             assert variant.rules
 
 
+class TestAdjudicationModifiers:
+
+    @pytest.mark.django_db
+    def test_hundred_allows_non_home_builds(self, hundred_variant):
+        assert "allow-builds-in-non-home-centers" in (
+            hundred_variant.adjudication_modifiers
+        )
+
+    @pytest.mark.django_db
+    def test_classical_has_no_modifiers(self, classical_variant):
+        assert classical_variant.adjudication_modifiers == []
+
+
 class TestVariantToCanonicalDict:
 
     @pytest.mark.django_db
