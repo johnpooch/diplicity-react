@@ -54,6 +54,12 @@ CSRF_TRUSTED_ORIGINS = os.getenv(
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
 
+# Railway and other PaaS proxies terminate TLS at the edge and forward the
+# original scheme via X-Forwarded-Proto. Without this, request.scheme is "http"
+# inside the container and build_absolute_uri returns http:// URLs that
+# browsers block as mixed content when the frontend is served over HTTPS.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 
 # Application definition
 
