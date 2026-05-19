@@ -56,7 +56,7 @@ _SCHEMA_CACHE: Dict[str, Dict[str, Any]] = {}
 
 def _schema_path() -> str:
     here = os.path.dirname(os.path.abspath(__file__))
-    return os.path.normpath(os.path.join(here, "..", "..", "variant.schema.yaml"))
+    return os.path.normpath(os.path.join(here, "..", "variant.schema.yaml"))
 
 
 def _load_schema() -> Dict[str, Any]:
