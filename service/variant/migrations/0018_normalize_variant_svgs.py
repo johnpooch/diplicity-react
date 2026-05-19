@@ -23,7 +23,7 @@ def noop_reverse(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("variant", "0015_correct_hundred_phase_progression"),
+        ("variant", "0017_hundred_allow_non_home_builds"),
     ]
 
     operations = [

@@ -23,7 +23,7 @@ def noop_reverse(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("variant", "0016_normalize_variant_svgs"),
+        ("variant", "0018_normalize_variant_svgs"),
     ]
 
     operations = [
