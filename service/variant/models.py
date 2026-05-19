@@ -9,7 +9,7 @@ from phase.models import Phase
 
 
 def default_victory_conditions():
-    return {"soloVictorySupplyCenters": 18, "gameEndsYear": None, "drawAfterYear": None}
+    return [{"type": "supply-center-majority", "supplyCenters": 18}]
 
 
 def default_phase_progression():
@@ -96,6 +96,30 @@ class Variant(BaseModel):
     adjudication_modifiers = models.JSONField(default=list)
     phase_progression = models.JSONField(default=default_phase_progression)
     rules = models.TextField(blank=True, default="")
+
+    @property
+    def solo_victory_supply_centers(self):
+        for condition in self.victory_conditions:
+            if condition["type"] == "supply-center-majority":
+                return condition["supplyCenters"]
+        return None
+
+    @property
+    def victory_conditions_summary(self):
+        summary = {
+            "soloVictorySupplyCenters": None,
+            "gameEndsYear": None,
+            "drawAfterYear": None,
+        }
+        for condition in self.victory_conditions:
+            if condition["type"] == "supply-center-majority":
+                summary["soloVictorySupplyCenters"] = condition["supplyCenters"]
+            elif condition["type"] == "timed-resolution":
+                if condition["resolution"] == "shared-draw":
+                    summary["drawAfterYear"] = condition["year"]
+                else:
+                    summary["gameEndsYear"] = condition["year"]
+        return summary
 
     @property
     def template_phase(self):

@@ -116,7 +116,7 @@ class DrawProposal(BaseModel):
 
     @property
     def victory_threshold(self):
-        return self.game.variant.victory_conditions["soloVictorySupplyCenters"]
+        return self.game.variant.solo_victory_supply_centers
 
     def process_acceptance(self):
         if self.status != DrawProposalStatus.ACCEPTED:

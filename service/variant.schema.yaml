@@ -360,6 +360,24 @@ $defs:
               multiple years per cycle (e.g. godip's `hundred` variant uses
               5-year jumps).
 
+      condition:
+        type: object
+        additionalProperties: false
+        required: [yearMod, yearModValue]
+        description: |
+          Optional. When present, the transition fires only when the current
+          phase's year satisfies `year % yearMod == yearModValue`. Variants
+          whose phase cycle is year-dependent use this — e.g. the `hundred`
+          variant skips the Adjustment phase in years ending in 5. A
+          transition with no `condition` is unconditional.
+        properties:
+          yearMod:
+            type: integer
+            minimum: 1
+          yearModValue:
+            type: integer
+            minimum: 0
+
   VictoryCondition:
     description: |
       A single way a game can end. Discriminator: `type`.
