@@ -1,12 +1,26 @@
-import { TransformWrapper, TransformComponent, ReactZoomPanPinchContentRef } from "react-zoom-pan-pinch";
-import { useRef, useState, useEffect } from "react";
+import {
+  TransformWrapper,
+  TransformComponent,
+  ReactZoomPanPinchContentRef,
+} from "react-zoom-pan-pinch";
+import { useRef, useState, useEffect, useMemo } from "react";
 import { Maximize, Minimize } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import { InteractiveMap } from "./InteractiveMap";
-import { useMapData } from "../../hooks/useMapData";
+import { useDsvg } from "../../hooks/useDsvg";
+import { parseDsvg } from "./dsvgParser";
+import { DiplicityMap } from "./mapRenderer";
+import type { Variant } from "../../api/generated/endpoints";
 
-type InteractiveMapProps = React.ComponentProps<typeof InteractiveMap>;
+type VariantForMap = Pick<Variant, "id" | "nations" | "svgUrl">;
+
+type InteractiveMapProps = Omit<
+  React.ComponentProps<typeof InteractiveMap>,
+  "parsedDsvg" | "renderer" | "variant"
+> & {
+  variant: VariantForMap;
+};
 
 type Dimensions = {
   width: number;
@@ -24,9 +38,12 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
   const transformRef = useRef<ReactZoomPanPinchContentRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Load map data at the wrapper level to avoid race condition with viewBox reading
-  const { data: mapData, isLoading } = useMapData(
-    interactiveMapProps.variant.id
+  const { data: dsvg, isLoading } = useDsvg(interactiveMapProps.variant.svgUrl);
+
+  const parsedDsvg = useMemo(() => (dsvg ? parseDsvg(dsvg) : null), [dsvg]);
+  const renderer = useMemo(
+    () => (dsvg ? new DiplicityMap(dsvg) : null),
+    [dsvg]
   );
 
   const [isFullscreen, setIsFullscreen] = useState(true);
@@ -39,7 +56,6 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
     Dimensions | undefined
   >(undefined);
 
-  // Calculate aspect ratios with null safety
   const containerAspectRatio =
     containerDimensions?.width && containerDimensions?.height
       ? containerDimensions.width / containerDimensions.height
@@ -50,7 +66,6 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
       ? svgViewBox.width / svgViewBox.height
       : undefined;
 
-  // Determine which dimension is the limiting factor
   const containerIsTallerThanSvg =
     containerAspectRatio && svgAspectRatio
       ? containerAspectRatio < svgAspectRatio
@@ -61,7 +76,6 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
       ? containerAspectRatio > svgAspectRatio
       : undefined;
 
-  // Calculate scale based on the limiting dimension (fitted/fullscreen mode)
   const calculateFittedScale = (): number => {
     if (!containerDimensions || !svgViewBox) return 1;
 
@@ -76,11 +90,9 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
     return 1;
   };
 
-  // Calculate scale for contained mode (entire map visible with padding)
   const calculateContainedScale = (): number => {
     if (!containerDimensions || !svgViewBox) return 1;
 
-    // Always use the smaller scale to ensure entire map fits
     const scaleX = containerDimensions.width / svgViewBox.width;
     const scaleY = containerDimensions.height / svgViewBox.height;
 
@@ -90,25 +102,20 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
   const fittedScale = calculateFittedScale();
   const containedScale = calculateContainedScale();
 
-  // Use appropriate scale based on fullscreen mode
   const minScale = isFullscreen ? fittedScale : containedScale;
 
-  // Handle toggling between fullscreen and contained modes
   const handleToggleFullscreen = () => {
-    setIsFullscreen(prev => {
+    setIsFullscreen((prev) => {
       const newIsFullscreen = !prev;
 
-      // When switching modes, reset the transform to the appropriate scale
       if (transformRef.current && containerDimensions && svgViewBox) {
         const targetScale = newIsFullscreen ? fittedScale : containedScale;
 
-        // Calculate centered position
         const scaledWidth = svgViewBox.width * targetScale;
         const scaledHeight = svgViewBox.height * targetScale;
         const centerX = (containerDimensions.width - scaledWidth) / 2;
         const centerY = (containerDimensions.height - scaledHeight) / 2;
 
-        // Animate the transition with setTransform(x, y, scale, animationTime)
         transformRef.current.setTransform(centerX, centerY, targetScale, 300);
       }
 
@@ -116,11 +123,10 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
     });
   };
 
-  // Initialize container dimensions and observe resize
   useEffect(() => {
     if (!containerRef.current) return;
 
-    const resizeObserver = new ResizeObserver(entries => {
+    const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
         setContainerDimensions({ width, height });
@@ -134,20 +140,17 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
     };
   }, []);
 
-  // Set SVG viewBox dimensions from loaded map data
   useEffect(() => {
-    if (mapData) {
+    if (parsedDsvg) {
       setSvgViewBox({
-        width: mapData.width,
-        height: mapData.height,
+        width: parsedDsvg.viewBox.width,
+        height: parsedDsvg.viewBox.height,
       });
     }
-  }, [mapData]);
+  }, [parsedDsvg]);
 
-  // Apply scale transformation when scale value changes
   useEffect(() => {
     if (transformRef.current && containerDimensions && svgViewBox) {
-      // Calculate centered position
       const scaledWidth = svgViewBox.width * minScale;
       const scaledHeight = svgViewBox.height * minScale;
       const centerX = (containerDimensions.width - scaledWidth) / 2;
@@ -157,8 +160,7 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
     }
   }, [minScale, containerDimensions, svgViewBox]);
 
-  // Show loading state while map data is being fetched
-  if (isLoading || !mapData) {
+  if (isLoading || !parsedDsvg || !renderer) {
     return (
       <div
         ref={containerRef}
@@ -188,7 +190,8 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
           <InteractiveMap
             ref={svgRef}
             {...interactiveMapProps}
-            mapData={mapData}
+            parsedDsvg={parsedDsvg}
+            renderer={renderer}
           />
         </TransformComponent>
       </TransformWrapper>

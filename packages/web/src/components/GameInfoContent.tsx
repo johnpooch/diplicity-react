@@ -11,7 +11,7 @@ import {
   useVariantsListSuspense,
 } from "@/api/generated/endpoints";
 import { getCurrentPhaseId, formatDateTime, formatTimeAgo } from "@/util";
-import { InteractiveMap } from "@/components/InteractiveMap/InteractiveMap";
+import { MapPreview } from "@/components/MapPreview";
 import { CardTitle } from "@/components/ui/card";
 import {
   ScreenCard,
@@ -183,12 +183,9 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
           />
           {variant && currentPhase ? (
             <div className="w-full aspect-square overflow-hidden">
-              <InteractiveMap
+              <MapPreview
                 variant={variant}
                 phase={currentPhase}
-                orders={[]}
-                selected={[]}
-                interactive={false}
                 style={{ width: "100%", height: "100%" }}
               />
             </div>

@@ -53,6 +53,10 @@ def _namespace(tag):
     return None
 
 
+POSITION_MARKER_LAYERS = ("unit-positions", "supply-centers")
+POSITION_MARKER_RADIUS = "10"
+
+
 def normalize_dsvg(svg):
     root = etree.fromstring(svg.encode())
 
@@ -75,8 +79,38 @@ def normalize_dsvg(svg):
             elif attribute_namespace is None and name.startswith("data-"):
                 del element.attrib[name]
 
+    _set_position_marker_radius(root)
+
     etree.cleanup_namespaces(root)
-    return etree.tostring(root).decode()
+    return _strip_svg_namespace_prefix(etree.tostring(root).decode())
+
+
+def _set_position_marker_radius(root):
+    for layer_id in POSITION_MARKER_LAYERS:
+        layer = next(
+            (
+                child
+                for child in root
+                if _local_name(child.tag) == "g" and child.get("id") == layer_id
+            ),
+            None,
+        )
+        if layer is None:
+            continue
+        for circle in layer.iter(f"{{{SVG_NAMESPACE}}}circle"):
+            circle.set("r", POSITION_MARKER_RADIUS)
+
+
+_SVG_PREFIX_OPEN = re.compile(r"<svg:")
+_SVG_PREFIX_CLOSE = re.compile(r"</svg:")
+_SVG_PREFIX_DECL = re.compile(r'\sxmlns:svg="[^"]*"')
+
+
+def _strip_svg_namespace_prefix(svg):
+    svg = _SVG_PREFIX_OPEN.sub("<", svg)
+    svg = _SVG_PREFIX_CLOSE.sub("</", svg)
+    svg = _SVG_PREFIX_DECL.sub("", svg)
+    return svg
 
 
 def _svg_element(local_name):
@@ -371,6 +405,29 @@ def validate_dsvg(svg, variant=None):
                         f"Named-coast path id '{element.get('id') or ''}' must use the form 'parent/coast'.",
                     )
                 )
+
+    for layer_id in POSITION_MARKER_LAYERS:
+        layer = layers_by_id.get(layer_id)
+        if layer is None:
+            continue
+        bad_ids = [
+            element.get("id") or "<unnamed>"
+            for element in layer.iter()
+            if _local_name(element.tag) == "circle"
+            and element.get("r") != POSITION_MARKER_RADIUS
+        ]
+        if bad_ids:
+            preview = ", ".join(bad_ids[:5])
+            if len(bad_ids) > 5:
+                preview += f" (+{len(bad_ids) - 5} more)"
+            errors.append(
+                DsvgValidationError(
+                    "MARKER_NOT_VISIBLE",
+                    f"Circles in '{layer_id}' must have r='{POSITION_MARKER_RADIUS}' "
+                    f"so positions are visible when the layer is unhidden. "
+                    f"Offending ids: {preview}.",
+                )
+            )
 
     if variant is not None and provinces_layer is not None:
         svg_province_ids = {

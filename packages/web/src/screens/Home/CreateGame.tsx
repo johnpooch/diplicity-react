@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/form";
 
 import { randomGameName } from "@/util";
-import { InteractiveMap } from "@/components/InteractiveMap/InteractiveMap";
+import { MapPreview } from "@/components/MapPreview";
 import { DeadlineSummary } from "@/components/DeadlineSummary";
 import {
   DURATION_OPTIONS,
@@ -183,12 +183,9 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
       />
 
       {selectedVariant?.templatePhase ? (
-        <InteractiveMap
+        <MapPreview
           variant={selectedVariant}
           phase={selectedVariant.templatePhase}
-          interactive={false}
-          selected={[]}
-          orders={undefined}
           style={{ width: "100%", height: "100%" }}
         />
       ) : null}
