@@ -872,6 +872,7 @@ from adjudication.canonical import (
     canonicalize_godip_response,
     canonicalize_python_response,
     diff_canonical,
+    is_known_difference,
 )
 from adjudicator.domain import (
     Nation as DomainNation,
@@ -957,6 +958,45 @@ class TestDiffCanonical:
         assert summary["fields"][0]["field"] == "units"
         assert summary["fields"][0]["only_in_godip"] == [["England", "Fleet", "lon", False]]
         assert summary["fields"][0]["only_in_python"] == [["England", "Army", "lon", False]]
+
+
+class TestIsKnownDifference:
+
+    def test_matched_diff_is_not_a_known_difference(self):
+        diff = diff_canonical(_canonical(), _canonical())
+        assert not is_known_difference(diff)
+
+    def test_dislodger_pair_only_in_python_is_known(self):
+        diff = diff_canonical(
+            _canonical(),
+            _canonical(dislodger_pairs=frozenset({("spa/sc", "mar")})),
+        )
+        assert diff.field_diffs[0].field == "dislodger_pairs"
+        assert is_known_difference(diff)
+
+    def test_dislodger_pair_only_in_godip_is_not_known(self):
+        diff = diff_canonical(
+            _canonical(dislodger_pairs=frozenset({("spa/sc", "mar")})),
+            _canonical(),
+        )
+        assert not is_known_difference(diff)
+
+    def test_units_mismatch_alongside_is_not_known(self):
+        diff = diff_canonical(
+            _canonical(),
+            _canonical(
+                units=frozenset({("England", "Army", "lon", False)}),
+                dislodger_pairs=frozenset({("spa/sc", "mar")}),
+            ),
+        )
+        assert not is_known_difference(diff)
+
+    def test_unrelated_field_diff_is_not_known(self):
+        diff = diff_canonical(
+            _canonical(),
+            _canonical(resolution_statuses=frozenset({("lon", "BOUNCE")})),
+        )
+        assert not is_known_difference(diff)
 
 
 def _godip_validated_data():

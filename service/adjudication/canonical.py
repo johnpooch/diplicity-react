@@ -305,3 +305,37 @@ def diff_canonical(godip: CanonicalAdjudication, python: CanonicalAdjudication) 
 
     tier = min((field_diff.tier for field_diff in field_diffs), key=_TIER_RANK.get)
     return StructuredDiff(tier=tier, field_diffs=tuple(field_diffs))
+
+
+# === known adjudicator differences ===
+
+
+def is_known_difference(diff: StructuredDiff) -> bool:
+    """True when a non-matching diff is fully explained by a documented,
+    accepted divergence between godip and the Python prototype.
+
+    Known difference — dislodger attribution after an overland move.
+    When an army moves overland between two adjacent provinces and the
+    moving nation also controls fleets that happen to form an available
+    convoy route between them, godip's MustConvoy logic treats the move
+    as convoy-eligible and records no dislodger for the displaced unit.
+    The Python prototype records the dislodger and so forbids a retreat
+    into the attacker's origin. The canonical Diplomacy rule (confirmed
+    against the `diplomacy` reference engine and DATC 6.H.11) gates that
+    retreat exception on the move *actually* being convoyed, not merely
+    being convoy-capable — so the Python prototype is correct here and
+    godip is the divergence.
+
+    The resulting diff shape: dislodger_pairs entries present only on the
+    Python side, with godip recording no conflicting pair. godip still
+    agrees the unit was dislodged (no units diff), it just leaves the
+    dislodger unattributed.
+    """
+    if diff.matched:
+        return False
+    return all(
+        field_diff.field == "dislodger_pairs"
+        and field_diff.only_in_python
+        and not field_diff.only_in_godip
+        for field_diff in diff.field_diffs
+    )

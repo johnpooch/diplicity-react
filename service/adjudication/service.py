@@ -10,6 +10,7 @@ from .canonical import (
     canonicalize_godip_response,
     canonicalize_python_response,
     diff_canonical,
+    is_known_difference,
 )
 from .models import ShadowAdjudicationDiff
 from .serializers import AdjudicationSerializer
@@ -31,6 +32,9 @@ _meter = metrics.get_meter(__name__)
 _shadow_matches_counter = _meter.create_counter("adjudication.shadow.matches")
 _shadow_mismatches_counter = _meter.create_counter("adjudication.shadow.mismatches")
 _shadow_errors_counter = _meter.create_counter("adjudication.shadow.errors")
+_shadow_known_differences_counter = _meter.create_counter(
+    "adjudication.shadow.known_differences"
+)
 
 
 class ShadowDivergenceError(Exception):
@@ -197,6 +201,10 @@ def _run_shadow_comparison(phase, canonical_variant, pre_state, godip_response):
     telemetry counter; mismatches additionally persist a ShadowAdjudicationDiff
     row for later replay.
 
+    A diff matching a documented known difference (see is_known_difference)
+    is treated as an accepted divergence: it increments its own counter and
+    never persists a row or raises, even under SHADOW_STRICT.
+
     When SHADOW_STRICT is enabled, both an engine error and a structured-diff
     mismatch raise ShadowDivergenceError so the integration-test harness fails
     loudly. Errors hard-fail too — a pure table comparison is blind to engine
@@ -219,6 +227,18 @@ def _run_shadow_comparison(phase, canonical_variant, pre_state, godip_response):
 
         if diff.matched:
             _shadow_matches_counter.add(1)
+            return
+
+        if is_known_difference(diff):
+            _shadow_known_differences_counter.add(1)
+            logger.info(
+                "Shadow adjudication known difference for phase %s (%s): "
+                "tier=%s diff=%s",
+                phase.id,
+                phase.name,
+                diff.tier,
+                diff.to_dict(),
+            )
             return
 
         _shadow_mismatches_counter.add(1)
