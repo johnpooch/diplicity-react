@@ -433,6 +433,7 @@ def _canonical_order(order, phase_type):
 
 
 def phase_to_canonical_game_state(phase):
+    phase = type(phase).objects.with_canonical_state_data().get(pk=phase.pk)
     return {
         "phase": {
             "season": phase.season,

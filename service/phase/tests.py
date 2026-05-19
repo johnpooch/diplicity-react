@@ -9,7 +9,7 @@ from django.db import connection
 from datetime import timedelta
 from unittest.mock import patch, Mock
 from rest_framework import status
-from common.constants import PhaseStatus, PhaseType, OrderType, UnitType, GameStatus, DeadlineMode
+from common.constants import PhaseStatus, PhaseType, OrderType, UnitType, GameStatus, DeadlineMode, ProvinceType
 from game.models import Game
 from .models import Phase, PhaseState
 from .serializers import PhaseStateSerializer
@@ -3035,3 +3035,95 @@ class TestPhaseToCanonicalGameState:
         # A fleet build on a multi-coast province addresses the coast as its source.
         assert orders_by_unit_type["Fleet"]["source"] == "stp/nc"
         assert orders_by_unit_type["Army"]["source"] == "edi"
+
+
+class TestPhaseToCanonicalGameStatePerformance:
+
+    def _game_with_members(self, variant, primary_user, secondary_user):
+        game = Game.objects.create(
+            name="Converter Perf Game", variant=variant, status=GameStatus.ACTIVE
+        )
+        england = Member.objects.create(
+            game=game,
+            user=primary_user,
+            nation=Nation.objects.get(name="England", variant=variant),
+        )
+        france = Member.objects.create(
+            game=game,
+            user=secondary_user,
+            nation=Nation.objects.get(name="France", variant=variant),
+        )
+        return game, england, france
+
+    def _build_phase(self, variant, game, england, france, units_per_nation):
+        provinces = [
+            p
+            for p in variant.provinces.all().order_by("province_id")
+            if p.type != ProvinceType.NAMED_COAST
+        ]
+        phase = Phase.objects.create(
+            game=game,
+            variant=variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            status=PhaseStatus.ACTIVE,
+            ordinal=1,
+        )
+        england_state = phase.phase_states.create(member=england)
+        france_state = phase.phase_states.create(member=france)
+        assignments = [
+            (england.nation, england_state, provinces[:units_per_nation]),
+            (
+                france.nation,
+                france_state,
+                provinces[units_per_nation : units_per_nation * 2],
+            ),
+        ]
+        for nation, phase_state, nation_provinces in assignments:
+            for province in nation_provinces:
+                phase.units.create(
+                    type=UnitType.ARMY, nation=nation, province=province
+                )
+                phase.supply_centers.create(nation=nation, province=province)
+                phase_state.orders.create(
+                    source=province, order_type=OrderType.HOLD
+                )
+        return phase
+
+    def _count_queries(self, phase):
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            phase_to_canonical_game_state(phase)
+        return len(connection.queries)
+
+    @pytest.mark.django_db
+    def test_query_count_small_game(
+        self, classical_variant, primary_user, secondary_user
+    ):
+        game, england, france = self._game_with_members(
+            classical_variant, primary_user, secondary_user
+        )
+        phase = self._build_phase(classical_variant, game, england, france, 3)
+
+        assert self._count_queries(phase) == 12
+
+    @pytest.mark.django_db
+    def test_query_count_does_not_scale_with_units_and_orders(
+        self, classical_variant, primary_user, secondary_user
+    ):
+        game, england, france = self._game_with_members(
+            classical_variant, primary_user, secondary_user
+        )
+        small_phase = self._build_phase(classical_variant, game, england, france, 3)
+        small_count = self._count_queries(small_phase)
+
+        large_game, large_england, large_france = self._game_with_members(
+            classical_variant, primary_user, secondary_user
+        )
+        large_phase = self._build_phase(
+            classical_variant, large_game, large_england, large_france, 15
+        )
+        large_count = self._count_queries(large_phase)
+
+        assert small_count == large_count

@@ -210,6 +210,20 @@ class TestVariantToCanonicalDict:
             deserialize_variant(canonical)
 
     @pytest.mark.django_db
+    def test_query_count_does_not_scale_with_variant_size(self, classical_variant):
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            variant_to_canonical_dict(Variant.objects.get(pk="italy-vs-germany"))
+        small_count = len(connection.queries)
+
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            variant_to_canonical_dict(Variant.objects.get(pk="classical"))
+        large_count = len(connection.queries)
+
+        assert small_count == large_count == 6
+
+    @pytest.mark.django_db
     def test_classical_structure(self, classical_variant):
         canonical = variant_to_canonical_dict(classical_variant)
 
