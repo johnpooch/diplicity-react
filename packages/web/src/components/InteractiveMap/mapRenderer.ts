@@ -211,9 +211,13 @@ const retreatFlag = (cx: number, cy: number): string =>
 
 const civilDisorderBadge = (cx: number, cy: number): string =>
   `<g data-civil-disorder="true" transform="translate(${formatCoord(cx - 9)}, ${formatCoord(cy - 9)})">` +
-  `<circle cx="0" cy="0" r="6" fill="white" stroke="black" stroke-width="1.5"/>` +
-  `<rect x="-2.25" y="-3" width="1.5" height="6" fill="black"/>` +
-  `<rect x="0.75" y="-3" width="1.5" height="6" fill="black"/></g>`;
+  `<circle cx="0" cy="0" r="7" fill="white" stroke="black" stroke-width="1.5"/>` +
+  `<g transform="translate(-5, -5) scale(0.417)" fill="none" stroke="black" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">` +
+  `<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>` +
+  `<circle cx="9" cy="7" r="4"/>` +
+  `<line x1="17" x2="22" y1="8" y2="13"/>` +
+  `<line x1="22" x2="17" y1="8" y2="13"/>` +
+  `</g></g>`;
 
 const unitToken = (
   cx: number,
