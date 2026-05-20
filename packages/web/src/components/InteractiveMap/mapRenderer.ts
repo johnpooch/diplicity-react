@@ -210,9 +210,10 @@ const retreatFlag = (cx: number, cy: number): string =>
   `<path d="M 0 0 L 8 2 L 8 6 L 0 8 Z" fill="white" stroke="black" stroke-width="1"/></g>`;
 
 const civilDisorderBadge = (cx: number, cy: number): string =>
-  `<g data-civil-disorder="true" transform="translate(${formatCoord(cx - 14)}, ${formatCoord(cy - 14)})">` +
+  `<g data-civil-disorder="true" transform="translate(${formatCoord(cx - 9)}, ${formatCoord(cy - 9)})">` +
   `<circle cx="0" cy="0" r="6" fill="white" stroke="black" stroke-width="1.5"/>` +
-  `<text x="0" y="3" font-size="9" font-weight="bold" fill="black" text-anchor="middle">Z</text></g>`;
+  `<rect x="-2.25" y="-3" width="1.5" height="6" fill="black"/>` +
+  `<rect x="0.75" y="-3" width="1.5" height="6" fill="black"/></g>`;
 
 const unitToken = (
   cx: number,
