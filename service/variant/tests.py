@@ -224,6 +224,24 @@ class TestVariantToCanonicalDict:
         assert small_count == large_count == 6
 
     @pytest.mark.django_db
+    def test_query_count_does_not_scale_with_phase_history(self, classical_variant):
+        from common.constants import GameStatus
+        from game.models import Game
+
+        for i in range(5):
+            game = Game.objects.create(variant=classical_variant, name=f"g{i}", status=GameStatus.ACTIVE)
+            Phase.objects.create(
+                game=game, variant=classical_variant, ordinal=1,
+                season="Spring", year=1901, type="Movement", status=PhaseStatus.ACTIVE,
+            )
+
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            variant_to_canonical_dict(Variant.objects.get(pk="classical"))
+
+        assert len(connection.queries) == 6
+
+    @pytest.mark.django_db
     def test_classical_structure(self, classical_variant):
         canonical = variant_to_canonical_dict(classical_variant)
 
