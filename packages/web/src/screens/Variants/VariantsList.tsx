@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router";
 import { Download, FilePlus, Pencil, Play, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
@@ -229,25 +228,16 @@ const VariantsList: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button asChild>
-          <Link to="/variants/create">
-            <FilePlus className="size-4" /> Upload variant
-          </Link>
-        </Button>
-      </div>
-      <div className="space-y-3">
-        {orderedVariants.map(variant => (
-          <VariantRow
-            key={variant.id}
-            variant={variant}
-            onDelete={setPendingDeleteId}
-            onCreateSandbox={handleCreateSandbox}
-            isCreatingSandbox={sandboxMutation.isPending}
-          />
-        ))}
-      </div>
+    <div className="space-y-3">
+      {orderedVariants.map(variant => (
+        <VariantRow
+          key={variant.id}
+          variant={variant}
+          onDelete={setPendingDeleteId}
+          onCreateSandbox={handleCreateSandbox}
+          isCreatingSandbox={sandboxMutation.isPending}
+        />
+      ))}
       <AlertDialog
         open={pendingDeleteId !== null}
         onOpenChange={open => {
@@ -275,16 +265,21 @@ const VariantsList: React.FC = () => {
 const VariantsListSuspense: React.FC = () => {
   return (
     <ScreenContainer>
-      <ScreenHeader title="Variants" />
-      <ScreenCard>
-        <ScreenCardContent>
-          <QueryErrorBoundary>
-            <Suspense fallback={<div></div>}>
-              <VariantsList />
-            </Suspense>
-          </QueryErrorBoundary>
-        </ScreenCardContent>
-      </ScreenCard>
+      <ScreenHeader
+        title="Variants"
+        actions={
+          <Button asChild size="sm">
+            <Link to="/variants/create">
+              <FilePlus className="size-4" /> Upload variant
+            </Link>
+          </Button>
+        }
+      />
+      <QueryErrorBoundary>
+        <Suspense fallback={<div></div>}>
+          <VariantsList />
+        </Suspense>
+      </QueryErrorBoundary>
     </ScreenContainer>
   );
 };
