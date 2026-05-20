@@ -587,6 +587,11 @@ export interface PatchedUserProfile {
   readonly email?: string;
 }
 
+export interface PatchedVariantWrite {
+  dvar?: string;
+  dsvg?: string;
+}
+
 /**
  * * `pending` - Pending
  * `active` - Active
@@ -695,12 +700,23 @@ export interface Variant {
   description: string;
   author?: string;
   rules: string;
+  readonly status: string;
+  /** @nullable */
+  readonly ownerId: number | null;
+  /** @nullable */
+  readonly ownerUsername: string | null;
+  readonly canEdit: boolean;
   victoryConditions: VictoryConditions;
   /** @nullable */
   readonly svgUrl: string | null;
   nations: Nation[];
   provinces: Province[];
   templatePhase: PhaseRetrieve;
+}
+
+export interface VariantWrite {
+  dvar: string;
+  dsvg: string;
 }
 
 export interface VerifyEmail {
@@ -7953,6 +7969,872 @@ export function useVariantsListSuspense<
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
   const queryOptions = getVariantsListSuspenseQueryOptions(options);
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const variantsCreate = (
+  variantWrite: VariantWrite,
+  signal?: AbortSignal
+) => {
+  const formData = new FormData();
+  formData.append(`dvar`, variantWrite.dvar);
+  formData.append(`dsvg`, variantWrite.dsvg);
+
+  return customInstance<VariantWrite>({
+    url: `/variants/`,
+    method: "POST",
+    headers: { "Content-Type": "multipart/form-data" },
+    data: formData,
+    signal,
+  });
+};
+
+export const getVariantsCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof variantsCreate>>,
+    TError,
+    { data: VariantWrite },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof variantsCreate>>,
+  TError,
+  { data: VariantWrite },
+  TContext
+> => {
+  const mutationKey = ["variantsCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof variantsCreate>>,
+    { data: VariantWrite }
+  > = props => {
+    const { data } = props ?? {};
+
+    return variantsCreate(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VariantsCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof variantsCreate>>
+>;
+export type VariantsCreateMutationBody = VariantWrite;
+export type VariantsCreateMutationError = unknown;
+
+export const useVariantsCreate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof variantsCreate>>,
+      TError,
+      { data: VariantWrite },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof variantsCreate>>,
+  TError,
+  { data: VariantWrite },
+  TContext
+> => {
+  return useMutation(getVariantsCreateMutationOptions(options), queryClient);
+};
+
+export const variantsRetrieve = (id: string, signal?: AbortSignal) => {
+  return customInstance<Variant>({
+    url: `/variants/${id}/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getVariantsRetrieveQueryKey = (id: string) => {
+  return [`/variants/${id}/`] as const;
+};
+
+export const getVariantsRetrieveQueryOptions = <
+  TData = Awaited<ReturnType<typeof variantsRetrieve>>,
+  TError = unknown,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof variantsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getVariantsRetrieveQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof variantsRetrieve>>
+  > = ({ signal }) => variantsRetrieve(id, signal);
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof variantsRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type VariantsRetrieveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof variantsRetrieve>>
+>;
+export type VariantsRetrieveQueryError = unknown;
+
+export function useVariantsRetrieve<
+  TData = Awaited<ReturnType<typeof variantsRetrieve>>,
+  TError = unknown,
+>(
+  id: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof variantsRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof variantsRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof variantsRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useVariantsRetrieve<
+  TData = Awaited<ReturnType<typeof variantsRetrieve>>,
+  TError = unknown,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof variantsRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof variantsRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof variantsRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useVariantsRetrieve<
+  TData = Awaited<ReturnType<typeof variantsRetrieve>>,
+  TError = unknown,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof variantsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useVariantsRetrieve<
+  TData = Awaited<ReturnType<typeof variantsRetrieve>>,
+  TError = unknown,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof variantsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getVariantsRetrieveQueryOptions(id, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getVariantsRetrieveSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof variantsRetrieve>>,
+  TError = unknown,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof variantsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getVariantsRetrieveQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof variantsRetrieve>>
+  > = ({ signal }) => variantsRetrieve(id, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof variantsRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type VariantsRetrieveSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof variantsRetrieve>>
+>;
+export type VariantsRetrieveSuspenseQueryError = unknown;
+
+export function useVariantsRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof variantsRetrieve>>,
+  TError = unknown,
+>(
+  id: string,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof variantsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useVariantsRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof variantsRetrieve>>,
+  TError = unknown,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof variantsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useVariantsRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof variantsRetrieve>>,
+  TError = unknown,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof variantsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useVariantsRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof variantsRetrieve>>,
+  TError = unknown,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof variantsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getVariantsRetrieveSuspenseQueryOptions(id, options);
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const variantsUpdate = (
+  id: string,
+  variantWrite: VariantWrite,
+  signal?: AbortSignal
+) => {
+  const formData = new FormData();
+  formData.append(`dvar`, variantWrite.dvar);
+  formData.append(`dsvg`, variantWrite.dsvg);
+
+  return customInstance<VariantWrite>({
+    url: `/variants/${id}/`,
+    method: "PUT",
+    headers: { "Content-Type": "multipart/form-data" },
+    data: formData,
+    signal,
+  });
+};
+
+export const getVariantsUpdateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof variantsUpdate>>,
+    TError,
+    { id: string; data: VariantWrite },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof variantsUpdate>>,
+  TError,
+  { id: string; data: VariantWrite },
+  TContext
+> => {
+  const mutationKey = ["variantsUpdate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof variantsUpdate>>,
+    { id: string; data: VariantWrite }
+  > = props => {
+    const { id, data } = props ?? {};
+
+    return variantsUpdate(id, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VariantsUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof variantsUpdate>>
+>;
+export type VariantsUpdateMutationBody = VariantWrite;
+export type VariantsUpdateMutationError = unknown;
+
+export const useVariantsUpdate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof variantsUpdate>>,
+      TError,
+      { id: string; data: VariantWrite },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof variantsUpdate>>,
+  TError,
+  { id: string; data: VariantWrite },
+  TContext
+> => {
+  return useMutation(getVariantsUpdateMutationOptions(options), queryClient);
+};
+
+export const variantsPartialUpdate = (
+  id: string,
+  patchedVariantWrite: PatchedVariantWrite,
+  signal?: AbortSignal
+) => {
+  const formData = new FormData();
+  if (patchedVariantWrite.dvar !== undefined) {
+    formData.append(`dvar`, patchedVariantWrite.dvar);
+  }
+  if (patchedVariantWrite.dsvg !== undefined) {
+    formData.append(`dsvg`, patchedVariantWrite.dsvg);
+  }
+
+  return customInstance<VariantWrite>({
+    url: `/variants/${id}/`,
+    method: "PATCH",
+    headers: { "Content-Type": "multipart/form-data" },
+    data: formData,
+    signal,
+  });
+};
+
+export const getVariantsPartialUpdateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof variantsPartialUpdate>>,
+    TError,
+    { id: string; data: PatchedVariantWrite },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof variantsPartialUpdate>>,
+  TError,
+  { id: string; data: PatchedVariantWrite },
+  TContext
+> => {
+  const mutationKey = ["variantsPartialUpdate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof variantsPartialUpdate>>,
+    { id: string; data: PatchedVariantWrite }
+  > = props => {
+    const { id, data } = props ?? {};
+
+    return variantsPartialUpdate(id, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VariantsPartialUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof variantsPartialUpdate>>
+>;
+export type VariantsPartialUpdateMutationBody = PatchedVariantWrite;
+export type VariantsPartialUpdateMutationError = unknown;
+
+export const useVariantsPartialUpdate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof variantsPartialUpdate>>,
+      TError,
+      { id: string; data: PatchedVariantWrite },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof variantsPartialUpdate>>,
+  TError,
+  { id: string; data: PatchedVariantWrite },
+  TContext
+> => {
+  return useMutation(
+    getVariantsPartialUpdateMutationOptions(options),
+    queryClient
+  );
+};
+
+export const variantsDestroy = (id: string, signal?: AbortSignal) => {
+  return customInstance<void>({
+    url: `/variants/${id}/`,
+    method: "DELETE",
+    signal,
+  });
+};
+
+export const getVariantsDestroyMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof variantsDestroy>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof variantsDestroy>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["variantsDestroy"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof variantsDestroy>>,
+    { id: string }
+  > = props => {
+    const { id } = props ?? {};
+
+    return variantsDestroy(id);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VariantsDestroyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof variantsDestroy>>
+>;
+
+export type VariantsDestroyMutationError = unknown;
+
+export const useVariantsDestroy = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof variantsDestroy>>,
+      TError,
+      { id: string },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof variantsDestroy>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getVariantsDestroyMutationOptions(options), queryClient);
+};
+
+export const variantsDvarRetrieve = (
+  variantId: string,
+  signal?: AbortSignal
+) => {
+  return customInstance<Variant>({
+    url: `/variants/${variantId}/dvar/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getVariantsDvarRetrieveQueryKey = (variantId: string) => {
+  return [`/variants/${variantId}/dvar/`] as const;
+};
+
+export const getVariantsDvarRetrieveQueryOptions = <
+  TData = Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+  TError = unknown,
+>(
+  variantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getVariantsDvarRetrieveQueryKey(variantId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof variantsDvarRetrieve>>
+  > = ({ signal }) => variantsDvarRetrieve(variantId, signal);
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!variantId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type VariantsDvarRetrieveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof variantsDvarRetrieve>>
+>;
+export type VariantsDvarRetrieveQueryError = unknown;
+
+export function useVariantsDvarRetrieve<
+  TData = Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+  TError = unknown,
+>(
+  variantId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof variantsDvarRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useVariantsDvarRetrieve<
+  TData = Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+  TError = unknown,
+>(
+  variantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof variantsDvarRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useVariantsDvarRetrieve<
+  TData = Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+  TError = unknown,
+>(
+  variantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useVariantsDvarRetrieve<
+  TData = Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+  TError = unknown,
+>(
+  variantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getVariantsDvarRetrieveQueryOptions(variantId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getVariantsDvarRetrieveSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+  TError = unknown,
+>(
+  variantId: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getVariantsDvarRetrieveQueryKey(variantId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof variantsDvarRetrieve>>
+  > = ({ signal }) => variantsDvarRetrieve(variantId, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type VariantsDvarRetrieveSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof variantsDvarRetrieve>>
+>;
+export type VariantsDvarRetrieveSuspenseQueryError = unknown;
+
+export function useVariantsDvarRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+  TError = unknown,
+>(
+  variantId: string,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useVariantsDvarRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+  TError = unknown,
+>(
+  variantId: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useVariantsDvarRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+  TError = unknown,
+>(
+  variantId: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useVariantsDvarRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+  TError = unknown,
+>(
+  variantId: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getVariantsDvarRetrieveSuspenseQueryOptions(
+    variantId,
+    options
+  );
 
   const query = useSuspenseQuery(
     queryOptions,

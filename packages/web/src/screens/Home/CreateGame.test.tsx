@@ -82,6 +82,10 @@ const variantsFixture = [
     name: "Classical",
     description: "",
     rules: "",
+    status: "published",
+    ownerId: null,
+    ownerUsername: null,
+    canEdit: false,
     victoryConditions: {
       soloVictorySupplyCenters: 18,
       gameEndsYear: null,
