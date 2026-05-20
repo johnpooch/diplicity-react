@@ -9,10 +9,12 @@ import {
   Inbox,
   SearchX,
   Star,
+  UserX,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -137,7 +139,10 @@ const OrdersScreen: React.FC = () => {
   const isActivePhase = phase.status === "active";
   const isGameFinished =
     game.status === "completed" || game.status === "abandoned";
-  const canModifyOrders = isActivePhase && !isGameFinished;
+  const currentMember = game.members.find(m => m.isCurrentUser);
+  const isCurrentMemberInCivilDisorder = currentMember?.civilDisorder ?? false;
+  const canModifyOrders =
+    isActivePhase && !isGameFinished && !isCurrentMemberInCivilDisorder;
 
   const getSupplyCenterCount = (nation: string) => {
     return phase.supplyCenters.filter(sc => sc.nation.name === nation).length;
@@ -264,6 +269,15 @@ const OrdersScreen: React.FC = () => {
       />
       <div className="flex-1 overflow-y-auto">
         <Panel>
+          {isCurrentMemberInCivilDisorder && (
+            <Alert className="border-x-0 border-t-0 rounded-none">
+              <UserX className="size-4" />
+              <AlertDescription>
+                Your nation is in civil disorder. Your units hold each turn and
+                you cannot submit orders.
+              </AlertDescription>
+            </Alert>
+          )}
           <Panel.Content>
             {!hasContent ? (
               <Notice

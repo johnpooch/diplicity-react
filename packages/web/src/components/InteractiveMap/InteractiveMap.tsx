@@ -17,6 +17,7 @@ type InteractiveMapProps = {
   phase: PhaseRetrieve;
   selected: string[];
   highlighted?: string[];
+  civilDisorderNations?: string[];
   orders: Order[] | undefined;
   renderableProvinces?: string[];
   onClickProvince?: (
@@ -76,6 +77,10 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
     () => props.highlighted ?? [],
     [props.highlighted]
   );
+  const civilDisorderNations = useMemo(
+    () => props.civilDisorderNations ?? [],
+    [props.civilDisorderNations]
+  );
 
   const renderState = useMemo<RenderState>(
     () =>
@@ -84,9 +89,10 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
         props.phase,
         orders,
         props.selected,
-        highlighted
+        highlighted,
+        civilDisorderNations
       ),
-    [props.variant, props.phase, orders, props.selected, highlighted]
+    [props.variant, props.phase, orders, props.selected, highlighted, civilDisorderNations]
   );
 
   const renderedSplit = useMemo(

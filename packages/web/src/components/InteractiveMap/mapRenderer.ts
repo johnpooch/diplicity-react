@@ -22,6 +22,7 @@ export type UnitState = {
   nation: string;
   type: "Army" | "Fleet";
   dislodged?: boolean;
+  civilDisorder?: boolean;
 };
 
 export type OrderType =
@@ -208,6 +209,11 @@ const retreatFlag = (cx: number, cy: number): string =>
   `<line x1="0" y1="0" x2="0" y2="12" stroke="black" stroke-width="2"/>` +
   `<path d="M 0 0 L 8 2 L 8 6 L 0 8 Z" fill="white" stroke="black" stroke-width="1"/></g>`;
 
+const civilDisorderBadge = (cx: number, cy: number): string =>
+  `<g data-civil-disorder="true" transform="translate(${formatCoord(cx - 14)}, ${formatCoord(cy - 14)})">` +
+  `<circle cx="0" cy="0" r="6" fill="white" stroke="black" stroke-width="1.5"/>` +
+  `<text x="0" y="3" font-size="9" font-weight="bold" fill="black" text-anchor="middle">Z</text></g>`;
+
 const unitToken = (
   cx: number,
   cy: number,
@@ -241,7 +247,8 @@ const unitMarkup = (
     1
   );
   const flag = unit.dislodged && !dimmed ? retreatFlag(cx, cy) : "";
-  return `<g>${token}${flag}</g>`;
+  const cdBadge = unit.civilDisorder && !dimmed ? civilDisorderBadge(cx, cy) : "";
+  return `<g>${token}${flag}${cdBadge}</g>`;
 };
 
 const unitsLayer = (

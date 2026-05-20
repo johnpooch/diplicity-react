@@ -176,6 +176,26 @@ describe("DiplicityMap units", () => {
     expect(svg).toContain("translate(");
   });
 
+  test("adds a civil-disorder badge to a unit in civil disorder", () => {
+    const svg = new DiplicityMap(TOY_DSVG).render({
+      nationColors: { France: "#3b9c3b" },
+      units: [
+        { province: "beta", nation: "France", type: "Fleet", civilDisorder: true },
+      ],
+    });
+    expect(svg).toContain('data-civil-disorder="true"');
+  });
+
+  test("does not add a civil-disorder badge to active units", () => {
+    const svg = new DiplicityMap(TOY_DSVG).render({
+      nationColors: { France: "#3b9c3b" },
+      units: [
+        { province: "beta", nation: "France", type: "Fleet", civilDisorder: false },
+      ],
+    });
+    expect(svg).not.toContain('data-civil-disorder="true"');
+  });
+
   test("renders dislodged units after non-dislodged ones", () => {
     const svg = new DiplicityMap(TOY_DSVG).render({
       nationColors: { England: "#1b4f9c", France: "#3b9c3b" },

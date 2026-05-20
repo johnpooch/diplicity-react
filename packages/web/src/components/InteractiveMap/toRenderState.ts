@@ -27,18 +27,22 @@ export const toRenderState = (
   phase: PhaseRetrieve,
   orders: Order[],
   selected: string[],
-  highlighted: string[] = []
+  highlighted: string[] = [],
+  civilDisorderNations: string[] = []
 ): RenderState => {
   const nationColors: Record<string, string> = {};
   for (const nation of variant.nations) {
     nationColors[nation.name] = nation.color;
   }
 
+  const cdNations = new Set(civilDisorderNations);
+
   const units: UnitState[] = phase.units.map((unit) => ({
     province: unit.province.id,
     nation: unit.nation.name,
     type: unit.type as "Army" | "Fleet",
     dislodged: unit.dislodged,
+    civilDisorder: cdNations.has(unit.nation.name),
   }));
 
   const supplyCenters = phase.supplyCenters.map((sc) => ({

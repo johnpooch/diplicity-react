@@ -1,6 +1,7 @@
 import React from "react";
 import { Shield, Star, Trophy } from "lucide-react";
 
+import { CivilDisorderBadge } from "@/components/CivilDisorderBadge";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
 import { NationFlag } from "@/components/NationFlag";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -78,6 +79,7 @@ export const PlayerInfoContent: React.FC = () => {
                         {game.victory?.type === "solo" ? "Winner" : "Draw"}
                       </Badge>
                     )}
+                    {member.civilDisorder && <CivilDisorderBadge />}
                   </div>
 
                   {member.nation && (
