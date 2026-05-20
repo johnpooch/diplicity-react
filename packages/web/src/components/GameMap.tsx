@@ -48,6 +48,14 @@ const GameMap: React.FC = () => {
 
   const variant = variants?.find((v) => v.id === game?.variantId);
 
+  const civilDisorderNations = useMemo(
+    () =>
+      (game?.members ?? [])
+        .filter((m) => m.civilDisorder && m.nation)
+        .map((m) => m.nation as string),
+    [game?.members]
+  );
+
   const isWizardActive = Object.keys(wizard.selections).length > 0;
 
   const highlightedIds = useMemo(() => {
@@ -178,6 +186,7 @@ const GameMap: React.FC = () => {
               onClickProvince: handleProvinceClick,
               renderableProvinces: renderableProvinces,
               highlighted: highlightedIds,
+              civilDisorderNations: civilDisorderNations,
             }}
           />
           <FloatingMenu

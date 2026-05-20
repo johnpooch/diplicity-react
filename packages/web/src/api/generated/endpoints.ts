@@ -124,9 +124,7 @@ export interface DrawVoteMember {
   nation: string | null;
 }
 
-export interface DrawVote {
-  readonly id: number;
-  readonly member: DrawVoteMember;
+export interface MyVote {
   readonly included: boolean;
   /** @nullable */
   readonly accepted: boolean | null;
@@ -136,12 +134,14 @@ export interface DrawProposal {
   readonly id: number;
   readonly createdBy: DrawVoteMember;
   readonly status: string;
-  readonly combinedScCount: number;
-  readonly victoryThreshold: number;
-  readonly votes: readonly DrawVote[];
+  readonly acceptedCount: number;
+  readonly rejectedCount: number;
+  readonly pendingCount: number;
+  readonly totalVotes: number;
+  readonly includedMemberIds: readonly number[];
+  readonly myVote: MyVote | null;
   readonly phaseId: number;
   readonly createdAt: string;
-  includedMemberIds: number[];
 }
 
 export interface DrawVoteUpdate {
@@ -346,6 +346,7 @@ export interface Member {
   readonly kicked: boolean;
   readonly isGameMaster: boolean;
   readonly nmrExtensionsRemaining: number;
+  readonly civilDisorder: boolean;
 }
 
 export interface Victory {

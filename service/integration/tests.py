@@ -7,6 +7,7 @@ from unittest.mock import patch
 from rest_framework import status
 from game.models import Game
 from member.models import Member
+from victory.models import Victory
 from common.constants import (
     DeadlineMode,
     GameStatus,
@@ -419,6 +420,12 @@ def test_active_game_create_move_order_fleet_to_named_coast(
     create_order_payload = {"selected": ["nap", "Move", "tys"]}
     create_order_response = authenticated_client_for_secondary_user.post(
         create_order_url, create_order_payload, format="json"
+    )
+
+    # Primary user submits a hold order to avoid entering civil disorder
+    # across consecutive movement-phase NMRs
+    authenticated_client.post(
+        create_order_url, {"selected": ["ber", "Hold"]}, format="json"
     )
 
     # Phase has not resolved yet
@@ -1066,3 +1073,295 @@ def test_hundred_variant_france_solo_victory_after_one_year(
     fall_adjustment_phase.refresh_from_db()
     assert fall_adjustment_phase.status == PhaseStatus.COMPLETED
     assert fall_adjustment_phase.scheduled_resolution is None
+
+
+@pytest.mark.django_db
+def test_player_enters_civil_disorder_after_two_movement_phase_nmrs(
+    authenticated_client,
+    authenticated_client_for_secondary_user,
+    italy_vs_germany_variant,
+    mock_send_notification_to_users,
+    mock_immediate_on_commit,
+):
+    """
+    - Both users submit orders and confirm for Spring 1901 → resolves normally
+    - Fall 1901: only Italy (secondary) submits; phase resolves after deadline → Germany NMR #1
+    - Spring 1902: only Italy submits; phase resolves after deadline → Germany NMR #2 → Germany enters CD
+    - Fall 1902: Italy submits + confirms; Germany's PhaseState is auto-confirmed, so phase
+      resolves immediately without Germany doing anything
+    """
+    active_game = create_active_game(
+        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+    )
+    germany_member = active_game.members.filter(nation__name="Germany").first()
+    italy_member = active_game.members.filter(nation__name="Italy").first()
+
+    create_order_url = reverse("order-create", args=[active_game.id])
+    confirm_order_url = reverse("game-confirm-phase", args=[active_game.id])
+
+    # Each new phase gets scheduled_resolution=creation_time+24h, so resolves driven by
+    # deadline-passed need cumulatively advancing "now".
+    days_advanced = [0]
+
+    def advance_and_resolve():
+        days_advanced[0] += 2
+        future = timezone.now() + timedelta(days=days_advanced[0])
+        with patch("django.utils.timezone.now", return_value=future):
+            return authenticated_client.post(resolve_all_url)
+
+    def resolve_until(season, year, type_):
+        for _ in range(10):
+            phase = active_game.current_phase
+            if phase.season == season and phase.year == year and phase.type == type_:
+                return phase
+            resp = advance_and_resolve()
+            if resp.data["resolved"] == 0:
+                break
+        raise AssertionError(f"Failed to reach {season} {year} {type_}; at {active_game.current_phase.name}")
+
+    # Spring 1901: both submit + confirm, normal early resolve.
+    authenticated_client.post(create_order_url, {"selected": ["ber", "Hold"]}, format="json")
+    authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
+    authenticated_client.put(confirm_order_url)
+    authenticated_client_for_secondary_user.put(confirm_order_url)
+    resolve_response = authenticated_client.post(resolve_all_url)
+    assert resolve_response.data["resolved"] >= 1
+
+    fall_1901 = resolve_until("Fall", 1901, "Movement")
+
+    # Fall 1901: only Italy submits. Germany NMRs once.
+    authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
+    authenticated_client_for_secondary_user.put(confirm_order_url)
+    resp = advance_and_resolve()
+    assert resp.data["resolved"] >= 1
+
+    germany_member.refresh_from_db()
+    assert germany_member.civil_disorder is False, "One NMR alone should not trigger CD"
+
+    spring_1902 = resolve_until("Spring", 1902, "Movement")
+
+    # Spring 1902: only Italy submits. Germany's second consecutive movement-phase NMR → CD.
+    authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
+    authenticated_client_for_secondary_user.put(confirm_order_url)
+    resp = advance_and_resolve()
+    assert resp.data["resolved"] >= 1
+
+    germany_member.refresh_from_db()
+    assert germany_member.civil_disorder is True
+
+    cd_calls = [
+        c for c in mock_send_notification_to_users.call_args_list
+        if c.kwargs.get("notification_type") == "civil_disorder"
+    ]
+    assert len(cd_calls) == 1
+    assert germany_member.user.id in cd_calls[0].kwargs["user_ids"]
+    assert italy_member.user.id in cd_calls[0].kwargs["user_ids"]
+
+    fall_1902 = resolve_until("Fall", 1902, "Movement")
+
+    # Germany's PhaseState in Fall 1902 should have been auto-confirmed.
+    germany_ps = fall_1902.phase_states.get(member=germany_member)
+    assert germany_ps.orders_confirmed is True
+
+    # Italy submits and confirms; phase should resolve immediately because the CD
+    # member's PhaseState no longer blocks the all-confirmed check.
+    authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
+    authenticated_client_for_secondary_user.put(confirm_order_url)
+    resolve_response = authenticated_client.post(resolve_all_url)
+    assert resolve_response.status_code == status.HTTP_200_OK
+    assert resolve_response.data["resolved"] >= 1
+    fall_1902.refresh_from_db()
+    assert fall_1902.status == PhaseStatus.COMPLETED
+
+
+@pytest.mark.django_db
+def test_game_becomes_abandoned_when_all_active_members_in_cd(
+    authenticated_client,
+    authenticated_client_for_secondary_user,
+    italy_vs_germany_variant,
+    mock_send_notification_to_users,
+    mock_immediate_on_commit,
+):
+    """
+    Both players stop submitting orders. After two consecutive movement-phase NMRs each,
+    both are in CD and the game's status becomes ABANDONED.
+    """
+    active_game = create_active_game(
+        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+    )
+    germany_member = active_game.members.filter(nation__name="Germany").first()
+    italy_member = active_game.members.filter(nation__name="Italy").first()
+
+    create_order_url = reverse("order-create", args=[active_game.id])
+    confirm_order_url = reverse("game-confirm-phase", args=[active_game.id])
+
+    days_advanced = [0]
+
+    def advance_and_resolve():
+        days_advanced[0] += 2
+        future = timezone.now() + timedelta(days=days_advanced[0])
+        with patch("django.utils.timezone.now", return_value=future):
+            return authenticated_client.post(resolve_all_url)
+
+    # Spring 1901: both submit so neither NMRs here.
+    authenticated_client.post(create_order_url, {"selected": ["ber", "Hold"]}, format="json")
+    authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
+    authenticated_client.put(confirm_order_url)
+    authenticated_client_for_secondary_user.put(confirm_order_url)
+    resolve_response = authenticated_client.post(resolve_all_url)
+    assert resolve_response.data["resolved"] >= 1
+
+    # Advance through the rest of 1901 + Spring 1902 with nobody submitting orders.
+    # By the time Spring 1902 Movement resolves, both members will have NMR'd two
+    # consecutive movement phases (Fall 1901 + Spring 1902) and entered CD.
+    for _ in range(20):
+        resp = advance_and_resolve()
+        active_game.refresh_from_db()
+        if resp.data["resolved"] == 0:
+            break
+        if active_game.status == GameStatus.ABANDONED:
+            break
+
+    germany_member.refresh_from_db()
+    italy_member.refresh_from_db()
+
+    assert germany_member.civil_disorder is True
+    assert italy_member.civil_disorder is True
+    assert active_game.status == GameStatus.ABANDONED
+
+
+@pytest.mark.django_db
+def test_dias_draw_proposal_accepted_ends_game_in_draw(
+    authenticated_client,
+    authenticated_client_for_secondary_user,
+    italy_vs_germany_variant,
+    mock_send_notification_to_users,
+    mock_immediate_on_commit,
+):
+    """
+    Full DIAS happy path: one player proposes a draw via the API with no body,
+    every other active player accepts, and the game is marked completed with
+    every active player drawing.
+    """
+    active_game = create_active_game(
+        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+    )
+    germany_member = active_game.members.filter(nation__name="Germany").first()
+    italy_member = active_game.members.filter(nation__name="Italy").first()
+
+    create_url = reverse("draw-proposal-create", args=[active_game.id])
+    propose_response = authenticated_client.post(create_url, {}, format="json")
+    assert propose_response.status_code == status.HTTP_201_CREATED
+
+    # Proposer (Germany) already auto-accepted; Italy still needs to accept.
+    proposal = active_game.draw_proposals.first()
+    vote_url = reverse(
+        "draw-proposal-vote", args=[active_game.id, proposal.id]
+    )
+    vote_response = authenticated_client_for_secondary_user.patch(
+        vote_url, {"accepted": True}, format="json"
+    )
+    assert vote_response.status_code == status.HTTP_200_OK
+
+    # The vote response is the proposal in its tally form — no per-vote details.
+    assert "votes" not in vote_response.data
+    assert vote_response.data["accepted_count"] == 2
+    assert vote_response.data["status"] == "accepted"
+
+    active_game.refresh_from_db()
+    germany_member.refresh_from_db()
+    italy_member.refresh_from_db()
+
+    assert active_game.status == GameStatus.COMPLETED
+    assert germany_member.drew is True
+    assert italy_member.drew is True
+
+    victory = Victory.objects.get(game=active_game)
+    assert victory.members.count() == 2
+
+
+@pytest.mark.django_db
+def test_dias_draw_proposal_rejected_leaves_game_active(
+    authenticated_client,
+    authenticated_client_for_secondary_user,
+    italy_vs_germany_variant,
+    mock_send_notification_to_users,
+    mock_immediate_on_commit,
+):
+    """One active player rejects the proposal → status flips to rejected,
+    game stays active, no victory is created."""
+    active_game = create_active_game(
+        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+    )
+
+    create_url = reverse("draw-proposal-create", args=[active_game.id])
+    propose_response = authenticated_client.post(create_url, {}, format="json")
+    assert propose_response.status_code == status.HTTP_201_CREATED
+
+    proposal = active_game.draw_proposals.first()
+    vote_url = reverse(
+        "draw-proposal-vote", args=[active_game.id, proposal.id]
+    )
+    vote_response = authenticated_client_for_secondary_user.patch(
+        vote_url, {"accepted": False}, format="json"
+    )
+    assert vote_response.status_code == status.HTTP_200_OK
+    assert vote_response.data["status"] == "rejected"
+
+    active_game.refresh_from_db()
+    assert active_game.status == GameStatus.ACTIVE
+    assert not Victory.objects.filter(game=active_game).exists()
+
+
+@pytest.mark.django_db
+def test_cd_member_auto_accepts_dias_draw_and_is_excluded_from_victory(
+    authenticated_client,
+    authenticated_client_for_secondary_user,
+    italy_vs_germany_variant,
+    primary_user,
+    secondary_user,
+    mock_send_notification_to_users,
+    mock_immediate_on_commit,
+):
+    """
+    Cross-cutting end-to-end test:
+    - Set Germany into civil disorder (skipping the multi-phase NMR build-up
+      that's already covered by test_player_enters_civil_disorder_after_two_movement_phase_nmrs).
+    - Italy proposes a draw via the API with no body.
+    - Germany (CD) is auto-accepted at proposal creation.
+    - There are no other active members so the proposal is immediately accepted.
+    - Italy gets a draw victory; Germany does NOT.
+    """
+    active_game = create_active_game(
+        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+    )
+    germany_member = active_game.members.filter(nation__name="Germany").first()
+    italy_member = active_game.members.filter(nation__name="Italy").first()
+
+    germany_member.civil_disorder = True
+    germany_member.save()
+
+    # Italy (secondary) proposes the draw.
+    create_url = reverse("draw-proposal-create", args=[active_game.id])
+    propose_response = authenticated_client_for_secondary_user.post(
+        create_url, {}, format="json"
+    )
+    assert propose_response.status_code == status.HTTP_201_CREATED
+
+    # With Germany in CD (auto-accepted, excluded) and Italy proposing
+    # (auto-accepts as proposer), the proposal is already accepted.
+    proposal = active_game.draw_proposals.first()
+    assert proposal.status == "accepted"
+
+    active_game.refresh_from_db()
+    germany_member.refresh_from_db()
+    italy_member.refresh_from_db()
+
+    assert active_game.status == GameStatus.COMPLETED
+    assert italy_member.drew is True
+    assert germany_member.drew is False
+
+    victory = Victory.objects.get(game=active_game)
+    assert italy_member in victory.members.all()
+    assert germany_member not in victory.members.all()
+    assert victory.members.count() == 1

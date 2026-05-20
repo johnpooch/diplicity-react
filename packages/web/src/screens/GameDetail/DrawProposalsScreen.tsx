@@ -1,7 +1,7 @@
 import React, { Suspense } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
-import { Check, X, Clock, Handshake, Plus, MoreVertical, Ban } from "lucide-react";
+import { Check, X, Handshake, Plus, MoreVertical, Ban } from "lucide-react";
 import { useRequiredParams } from "@/hooks";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -35,26 +35,18 @@ import {
   getGameRetrieveQueryKey,
   useVariantsListSuspense,
 } from "@/api/generated/endpoints";
-import type { DrawProposal, Member, Variant } from "@/api/generated/endpoints";
-
-interface VoteStatusIconProps {
-  accepted: boolean | null;
-}
-
-const VoteStatusIcon: React.FC<VoteStatusIconProps> = ({ accepted }) => {
-  if (accepted === true) {
-    return <Check className="h-4 w-4 text-green-600" />;
-  }
-  if (accepted === false) {
-    return <X className="h-4 w-4 text-red-600" />;
-  }
-  return <Clock className="h-4 w-4 text-muted-foreground" />;
-};
+import type {
+  DrawProposal,
+  GameRetrieve,
+  Member,
+  Variant,
+} from "@/api/generated/endpoints";
 
 type TabValue = "active" | "rejected";
 
 interface ProposalItemProps {
   proposal: DrawProposal;
+  game: GameRetrieve;
   currentMember: Member | undefined;
   variant: Variant | undefined;
   onVote: (proposalId: number, accepted: boolean) => void;
@@ -65,6 +57,7 @@ interface ProposalItemProps {
 
 const ProposalItem: React.FC<ProposalItemProps> = ({
   proposal,
+  game,
   currentMember,
   variant,
   onVote,
@@ -72,13 +65,14 @@ const ProposalItem: React.FC<ProposalItemProps> = ({
   isVoting,
   isCancelling,
 }) => {
-  const currentUserVote = proposal.votes.find(v => v.member.isCurrentUser);
   const canVote =
     proposal.status === "pending" &&
-    currentUserVote &&
-    currentUserVote.accepted === null;
+    proposal.myVote !== null &&
+    proposal.myVote.accepted === null;
   const isProposer = proposal.createdBy.id === currentMember?.id;
-  const includedMembers = proposal.votes.filter(v => v.included);
+  const includedMembers = proposal.includedMemberIds
+    .map(id => game.members.find(m => m.id === id))
+    .filter((m): m is Member => Boolean(m));
 
   return (
     <Item className="border-b border-b-border">
@@ -124,20 +118,21 @@ const ProposalItem: React.FC<ProposalItemProps> = ({
           )}
         </div>
         <ItemDescription>
-          {includedMembers.map(v => v.member.nation).join(", ")}
+          {includedMembers.map(m => m.nation).join(", ")}
         </ItemDescription>
-        <div className="flex flex-wrap gap-2 mt-2">
-          {proposal.votes.map(vote => (
-            <div key={vote.member.id} className="flex items-center gap-1">
-              <NationFlag
-                nation={vote.member.nation ?? ""}
-                variantId={variant?.id ?? ""}
-                size="sm"
-              />
-              <VoteStatusIcon accepted={vote.accepted} />
-            </div>
-          ))}
+        <div className="mt-2 text-sm text-muted-foreground">
+          {proposal.acceptedCount} of {proposal.totalVotes} accepted
         </div>
+        {proposal.myVote && proposal.myVote.accepted !== null && (
+          <div className="mt-1 text-sm">
+            Your vote:{" "}
+            {proposal.myVote.accepted ? (
+              <span className="text-green-600">Accepted</span>
+            ) : (
+              <span className="text-red-600">Rejected</span>
+            )}
+          </div>
+        )}
         {canVote && (
           <div className="flex gap-2 mt-3">
             <Button
@@ -280,6 +275,7 @@ const DrawProposalsScreen: React.FC = () => {
                       <ProposalItem
                         key={proposal.id}
                         proposal={proposal}
+                        game={game}
                         currentMember={currentMember}
                         variant={variant}
                         onVote={handleVote}
@@ -304,6 +300,7 @@ const DrawProposalsScreen: React.FC = () => {
                       <ProposalItem
                         key={proposal.id}
                         proposal={proposal}
+                        game={game}
                         currentMember={currentMember}
                         variant={variant}
                         onVote={handleVote}
