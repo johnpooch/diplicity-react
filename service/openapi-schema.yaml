@@ -1374,7 +1374,6 @@ paths:
       - variants
       security:
       - jwtAuth: []
-      - {}
       responses:
         '200':
           content:
@@ -1383,6 +1382,129 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Variant'
+          description: ''
+    post:
+      operationId: variantsCreate
+      tags:
+      - variants
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VariantWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VariantWrite'
+          description: ''
+  /variants/{id}/:
+    get:
+      operationId: variantsRetrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - variants
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Variant'
+          description: ''
+    put:
+      operationId: variantsUpdate
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - variants
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VariantWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VariantWrite'
+          description: ''
+    patch:
+      operationId: variantsPartialUpdate
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - variants
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedVariantWrite'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VariantWrite'
+          description: ''
+    delete:
+      operationId: variantsDestroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - variants
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /variants/{variantId}/dvar/:
+    get:
+      operationId: variantsDvarRetrieve
+      parameters:
+      - in: path
+        name: variantId
+        schema:
+          type: string
+        required: true
+      tags:
+      - variants
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Variant'
           description: ''
   /version/:
     get:
@@ -2465,6 +2587,17 @@ components:
         email:
           type: string
           readOnly: true
+    PatchedVariantWrite:
+      type: object
+      properties:
+        dvar:
+          type: string
+          format: uri
+          writeOnly: true
+        dsvg:
+          type: string
+          format: uri
+          writeOnly: true
     PhaseList:
       type: object
       properties:
@@ -2756,6 +2889,20 @@ components:
           type: string
         rules:
           type: string
+        status:
+          type: string
+          readOnly: true
+        ownerId:
+          type: integer
+          readOnly: true
+          nullable: true
+        ownerUsername:
+          type: string
+          nullable: true
+          readOnly: true
+        canEdit:
+          type: boolean
+          readOnly: true
         victoryConditions:
           $ref: '#/components/schemas/VictoryConditions'
         svgUrl:
@@ -2773,15 +2920,33 @@ components:
         templatePhase:
           $ref: '#/components/schemas/PhaseRetrieve'
       required:
+      - canEdit
       - description
       - id
       - name
       - nations
+      - ownerId
+      - ownerUsername
       - provinces
       - rules
+      - status
       - svgUrl
       - templatePhase
       - victoryConditions
+    VariantWrite:
+      type: object
+      properties:
+        dvar:
+          type: string
+          format: uri
+          writeOnly: true
+        dsvg:
+          type: string
+          format: uri
+          writeOnly: true
+      required:
+      - dsvg
+      - dvar
     VerifyEmail:
       type: object
       properties:

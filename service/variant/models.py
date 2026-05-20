@@ -1,10 +1,11 @@
 import hashlib
 
+from django.conf import settings
 from django.db import models
 from django.db.models import Prefetch
 
 from common.models import BaseModel
-from common.constants import PhaseStatus
+from common.constants import PhaseStatus, VariantStatus
 from phase.models import Phase
 
 
@@ -48,7 +49,7 @@ class VariantQuerySet(models.QuerySet):
             to_attr="template_phases",
         )
 
-        return self.select_related("svg").defer("svg__svg").prefetch_related(
+        return self.select_related("svg", "owner").defer("svg__svg").prefetch_related(
             # Variant data with optimized template phase
             "provinces__parent",
             "provinces__named_coasts",
@@ -81,6 +82,9 @@ class VariantManager(models.Manager):
     def get_queryset(self):
         return VariantQuerySet(self.model, using=self._db)
 
+    def with_related_data(self):
+        return self.get_queryset().with_related_data()
+
     def with_game_creation_data(self):
         return self.get_queryset().with_game_creation_data()
 
@@ -96,6 +100,18 @@ class Variant(BaseModel):
     adjudication_modifiers = models.JSONField(default=list)
     phase_progression = models.JSONField(default=default_phase_progression)
     rules = models.TextField(blank=True, default="")
+    status = models.CharField(
+        max_length=20,
+        choices=VariantStatus.STATUS_CHOICES,
+        default=VariantStatus.DRAFT,
+    )
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="owned_variants",
+    )
 
     @property
     def solo_victory_supply_centers(self):

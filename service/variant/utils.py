@@ -1,13 +1,172 @@
 import re
 import xml.etree.ElementTree as ElementTree
 from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
 
+import yaml
+from jsonschema import Draft202012Validator
 from lxml import etree
 
 from common.constants import ProvinceType
 
 
 SCHEMA_VERSION = 1
+
+DVAR_SCHEMA_PATH = Path(__file__).resolve().parent.parent / "variant.schema.yaml"
+
+
+@dataclass(frozen=True)
+class DvarValidationError:
+    code: str
+    message: str
+    path: str = ""
+
+
+@lru_cache(maxsize=1)
+def _dvar_validator():
+    with open(DVAR_SCHEMA_PATH) as f:
+        schema = yaml.safe_load(f)
+    return Draft202012Validator(schema)
+
+
+def _format_jsonschema_path(error):
+    if not error.absolute_path:
+        return ""
+    return ".".join(str(part) for part in error.absolute_path)
+
+
+def validate_dvar(dvar):
+    if not isinstance(dvar, dict):
+        return [DvarValidationError("INVALID_PAYLOAD", "DVAR must be a JSON object.")]
+
+    errors = [
+        DvarValidationError(
+            code="SCHEMA_VIOLATION",
+            message=error.message,
+            path=_format_jsonschema_path(error),
+        )
+        for error in sorted(_dvar_validator().iter_errors(dvar), key=lambda e: e.absolute_path)
+    ]
+    if errors:
+        return errors
+
+    errors.extend(_validate_dvar_references(dvar))
+    errors.extend(_validate_dvar_adjacencies(dvar))
+    return errors
+
+
+def _validate_dvar_references(dvar):
+    errors = []
+    nation_ids = {nation["id"] for nation in dvar["nations"]}
+    province_ids = {province["id"] for province in dvar["provinces"]}
+    named_coast_ids = {coast["id"] for coast in dvar.get("namedCoasts", [])}
+    location_ids = province_ids | named_coast_ids
+
+    for province in dvar["provinces"]:
+        if "homeNation" in province and province["homeNation"] not in nation_ids:
+            errors.append(
+                DvarValidationError(
+                    "UNKNOWN_NATION",
+                    f"Province '{province['id']}' references unknown homeNation '{province['homeNation']}'.",
+                    f"provinces.{province['id']}.homeNation",
+                )
+            )
+
+    for coast in dvar.get("namedCoasts", []):
+        if coast["parentProvince"] not in province_ids:
+            errors.append(
+                DvarValidationError(
+                    "UNKNOWN_PROVINCE",
+                    f"Named coast '{coast['id']}' references unknown parentProvince '{coast['parentProvince']}'.",
+                    f"namedCoasts.{coast['id']}.parentProvince",
+                )
+            )
+
+    initial = dvar["initialState"]
+    for unit in initial["units"]:
+        if unit["nation"] not in nation_ids:
+            errors.append(
+                DvarValidationError(
+                    "UNKNOWN_NATION",
+                    f"Initial unit at '{unit['location']}' references unknown nation '{unit['nation']}'.",
+                    "initialState.units",
+                )
+            )
+        if unit["location"] not in location_ids:
+            errors.append(
+                DvarValidationError(
+                    "UNKNOWN_LOCATION",
+                    f"Initial unit references unknown location '{unit['location']}'.",
+                    "initialState.units",
+                )
+            )
+
+    for sc in initial["supplyCenters"]:
+        if sc["nation"] not in nation_ids:
+            errors.append(
+                DvarValidationError(
+                    "UNKNOWN_NATION",
+                    f"Initial supply center at '{sc['province']}' references unknown nation '{sc['nation']}'.",
+                    "initialState.supplyCenters",
+                )
+            )
+        if sc["province"] not in province_ids:
+            errors.append(
+                DvarValidationError(
+                    "UNKNOWN_PROVINCE",
+                    f"Initial supply center references unknown province '{sc['province']}'.",
+                    "initialState.supplyCenters",
+                )
+            )
+
+    return errors
+
+
+def _validate_dvar_adjacencies(dvar):
+    errors = []
+    edges = {}
+    for province in dvar["provinces"]:
+        for adjacency in province.get("adjacencies", []):
+            edges[(province["id"], adjacency["to"])] = adjacency["pass"]
+    for coast in dvar.get("namedCoasts", []):
+        for adjacency in coast.get("adjacencies", []):
+            edges[(coast["id"], adjacency["to"])] = adjacency["pass"]
+
+    location_ids = (
+        {province["id"] for province in dvar["provinces"]}
+        | {coast["id"] for coast in dvar.get("namedCoasts", [])}
+    )
+
+    for (source, target), pass_kind in edges.items():
+        if target not in location_ids:
+            errors.append(
+                DvarValidationError(
+                    "UNKNOWN_ADJACENCY",
+                    f"Adjacency '{source}' → '{target}' references unknown location.",
+                    f"adjacencies.{source}",
+                )
+            )
+            continue
+        reverse = edges.get((target, source))
+        if reverse is None:
+            errors.append(
+                DvarValidationError(
+                    "ASYMMETRIC_ADJACENCY",
+                    f"Adjacency '{source}' → '{target}' has no matching '{target}' → '{source}' entry.",
+                    f"adjacencies.{source}",
+                )
+            )
+        elif reverse != pass_kind:
+            errors.append(
+                DvarValidationError(
+                    "INCONSISTENT_ADJACENCY",
+                    f"Adjacency '{source}' ↔ '{target}' has mismatched pass: '{pass_kind}' vs '{reverse}'.",
+                    f"adjacencies.{source}",
+                )
+            )
+
+    return errors
 
 
 def variant_to_canonical_dict(variant):
@@ -578,3 +737,145 @@ def validate_dsvg(svg, variant=None):
             )
 
     return errors
+
+
+def create_variant_from_dvar(dvar, owner=None, status=None):
+    from common.constants import VariantStatus
+    from variant.models import Variant
+
+    if status is None:
+        status = VariantStatus.DRAFT
+
+    variant = Variant.objects.create(
+        id=dvar["id"],
+        name=dvar["name"],
+        description=dvar["description"],
+        author=dvar.get("author", ""),
+        rules=dvar.get("rules", ""),
+        victory_conditions=dvar["victoryConditions"],
+        adjudication_modifiers=dvar.get("adjudicationModifiers", []),
+        phase_progression=dvar["phaseProgression"],
+        status=status,
+        owner=owner,
+    )
+    _build_variant_children(variant, dvar)
+    return variant
+
+
+def update_variant_from_dvar(variant, dvar):
+    from game.models import Game
+    from nation.models import Nation
+    from phase.models import Phase
+    from province.models import Province
+
+    Game.objects.filter(variant=variant).delete()
+    Phase.objects.filter(variant=variant).delete()
+    Province.objects.filter(variant=variant, parent__isnull=False).delete()
+    Province.objects.filter(variant=variant).delete()
+    Nation.objects.filter(variant=variant).delete()
+
+    if hasattr(variant, "_prefetched_objects_cache"):
+        variant._prefetched_objects_cache.clear()
+
+    variant.name = dvar["name"]
+    variant.description = dvar["description"]
+    variant.author = dvar.get("author", "")
+    variant.rules = dvar.get("rules", "")
+    variant.victory_conditions = dvar["victoryConditions"]
+    variant.adjudication_modifiers = dvar.get("adjudicationModifiers", [])
+    variant.phase_progression = dvar["phaseProgression"]
+    variant.save()
+
+    _build_variant_children(variant, dvar)
+    return variant
+
+
+def _build_variant_children(variant, dvar):
+    from common.constants import PhaseStatus, ProvinceType
+    from nation.models import Nation
+    from phase.models import Phase
+    from province.models import Province
+    from supply_center.models import SupplyCenter
+    from unit.models import Unit
+
+    province_type_for = {
+        "land": ProvinceType.LAND,
+        "sea": ProvinceType.SEA,
+        "coastal": ProvinceType.COASTAL,
+    }
+
+    nations_to_create = [
+        Nation(
+            variant=variant,
+            nation_id=nation["id"],
+            name=nation["name"],
+            color=nation["color"],
+        )
+        for nation in dvar["nations"]
+    ]
+    Nation.objects.bulk_create(nations_to_create)
+    nation_by_id = {nation.nation_id: nation for nation in Nation.objects.filter(variant=variant)}
+
+    parents_to_create = [
+        Province(
+            variant=variant,
+            province_id=province["id"],
+            name=province["name"],
+            type=province_type_for[province["type"]],
+            supply_center=province["supplyCenter"],
+            home_nation=nation_by_id.get(province.get("homeNation")),
+            adjacencies=province.get("adjacencies", []),
+        )
+        for province in dvar["provinces"]
+    ]
+    Province.objects.bulk_create(parents_to_create)
+    province_by_id = {province.province_id: province for province in Province.objects.filter(variant=variant)}
+
+    coasts_to_create = [
+        Province(
+            variant=variant,
+            province_id=coast["id"],
+            name=coast["name"],
+            type=ProvinceType.NAMED_COAST,
+            supply_center=False,
+            parent=province_by_id[coast["parentProvince"]],
+            adjacencies=coast.get("adjacencies", []),
+        )
+        for coast in dvar.get("namedCoasts", [])
+    ]
+    Province.objects.bulk_create(coasts_to_create)
+    province_by_id = {province.province_id: province for province in Province.objects.filter(variant=variant)}
+
+    initial = dvar["initialState"]
+    template_phase = Phase.objects.create(
+        variant=variant,
+        game=None,
+        ordinal=1,
+        status=PhaseStatus.TEMPLATE,
+        season=initial["phase"]["season"],
+        year=initial["phase"]["year"],
+        type=initial["phase"]["type"],
+    )
+
+    Unit.objects.bulk_create(
+        [
+            Unit(
+                phase=template_phase,
+                type=unit["type"],
+                nation=nation_by_id[unit["nation"]],
+                province=province_by_id[unit["location"]],
+            )
+            for unit in initial["units"]
+        ]
+    )
+
+    SupplyCenter.objects.bulk_create(
+        [
+            SupplyCenter(
+                phase=template_phase,
+                nation=nation_by_id[sc["nation"]],
+                province=province_by_id[sc["province"]],
+            )
+            for sc in initial["supplyCenters"]
+        ]
+    )

@@ -6,7 +6,7 @@ from django.db.models import Count, Q, Subquery, OuterRef
 from django.apps import apps
 from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
-from common.constants import DeadlineMode, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType
+from common.constants import DeadlineMode, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType, VariantStatus
 from member.serializers import MemberSerializer
 from unit.models import Unit
 from supply_center.models import SupplyCenter
@@ -249,7 +249,7 @@ class GameCreateSerializer(serializers.Serializer):
     )
 
     def validate_variant_id(self, value):
-        if not Variant.objects.filter(id=value).exists():
+        if not Variant.objects.filter(id=value, status=VariantStatus.PUBLISHED).exists():
             raise serializers.ValidationError("Variant with this ID does not exist.")
         return value
 

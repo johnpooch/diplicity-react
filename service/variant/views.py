@@ -1,18 +1,73 @@
 import gzip
+import json
 
+from django.db import transaction
 from django.http import HttpResponse, HttpResponseNotFound
 from django.views import View
-from rest_framework.generics import ListAPIView
-from rest_framework.permissions import AllowAny
+from rest_framework import generics, permissions
+from rest_framework.parsers import MultiPartParser
+from rest_framework.permissions import IsAuthenticated
 
+from common.constants import VariantStatus
+from province.models import Province
 from .models import Variant, VariantSvg
-from .serializers import VariantSerializer
+from .serializers import VariantSerializer, VariantWriteSerializer
+from .utils import variant_to_canonical_dict
 
 
-class VariantListView(ListAPIView):
-    serializer_class = VariantSerializer
-    permission_classes = [AllowAny]
+class IsOwnedDraftForWrite(permissions.BasePermission):
+    message = "Only the owner of a draft variant can modify it."
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return (
+            obj.status == VariantStatus.DRAFT
+            and obj.owner_id is not None
+            and obj.owner_id == request.user.id
+        )
+
+
+class VariantListCreateView(generics.ListCreateAPIView):
     queryset = Variant.objects.all().with_related_data()
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser]
+
+    def get_serializer_class(self):
+        if self.request.method == "POST":
+            return VariantWriteSerializer
+        return VariantSerializer
+
+
+class VariantDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Variant.objects.all().with_related_data()
+    permission_classes = [IsAuthenticated, IsOwnedDraftForWrite]
+    parser_classes = [MultiPartParser]
+
+    def get_serializer_class(self):
+        if self.request.method in ("PUT", "PATCH"):
+            return VariantWriteSerializer
+        return VariantSerializer
+
+    def perform_destroy(self, instance):
+        with transaction.atomic():
+            Province.objects.filter(variant=instance, parent__isnull=False).delete()
+            instance.delete()
+
+
+class VariantDvarDownloadView(generics.GenericAPIView):
+    queryset = Variant.objects.all().with_related_data()
+    serializer_class = VariantSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_url_kwarg = "variant_id"
+
+    def get(self, request, *args, **kwargs):
+        variant = self.get_object()
+        dvar = variant_to_canonical_dict(variant)
+        body = json.dumps(dvar, indent=2)
+        response = HttpResponse(body, content_type="application/json")
+        response["Content-Disposition"] = f'attachment; filename="{variant.id}.dvar.json"'
+        return response
 
 
 class VariantSvgView(View):

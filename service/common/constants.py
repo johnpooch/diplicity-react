@@ -108,6 +108,18 @@ class NationAssignment:
     )
 
 
+class VariantStatus:
+    DRAFT = "draft"
+    PUBLISHED = "published"
+    ARCHIVED = "archived"
+
+    STATUS_CHOICES = (
+        (DRAFT, "Draft"),
+        (PUBLISHED, "Published"),
+        (ARCHIVED, "Archived"),
+    )
+
+
 class PhaseStatus:
     PENDING = "pending"
     ACTIVE = "active"

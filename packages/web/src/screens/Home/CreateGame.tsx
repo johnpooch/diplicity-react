@@ -706,7 +706,11 @@ const CreateGame: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const { data: variants } = useVariantsListSuspense();
+  const { data: allVariants } = useVariantsListSuspense();
+  const variants = React.useMemo(
+    () => allVariants.filter(v => v.status === "published"),
+    [allVariants]
+  );
   const createGameMutation = useGameCreate();
   const createSandboxGameMutation = useSandboxGameCreate();
 

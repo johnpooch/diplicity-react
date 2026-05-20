@@ -13,7 +13,7 @@ import { CheckEmail } from "./screens/CheckEmail";
 import { ForgotPassword } from "./screens/ForgotPassword";
 import { VerifyEmail } from "./screens/VerifyEmail";
 import { ResetPassword } from "./screens/ResetPassword";
-import { GameDetail, Home } from "./screens";
+import { GameDetail, Home, Variants } from "./screens";
 import { ErrorFallbackUI } from "./components/ErrorBoundary";
 import { HomeLayout } from "./components/HomeLayout";
 import { GameDetailLayout } from "./components/GameDetailLayout";
@@ -163,6 +163,30 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
                       element: (
                         <Suspense fallback={<RouteFallback />}>
                           <Home.PlayerInfoScreen />
+                        </Suspense>
+                      ),
+                    },
+                    {
+                      path: "variants",
+                      element: (
+                        <Suspense fallback={<RouteFallback />}>
+                          <Variants.VariantsList />
+                        </Suspense>
+                      ),
+                    },
+                    {
+                      path: "variants/create",
+                      element: (
+                        <Suspense fallback={<RouteFallback />}>
+                          <Variants.VariantCreate />
+                        </Suspense>
+                      ),
+                    },
+                    {
+                      path: "variants/:variantId/edit",
+                      element: (
+                        <Suspense fallback={<RouteFallback />}>
+                          <Variants.VariantEditRoute />
                         </Suspense>
                       ),
                     },

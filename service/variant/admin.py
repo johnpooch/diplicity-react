@@ -1,15 +1,34 @@
 from django import forms
-from django.contrib import admin
+from django.contrib import admin, messages
 from lxml.etree import XMLSyntaxError
 
+from common.constants import VariantStatus
 from .models import Variant, VariantSvg
 from .utils import normalize_dsvg, validate_dsvg
 
 
 @admin.register(Variant)
 class VariantAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name')
-    search_fields = ('name',)
+    list_display = ("id", "name", "status", "owner")
+    list_filter = ("status",)
+    search_fields = ("name", "id")
+    autocomplete_fields = ("owner",)
+    actions = ("publish_selected", "archive_selected", "revert_to_draft_selected")
+
+    @admin.action(description="Publish selected drafts")
+    def publish_selected(self, request, queryset):
+        updated = queryset.filter(status=VariantStatus.DRAFT).update(status=VariantStatus.PUBLISHED)
+        self.message_user(request, f"Published {updated} variant(s).", level=messages.SUCCESS)
+
+    @admin.action(description="Archive selected published variants")
+    def archive_selected(self, request, queryset):
+        updated = queryset.filter(status=VariantStatus.PUBLISHED).update(status=VariantStatus.ARCHIVED)
+        self.message_user(request, f"Archived {updated} variant(s).", level=messages.SUCCESS)
+
+    @admin.action(description="Revert selected to draft (use with care)")
+    def revert_to_draft_selected(self, request, queryset):
+        updated = queryset.exclude(status=VariantStatus.DRAFT).update(status=VariantStatus.DRAFT)
+        self.message_user(request, f"Reverted {updated} variant(s) to draft.", level=messages.WARNING)
 
 
 class VariantSvgAdminForm(forms.ModelForm):
