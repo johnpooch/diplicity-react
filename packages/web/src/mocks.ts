@@ -33,6 +33,7 @@ export const mockMembers: Member[] = [
     kicked: false,
     isGameMaster: true,
     nmrExtensionsRemaining: 2,
+    civilDisorder: false,
   },
   {
     id: 2,
@@ -44,6 +45,7 @@ export const mockMembers: Member[] = [
     kicked: false,
     isGameMaster: false,
     nmrExtensionsRemaining: 2,
+    civilDisorder: false,
   },
   {
     id: 3,
@@ -55,6 +57,7 @@ export const mockMembers: Member[] = [
     kicked: false,
     isGameMaster: false,
     nmrExtensionsRemaining: 2,
+    civilDisorder: false,
   },
   {
     id: 4,
@@ -66,6 +69,7 @@ export const mockMembers: Member[] = [
     kicked: false,
     isGameMaster: false,
     nmrExtensionsRemaining: 2,
+    civilDisorder: false,
   },
   {
     id: 5,
@@ -77,6 +81,7 @@ export const mockMembers: Member[] = [
     kicked: false,
     isGameMaster: false,
     nmrExtensionsRemaining: 2,
+    civilDisorder: false,
   },
   {
     id: 6,
@@ -88,6 +93,7 @@ export const mockMembers: Member[] = [
     kicked: false,
     isGameMaster: false,
     nmrExtensionsRemaining: 2,
+    civilDisorder: false,
   },
   {
     id: 7,
@@ -99,6 +105,7 @@ export const mockMembers: Member[] = [
     kicked: false,
     isGameMaster: false,
     nmrExtensionsRemaining: 2,
+    civilDisorder: false,
   },
 ];
 

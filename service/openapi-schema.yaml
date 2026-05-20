@@ -1230,7 +1230,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/DrawProposal'
-        required: true
       security:
       - jwtAuth: []
       responses:
@@ -1684,16 +1683,27 @@ components:
         status:
           type: string
           readOnly: true
-        combinedScCount:
+        acceptedCount:
           type: integer
           readOnly: true
-        victoryThreshold:
+        rejectedCount:
           type: integer
           readOnly: true
-        votes:
+        pendingCount:
+          type: integer
+          readOnly: true
+        totalVotes:
+          type: integer
+          readOnly: true
+        includedMemberIds:
           type: array
           items:
-            $ref: '#/components/schemas/DrawVote'
+            type: integer
+          readOnly: true
+        myVote:
+          allOf:
+          - $ref: '#/components/schemas/MyVote'
+          nullable: true
           readOnly: true
         phaseId:
           type: integer
@@ -1702,43 +1712,18 @@ components:
           type: string
           format: date-time
           readOnly: true
-        includedMemberIds:
-          type: array
-          items:
-            type: integer
-          writeOnly: true
       required:
-      - combinedScCount
+      - acceptedCount
       - createdAt
       - createdBy
       - id
       - includedMemberIds
+      - myVote
+      - pendingCount
       - phaseId
+      - rejectedCount
       - status
-      - victoryThreshold
-      - votes
-    DrawVote:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        member:
-          allOf:
-          - $ref: '#/components/schemas/DrawVoteMember'
-          readOnly: true
-        included:
-          type: boolean
-          readOnly: true
-        accepted:
-          type: boolean
-          readOnly: true
-          nullable: true
-      required:
-      - accepted
-      - id
-      - included
-      - member
+      - totalVotes
     DrawVoteMember:
       type: object
       properties:
@@ -2304,7 +2289,11 @@ components:
         nmrExtensionsRemaining:
           type: integer
           readOnly: true
+        civilDisorder:
+          type: boolean
+          readOnly: true
       required:
+      - civilDisorder
       - eliminated
       - id
       - isCurrentUser
@@ -2326,6 +2315,19 @@ components:
         * `daily` - Daily
         * `every_2_days` - Every 2 days
         * `weekly` - Weekly
+    MyVote:
+      type: object
+      properties:
+        included:
+          type: boolean
+          readOnly: true
+        accepted:
+          type: boolean
+          readOnly: true
+          nullable: true
+      required:
+      - accepted
+      - included
     Nation:
       type: object
       properties:

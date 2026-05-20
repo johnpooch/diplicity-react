@@ -93,9 +93,41 @@ describe("toRenderState", () => {
     );
 
     expect(state.units).toEqual([
-      { province: "lon", nation: "England", type: "Army", dislodged: false },
-      { province: "bre", nation: "France", type: "Fleet", dislodged: true },
+      { province: "lon", nation: "England", type: "Army", dislodged: false, civilDisorder: false },
+      { province: "bre", nation: "France", type: "Fleet", dislodged: true, civilDisorder: false },
     ]);
+  });
+
+  test("marks units of civil disorder nations", () => {
+    const state = toRenderState(
+      variant,
+      {
+        ...emptyPhase,
+        units: [
+          {
+            type: "Army",
+            nation: nations[0],
+            province: province("lon"),
+            dislodged: false,
+            dislodgedBy: null,
+          },
+          {
+            type: "Fleet",
+            nation: nations[1],
+            province: province("bre"),
+            dislodged: false,
+            dislodgedBy: null,
+          },
+        ],
+      },
+      [],
+      [],
+      [],
+      ["England"]
+    );
+
+    expect(state.units?.[0].civilDisorder).toBe(true);
+    expect(state.units?.[1].civilDisorder).toBe(false);
   });
 
   test("flattens supplyCenters to province id + nation name", () => {

@@ -78,10 +78,11 @@ const getPendingVotesCount = (
   proposals: DrawProposal[],
   currentMemberId?: number
 ) => {
+  if (currentMemberId === undefined) return 0;
   return proposals.filter(p => {
     if (p.status !== "pending") return false;
-    const userVote = p.votes.find(v => v.member.id === currentMemberId);
-    return userVote && userVote.accepted === null;
+    if (!p.myVote) return false;
+    return p.myVote.accepted === null;
   }).length;
 };
 

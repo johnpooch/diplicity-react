@@ -2,7 +2,7 @@ import json
 import logging
 
 from django.db import models, transaction
-from django.db.models import Q, Exists, OuterRef
+from django.db.models import Q, Exists, OuterRef, Count
 from django.utils import timezone
 from opentelemetry import trace
 from common.models import BaseModel
@@ -291,26 +291,87 @@ class PhaseManager(models.Manager):
 
             return {"notifications_sent": notifications_sent}
 
+    def _check_civil_disorder(self, phase):
+        if phase.game.sandbox:
+            return []
+        if phase.type != PhaseType.MOVEMENT:
+            return []
+
+        current_nmr_members = []
+        for phase_state in phase.phase_states.all():
+            if not phase_state.has_possible_orders:
+                continue
+            if len(phase_state.orders.all()) > 0:
+                continue
+            member = phase_state.member
+            if member.civil_disorder or member.eliminated or member.kicked:
+                continue
+            current_nmr_members.append(member)
+
+        if not current_nmr_members:
+            return []
+
+        prev_movement_states = (
+            PhaseState.objects.filter(
+                member__in=current_nmr_members,
+                phase__game=phase.game,
+                phase__type=PhaseType.MOVEMENT,
+                phase__status=PhaseStatus.COMPLETED,
+                phase__ordinal__lt=phase.ordinal,
+                has_possible_orders=True,
+            )
+            .annotate(order_count=Count("orders"))
+            .order_by("member_id", "-phase__ordinal")
+        )
+
+        latest_prev_by_member = {}
+        for ps in prev_movement_states:
+            if ps.member_id not in latest_prev_by_member:
+                latest_prev_by_member[ps.member_id] = ps
+
+        newly_cd_members = [
+            m for m in current_nmr_members
+            if m.id in latest_prev_by_member
+            and latest_prev_by_member[m.id].order_count == 0
+        ]
+
+        if not newly_cd_members:
+            return []
+
+        for m in newly_cd_members:
+            m.civil_disorder = True
+        Member.objects.bulk_update(newly_cd_members, ["civil_disorder"])
+
+        user_ids = [
+            m.user_id for m in phase.game.members.all() if m.user_id is not None
+        ]
+        nation_names = ", ".join(
+            m.nation.name for m in newly_cd_members if m.nation is not None
+        )
+
+        def send_notifications():
+            if user_ids:
+                notification_utils.send_notification_to_users(
+                    user_ids=user_ids,
+                    title="Civil Disorder",
+                    body=f"{nation_names} entered civil disorder.",
+                    notification_type="civil_disorder",
+                    data={"game_id": str(phase.game.id)},
+                )
+
+        transaction.on_commit(send_notifications)
+
+        return newly_cd_members
+
     def _check_abandonment(self, game):
         if game.sandbox:
             return False
 
-        completed_movement_phases = list(
-            game.phases.filter(
-                status=PhaseStatus.COMPLETED,
-                type=PhaseType.MOVEMENT,
-            )
-            .order_by('-ordinal')[:2]
-        )
-
-        if len(completed_movement_phases) < 2:
+        active_members = list(game.members.filter(eliminated=False, kicked=False))
+        if not active_members:
             return False
 
-        for phase in completed_movement_phases:
-            if len(phase.all_orders) > 0:
-                return False
-
-        return True
+        return all(m.civil_disorder for m in active_members)
 
     def resolve(self, phase):
         with tracer.start_as_current_span("phase.manager.resolve") as span:
@@ -325,6 +386,7 @@ class PhaseManager(models.Manager):
 
             with tracer.start_as_current_span("phase.transaction_atomic"):
                 with transaction.atomic():
+                    self._check_civil_disorder(phase)
                     new_phase = self.create_from_adjudication_data(phase, adjudication_data)
 
                     victory = Victory.objects.try_create_victory(new_phase)
@@ -527,6 +589,7 @@ class PhaseManager(models.Manager):
                                 member=member,
                                 phase=new_phase,
                                 has_possible_orders=member.nation.name in nations_with_orders,
+                                orders_confirmed=member.civil_disorder,
                             )
                         )
 

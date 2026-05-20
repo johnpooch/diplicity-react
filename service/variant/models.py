@@ -143,11 +143,7 @@ class Variant(BaseModel):
         if hasattr(self, "template_phases"):
             return self.template_phases[0] if self.template_phases else None
 
-        # Fall back to database query if not prefetched
-        for phase in self.phases.all():
-            if phase.game is None and phase.status == PhaseStatus.TEMPLATE:
-                return phase
-        return None
+        return self.phases.filter(game__isnull=True, status=PhaseStatus.TEMPLATE).first()
 
 
 class VariantSvg(BaseModel):

@@ -22,6 +22,7 @@ export type UnitState = {
   nation: string;
   type: "Army" | "Fleet";
   dislodged?: boolean;
+  civilDisorder?: boolean;
 };
 
 export type OrderType =
@@ -208,6 +209,16 @@ const retreatFlag = (cx: number, cy: number): string =>
   `<line x1="0" y1="0" x2="0" y2="12" stroke="black" stroke-width="2"/>` +
   `<path d="M 0 0 L 8 2 L 8 6 L 0 8 Z" fill="white" stroke="black" stroke-width="1"/></g>`;
 
+const civilDisorderBadge = (cx: number, cy: number): string =>
+  `<g data-civil-disorder="true" transform="translate(${formatCoord(cx - 9)}, ${formatCoord(cy - 9)})">` +
+  `<circle cx="0" cy="0" r="7" fill="white" stroke="black" stroke-width="1.5"/>` +
+  `<g transform="translate(-5, -5) scale(0.417)" fill="none" stroke="black" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">` +
+  `<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>` +
+  `<circle cx="9" cy="7" r="4"/>` +
+  `<line x1="17" x2="22" y1="8" y2="13"/>` +
+  `<line x1="22" x2="17" y1="8" y2="13"/>` +
+  `</g></g>`;
+
 const unitToken = (
   cx: number,
   cy: number,
@@ -241,7 +252,8 @@ const unitMarkup = (
     1
   );
   const flag = unit.dislodged && !dimmed ? retreatFlag(cx, cy) : "";
-  return `<g>${token}${flag}</g>`;
+  const cdBadge = unit.civilDisorder && !dimmed ? civilDisorderBadge(cx, cy) : "";
+  return `<g>${token}${flag}${cdBadge}</g>`;
 };
 
 const unitsLayer = (
