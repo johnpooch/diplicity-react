@@ -128,6 +128,7 @@ const matchedGame: GameList = {
       kicked: false,
       isGameMaster: true,
       nmrExtensionsRemaining: 0,
+      civilDisorder: false,
     },
     {
       id: 100,
@@ -139,6 +140,7 @@ const matchedGame: GameList = {
       kicked: false,
       isGameMaster: false,
       nmrExtensionsRemaining: 0,
+      civilDisorder: false,
     },
   ],
   victory: null,
