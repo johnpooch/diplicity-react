@@ -12,6 +12,45 @@ join_viewname = "game-join"
 retrieve_viewname = "game-retrieve"
 
 
+class TestCivilDisorderSerialization:
+
+    @pytest.mark.django_db
+    def test_civil_disorder_defaults_to_false_in_serialized_member(
+        self, authenticated_client, classical_variant, classical_england_nation, primary_user
+    ):
+        game = Game.objects.create(
+            name="Test Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        game.members.create(user=primary_user, nation=classical_england_nation)
+
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["members"][0]["civil_disorder"] is False
+
+    @pytest.mark.django_db
+    def test_civil_disorder_true_is_serialized(
+        self, authenticated_client, classical_variant, classical_england_nation, primary_user
+    ):
+        game = Game.objects.create(
+            name="Test Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        game.members.create(
+            user=primary_user, nation=classical_england_nation, civil_disorder=True
+        )
+
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["members"][0]["civil_disorder"] is True
+
+
 class TestDeletedUserMemberSerialization:
 
     @pytest.mark.django_db

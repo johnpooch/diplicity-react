@@ -43,7 +43,7 @@ class DrawProposalManager(models.Manager):
     def with_related_data(self):
         return self.get_queryset().with_related_data()
 
-    def create_proposal(self, game, created_by, included_member_ids):
+    def create_proposal(self, game, created_by):
         phase = game.current_phase
 
         all_active_members = list(game.members.filter(
@@ -58,18 +58,32 @@ class DrawProposalManager(models.Manager):
 
         votes_to_create = []
         for member in all_active_members:
-            is_included = member.id in included_member_ids
-            is_proposer = member.id == created_by.id
-            votes_to_create.append(
-                DrawVote(
-                    proposal=proposal,
-                    member=member,
-                    included=is_included,
-                    accepted=True if is_proposer else None,
+            if member.civil_disorder:
+                votes_to_create.append(
+                    DrawVote(
+                        proposal=proposal,
+                        member=member,
+                        included=False,
+                        accepted=True,
+                    )
                 )
-            )
+            else:
+                votes_to_create.append(
+                    DrawVote(
+                        proposal=proposal,
+                        member=member,
+                        included=True,
+                        accepted=True if member.id == created_by.id else None,
+                    )
+                )
 
         DrawVote.objects.bulk_create(votes_to_create)
+
+        # If every active member's vote is already True (e.g. proposer is the
+        # only non-CD active member, so all votes are auto-True), the proposal
+        # is already ACCEPTED at creation time and needs to be processed.
+        if proposal.status == DrawProposalStatus.ACCEPTED:
+            proposal.process_acceptance()
 
         return proposal
 
@@ -102,21 +116,8 @@ class DrawProposal(BaseModel):
         return DrawProposalStatus.PENDING
 
     @property
-    def combined_sc_count(self):
-        included_nations = [
-            vote.member.nation for vote in self.votes.all() if vote.included
-        ]
-        return self.phase.supply_centers.filter(
-            nation__in=included_nations
-        ).count()
-
-    @property
     def included_members(self):
         return [vote.member for vote in self.votes.all() if vote.included]
-
-    @property
-    def victory_threshold(self):
-        return self.game.variant.solo_victory_supply_centers
 
     def process_acceptance(self):
         if self.status != DrawProposalStatus.ACCEPTED:
