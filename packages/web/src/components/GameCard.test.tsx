@@ -110,6 +110,58 @@ describe("GameCard", () => {
     });
   });
 
+  describe("cadence display", () => {
+    const baseGame = mockGames[0];
+
+    it("shows movementPhaseDuration for duration mode", () => {
+      renderGameCard({
+        game: { ...baseGame, deadlineMode: "duration", movementPhaseDuration: "12 hours" },
+        ...defaultProps,
+      });
+      expect(screen.getByText(/Classical Diplomacy • 12 hours/)).toBeInTheDocument();
+    });
+
+    it("shows 'Resolve when ready' for duration mode with no duration", () => {
+      renderGameCard({
+        game: { ...baseGame, deadlineMode: "duration", movementPhaseDuration: null },
+        ...defaultProps,
+      });
+      expect(screen.getByText(/Classical Diplomacy • Resolve when ready/)).toBeInTheDocument();
+    });
+
+    it("shows frequency label for fixed_time mode (hourly)", () => {
+      renderGameCard({
+        game: { ...baseGame, deadlineMode: "fixed_time", movementFrequency: "hourly", movementPhaseDuration: "24 hours" },
+        ...defaultProps,
+      });
+      expect(screen.getByText(/Classical Diplomacy • Hourly/)).toBeInTheDocument();
+    });
+
+    it("shows frequency label for fixed_time mode (daily)", () => {
+      renderGameCard({
+        game: { ...baseGame, deadlineMode: "fixed_time", movementFrequency: "daily", movementPhaseDuration: "24 hours" },
+        ...defaultProps,
+      });
+      expect(screen.getByText(/Classical Diplomacy • Daily/)).toBeInTheDocument();
+    });
+
+    it("shows frequency label for fixed_time mode (weekly)", () => {
+      renderGameCard({
+        game: { ...baseGame, deadlineMode: "fixed_time", movementFrequency: "weekly", movementPhaseDuration: "24 hours" },
+        ...defaultProps,
+      });
+      expect(screen.getByText(/Classical Diplomacy • Weekly/)).toBeInTheDocument();
+    });
+
+    it("shows 'Fixed time' for fixed_time mode with unknown frequency", () => {
+      renderGameCard({
+        game: { ...baseGame, deadlineMode: "fixed_time", movementFrequency: null, movementPhaseDuration: "24 hours" },
+        ...defaultProps,
+      });
+      expect(screen.getByText(/Classical Diplomacy • Fixed time/)).toBeInTheDocument();
+    });
+  });
+
   describe("sandbox visual treatment", () => {
     it("displays a Sandbox badge when game.sandbox is true", () => {
       renderGameCard({
