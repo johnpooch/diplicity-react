@@ -39,7 +39,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
-  const { data: phase } = useGamePhaseRetrieve(game.id, phaseId);
+  const { data: phase } = useGamePhaseRetrieve(game.id, phaseId ?? 0);
   const joinGameMutation = useGameJoinCreate();
 
   const handleClickGame = () => {
