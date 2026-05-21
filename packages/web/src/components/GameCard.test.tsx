@@ -165,6 +165,32 @@ describe("GameCard", () => {
     });
   });
 
+  describe("unread count badge", () => {
+    it("does not show badge when totalUnreadMessageCount is 0", () => {
+      renderGameCard({
+        game: { ...mockGames[0], totalUnreadMessageCount: 0 },
+        ...defaultProps,
+      });
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    });
+
+    it("shows count badge when totalUnreadMessageCount is positive", () => {
+      renderGameCard({
+        game: { ...mockGames[0], totalUnreadMessageCount: 5 },
+        ...defaultProps,
+      });
+      expect(screen.getByText("5")).toBeInTheDocument();
+    });
+
+    it("caps badge at 99+ when totalUnreadMessageCount exceeds 99", () => {
+      renderGameCard({
+        game: { ...mockGames[0], totalUnreadMessageCount: 150 },
+        ...defaultProps,
+      });
+      expect(screen.getByText("99+")).toBeInTheDocument();
+    });
+  });
+
   describe("sandbox visual treatment", () => {
     it("displays a Sandbox badge when game.sandbox is true", () => {
       renderGameCard({

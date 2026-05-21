@@ -4,7 +4,8 @@ import uuid
 
 from django.db import models, transaction
 from django.utils import timezone
-from django.db.models import Prefetch
+from django.db.models import Count, IntegerField, OuterRef, Prefetch, Subquery, Value
+from django.db.models.functions import Coalesce
 from opentelemetry import trace
 from common.constants import (
     DeadlineMode,
@@ -30,6 +31,28 @@ tracer = trace.get_tracer(__name__)
 
 
 class GameQuerySet(models.QuerySet):
+
+    def with_unread_counts(self, user):
+        from channel.models import ChannelMember, ChannelMessage
+        if not user.is_authenticated:
+            return self.annotate(total_unread_message_count=Value(0, output_field=IntegerField()))
+        unread_subquery = Subquery(
+            ChannelMessage.objects.filter(
+                channel__game=OuterRef("pk"),
+                channel__member_channels__member__user=user,
+                created_at__gt=Subquery(
+                    ChannelMember.objects.filter(
+                        channel=OuterRef("channel"),
+                        member__user=user,
+                    ).values("last_read_at")[:1]
+                ),
+            ).order_by().values("channel__game").annotate(
+                total=Count("pk")
+            ).values("total")[:1]
+        )
+        return self.annotate(
+            total_unread_message_count=Coalesce(unread_subquery, 0, output_field=IntegerField())
+        )
 
     def with_list_data(self):
         members_prefetch = Prefetch(
@@ -158,6 +181,9 @@ class GameManager(models.Manager):
 
     def with_related_data(self):
         return self.get_queryset().with_related_data()
+
+    def with_unread_counts(self, user):
+        return self.get_queryset().with_unread_counts(user)
 
     def create_from_template(self, variant, **kwargs):
         template_phase = variant.template_phase

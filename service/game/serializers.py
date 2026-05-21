@@ -67,6 +67,7 @@ class GameListSerializer(serializers.Serializer):
     movement_frequency = serializers.CharField(read_only=True, allow_null=True)
     retreat_frequency = serializers.CharField(read_only=True, allow_null=True)
     press_type = serializers.CharField(read_only=True)
+    total_unread_message_count = serializers.IntegerField(read_only=True)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):

@@ -2092,6 +2092,9 @@ components:
         pressType:
           type: string
           readOnly: true
+        totalUnreadMessageCount:
+          type: integer
+          readOnly: true
       required:
       - anonymous
       - canDelete
@@ -2118,6 +2121,7 @@ components:
       - retreatPhaseDuration
       - sandbox
       - status
+      - totalUnreadMessageCount
       - variantId
       - victory
     GameRetrieve:
