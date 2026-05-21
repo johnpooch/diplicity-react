@@ -9955,6 +9955,65 @@ def test_options_movement_army_includes_convoy_destinations_when_fleet_chain_exi
     assert {"rhs", "mid", "ldd", "iso", "mlc"}.issubset(moves)
 
 
+def test_options_movement_army_emits_move_via_convoy_alongside_move():
+    """Each Army target reachable by a chain of sea fleets currently on
+    the board is surfaced as a parallel MoveViaConvoy option, matching
+    godip's wire format. This includes targets that are *also* directly
+    adjacent (so players can express explicit via-convoy intent for the
+    head-to-head exception, DATC 6.G.1/5) and excludes landlocked
+    targets like ldd that have no fleet access."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=NORTH, type=Unit.FLEET, location="sea"),
+        ],
+    )
+    options = get_options(state)
+    via_convoy = {
+        o.target for o in options
+        if o.order_type == "MoveViaConvoy" and o.source == "lhs"
+    }
+    # All coastal targets reachable via the sea fleet — including the
+    # directly-adjacent ones (rhs, mid). ldd is landlocked, so excluded.
+    assert {"rhs", "mid", "iso", "mlc"} == via_convoy
+
+
+def test_options_movement_no_move_via_convoy_when_no_convoying_fleet():
+    """Without any fleet on a sea province, MoveViaConvoy is never emitted —
+    even for a coastal army next to other coastal provinces."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[Unit(nation=NORTH, type=Unit.ARMY, location="lhs")],
+    )
+    options = get_options(state)
+    assert [o for o in options if o.order_type == "MoveViaConvoy"] == []
+
+
+def test_options_movement_no_move_via_convoy_for_fleet_units():
+    """MoveViaConvoy is an army-only concept. Even when sea fleets exist,
+    they aren't themselves emitted as MoveViaConvoy candidates."""
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.MOVEMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.FLEET, location="sea"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+        ],
+    )
+    options = get_options(state)
+    fleet_via_convoy = [
+        o for o in options
+        if o.order_type == "MoveViaConvoy" and o.source == "sea"
+    ]
+    assert fleet_via_convoy == []
+
+
 def test_options_movement_fleet_at_multi_coast_destination_emits_one_option_per_coast():
     variant = make_variant()
     state = make_state(

@@ -8,7 +8,7 @@ from opentelemetry import trace
 from common.models import BaseModel
 from datetime import timedelta
 from common.constants import PhaseStatus, PhaseType, GameStatus, DeadlineMode
-from adjudication.service import resolve, ShadowDivergenceError
+from adjudication.service import resolve
 from member.models import Member
 from order.models import OrderResolution, Order
 from phase.utils import transform_options
@@ -136,10 +136,6 @@ class PhaseManager(models.Manager):
                     self.resolve(phase)
                     resolved_count += 1
                     logger.info(f"Successfully resolved phase {phase.id}")
-                except ShadowDivergenceError:
-                    # Strict shadow mode (tests only): let the divergence
-                    # surface so the failing test points at the tier and diff.
-                    raise
                 except Exception as e:
                     failed_count += 1
                     logger.error(f"Failed to resolve phase {phase.id} ({phase.name}): {e}", exc_info=True)
