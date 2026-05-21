@@ -158,6 +158,7 @@ const matchedGame: GameList = {
   movementFrequency: null,
   retreatFrequency: null,
   pressType: "full_press",
+  totalUnreadMessageCount: 0,
 };
 
 const renderCreateGame = () => {
