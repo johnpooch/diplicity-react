@@ -201,5 +201,13 @@ describe("GameCard", () => {
       });
       expect(screen.getByText("A")).toBeInTheDocument();
     });
+
+    it("shows 'Resolve when ready' for sandbox games regardless of deadline mode", () => {
+      renderGameCard({
+        game: { ...mockSandboxGames[0], deadlineMode: "fixed_time", movementFrequency: null },
+        ...defaultProps,
+      });
+      expect(screen.getByText(/Classical Diplomacy • Resolve when ready/)).toBeInTheDocument();
+    });
   });
 });

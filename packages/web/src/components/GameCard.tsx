@@ -120,7 +120,9 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
                 {game.private && <Lock className="h-3 w-3" />}
                 <span>
                   {variant.name} •{" "}
-                  {game.deadlineMode === "fixed_time"
+                  {game.sandbox
+                    ? "Resolve when ready"
+                    : game.deadlineMode === "fixed_time"
                     ? ({ hourly: "Hourly", daily: "Daily", every_2_days: "Every 2 days", weekly: "Weekly" }[game.movementFrequency ?? ""] ?? "Fixed time")
                     : (game.movementPhaseDuration || "Resolve when ready")}
                 </span>
