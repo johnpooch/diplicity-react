@@ -353,9 +353,3 @@ LOGGING = {
         },
     },
 }
-
-# When True, a shadow-mode adjudication divergence (mismatch or engine error)
-# raises instead of being swallowed to telemetry. Production must keep this
-# False so the shadow comparison can never break the resolution flow; it is
-# enabled only by the integration-test harness.
-SHADOW_STRICT = os.getenv("SHADOW_STRICT", "False") == "True"

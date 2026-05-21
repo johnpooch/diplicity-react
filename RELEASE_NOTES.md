@@ -1,5 +1,13 @@
 # Diplicity React - Release Notes
 
+## Sandbox Games for Uploaded Variants (May 21, 2026)
+
+**Release Date:** May 21, 2026
+
+### Bug Fix: Starting a sandbox game with a user-uploaded variant
+
+Starting a sandbox game on a draft variant you uploaded yourself now works. The previous adjudicator only knew about the variants it shipped with, so kicking off a game for anything else (e.g. Spice Islands) failed with a 404 the moment you hit Start. The adjudicator has been switched to an in-process Python implementation that runs against whatever variant data is in your draft, so any uploaded variant is playable as soon as it's saved.
+
 ## Creation Intervention: Suggest Joining a Similar Game (May 5, 2026)
 
 **Release Date:** May 5, 2026

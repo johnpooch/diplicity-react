@@ -115,6 +115,24 @@ def _movement_options(view: StateView) -> List[OrderOption]:
                         named_coast=None,
                     )
                 )
+            # godip emits a parallel "MoveViaConvoy" option whenever the
+            # army could reach the target via a chain of fleets currently
+            # on the board. This is the wire-format channel for the
+            # explicit via-convoy intent (DATC 6.G.1/5 head-to-head
+            # exception).
+            if unit.type == Unit.ARMY and _move_has_convoy_path(
+                view, order, sea_fleet_locs
+            ):
+                options.append(
+                    OrderOption(
+                        source=source_loc,
+                        order_type="MoveViaConvoy",
+                        target=target,
+                        aux=None,
+                        unit_type=None,
+                        named_coast=None,
+                    )
+                )
         options.extend(
             _support_options(
                 view, unit, source_loc, sea_fleet_locs, standing_items

@@ -1,7 +1,5 @@
 from typing import Optional
 
-ADJUDICATION_BASE_URL = "https://godip-adjudication.appspot.com"
-
 
 class GameStatus:
     PENDING = "pending"
