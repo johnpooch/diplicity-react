@@ -392,7 +392,6 @@ export interface GameList {
   /** @nullable */
   readonly retreatFrequency: string | null;
   readonly pressType: string;
-  readonly totalUnreadMessageCount: number;
 }
 
 export interface GameFindSimilar {

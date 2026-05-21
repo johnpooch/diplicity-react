@@ -45,7 +45,7 @@ class GameListView(generics.ListAPIView):
     pagination_class = StandardPageNumberPagination
 
     def get_queryset(self):
-        queryset = Game.objects.all().with_list_data().with_unread_counts(self.request.user).order_by("-created_at")
+        queryset = Game.objects.all().with_list_data().order_by("-created_at")
 
         if "sandbox" not in self.request.query_params and "mine" not in self.request.query_params:
             queryset = queryset.filter(sandbox=False)

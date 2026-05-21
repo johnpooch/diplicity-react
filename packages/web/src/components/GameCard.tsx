@@ -103,11 +103,6 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
                   {game.sandbox && (
                     <Badge variant="secondary">Sandbox</Badge>
                   )}
-                  {game.totalUnreadMessageCount > 0 && (
-                    <Badge variant="default" className="px-1.5 py-0 text-[10px] min-w-[18px] h-[18px]">
-                      {game.totalUnreadMessageCount > 99 ? "99+" : game.totalUnreadMessageCount}
-                    </Badge>
-                  )}
                 </CardTitle>
               </button>
               <div className="flex items-center gap-2">
