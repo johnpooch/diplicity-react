@@ -355,6 +355,8 @@ def calculate_next_fixed_deadline(
         if candidate <= local_now:
             candidate += timedelta(days=1)
         next_deadline = candidate
+        if is_first_phase:
+            next_deadline += FREQUENCY_INTERVALS[frequency]
     elif frequency == PhaseFrequency.EVERY_2_DAYS:
         candidate = local_now.replace(
             hour=target_time.hour,
@@ -371,6 +373,8 @@ def calculate_next_fixed_deadline(
         if days_from_now % 2 == 1:
             candidate += timedelta(days=1)
         next_deadline = candidate
+        if is_first_phase:
+            next_deadline += FREQUENCY_INTERVALS[frequency]
     elif frequency == PhaseFrequency.WEEKLY:
         candidate = local_now.replace(
             hour=target_time.hour,
@@ -384,6 +388,8 @@ def calculate_next_fixed_deadline(
         while candidate < min_deadline:
             candidate += timedelta(days=1)
         next_deadline = candidate
+        if is_first_phase:
+            next_deadline += FREQUENCY_INTERVALS[frequency]
     else:
         raise ValueError(f"Unknown frequency: {frequency}")
 
