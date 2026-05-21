@@ -129,6 +129,32 @@ class TestCalculateNextFixedDeadline:
         local_result = result.astimezone(ZoneInfo(tz_name))
         assert local_result.day == 16
 
+    def test_daily_first_phase_adds_one_day_to_next_occurrence(self):
+        target_time = time(21, 0)
+        tz_name = "America/New_York"
+        reference = datetime(2024, 6, 15, 10, 0, 0, tzinfo=ZoneInfo("America/New_York"))
+
+        result = calculate_next_fixed_deadline(
+            target_time, PhaseFrequency.DAILY, tz_name, reference_time=reference, is_first_phase=True
+        )
+
+        local_result = result.astimezone(ZoneInfo(tz_name))
+        assert local_result.day == 16
+        assert local_result.hour == 21
+
+    def test_daily_first_phase_target_passed_adds_one_day(self):
+        target_time = time(9, 0)
+        tz_name = "America/New_York"
+        reference = datetime(2024, 6, 15, 10, 0, 0, tzinfo=ZoneInfo("America/New_York"))
+
+        result = calculate_next_fixed_deadline(
+            target_time, PhaseFrequency.DAILY, tz_name, reference_time=reference, is_first_phase=True
+        )
+
+        local_result = result.astimezone(ZoneInfo(tz_name))
+        assert local_result.day == 17
+        assert local_result.hour == 9
+
     def test_every_2_days_minimum_interval(self):
         target_time = time(21, 0)
         tz_name = "America/New_York"
@@ -155,6 +181,20 @@ class TestCalculateNextFixedDeadline:
         assert local_result.hour == 15
         assert local_result.minute == 30
 
+    def test_every_2_days_first_phase_adds_two_days(self):
+        target_time = time(21, 0)
+        tz_name = "America/New_York"
+        reference = datetime(2024, 6, 15, 10, 0, 0, tzinfo=ZoneInfo("America/New_York"))
+
+        result = calculate_next_fixed_deadline(
+            target_time, PhaseFrequency.EVERY_2_DAYS, tz_name, reference_time=reference, is_first_phase=True
+        )
+
+        local_result = result.astimezone(ZoneInfo(tz_name))
+        days_diff = (local_result.date() - reference.date()).days
+        assert days_diff >= 4
+        assert local_result.hour == 21
+
     def test_weekly_minimum_interval(self):
         target_time = time(21, 0)
         tz_name = "America/New_York"
@@ -180,6 +220,20 @@ class TestCalculateNextFixedDeadline:
         local_result = result.astimezone(ZoneInfo(tz_name))
         assert local_result.hour == 18
         assert local_result.minute == 45
+
+    def test_weekly_first_phase_adds_seven_days(self):
+        target_time = time(21, 0)
+        tz_name = "America/New_York"
+        reference = datetime(2024, 6, 15, 10, 0, 0, tzinfo=ZoneInfo("America/New_York"))
+
+        result = calculate_next_fixed_deadline(
+            target_time, PhaseFrequency.WEEKLY, tz_name, reference_time=reference, is_first_phase=True
+        )
+
+        local_result = result.astimezone(ZoneInfo(tz_name))
+        days_diff = (local_result.date() - reference.date()).days
+        assert days_diff >= 14
+        assert local_result.hour == 21
 
     def test_timezone_conversion_pacific(self):
         target_time = time(21, 0)

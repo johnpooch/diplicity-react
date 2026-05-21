@@ -30,7 +30,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 export interface GameCardProps {
   game: GameList;
   variant: Pick<Variant, "name" | "id">;
-  phaseId: number;
+  phaseId: number | null;
   map: React.ReactNode;
   className?: string;
 }
@@ -39,7 +39,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
-  const { data: phase } = useGamePhaseRetrieve(game.id, phaseId);
+  const { data: phase } = useGamePhaseRetrieve(game.id, phaseId ?? 0);
   const joinGameMutation = useGameJoinCreate();
 
   const handleClickGame = () => {
@@ -120,7 +120,11 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
                 {game.private && <Lock className="h-3 w-3" />}
                 <span>
                   {variant.name} •{" "}
-                  {game.movementPhaseDuration || "Resolve when ready"}
+                  {game.sandbox
+                    ? "Resolve when ready"
+                    : game.deadlineMode === "fixed_time"
+                    ? ({ hourly: "Hourly", daily: "Daily", every_2_days: "Every 2 days", weekly: "Weekly" }[game.movementFrequency ?? ""] ?? "Fixed time")
+                    : (game.movementPhaseDuration || "Resolve when ready")}
                 </span>
               </div>
               {game.status === "pending" ? (

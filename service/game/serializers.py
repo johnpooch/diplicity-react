@@ -277,6 +277,8 @@ class GameCreateSerializer(serializers.Serializer):
                 raise serializers.ValidationError({
                     "movement_frequency": "Required when deadline_mode is 'fixed_time'."
                 })
+            attrs["movement_phase_duration"] = None
+            attrs["retreat_phase_duration"] = None
         else:
             attrs["fixed_deadline_time"] = None
             attrs["fixed_deadline_timezone"] = None

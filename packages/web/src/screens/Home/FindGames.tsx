@@ -148,7 +148,7 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
                       key={game.id}
                       game={game}
                       variant={variantMap.get(game.variantId)!}
-                      phaseId={game.phases[0]}
+                      phaseId={game.currentPhaseId}
                       map={<div />}
                     />
                   ))}
@@ -161,7 +161,7 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
                 key={game.id}
                 game={game}
                 variant={variantMap.get(game.variantId)!}
-                phaseId={game.phases[0]}
+                phaseId={game.currentPhaseId}
                 map={<div />}
               />
             ))
