@@ -14,6 +14,7 @@ import {
 
 const mockNavigate = vi.fn();
 const mockUseIsMobile = vi.fn();
+const mockUseGamePhaseRetrieve = vi.fn();
 
 vi.mock("react-router", async () => {
   const actual = await vi.importActual("react-router");
@@ -31,7 +32,7 @@ vi.mock("@/api/generated/endpoints", async () => {
   const actual = await vi.importActual("@/api/generated/endpoints");
   return {
     ...actual,
-    useGamePhaseRetrieve: () => ({ data: mockPhaseMovement }),
+    useGamePhaseRetrieve: (...args: unknown[]) => mockUseGamePhaseRetrieve(...args),
     useGameJoinCreate: () => ({
       mutateAsync: vi.fn(),
       isPending: false,
@@ -64,6 +65,8 @@ describe("GameCard", () => {
     mockNavigate.mockReset();
     mockUseIsMobile.mockReset();
     mockUseIsMobile.mockReturnValue(false);
+    mockUseGamePhaseRetrieve.mockReset();
+    mockUseGamePhaseRetrieve.mockReturnValue({ data: mockPhaseMovement });
   });
 
   describe("click navigation", () => {

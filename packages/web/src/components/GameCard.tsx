@@ -30,7 +30,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 export interface GameCardProps {
   game: GameList;
   variant: Pick<Variant, "name" | "id">;
-  phaseId: number;
+  phaseId: number | null;
   map: React.ReactNode;
   className?: string;
 }
