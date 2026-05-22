@@ -73,4 +73,22 @@ describe("parseDsvg", () => {
       parseDsvg('<svg xmlns="http://www.w3.org/2000/svg"></svg>')
     ).toThrow(/viewBox/);
   });
+
+  test("captures root fill when present", () => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" fill="none">
+      <g id="background"></g>
+      <g id="provinces" style="display:none"></g>
+      <g id="named-coasts" style="display:none"></g>
+      <g id="unit-positions" style="display:none"></g>
+      <g id="supply-centers" style="display:none"></g>
+      <g id="province-names"></g>
+      <g id="borders"></g>
+      <g id="foreground"></g>
+    </svg>`;
+    expect(parseDsvg(svg).rootFill).toBe("none");
+  });
+
+  test("rootFill is null when root has no fill attribute", () => {
+    expect(parseDsvg(TOY_DSVG).rootFill).toBeNull();
+  });
 });

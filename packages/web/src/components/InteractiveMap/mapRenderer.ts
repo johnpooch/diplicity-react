@@ -657,9 +657,10 @@ export class DiplicityMap {
   }
 
   render(state: RenderState = {}): string {
-    const { viewBox, defs, background, provinceNames, borders, foreground } =
+    const { viewBox, rootFill, defs, background, provinceNames, borders, foreground } =
       this.parsed;
     const viewBoxAttr = `${viewBox.minX} ${viewBox.minY} ${viewBox.width} ${viewBox.height}`;
+    const fillAttr = rootFill !== null ? ` fill="${rootFill}"` : "";
     const fills = provinceFillsLayer(
       new Map([
         ...this.parsed.provincePaths,
@@ -672,7 +673,7 @@ export class DiplicityMap {
     const orders = ordersLayer(this.parsed.unitPositions, state);
 
     const parts = [
-      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBoxAttr}">`,
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBoxAttr}"${fillAttr}>`,
       defs,
     ];
     if (fills.includes("highlightedStripes")) {
