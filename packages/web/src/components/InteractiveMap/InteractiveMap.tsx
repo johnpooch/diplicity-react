@@ -152,6 +152,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
     width: props.style?.width ?? viewBox.width,
     height: props.style?.height ?? viewBox.height,
     display: "block",
+    transform: "translateZ(0)",
     ...props.style,
   };
 
