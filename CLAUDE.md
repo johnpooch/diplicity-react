@@ -666,6 +666,61 @@ This generates OpenAPI schema and TypeScript client code for the frontend.
 
 ---
 
+# Android Development (Capacitor)
+
+## Real Device Testing (Preferred)
+
+**Always use the physical Pixel 8a for Android testing — do not use the emulator.** The emulator consumes too much RAM; the real device is the preferred testing target.
+
+- **Bundle ID / Application ID**: `com.diplicity.app`
+- **Android Project**: `packages/web/android/`
+- **Connected device UDID**: `46101JEKB13333`
+
+## Environment Prerequisites
+
+The following must be installed on the development machine:
+
+- **JDK 21**: `sudo apt install openjdk-21-jdk` (Capacitor Android 8 requires Java 21; Java 17 is not sufficient)
+- **Android Studio**: `sudo snap install android-studio --classic` (bundles the Android SDK, build-tools, and platform-tools including ADB)
+- **`ANDROID_HOME`**: Set to `$HOME/Android/Sdk` — add to `~/.bashrc`:
+  ```bash
+  export ANDROID_HOME="$HOME/Android/Sdk"
+  export PATH="$ANDROID_HOME/platform-tools:$PATH"
+  ```
+
+## ADB Device Setup (Linux)
+
+Linux requires a udev rule to access the Pixel over USB:
+
+```bash
+echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="18d1", MODE="0664", GROUP="plugdev"' | sudo tee /etc/udev/rules.d/51-android.rules
+sudo udevadm control --reload-rules && sudo udevadm trigger
+sudo usermod -aG plugdev $USER
+# Log out and back in, then unplug/replug the device
+adb kill-server && adb devices
+# Accept the "Allow USB debugging" prompt on the phone
+```
+
+## Build & Deploy Workflow
+
+**IMPORTANT**: All Capacitor commands must be run from `packages/web/` — they use the `capacitor.config.ts` in that directory and will fail if run from the repo root.
+
+```bash
+# All commands run from packages/web/
+cd packages/web
+npm run build                          # Build the web app
+ANDROID_HOME=$HOME/Android/Sdk npx cap sync android   # Sync web assets to Android project
+ANDROID_HOME=$HOME/Android/Sdk npx cap run android --target 46101JEKB13333  # Build and deploy to device
+```
+
+## Version Management
+
+- `versionName` is read from `packages/web/package.json` `version` field (via `rootProject.projectDir/../package.json` in `build.gradle`)
+- `versionCode` is a Unix timestamp (seconds), auto-generated per build
+- Both are set in `android/app/build.gradle` — no manual editing needed
+
+---
+
 # iOS Development (Capacitor)
 
 ## Real Device Testing (Preferred)
