@@ -1,3 +1,4 @@
+import { Capacitor } from "@capacitor/core";
 import { SocialLogin } from "@capgo/capacitor-social-login";
 
 export async function initializeNativeSocialLogin(): Promise<void> {
@@ -7,7 +8,7 @@ export async function initializeNativeSocialLogin(): Promise<void> {
       webClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID,
       mode: "online",
     },
-    apple: {},
+    ...(Capacitor.getPlatform() === "ios" ? { apple: {} } : {}),
   });
 }
 

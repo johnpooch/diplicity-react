@@ -719,6 +719,28 @@ ANDROID_HOME=$HOME/Android/Sdk npx cap run android --target 46101JEKB13333  # Bu
 - `versionCode` is a Unix timestamp (seconds), auto-generated per build
 - Both are set in `android/app/build.gradle` — no manual editing needed
 
+## Google Sign-In
+
+Android Google Sign-In uses the existing `VITE_GOOGLE_CLIENT_ID` (web client ID) as the `webClientId` in `SocialLogin.initialize()`. No separate Android client ID is needed in app code.
+
+However, an **Android OAuth client must be registered in Google Cloud Console** (Credentials page, same project as the web client) with:
+- Package name: `com.diplicity.app`
+- SHA-1 fingerprint — see below
+
+This registration is what allows Google Sign-In to trust builds from this machine/keystore.
+
+### SHA-1 Fingerprints
+
+| Keystore | SHA-1 | Purpose |
+|----------|-------|---------|
+| `~/.android/debug.keystore` (alias `androiddebugkey`) | `6F:9D:E2:20:2F:35:17:10:8C:41:28:B2:61:F5:4F:DE:7F:B1:0E:38` | Local dev / `npx cap run android` debug builds |
+| Play App Signing certificate | _Added after first Play Console upload (#304)_ | Play Store / CI release builds |
+
+To re-extract the debug SHA-1:
+```bash
+keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
+```
+
 ---
 
 # iOS Development (Capacitor)
