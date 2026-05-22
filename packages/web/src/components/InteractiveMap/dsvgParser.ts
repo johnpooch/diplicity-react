@@ -9,6 +9,7 @@ export type ViewBox = {
 
 export type ParsedDsvg = {
   viewBox: ViewBox;
+  rootFill: string | null;
   defs: string;
   background: string;
   provinceNames: string;
@@ -105,6 +106,7 @@ export const parseDsvg = (svg: string): ParsedDsvg => {
 
   return {
     viewBox: parseViewBox(root),
+    rootFill: root.getAttribute("fill"),
     defs: collectDefs(root),
     background: layerMarkup(root, "background"),
     provinceNames: layerMarkup(root, "province-names"),
