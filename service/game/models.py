@@ -255,7 +255,7 @@ class GameManager(models.Manager):
                 province=unit.province,
                 dislodged=unit.dislodged,
             )
-            for unit in source_phase.units.all()
+            for unit in source_phase.units.select_related("nation", "province")
         ]
         Unit.objects.bulk_create(units_to_create)
 
@@ -265,7 +265,7 @@ class GameManager(models.Manager):
                 nation=sc.nation,
                 province=sc.province,
             )
-            for sc in source_phase.supply_centers.all()
+            for sc in source_phase.supply_centers.select_related("nation", "province")
         ]
         SupplyCenter.objects.bulk_create(supply_centers_to_create)
 

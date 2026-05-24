@@ -1,5 +1,13 @@
 # Diplicity React - Release Notes
 
+## Faster "Clone to Sandbox" (May 24, 2026)
+
+**Release Date:** May 24, 2026
+
+### Improvement: Cloning a game to a sandbox is quicker
+
+Cloning a game into a sandbox copied the board one database lookup at a time, which added up to hundreds of queries and a noticeable wait. The copy now loads the units and supply centers in two queries instead, so the sandbox opens faster.
+
 ## Sandbox Games for Uploaded Variants (May 21, 2026)
 
 **Release Date:** May 21, 2026
