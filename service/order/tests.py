@@ -719,7 +719,7 @@ class TestOrderListViewQueryPerformance:
             response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(connection.queries) == 7
+        assert len(connection.queries) == 8
 
     @pytest.mark.django_db
     def test_list_orders_query_count_with_multiple_orders(
@@ -756,7 +756,7 @@ class TestOrderListViewQueryPerformance:
             response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(connection.queries) == 7
+        assert len(connection.queries) == 8
 
     @pytest.mark.django_db
     def test_list_orders_query_count_with_many_orders(
@@ -829,7 +829,7 @@ class TestOrderListViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        assert query_count == 7
+        assert query_count == 8
 
     @pytest.mark.django_db
     def test_list_orders_query_count_with_many_orders_with_resolutions(
@@ -913,7 +913,67 @@ class TestOrderListViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        assert query_count == 7
+        assert query_count == 8
+
+    @pytest.mark.django_db
+    def test_list_orders_no_n_plus_one_for_named_coast_fleet_moves(
+        self,
+        authenticated_client,
+        order_active_game,
+        primary_user,
+        classical_england_nation,
+        classical_spain_province,
+        classical_spain_nc_province,
+        classical_spain_sc_province,
+        classical_stp_province,
+        classical_stp_nc_province,
+    ):
+        """Order.step's source_unit lookup must not add a query per order. It is reached
+        by a fleet move toward a target that has named coasts (source_unit.type is
+        evaluated before the named_coast check), which the other query-count tests never
+        trigger. Orders are complete (named_coast set) to match what is actually
+        persisted and listed. Regression guard for DIPLICITY-API-6W."""
+        game = order_active_game
+        phase = game.current_phase
+        primary_phase_state = phase.phase_states.get(member__user=primary_user)
+
+        # Fleets sit on named coasts; each order's source is the parent province.
+        phase.units.create(
+            type=UnitType.FLEET, nation=classical_england_nation, province=classical_spain_sc_province
+        )
+        phase.units.create(
+            type=UnitType.FLEET, nation=classical_england_nation, province=classical_stp_nc_province
+        )
+
+        url = reverse("order-list", args=[game.id, phase.id])
+
+        Order.objects.create(
+            phase_state=primary_phase_state,
+            order_type=OrderType.MOVE,
+            source=classical_spain_province,
+            target=classical_stp_province,
+            named_coast=classical_stp_nc_province,
+        )
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        one_order_query_count = len(connection.queries)
+
+        Order.objects.create(
+            phase_state=primary_phase_state,
+            order_type=OrderType.MOVE,
+            source=classical_stp_province,
+            target=classical_spain_province,
+            named_coast=classical_spain_nc_province,
+        )
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        two_orders_query_count = len(connection.queries)
+
+        assert two_orders_query_count == one_order_query_count
 
 
 class TestOrderCreateViewQueryPerformance:
@@ -931,7 +991,7 @@ class TestOrderCreateViewQueryPerformance:
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
 
-        assert query_count == 17
+        assert query_count == 18
 
     @pytest.mark.django_db
     def test_order_create_query_count_with_support_order(self, authenticated_client, game_with_options):
@@ -946,7 +1006,7 @@ class TestOrderCreateViewQueryPerformance:
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
 
-        assert query_count == 17
+        assert query_count == 18
 
     @pytest.mark.django_db
     def test_order_create_query_count_with_many_phase_states(self, authenticated_client, game_with_many_phase_states):
@@ -961,7 +1021,7 @@ class TestOrderCreateViewQueryPerformance:
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
 
-        assert query_count == 17
+        assert query_count == 18
 
 
 class TestOrderDeleteViewQueryPerformance:
@@ -2091,6 +2151,35 @@ class TestOrderNamedCoastStep:
         )
 
         assert order.step == OrderCreationStep.COMPLETED
+
+    @pytest.mark.django_db
+    def test_move_fleet_step_selects_named_coast_when_fleet_on_named_coast(
+        self,
+        test_phase_state,
+        classical_spain_province,
+        classical_spain_sc_province,
+        classical_stp_province,
+        classical_england_nation,
+    ):
+        """A fleet on a named coast must still be found when its order source is the
+        parent province. Regression for DIPLICITY-API-6W where source_unit returned
+        None and step raised AttributeError on source_unit.type."""
+        phase = test_phase_state.phase
+        # Unit lives on the named coast child; the order source is the parent province.
+        phase.units.create(
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_spain_sc_province,
+        )
+
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_spain_province,
+            order_type=OrderType.MOVE,
+            target=classical_stp_province,
+        )
+
+        assert order.step == OrderCreationStep.SELECT_NAMED_COAST
 
 
 class TestOrderNamedCoastTitles:

@@ -1,5 +1,13 @@
 # Diplicity React - Release Notes
 
+## Fleet Orders from Named Coasts (May 24, 2026)
+
+**Release Date:** May 24, 2026
+
+### Bug Fix: Moving a fleet off a named coast
+
+Issuing a move order for a fleet sitting on a named coast (for example a fleet on Spain's south coast) toward a destination that itself has named coasts failed with a server error, so the order could not be submitted. The order wizard now correctly recognises the fleet and lets you pick the destination coast.
+
 ## Sandbox Games for Uploaded Variants (May 21, 2026)
 
 **Release Date:** May 21, 2026
