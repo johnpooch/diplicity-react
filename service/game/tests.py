@@ -8,9 +8,11 @@ from django.utils import timezone
 from datetime import time, timedelta
 from zoneinfo import ZoneInfo
 from rest_framework import status
-from common.constants import PhaseStatus, PhaseType, GameStatus, NationAssignment, MovementPhaseDuration, DeadlineMode, PhaseFrequency
+from common.constants import PhaseStatus, PhaseType, GameStatus, NationAssignment, MovementPhaseDuration, DeadlineMode, PhaseFrequency, UnitType
 
 from phase.models import Phase
+from nation.models import Nation
+from province.models import Province
 from user_profile.models import UserProfile
 from .models import Game
 
@@ -2627,6 +2629,41 @@ class TestGameCloneToSandbox:
         url = reverse(clone_to_sandbox_viewname, args=["non-existent-game"])
         response = authenticated_client.post(url)
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
+    def test_clone_from_phase_query_count_independent_of_unit_count(self, classical_variant):
+        nation = Nation.objects.filter(variant=classical_variant).first()
+        provinces = list(Province.objects.filter(variant=classical_variant)[:20])
+
+        def build_source_phase(name, count):
+            game = Game.objects.create(name=name, variant=classical_variant, status=GameStatus.ACTIVE)
+            phase = game.phases.create(
+                variant=classical_variant,
+                season="Spring",
+                year=1901,
+                type=PhaseType.MOVEMENT,
+                status=PhaseStatus.ACTIVE,
+                ordinal=1,
+            )
+            for province in provinces[:count]:
+                phase.units.create(type=UnitType.ARMY, nation=nation, province=province)
+                phase.supply_centers.create(nation=nation, province=province)
+            return phase
+
+        small_phase = build_source_phase("Small Source", 2)
+        large_phase = build_source_phase("Large Source", 15)
+
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            Game.objects.clone_from_phase(small_phase, name="Small Source (Sandbox)")
+        small_query_count = len(connection.queries)
+
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            Game.objects.clone_from_phase(large_phase, name="Large Source (Sandbox)")
+        large_query_count = len(connection.queries)
+
+        assert large_query_count == small_query_count
 
 
 pause_viewname = "game-pause"
