@@ -2,7 +2,14 @@
 
 set -e
 
-echo "Starting entrypoint script..."
+PROCESS_ROLE="${PROCESS_ROLE:-web}"
+
+echo "Starting entrypoint script (role: $PROCESS_ROLE)..."
+
+if [ "$PROCESS_ROLE" = "worker" ]; then
+    echo "Starting Procrastinate worker..."
+    exec python manage.py procrastinate worker
+fi
 
 echo "Running database migrations..."
 if python manage.py migrate; then
