@@ -2729,6 +2729,344 @@ class TestAbandonmentDetection:
         assert phase not in due_phases
 
 
+class TestEliminationDetection:
+
+    @staticmethod
+    def _setup(
+        variant, italy_nation, germany_nation, primary_user, secondary_user,
+        sandbox=False,
+    ):
+        game = Game.objects.create(
+            variant=variant,
+            name="Elimination Test",
+            status=GameStatus.ACTIVE,
+            sandbox=sandbox,
+        )
+        italy = Member.objects.create(nation=italy_nation, user=primary_user, game=game)
+        germany = Member.objects.create(nation=germany_nation, user=secondary_user, game=game)
+        phase = Phase.objects.create(
+            game=game, variant=variant,
+            season="Fall", year=1901, type=PhaseType.ADJUSTMENT,
+            ordinal=2, status=PhaseStatus.ACTIVE,
+        )
+        return game, italy, germany, phase
+
+    @pytest.mark.django_db
+    def test_member_with_no_units_and_no_scs_is_eliminated(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        primary_user,
+        secondary_user,
+    ):
+        game, italy, germany, phase = self._setup(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            primary_user, secondary_user,
+        )
+        phase.units.create(
+            type=UnitType.ARMY, nation=italy_vs_germany_italy_nation,
+            province=italy_vs_germany_venice_province,
+        )
+        phase.supply_centers.create(
+            nation=italy_vs_germany_italy_nation,
+            province=italy_vs_germany_venice_province,
+        )
+
+        result = Phase.objects._check_eliminations(phase)
+
+        assert [m.id for m in result] == [germany.id]
+        italy.refresh_from_db()
+        germany.refresh_from_db()
+        assert germany.eliminated is True
+        assert italy.eliminated is False
+
+    @pytest.mark.django_db
+    def test_member_with_scs_but_no_units_is_not_eliminated(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        italy_vs_germany_kiel_province,
+        primary_user,
+        secondary_user,
+    ):
+        game, italy, germany, phase = self._setup(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            primary_user, secondary_user,
+        )
+        phase.units.create(
+            type=UnitType.ARMY, nation=italy_vs_germany_italy_nation,
+            province=italy_vs_germany_venice_province,
+        )
+        phase.supply_centers.create(
+            nation=italy_vs_germany_italy_nation,
+            province=italy_vs_germany_venice_province,
+        )
+        # Germany holds a supply center but has no units.
+        phase.supply_centers.create(
+            nation=italy_vs_germany_germany_nation,
+            province=italy_vs_germany_kiel_province,
+        )
+
+        result = Phase.objects._check_eliminations(phase)
+
+        assert result == []
+        germany.refresh_from_db()
+        assert germany.eliminated is False
+
+    @pytest.mark.django_db
+    def test_member_with_units_but_no_scs_is_not_eliminated(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        italy_vs_germany_kiel_province,
+        primary_user,
+        secondary_user,
+    ):
+        game, italy, germany, phase = self._setup(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            primary_user, secondary_user,
+        )
+        phase.units.create(
+            type=UnitType.ARMY, nation=italy_vs_germany_italy_nation,
+            province=italy_vs_germany_venice_province,
+        )
+        phase.supply_centers.create(
+            nation=italy_vs_germany_italy_nation,
+            province=italy_vs_germany_venice_province,
+        )
+        # Germany holds a unit but has no supply centers.
+        phase.units.create(
+            type=UnitType.ARMY, nation=italy_vs_germany_germany_nation,
+            province=italy_vs_germany_kiel_province,
+        )
+
+        result = Phase.objects._check_eliminations(phase)
+
+        assert result == []
+        germany.refresh_from_db()
+        assert germany.eliminated is False
+
+    @pytest.mark.django_db
+    def test_already_eliminated_member_is_not_reprocessed(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        primary_user,
+        secondary_user,
+    ):
+        game, italy, germany, phase = self._setup(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            primary_user, secondary_user,
+        )
+        germany.eliminated = True
+        germany.save()
+        phase.units.create(
+            type=UnitType.ARMY, nation=italy_vs_germany_italy_nation,
+            province=italy_vs_germany_venice_province,
+        )
+        phase.supply_centers.create(
+            nation=italy_vs_germany_italy_nation,
+            province=italy_vs_germany_venice_province,
+        )
+
+        result = Phase.objects._check_eliminations(phase)
+
+        assert result == []
+
+    @pytest.mark.django_db
+    def test_kicked_member_is_not_eliminated(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        primary_user,
+        secondary_user,
+    ):
+        game, italy, germany, phase = self._setup(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            primary_user, secondary_user,
+        )
+        germany.kicked = True
+        germany.save()
+        phase.units.create(
+            type=UnitType.ARMY, nation=italy_vs_germany_italy_nation,
+            province=italy_vs_germany_venice_province,
+        )
+        phase.supply_centers.create(
+            nation=italy_vs_germany_italy_nation,
+            province=italy_vs_germany_venice_province,
+        )
+
+        result = Phase.objects._check_eliminations(phase)
+
+        assert result == []
+        germany.refresh_from_db()
+        assert germany.eliminated is False
+
+    @pytest.mark.django_db
+    def test_no_eliminations_in_sandbox(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        primary_user,
+        secondary_user,
+    ):
+        game, italy, germany, phase = self._setup(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            primary_user, secondary_user,
+            sandbox=True,
+        )
+        phase.units.create(
+            type=UnitType.ARMY, nation=italy_vs_germany_italy_nation,
+            province=italy_vs_germany_venice_province,
+        )
+        phase.supply_centers.create(
+            nation=italy_vs_germany_italy_nation,
+            province=italy_vs_germany_venice_province,
+        )
+
+        result = Phase.objects._check_eliminations(phase)
+
+        assert result == []
+        germany.refresh_from_db()
+        assert germany.eliminated is False
+
+    @pytest.mark.django_db
+    def test_unassigned_member_is_skipped(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+        primary_user,
+        secondary_user,
+    ):
+        game = Game.objects.create(
+            variant=italy_vs_germany_variant,
+            name="Elimination Test",
+            status=GameStatus.ACTIVE,
+        )
+        italy = Member.objects.create(
+            nation=italy_vs_germany_italy_nation, user=primary_user, game=game
+        )
+        unassigned = Member.objects.create(nation=None, user=secondary_user, game=game)
+        phase = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Fall", year=1901, type=PhaseType.ADJUSTMENT,
+            ordinal=2, status=PhaseStatus.ACTIVE,
+        )
+        phase.units.create(
+            type=UnitType.ARMY, nation=italy_vs_germany_italy_nation,
+            province=italy_vs_germany_venice_province,
+        )
+        phase.supply_centers.create(
+            nation=italy_vs_germany_italy_nation,
+            province=italy_vs_germany_venice_province,
+        )
+
+        result = Phase.objects._check_eliminations(phase)
+
+        assert result == []
+        unassigned.refresh_from_db()
+        assert unassigned.eliminated is False
+
+    @pytest.mark.django_db
+    def test_elimination_notification_sent_to_all_game_members(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        primary_user,
+        secondary_user,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
+    ):
+        game, italy, germany, phase = self._setup(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            primary_user, secondary_user,
+        )
+        phase.units.create(
+            type=UnitType.ARMY, nation=italy_vs_germany_italy_nation,
+            province=italy_vs_germany_venice_province,
+        )
+        phase.supply_centers.create(
+            nation=italy_vs_germany_italy_nation,
+            province=italy_vs_germany_venice_province,
+        )
+
+        Phase.objects._check_eliminations(phase)
+
+        mock_send_notification_to_users.assert_called_once()
+        call_kwargs = mock_send_notification_to_users.call_args.kwargs
+        assert call_kwargs["notification_type"] == "eliminated"
+        assert set(call_kwargs["user_ids"]) == {primary_user.id, secondary_user.id}
+
+    @pytest.mark.django_db
+    def test_no_notification_when_no_one_eliminated(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        italy_vs_germany_kiel_province,
+        primary_user,
+        secondary_user,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
+    ):
+        game, italy, germany, phase = self._setup(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            primary_user, secondary_user,
+        )
+        phase.units.create(
+            type=UnitType.ARMY, nation=italy_vs_germany_italy_nation,
+            province=italy_vs_germany_venice_province,
+        )
+        phase.supply_centers.create(
+            nation=italy_vs_germany_italy_nation,
+            province=italy_vs_germany_venice_province,
+        )
+        phase.units.create(
+            type=UnitType.ARMY, nation=italy_vs_germany_germany_nation,
+            province=italy_vs_germany_kiel_province,
+        )
+        phase.supply_centers.create(
+            nation=italy_vs_germany_germany_nation,
+            province=italy_vs_germany_kiel_province,
+        )
+
+        Phase.objects._check_eliminations(phase)
+
+        mock_send_notification_to_users.assert_not_called()
+
+
 class TestCivilDisorderDetection:
 
     @staticmethod

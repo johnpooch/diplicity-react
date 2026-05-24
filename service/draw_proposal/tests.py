@@ -108,6 +108,50 @@ class TestDrawProposalModel:
         assert m2 in included
         assert m3 not in included
 
+    def test_status_accepted_ignores_pending_vote_on_non_included_member(
+        self, game_factory, phase_factory, member_factory, draw_proposal_factory
+    ):
+        game = game_factory(variant__solo_victory_sc_count=18)
+        phase = phase_factory(game=game)
+        m1 = member_factory(game=game)
+        m2 = member_factory(game=game)
+        # m3 is not included; the factory leaves its vote accepted=None.
+        m3 = member_factory(game=game)
+
+        proposal = draw_proposal_factory(
+            game=game, created_by=m1, phase=phase,
+            included_member_ids=[m1.id, m2.id],
+        )
+        vote = proposal.votes.get(member=m2)
+        vote.accepted = True
+        vote.save()
+
+        # A stray accepted=None on the non-included m3 must not block acceptance.
+        assert proposal.status == DrawProposalStatus.ACCEPTED
+
+    def test_status_accepted_ignores_reject_vote_on_non_included_member(
+        self, game_factory, phase_factory, member_factory, draw_proposal_factory
+    ):
+        game = game_factory(variant__solo_victory_sc_count=18)
+        phase = phase_factory(game=game)
+        m1 = member_factory(game=game)
+        m2 = member_factory(game=game)
+        m3 = member_factory(game=game)
+
+        proposal = draw_proposal_factory(
+            game=game, created_by=m1, phase=phase,
+            included_member_ids=[m1.id, m2.id],
+        )
+        vote_included = proposal.votes.get(member=m2)
+        vote_included.accepted = True
+        vote_included.save()
+        # A stray reject on the non-included m3 must not reject the proposal.
+        vote_excluded = proposal.votes.get(member=m3)
+        vote_excluded.accepted = False
+        vote_excluded.save()
+
+        assert proposal.status == DrawProposalStatus.ACCEPTED
+
 
 class TestDrawProposalManager:
     def test_create_proposal_includes_all_active_non_cd_members(

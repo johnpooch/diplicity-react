@@ -19,6 +19,7 @@ import {
   ItemMedia,
 } from "@/components/ui/item";
 import { CivilDisorderBadge } from "@/components/CivilDisorderBadge";
+import { EliminatedBadge } from "@/components/EliminatedBadge";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "../../components/Panel";
 import {
@@ -44,6 +45,7 @@ const ProposeDrawScreen: React.FC = () => {
   const activeMembers = game.members.filter(m => !m.eliminated && !m.kicked);
   const includedMembers = activeMembers.filter(m => !m.civilDisorder);
   const cdMembers = activeMembers.filter(m => m.civilDisorder);
+  const eliminatedMembers = game.members.filter(m => m.eliminated && !m.kicked);
 
   const handleSubmit = async () => {
     try {
@@ -123,6 +125,30 @@ const ProposeDrawScreen: React.FC = () => {
                       </ItemTitle>
                       <ItemDescription>
                         {member.name} (excluded from draw victory)
+                      </ItemDescription>
+                    </ItemContent>
+                  </Item>
+                  <ItemSeparator />
+                </React.Fragment>
+              ))}
+              {eliminatedMembers.map(member => (
+                <React.Fragment key={member.id}>
+                  <Item className="opacity-60">
+                    <ItemMedia>
+                      <NationFlag
+                        nation={member.nation ?? ""}
+                        variantId={variant?.id ?? ""}
+                        size="md"
+                        className="size-10"
+                      />
+                    </ItemMedia>
+                    <ItemContent>
+                      <ItemTitle className="flex items-center gap-2">
+                        {member.nation}
+                        <EliminatedBadge />
+                      </ItemTitle>
+                      <ItemDescription>
+                        {member.name} (eliminated)
                       </ItemDescription>
                     </ItemContent>
                   </Item>

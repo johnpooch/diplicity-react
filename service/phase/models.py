@@ -359,6 +359,49 @@ class PhaseManager(models.Manager):
 
         return newly_cd_members
 
+    def _check_eliminations(self, new_phase):
+        if new_phase.game.sandbox:
+            return []
+
+        nations_with_units = set(new_phase.units.values_list("nation__name", flat=True))
+        nations_with_scs = set(new_phase.supply_centers.values_list("nation__name", flat=True))
+        surviving = nations_with_units | nations_with_scs
+
+        members = new_phase.game.members.select_related("nation").filter(
+            eliminated=False, kicked=False
+        )
+        newly_eliminated = [
+            m for m in members if m.nation and m.nation.name not in surviving
+        ]
+
+        if not newly_eliminated:
+            return []
+
+        for m in newly_eliminated:
+            m.eliminated = True
+        Member.objects.bulk_update(newly_eliminated, ["eliminated"])
+
+        user_ids = [
+            m.user_id for m in new_phase.game.members.all() if m.user_id is not None
+        ]
+        nation_names = ", ".join(
+            m.nation.name for m in newly_eliminated if m.nation is not None
+        )
+
+        def send_notifications():
+            if user_ids:
+                notification_utils.send_notification_to_users(
+                    user_ids=user_ids,
+                    title="Player Eliminated",
+                    body=f"{nation_names} eliminated.",
+                    notification_type="eliminated",
+                    data={"game_id": str(new_phase.game.id)},
+                )
+
+        transaction.on_commit(send_notifications)
+
+        return newly_eliminated
+
     def _check_abandonment(self, game):
         if game.sandbox:
             return False
@@ -384,6 +427,8 @@ class PhaseManager(models.Manager):
                 with transaction.atomic():
                     self._check_civil_disorder(phase)
                     new_phase = self.create_from_adjudication_data(phase, adjudication_data)
+
+                    self._check_eliminations(new_phase)
 
                     victory = Victory.objects.try_create_victory(new_phase)
 

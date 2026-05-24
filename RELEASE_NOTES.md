@@ -1,5 +1,13 @@
 # Diplicity React - Release Notes
 
+## Player Elimination (May 24, 2026)
+
+**Release Date:** May 24, 2026
+
+### Bug Fix: Eliminated nations now block draws correctly
+
+A nation wiped off the board (no units, no supply centers) was never marked as eliminated, so its phantom draw vote could never be cast — leaving draw proposals stuck pending until they silently expired. Nations reduced to zero units and zero supply centers are now flagged as eliminated when the phase resolves, with a notification to the table. Eliminated nations are excluded from draw proposals, so draws among the surviving players resolve as expected. Existing in-progress games have had their dead nations backfilled. Eliminated players now show an "Eliminated" badge in player info and on the propose-draw screen, matching the existing civil-disorder treatment.
+
 ## Sandbox Games for Uploaded Variants (May 21, 2026)
 
 **Release Date:** May 21, 2026

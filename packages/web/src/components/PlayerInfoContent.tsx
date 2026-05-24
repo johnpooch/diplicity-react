@@ -2,6 +2,7 @@ import React from "react";
 import { Shield, Star, Trophy } from "lucide-react";
 
 import { CivilDisorderBadge } from "@/components/CivilDisorderBadge";
+import { EliminatedBadge } from "@/components/EliminatedBadge";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
 import { NationFlag } from "@/components/NationFlag";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -80,6 +81,7 @@ export const PlayerInfoContent: React.FC = () => {
                       </Badge>
                     )}
                     {member.civilDisorder && <CivilDisorderBadge />}
+                    {member.eliminated && <EliminatedBadge />}
                   </div>
 
                   {member.nation && (

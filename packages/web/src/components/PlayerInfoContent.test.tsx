@@ -81,4 +81,38 @@ describe("PlayerInfoContent", () => {
 
     expect(screen.queryByText("Civil Disorder")).not.toBeInTheDocument();
   });
+
+  it("shows the eliminated badge for eliminated members", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [
+        { ...baseMember, id: 1, name: "Alice", eliminated: true },
+        { ...baseMember, id: 2, name: "Bob", eliminated: false },
+      ],
+    });
+
+    renderPlayerInfo();
+
+    const badges = screen.getAllByText("Eliminated");
+    expect(badges).toHaveLength(1);
+  });
+
+  it("does not show the eliminated badge for surviving members", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [{ ...baseMember, eliminated: false }],
+    });
+
+    renderPlayerInfo();
+
+    expect(screen.queryByText("Eliminated")).not.toBeInTheDocument();
+  });
 });
