@@ -7,6 +7,13 @@
 ### Improvement: Retreat and adjustment phases with nothing to do are skipped
 
 When a turn dislodges no units, or when everyone's builds and disbands are balanced, the game now advances straight to the next phase that actually needs orders instead of creating an empty retreat or adjustment phase. Previously these empty phases were created and sat waiting — in fixed-time games an empty retreat would hold for the full deadline (up to 24 hours) before resolving, even though no one had anything to do. Spring movement with no retreats now goes directly to fall movement.
+## Faster "Clone to Sandbox" (May 24, 2026)
+
+**Release Date:** May 24, 2026
+
+### Improvement: Cloning a game to a sandbox is quicker
+
+Cloning a game into a sandbox copied the board one database lookup at a time, which added up to hundreds of queries and a noticeable wait. The copy now loads the units and supply centers in two queries instead, so the sandbox opens faster.
 
 ## Sandbox Games for Uploaded Variants (May 21, 2026)
 
