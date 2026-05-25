@@ -108,6 +108,33 @@ services:
     depends_on:
       - db
 
+  worker:
+    container_name: diplicity-worker
+    build:
+      context: ./service
+      dockerfile: Dockerfile
+      target: development
+    working_dir: /app/service
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      - DJANGO_DEBUG=True
+      - ROOT_LOG_LEVEL=INFO
+      - DJANGO_LOG_LEVEL=INFO
+      - DB_LOG_LEVEL=WARNING
+      - GAME_LOG_LEVEL=INFO
+      - PROCESS_ROLE=worker
+    command: >
+      sh -c "python manage.py procrastinate worker"
+    restart: on-failure
+    networks:
+      - diplicity-network
+    depends_on:
+      - db
+      - service
+
 networks:
   diplicity-network:
     name: diplicity-network

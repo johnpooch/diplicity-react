@@ -9,7 +9,7 @@
         "**/dist",
         "**/build"
     ],
-    "pythonVersion": "3.9",
+    "pythonVersion": "3.12",
     "pythonPlatform": "Darwin",
     "typeCheckingMode": "basic",
     "useLibraryCodeForTypes": true,
