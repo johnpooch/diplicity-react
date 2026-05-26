@@ -1,21 +1,27 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# Capacitor bridge
+-keep class com.getcapacitor.** { *; }
+-keep @com.getcapacitor.annotation.CapacitorPlugin class * { *; }
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Firebase / Google Services
+-keep class com.google.firebase.** { *; }
+-keep class com.google.android.gms.** { *; }
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Capacitor Firebase Messaging plugin
+-keep class io.capawesome.capacitorjs.plugins.firebase.messaging.** { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Capacitor Social Login plugin
+-keep class ee.forgr.capacitor.social.login.** { *; }
+
+# Capacitor App plugin
+-keep class com.capacitorjs.plugins.app.** { *; }
+
+# Preserve JS interface annotations used by WebView
+-keepattributes JavascriptInterface
+-keepattributes *Annotation*
+
+# Preserve stack traces for crash reporting
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
+
+# Firebase Kotlin extensions are unused — suppress the missing-class warning from R8
+-dontwarn com.google.firebase.ktx.Firebase

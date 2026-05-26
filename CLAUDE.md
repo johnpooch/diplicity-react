@@ -747,12 +747,59 @@ This registration is what allows Google Sign-In to trust builds from this machin
 | Keystore | SHA-1 | Purpose |
 |----------|-------|---------|
 | `~/.android/debug.keystore` (alias `androiddebugkey`) | `6F:9D:E2:20:2F:35:17:10:8C:41:28:B2:61:F5:4F:DE:7F:B1:0E:38` | Local dev / `npx cap run android` debug builds |
+| `diplicity-android-upload.keystore` (alias `upload`) | `6A:39:8D:D3:B4:43:12:22:0C:4C:FA:08:93:B7:AD:19:58:D2:E0:0E` | Release builds / Play Console upload key |
 | Play App Signing certificate | _Added after first Play Console upload (#304)_ | Play Store / CI release builds |
 
 To re-extract the debug SHA-1:
 ```bash
 keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
 ```
+
+## Credentials
+
+### Upload Keystore
+
+The upload keystore signs AAB/APK builds before submission to Play Console. Play App Signing re-signs the app with Google's key before distribution, so the upload key is never seen by end users — but it must match across all future uploads.
+
+| Item | Value |
+|------|-------|
+| File | `diplicity-android-upload.keystore` (repo root, gitignored) |
+| Key alias | `upload` |
+| SHA-1 | `6A:39:8D:D3:B4:43:12:22:0C:4C:FA:08:93:B7:AD:19:58:D2:E0:0E` |
+| SHA-256 | `72:86:DC:A5:6F:C9:E1:5E:CF:E1:38:8A:AD:D9:C5:FC:B6:0D:2F:5B:CC:05:4D:B1:E5:E9:27:BD:05:EA:32:F8` |
+| Validity | 10 000 days (expires 2053-10-11) |
+| Password | Store in your password manager under "diplicity-android-upload.keystore" |
+
+**Required env vars for release builds:**
+
+```bash
+ANDROID_KEYSTORE_PATH=/path/to/diplicity-android-upload.keystore  # defaults to repo root
+ANDROID_KEYSTORE_PASSWORD=<password>
+ANDROID_KEY_ALIAS=upload
+ANDROID_KEY_PASSWORD=<password>
+```
+
+**Local release build:**
+```bash
+cd packages/web/android
+ANDROID_HOME=$HOME/Android/Sdk \
+  ANDROID_KEYSTORE_PATH="$(git rev-parse --show-toplevel)/diplicity-android-upload.keystore" \
+  ANDROID_KEYSTORE_PASSWORD="..." \
+  ANDROID_KEY_ALIAS="upload" \
+  ANDROID_KEY_PASSWORD="..." \
+  ./gradlew bundleRelease
+```
+
+**Restoring the keystore from scratch:** If the file is lost, a new upload key must be generated and submitted to Play Console via "Upload new key" in the Play App Signing settings. The app can still be distributed — Google holds the actual signing key.
+
+### Gitignored credential files (repo root)
+
+| File | Purpose |
+|------|---------|
+| `diplicity-android-upload.keystore` | Android upload keystore |
+| `google-services.json` | _(at `packages/web/android/app/`)_ Firebase Android config |
+| `AuthKey_C6JM6K4J2X.p8` | APNs key (iOS push notifications) |
+| `AuthKey_WVUV6626PT.p8` | App Store Connect API key (iOS Fastlane CI) |
 
 ---
 
