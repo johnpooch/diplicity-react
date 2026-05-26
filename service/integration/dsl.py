@@ -192,37 +192,80 @@ class GameSession:
         # is captured), so we don't assert game completion for them — the test just
         # validates that we got to the terminal phase with the expected orders.
 
-    def replay_phase(self, phase_data):
-        self.assert_phase(
-            season=phase_data["season"],
-            year=phase_data["year"],
-            type=phase_data["type"],
+    def _phase_matches_current(self, phase_data):
+        phase = self.current_phase
+        return (
+            phase.season == phase_data["season"]
+            and phase.year == phase_data["year"]
+            and phase.type == phase_data["type"]
         )
 
-        trigger = phase_data["resolution_trigger"]
+    def _is_skippable_phase(self, phase_data):
+        # Phases with no possible orders for anyone -- empty retreats (nothing
+        # dislodged) and balanced adjustments -- are no longer created; the
+        # adjudicator advances straight to the next interactive phase. These
+        # were recorded with an "auto" trigger and no orders.
+        return (
+            phase_data["type"] in ("Retreat", "Adjustment")
+            and phase_data["resolution_trigger"] == "auto"
+            and not phase_data["orders"]
+        )
 
-        if trigger == "terminal":
+    def replay_all(self, phases):
+        i = 0
+        n = len(phases)
+        while i < n:
+            phase_data = phases[i]
+
+            self.assert_phase(
+                season=phase_data["season"],
+                year=phase_data["year"],
+                type=phase_data["type"],
+            )
+
+            trigger = phase_data["resolution_trigger"]
+
+            if trigger == "terminal":
+                for order in phase_data["orders"]:
+                    self.order(order["nation"], *order["selected"])
+                return
+
+            phase_being_resolved = self.current_phase
+
             for order in phase_data["orders"]:
                 self.order(order["nation"], *order["selected"])
-            return
 
-        phase_being_resolved = self.current_phase
+            if trigger == "auto":
+                self.resolve()
+            elif trigger == "consensus":
+                self.confirm_all()
+                self.resolve()
+            elif trigger == "deadline":
+                non_confirming = set(phase_data["non_confirming_nations"])
+                confirming = [n for n in self.clients_by_nation if n not in non_confirming]
+                self.confirm_subset(confirming)
+                self.resolve_after_deadline()
+            else:
+                raise ValueError(f"Unknown resolution_trigger: {trigger!r}")
 
-        for order in phase_data["orders"]:
-            self.order(order["nation"], *order["selected"])
+            self.assert_resolutions(phase_being_resolved, phase_data["orders"])
 
-        if trigger == "auto":
-            self.resolve()
-        elif trigger == "consensus":
-            self.confirm_all()
-            self.resolve()
-        elif trigger == "deadline":
-            non_confirming = set(phase_data["non_confirming_nations"])
-            confirming = [n for n in self.clients_by_nation if n not in non_confirming]
-            self.confirm_subset(confirming)
-            self.resolve_after_deadline()
-        else:
-            raise ValueError(f"Unknown resolution_trigger: {trigger!r}")
+            # Fold in any phases the adjudicator skipped: units carry forward
+            # unchanged and supply-center ownership recomputed during a skipped
+            # retreat surfaces on the phase we land on, so the resulting state
+            # matches the last skipped phase's expected_state_after.
+            expected_state = phase_data["expected_state_after"]
+            j = i + 1
+            while j < n and not self._phase_matches_current(phases[j]):
+                skipped = phases[j]
+                assert self._is_skippable_phase(skipped), (
+                    f"Phase divergence: fixture expected {skipped['season']} "
+                    f"{skipped['year']} {skipped['type']} but game is at "
+                    f"{self.current_phase.name}"
+                )
+                if skipped["expected_state_after"] is not None:
+                    expected_state = skipped["expected_state_after"]
+                j += 1
 
-        self.assert_resolutions(phase_being_resolved, phase_data["orders"])
-        self.assert_state(phase_data["expected_state_after"])
+            self.assert_state(expected_state)
+            i = j

@@ -29,8 +29,7 @@ def test_replay_fixture_01_ivg_draw(
         clients=[authenticated_client, authenticated_client_for_secondary_user],
     )
 
-    for phase_data in fixture["phases"]:
-        session.replay_phase(phase_data)
+    session.replay_all(fixture["phases"])
 
     session.assert_outcome(fixture["outcome"])
 
@@ -58,8 +57,7 @@ def test_replay_fixture_02_classical_solo(
         ],
     )
 
-    for phase_data in fixture["phases"]:
-        session.replay_phase(phase_data)
+    session.replay_all(fixture["phases"])
 
     session.assert_outcome(fixture["outcome"])
 
@@ -95,8 +93,7 @@ def test_replay_classical_long_solos(
         ],
     )
 
-    for phase_data in fixture["phases"]:
-        session.replay_phase(phase_data)
+    session.replay_all(fixture["phases"])
 
     session.assert_outcome(fixture["outcome"])
 
@@ -122,7 +119,6 @@ def test_replay_fixture_03_hundred_solo(
         ],
     )
 
-    for phase_data in fixture["phases"]:
-        session.replay_phase(phase_data)
+    session.replay_all(fixture["phases"])
 
     session.assert_outcome(fixture["outcome"])
