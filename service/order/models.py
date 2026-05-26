@@ -27,6 +27,7 @@ class OrderQuerySet(models.QuerySet):
             "phase_state__member__user",
             "phase_state__member",
             "phase_state__member__nation",
+            "phase_state__member__nation__flag",
             "phase_state__phase__game__variant",
             "resolution",
             "source",

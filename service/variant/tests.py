@@ -101,7 +101,7 @@ class TestVariantListViewQueryPerformance:
         # regardless of the number of variants due to prefetch_related
         query_count = len(connection.queries)
 
-        assert query_count == 16
+        assert query_count == 18
 
     @pytest.mark.django_db
     def test_list_variants_query_count_with_single_variant(self, authenticated_client, classical_variant):
@@ -134,7 +134,7 @@ class TestVariantListViewQueryPerformance:
         # Should have the same number of queries regardless of variant count
         # due to prefetch_related optimization
         query_count = len(connection.queries)
-        assert query_count == 16
+        assert query_count == 18
 
 
 class TestPhaseProgressionBackfill:

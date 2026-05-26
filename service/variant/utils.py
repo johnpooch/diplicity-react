@@ -349,6 +349,34 @@ def _strip_svg_namespace_prefix(svg):
     return svg
 
 
+_DANGEROUS_URL_PREFIX = re.compile(r"^\s*javascript:", re.IGNORECASE)
+_HREF_LIKE_ATTRS = ("href", "to")
+_DANGEROUS_ELEMENTS = ("script", "foreignObject", "handler")
+
+
+def sanitize_svg(svg):
+    root = etree.fromstring(svg.encode())
+
+    for element in list(root.iter()):
+        if _local_name(element.tag) in _DANGEROUS_ELEMENTS:
+            parent = element.getparent()
+            if parent is not None:
+                parent.remove(element)
+
+    for element in root.iter():
+        for name in list(element.attrib):
+            local = _local_name(name)
+            if local.lower().startswith("on"):
+                del element.attrib[name]
+                continue
+            if local in _HREF_LIKE_ATTRS:
+                value = element.attrib.get(name, "")
+                if _DANGEROUS_URL_PREFIX.match(value):
+                    del element.attrib[name]
+
+    return _strip_svg_namespace_prefix(etree.tostring(root).decode())
+
+
 def _svg_element(local_name):
     return etree.Element(f"{{{SVG_NAMESPACE}}}{local_name}")
 
@@ -764,9 +792,15 @@ def create_variant_from_dvar(dvar, owner=None, status=None):
 
 def update_variant_from_dvar(variant, dvar):
     from game.models import Game
-    from nation.models import Nation
+    from nation.models import Nation, NationFlag
     from phase.models import Phase
     from province.models import Province
+
+    flag_snapshot = dict(
+        NationFlag.objects.filter(nation__variant=variant).values_list(
+            "nation__nation_id", "svg"
+        )
+    )
 
     Game.objects.filter(variant=variant).delete()
     Phase.objects.filter(variant=variant).delete()
@@ -787,6 +821,19 @@ def update_variant_from_dvar(variant, dvar):
     variant.save()
 
     _build_variant_children(variant, dvar)
+
+    if flag_snapshot:
+        surviving = {
+            nation.nation_id: nation
+            for nation in Nation.objects.filter(
+                variant=variant, nation_id__in=flag_snapshot.keys()
+            )
+        }
+        for nation_id, svg in flag_snapshot.items():
+            nation = surviving.get(nation_id)
+            if nation is not None:
+                NationFlag.objects.create(nation=nation, svg=svg)
+
     return variant
 
 

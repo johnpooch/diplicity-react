@@ -1625,7 +1625,7 @@ class TestPhaseRetrieveViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        assert query_count == 12
+        assert query_count == 14
 
 
 class TestGetPhasesToResolvePerformance:
@@ -1684,7 +1684,7 @@ class TestGetPhasesToResolvePerformance:
 
         query_count = len(connection.queries)
 
-        assert query_count == 7
+        assert query_count == 8
 
 
 class TestResolveTransactionSafety:
@@ -3721,7 +3721,7 @@ class TestPhaseToCanonicalGameStatePerformance:
         )
         phase = self._build_phase(classical_variant, game, england, france, 3)
 
-        assert self._count_queries(phase) == 12
+        assert self._count_queries(phase) == 15
 
     @pytest.mark.django_db
     def test_query_count_does_not_scale_with_units_and_orders(

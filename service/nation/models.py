@@ -1,4 +1,8 @@
+import hashlib
+
 from django.db import models
+
+from common.models import BaseModel
 
 
 class Nation(models.Model):
@@ -13,3 +17,22 @@ class Nation(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.variant.name})"
+
+
+class NationFlag(BaseModel):
+    nation = models.OneToOneField(Nation, on_delete=models.CASCADE, related_name="flag")
+    svg = models.TextField()
+    content_hash = models.CharField(max_length=64, editable=False)
+
+    def save(self, *args, **kwargs):
+        from variant.utils import sanitize_svg
+
+        self.svg = sanitize_svg(self.svg)
+        self.content_hash = hashlib.sha256(self.svg.encode()).hexdigest()
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            kwargs["update_fields"] = set(update_fields) | {"svg", "content_hash"}
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.nation} flag"

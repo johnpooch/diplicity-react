@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Button } from "@/components/ui/button";
-import { NationFlag } from "@/components/NationFlag";
+import { NationFlag, findNationFlagUrl } from "@/components/NationFlag";
 import {
   Item,
   ItemContent,
@@ -77,8 +77,8 @@ const ProposalItem: React.FC<ProposalItemProps> = ({
   return (
     <Item className="border-b border-b-border">
       <NationFlag
-        nation={proposal.createdBy.nation ?? ""}
-        variantId={variant?.id ?? ""}
+        flagUrl={variant ? findNationFlagUrl(variant.nations, proposal.createdBy.nation) : null}
+        alt={proposal.createdBy.nation ?? ""}
         size="md"
         className="size-8 self-start"
       />
