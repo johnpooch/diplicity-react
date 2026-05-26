@@ -39,13 +39,19 @@ Working notes for the Android app implementation (#298 and sub-issues). Used to 
 
 ---
 
-## Issue #301 — Google Sign-In / Apple hidden (code complete, OAuth registration pending)
+## Issue #301 — Google Sign-In / Apple hidden (completed ✅)
 
 ### What was done
 - `isIosPlatform()` added to `src/utils/platform.ts`
 - Apple Sign-In button hidden on Android in `Login.tsx` using `isIosPlatform()`
 - App Store badges (both desktop and mobile variants) hidden on Android using `!isNativePlatform() || isIosPlatform()`
 - `initializeNativeSocialLogin()` fixed to only pass `apple` config on iOS
+- Android OAuth client registered in Google Cloud project `394867503899` ("Diplicity Android 2"):
+  - Package name: `com.diplicityreact.app`
+  - SHA-1: `6F:9D:E2:20:2F:35:17:10:8C:41:28:B2:61:F5:4F:DE:7F:B1:0E:38` (debug keystore)
+- `applicationId` renamed from `com.diplicity.app` → `com.diplicityreact.app` (canonical Android package name)
+- `https://localhost` added to Django `CORS_ALLOWED_ORIGINS` default — Android Capacitor WebView uses this origin; without it CORS blocked the `/auth/login/` preflight
+- Google Sign-In verified working end-to-end on Pixel 8a (debug build, local backend)
 
 ### Bug found and fixed: `apple: {}` crashes Android initialization
 The `@capgo/capacitor-social-login` plugin processes Apple **before** Google in `SocialLoginPlugin.java`. Passing `apple: {}` (an empty object) passes the `apple != null` check, then immediately rejects with `"apple.android.redirectUrl is null or empty"` — causing the entire `SocialLogin.initialize()` call to reject. Because Apple is processed first, Google is never registered, so all subsequent `SocialLogin.login({ provider: 'google' })` calls fail with `"Cannot find provider 'google'. Provider was not initialized."`.
@@ -58,21 +64,16 @@ await SocialLogin.initialize({
 });
 ```
 
-### Pending: Android OAuth client registration
-Google Sign-In completes the account picker but then fails with `DEVELOPER_ERROR`. Cause: no Android OAuth client registered in the correct Google Cloud project.
-
-- **Project**: `394867503899` (same project as `VITE_GOOGLE_CLIENT_ID`)
-- **Project owner**: John McDowell (other developer, not available at time of writing)
-- **Action needed**: Register an Android OAuth client in that project with:
-  - Package name: `com.diplicityreact.app`
-  - SHA-1: `6F:9D:E2:20:2F:35:17:10:8C:41:28:B2:61:F5:4F:DE:7F:B1:0E:38` (debug keystore)
-- **No code change needed** — the plugin uses `webClientId` for Android, not a separate Android client ID. The registration is purely a Google Cloud Console configuration step.
-- After Play App Signing (#304), the production SHA-1 from Play Console also needs to be added to the same OAuth client.
+### Android WebView CORS origin
+The Capacitor Android WebView serves the app at `https://localhost`. API calls to `http://localhost:8000` are cross-origin, so Django needs `https://localhost` in `CORS_ALLOWED_ORIGINS`. This is included in the default value in `service/project/settings.py` — no env var change needed for local dev.
 
 ### Plugin internals (useful for debugging)
 - Android plugin reads `webClientId` (not `androidClientId`) — confirmed in `SocialLoginPlugin.java:82`
 - `SocialLogin.initialize()` rejects the **entire call** if any provider config is invalid, even if other providers were already set up earlier in the method
 - Error `"Cannot find provider 'google'. Provider was not initialized."` = initialize was never called OR it rejected silently
+
+### Remaining: production SHA-1
+After Play App Signing (#304), the production SHA-1 from Play Console also needs to be added to the "Diplicity Android 2" OAuth client in Google Cloud Console.
 
 ---
 
@@ -123,6 +124,18 @@ npm run build
 ANDROID_HOME=$HOME/Android/Sdk npx cap sync android
 ANDROID_HOME=$HOME/Android/Sdk npx cap run android --target 46101JEKB13333
 ```
+
+### Testing against the local backend
+
+The app is built with `VITE_DIPLICITY_API_BASE_URL=http://localhost:8000`. On the physical device, `localhost` resolves to the device itself — not the dev machine. Use `adb reverse` to forward the device's port 8000 to the host's port 8000:
+
+```bash
+adb reverse tcp:8000 tcp:8000
+```
+
+Run this **after every ADB reconnect** (it drops when USB resets). Docker must be running (`docker compose up`).
+
+The Android WebView makes cross-origin requests from `https://localhost` to `http://localhost:8000`, so `https://localhost` must be in Django's `CORS_ALLOWED_ORIGINS` — already included in the default in `service/project/settings.py`.
 
 For logcat debugging (run first, then trigger the action on device, then Ctrl+C):
 ```bash
