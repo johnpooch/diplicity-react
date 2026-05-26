@@ -7,6 +7,13 @@
 ### Improvement: Retreat and adjustment phases with nothing to do are skipped
 
 When a turn dislodges no units, or when everyone's builds and disbands are balanced, the game now advances straight to the next phase that actually needs orders instead of creating an empty retreat or adjustment phase. Previously these empty phases were created and sat waiting — in fixed-time games an empty retreat would hold for the full deadline (up to 24 hours) before resolving, even though no one had anything to do. Spring movement with no retreats now goes directly to fall movement.
+## Fleet Orders from Named Coasts (May 24, 2026)
+
+**Release Date:** May 24, 2026
+
+### Bug Fix: Moving a fleet off a named coast
+
+Issuing a move order for a fleet sitting on a named coast (for example a fleet on Spain's south coast) toward a destination that itself has named coasts failed with a server error, so the order could not be submitted. The order wizard now correctly recognises the fleet and lets you pick the destination coast.
 ## Faster "Clone to Sandbox" (May 24, 2026)
 
 **Release Date:** May 24, 2026
