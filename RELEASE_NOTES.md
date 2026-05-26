@@ -1,5 +1,12 @@
 # Diplicity React - Release Notes
 
+## Skip Empty Phases (May 25, 2026)
+
+**Release Date:** May 25, 2026
+
+### Improvement: Retreat and adjustment phases with nothing to do are skipped
+
+When a turn dislodges no units, or when everyone's builds and disbands are balanced, the game now advances straight to the next phase that actually needs orders instead of creating an empty retreat or adjustment phase. Previously these empty phases were created and sat waiting — in fixed-time games an empty retreat would hold for the full deadline (up to 24 hours) before resolving, even though no one had anything to do. Spring movement with no retreats now goes directly to fall movement.
 ## Fleet Orders from Named Coasts (May 24, 2026)
 
 **Release Date:** May 24, 2026

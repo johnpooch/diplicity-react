@@ -196,8 +196,10 @@ class TestAdjudicationService:
         data = adjudication_service.resolve(phase_spring_1901_movement)
 
         assert data["year"] == 1901
-        assert data["season"] == "Spring"
-        assert data["type"] == "Retreat"
+        # Spring 1901 dislodges no one, so the empty Spring Retreat is skipped
+        # and resolve() returns the next interactive phase: Fall Movement.
+        assert data["season"] == "Fall"
+        assert data["type"] == "Movement"
         assert len(data["options"]) == 2
 
         assert sort_by_province(data["supply_centers"]) == sort_by_province(
@@ -342,21 +344,30 @@ class TestAdjudicationService:
         data = adjudication_service.resolve(phase_fall_1901_movement)
 
         assert data["year"] == 1901
+        # Fall 1901 captures Greece and Warsaw but dislodges no one, so the
+        # empty Fall Retreat is skipped and resolve() advances to the Fall
+        # Adjustment, where both powers can build. Supply-center ownership is
+        # recomputed during the skipped retreat, so the captured centers
+        # appear here.
         assert data["season"] == "Fall"
-        assert data["type"] == "Retreat"
+        assert data["type"] == "Adjustment"
 
         assert len(data["options"]) == 2
-        assert data["options"]["Italy"] == {}
-        assert data["options"]["Germany"] == {}
+        assert data["options"]["Italy"] != {}
+        assert data["options"]["Germany"] != {}
 
         assert sort_by_province(data["supply_centers"]) == sort_by_province(
             [
                 {"province": "ven", "nation": "Italy"},
                 {"province": "rom", "nation": "Italy"},
                 {"province": "nap", "nation": "Italy"},
+                {"province": "gre", "nation": "Italy"},
+                {"province": "tri", "nation": "Italy"},
                 {"province": "kie", "nation": "Germany"},
                 {"province": "ber", "nation": "Germany"},
                 {"province": "mun", "nation": "Germany"},
+                {"province": "den", "nation": "Germany"},
+                {"province": "war", "nation": "Germany"},
             ]
         )
 
@@ -696,8 +707,11 @@ class TestAdjudicationService:
         data = adjudication_service.resolve(phase)
 
         assert data["year"] == 1901
-        assert data["season"] == "Spring"
-        assert data["type"] == "Retreat"
+        # The bounce dislodges no one, so the empty Spring Retreat is skipped
+        # and resolve() returns Fall Movement. The bounce resolutions below
+        # still come from the resolved Spring Movement.
+        assert data["season"] == "Fall"
+        assert data["type"] == "Movement"
 
         # Check that order resolutions are correct
         mun_bounce_result = next((r for r in data["resolutions"] if r["province"] == "mun"), None)
@@ -831,8 +845,10 @@ class TestAdjudicationService:
         data = adjudication_service.resolve(phase_spring_1901_movement)
 
         assert data["year"] == 1901
-        assert data["season"] == "Spring"
-        assert data["type"] == "Retreat"
+        # No dislodgement, so the empty Spring Retreat is skipped and resolve()
+        # returns Fall Movement with the moved unit carried forward.
+        assert data["season"] == "Fall"
+        assert data["type"] == "Movement"
 
         assert sort_by_province(data["units"]) == sort_by_province(
             [
@@ -867,8 +883,10 @@ class TestAdjudicationService:
         data = adjudication_service.resolve(phase_spring_1901_movement)
 
         assert data["year"] == 1901
-        assert data["season"] == "Spring"
-        assert data["type"] == "Retreat"
+        # No dislodgement, so the empty Spring Retreat is skipped and resolve()
+        # returns Fall Movement with the moved unit carried forward.
+        assert data["season"] == "Fall"
+        assert data["type"] == "Movement"
 
         assert sort_by_province(data["units"]) == sort_by_province(
             [
