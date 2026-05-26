@@ -859,14 +859,29 @@ The Team ID is `G76UP8FNMS` (stored in `.env` as `CAPACITOR_IOS_TEAM_ID`). The c
 
 Run from `packages/web/`:
 ```bash
-# Full release to TestFlight
+# iOS — full release to TestFlight
 npm run build && npx cap sync ios && bundle exec fastlane ios release
 
-# PR validation build
+# iOS — PR validation build
 PR_NUMBER=42 PR_TITLE="My feature" bundle exec fastlane ios pr_build
+
+# Android — full release to Play Console internal track
+npm run build && npx cap sync android && bundle exec fastlane android release
+
+# Android — PR build
+PR_NUMBER=42 PR_TITLE="My feature" bundle exec fastlane android pr_build
 ```
 
-Requires `ASC_KEY_ID` and `ASC_ISSUER_ID` in `.env`, and the `.p8` key file in the repo root.
+iOS requires `ASC_KEY_ID` and `ASC_ISSUER_ID` in `.env`, and the `.p8` key file in the repo root.
+
+Android requires these env vars (add to shell or `.env`):
+```bash
+ANDROID_KEYSTORE_PATH=/path/to/diplicity-android-upload.keystore
+ANDROID_KEYSTORE_PASSWORD=<password>
+ANDROID_KEY_ALIAS=upload
+ANDROID_KEY_PASSWORD=<password>
+PLAY_SERVICE_ACCOUNT_JSON=/path/to/play-service-account.json  # optional; upload skipped if unset
+```
 
 ### Signing Strategy
 
@@ -889,6 +904,8 @@ Fastlane uses `update_code_signing_settings` to switch the App target to Manual 
 
 ### Required GitHub Secrets
 
+#### iOS
+
 | Secret | Description |
 |--------|-------------|
 | `ASC_KEY_ID` | App Store Connect API key ID (`WVUV6626PT`) |
@@ -898,3 +915,13 @@ Fastlane uses `update_code_signing_settings` to switch the App target to Manual 
 | `MATCH_PASSWORD` | Encryption password for match certificates |
 | `MATCH_GIT_BASIC_AUTHORIZATION` | Base64-encoded `user:token` for HTTPS Git auth |
 | `VITE_GOOGLE_IOS_CLIENT_ID` | Google OAuth iOS client ID |
+
+#### Android
+
+| Secret | Description |
+|--------|-------------|
+| `ANDROID_KEYSTORE_BASE64` | Base64-encoded `diplicity-android-upload.keystore` |
+| `ANDROID_KEYSTORE_PASSWORD` | Keystore and key password |
+| `ANDROID_KEY_ALIAS` | Key alias (`upload`) |
+| `ANDROID_KEY_PASSWORD` | Key password (same as keystore password) |
+| `PLAY_SERVICE_ACCOUNT_JSON` | Play Console service account JSON (raw JSON string) |
