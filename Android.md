@@ -77,7 +77,7 @@ After Play App Signing (#304), the production SHA-1 from Play Console also needs
 
 ---
 
-## Issue #300 — Firebase Cloud Messaging (code done, blocked on google-services.json)
+## Issue #300 — Firebase Cloud Messaging (completed ✅)
 
 ### What was done
 - `messaging-ios.ts` renamed to `messaging-native.ts` — the `@capacitor-firebase/messaging` plugin works on both iOS and Android; the old name was misleading
@@ -89,23 +89,25 @@ After Play App Signing (#304), the production SHA-1 from Play Console also needs
 - `isAndroidPlatform()` added to `src/utils/platform.ts`
 - `android/**` added to ESLint ignore list in `eslint.config.js` (Android build artifacts were causing spurious lint errors)
 - `CLAUDE.md` updated with Firebase/Android FCM setup instructions (google-services.json path, setup steps)
+- `google-services.json` added to `packages/web/android/app/` (gitignored) — Android app registered in Firebase project `diplicity-react`, package name `com.diplicityreact.app`
 
-### Pending: google-services.json
-FCM won't work until the Android app is registered in the Firebase project and `google-services.json` is in place.
+### Verified end-to-end on Pixel 8a
+1. App prompts for `POST_NOTIFICATIONS` permission on first enable
+2. FCM token obtained via `FirebaseMessaging.getToken()`
+3. Token registered in backend as `FCMDevice(type='android', active=True)`
+4. Firebase console "Send test message" delivered notification to device ✅
+5. Backend sends to Android via same `FCMDevice.objects.filter(...).send_message()` path used for iOS — no additional code needed
 
-Steps:
-1. Go to Firebase console → project `diplicity-react` → Project settings → Add app → Android
-2. Enter package name: `com.diplicityreact.app`
-3. Download `google-services.json` → place at `packages/web/android/app/google-services.json`
-4. Build and deploy to Pixel 8a, verify notification arrives
-
-The `build.gradle` conditional plugin wiring is already in place:
-```groovy
-try {
-  def servicesJSON = file('google-services.json')
-  if (servicesJSON.text) { apply plugin: 'com.google.gms.google-services' }
-} catch(Exception e) { ... }
-```
+### google-services.json setup (for future reference)
+- Firebase console → project `diplicity-react` → DevOps and engagement → Messaging → New campaign → compose a notification → "Send test message" link
+- The file lives at `packages/web/android/app/google-services.json` (gitignored)
+- The `build.gradle` conditional plugin wiring picks it up automatically:
+  ```groovy
+  try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) { apply plugin: 'com.google.gms.google-services' }
+  } catch(Exception e) { ... }
+  ```
 
 Runtime `POST_NOTIFICATIONS` permission (Android 13+) is handled by `FirebaseMessaging.requestPermissions()` in `messaging-native.ts` — no additional code needed.
 
