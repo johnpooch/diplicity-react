@@ -876,7 +876,8 @@ npm run build && npx cap sync ios && bundle exec fastlane ios release
 PR_NUMBER=42 PR_TITLE="My feature" bundle exec fastlane ios pr_build
 
 # Android — full release to Play Console internal track
-npm run build && npx cap sync android && bundle exec fastlane android release
+VITE_DIPLICITY_API_BASE_URL=https://diplicity-react-production.up.railway.app \
+  npm run build && npx cap sync android && bundle exec fastlane android release
 
 # Android — PR build
 PR_NUMBER=42 PR_TITLE="My feature" bundle exec fastlane android pr_build
