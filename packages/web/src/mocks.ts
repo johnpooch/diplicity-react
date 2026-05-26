@@ -13,13 +13,13 @@ import type {
 } from "@/api/generated/endpoints";
 
 export const mockNations: Nation[] = [
-  { name: "Austria", color: "#FF0000" },
-  { name: "England", color: "#0000FF" },
-  { name: "France", color: "#00FFFF" },
-  { name: "Germany", color: "#000000" },
-  { name: "Italy", color: "#00FF00" },
-  { name: "Russia", color: "#FFFFFF" },
-  { name: "Turkey", color: "#FFFF00" },
+  { nationId: "austria", name: "Austria", color: "#FF0000", flagUrl: null },
+  { nationId: "england", name: "England", color: "#0000FF", flagUrl: null },
+  { nationId: "france", name: "France", color: "#00FFFF", flagUrl: null },
+  { nationId: "germany", name: "Germany", color: "#000000", flagUrl: null },
+  { nationId: "italy", name: "Italy", color: "#00FF00", flagUrl: null },
+  { nationId: "russia", name: "Russia", color: "#FFFFFF", flagUrl: null },
+  { nationId: "turkey", name: "Turkey", color: "#FFFF00", flagUrl: null },
 ];
 
 export const mockMembers: Member[] = [

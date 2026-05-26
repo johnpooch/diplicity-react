@@ -72,8 +72,11 @@ export interface Auth {
 }
 
 export interface Nation {
+  nationId: string;
   name: string;
   color: string;
+  /** @nullable */
+  readonly flagUrl: string | null;
 }
 
 export interface ChannelMember {
@@ -436,6 +439,10 @@ export interface GameRetrieve {
   readonly retreatFrequency: string | null;
   readonly pressType: string;
   readonly totalUnreadMessageCount: number;
+}
+
+export interface NationFlagUpload {
+  flag: string;
 }
 
 export interface Province {
@@ -8845,6 +8852,172 @@ export function useVariantsDvarRetrieveSuspense<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+export const variantsNationsFlagUpdate = (
+  variantId: string,
+  nationId: string,
+  nationFlagUpload: NationFlagUpload,
+  signal?: AbortSignal
+) => {
+  const formData = new FormData();
+  formData.append(`flag`, nationFlagUpload.flag);
+
+  return customInstance<Nation>({
+    url: `/variants/${variantId}/nations/${nationId}/flag/`,
+    method: "PUT",
+    headers: { "Content-Type": "multipart/form-data" },
+    data: formData,
+    signal,
+  });
+};
+
+export const getVariantsNationsFlagUpdateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof variantsNationsFlagUpdate>>,
+    TError,
+    { variantId: string; nationId: string; data: NationFlagUpload },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof variantsNationsFlagUpdate>>,
+  TError,
+  { variantId: string; nationId: string; data: NationFlagUpload },
+  TContext
+> => {
+  const mutationKey = ["variantsNationsFlagUpdate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof variantsNationsFlagUpdate>>,
+    { variantId: string; nationId: string; data: NationFlagUpload }
+  > = props => {
+    const { variantId, nationId, data } = props ?? {};
+
+    return variantsNationsFlagUpdate(variantId, nationId, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VariantsNationsFlagUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof variantsNationsFlagUpdate>>
+>;
+export type VariantsNationsFlagUpdateMutationBody = NationFlagUpload;
+export type VariantsNationsFlagUpdateMutationError = unknown;
+
+export const useVariantsNationsFlagUpdate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof variantsNationsFlagUpdate>>,
+      TError,
+      { variantId: string; nationId: string; data: NationFlagUpload },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof variantsNationsFlagUpdate>>,
+  TError,
+  { variantId: string; nationId: string; data: NationFlagUpload },
+  TContext
+> => {
+  return useMutation(
+    getVariantsNationsFlagUpdateMutationOptions(options),
+    queryClient
+  );
+};
+
+export const variantsNationsFlagDestroy = (
+  variantId: string,
+  nationId: string,
+  signal?: AbortSignal
+) => {
+  return customInstance<void>({
+    url: `/variants/${variantId}/nations/${nationId}/flag/`,
+    method: "DELETE",
+    signal,
+  });
+};
+
+export const getVariantsNationsFlagDestroyMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof variantsNationsFlagDestroy>>,
+    TError,
+    { variantId: string; nationId: string },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof variantsNationsFlagDestroy>>,
+  TError,
+  { variantId: string; nationId: string },
+  TContext
+> => {
+  const mutationKey = ["variantsNationsFlagDestroy"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof variantsNationsFlagDestroy>>,
+    { variantId: string; nationId: string }
+  > = props => {
+    const { variantId, nationId } = props ?? {};
+
+    return variantsNationsFlagDestroy(variantId, nationId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VariantsNationsFlagDestroyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof variantsNationsFlagDestroy>>
+>;
+
+export type VariantsNationsFlagDestroyMutationError = unknown;
+
+export const useVariantsNationsFlagDestroy = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof variantsNationsFlagDestroy>>,
+      TError,
+      { variantId: string; nationId: string },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof variantsNationsFlagDestroy>>,
+  TError,
+  { variantId: string; nationId: string },
+  TContext
+> => {
+  return useMutation(
+    getVariantsNationsFlagDestroyMutationOptions(options),
+    queryClient
+  );
+};
 
 export const versionRetrieve = (signal?: AbortSignal) => {
   return customInstance<Version>({ url: `/version/`, method: "GET", signal });

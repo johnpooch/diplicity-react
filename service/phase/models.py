@@ -26,10 +26,10 @@ tracer = trace.get_tracer(__name__)
 class PhaseQuerySet(models.QuerySet):
     def with_detail_data(self):
         return self.prefetch_related(
-            "units__nation",
+            "units__nation__flag",
             "units__province__parent",
             "units__province__named_coasts",
-            "supply_centers__nation",
+            "supply_centers__nation__flag",
             "supply_centers__province__parent",
             "supply_centers__province__named_coasts",
         )
@@ -37,11 +37,11 @@ class PhaseQuerySet(models.QuerySet):
     def with_adjudication_data(self):
         return self.select_related("variant", "game").prefetch_related(
             "supply_centers__province",
-            "supply_centers__nation",
+            "supply_centers__nation__flag",
             "units__province",
-            "units__nation",
+            "units__nation__flag",
             "units__dislodged_by__province",
-            "phase_states__member__nation",
+            "phase_states__member__nation__flag",
             "phase_states__orders__source",
             "phase_states__orders__target",
             "phase_states__orders__aux",
@@ -51,12 +51,12 @@ class PhaseQuerySet(models.QuerySet):
 
     def with_canonical_state_data(self):
         return self.prefetch_related(
-            "units__nation",
+            "units__nation__flag",
             "units__province",
             "units__dislodged_by__province__parent",
-            "supply_centers__nation",
+            "supply_centers__nation__flag",
             "supply_centers__province",
-            "phase_states__member__nation",
+            "phase_states__member__nation__flag",
             "phase_states__orders__source",
             "phase_states__orders__target",
             "phase_states__orders__aux",

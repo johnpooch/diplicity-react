@@ -15,7 +15,7 @@ import {
   MessageTimestamp,
 } from "@/components/ui/message";
 import { Notice } from "@/components/Notice";
-import { NationFlag } from "@/components/NationFlag";
+import { NationFlag, findNationFlagUrl } from "@/components/NationFlag";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
 import {
@@ -158,7 +158,6 @@ const ChannelScreen: React.FC = () => {
     game.status !== "abandoned";
 
   const variant = variants.find(v => v.id === game.variantId);
-  const variantId = variant?.id;
 
   const messageItems = buildMessageItems(channel.messages);
 
@@ -220,8 +219,12 @@ const ChannelScreen: React.FC = () => {
                       {item.showAvatar ? (
                         <div className="flex flex-col items-center gap-0.5">
                           <NationFlag
-                            nation={item.sender.nationName}
-                            variantId={variantId!}
+                            flagUrl={
+                              variant
+                                ? findNationFlagUrl(variant.nations, item.sender.nationName)
+                                : null
+                            }
+                            alt={item.sender.nationName}
                             size="lg"
                           />
                           <span className="text-xs text-muted-foreground">

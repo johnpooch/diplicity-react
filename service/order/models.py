@@ -27,6 +27,7 @@ class OrderQuerySet(models.QuerySet):
             "phase_state__member__user",
             "phase_state__member",
             "phase_state__member__nation",
+            "phase_state__member__nation__flag",
             "phase_state__phase__game__variant",
             "resolution",
             "source",
@@ -41,7 +42,9 @@ class OrderQuerySet(models.QuerySet):
             "phase_state__member__user__profile",
             Prefetch(
                 "phase_state__phase__units",
-                queryset=apps.get_model("unit", "Unit").objects.select_related("province"),
+                queryset=apps.get_model("unit", "Unit")
+                .objects.select_related("province__parent")
+                .prefetch_related("province__named_coasts"),
             ),
             "source__named_coasts",
             "target__named_coasts",
@@ -185,10 +188,14 @@ class Order(BaseModel):
 
     @property
     def source_unit(self):
-        units = self.phase.units.filter(province=self.source)
+        if not self.source:
+            return None
+        source_province_ids = {self.source_id}
+        source_province_ids.update(coast.id for coast in self.source.named_coasts.all())
+        units = [unit for unit in self.phase.units.all() if unit.province_id in source_province_ids]
         if self.phase.type == PhaseType.RETREAT:
-            return units.filter(dislodged=True).first() or units.first()
-        return units.first()
+            return next((unit for unit in units if unit.dislodged), None) or (units[0] if units else None)
+        return units[0] if units else None
 
     @property
     def options_display(self):

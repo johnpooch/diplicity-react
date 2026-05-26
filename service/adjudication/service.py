@@ -85,10 +85,21 @@ def resolve(phase) -> Dict[str, Any]:
         resolved = states[0]
         next_state = states[1] if len(states) > 1 else resolved
 
+        # Advance through phases nobody can act in (empty retreat / empty
+        # adjustment) so we land on the next phase that needs player input.
+        # Engine.adjudicate advances one phase per call and keeps phase
+        # skipping out of scope by contract, so skipping is orchestrated
+        # here. Skipped phases are never persisted -- only the final
+        # interactive phase is written by create_from_adjudication_data.
+        next_options = get_options(next_state) if len(states) > 1 else []
+        while len(states) > 1 and not next_options:
+            states = Engine().adjudicate(next_state)
+            next_state = states[1] if len(states) > 1 else states[0]
+            next_options = get_options(next_state) if len(states) > 1 else []
+
         nation_name_by_id = {nation.id: nation.name for nation in variant.nations}
 
         if len(states) > 1:
-            next_options = get_options(next_state)
             godip_options = python_options_to_godip_dict(
                 next_options,
                 next_state.units,

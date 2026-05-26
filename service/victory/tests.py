@@ -215,27 +215,51 @@ class TestVictoryManager:
         assert victory is None
         assert Victory.objects.count() == 0
 
-    def test_try_create_victory_only_checks_adjustment_phases(
+    def test_try_create_victory_detects_solo_on_movement_phase(
         self, game_factory, phase_factory, member_factory, supply_center_factory
     ):
         game = game_factory(variant__solo_victory_sc_count=18)
-
         movement_phase = phase_factory(game=game, type=PhaseType.MOVEMENT, season="Fall")
+
         winner = member_factory(game=game)
+        other_member = member_factory(game=game)
 
         for _ in range(18):
             supply_center_factory(phase=movement_phase, nation=winner.nation)
 
-        victory = Victory.objects.try_create_victory(movement_phase)
-        assert victory is None
+        for _ in range(10):
+            supply_center_factory(phase=movement_phase, nation=other_member.nation)
 
+        victory = Victory.objects.try_create_victory(movement_phase)
+
+        assert victory is not None
+        assert victory.winning_phase == movement_phase
+        assert victory.type == VictoryType.SOLO
+        assert victory.members.count() == 1
+        assert victory.members.first() == winner
+
+    def test_try_create_victory_detects_solo_on_retreat_phase(
+        self, game_factory, phase_factory, member_factory, supply_center_factory
+    ):
+        game = game_factory(variant__solo_victory_sc_count=18)
         retreat_phase = phase_factory(game=game, type=PhaseType.RETREAT, season="Fall")
+
+        winner = member_factory(game=game)
+        other_member = member_factory(game=game)
 
         for _ in range(18):
             supply_center_factory(phase=retreat_phase, nation=winner.nation)
 
+        for _ in range(10):
+            supply_center_factory(phase=retreat_phase, nation=other_member.nation)
+
         victory = Victory.objects.try_create_victory(retreat_phase)
-        assert victory is None
+
+        assert victory is not None
+        assert victory.winning_phase == retreat_phase
+        assert victory.type == VictoryType.SOLO
+        assert victory.members.count() == 1
+        assert victory.members.first() == winner
 
     def test_try_create_victory_works_with_hundred_variant(
         self, game_factory, phase_factory, member_factory, supply_center_factory
