@@ -1505,6 +1505,57 @@ paths:
               schema:
                 $ref: '#/components/schemas/Variant'
           description: ''
+  /variants/{variantId}/nations/{nationId}/flag/:
+    put:
+      operationId: variantsNationsFlagUpdate
+      parameters:
+      - in: path
+        name: nationId
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: variantId
+        schema:
+          type: string
+        required: true
+      tags:
+      - variants
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/NationFlagUpload'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Nation'
+          description: ''
+    delete:
+      operationId: variantsNationsFlagDestroy
+      parameters:
+      - in: path
+        name: nationId
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: variantId
+        schema:
+          type: string
+        required: true
+      tags:
+      - variants
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
   /version/:
     get:
       operationId: versionRetrieve
@@ -2331,13 +2382,21 @@ components:
     Nation:
       type: object
       properties:
+        nationId:
+          type: string
         name:
           type: string
         color:
           type: string
+        flagUrl:
+          type: string
+          nullable: true
+          readOnly: true
       required:
       - color
+      - flagUrl
       - name
+      - nationId
     NationAssignmentEnum:
       enum:
       - random
@@ -2346,6 +2405,15 @@ components:
       description: |-
         * `random` - Random
         * `ordered` - Ordered
+    NationFlagUpload:
+      type: object
+      properties:
+        flag:
+          type: string
+          format: uri
+          writeOnly: true
+      required:
+      - flag
     NullEnum:
       enum:
       - null

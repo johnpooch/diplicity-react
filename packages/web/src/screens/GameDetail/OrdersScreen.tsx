@@ -33,7 +33,7 @@ import {
   ItemSeparator,
 } from "@/components/ui/item";
 import { Notice } from "@/components/Notice";
-import { NationFlag } from "@/components/NationFlag";
+import { NationFlag, findNationFlagUrl } from "@/components/NationFlag";
 import { GameDropdownMenu } from "@/components/GameDropdownMenu";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
@@ -298,8 +298,8 @@ const OrdersScreen: React.FC = () => {
                     <AccordionTrigger className="p-2 items-center">
                       <div className="flex items-center gap-2">
                         <NationFlag
-                          nation={nation}
-                          variantId={variant.id}
+                          flagUrl={findNationFlagUrl(variant.nations, nation)}
+                          alt={nation}
                           size="md"
                         />
                         <span>{nation}</span>

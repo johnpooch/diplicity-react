@@ -1,5 +1,13 @@
 # Diplicity React - Release Notes
 
+## Per-Nation Flag Uploads for Variants (May 26, 2026)
+
+**Release Date:** May 26, 2026
+
+### Feature: Upload a flag for each nation in your draft variant
+
+The variant edit screen (`/variants/<id>/edit`) now has a per-nation flag uploader. Each nation in your draft variant gets a row with its current flag preview, an SVG file picker, and a Remove button. Flags are served from the backend with a content-hashed URL and immutable caching, so they replace the static frontend bundle that previously held flags for only four hardcoded variants. Re-uploading a dvar preserves flags whose nation id is unchanged; flags for removed or renamed nations are dropped. Flags are optional — nations without one render no flag in game UI.
+
 ## Faster "Clone to Sandbox" (May 24, 2026)
 
 **Release Date:** May 24, 2026

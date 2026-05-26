@@ -17,7 +17,12 @@ import {
   useVariantsCreate,
   useVariantsUpdate,
   useVariantsRetrieveSuspense,
+  useVariantsNationsFlagUpdate,
+  useVariantsNationsFlagDestroy,
   getVariantsListQueryKey,
+  getVariantsRetrieveQueryKey,
+  Nation,
+  NationFlagUpload,
   VariantWrite,
 } from "@/api/generated/endpoints";
 import { useQueryClient } from "@tanstack/react-query";
@@ -187,6 +192,98 @@ const VariantCreate: React.FC = () => {
   );
 };
 
+const NationFlagRow: React.FC<{ variantId: string; nation: Nation }> = ({
+  variantId,
+  nation,
+}) => {
+  const queryClient = useQueryClient();
+  const uploadMutation = useVariantsNationsFlagUpdate();
+  const deleteMutation = useVariantsNationsFlagDestroy();
+  const [error, setError] = useState<string | null>(null);
+
+  const invalidate = () =>
+    queryClient.invalidateQueries({
+      queryKey: getVariantsRetrieveQueryKey(variantId),
+    });
+
+  const handleUpload = async (file: File) => {
+    setError(null);
+    try {
+      await uploadMutation.mutateAsync({
+        variantId,
+        nationId: nation.nationId,
+        data: { flag: file as unknown as NationFlagUpload["flag"] },
+      });
+      await invalidate();
+      toast.success(`Uploaded flag for ${nation.name}`);
+    } catch (err) {
+      const axiosError = err as AxiosError<{ flag?: string }>;
+      setError(axiosError.response?.data?.flag ?? axiosError.message ?? "Upload failed");
+    }
+  };
+
+  const handleDelete = async () => {
+    setError(null);
+    try {
+      await deleteMutation.mutateAsync({
+        variantId,
+        nationId: nation.nationId,
+      });
+      await invalidate();
+      toast.success(`Removed flag for ${nation.name}`);
+    } catch (err) {
+      const axiosError = err as AxiosError<{ detail?: string }>;
+      setError(axiosError.response?.data?.detail ?? axiosError.message ?? "Delete failed");
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-3 py-2">
+      <div className="flex items-center gap-2 w-40 min-w-0">
+        <span
+          className="size-4 rounded-full border"
+          style={{ backgroundColor: nation.color }}
+          aria-hidden
+        />
+        <span className="truncate">{nation.name}</span>
+      </div>
+      <div className="flex items-center justify-center w-10">
+        {nation.flagUrl ? (
+          <img
+            src={nation.flagUrl}
+            alt={`${nation.name} flag`}
+            className="size-8 rounded-full object-cover"
+          />
+        ) : (
+          <span className="text-xs text-muted-foreground">no flag</span>
+        )}
+      </div>
+      <div className="flex-1">
+        <Input
+          type="file"
+          accept=".svg,image/svg+xml"
+          onChange={event => {
+            const file = event.target.files?.[0];
+            if (file) handleUpload(file);
+            event.target.value = "";
+          }}
+          disabled={uploadMutation.isPending || deleteMutation.isPending}
+        />
+        {error && <p className="text-xs text-destructive mt-1">{error}</p>}
+      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={handleDelete}
+        disabled={!nation.flagUrl || deleteMutation.isPending}
+      >
+        Remove
+      </Button>
+    </div>
+  );
+};
+
 const VariantEdit: React.FC<{ variantId: string }> = ({ variantId }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -221,7 +318,7 @@ const VariantEdit: React.FC<{ variantId: string }> = ({ variantId }) => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <Button variant="ghost" size="sm" onClick={() => navigate("/variants")}>
         <ArrowLeft className="size-4" /> Back to variants
       </Button>
@@ -234,13 +331,26 @@ const VariantEdit: React.FC<{ variantId: string }> = ({ variantId }) => {
             <AlertTitle>This replaces the variant wholesale.</AlertTitle>
             <AlertDescription>
               Uploading new files for '{variant.name}' deletes any sandbox games
-              using it.
+              using it. Flags survive when the nation id is unchanged; flags for
+              removed or renamed nations are dropped.
             </AlertDescription>
           </Alert>
         }
         onSubmit={handleSubmit}
         isSubmitting={updateMutation.isPending}
       />
+      <div className="space-y-2">
+        <h3 className="text-lg font-semibold">Nation flags</h3>
+        <p className="text-sm text-muted-foreground">
+          Upload an SVG per nation (max 256 KB). Flags are optional; nations
+          without one render no flag in game UI.
+        </p>
+        <div className="divide-y border rounded-md px-2">
+          {variant.nations.map(nation => (
+            <NationFlagRow key={nation.nationId} variantId={variantId} nation={nation} />
+          ))}
+        </div>
+      </div>
     </div>
   );
 };

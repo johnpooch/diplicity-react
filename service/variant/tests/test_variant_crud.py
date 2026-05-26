@@ -229,6 +229,110 @@ def test_game_create_rejects_draft_variant(authenticated_client, classical_dvar,
 
 
 @pytest.mark.django_db
+def test_dvar_reupload_preserves_flags_for_surviving_nations(
+    authenticated_client, classical_dvar, classical_dsvg
+):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    from nation.models import NationFlag
+
+    dvar = copy.deepcopy(classical_dvar)
+    dvar["id"] = "preserve-flags"
+    assert (
+        authenticated_client.post(
+            reverse("variant-list"),
+            _dvar_upload(dvar, classical_dsvg),
+            format="multipart",
+        ).status_code
+        == status.HTTP_201_CREATED
+    )
+
+    flag_svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10"/></svg>'
+    flag_upload = {"flag": SimpleUploadedFile("flag.svg", flag_svg.encode(), "image/svg+xml")}
+    assert (
+        authenticated_client.put(
+            reverse("nation-flag", kwargs={"variant_id": "preserve-flags", "nation_id": "england"}),
+            flag_upload,
+            format="multipart",
+        ).status_code
+        == status.HTTP_200_OK
+    )
+    flag_hash_before = NationFlag.objects.get(
+        nation__variant_id="preserve-flags", nation__nation_id="england"
+    ).content_hash
+
+    update_response = authenticated_client.put(
+        reverse("variant-detail", kwargs={"pk": "preserve-flags"}),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+    assert update_response.status_code == status.HTTP_200_OK, update_response.data
+
+    flag_after = NationFlag.objects.get(
+        nation__variant_id="preserve-flags", nation__nation_id="england"
+    )
+    assert flag_after.content_hash == flag_hash_before
+
+
+@pytest.mark.django_db
+def test_dvar_reupload_drops_flags_for_removed_nations(
+    authenticated_client, classical_dvar, classical_dsvg
+):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    from nation.models import NationFlag
+
+    dvar = copy.deepcopy(classical_dvar)
+    dvar["id"] = "drop-flags"
+    assert (
+        authenticated_client.post(
+            reverse("variant-list"),
+            _dvar_upload(dvar, classical_dsvg),
+            format="multipart",
+        ).status_code
+        == status.HTTP_201_CREATED
+    )
+
+    flag_svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"/>'
+    flag_upload = {"flag": SimpleUploadedFile("flag.svg", flag_svg.encode(), "image/svg+xml")}
+    assert (
+        authenticated_client.put(
+            reverse("nation-flag", kwargs={"variant_id": "drop-flags", "nation_id": "england"}),
+            flag_upload,
+            format="multipart",
+        ).status_code
+        == status.HTTP_200_OK
+    )
+
+    renamed = copy.deepcopy(dvar)
+    for nation in renamed["nations"]:
+        if nation["id"] == "england":
+            nation["id"] = "britain"
+            nation["name"] = "Britain"
+    for province in renamed["provinces"]:
+        if province.get("homeNation") == "england":
+            province["homeNation"] = "britain"
+    for unit in renamed["initialState"]["units"]:
+        if unit["nation"] == "england":
+            unit["nation"] = "britain"
+    for sc in renamed["initialState"]["supplyCenters"]:
+        if sc["nation"] == "england":
+            sc["nation"] = "britain"
+
+    update_response = authenticated_client.put(
+        reverse("variant-detail", kwargs={"pk": "drop-flags"}),
+        _dvar_upload(renamed, classical_dsvg),
+        format="multipart",
+    )
+    assert update_response.status_code == status.HTTP_200_OK, update_response.data
+
+    assert not NationFlag.objects.filter(
+        nation__variant_id="drop-flags", nation__nation_id="england"
+    ).exists()
+    assert not NationFlag.objects.filter(
+        nation__variant_id="drop-flags", nation__nation_id="britain"
+    ).exists()
+
+
+@pytest.mark.django_db
 def test_sandbox_game_accepts_draft_variant(authenticated_client, classical_dvar, classical_dsvg):
     dvar = copy.deepcopy(classical_dvar)
     dvar["id"] = "draft-for-sandbox"
