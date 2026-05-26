@@ -23,7 +23,7 @@ Working notes for the Android app implementation (#298 and sub-issues). Used to 
 ### What was done
 - `npm install @capacitor/android@^8.3.4`
 - `ANDROID_HOME=$HOME/Android/Sdk npx cap add android`
-- `applicationId` was already `com.diplicity.app` from Capacitor config
+- `applicationId` set to `com.diplicityreact.app` in `android/app/build.gradle` (canonical Android package name; `capacitor.config.ts` retains `com.diplicity.app` for iOS)
 - `versionName` wired from `package.json`, `versionCode` from Unix timestamp in `android/app/build.gradle`
 - `android: { webContentsDebuggingEnabled: true }` added to `capacitor.config.ts`
 - Permissions added to `AndroidManifest.xml`: `ACCESS_NETWORK_STATE`, `POST_NOTIFICATIONS`
@@ -64,7 +64,7 @@ Google Sign-In completes the account picker but then fails with `DEVELOPER_ERROR
 - **Project**: `394867503899` (same project as `VITE_GOOGLE_CLIENT_ID`)
 - **Project owner**: John McDowell (other developer, not available at time of writing)
 - **Action needed**: Register an Android OAuth client in that project with:
-  - Package name: `com.diplicity.app`
+  - Package name: `com.diplicityreact.app`
   - SHA-1: `6F:9D:E2:20:2F:35:17:10:8C:41:28:B2:61:F5:4F:DE:7F:B1:0E:38` (debug keystore)
 - **No code change needed** — the plugin uses `webClientId` for Android, not a separate Android client ID. The registration is purely a Google Cloud Console configuration step.
 - After Play App Signing (#304), the production SHA-1 from Play Console also needs to be added to the same OAuth client.
@@ -94,7 +94,7 @@ FCM won't work until the Android app is registered in the Firebase project and `
 
 Steps:
 1. Go to Firebase console → project `diplicity-react` → Project settings → Add app → Android
-2. Enter package name: `com.diplicity.app`
+2. Enter package name: `com.diplicityreact.app`
 3. Download `google-services.json` → place at `packages/web/android/app/google-services.json`
 4. Build and deploy to Pixel 8a, verify notification arrives
 

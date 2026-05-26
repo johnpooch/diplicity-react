@@ -1,4 +1,4 @@
-package com.diplicity.app;
+package com.diplicityreact.app;
 
 import com.getcapacitor.BridgeActivity;
 

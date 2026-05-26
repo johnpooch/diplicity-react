@@ -672,7 +672,7 @@ This generates OpenAPI schema and TypeScript client code for the frontend.
 
 **Always use the physical Pixel 8a for Android testing — do not use the emulator.** The emulator consumes too much RAM; the real device is the preferred testing target.
 
-- **Bundle ID / Application ID**: `com.diplicity.app`
+- **Bundle ID / Application ID**: `com.diplicityreact.app`
 - **Android Project**: `packages/web/android/`
 - **Connected device UDID**: `46101JEKB13333`
 
@@ -725,7 +725,7 @@ Android push notifications use Firebase Cloud Messaging via the `@capacitor-fire
 
 To set up:
 1. Go to [Firebase console](https://console.firebase.google.com/) → project `diplicity-react` → Project settings → Add app → Android
-2. Enter package name `com.diplicity.app`
+2. Enter package name `com.diplicityreact.app`
 3. Download `google-services.json` and place it at `packages/web/android/app/google-services.json`
 
 The `android/app/build.gradle` conditionally applies the `com.google.gms.google-services` plugin when this file exists — no manual Gradle editing needed.
@@ -737,7 +737,7 @@ Runtime `POST_NOTIFICATIONS` permission for Android 13+ is handled by `FirebaseM
 Android Google Sign-In uses the existing `VITE_GOOGLE_CLIENT_ID` (web client ID) as the `webClientId` in `SocialLogin.initialize()`. No separate Android client ID is needed in app code.
 
 However, an **Android OAuth client must be registered in Google Cloud Console** (Credentials page, same project as the web client) with:
-- Package name: `com.diplicity.app`
+- Package name: `com.diplicityreact.app`
 - SHA-1 fingerprint — see below
 
 This registration is what allows Google Sign-In to trust builds from this machine/keystore.

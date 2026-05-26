@@ -3,10 +3,10 @@ apply plugin: 'com.android.application'
 def packageJson = new groovy.json.JsonSlurper().parse(new File(rootProject.projectDir, '../package.json'))
 
 android {
-    namespace = "com.diplicity.app"
+    namespace = "com.diplicityreact.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.diplicity.app"
+        applicationId "com.diplicityreact.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode = (int) (System.currentTimeMillis() / 1000L)
