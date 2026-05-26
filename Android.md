@@ -72,8 +72,8 @@ The Capacitor Android WebView serves the app at `https://localhost`. API calls t
 - `SocialLogin.initialize()` rejects the **entire call** if any provider config is invalid, even if other providers were already set up earlier in the method
 - Error `"Cannot find provider 'google'. Provider was not initialized."` = initialize was never called OR it rejected silently
 
-### Remaining: production SHA-1
-After Play App Signing (#304), the production SHA-1 from Play Console also needs to be added to the "Diplicity Android 2" OAuth client in Google Cloud Console.
+### Play App Signing SHA-1
+After first upload (#304), the Play App Signing SHA-1 `17:CF:46:81:F1:B2:95:8E:16:25:4A:9E:3E:85:F9:84:17:42:AD:58` was registered as a new Android OAuth client ("Diplicity Android (Play)") in Google Cloud Console project `diplicity-django`. Two Android clients now exist — one for the debug keystore, one for the Play signing certificate.
 
 ---
 

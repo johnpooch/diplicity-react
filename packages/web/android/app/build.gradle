@@ -7,7 +7,7 @@ android {
     compileSdk = rootProject.ext.compileSdkVersion
     signingConfigs {
         release {
-            storeFile file(System.getenv("ANDROID_KEYSTORE_PATH") ?: "${rootProject.projectDir}/../../diplicity-android-upload.keystore")
+            storeFile file(System.getenv("ANDROID_KEYSTORE_PATH") ?: "${rootProject.projectDir}/../../../diplicity-android-upload.keystore")
             storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
             keyAlias System.getenv("ANDROID_KEY_ALIAS") ?: "upload"
             keyPassword System.getenv("ANDROID_KEY_PASSWORD")

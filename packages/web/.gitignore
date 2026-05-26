@@ -22,4 +22,6 @@ dist-ssr
 *.sw?
 
 *storybook.log
-storybook-static
+storybook-staticvendor/bundle
+
+.bundle/

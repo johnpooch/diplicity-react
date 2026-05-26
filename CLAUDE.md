@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## !!! EXTERNAL SERVICE UIs CHANGE — DO NOT GIVE STALE NAVIGATION INSTRUCTIONS !!!
+
+Google Play Console, Google Cloud Console, Firebase Console, and similar external services update their UIs frequently. **Never give step-by-step navigation instructions for these UIs from memory** — the menu names, sidebar items, and page layouts in your training data are likely out of date. Instead:
+
+- Describe **what the user is trying to accomplish** (e.g. "find the App signing certificate SHA-1")
+- Give the **direct URL** if known (e.g. the `keymanagement` path for App signing)
+- Ask the user to share a screenshot if they can't find something, then guide from what's actually visible
+
+---
+
 ## !!! VERY IMPORTANT PRECURSOR - READ THIS FIRST !!!
 
 **Under no circumstances should you agree with any assertion or claim without providing concrete, evidence-based reasoning.**
@@ -748,7 +758,7 @@ This registration is what allows Google Sign-In to trust builds from this machin
 |----------|-------|---------|
 | `~/.android/debug.keystore` (alias `androiddebugkey`) | `6F:9D:E2:20:2F:35:17:10:8C:41:28:B2:61:F5:4F:DE:7F:B1:0E:38` | Local dev / `npx cap run android` debug builds |
 | `diplicity-android-upload.keystore` (alias `upload`) | `6A:39:8D:D3:B4:43:12:22:0C:4C:FA:08:93:B7:AD:19:58:D2:E0:0E` | Release builds / Play Console upload key |
-| Play App Signing certificate | _Added after first Play Console upload (#304)_ | Play Store / CI release builds |
+| Play App Signing certificate | `17:CF:46:81:F1:B2:95:8E:16:25:4A:9E:3E:85:F9:84:17:42:AD:58` | Play Store / CI release builds |
 
 To re-extract the debug SHA-1:
 ```bash
