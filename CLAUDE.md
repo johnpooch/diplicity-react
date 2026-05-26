@@ -719,6 +719,19 @@ ANDROID_HOME=$HOME/Android/Sdk npx cap run android --target 46101JEKB13333  # Bu
 - `versionCode` is a Unix timestamp (seconds), auto-generated per build
 - Both are set in `android/app/build.gradle` — no manual editing needed
 
+## Firebase Cloud Messaging (Android)
+
+Android push notifications use Firebase Cloud Messaging via the `@capacitor-firebase/messaging` plugin (same plugin as iOS). The Android-specific config file `google-services.json` must be present at `packages/web/android/app/google-services.json` (gitignored).
+
+To set up:
+1. Go to [Firebase console](https://console.firebase.google.com/) → project `diplicity-react` → Project settings → Add app → Android
+2. Enter package name `com.diplicity.app`
+3. Download `google-services.json` and place it at `packages/web/android/app/google-services.json`
+
+The `android/app/build.gradle` conditionally applies the `com.google.gms.google-services` plugin when this file exists — no manual Gradle editing needed.
+
+Runtime `POST_NOTIFICATIONS` permission for Android 13+ is handled by `FirebaseMessaging.requestPermissions()` in `messaging-native.ts`.
+
 ## Google Sign-In
 
 Android Google Sign-In uses the existing `VITE_GOOGLE_CLIENT_ID` (web client ID) as the `webClientId` in `SocialLogin.initialize()`. No separate Android client ID is needed in app code.

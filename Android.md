@@ -76,21 +76,42 @@ Google Sign-In completes the account picker but then fails with `DEVELOPER_ERROR
 
 ---
 
-## Issue #300 — Firebase Cloud Messaging (not started)
+## Issue #300 — Firebase Cloud Messaging (code done, blocked on google-services.json)
 
-No work done yet. Depends on #299 (done).
+### What was done
+- `messaging-ios.ts` renamed to `messaging-native.ts` — the `@capacitor-firebase/messaging` plugin works on both iOS and Android; the old name was misleading
+- `useMessaging.ts` updated:
+  - Imports now reference `messaging-native` instead of `messaging-ios`
+  - Device type was hardcoded to `"ios"` for all native platforms — fixed via `getNativeDeviceType()` helper that returns `"ios"` on iOS and `"android"` on Android
+  - Effect 1 rename: `initIos` → `initNative` (cosmetic)
+  - Effect 3 comment: "iOS only" → "native only"
+- `isAndroidPlatform()` added to `src/utils/platform.ts`
+- `android/**` added to ESLint ignore list in `eslint.config.js` (Android build artifacts were causing spurious lint errors)
+- `CLAUDE.md` updated with Firebase/Android FCM setup instructions (google-services.json path, setup steps)
 
-Key steps when resuming:
-1. Register Android app in existing Firebase project
-2. Download `google-services.json`, place at `packages/web/android/app/google-services.json` (already gitignored)
-3. `build.gradle` already has the `google-services` plugin wired conditionally:
-   ```groovy
-   try {
-     def servicesJSON = file('google-services.json')
-     if (servicesJSON.text) { apply plugin: 'com.google.gms.google-services' }
-   } catch(Exception e) { ... }
-   ```
-4. Runtime `POST_NOTIFICATIONS` permission request needed in JS (not just manifest) — must call `PushNotifications.requestPermissions()` or equivalent before FCM can deliver on Android 13+
+### Pending: google-services.json
+FCM won't work until the Android app is registered in the Firebase project and `google-services.json` is in place.
+
+Steps:
+1. Go to Firebase console → project `diplicity-react` → Project settings → Add app → Android
+2. Enter package name: `com.diplicity.app`
+3. Download `google-services.json` → place at `packages/web/android/app/google-services.json`
+4. Build and deploy to Pixel 8a, verify notification arrives
+
+The `build.gradle` conditional plugin wiring is already in place:
+```groovy
+try {
+  def servicesJSON = file('google-services.json')
+  if (servicesJSON.text) { apply plugin: 'com.google.gms.google-services' }
+} catch(Exception e) { ... }
+```
+
+Runtime `POST_NOTIFICATIONS` permission (Android 13+) is handled by `FirebaseMessaging.requestPermissions()` in `messaging-native.ts` — no additional code needed.
+
+### FCM logcat filter
+```bash
+adb logcat | grep -iE "firebase|FCM|messaging|capacitor-firebase"
+```
 
 ---
 
@@ -105,7 +126,11 @@ ANDROID_HOME=$HOME/Android/Sdk npx cap run android --target 46101JEKB13333
 
 For logcat debugging (run first, then trigger the action on device, then Ctrl+C):
 ```bash
+# Google Sign-In debugging
 adb logcat | grep -iE "SocialLogin|GoogleProvider|ApiException|DEVELOPER_ERROR|GetCredential|capacitor"
+
+# FCM / push notification debugging
+adb logcat | grep -iE "firebase|FCM|messaging|capacitor-firebase|PushNotif"
 ```
 
 Note: `adb logcat -d` (dump mode) exits before you can trigger the action. Use streaming mode (no `-d`) and Ctrl+C after.

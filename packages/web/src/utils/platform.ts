@@ -7,3 +7,7 @@ export const isNativePlatform = (): boolean => {
 export const isIosPlatform = (): boolean => {
   return Capacitor.getPlatform() === "ios";
 };
+
+export const isAndroidPlatform = (): boolean => {
+  return Capacitor.getPlatform() === "android";
+};
