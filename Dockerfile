@@ -28,8 +28,12 @@ WORKDIR /app
 # Copy Python configuration files
 COPY ./service/requirements.txt ./service/dev_requirements.txt ./service/pyproject.toml /app/
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt -r dev_requirements.txt
+# Install Python dependencies.
+# `node:24.15.0-bookworm-slim` ships a PEP 668 "externally-managed" Python, so
+# system pip refuses installs without an explicit override. This is a single-purpose
+# ephemeral container that runs spectacular + orval and exits, so installing into
+# the system Python is fine — no venv required.
+RUN pip install --no-cache-dir --break-system-packages -r requirements.txt -r dev_requirements.txt
 
 # Install Node.js dependencies
 COPY ./packages/web/package.json ./packages/web/package-lock.json /app/packages/web/
