@@ -1,14 +1,18 @@
 import gzip
+import hashlib
 import json
 
 from django.db import transaction
+from django.db.models import Max
 from django.http import HttpResponse, HttpResponseNotFound
 from django.views import View
-from rest_framework import generics, permissions
+from rest_framework import generics, permissions, status
 from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from common.constants import VariantStatus
+from nation.models import NationFlag
 from province.models import Province
 from .models import Variant, VariantSvg
 from .serializers import VariantSerializer, VariantWriteSerializer
@@ -28,6 +32,15 @@ class IsOwnedDraftForWrite(permissions.BasePermission):
         )
 
 
+def _variants_list_etag(user_id):
+    variant_max = Variant.objects.aggregate(Max("updated_at"))["updated_at__max"]
+    flag_max = NationFlag.objects.aggregate(Max("updated_at"))["updated_at__max"]
+    digest = hashlib.sha256(
+        f"{variant_max}|{flag_max}|{user_id}".encode()
+    ).hexdigest()
+    return f'"{digest[:32]}"'
+
+
 class VariantListCreateView(generics.ListCreateAPIView):
     queryset = Variant.objects.all().with_related_data()
     permission_classes = [IsAuthenticated]
@@ -37,6 +50,16 @@ class VariantListCreateView(generics.ListCreateAPIView):
         if self.request.method == "POST":
             return VariantWriteSerializer
         return VariantSerializer
+
+    def list(self, request, *args, **kwargs):
+        etag = _variants_list_etag(request.user.id)
+        if request.headers.get("If-None-Match") == etag:
+            response = Response(status=status.HTTP_304_NOT_MODIFIED)
+        else:
+            response = super().list(request, *args, **kwargs)
+        response["ETag"] = etag
+        response["Cache-Control"] = "private, must-revalidate, max-age=60"
+        return response
 
 
 class VariantDetailView(generics.RetrieveUpdateDestroyAPIView):

@@ -2986,9 +2986,9 @@ components:
         provinces:
           type: array
           items:
-            $ref: '#/components/schemas/Province'
+            $ref: '#/components/schemas/VariantProvince'
         templatePhase:
-          $ref: '#/components/schemas/PhaseRetrieve'
+          $ref: '#/components/schemas/VariantTemplatePhase'
       required:
       - canEdit
       - description
@@ -3003,6 +3003,74 @@ components:
       - svgUrl
       - templatePhase
       - victoryConditions
+    VariantProvince:
+      type: object
+      properties:
+        id:
+          type: string
+        parentId:
+          type: string
+          nullable: true
+      required:
+      - id
+      - parentId
+    VariantTemplateNationRef:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+      - name
+    VariantTemplatePhase:
+      type: object
+      properties:
+        year:
+          type: integer
+        units:
+          type: array
+          items:
+            $ref: '#/components/schemas/VariantTemplateUnit'
+        supplyCenters:
+          type: array
+          items:
+            $ref: '#/components/schemas/VariantTemplateSupplyCenter'
+      required:
+      - supplyCenters
+      - units
+      - year
+    VariantTemplateProvinceRef:
+      type: object
+      properties:
+        id:
+          type: string
+      required:
+      - id
+    VariantTemplateSupplyCenter:
+      type: object
+      properties:
+        nation:
+          $ref: '#/components/schemas/VariantTemplateNationRef'
+        province:
+          $ref: '#/components/schemas/VariantTemplateProvinceRef'
+      required:
+      - nation
+      - province
+    VariantTemplateUnit:
+      type: object
+      properties:
+        type:
+          type: string
+        dislodged:
+          type: boolean
+        nation:
+          $ref: '#/components/schemas/VariantTemplateNationRef'
+        province:
+          $ref: '#/components/schemas/VariantTemplateProvinceRef'
+      required:
+      - dislodged
+      - nation
+      - province
+      - type
     VariantWrite:
       type: object
       properties:
