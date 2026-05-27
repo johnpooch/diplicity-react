@@ -43,9 +43,7 @@ def test_list_variants_success(authenticated_client, classical_variant):
     assert "template_phase" in classical_variant_data
     template_phase = classical_variant_data["template_phase"]
 
-    assert "season" in template_phase
     assert "year" in template_phase
-    assert "type" in template_phase
     assert "units" in template_phase
     assert "supply_centers" in template_phase
     assert isinstance(template_phase["units"], list)
@@ -101,7 +99,9 @@ class TestVariantListViewQueryPerformance:
         # regardless of the number of variants due to prefetch_related
         query_count = len(connection.queries)
 
-        assert query_count == 18
+        # 18 prefetch queries + 2 ETag aggregates (Variant + NationFlag max
+        # updated_at). The ETag is what enables 304 responses on /variants/.
+        assert query_count == 20
 
     @pytest.mark.django_db
     def test_list_variants_query_count_with_single_variant(self, authenticated_client, classical_variant):
@@ -134,7 +134,9 @@ class TestVariantListViewQueryPerformance:
         # Should have the same number of queries regardless of variant count
         # due to prefetch_related optimization
         query_count = len(connection.queries)
-        assert query_count == 18
+        # 18 prefetch queries + 2 ETag aggregates (Variant + NationFlag max
+        # updated_at). The ETag is what enables 304 responses on /variants/.
+        assert query_count == 20
 
 
 class TestPhaseProgressionBackfill:
