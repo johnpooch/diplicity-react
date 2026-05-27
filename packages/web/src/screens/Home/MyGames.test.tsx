@@ -112,8 +112,8 @@ describe("MyGames empty states", () => {
 });
 
 describe("MyGames phase fetching", () => {
-  it("passes currentPhaseId to GameCard, not phases[0]", async () => {
-    const game = mockActiveGames[0]; // phases: [1,2,3,4,5], currentPhaseId: 5
+  it("renders without fanning out per-game phase fetches", async () => {
+    const game = mockActiveGames[0];
     mockUseGamesListInfinite.mockReturnValue({
       data: { pages: [{ results: [game], next: null }] },
       fetchNextPage: vi.fn(),
@@ -125,7 +125,9 @@ describe("MyGames phase fetching", () => {
     renderMyGames();
     await screen.findByText(game.name);
 
-    expect(mockUseGamePhaseRetrieve).toHaveBeenCalledWith(game.id, game.currentPhaseId);
-    expect(mockUseGamePhaseRetrieve).not.toHaveBeenCalledWith(game.id, game.phases[0]);
+    // GameListSerializer now embeds the slim current_phase, so GameCard
+    // reads game.currentPhase directly instead of issuing a per-game
+    // phase fetch. Regression guard against the fan-out coming back.
+    expect(mockUseGamePhaseRetrieve).not.toHaveBeenCalled();
   });
 });
