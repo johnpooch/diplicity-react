@@ -1,9 +1,21 @@
 import type {
   Nation,
   Order,
-  PhaseRetrieve,
 } from "../../api/generated/endpoints";
 import type { OrderState, RenderState, UnitState } from "./mapRenderer";
+
+type PhaseForRender = {
+  units: Array<{
+    province: { id: string };
+    nation: { name: string };
+    type: string;
+    dislodged: boolean;
+  }>;
+  supplyCenters: Array<{
+    province: { id: string };
+    nation: { name: string };
+  }>;
+};
 
 const orderSourceId = (order: Order): string => {
   if (order.orderType === "Build") {
@@ -24,7 +36,7 @@ const orderTargetId = (order: Order): string | undefined => {
 
 export const toRenderState = (
   variant: { nations: Nation[] },
-  phase: PhaseRetrieve,
+  phase: PhaseForRender,
   orders: Order[],
   selected: string[],
   highlighted: string[] = [],

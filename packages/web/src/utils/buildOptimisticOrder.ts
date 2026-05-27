@@ -2,6 +2,7 @@ import type {
   Order,
   Province,
   Variant,
+  VariantProvince,
   PhaseRetrieve,
 } from "../api/generated/endpoints";
 
@@ -14,8 +15,17 @@ function buildOptimisticOrder(
   const orderType = resolvedSelections["orderType"];
   if (!sourceId || !orderType) return null;
 
-  const findProvince = (id: string | undefined): Province | null =>
-    id ? (variant.provinces.find((p) => p.id === id) ?? null) : null;
+  // VariantProvince only carries { id, parentId } but the Order shape demands
+  // a full Province. Downstream consumers of an optimistic order (the map
+  // renderer, order de-duping in GameMap) only read .id, so the cast is safe
+  // for this in-flight pending order — it is replaced by the server response.
+  const findProvince = (id: string | undefined): Province | null => {
+    if (!id) return null;
+    const slim: VariantProvince | undefined = variant.provinces.find(
+      (p) => p.id === id
+    );
+    return slim ? (slim as unknown as Province) : null;
+  };
 
   const source = findProvince(sourceId);
   if (!source) return null;

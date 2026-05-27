@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type {
   PhaseRetrieve,
   Variant,
+  VariantTemplatePhase,
 } from "../api/generated/endpoints";
 import { useDsvg } from "../hooks/useDsvg";
 import { DiplicityMap } from "./InteractiveMap/mapRenderer";
@@ -12,7 +13,7 @@ type VariantForPreview = Pick<Variant, "nations" | "svgUrl">;
 
 type MapPreviewProps = {
   variant: VariantForPreview;
-  phase: PhaseRetrieve;
+  phase: PhaseRetrieve | VariantTemplatePhase;
   style?: React.CSSProperties;
   className?: string;
 };

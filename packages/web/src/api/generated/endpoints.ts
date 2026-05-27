@@ -701,6 +701,38 @@ export interface VictoryConditions {
   drawAfterYear: number | null;
 }
 
+export interface VariantProvince {
+  id: string;
+  /** @nullable */
+  parentId: string | null;
+}
+
+export interface VariantTemplateNationRef {
+  name: string;
+}
+
+export interface VariantTemplateProvinceRef {
+  id: string;
+}
+
+export interface VariantTemplateUnit {
+  type: string;
+  dislodged: boolean;
+  nation: VariantTemplateNationRef;
+  province: VariantTemplateProvinceRef;
+}
+
+export interface VariantTemplateSupplyCenter {
+  nation: VariantTemplateNationRef;
+  province: VariantTemplateProvinceRef;
+}
+
+export interface VariantTemplatePhase {
+  year: number;
+  units: VariantTemplateUnit[];
+  supplyCenters: VariantTemplateSupplyCenter[];
+}
+
 export interface Variant {
   id: string;
   name: string;
@@ -717,8 +749,8 @@ export interface Variant {
   /** @nullable */
   readonly svgUrl: string | null;
   nations: Nation[];
-  provinces: Province[];
-  templatePhase: PhaseRetrieve;
+  provinces: VariantProvince[];
+  templatePhase: VariantTemplatePhase;
 }
 
 export interface VariantWrite {
