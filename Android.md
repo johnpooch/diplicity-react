@@ -73,7 +73,15 @@ The Capacitor Android WebView serves the app at `https://localhost`. API calls t
 - Error `"Cannot find provider 'google'. Provider was not initialized."` = initialize was never called OR it rejected silently
 
 ### Play App Signing SHA-1
-After first upload (#304), the Play App Signing SHA-1 `17:CF:46:81:F1:B2:95:8E:16:25:4A:9E:3E:85:F9:84:17:42:AD:58` was registered as a new Android OAuth client ("Diplicity Android (Play)") in Google Cloud Console project `diplicity-django`. Two Android clients now exist — one for the debug keystore, one for the Play signing certificate.
+After first upload (#304), the Play App Signing SHA-1 `17:CF:46:81:F1:B2:95:8E:16:25:4A:9E:3E:85:F9:84:17:42:AD:58` was registered as a new Android OAuth client ("Android (Play Store)") in Google Cloud Console project `diplicity-django` (= project number `394867503899`). Two Android clients now exist — one for the debug keystore, one for the Play signing certificate.
+
+### Production Google Sign-In — client ID mismatch
+
+**Root cause discovered during Play Store testing:** The local `.env` has `VITE_GOOGLE_CLIENT_ID` set to the dev web client (`394867503899-0q69...`, "Diplicity Web (Development)"). Netlify production and the Railway Django backend both use the production web client (`394867503899-9kv1...`, "Diplicity Django Web"). When an Android build is made locally without overriding `VITE_GOOGLE_CLIENT_ID`, the Google ID token has `aud = 0q69...` but the backend's `GOOGLE_CLIENT_ID` expects `9kv1...` → backend returns `{"detail": "Invalid token audience"}`.
+
+**How the backend validates:** `service/login/utils.py` decodes the Google ID token and checks that `id_info["aud"]` is in the list of `[GOOGLE_CLIENT_ID, GOOGLE_IOS_CLIENT_ID]` from Django settings. If `aud` doesn't match, login fails with 401.
+
+**Fix:** Always pass the production client ID when building for the Play Store (see Production Release Build below).
 
 ---
 
@@ -120,12 +128,29 @@ adb logcat | grep -iE "firebase|FCM|messaging|capacitor-firebase"
 
 ## Build & Run Quick Reference
 
+### Local dev build (Pixel 8a, local backend)
+
 ```bash
 cd packages/web
 npm run build
 ANDROID_HOME=$HOME/Android/Sdk npx cap sync android
 ANDROID_HOME=$HOME/Android/Sdk npx cap run android --target 46101JEKB13333
 ```
+
+### Production release build (Play Store)
+
+Both `VITE_DIPLICITY_API_BASE_URL` and `VITE_GOOGLE_CLIENT_ID` must be set to production values at build time — they are baked into the JS bundle by Vite and cannot be changed at runtime.
+
+```bash
+cd packages/web
+VITE_DIPLICITY_API_BASE_URL=https://diplicity-react-production.up.railway.app \
+VITE_GOOGLE_CLIENT_ID=394867503899-9kv1fpoc3rthregsg5qd5goj9ul9mfdj.apps.googleusercontent.com \
+npm run build && \
+ANDROID_HOME=$HOME/Android/Sdk npx cap sync android && \
+bundle exec fastlane android release
+```
+
+`VITE_GOOGLE_CLIENT_ID` here is the "Diplicity Django Web" client — the same one used by the Netlify production frontend and the Railway backend's `GOOGLE_CLIENT_ID`. Using the local dev value (`0q69...`) causes `{"detail": "Invalid token audience"}` on login.
 
 ### Testing against the local backend
 
@@ -142,10 +167,33 @@ The Android WebView makes cross-origin requests from `https://localhost` to `htt
 For logcat debugging (run first, then trigger the action on device, then Ctrl+C):
 ```bash
 # Google Sign-In debugging
-adb logcat | grep -iE "SocialLogin|GoogleProvider|ApiException|DEVELOPER_ERROR|GetCredential|capacitor"
+adb logcat -c && adb logcat | grep -iE "SocialLogin|GoogleProvider|GetCredential|CredentialManager|DEVELOPER_ERROR|ApiException|capacitor|com.diplicityreact"
+
+# WebView network + JS errors (broader — use when logcat isn't enough)
+adb logcat -c && adb logcat | grep -iE "SocialLogin|GoogleProvider|capacitor|Chromium|SystemWebChromeClient|console|diplicity|Error|Exception"
 
 # FCM / push notification debugging
 adb logcat | grep -iE "firebase|FCM|messaging|capacitor-firebase|PushNotif"
 ```
 
 Note: `adb logcat -d` (dump mode) exits before you can trigger the action. Use streaming mode (no `-d`) and Ctrl+C after.
+
+### Verifying which build is installed
+
+The `versionCode` is a Unix timestamp. Use this to confirm the device has the build you think it does before debugging:
+
+```bash
+adb shell dumpsys package com.diplicityreact.app | grep versionCode
+# Then convert: python3 -c "import datetime; print(datetime.datetime.fromtimestamp(<versionCode>))"
+```
+
+### Chrome DevTools for WebView debugging
+
+`webContentsDebuggingEnabled: true` in `capacitor.config.ts` enables Chrome DevTools against the WebView, even in release builds. This gives full Network tab visibility into HTTP requests/responses — far more useful than logcat for diagnosing backend errors.
+
+1. Connect device via USB
+2. Open Chrome on the dev machine → `chrome://inspect`
+3. Find **Diplicity React** under Remote Targets → click **inspect**
+4. Network tab shows all requests from the WebView, including status codes and response bodies
+
+Use this when logcat shows the Android-side flow succeeding (e.g. `GoogleProvider: handleSignInResult`) but the login still fails — the issue is then in the backend call, visible in DevTools.
