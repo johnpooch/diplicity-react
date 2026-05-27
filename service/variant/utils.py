@@ -837,6 +837,213 @@ def update_variant_from_dvar(variant, dvar):
     return variant
 
 
+@dataclass(frozen=True)
+class SafeReplacementError:
+    code: str
+    message: str
+
+
+def validate_safe_replacement(variant, dvar):
+    from supply_center.models import SupplyCenter
+    from unit.models import Unit
+
+    errors = list(validate_dvar(dvar))
+    if errors:
+        return [SafeReplacementError(error.code, error.message) for error in errors]
+
+    if dvar["id"] != variant.id:
+        return [
+            SafeReplacementError(
+                "VARIANT_ID_MISMATCH",
+                f"DVAR id '{dvar['id']}' does not match variant id '{variant.id}'.",
+            )
+        ]
+
+    errors = []
+
+    old_nation_ids = set(variant.nations.values_list("nation_id", flat=True))
+    new_nation_ids = {nation["id"] for nation in dvar["nations"]}
+    for nation_id in sorted(new_nation_ids - old_nation_ids):
+        errors.append(
+            SafeReplacementError(
+                "NATION_ADDED",
+                f"Nation '{nation_id}' is in the new DVAR but not in the existing variant.",
+            )
+        )
+    for nation_id in sorted(old_nation_ids - new_nation_ids):
+        errors.append(
+            SafeReplacementError(
+                "NATION_REMOVED",
+                f"Nation '{nation_id}' exists in the variant but is missing from the new DVAR.",
+            )
+        )
+
+    old_provinces = {
+        province.province_id: province for province in variant.provinces.all()
+    }
+    new_province_parent_by_id = {
+        province["id"]: None for province in dvar["provinces"]
+    }
+    for coast in dvar.get("namedCoasts", []):
+        new_province_parent_by_id[coast["id"]] = coast["parentProvince"]
+    new_province_sc_by_id = {
+        province["id"]: province["supplyCenter"] for province in dvar["provinces"]
+    }
+
+    for province_id in sorted(set(new_province_parent_by_id) - set(old_provinces)):
+        errors.append(
+            SafeReplacementError(
+                "PROVINCE_ADDED",
+                f"Province '{province_id}' is in the new DVAR but not in the existing variant.",
+            )
+        )
+    for province_id in sorted(set(old_provinces) - set(new_province_parent_by_id)):
+        errors.append(
+            SafeReplacementError(
+                "PROVINCE_REMOVED",
+                f"Province '{province_id}' exists in the variant but is missing from the new DVAR.",
+            )
+        )
+
+    province_ids_with_units = set(
+        Unit.objects.filter(province__variant=variant)
+        .exclude(phase__game__isnull=True)
+        .values_list("province__province_id", flat=True)
+        .distinct()
+    )
+    for province_id in sorted(province_ids_with_units):
+        if province_id not in new_province_parent_by_id or province_id not in old_provinces:
+            continue
+        old_parent_id = (
+            old_provinces[province_id].parent.province_id
+            if old_provinces[province_id].parent_id
+            else None
+        )
+        new_parent_id = new_province_parent_by_id[province_id]
+        if old_parent_id != new_parent_id:
+            errors.append(
+                SafeReplacementError(
+                    "PARENT_CHANGED",
+                    f"Province '{province_id}' has units in active games; "
+                    f"its named-coast parent cannot change "
+                    f"(was {old_parent_id!r}, now {new_parent_id!r}).",
+                )
+            )
+
+    province_ids_with_supply_centers = set(
+        SupplyCenter.objects.filter(province__variant=variant)
+        .exclude(phase__game__isnull=True)
+        .values_list("province__province_id", flat=True)
+        .distinct()
+    )
+    for province_id in sorted(province_ids_with_supply_centers):
+        if province_id not in new_province_sc_by_id:
+            continue
+        if not new_province_sc_by_id[province_id]:
+            errors.append(
+                SafeReplacementError(
+                    "SUPPLY_CENTER_REMOVED",
+                    f"Province '{province_id}' holds supply centers in active games "
+                    f"but is no longer marked as a supply center in the new DVAR.",
+                )
+            )
+
+    return errors
+
+
+def apply_safe_replacement(variant, dvar, dsvg_text):
+    from common.constants import PhaseStatus, ProvinceType
+    from nation.models import Nation
+    from phase.models import Phase
+    from province.models import Province
+    from supply_center.models import SupplyCenter
+    from unit.models import Unit
+    from variant.models import VariantSvg
+
+    province_type_for = {
+        "land": ProvinceType.LAND,
+        "sea": ProvinceType.SEA,
+        "coastal": ProvinceType.COASTAL,
+    }
+
+    variant.name = dvar["name"]
+    variant.description = dvar["description"]
+    variant.author = dvar.get("author", "")
+    variant.rules = dvar.get("rules", "")
+    variant.victory_conditions = dvar["victoryConditions"]
+    variant.adjudication_modifiers = dvar.get("adjudicationModifiers", [])
+    variant.phase_progression = dvar["phaseProgression"]
+    variant.save()
+
+    nation_by_id = {nation.nation_id: nation for nation in variant.nations.all()}
+    for payload in dvar["nations"]:
+        nation = nation_by_id[payload["id"]]
+        nation.name = payload["name"]
+        nation.color = payload["color"]
+        nation.save()
+    nation_by_id = {nation.nation_id: nation for nation in variant.nations.all()}
+
+    province_by_id = {province.province_id: province for province in variant.provinces.all()}
+    for payload in dvar["provinces"]:
+        province = province_by_id[payload["id"]]
+        province.name = payload["name"]
+        province.type = province_type_for[payload["type"]]
+        province.supply_center = payload["supplyCenter"]
+        province.home_nation = nation_by_id.get(payload.get("homeNation"))
+        province.parent = None
+        province.adjacencies = payload.get("adjacencies", [])
+        province.save()
+    for payload in dvar.get("namedCoasts", []):
+        province = province_by_id[payload["id"]]
+        province.name = payload["name"]
+        province.type = ProvinceType.NAMED_COAST
+        province.supply_center = False
+        province.home_nation = None
+        province.parent = province_by_id[payload["parentProvince"]]
+        province.adjacencies = payload.get("adjacencies", [])
+        province.save()
+
+    Phase.objects.filter(variant=variant, game__isnull=True).delete()
+    initial = dvar["initialState"]
+    template_phase = Phase.objects.create(
+        variant=variant,
+        game=None,
+        ordinal=1,
+        status=PhaseStatus.TEMPLATE,
+        season=initial["phase"]["season"],
+        year=initial["phase"]["year"],
+        type=initial["phase"]["type"],
+    )
+    Unit.objects.bulk_create(
+        [
+            Unit(
+                phase=template_phase,
+                type=unit["type"],
+                nation=nation_by_id[unit["nation"]],
+                province=province_by_id[unit["location"]],
+            )
+            for unit in initial["units"]
+        ]
+    )
+    SupplyCenter.objects.bulk_create(
+        [
+            SupplyCenter(
+                phase=template_phase,
+                nation=nation_by_id[sc["nation"]],
+                province=province_by_id[sc["province"]],
+            )
+            for sc in initial["supplyCenters"]
+        ]
+    )
+
+    VariantSvg.objects.update_or_create(variant=variant, defaults={"svg": dsvg_text})
+
+    if hasattr(variant, "_prefetched_objects_cache"):
+        variant._prefetched_objects_cache.clear()
+
+    return variant
+
+
 def _build_variant_children(variant, dvar):
     from common.constants import PhaseStatus, ProvinceType
     from nation.models import Nation
