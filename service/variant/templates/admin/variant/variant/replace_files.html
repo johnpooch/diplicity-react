@@ -1,0 +1,37 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+    <p>
+        Replace the DVAR and DSVG of <strong>{{ variant.name }}</strong>
+        ({{ variant.id }}) without affecting games already using it. The new
+        files must preserve every nation_id and province_id currently in use;
+        no nations or provinces may be added or removed. Adjacency and rule
+        changes are allowed and will apply to future phase resolutions of
+        in-flight games.
+    </p>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <fieldset class="module aligned">
+            {% for field in form %}
+                <div class="form-row">
+                    {{ field.errors }}
+                    <div>
+                        {{ field.label_tag }}
+                        {{ field }}
+                        {% if field.help_text %}
+                            <div class="help">{{ field.help_text }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </fieldset>
+        <div class="submit-row">
+            <input type="submit" value="Replace files" class="default" />
+            <a href="{% url 'admin:variant_variant_change' variant.id %}" class="button cancel-link">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
