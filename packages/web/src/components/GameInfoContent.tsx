@@ -40,10 +40,12 @@ const MetadataRow: React.FC<MetadataRowProps> = ({ icon, label, value }) => {
 
 interface GameInfoContentProps {
   onNavigateToPlayerInfo: () => void;
+  pendingAction?: React.ReactNode;
 }
 
 export const GameInfoContent: React.FC<GameInfoContentProps> = ({
   onNavigateToPlayerInfo,
+  pendingAction,
 }) => {
   const { gameId } = useRequiredParams<{ gameId: string }>();
 
@@ -61,7 +63,7 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
 
   return (
     <>
-      <GameStatusAlerts game={game} variant={variant} />
+      <GameStatusAlerts game={game} variant={variant} action={pendingAction} />
       <ScreenCard>
         <ScreenCardHeader>
           <CardTitle>{game.name}</CardTitle>
