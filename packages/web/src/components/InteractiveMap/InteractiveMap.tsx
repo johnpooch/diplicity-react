@@ -9,7 +9,7 @@ import type { DiplicityMap, RenderState } from "./mapRenderer";
 import { toRenderState } from "./toRenderState";
 import { isNativePlatform } from "../../utils/platform";
 
-type VariantForMap = Pick<Variant, "id" | "nations">;
+type VariantForMap = Pick<Variant, "id" | "nations" | "provinces" | "dominanceRules">;
 
 type InteractiveMapProps = {
   interactive?: boolean;

@@ -117,6 +117,17 @@ export const DeadlineModeEnum = {
   fixed_time: "fixed_time",
 } as const;
 
+export interface DominanceRuleDependency {
+  province: string;
+  nation: string;
+}
+
+export interface DominanceRule {
+  province: string;
+  nation: string;
+  dependencies: DominanceRuleDependency[];
+}
+
 export interface DrawVoteMember {
   readonly id: number;
   readonly name: string;
@@ -720,6 +731,9 @@ export interface VariantProvince {
   id: string;
   /** @nullable */
   parentId: string | null;
+  type: string;
+  supplyCenter: boolean;
+  readonly adjacencies: readonly string[];
 }
 
 export interface VariantTemplateNationRef {
@@ -765,6 +779,7 @@ export interface Variant {
   readonly svgUrl: string | null;
   nations: Nation[];
   provinces: VariantProvince[];
+  readonly dominanceRules: readonly DominanceRule[];
   templatePhase: VariantTemplatePhase;
 }
 

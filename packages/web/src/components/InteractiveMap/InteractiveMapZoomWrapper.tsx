@@ -13,7 +13,7 @@ import { parseDsvg } from "./dsvgParser";
 import { DiplicityMap } from "./mapRenderer";
 import type { Variant } from "../../api/generated/endpoints";
 
-type VariantForMap = Pick<Variant, "id" | "nations" | "svgUrl">;
+type VariantForMap = Pick<Variant, "id" | "nations" | "provinces" | "dominanceRules" | "svgUrl">;
 
 type InteractiveMapProps = Omit<
   React.ComponentProps<typeof InteractiveMap>,

@@ -31,7 +31,7 @@ services:
           ignore:
             - node_modules
     container_name: diplicity-web
-    entrypoint: ["npm", "run", "dev"]
+    entrypoint: ["sh", "-c", "rm -rf /app/node_modules/.vite && npm run dev"]
     ports:
       - "5173:5173"
     volumes:

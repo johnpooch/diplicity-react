@@ -17,6 +17,103 @@ type PhaseForRender = {
   }>;
 };
 
+type VariantProvinceForRender = {
+  id: string;
+  parentId: string | null;
+  type: string;
+  supplyCenter: boolean;
+  adjacencies: readonly string[];
+};
+
+type DominanceRuleForRender = {
+  province: string;
+  nation: string;
+  dependencies: ReadonlyArray<{ province: string; nation: string }>;
+};
+
+const computeNonScProvinceColors = (
+  provinces: VariantProvinceForRender[],
+  supplyCenters: Array<{ province: string; nation: string }>,
+  nationColors: Record<string, string>,
+  nationIdToName: Map<string, string>,
+  dominanceRules: DominanceRuleForRender[]
+): Record<string, string> => {
+  const provinceById = new Map(provinces.map((p) => [p.id, p]));
+  const scOwnerMap = new Map(supplyCenters.map((sc) => [sc.province, sc.nation]));
+
+  const resolveToScId = (id: string): string | null => {
+    const p = provinceById.get(id);
+    if (!p) return null;
+    if (p.supplyCenter) return id;
+    if (p.parentId && provinceById.get(p.parentId)?.supplyCenter) return p.parentId;
+    return null;
+  };
+
+  const rulesByProvince = new Map<string, DominanceRuleForRender[]>();
+  for (const rule of dominanceRules) {
+    const list = rulesByProvince.get(rule.province) ?? [];
+    list.push(rule);
+    rulesByProvince.set(rule.province, list);
+  }
+
+  const UNOWNED_MARKERS = new Set(["Empty", "Neutral"]);
+
+  const dependencyMatches = (dep: { province: string; nation: string }): boolean => {
+    if (UNOWNED_MARKERS.has(dep.nation)) {
+      return !scOwnerMap.has(dep.province);
+    }
+    const nationName = nationIdToName.get(dep.nation);
+    if (!nationName) return false;
+    return scOwnerMap.get(dep.province) === nationName;
+  };
+
+  const defaultColor = (province: VariantProvinceForRender): string | null => {
+    const adjacentScIds = new Set<string>();
+    for (const adjId of (province.adjacencies ?? [])) {
+      const scId = resolveToScId(adjId);
+      if (scId) adjacentScIds.add(scId);
+    }
+    if (adjacentScIds.size === 0) return null;
+
+    let owner: string | null = null;
+    for (const scId of adjacentScIds) {
+      const scOwner = scOwnerMap.get(scId);
+      if (!scOwner) return null;
+      if (owner === null) {
+        owner = scOwner;
+      } else if (owner !== scOwner) {
+        return null;
+      }
+    }
+    return owner && nationColors[owner] ? nationColors[owner] : null;
+  };
+
+  const colors: Record<string, string> = {};
+  for (const province of provinces) {
+    if (province.supplyCenter) continue;
+    if (province.type === "sea" || province.type === "named_coast") continue;
+
+    const rules = rulesByProvince.get(province.id);
+    if (rules) {
+      const matchedRule = rules.find((r) => r.dependencies.every(dependencyMatches));
+      if (matchedRule) {
+        const nationName = nationIdToName.get(matchedRule.nation);
+        if (nationName && nationColors[nationName]) {
+          colors[province.id] = nationColors[nationName];
+        }
+        continue;
+      }
+    }
+
+    const color = defaultColor(province);
+    if (color) {
+      colors[province.id] = color;
+    }
+  }
+
+  return colors;
+};
+
 const orderSourceId = (order: Order): string => {
   if (order.orderType === "Build") {
     return order.namedCoast?.id ?? order.source.id;
@@ -35,7 +132,11 @@ const orderTargetId = (order: Order): string | undefined => {
 };
 
 export const toRenderState = (
-  variant: { nations: Nation[] },
+  variant: {
+    nations: Nation[];
+    provinces?: VariantProvinceForRender[];
+    dominanceRules?: DominanceRuleForRender[];
+  },
   phase: PhaseForRender,
   orders: Order[],
   selected: string[],
@@ -46,6 +147,8 @@ export const toRenderState = (
   for (const nation of variant.nations) {
     nationColors[nation.name] = nation.color;
   }
+
+  const nationIdToName = new Map(variant.nations.map((n) => [n.nationId, n.name]));
 
   const cdNations = new Set(civilDisorderNations);
 
@@ -61,6 +164,17 @@ export const toRenderState = (
     province: sc.province.id,
     nation: sc.nation.name,
   }));
+
+  const nonScProvinceColors =
+    variant.provinces && variant.provinces.length > 0
+      ? computeNonScProvinceColors(
+          variant.provinces,
+          supplyCenters,
+          nationColors,
+          nationIdToName,
+          variant.dominanceRules ?? []
+        )
+      : {};
 
   const orderStates: OrderState[] = orders.map((order) => {
     const target = orderTargetId(order);
@@ -83,6 +197,7 @@ export const toRenderState = (
   return {
     nationColors,
     supplyCenters,
+    nonScProvinceColors,
     units,
     orders: orderStates,
     selected,

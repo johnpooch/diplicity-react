@@ -5,6 +5,7 @@ from django.db import transaction
 from django.urls import reverse
 from lxml import etree
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
 from nation.serializers import NationSerializer
 
 from common.constants import VariantStatus
@@ -24,9 +25,27 @@ class VictoryConditionsSerializer(serializers.Serializer):
     draw_after_year = serializers.IntegerField(source="drawAfterYear", allow_null=True)
 
 
+class DominanceRuleDependencySerializer(serializers.Serializer):
+    province = serializers.CharField()
+    nation = serializers.CharField()
+
+
+class DominanceRuleSerializer(serializers.Serializer):
+    province = serializers.CharField()
+    nation = serializers.CharField()
+    dependencies = DominanceRuleDependencySerializer(many=True)
+
+
 class VariantProvinceSerializer(serializers.Serializer):
     id = serializers.CharField(source="province_id")
     parent_id = serializers.CharField(source="parent.province_id", allow_null=True)
+    type = serializers.CharField()
+    supply_center = serializers.BooleanField()
+    adjacencies = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.ListField(child=serializers.CharField()))
+    def get_adjacencies(self, obj):
+        return [adj["to"] for adj in obj.adjacencies]
 
 
 class VariantTemplateNationRefSerializer(serializers.Serializer):
@@ -69,6 +88,11 @@ class VariantSerializer(serializers.Serializer):
     svg_url = serializers.SerializerMethodField()
     nations = NationSerializer(many=True)
     provinces = VariantProvinceSerializer(many=True)
+    dominance_rules = serializers.SerializerMethodField()
+
+    @extend_schema_field(DominanceRuleSerializer(many=True))
+    def get_dominance_rules(self, obj):
+        return obj.dominance_rules
     template_phase = VariantTemplatePhaseSerializer()
 
     def get_svg_url(self, variant) -> Optional[str]:

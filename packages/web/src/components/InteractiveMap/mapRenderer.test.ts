@@ -137,6 +137,34 @@ describe("DiplicityMap province fills", () => {
   });
 });
 
+describe("DiplicityMap non-SC province fills", () => {
+  test("tints a non-SC province at the same opacity as SC provinces", () => {
+    const svg = new DiplicityMap(TOY_DSVG).render({
+      nonScProvinceColors: { beta: "#1b4f9c" },
+    });
+    expect(svg).toContain('fill="rgba(27, 79, 156, 0.5)"');
+  });
+
+  test("uses active opacity for a selected non-SC owned province", () => {
+    const svg = new DiplicityMap(TOY_DSVG).render({
+      nonScProvinceColors: { beta: "#1b4f9c" },
+      selected: ["beta"],
+    });
+    expect(svg).toContain("rgba(27, 79, 156, 0.3)");
+  });
+
+  test("SC ownership takes precedence over non-SC influence colour", () => {
+    const svg = new DiplicityMap(TOY_DSVG).render({
+      nationColors: { England: "#1b4f9c", France: "#3b9c3b" },
+      supplyCenters: [{ province: "alpha", nation: "England" }],
+      nonScProvinceColors: { alpha: "#3b9c3b" },
+    });
+    // SC at 0.5 opacity wins over non-SC at 0.2
+    expect(svg).toContain('fill="rgba(27, 79, 156, 0.5)"');
+    expect(svg).not.toContain("rgba(59, 156, 59, 0.2)");
+  });
+});
+
 describe("DiplicityMap supply-center markers", () => {
   test("draws a marker at each supply-center position, even without state", () => {
     const svg = new DiplicityMap(TOY_DSVG).render();

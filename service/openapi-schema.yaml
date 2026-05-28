@@ -1721,6 +1721,31 @@ components:
       description: |-
         * `duration` - Duration
         * `fixed_time` - Fixed Time
+    DominanceRule:
+      type: object
+      properties:
+        province:
+          type: string
+        nation:
+          type: string
+        dependencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/DominanceRuleDependency'
+      required:
+      - dependencies
+      - nation
+      - province
+    DominanceRuleDependency:
+      type: object
+      properties:
+        province:
+          type: string
+        nation:
+          type: string
+      required:
+      - nation
+      - province
     DrawProposal:
       type: object
       properties:
@@ -3039,11 +3064,17 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/VariantProvince'
+        dominanceRules:
+          type: array
+          items:
+            $ref: '#/components/schemas/DominanceRule'
+          readOnly: true
         templatePhase:
           $ref: '#/components/schemas/VariantTemplatePhase'
       required:
       - canEdit
       - description
+      - dominanceRules
       - id
       - name
       - nations
@@ -3063,9 +3094,21 @@ components:
         parentId:
           type: string
           nullable: true
+        type:
+          type: string
+        supplyCenter:
+          type: boolean
+        adjacencies:
+          type: array
+          items:
+            type: string
+          readOnly: true
       required:
+      - adjacencies
       - id
       - parentId
+      - supplyCenter
+      - type
     VariantTemplateNationRef:
       type: object
       properties:
