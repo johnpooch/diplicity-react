@@ -42,7 +42,8 @@ export const addNotificationTapListener = (
   return FirebaseMessaging.addListener(
     "notificationActionPerformed",
     (event) => {
-      const link = event.notification.data?.link as string | undefined;
+      const data = event.notification.data as Record<string, unknown>;
+      const link = data?.["link"] as string | undefined;
       if (link) callback(link);
     }
   );
