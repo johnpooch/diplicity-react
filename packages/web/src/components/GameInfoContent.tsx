@@ -8,7 +8,7 @@ import { DeadlineSummary } from "@/components/DeadlineSummary";
 import {
   useGameRetrieveSuspense,
   useGamePhaseRetrieve,
-  useVariantsListSuspense,
+  useVariantsRetrieveSuspense,
 } from "@/api/generated/endpoints";
 import { getCurrentPhaseId, formatDateTime, formatTimeAgo } from "@/util";
 import { MapPreview } from "@/components/MapPreview";
@@ -48,7 +48,7 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
   const { gameId } = useRequiredParams<{ gameId: string }>();
 
   const { data: game } = useGameRetrieveSuspense(gameId);
-  const { data: variants } = useVariantsListSuspense();
+  const { data: variant } = useVariantsRetrieveSuspense(game.variantId);
 
   const currentPhaseId = getCurrentPhaseId(game);
   const { data: currentPhase } = useGamePhaseRetrieve(
@@ -56,8 +56,6 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
     currentPhaseId ?? 0,
     { query: { enabled: !!currentPhaseId } }
   );
-
-  const variant = variants.find(v => v.id === game.variantId);
 
   return (
     <>

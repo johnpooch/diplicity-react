@@ -783,6 +783,32 @@ export interface Variant {
   templatePhase: VariantTemplatePhase;
 }
 
+export interface VariantProvinceSlim {
+  id: string;
+  /** @nullable */
+  parentId: string | null;
+}
+
+export interface VariantList {
+  id: string;
+  name: string;
+  description: string;
+  author?: string;
+  rules: string;
+  readonly status: string;
+  /** @nullable */
+  readonly ownerId: number | null;
+  /** @nullable */
+  readonly ownerUsername: string | null;
+  readonly canEdit: boolean;
+  victoryConditions: VictoryConditions;
+  /** @nullable */
+  readonly svgUrl: string | null;
+  nations: Nation[];
+  provinces: VariantProvinceSlim[];
+  templatePhase: VariantTemplatePhase;
+}
+
 export interface VariantWrite {
   dvar: string;
   dsvg: string;
@@ -7818,7 +7844,7 @@ export const useUserUpdatePartialUpdate = <
 };
 
 export const variantsList = (signal?: AbortSignal) => {
-  return customInstance<Variant[]>({
+  return customInstance<VariantList[]>({
     url: `/variants/`,
     method: "GET",
     signal,

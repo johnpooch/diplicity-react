@@ -36,6 +36,11 @@ class DominanceRuleSerializer(serializers.Serializer):
     dependencies = DominanceRuleDependencySerializer(many=True)
 
 
+class VariantProvinceSlimSerializer(serializers.Serializer):
+    id = serializers.CharField(source="province_id")
+    parent_id = serializers.CharField(source="parent.province_id", allow_null=True)
+
+
 class VariantProvinceSerializer(serializers.Serializer):
     id = serializers.CharField(source="province_id")
     parent_id = serializers.CharField(source="parent.province_id", allow_null=True)
@@ -196,6 +201,44 @@ class VariantWriteSerializer(serializers.Serializer):
 
     def to_representation(self, instance):
         return VariantSerializer(instance, context=self.context).data
+
+
+class VariantListSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    name = serializers.CharField()
+    description = serializers.CharField()
+    author = serializers.CharField(required=False)
+    rules = serializers.CharField(allow_blank=True)
+    status = serializers.CharField(read_only=True)
+    owner_id = serializers.IntegerField(read_only=True, allow_null=True)
+    owner_username = serializers.SerializerMethodField()
+    can_edit = serializers.SerializerMethodField()
+    victory_conditions = VictoryConditionsSerializer(source="victory_conditions_summary")
+    svg_url = serializers.SerializerMethodField()
+    nations = NationSerializer(many=True)
+    provinces = VariantProvinceSlimSerializer(many=True)
+    template_phase = VariantTemplatePhaseSerializer()
+
+    def get_svg_url(self, variant) -> Optional[str]:
+        try:
+            variant_svg = variant.svg
+        except VariantSvg.DoesNotExist:
+            return None
+        path = reverse(
+            "variant-svg",
+            kwargs={"variant_id": variant.id, "content_hash": variant_svg.content_hash},
+        )
+        request = self.context.get("request")
+        return request.build_absolute_uri(path) if request else path
+
+    def get_owner_username(self, variant) -> Optional[str]:
+        return variant.owner.username if variant.owner_id else None
+
+    def get_can_edit(self, variant) -> bool:
+        request = self.context.get("request")
+        if request is None or not request.user.is_authenticated:
+            return False
+        return variant.status == VariantStatus.DRAFT and variant.owner_id == request.user.id
 
 
 class GameListVariantSerializer(serializers.Serializer):

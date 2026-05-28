@@ -8,7 +8,7 @@ import { InteractiveMapZoomWrapper } from "./InteractiveMap/InteractiveMapZoomWr
 import { FloatingMenu, FloatingMenuItem } from "./FloatingMenu";
 import {
   useGameRetrieve,
-  useVariantsList,
+  useVariantsRetrieve,
   useGamePhaseRetrieve,
   useGameOrdersList,
   useGameOrdersCreate,
@@ -28,7 +28,9 @@ const GameMap: React.FC = () => {
   const queryClient = useQueryClient();
 
   const { data: game } = useGameRetrieve(gameId);
-  const { data: variants } = useVariantsList();
+  const { data: variant } = useVariantsRetrieve(game?.variantId ?? "", {
+    query: { enabled: !!game?.variantId },
+  });
   const { data: phase } = useGamePhaseRetrieve(gameId, selectedPhase);
   const { data: orders } = useGameOrdersList(gameId, selectedPhase);
   const { data: optionsData } = useGameOptionsRetrieve(gameId);
@@ -45,8 +47,6 @@ const GameMap: React.FC = () => {
     optionsData?.orders ?? [],
     optionsData?.fieldOrder ?? {}
   );
-
-  const variant = variants?.find((v) => v.id === game?.variantId);
 
   const civilDisorderNations = useMemo(
     () =>

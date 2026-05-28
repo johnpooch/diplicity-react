@@ -65,7 +65,7 @@ let mockExistingOrders: Order[] = [];
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieve: () => ({ data: mockGame }),
-  useVariantsList: () => ({ data: [mockVariant] }),
+  useVariantsRetrieve: () => ({ data: mockVariant }),
   useGamePhaseRetrieve: () => ({ data: mockPhase }),
   useGameOrdersList: () => ({ data: mockExistingOrders }),
   useGameOptionsRetrieve: () => ({ data: { orders: [], fieldOrder: {} } }),

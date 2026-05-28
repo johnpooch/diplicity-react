@@ -9,7 +9,10 @@ import { DiplicityMap } from "./InteractiveMap/mapRenderer";
 import { toRenderState } from "./InteractiveMap/toRenderState";
 import { Skeleton } from "@/components/ui/skeleton";
 
-type VariantForPreview = Pick<Variant, "nations" | "provinces" | "dominanceRules" | "svgUrl">;
+type VariantForPreview = Pick<Variant, "nations" | "svgUrl"> & {
+  provinces?: Variant["provinces"];
+  dominanceRules?: Variant["dominanceRules"];
+};
 
 type MapPreviewProps = {
   variant: VariantForPreview;

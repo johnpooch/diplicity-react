@@ -15,7 +15,7 @@ from common.constants import VariantStatus
 from nation.models import NationFlag
 from province.models import Province
 from .models import Variant, VariantSvg
-from .serializers import VariantSerializer, VariantWriteSerializer
+from .serializers import VariantListSerializer, VariantSerializer, VariantWriteSerializer
 from .utils import variant_to_canonical_dict
 
 
@@ -49,7 +49,7 @@ class VariantListCreateView(generics.ListCreateAPIView):
     def get_serializer_class(self):
         if self.request.method == "POST":
             return VariantWriteSerializer
-        return VariantSerializer
+        return VariantListSerializer
 
     def list(self, request, *args, **kwargs):
         etag = _variants_list_etag(request.user.id)
