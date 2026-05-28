@@ -316,7 +316,7 @@ def test_active_game_create_orders_and_confirm(
         title="Phase Resolved",
         body=f"Phase '{first_phase.name}' has been resolved!",
         notification_type="phase_resolved",
-        data={"game_id": str(active_game.id), "link": f"https://www.diplicity.com/game/{active_game.id}"},
+        data={"game_id": str(active_game.id), "link": f"https://diplicity.com/game/{active_game.id}"},
     )
 
     # The empty Spring 1901 Retreat is skipped, so resolving the movement
