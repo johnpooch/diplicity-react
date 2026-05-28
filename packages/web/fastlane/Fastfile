@@ -161,7 +161,7 @@ platform :android do
     )
   end
 
-  private_lane :upload_to_play do
+  private_lane :upload_to_play do |options|
     json_key_env = ENV["PLAY_SERVICE_ACCOUNT_JSON"]
 
     unless json_key_env
@@ -178,11 +178,13 @@ platform :android do
     )
     has_screenshots = Dir.exist?(screenshots_dir) && !Dir.glob("#{screenshots_dir}/*.{png,jpg}").empty?
 
+    release_status = options.fetch(:release_status, "completed")
+
     base_params = {
       package_name: "com.diplicityreact.app",
       aab: aab_path,
       track: "internal",
-      release_status: "completed",
+      release_status: release_status,
       skip_upload_apk: true,
       skip_upload_metadata: false,
       skip_upload_changelogs: true,
@@ -210,6 +212,6 @@ platform :android do
     pr_title = ENV.fetch("PR_TITLE", "PR Build")
     UI.message("Building for PR ##{pr_number}: #{pr_title}")
     build_aab
-    upload_to_play
+    upload_to_play(release_status: "draft")
   end
 end

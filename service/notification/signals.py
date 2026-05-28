@@ -11,6 +11,16 @@ from phase.models import Phase
 logger = logging.getLogger(__name__)
 
 
+def _truncate_body(text: str, max_lines: int = 3, max_chars: int = 200) -> str:
+    lines = text.split("\n")
+    truncated = "\n".join(lines[:max_lines])
+    if len(truncated) > max_chars:
+        truncated = truncated[:max_chars].rstrip() + "…"
+    elif len(lines) > max_lines:
+        truncated += "…"
+    return truncated
+
+
 _game_status_cache = {}
 
 
@@ -31,18 +41,17 @@ def send_channel_message_notification(sender, instance, created, **kwargs):
         game = instance.channel.game
         current_phase = game.phases.last()
         link = (
-            f"https://www.diplicity.com/game/{game.id}/phase/{current_phase.id}/chat/channel/{instance.channel.id}"
+            f"https://diplicity.com/game/{game.id}/phase/{current_phase.id}/chat/channel/{instance.channel.id}"
             if current_phase
-            else f"https://www.diplicity.com/game/{game.id}"
+            else f"https://diplicity.com/game/{game.id}"
         )
         send_notification_to_users(
             user_ids=user_ids,
             title=game.name,
-            body=f"{sender_name}: {instance.body}",
+            body=f"{sender_name}: {_truncate_body(instance.body)}",
             notification_type="channel_message",
             data={
                 "game_id": str(game.id),
-                "channel_id": str(instance.channel.id),
                 "link": link,
             },
         )
@@ -78,7 +87,7 @@ def send_game_start_notification(sender, instance, created, **kwargs):
                 notification_type="game_start",
                 data={
                     "game_id": str(instance.id),
-                    "link": f"https://www.diplicity.com/game/{instance.id}",
+                    "link": f"https://diplicity.com/game/{instance.id}",
                 },
             )
 
@@ -116,7 +125,7 @@ def send_phase_resolved_notification(sender, instance, created, **kwargs):  # no
                 notification_type="phase_resolved",
                 data={
                     "game_id": str(instance.game.id),
-                    "link": f"https://www.diplicity.com/game/{instance.game.id}",
+                    "link": f"https://diplicity.com/game/{instance.game.id}",
                 },
             )
 

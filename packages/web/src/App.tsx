@@ -11,6 +11,8 @@ import { isNativePlatform } from "./utils/platform";
 import { initializeNativeSocialLogin } from "./auth/nativeGoogleAuth";
 import { App as CapacitorApp } from "@capacitor/app";
 import { deepLinkStorage, parseDeepLinkUrl } from "./deepLink";
+import { onNotificationClick } from "./messaging";
+import { addNotificationTapListener } from "./messaging-native";
 import { getVariantsListQueryKey } from "./api/generated/endpoints";
 
 const queryClient = new QueryClient();
@@ -70,6 +72,22 @@ function App() {
     return () => {
       listener.then((handle) => handle.remove());
     };
+  }, []);
+
+  useEffect(() => {
+    const handleLink = (link: string) => {
+      const path = parseDeepLinkUrl(link);
+      if (path) deepLinkStorage.setPendingPath(path);
+    };
+
+    if (isNativePlatform()) {
+      const listener = addNotificationTapListener(handleLink);
+      return () => {
+        listener.then((l) => l.remove());
+      };
+    } else {
+      return onNotificationClick(handleLink);
+    }
   }, []);
 
   return (
