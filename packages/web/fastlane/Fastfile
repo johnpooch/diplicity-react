@@ -171,16 +171,23 @@ platform :android do
 
     aab_path = lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH]
 
+    # skip_upload_screenshots: true until phone screenshots are added to
+    # fastlane/metadata/android/en-US/images/phoneScreenshots/
+    screenshots_dir = File.join(
+      __dir__, "metadata/android/en-US/images/phoneScreenshots"
+    )
+    has_screenshots = Dir.exist?(screenshots_dir) && !Dir.glob("#{screenshots_dir}/*.{png,jpg}").empty?
+
     base_params = {
       package_name: "com.diplicityreact.app",
       aab: aab_path,
       track: "internal",
       release_status: "completed",
       skip_upload_apk: true,
-      skip_upload_metadata: true,
+      skip_upload_metadata: false,
       skip_upload_changelogs: true,
-      skip_upload_images: true,
-      skip_upload_screenshots: true,
+      skip_upload_images: false,
+      skip_upload_screenshots: !has_screenshots,
     }
 
     # Accept either a file path (local dev) or raw JSON string (CI secret)
