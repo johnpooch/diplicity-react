@@ -34,29 +34,41 @@ class GameQuerySet(models.QuerySet):
     def with_list_data(self):
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.select_related("nation", "user__profile"),
+            queryset=Member.objects.select_related("nation__flag", "user__profile"),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile", "nation")
+            queryset=Member.objects.select_related("user__profile", "nation__flag")
+        )
+
+        # The list view's current_phase + phase_confirmed read the latest
+        # phase plus its phase_states.member.user_id. Prefetching the chain
+        # here keeps the per-game cost flat (no N+1 across the games list).
+        phase_states_prefetch = Prefetch(
+            "phase_states",
+            queryset=PhaseState.objects.select_related("member"),
+        )
+        phases_prefetch = Prefetch(
+            "phases",
+            queryset=Phase.objects.prefetch_related(phase_states_prefetch),
         )
 
         return self.select_related("variant", "victory").prefetch_related(
             members_prefetch,
             victory_members_prefetch,
-            "phases",
+            phases_prefetch,
         )
 
     def with_retrieve_data(self):
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.select_related("nation", "user__profile"),
+            queryset=Member.objects.select_related("nation__flag", "user__profile"),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile", "nation")
+            queryset=Member.objects.select_related("user__profile", "nation__flag")
         )
 
         phase_states_prefetch = Prefetch(
@@ -80,7 +92,7 @@ class GameQuerySet(models.QuerySet):
         units_prefetch = Prefetch(
             "units",
             queryset=Unit.objects.select_related(
-                "nation",
+                "nation__flag",
                 "province__parent",
                 "dislodged_by",
             ).prefetch_related("province__named_coasts"),
@@ -89,7 +101,7 @@ class GameQuerySet(models.QuerySet):
         supply_centers_prefetch = Prefetch(
             "supply_centers",
             queryset=SupplyCenter.objects.select_related(
-                "nation",
+                "nation__flag",
                 "province__parent",
             ).prefetch_related("province__named_coasts"),
         )
@@ -97,7 +109,7 @@ class GameQuerySet(models.QuerySet):
         phase_states_prefetch = Prefetch(
             "phase_states",
             queryset=PhaseState.objects.select_related(
-                "member__nation",
+                "member__nation__flag",
                 "member__user__profile",
             ),
         )
@@ -123,19 +135,19 @@ class GameQuerySet(models.QuerySet):
 
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.select_related("nation", "user__profile"),
+            queryset=Member.objects.select_related("nation__flag", "user__profile"),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile", "nation")
+            queryset=Member.objects.select_related("user__profile", "nation__flag")
         )
 
         return self.select_related("victory").prefetch_related(
             # Variant data with optimized template phase
             "variant__provinces__parent",
             "variant__provinces__named_coasts",
-            "variant__nations",
+            "variant__nations__flag",
             template_phase_prefetch,
             # Game phases data
             game_phases_prefetch,

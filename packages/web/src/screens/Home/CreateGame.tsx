@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import { useForm, Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Users, Calendar, User, Clock } from "lucide-react";
+import { BookOpen, Calendar, Clock, Map, User, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -111,7 +111,8 @@ const modeToBackendFields = (mode: StandardGameFormValues["mode"]) => ({
 
 interface MetadataRow {
   label: string;
-  value: string | React.ReactNode;
+  value?: string | React.ReactNode;
+  text?: string;
   icon?: React.ReactNode;
 }
 
@@ -122,15 +123,25 @@ interface GameMetadataTableProps {
 const GameMetadataTable: React.FC<GameMetadataTableProps> = ({ rows }) => {
   return (
     <div className="divide-y border rounded-lg">
-      {rows.map((row, index) => (
-        <div key={index} className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-3">
-            {row.icon}
-            <span className="text-sm">{row.label}</span>
+      {rows.map((row, index) =>
+        row.text ? (
+          <div key={index} className="p-4">
+            <div className="flex items-center gap-3 mb-1">
+              {row.icon}
+              <span className="text-sm">{row.label}</span>
+            </div>
+            <p className="text-sm text-muted-foreground whitespace-pre-line pl-7">{row.text}</p>
           </div>
-          <span className="text-sm text-muted-foreground">{row.value}</span>
-        </div>
-      ))}
+        ) : (
+          <div key={index} className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-3">
+              {row.icon}
+              <span className="text-sm">{row.label}</span>
+            </div>
+            <span className="text-sm text-muted-foreground">{row.value}</span>
+          </div>
+        )
+      )}
     </div>
   );
 };
@@ -207,6 +218,16 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
             value: selectedVariant?.author,
             icon: <User className="size-4" />,
           },
+          ...(selectedVariant?.description ? [{
+            label: "Description",
+            text: selectedVariant.description,
+            icon: <Map className="size-4" />,
+          }] : []),
+          ...(selectedVariant?.rules ? [{
+            label: "Rules",
+            text: selectedVariant.rules,
+            icon: <BookOpen className="size-4" />,
+          }] : []),
         ]}
       />
     </div>

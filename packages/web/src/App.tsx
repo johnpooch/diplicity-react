@@ -11,8 +11,18 @@ import { isNativePlatform } from "./utils/platform";
 import { initializeNativeSocialLogin } from "./auth/nativeGoogleAuth";
 import { App as CapacitorApp } from "@capacitor/app";
 import { deepLinkStorage, parseDeepLinkUrl } from "./deepLink";
+import { getVariantsListQueryKey } from "./api/generated/endpoints";
 
 const queryClient = new QueryClient();
+
+// Variants are essentially static reference data (published variants almost
+// never change; drafts only change when the owner edits them). Combined with
+// the server's ETag/Cache-Control on GET /variants/, an hour-long staleTime
+// keeps the React Query cache warm across navigations without losing
+// freshness for the rare update.
+queryClient.setQueryDefaults(getVariantsListQueryKey(), {
+  staleTime: 60 * 60 * 1000,
+});
 
 function AppContent() {
   const { loggedIn } = useAuth();

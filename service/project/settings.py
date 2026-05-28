@@ -113,7 +113,7 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = os.getenv(
-    "DJANGO_CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173,http://diplicity-web:5173,capacitor://localhost"
+    "DJANGO_CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173,http://diplicity-web:5173,capacitor://localhost,https://localhost"
 ).split(",")
 
 CORS_ALLOW_HEADERS = [

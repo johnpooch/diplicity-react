@@ -11,8 +11,8 @@ const makeProvince = (id: string): Province => ({
   namedCoastIds: [],
 });
 
-const england: Nation = { name: "England", color: "rgb(255,0,0)" };
-const france: Nation = { name: "France", color: "rgb(0,0,255)" };
+const england: Nation = { nationId: "england", name: "England", color: "rgb(255,0,0)", flagUrl: null };
+const france: Nation = { nationId: "france", name: "France", color: "rgb(0,0,255)", flagUrl: null };
 
 const lon = makeProvince("lon");
 const nth = makeProvince("nth");

@@ -7,6 +7,28 @@
 ### Bug Fix: Eliminated nations now block draws correctly
 
 A nation wiped off the board (no units, no supply centers) was never marked as eliminated, so its phantom draw vote could never be cast — leaving draw proposals stuck pending until they silently expired. Nations reduced to zero units and zero supply centers are now flagged as eliminated when the phase resolves, with a notification to the table. Eliminated nations are excluded from draw proposals, so draws among the surviving players resolve as expected. Existing in-progress games have had their dead nations backfilled. Eliminated players now show an "Eliminated" badge in player info and on the propose-draw screen, matching the existing civil-disorder treatment.
+## Per-Nation Flag Uploads for Variants (May 26, 2026)
+
+**Release Date:** May 26, 2026
+
+### Feature: Upload a flag for each nation in your draft variant
+
+The variant edit screen (`/variants/<id>/edit`) now has a per-nation flag uploader. Each nation in your draft variant gets a row with its current flag preview, an SVG file picker, and a Remove button. Flags are served from the backend with a content-hashed URL and immutable caching, so they replace the static frontend bundle that previously held flags for only four hardcoded variants. Re-uploading a dvar preserves flags whose nation id is unchanged; flags for removed or renamed nations are dropped. Flags are optional — nations without one render no flag in game UI.
+
+## Skip Empty Phases (May 25, 2026)
+
+**Release Date:** May 25, 2026
+
+### Improvement: Retreat and adjustment phases with nothing to do are skipped
+
+When a turn dislodges no units, or when everyone's builds and disbands are balanced, the game now advances straight to the next phase that actually needs orders instead of creating an empty retreat or adjustment phase. Previously these empty phases were created and sat waiting — in fixed-time games an empty retreat would hold for the full deadline (up to 24 hours) before resolving, even though no one had anything to do. Spring movement with no retreats now goes directly to fall movement.
+## Fleet Orders from Named Coasts (May 24, 2026)
+
+**Release Date:** May 24, 2026
+
+### Bug Fix: Moving a fleet off a named coast
+
+Issuing a move order for a fleet sitting on a named coast (for example a fleet on Spain's south coast) toward a destination that itself has named coasts failed with a server error, so the order could not be submitted. The order wizard now correctly recognises the fleet and lets you pick the destination coast.
 ## Faster "Clone to Sandbox" (May 24, 2026)
 
 **Release Date:** May 24, 2026

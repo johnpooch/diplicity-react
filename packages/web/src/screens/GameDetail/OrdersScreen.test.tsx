@@ -41,7 +41,7 @@ vi.mock("@/api/generated/endpoints", () => ({
   getGameOptionsRetrieveQueryKey: () => ["options"],
 }));
 
-vi.mock("@/components/NationFlag", () => ({ NationFlag: () => null }));
+vi.mock("@/components/NationFlag", () => ({ NationFlag: () => null, findNationFlagUrl: () => null }));
 vi.mock("@/components/PhaseSelect", () => ({ PhaseSelect: () => null }));
 vi.mock("@/components/PhaseGuidance", () => ({ PhaseGuidance: () => null }));
 vi.mock("@/components/GameDropdownMenu", () => ({ GameDropdownMenu: () => null }));

@@ -1505,6 +1505,57 @@ paths:
               schema:
                 $ref: '#/components/schemas/Variant'
           description: ''
+  /variants/{variantId}/nations/{nationId}/flag/:
+    put:
+      operationId: variantsNationsFlagUpdate
+      parameters:
+      - in: path
+        name: nationId
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: variantId
+        schema:
+          type: string
+        required: true
+      tags:
+      - variants
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/NationFlagUpload'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Nation'
+          description: ''
+    delete:
+      operationId: variantsNationsFlagDestroy
+      parameters:
+      - in: path
+        name: nationId
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: variantId
+        schema:
+          type: string
+        required: true
+      tags:
+      - variants
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
   /version/:
     get:
       operationId: versionRetrieve
@@ -2028,6 +2079,14 @@ components:
           type: integer
           nullable: true
           readOnly: true
+        currentPhase:
+          allOf:
+          - $ref: '#/components/schemas/GameListCurrentPhase'
+          nullable: true
+          readOnly: true
+        phaseConfirmed:
+          type: boolean
+          readOnly: true
         private:
           type: boolean
           readOnly: true
@@ -2098,6 +2157,7 @@ components:
       - canJoin
       - canLeave
       - createdAt
+      - currentPhase
       - currentPhaseId
       - deadlineMode
       - fixedDeadlineTime
@@ -2111,6 +2171,7 @@ components:
       - nationAssignment
       - nmrExtensionsAllowed
       - pausedAt
+      - phaseConfirmed
       - phases
       - pressType
       - private
@@ -2120,6 +2181,48 @@ components:
       - status
       - variantId
       - victory
+    GameListCurrentPhase:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        ordinal:
+          type: integer
+          readOnly: true
+        season:
+          type: string
+          readOnly: true
+        year:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        type:
+          type: string
+          readOnly: true
+        status:
+          type: string
+          readOnly: true
+        scheduledResolution:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        remainingTime:
+          type: integer
+          readOnly: true
+      required:
+      - id
+      - name
+      - ordinal
+      - remainingTime
+      - scheduledResolution
+      - season
+      - status
+      - type
+      - year
     GameRetrieve:
       type: object
       properties:
@@ -2331,13 +2434,21 @@ components:
     Nation:
       type: object
       properties:
+        nationId:
+          type: string
         name:
           type: string
         color:
           type: string
+        flagUrl:
+          type: string
+          nullable: true
+          readOnly: true
       required:
       - color
+      - flagUrl
       - name
+      - nationId
     NationAssignmentEnum:
       enum:
       - random
@@ -2346,6 +2457,15 @@ components:
       description: |-
         * `random` - Random
         * `ordered` - Ordered
+    NationFlagUpload:
+      type: object
+      properties:
+        flag:
+          type: string
+          format: uri
+          writeOnly: true
+      required:
+      - flag
     NullEnum:
       enum:
       - null
@@ -2918,9 +3038,9 @@ components:
         provinces:
           type: array
           items:
-            $ref: '#/components/schemas/Province'
+            $ref: '#/components/schemas/VariantProvince'
         templatePhase:
-          $ref: '#/components/schemas/PhaseRetrieve'
+          $ref: '#/components/schemas/VariantTemplatePhase'
       required:
       - canEdit
       - description
@@ -2935,6 +3055,74 @@ components:
       - svgUrl
       - templatePhase
       - victoryConditions
+    VariantProvince:
+      type: object
+      properties:
+        id:
+          type: string
+        parentId:
+          type: string
+          nullable: true
+      required:
+      - id
+      - parentId
+    VariantTemplateNationRef:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+      - name
+    VariantTemplatePhase:
+      type: object
+      properties:
+        year:
+          type: integer
+        units:
+          type: array
+          items:
+            $ref: '#/components/schemas/VariantTemplateUnit'
+        supplyCenters:
+          type: array
+          items:
+            $ref: '#/components/schemas/VariantTemplateSupplyCenter'
+      required:
+      - supplyCenters
+      - units
+      - year
+    VariantTemplateProvinceRef:
+      type: object
+      properties:
+        id:
+          type: string
+      required:
+      - id
+    VariantTemplateSupplyCenter:
+      type: object
+      properties:
+        nation:
+          $ref: '#/components/schemas/VariantTemplateNationRef'
+        province:
+          $ref: '#/components/schemas/VariantTemplateProvinceRef'
+      required:
+      - nation
+      - province
+    VariantTemplateUnit:
+      type: object
+      properties:
+        type:
+          type: string
+        dislodged:
+          type: boolean
+        nation:
+          $ref: '#/components/schemas/VariantTemplateNationRef'
+        province:
+          $ref: '#/components/schemas/VariantTemplateProvinceRef'
+      required:
+      - dislodged
+      - nation
+      - province
+      - type
     VariantWrite:
       type: object
       properties:

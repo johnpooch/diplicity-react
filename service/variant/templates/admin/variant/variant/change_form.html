@@ -1,0 +1,10 @@
+{% extends "admin/change_form.html" %}
+
+{% block object-tools-items %}
+    {% if replace_files_url %}
+        <li>
+            <a href="{{ replace_files_url }}" class="historylink">Replace files safely</a>
+        </li>
+    {% endif %}
+    {{ block.super }}
+{% endblock %}

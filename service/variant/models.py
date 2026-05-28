@@ -34,46 +34,50 @@ def default_phase_progression():
 class VariantQuerySet(models.QuerySet):
 
     def with_related_data(self):
+        from nation.models import Nation
         template_phase_prefetch = Prefetch(
             "phases",
             queryset=Phase.objects.filter(game=None, status=PhaseStatus.TEMPLATE).prefetch_related(
-                "units__nation",
+                "units__nation__flag",
                 "units__province__parent",
                 "units__province__named_coasts",
                 "units__dislodged_by",
-                "supply_centers__nation",
+                "supply_centers__nation__flag",
                 "supply_centers__province__parent",
                 "supply_centers__province__named_coasts",
                 "phase_states",
             ),
             to_attr="template_phases",
         )
+        nations_prefetch = Prefetch("nations", queryset=Nation.objects.select_related("flag"))
 
         return self.select_related("svg", "owner").defer("svg__svg").prefetch_related(
             # Variant data with optimized template phase
             "provinces__parent",
             "provinces__named_coasts",
-            "nations",
+            nations_prefetch,
             template_phase_prefetch,
         )
 
     def with_game_creation_data(self):
+        from nation.models import Nation
         template_phase_prefetch = Prefetch(
             "phases",
             queryset=Phase.objects.filter(
                 game=None,
                 status=PhaseStatus.TEMPLATE
             ).prefetch_related(
-                "units__nation",
+                "units__nation__flag",
                 "units__province",
-                "supply_centers__nation",
+                "supply_centers__nation__flag",
                 "supply_centers__province",
             ),
             to_attr="template_phases",
         )
+        nations_prefetch = Prefetch("nations", queryset=Nation.objects.select_related("flag"))
 
         return self.prefetch_related(
-            "nations",
+            nations_prefetch,
             template_phase_prefetch,
         )
 
@@ -152,10 +156,13 @@ class VariantSvg(BaseModel):
     content_hash = models.CharField(max_length=64, editable=False)
 
     def save(self, *args, **kwargs):
-        from variant.utils import normalize_dsvg
+        from variant.utils import normalize_dsvg, sanitize_svg
 
-        self.svg = normalize_dsvg(self.svg)
+        self.svg = sanitize_svg(normalize_dsvg(self.svg))
         self.content_hash = hashlib.sha256(self.svg.encode()).hexdigest()
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            kwargs["update_fields"] = set(update_fields) | {"svg", "content_hash"}
         super().save(*args, **kwargs)
 
     def __str__(self):

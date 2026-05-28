@@ -17,8 +17,8 @@ const province = (id: string, parentId: string | null = null): Province => ({
 });
 
 const nations: Nation[] = [
-  { name: "England", color: "#2196F3" },
-  { name: "France", color: "#80DEEA" },
+  { nationId: "england", name: "England", color: "#2196F3", flagUrl: null },
+  { nationId: "france", name: "France", color: "#80DEEA", flagUrl: null },
 ];
 
 const variant = { nations };
@@ -76,14 +76,12 @@ describe("toRenderState", () => {
             nation: nations[0],
             province: province("lon"),
             dislodged: false,
-            dislodgedBy: null,
           },
           {
             type: "Fleet",
             nation: nations[1],
             province: province("bre"),
             dislodged: true,
-            dislodgedBy: null,
           },
         ],
       },
@@ -109,14 +107,12 @@ describe("toRenderState", () => {
             nation: nations[0],
             province: province("lon"),
             dislodged: false,
-            dislodgedBy: null,
           },
           {
             type: "Fleet",
             nation: nations[1],
             province: province("bre"),
             dislodged: false,
-            dislodgedBy: null,
           },
         ],
       },

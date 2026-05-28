@@ -1,3 +1,4 @@
+import React from "react";
 import { Info, Trophy, AlertTriangle, Pause } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -13,9 +14,10 @@ interface GameStatusAlertsProps {
   variant?: {
     nations: { length: number } | readonly unknown[];
   };
+  action?: React.ReactNode;
 }
 
-export function GameStatusAlerts({ game, variant }: GameStatusAlertsProps) {
+export function GameStatusAlerts({ game, variant, action }: GameStatusAlertsProps) {
   const nationCount = variant?.nations
     ? Array.isArray(variant.nations)
       ? variant.nations.length
@@ -25,12 +27,19 @@ export function GameStatusAlerts({ game, variant }: GameStatusAlertsProps) {
   return (
     <>
       {game.status === "pending" && (
-        <Alert>
+        <Alert className="p-5">
           <Info className="size-4" />
-          <AlertDescription>
-            This game has not started yet. The game will start once{" "}
-            {nationCount} players have joined.
-          </AlertDescription>
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <AlertDescription>
+              This game has not started yet. The game will start once{" "}
+              {nationCount} players have joined.
+            </AlertDescription>
+            {action && (
+              <div className="[&>button]:w-full sm:[&>button]:w-auto sm:flex sm:items-center sm:h-[1lh] shrink-0">
+                {action}
+              </div>
+            )}
+          </div>
         </Alert>
       )}
 

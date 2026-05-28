@@ -319,35 +319,22 @@ def test_active_game_create_orders_and_confirm(
         data={"game_id": str(active_game.id)},
     )
 
-    # Second phase has been created
+    # The empty Spring 1901 Retreat is skipped, so resolving the movement
+    # phase lands directly on Fall 1901 Movement.
     second_phase = active_game.current_phase
     assert second_phase.status == PhaseStatus.ACTIVE
-    assert second_phase.season == "Spring"
+    assert second_phase.season == "Fall"
     assert second_phase.year == 1901
-    assert second_phase.type == "Retreat"
-
-    # Test auto-resolution behavior: Retreat phase should resolve immediately
-    # since typically no retreat moves are possible in small variants
-    assert second_phase.should_resolve_immediately
-
-    # Simulate the scheduled resolver task running
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.status_code == status.HTTP_200_OK
-    assert resolve_response.data["resolved"] >= 1  # At least the retreat phase resolved
+    assert second_phase.type == "Movement"
 
     # First phase has resolved
     first_phase.refresh_from_db()
     assert first_phase.status == PhaseStatus.COMPLETED
 
-    # Notification is sent to both users (combined notification for skipped phases)
-    third_phase = active_game.current_phase
-    mock_send_notification_to_users.assert_called_with(
-        user_ids=[germany_member.user.id, italy_member.user.id],
-        title="Phase Resolved",
-        body=f"{second_phase.name} resolved. No retreats needed. Next: {third_phase.name}.",
-        notification_type="phase_resolved",
-        data={"game_id": str(active_game.id)},
-    )
+    # No empty Spring 1901 Retreat row was ever created
+    assert not active_game.phases.filter(
+        season="Spring", year=1901, type="Retreat"
+    ).exists()
 
 
 @pytest.mark.django_db
@@ -448,21 +435,13 @@ def test_active_game_create_move_order_fleet_to_named_coast(
     assert resolve_response.status_code == status.HTTP_200_OK
     assert resolve_response.data["resolved"] >= 1
 
-    # Second phase has been created
+    # The empty Spring 1901 Retreat is skipped, so resolving the movement
+    # phase lands directly on Fall 1901 Movement.
     second_phase = active_game.current_phase
     assert second_phase.status == PhaseStatus.ACTIVE
-    assert second_phase.season == "Spring"
+    assert second_phase.season == "Fall"
     assert second_phase.year == 1901
-    assert second_phase.type == "Retreat"
-
-    # Test auto-resolution behavior: Retreat phase should resolve immediately
-    # since typically no retreat moves are possible in small variants
-    assert second_phase.should_resolve_immediately
-
-    # Simulate the scheduled resolver task running
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.status_code == status.HTTP_200_OK
-    assert resolve_response.data["resolved"] >= 1  # At least the retreat phase resolved
+    assert second_phase.type == "Movement"
 
     # First phase has resolved
     first_phase.refresh_from_db()
@@ -481,26 +460,9 @@ def test_active_game_create_move_order_fleet_to_named_coast(
     assert resolve_response.status_code == status.HTTP_200_OK
     assert resolve_response.data["resolved"] >= 1
 
-    phase = active_game.current_phase
-    assert phase.status == PhaseStatus.ACTIVE
-    assert phase.season == "Fall"
-    assert phase.year == 1901
-    assert phase.type == "Retreat"
-
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.status_code == status.HTTP_200_OK
-    assert resolve_response.data["resolved"] >= 1
-
-    phase = active_game.current_phase
-    assert phase.status == PhaseStatus.ACTIVE
-    assert phase.season == "Fall"
-    assert phase.year == 1901
-    assert phase.type == "Adjustment"
-
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.status_code == status.HTTP_200_OK
-    assert resolve_response.data["resolved"] >= 1
-
+    # 1901 saw no supply-center changes, so the empty Fall 1901 Retreat and the
+    # balanced Fall 1901 Adjustment are both skipped; we land on Spring 1902
+    # Movement.
     phase = active_game.current_phase
     assert phase.status == PhaseStatus.ACTIVE
     assert phase.season == "Spring"
@@ -519,17 +481,21 @@ def test_active_game_create_move_order_fleet_to_named_coast(
     confirm_order_response = authenticated_client.put(confirm_order_url)
     confirm_order_response = authenticated_client_for_secondary_user.put(confirm_order_url)
 
+    # Capture the Spring 1902 Movement phase so the order resolution can be
+    # checked on it after it resolves.
+    spring_1902_movement = active_game.current_phase
+    order = spring_1902_movement.phase_states.get(member=italy_member).orders.get(source__province_id="gol")
+
     resolve_response = authenticated_client.post(resolve_all_url)
     assert resolve_response.status_code == status.HTTP_200_OK
     assert resolve_response.data["resolved"] >= 1
 
-    order = phase.phase_states.get(member=italy_member).orders.get(source__province_id="gol")
-
+    # The empty Spring 1902 Retreat is skipped; we land on Fall 1902 Movement.
     phase = active_game.current_phase
     assert phase.status == PhaseStatus.ACTIVE
-    assert phase.season == "Spring"
+    assert phase.season == "Fall"
     assert phase.year == 1902
-    assert phase.type == "Retreat"
+    assert phase.type == "Movement"
 
     # Assert that order has resolved successfully
     order.refresh_from_db()
@@ -609,20 +575,10 @@ def test_dislodged_unit_scenario(
     resolve_response = authenticated_client.post(resolve_all_url)
     assert resolve_response.data["resolved"] >= 1
 
-    # ===== SPRING 1901 RETREAT PHASE =====
-    # No units dislodged, should auto-resolve
-
-    phase = active_game.current_phase
-    phase.refresh_from_db()
-    assert phase.season == "Spring"
-    assert phase.year == 1901
-    assert phase.type == "Retreat"
-
-    # Resolve retreat phase (no orders needed)
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.data["resolved"] >= 1
-
     # ===== FALL 1901 MOVEMENT PHASE =====
+    # Spring 1901 dislodged no one, so the empty Spring 1901 Retreat is
+    # skipped and resolving the movement phase lands directly on Fall 1901
+    # Movement.
     # Germany: Munich to Tyrolia (attacking Italy)
     # Germany: Bohemia supports Munich to Tyrolia
 
@@ -690,8 +646,10 @@ def test_dislodged_unit_scenario(
     resolve_response = authenticated_client.post(resolve_all_url)
     assert resolve_response.data["resolved"] >= 1
 
-    # ===== FALL 1901 ADJUSTMENT PHASE =====
-    # Verify final positions
+    # ===== NEXT INTERACTIVE PHASE =====
+    # Capturing Tyrolia changes no supply-center ownership, so the Fall 1901
+    # Adjustment is balanced and skipped; the units carry forward unchanged to
+    # the next interactive phase. Verify final positions.
 
     phase = active_game.current_phase
     phase.refresh_from_db()
@@ -704,6 +662,96 @@ def test_dislodged_unit_scenario(
 
     # Italian army should NOT be in Tyrolia anymore
     assert not phase.units.filter(nation__name="Italy", province__province_id="tyr").exists()
+
+
+@pytest.mark.django_db
+def test_empty_retreat_phase_is_skipped(
+    authenticated_client,
+    authenticated_client_for_secondary_user,
+    italy_vs_germany_variant,
+    mock_send_notification_to_users,
+    mock_immediate_on_commit,
+):
+    """A movement phase that dislodges no one advances straight to the next
+    movement phase: the empty retreat phase is never created, and phase
+    ordinals stay contiguous."""
+    active_game = create_active_game(
+        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+    )
+    first_phase = active_game.current_phase
+    assert first_phase.season == "Spring"
+    assert first_phase.year == 1901
+    assert first_phase.type == "Movement"
+
+    create_order_url = reverse("order-create", args=[active_game.id])
+    confirm_url = reverse("game-confirm-phase", args=[active_game.id])
+
+    # Holds dislodge nothing.
+    authenticated_client.post(create_order_url, {"selected": ["kie", "Hold"]}, format="json")
+    authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
+    authenticated_client.put(confirm_url)
+    authenticated_client_for_secondary_user.put(confirm_url)
+
+    resolve_response = authenticated_client.post(resolve_all_url)
+    assert resolve_response.status_code == status.HTTP_200_OK
+    assert resolve_response.data["resolved"] >= 1
+
+    # Landed directly on Fall 1901 Movement, skipping the empty Spring Retreat.
+    new_phase = active_game.current_phase
+    assert new_phase.season == "Fall"
+    assert new_phase.year == 1901
+    assert new_phase.type == "Movement"
+
+    # No Retreat phase row exists for the turn.
+    assert not active_game.phases.filter(type="Retreat").exists()
+
+    # Ordinals stay contiguous: template movement (1) then Fall movement (2).
+    ordinals = list(active_game.phases.order_by("ordinal").values_list("ordinal", flat=True))
+    assert ordinals == [1, 2]
+
+
+@pytest.mark.django_db
+def test_empty_adjustment_phase_is_skipped(
+    authenticated_client,
+    authenticated_client_for_secondary_user,
+    italy_vs_germany_variant,
+    mock_send_notification_to_users,
+    mock_immediate_on_commit,
+):
+    """A Fall movement with no supply-center changes skips both the empty
+    retreat and the balanced adjustment, landing on the next Spring movement.
+    Neither skipped phase is written to the database."""
+    active_game = create_active_game(
+        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+    )
+    create_order_url = reverse("order-create", args=[active_game.id])
+    confirm_url = reverse("game-confirm-phase", args=[active_game.id])
+
+    def hold_and_resolve():
+        authenticated_client.post(create_order_url, {"selected": ["kie", "Hold"]}, format="json")
+        authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
+        authenticated_client.put(confirm_url)
+        authenticated_client_for_secondary_user.put(confirm_url)
+        return authenticated_client.post(resolve_all_url)
+
+    # Spring 1901 holds -> skip empty retreat -> Fall 1901 Movement.
+    hold_and_resolve()
+    phase = active_game.current_phase
+    assert phase.season == "Fall"
+    assert phase.year == 1901
+    assert phase.type == "Movement"
+
+    # Fall 1901 holds: no supply centers change hands, so builds/disbands are
+    # balanced. Both the empty Fall Retreat and the balanced Fall Adjustment
+    # are skipped, landing on Spring 1902 Movement.
+    hold_and_resolve()
+    phase = active_game.current_phase
+    assert phase.season == "Spring"
+    assert phase.year == 1902
+    assert phase.type == "Movement"
+
+    assert not active_game.phases.filter(year=1901, type="Retreat").exists()
+    assert not active_game.phases.filter(year=1901, type="Adjustment").exists()
 
 
 def create_active_hundred_game(
@@ -861,12 +909,13 @@ def test_hundred_variant_movement_phase_resolution_with_errors(
     assert resolve_response.status_code == status.HTTP_200_OK
     assert resolve_response.data["resolved"] >= 1
 
-    # Verify new phase is Retreat phase
+    # The orders only bounce, so nothing is dislodged: the empty Year 1425
+    # Retreat is skipped and we land directly on Year 1430 Movement.
     new_phase = active_game.current_phase
     new_phase.refresh_from_db()
     assert new_phase.season == "Year"
-    assert new_phase.year == 1425
-    assert new_phase.type == "Retreat"
+    assert new_phase.year == 1430
+    assert new_phase.type == "Movement"
     assert new_phase.status == PhaseStatus.ACTIVE
 
     # Verify old phase is completed
@@ -1016,16 +1065,7 @@ def test_hundred_variant_france_solo_victory_after_one_year(
     assert resolve_response.status_code == status.HTTP_200_OK
     assert resolve_response.data["resolved"] >= 1
 
-    spring_retreat_phase = active_game.current_phase
-    spring_retreat_phase.refresh_from_db()
-    assert spring_retreat_phase.season == "Year"
-    assert spring_retreat_phase.year == 1425
-    assert spring_retreat_phase.type == "Retreat"
-
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.status_code == status.HTTP_200_OK
-    assert resolve_response.data["resolved"] >= 1
-
+    # The empty Year 1425 Retreat is skipped; we land on Year 1430 Movement.
     fall_movement_phase = active_game.current_phase
     fall_movement_phase.refresh_from_db()
     assert fall_movement_phase.season == "Year"
@@ -1044,16 +1084,9 @@ def test_hundred_variant_france_solo_victory_after_one_year(
     assert resolve_response.status_code == status.HTTP_200_OK
     assert resolve_response.data["resolved"] >= 1
 
-    fall_retreat_phase = active_game.current_phase
-    fall_retreat_phase.refresh_from_db()
-    assert fall_retreat_phase.season == "Year"
-    assert fall_retreat_phase.year == 1430
-    assert fall_retreat_phase.type == "Retreat"
-
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.status_code == status.HTTP_200_OK
-    assert resolve_response.data["resolved"] >= 1
-
+    # The empty Year 1430 Retreat is skipped; France's captures leave builds
+    # and disbands to resolve, so the Year 1430 Adjustment is interactive and
+    # is where the solo victory is detected.
     fall_adjustment_phase = active_game.current_phase
     fall_adjustment_phase.refresh_from_db()
     assert fall_adjustment_phase.season == "Year"
