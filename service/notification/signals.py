@@ -37,7 +37,7 @@ def send_channel_message_notification(sender, instance, created, **kwargs):
         )
         send_notification_to_users(
             user_ids=user_ids,
-            title=f"{instance.channel.name} ({game.name})",
+            title=game.name,
             body=f"{sender_name}: {instance.body}",
             notification_type="channel_message",
             data={
