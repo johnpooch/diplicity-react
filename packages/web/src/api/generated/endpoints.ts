@@ -337,6 +337,19 @@ export interface GameExtendDeadline {
   duration: DurationEnum;
 }
 
+export interface GameListCurrentPhase {
+  readonly id: number;
+  readonly ordinal: number;
+  readonly season: string;
+  readonly year: number;
+  readonly name: string;
+  readonly type: string;
+  readonly status: string;
+  /** @nullable */
+  readonly scheduledResolution: string | null;
+  readonly remainingTime: number;
+}
+
 export interface Member {
   readonly id: number;
   readonly name: string;
@@ -371,6 +384,8 @@ export interface GameList {
   readonly phases: readonly number[];
   /** @nullable */
   readonly currentPhaseId: number | null;
+  readonly currentPhase: GameListCurrentPhase | null;
+  readonly phaseConfirmed: boolean;
   readonly private: boolean;
   readonly anonymous: boolean;
   /** @nullable */

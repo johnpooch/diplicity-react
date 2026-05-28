@@ -19,7 +19,6 @@ import { RemainingTimeDisplay } from "./RemainingTimeDisplay";
 import {
   GameList,
   useGameJoinCreate,
-  useGamePhaseRetrieve,
   getGamesListQueryKey,
 } from "../api/generated/endpoints";
 import { formatTimeAgo, getGameLandingPath } from "../util";
@@ -30,16 +29,15 @@ import { useIsMobile } from "@/hooks/use-mobile";
 export interface GameCardProps {
   game: GameList;
   variant: Pick<Variant, "name" | "id">;
-  phaseId: number | null;
   map: React.ReactNode;
   className?: string;
 }
 
-const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
+const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
-  const { data: phase } = useGamePhaseRetrieve(game.id, phaseId ?? 0);
+  const phase = game.currentPhase;
   const joinGameMutation = useGameJoinCreate();
 
   const handleClickGame = () => {

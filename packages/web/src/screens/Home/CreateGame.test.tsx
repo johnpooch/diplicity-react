@@ -116,6 +116,8 @@ const matchedGame: GameList = {
   variantId: "classical",
   phases: [],
   currentPhaseId: null,
+  currentPhase: null,
+  phaseConfirmed: false,
   private: false,
   anonymous: false,
   movementPhaseDuration: "24 hours",
