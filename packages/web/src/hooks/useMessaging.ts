@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   onMessageReceived,
+  onNotificationClick,
   getToken as getWebToken,
   registerServiceWorker,
 } from "../messaging";
@@ -10,7 +11,9 @@ import {
   getToken as getNativeToken,
   addTokenRefreshListener,
   addNotificationReceivedListener,
+  addNotificationTapListener,
 } from "../messaging-native";
+import { deepLinkStorage, parseDeepLinkUrl } from "../deepLink";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../auth";
 import {
@@ -131,6 +134,23 @@ const useMessaging = (): MessagingState => {
       });
     }
   }, [native, queryClient]);
+
+  // Effect 5: Notification tap handler (platform-branched)
+  useEffect(() => {
+    const handleLink = (link: string) => {
+      const path = parseDeepLinkUrl(link);
+      if (path) deepLinkStorage.setPendingPath(path);
+    };
+
+    if (native) {
+      const listener = addNotificationTapListener(handleLink);
+      return () => {
+        listener.then((l) => l.remove());
+      };
+    } else {
+      onNotificationClick(handleLink);
+    }
+  }, [native]);
 
   const enableMessaging = async (): Promise<void> => {
     try {

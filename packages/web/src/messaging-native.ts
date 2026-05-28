@@ -35,3 +35,15 @@ export const addNotificationReceivedListener = (callback: () => void) => {
     callback();
   });
 };
+
+export const addNotificationTapListener = (
+  callback: (link: string) => void
+) => {
+  return FirebaseMessaging.addListener(
+    "notificationActionPerformed",
+    (event) => {
+      const link = event.notification.data?.link as string | undefined;
+      if (link) callback(link);
+    }
+  );
+};

@@ -100,9 +100,19 @@ const onMessageReceived = (callback: (payload: any) => void) => {
   });
 };
 
+const onNotificationClick = (callback: (link: string) => void) => {
+  if (!("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.addEventListener("message", (event: MessageEvent) => {
+    if (event.data?.type === "NOTIFICATION_CLICK" && event.data.link) {
+      callback(event.data.link as string);
+    }
+  });
+};
+
 export {
   getFirebaseToken as getToken,
   deleteFirebaseToken as deleteToken,
   onMessageReceived,
+  onNotificationClick,
   registerServiceWorker,
 };
