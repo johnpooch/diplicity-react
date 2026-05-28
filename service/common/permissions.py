@@ -2,6 +2,7 @@ from rest_framework.permissions import BasePermission
 from django.shortcuts import get_object_or_404
 from django.apps import apps
 from common.constants import GameStatus, PressType
+from common.views import resolve_game
 
 Game = apps.get_model("game", "Game")
 Channel = apps.get_model("channel", "Channel")
@@ -12,8 +13,7 @@ class IsActiveGame(BasePermission):
     message = "This game is not active."
 
     def has_permission(self, request, view):
-        game_id = view.kwargs.get("game_id")
-        game = get_object_or_404(Game, id=game_id)
+        game = resolve_game(request, view.kwargs.get("game_id"))
         return game.status == GameStatus.ACTIVE
 
 
@@ -22,8 +22,7 @@ class IsActiveOrCompletedGame(BasePermission):
     message = "This game is not active or finished."
 
     def has_permission(self, request, view):
-        game_id = view.kwargs.get("game_id")
-        game = get_object_or_404(Game, id=game_id)
+        game = resolve_game(request, view.kwargs.get("game_id"))
         return game.status in (GameStatus.ACTIVE, GameStatus.COMPLETED, GameStatus.ABANDONED)
 
 
@@ -31,8 +30,7 @@ class IsGameMember(BasePermission):
     message = "User is not a member of the game."
 
     def has_permission(self, request, view):
-        game_id = view.kwargs.get("game_id")
-        game = get_object_or_404(Game, id=game_id)
+        game = resolve_game(request, view.kwargs.get("game_id"))
         return game.members.filter(user=request.user).exists()
 
 
@@ -40,8 +38,7 @@ class IsActiveGameMember(BasePermission):
     message = "User cannot perform this action."
 
     def has_permission(self, request, view):
-        game_id = view.kwargs.get("game_id")
-        game = get_object_or_404(Game, id=game_id)
+        game = resolve_game(request, view.kwargs.get("game_id"))
 
         member = game.members.filter(user=request.user).first()
         if not member:
@@ -75,8 +72,7 @@ class IsPendingGame(BasePermission):
     message = "Game is not in pending status."
 
     def has_permission(self, request, view):
-        game_id = view.kwargs.get("game_id")
-        game = get_object_or_404(Game, id=game_id)
+        game = resolve_game(request, view.kwargs.get("game_id"))
         return game.status == GameStatus.PENDING
 
 
@@ -84,8 +80,7 @@ class IsNotGameMember(BasePermission):
     message = "User is already a member of the game."
 
     def has_permission(self, request, view):
-        game_id = view.kwargs.get("game_id")
-        game = get_object_or_404(Game, id=game_id)
+        game = resolve_game(request, view.kwargs.get("game_id"))
         return not game.members.filter(user=request.user).exists()
 
 
@@ -93,8 +88,7 @@ class IsSpaceAvailable(BasePermission):
     message = "Game already has the maximum number of players."
 
     def has_permission(self, request, view):
-        game_id = view.kwargs.get("game_id")
-        game = get_object_or_404(Game, id=game_id)
+        game = resolve_game(request, view.kwargs.get("game_id"))
         return game.members.count() < game.variant.nations.count()
 
 
@@ -104,8 +98,7 @@ class IsCurrentPhaseActive(BasePermission):
     def has_permission(self, request, view):
         from common.constants import PhaseStatus
 
-        game_id = view.kwargs.get("game_id")
-        game = get_object_or_404(Game, id=game_id)
+        game = resolve_game(request, view.kwargs.get("game_id"))
         current_phase = game.phases.last()
         return current_phase and current_phase.status == PhaseStatus.ACTIVE
 
@@ -114,8 +107,7 @@ class IsUserPhaseStateExists(BasePermission):
     message = "No phase state found for user."
 
     def has_permission(self, request, view):
-        game_id = view.kwargs.get("game_id")
-        game = get_object_or_404(Game, id=game_id)
+        game = resolve_game(request, view.kwargs.get("game_id"))
         member = game.members.filter(user=request.user).first()
         if not member:
             return False
@@ -129,8 +121,7 @@ class IsSandboxGame(BasePermission):
     message = "This action is only available for sandbox games."
 
     def has_permission(self, request, view):
-        game_id = view.kwargs.get("game_id")
-        game = get_object_or_404(Game, id=game_id)
+        game = resolve_game(request, view.kwargs.get("game_id"))
         return game.sandbox
 
 
@@ -138,8 +129,7 @@ class IsNotSandboxGame(BasePermission):
     message = "This action is not available for sandbox games."
 
     def has_permission(self, request, view):
-        game_id = view.kwargs.get("game_id")
-        game = get_object_or_404(Game, id=game_id)
+        game = resolve_game(request, view.kwargs.get("game_id"))
         return not game.sandbox
 
 
@@ -147,8 +137,7 @@ class IsNotNoPressActiveGame(BasePermission):
     message = "Messaging is not available in active No Press games."
 
     def has_permission(self, request, view):
-        game_id = view.kwargs.get("game_id")
-        game = get_object_or_404(Game, id=game_id)
+        game = resolve_game(request, view.kwargs.get("game_id"))
         if game.press_type != PressType.NO_PRESS:
             return True
         return game.status in (GameStatus.COMPLETED, GameStatus.ABANDONED)
@@ -158,8 +147,7 @@ class IsGameMaster(BasePermission):
     message = "Only the Game Master can perform this action."
 
     def has_permission(self, request, view):
-        game_id = view.kwargs.get("game_id")
-        game = get_object_or_404(Game, id=game_id)
+        game = resolve_game(request, view.kwargs.get("game_id"))
         member = game.members.filter(user=request.user).first()
         if not member:
             self.message = "User is not a member of the game."

@@ -1,5 +1,6 @@
 import json
 import logging
+from functools import cached_property
 
 from django.db import models, transaction
 from django.db.models import Q, Exists, OuterRef, Count
@@ -658,7 +659,7 @@ class Phase(BaseModel):
     def all_orders(self):
         return [order for phase_state in self.phase_states.all() for order in phase_state.orders.all()]
 
-    @property
+    @cached_property
     def transformed_options(self):
         return transform_options(self.options or {})
 
