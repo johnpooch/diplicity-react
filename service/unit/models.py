@@ -17,7 +17,7 @@ class Unit(BaseModel):
     class Meta:
         constraints = [
             models.CheckConstraint(
-                check=Q(dislodged=False, dislodged_by__isnull=True) | Q(dislodged=True),
+                condition=Q(dislodged=False, dislodged_by__isnull=True) | Q(dislodged=True),
                 name="dislodged_by_requires_dislodged",
             )
         ]
