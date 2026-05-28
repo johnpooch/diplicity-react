@@ -883,7 +883,10 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 4
+        # 5 (not 4) since GameListSerializer now embeds current_phase +
+        # phase_confirmed, which adds one prefetch for PhaseState.member.
+        # Still flat across N games and N phases.
+        assert query_count == 5
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_phases_and_units(
@@ -934,7 +937,10 @@ class TestGameListViewQueryPerformance:
             print(f"Time: {query['time']}")
         print("=" * 80 + "\n")
 
-        assert query_count == 4
+        # 5 (not 4) since GameListSerializer now embeds current_phase +
+        # phase_confirmed, which adds one prefetch for PhaseState.member.
+        # Still flat across N games and N phases.
+        assert query_count == 5
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_different_nations(
@@ -995,7 +1001,10 @@ class TestGameListViewQueryPerformance:
             print(f"Time: {query['time']}")
         print("=" * 80 + "\n")
 
-        assert query_count == 4
+        # 5 (not 4) since GameListSerializer now embeds current_phase +
+        # phase_confirmed, which adds one prefetch for PhaseState.member.
+        # Still flat across N games and N phases.
+        assert query_count == 5
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_phase_states(
@@ -1044,7 +1053,10 @@ class TestGameListViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        assert query_count == 4
+        # 5 (not 4) since GameListSerializer now embeds current_phase +
+        # phase_confirmed, which adds one prefetch for PhaseState.member.
+        # Still flat across N games and N phases.
+        assert query_count == 5
 
 
 class TestGameCreateView:

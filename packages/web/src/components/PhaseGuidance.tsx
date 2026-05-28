@@ -56,7 +56,9 @@ function usePhaseGuidance(): GuidanceResult {
 
       if (submittedCount === 0) {
         return {
-          text: `Submit orders for ${totalOrderable} unit${totalOrderable > 1 ? "s" : ""}`,
+          text: game.sandbox
+            ? "Orders for sandbox units"
+            : `Submit orders for ${totalOrderable} unit${totalOrderable > 1 ? "s" : ""}`,
           isComplete: false,
           isConfirmed,
         };

@@ -59,14 +59,16 @@ export function getProvinceGroup(provinces: Province[], provinceId: string): Pro
  * - When named coasts are highlighted: Hide main province, show only highlighted named coasts
  * - When main provinces are highlighted: Show main provinces only
  */
+type ProvinceWithParent = Pick<Province, "id" | "parentId">;
+
 export function determineRenderableProvinces(
-  allProvinces: Province[],
+  allProvinces: ProvinceWithParent[],
   highlightedProvinceIds: string[]
 ): string[] {
   const renderableProvinces = new Set<string>();
 
   // Group all provinces by their main province ID
-  const provinceGroups = new Map<string, Province[]>();
+  const provinceGroups = new Map<string, ProvinceWithParent[]>();
 
   for (const province of allProvinces) {
     const mainProvinceId = province.parentId || province.id;

@@ -5,9 +5,7 @@ from django.db import transaction
 from django.urls import reverse
 from lxml import etree
 from rest_framework import serializers
-from province.serializers import ProvinceSerializer
 from nation.serializers import NationSerializer
-from phase.serializers import PhaseRetrieveSerializer
 
 from common.constants import VariantStatus
 from .models import Variant, VariantSvg
@@ -26,6 +24,37 @@ class VictoryConditionsSerializer(serializers.Serializer):
     draw_after_year = serializers.IntegerField(source="drawAfterYear", allow_null=True)
 
 
+class VariantProvinceSerializer(serializers.Serializer):
+    id = serializers.CharField(source="province_id")
+    parent_id = serializers.CharField(source="parent.province_id", allow_null=True)
+
+
+class VariantTemplateNationRefSerializer(serializers.Serializer):
+    name = serializers.CharField()
+
+
+class VariantTemplateProvinceRefSerializer(serializers.Serializer):
+    id = serializers.CharField(source="province_id")
+
+
+class VariantTemplateUnitSerializer(serializers.Serializer):
+    type = serializers.CharField()
+    dislodged = serializers.BooleanField()
+    nation = VariantTemplateNationRefSerializer()
+    province = VariantTemplateProvinceRefSerializer()
+
+
+class VariantTemplateSupplyCenterSerializer(serializers.Serializer):
+    nation = VariantTemplateNationRefSerializer()
+    province = VariantTemplateProvinceRefSerializer()
+
+
+class VariantTemplatePhaseSerializer(serializers.Serializer):
+    year = serializers.IntegerField()
+    units = VariantTemplateUnitSerializer(many=True)
+    supply_centers = VariantTemplateSupplyCenterSerializer(many=True)
+
+
 class VariantSerializer(serializers.Serializer):
     id = serializers.CharField()
     name = serializers.CharField()
@@ -39,8 +68,8 @@ class VariantSerializer(serializers.Serializer):
     victory_conditions = VictoryConditionsSerializer(source="victory_conditions_summary")
     svg_url = serializers.SerializerMethodField()
     nations = NationSerializer(many=True)
-    provinces = ProvinceSerializer(many=True)
-    template_phase = PhaseRetrieveSerializer()
+    provinces = VariantProvinceSerializer(many=True)
+    template_phase = VariantTemplatePhaseSerializer()
 
     def get_svg_url(self, variant) -> Optional[str]:
         try:

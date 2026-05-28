@@ -117,7 +117,6 @@ const GameTabContent: React.FC<GameTabContentProps> = ({
           key={game.id}
           game={game}
           variant={variantMap.get(game.variantId)!}
-          phaseId={game.currentPhaseId}
           map={<div />}
         />
       ))}
