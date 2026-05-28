@@ -27,7 +27,7 @@ def send_channel_message_notification(sender, instance, created, **kwargs):
 
         user_ids = [member.user_id for member in other_members if member.user_id is not None]
 
-        sender_name = instance.sender.user.username if instance.sender.user else "Deleted User"
+        sender_name = instance.sender.name
         game = instance.channel.game
         current_phase = game.phases.last()
         link = (
