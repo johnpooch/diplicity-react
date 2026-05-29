@@ -48,3 +48,13 @@ class PhaseRetrieveSerializer(serializers.Serializer):
     supply_centers = SupplyCenterSerializer(many=True)
     previous_phase_id = serializers.IntegerField(allow_null=True)
     next_phase_id = serializers.IntegerField(allow_null=True)
+    province_nations = serializers.SerializerMethodField()
+
+    def get_province_nations(self, phase):
+        from phase.utils import compute_province_nations
+        return compute_province_nations(
+            phase.supply_centers.all(),
+            phase.variant.provinces.all(),
+            phase.variant.dominance_rules,
+            phase.variant.nations.all(),
+        )

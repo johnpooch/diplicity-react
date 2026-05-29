@@ -438,6 +438,83 @@ def _canonical_order(order, phase_type):
     }
 
 
+def compute_province_nations(supply_centers, provinces, dominance_rules, nations):
+    from common.constants import ProvinceType
+
+    sc_owner_map = {sc.province.province_id: sc.nation.name for sc in supply_centers}
+    province_map = {p.province_id: p for p in provinces}
+    nation_id_to_name = {n.nation_id: n.name for n in nations}
+
+    rules_by_province = {}
+    for rule in dominance_rules:
+        rules_by_province.setdefault(rule["province"], []).append(rule)
+
+    UNOWNED_MARKERS = {"Empty", "Neutral"}
+
+    def resolve_to_sc_id(province_id):
+        p = province_map.get(province_id)
+        if not p:
+            return None
+        if p.supply_center:
+            return province_id
+        if p.parent_id:
+            parent = province_map.get(p.parent.province_id)
+            if parent and parent.supply_center:
+                return p.parent.province_id
+        return None
+
+    def dependency_matches(dep):
+        nation = dep["nation"]
+        prov = dep["province"]
+        if nation in UNOWNED_MARKERS:
+            return prov not in sc_owner_map
+        nation_name = nation_id_to_name.get(nation)
+        if not nation_name:
+            return False
+        return sc_owner_map.get(prov) == nation_name
+
+    def default_color(province):
+        adjacent_sc_ids = set()
+        for adj in province.adjacencies:
+            sc_id = resolve_to_sc_id(adj["to"])
+            if sc_id:
+                adjacent_sc_ids.add(sc_id)
+        if not adjacent_sc_ids:
+            return None
+        owner = None
+        for sc_id in adjacent_sc_ids:
+            sc_owner = sc_owner_map.get(sc_id)
+            if not sc_owner:
+                return None
+            if owner is None:
+                owner = sc_owner
+            elif owner != sc_owner:
+                return None
+        return owner
+
+    result = {}
+    for province in province_map.values():
+        if province.supply_center:
+            continue
+        if province.type in (ProvinceType.SEA, ProvinceType.NAMED_COAST):
+            continue
+
+        rules = rules_by_province.get(province.province_id)
+        if rules:
+            matched = next((r for r in rules if all(dependency_matches(d) for d in r["dependencies"])), None)
+            if matched:
+                nation_name = nation_id_to_name.get(matched["nation"])
+                if nation_name:
+                    result[province.province_id] = nation_name
+            continue
+
+        nation_name = default_color(province)
+        if nation_name:
+            result[province.province_id] = nation_name
+
+    return result
+
+
 def phase_to_canonical_game_state(phase):
     phase = type(phase).objects.with_canonical_state_data().get(pk=phase.pk)
     return {

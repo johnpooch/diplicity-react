@@ -104,6 +104,7 @@ class Variant(BaseModel):
     adjudication_modifiers = models.JSONField(default=list)
     phase_progression = models.JSONField(default=default_phase_progression)
     rules = models.TextField(blank=True, default="")
+    dominance_rules = models.JSONField(default=list)
     status = models.CharField(
         max_length=20,
         choices=VariantStatus.STATUS_CHOICES,

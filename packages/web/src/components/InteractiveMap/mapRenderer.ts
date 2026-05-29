@@ -47,6 +47,7 @@ export type OrderState = {
 export type RenderState = {
   nationColors?: Record<string, string>;
   supplyCenters?: { province: string; nation: string }[];
+  nonScProvinceColors?: Record<string, string>;
   units?: UnitState[];
   orders?: OrderState[];
   selected?: string[];
@@ -143,6 +144,12 @@ const provinceFill = (provinceId: string, state: RenderState): ProvinceFill => {
         ? SUPPLY_CENTER_OPACITY_ACTIVE
         : SUPPLY_CENTER_OPACITY_DEFAULT;
     fill = toRgba(nationColor(state, owner.nation), opacity);
+  } else if (state.nonScProvinceColors?.[provinceId]) {
+    const opacity =
+      selected || highlighted
+        ? SUPPLY_CENTER_OPACITY_ACTIVE
+        : SUPPLY_CENTER_OPACITY_DEFAULT;
+    fill = toRgba(state.nonScProvinceColors[provinceId], opacity);
   } else if (selected) {
     fill = SELECTED_FILL;
   }

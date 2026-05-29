@@ -35,6 +35,7 @@ const emptyPhase: PhaseRetrieve = {
   status: "active",
   units: [],
   supplyCenters: [],
+  provinceNations: {},
   previousPhaseId: null,
   nextPhaseId: null,
 };
@@ -373,6 +374,36 @@ describe("toRenderState", () => {
         []
       );
       expect(state.orders?.[0].aux).toBeUndefined();
+    });
+  });
+
+  describe("nonScProvinceColors", () => {
+    test("maps provinceNations nation names to colours from the variant", () => {
+      const state = toRenderState(
+        variant,
+        { ...emptyPhase, provinceNations: { yor: "England", gas: "France" } },
+        [],
+        []
+      );
+      expect(state.nonScProvinceColors).toEqual({
+        yor: "#2196F3",
+        gas: "#80DEEA",
+      });
+    });
+
+    test("returns empty object when provinceNations is empty", () => {
+      const state = toRenderState(variant, emptyPhase, [], []);
+      expect(state.nonScProvinceColors).toEqual({});
+    });
+
+    test("omits provinces whose nation name has no matching colour", () => {
+      const state = toRenderState(
+        variant,
+        { ...emptyPhase, provinceNations: { yor: "UnknownNation" } },
+        [],
+        []
+      );
+      expect(state.nonScProvinceColors).toEqual({});
     });
   });
 });
