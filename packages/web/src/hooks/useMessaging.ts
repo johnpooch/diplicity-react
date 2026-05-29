@@ -7,10 +7,10 @@ import {
 import {
   checkPermission,
   requestPermission,
-  getToken as getIosToken,
+  getToken as getNativeToken,
   addTokenRefreshListener,
   addNotificationReceivedListener,
-} from "../messaging-ios";
+} from "../messaging-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../auth";
 import {
@@ -18,7 +18,7 @@ import {
   useDevicesList,
   useDevicesCreate,
 } from "../api/generated/endpoints";
-import { isNativePlatform } from "../utils/platform";
+import { isNativePlatform, isIosPlatform } from "../utils/platform";
 
 type MessagingState = {
   enabled: boolean;
@@ -28,6 +28,9 @@ type MessagingState = {
   disableMessaging: () => Promise<void>;
   enableMessaging: () => Promise<void>;
 };
+
+const getNativeDeviceType = (): "ios" | "android" =>
+  isIosPlatform() ? "ios" : "android";
 
 const useMessaging = (): MessagingState => {
   const { loggedIn } = useAuth();
@@ -46,10 +49,10 @@ const useMessaging = (): MessagingState => {
   // Effect 1: Initialization (platform-branched)
   useEffect(() => {
     if (native) {
-      const initIos = async () => {
+      const initNative = async () => {
         const permission = await checkPermission();
         if (permission === "granted") {
-          const t = await getIosToken();
+          const t = await getNativeToken();
           if (t) setToken(t);
         }
         if (permission === "denied") {
@@ -57,7 +60,7 @@ const useMessaging = (): MessagingState => {
         }
         setIsCheckingToken(false);
       };
-      initIos();
+      initNative();
     } else {
       registerServiceWorker();
 
@@ -89,7 +92,7 @@ const useMessaging = (): MessagingState => {
     const createDeviceFromToken = async (t: string) => {
       await createDeviceMutation.mutateAsync({
         data: {
-          type: native ? "ios" : "web",
+          type: native ? getNativeDeviceType() : "web",
           registrationId: t,
           active: true,
         },
@@ -102,7 +105,7 @@ const useMessaging = (): MessagingState => {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mutateAsync is stable, including the mutation object causes infinite loops
   }, [token, loggedIn]);
 
-  // Effect 3: Token refresh listener (iOS only)
+  // Effect 3: Token refresh listener (native only)
   useEffect(() => {
     if (!native) return;
     const listener = addTokenRefreshListener((newToken) => {
@@ -136,7 +139,7 @@ const useMessaging = (): MessagingState => {
       if (native) {
         const result = await requestPermission();
         if (result === "granted") {
-          const t = await getIosToken();
+          const t = await getNativeToken();
           if (t) setToken(t);
           setNativePermissionDenied(false);
         } else {
@@ -194,7 +197,7 @@ const useMessaging = (): MessagingState => {
         await createDeviceMutation.mutateAsync({
           data: {
             registrationId: token,
-            type: native ? "ios" : "web",
+            type: native ? getNativeDeviceType() : "web",
             active: false,
           },
         });
@@ -207,7 +210,7 @@ const useMessaging = (): MessagingState => {
     }
   };
 
-  const deviceType = native ? "ios" : "web";
+  const deviceType = native ? getNativeDeviceType() : "web";
   const enabled = Boolean(
     token !== undefined &&
       devicesListQuery.data?.some(

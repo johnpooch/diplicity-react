@@ -11,6 +11,16 @@ from phase.models import Phase
 logger = logging.getLogger(__name__)
 
 
+def _truncate_body(text: str, max_lines: int = 3, max_chars: int = 200) -> str:
+    lines = text.split("\n")
+    truncated = "\n".join(lines[:max_lines])
+    if len(truncated) > max_chars:
+        truncated = truncated[:max_chars].rstrip() + "…"
+    elif len(lines) > max_lines:
+        truncated += "…"
+    return truncated
+
+
 _game_status_cache = {}
 
 
@@ -27,15 +37,22 @@ def send_channel_message_notification(sender, instance, created, **kwargs):
 
         user_ids = [member.user_id for member in other_members if member.user_id is not None]
 
-        sender_name = instance.sender.user.username if instance.sender.user else "Deleted User"
+        sender_name = instance.sender.name
+        game = instance.channel.game
+        current_phase = game.phases.last()
+        link = (
+            f"https://diplicity.com/game/{game.id}/phase/{current_phase.id}/chat/channel/{instance.channel.id}"
+            if current_phase
+            else f"https://diplicity.com/game/{game.id}"
+        )
         send_notification_to_users(
             user_ids=user_ids,
-            title="New Message",
-            body=f"{sender_name} sent a message in {instance.channel.name}.",
+            title=game.name,
+            body=f"{sender_name}: {_truncate_body(instance.body)}",
             notification_type="channel_message",
             data={
-                "game_id": str(instance.channel.game.id),
-                "channel_id": str(instance.channel.id),
+                "game_id": str(game.id),
+                "link": link,
             },
         )
 
@@ -68,7 +85,10 @@ def send_game_start_notification(sender, instance, created, **kwargs):
                 title="Game Started",
                 body=f"Game '{instance.name}' has started!",
                 notification_type="game_start",
-                data={"game_id": str(instance.id)},
+                data={
+                    "game_id": str(instance.id),
+                    "link": f"https://diplicity.com/game/{instance.id}",
+                },
             )
 
         transaction.on_commit(send_notification)
@@ -103,7 +123,10 @@ def send_phase_resolved_notification(sender, instance, created, **kwargs):  # no
                 title="Phase Resolved",
                 body=f"Phase '{instance.name}' has been resolved!",
                 notification_type="phase_resolved",
-                data={"game_id": str(instance.game.id)},
+                data={
+                    "game_id": str(instance.game.id),
+                    "link": f"https://diplicity.com/game/{instance.game.id}",
+                },
             )
 
         transaction.on_commit(send_notification)
