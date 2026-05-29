@@ -86,7 +86,7 @@ const GameMap: React.FC = () => {
     [game?.members]
   );
 
-  const isWizardActive = Object.keys(wizard.selections).length > 0;
+  const isWizardActive = Object.keys(wizard.resolvedSelections).length > 0;
 
   const provinceNameMap = useMemo(
     () =>
@@ -223,7 +223,8 @@ const GameMap: React.FC = () => {
       ? buildOrderProgressText(
           wizard.resolvedSelections,
           wizard.resolvedLabels,
-          phase
+          phase,
+          wizard.isComplete
         )
       : null;
 

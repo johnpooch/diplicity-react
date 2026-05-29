@@ -9,11 +9,12 @@ function unitAbbrev(type: string | undefined): string {
 function buildOrderProgressText(
   resolvedSelections: Record<string, string>,
   resolvedLabels: Record<string, string>,
-  phase: PhaseRetrieve
-): string {
+  phase: PhaseRetrieve,
+  isComplete: boolean
+): string | null {
   const { source, orderType, target, aux, unitType } = resolvedSelections;
 
-  if (!source) return "";
+  if (!source) return null;
 
   const unitsByProvince = Object.fromEntries(
     phase.units.map((u) => [u.province.id, u])
@@ -28,7 +29,7 @@ function buildOrderProgressText(
 
   if (orderType === "Build") {
     if (!unitType) return `Build in ${sourceName} ...`;
-    return `Build ${unitType} in ${sourceName}`;
+    return `Build ${resolvedLabels["unitType"] ?? unitType} in ${sourceName}`;
   }
 
   const unit = unitsByProvince[source];
@@ -48,7 +49,7 @@ function buildOrderProgressText(
     const auxUnit = unitsByProvince[aux];
     const auxName = resolvedLabels["aux"] ?? aux;
     const auxLabel = auxUnit ? `${unitAbbrev(auxUnit.type)} ${auxName}` : auxName;
-    if (!target) return `${sourceLabel} Supports ${auxLabel} ...`;
+    if (!target) return isComplete ? `${sourceLabel} Supports ${auxLabel}` : `${sourceLabel} Supports ${auxLabel} ...`;
     return `${sourceLabel} Supports ${auxLabel} to ${resolvedLabels["target"] ?? target}`;
   }
 
