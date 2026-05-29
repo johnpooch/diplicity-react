@@ -20,10 +20,19 @@ const makePhase = (units: PhaseRetrieve["units"] = []): PhaseRetrieve => ({
 
 const nation = { nationId: "england", name: "England", color: "#fff", flagUrl: null };
 
+const province = (id: string, name: string) => ({
+  id,
+  name,
+  type: "land",
+  supplyCenter: false,
+  parentId: null,
+  namedCoastIds: [] as string[],
+});
+
 const army = (provinceId: string, provinceName: string) => ({
   type: "Army",
   nation,
-  province: { id: provinceId, name: provinceName },
+  province: province(provinceId, provinceName),
   dislodged: false,
   dislodgedBy: null,
 });
@@ -31,7 +40,7 @@ const army = (provinceId: string, provinceName: string) => ({
 const fleet = (provinceId: string, provinceName: string) => ({
   type: "Fleet",
   nation,
-  province: { id: provinceId, name: provinceName },
+  province: province(provinceId, provinceName),
   dislodged: false,
   dislodgedBy: null,
 });
