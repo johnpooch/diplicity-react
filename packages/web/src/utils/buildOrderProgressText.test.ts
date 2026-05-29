@@ -14,6 +14,7 @@ const makePhase = (units: PhaseRetrieve["units"] = []): PhaseRetrieve => ({
   status: "pending" as PhaseRetrieve["status"],
   units,
   supplyCenters: [],
+  provinceNations: {},
   previousPhaseId: null,
   nextPhaseId: null,
 });
