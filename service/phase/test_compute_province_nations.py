@@ -171,6 +171,30 @@ class TestComputeProvinceNations:
 
         assert "pic" not in result
 
+    def test_dominance_rule_not_matched_falls_through_to_default_color(self):
+        # Gascony case: rule requires spa=Empty, but spa is owned by France.
+        # Rule fails → should fall back to adjacency logic (all adjacent SCs are France).
+        spa = _make_province("spa", ProvinceType.COASTAL, supply_center=True)
+        bre = _make_province("bre", ProvinceType.COASTAL, supply_center=True)
+        france = _make_nation("france", "France")
+        sc_spa = _make_sc("spa", "France", spa, france)
+        sc_bre = _make_sc("bre", "France", bre, france)
+        gas = _make_province("gas", ProvinceType.LAND, adjacencies=[{"to": "spa"}, {"to": "bre"}])
+
+        dominance_rules = [
+            {
+                "province": "gas",
+                "nation": "france",
+                "dependencies": [{"province": "spa", "nation": "Empty"}],
+            }
+        ]
+
+        result = compute_province_nations(
+            [sc_spa, sc_bre], [spa, bre, gas], dominance_rules, [france]
+        )
+
+        assert result.get("gas") == "France"
+
     def test_dominance_rule_with_empty_dependency_always_matches(self):
         sc_province = _make_province("lon", ProvinceType.COASTAL, supply_center=True)
         england = _make_nation("england", "England")

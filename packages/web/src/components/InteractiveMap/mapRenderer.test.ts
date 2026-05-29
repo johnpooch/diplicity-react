@@ -79,7 +79,7 @@ describe("DiplicityMap province fills", () => {
       nationColors: { England: "#1b4f9c" },
       supplyCenters: [{ province: "alpha", nation: "England" }],
     });
-    expect(svg).toContain('fill="rgba(27, 79, 156, 0.5)"');
+    expect(svg).toContain('fill="rgba(27, 79, 156, 0.4)"');
   });
 
   test("uses the lower opacity for a selected supply center", () => {
@@ -138,14 +138,14 @@ describe("DiplicityMap province fills", () => {
 });
 
 describe("DiplicityMap non-SC province fills", () => {
-  test("tints a non-SC province at the standard opacity", () => {
+  test("tints a non-SC province at the non-SC default opacity (0.4)", () => {
     const svg = new DiplicityMap(TOY_DSVG).render({
       nonScProvinceColors: { beta: "#1b4f9c" },
     });
-    expect(svg).toContain('fill="rgba(27, 79, 156, 0.5)"');
+    expect(svg).toContain('fill="rgba(27, 79, 156, 0.4)"');
   });
 
-  test("uses active opacity when the non-SC province is selected", () => {
+  test("uses non-SC active opacity (0.3) when the province is selected", () => {
     const svg = new DiplicityMap(TOY_DSVG).render({
       nonScProvinceColors: { beta: "#1b4f9c" },
       selected: ["beta"],
@@ -159,7 +159,7 @@ describe("DiplicityMap non-SC province fills", () => {
       supplyCenters: [{ province: "alpha", nation: "England" }],
       nonScProvinceColors: { alpha: "#3b9c3b" },
     });
-    expect(svg).toContain('fill="rgba(27, 79, 156, 0.5)"');
+    expect(svg).toContain('fill="rgba(27, 79, 156, 0.4)"');
     expect(svg).not.toContain("rgba(59, 156, 59, 0.2)");
   });
 });

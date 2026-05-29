@@ -506,7 +506,7 @@ def compute_province_nations(supply_centers, provinces, dominance_rules, nations
                 nation_name = nation_id_to_name.get(matched["nation"])
                 if nation_name:
                     result[province.province_id] = nation_name
-            continue
+                continue
 
         nation_name = default_color(province)
         if nation_name:

@@ -62,7 +62,9 @@ const SELECTED_STROKE_WIDTH = 5;
 const HIGHLIGHTED_STROKE_WIDTH = 5;
 const DEFAULT_STROKE_WIDTH = 1;
 const SUPPLY_CENTER_OPACITY_ACTIVE = 0.3;
-const SUPPLY_CENTER_OPACITY_DEFAULT = 0.5;
+const SUPPLY_CENTER_OPACITY_DEFAULT = 0.4;
+const NON_SC_PROVINCE_OPACITY_ACTIVE = 0.3;
+const NON_SC_PROVINCE_OPACITY_DEFAULT = 0.4;
 
 const UNIT_RADIUS = 10;
 const UNIT_OFFSET_RADIUS = 5;
@@ -147,8 +149,8 @@ const provinceFill = (provinceId: string, state: RenderState): ProvinceFill => {
   } else if (state.nonScProvinceColors?.[provinceId]) {
     const opacity =
       selected || highlighted
-        ? SUPPLY_CENTER_OPACITY_ACTIVE
-        : SUPPLY_CENTER_OPACITY_DEFAULT;
+        ? NON_SC_PROVINCE_OPACITY_ACTIVE
+        : NON_SC_PROVINCE_OPACITY_DEFAULT;
     fill = toRgba(state.nonScProvinceColors[provinceId], opacity);
   } else if (selected) {
     fill = SELECTED_FILL;
