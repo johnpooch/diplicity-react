@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from common.constants import PhaseStatus
 from member.serializers import MemberSerializer
+from phase.utils import compute_province_nations
 from province.serializers import ProvinceSerializer
 from supply_center.serializers import SupplyCenterSerializer
 from unit.serializers import UnitSerializer
@@ -51,7 +52,6 @@ class PhaseRetrieveSerializer(serializers.Serializer):
     province_nations = serializers.SerializerMethodField()
 
     def get_province_nations(self, phase):
-        from phase.utils import compute_province_nations
         return compute_province_nations(
             phase.supply_centers.all(),
             phase.variant.provinces.all(),

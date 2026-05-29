@@ -3,7 +3,7 @@ from zoneinfo import ZoneInfo
 
 from django.utils import timezone
 
-from common.constants import OrderType, PhaseFrequency, PhaseType
+from common.constants import OrderType, PhaseFrequency, PhaseType, ProvinceType
 
 
 def transform_options(raw_options):
@@ -439,8 +439,6 @@ def _canonical_order(order, phase_type):
 
 
 def compute_province_nations(supply_centers, provinces, dominance_rules, nations):
-    from common.constants import ProvinceType
-
     sc_owner_map = {sc.province.province_id: sc.nation.name for sc in supply_centers}
     province_map = {p.province_id: p for p in provinces}
     nation_id_to_name = {n.nation_id: n.name for n in nations}
