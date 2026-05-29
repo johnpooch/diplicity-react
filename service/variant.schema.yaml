@@ -308,12 +308,11 @@ properties:
     examples:
       - - province: gas
           nation: france
-          priority: 1
           dependencies:
             - { province: bre, nation: france }
             - { province: par, nation: france }
             - { province: mar, nation: france }
-            - { province: spa, nation: Neutral }
+            - { province: spa, nation: Empty }
     items:
       $ref: "#/$defs/DominanceRule"
 
@@ -606,16 +605,15 @@ $defs:
   DominanceRule:
     type: object
     additionalProperties: false
-    required: [province, nation, priority, dependencies]
+    required: [province, nation, dependencies]
     examples:
       - province: gas
         nation: france
-        priority: 1
         dependencies:
           - { province: bre, nation: france }
           - { province: par, nation: france }
           - { province: mar, nation: france }
-          - { province: spa, nation: Neutral }
+          - { province: spa, nation: Empty }
     properties:
       province:
         type: string
@@ -625,13 +623,6 @@ $defs:
         description: |
           The nation that owns the province when the dependencies are
           satisfied.
-      priority:
-        type: integer
-        description: |
-          When multiple rules could fire for the same province, the rule
-          with the highest `priority` value wins (larger number = higher
-          precedence). Ties are not allowed; loaders MUST reject variants
-          containing two rules with the same `province` and `priority`.
       dependencies:
         type: array
         description: Other province/nation pairs that must be true for this rule to fire.
@@ -645,5 +636,5 @@ $defs:
             nation:
               type: string
               description: |
-                Nation id, or the literal "Neutral" to require the province
+                Nation id, or "Empty"/"Neutral" to require the province
                 be unowned.
