@@ -34,6 +34,7 @@ type WizardState = {
   isComplete: boolean;
   selectedArray: string[];
   resolvedSelections: Record<string, string>;
+  resolvedLabels: Record<string, string>;
   nextField: string | null;
   choices: never[];
   selections: Record<string, string>;
@@ -48,6 +49,7 @@ function buildIdleWizard(): WizardState {
     isComplete: false,
     selectedArray: [],
     resolvedSelections: {},
+    resolvedLabels: {},
     nextField: "source",
     choices: [],
     selections: {},
@@ -180,6 +182,7 @@ function completeWizard() {
     isComplete: true,
     selectedArray: ["lon", "Move", "nth"],
     resolvedSelections: { source: "lon", orderType: "Move", target: "nth" },
+    resolvedLabels: { source: "London", orderType: "Move", target: "North Sea" },
   };
 }
 
