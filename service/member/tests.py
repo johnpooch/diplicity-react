@@ -237,6 +237,34 @@ def test_leave_game_not_found(authenticated_client):
 
 
 @pytest.mark.django_db
+def test_leave_pending_game_as_sole_member_deletes_game(
+    authenticated_client, pending_game_created_by_primary_user
+):
+    game = pending_game_created_by_primary_user
+    game_id = game.id
+
+    url = reverse(leave_viewname, args=[game_id])
+    response = authenticated_client.delete(url)
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert not Game.objects.filter(id=game_id).exists()
+
+
+@pytest.mark.django_db
+def test_leave_pending_game_with_other_members_preserves_game(
+    authenticated_client, pending_game_created_by_secondary_user_joined_by_primary
+):
+    game = pending_game_created_by_secondary_user_joined_by_primary
+
+    url = reverse(leave_viewname, args=[game.id])
+    response = authenticated_client.delete(url)
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert Game.objects.filter(id=game.id).exists()
+    assert game.members.count() == 1
+
+
+@pytest.mark.django_db
 def test_join_game_member_is_not_game_master(
     authenticated_client, pending_game_created_by_secondary_user, primary_user
 ):
