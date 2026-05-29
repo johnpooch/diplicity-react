@@ -98,8 +98,8 @@ export function deriveWizardStep(
         break;
       }
 
-      if (distinct.length === 1) {
-        // Auto-advance: record and re-filter
+      if (distinct.length === 1 && field !== "source") {
+        // Auto-advance: record and re-filter (never auto-advance source — user must click)
         resolvedSelections[field] = distinct[0].id;
         filtered = filterOrders(orders, resolvedSelections);
         foundNextField = false;
