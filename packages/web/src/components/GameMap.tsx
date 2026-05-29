@@ -1,5 +1,5 @@
 import { useRequiredParams } from "../hooks";
-import { useRef, useMemo, useEffect, useState } from "react";
+import { useRef, useMemo, useEffect, useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { determineRenderableProvinces } from "../utils/provinces";
@@ -22,6 +22,31 @@ import {
 } from "../api/generated/endpoints";
 import { useOrderWizard } from "../hooks/useOrderWizard";
 
+function useBanner(duration = 3000) {
+  const [message, setMessage] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  const show = useCallback(
+    (text: string) => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      setMessage(text);
+      timerRef.current = setTimeout(() => {
+        setMessage(null);
+        timerRef.current = null;
+      }, duration);
+    },
+    [duration]
+  );
+
+  return { message, show };
+}
+
 const GameMap: React.FC = () => {
   const { gameId, phaseId } = useRequiredParams<{
     gameId: string;
@@ -38,13 +63,12 @@ const GameMap: React.FC = () => {
   const { data: optionsData } = useGameOptionsRetrieve(gameId);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const bannerClearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [menuPosition, setMenuPosition] = useState<{
     x: number;
     y: number;
   } | null>(null);
   const [pendingOrder, setPendingOrder] = useState<Order | null>(null);
-  const [bannerMessage, setBannerMessage] = useState<string | null>(null);
+  const banner = useBanner();
   const createOrderMutation = useGameOrdersCreate();
 
   const wizard = useOrderWizard(
@@ -84,31 +108,6 @@ const GameMap: React.FC = () => {
     if (!variant) return [];
     return determineRenderableProvinces(variant.provinces, highlightedIds);
   }, [variant, highlightedIds]);
-
-  const showBanner = (message: string, duration = 3000) => {
-    if (bannerClearRef.current) clearTimeout(bannerClearRef.current);
-    setBannerMessage(message);
-    bannerClearRef.current = setTimeout(() => {
-      setBannerMessage(null);
-      bannerClearRef.current = null;
-    }, duration);
-  };
-
-  useEffect(() => {
-    if (isWizardActive) {
-      if (bannerClearRef.current) {
-        clearTimeout(bannerClearRef.current);
-        bannerClearRef.current = null;
-      }
-      setBannerMessage(null);
-    }
-  }, [isWizardActive]);
-
-  useEffect(() => {
-    return () => {
-      if (bannerClearRef.current) clearTimeout(bannerClearRef.current);
-    };
-  }, []);
 
   useEffect(() => {
     if (!wizard.isComplete || wizard.selectedArray.length === 0) return;
@@ -168,11 +167,11 @@ const GameMap: React.FC = () => {
         if (!phase) return;
         const unit = phase.units.find((u) => u.province.id === province);
         if (unit && !game?.sandbox) {
-          showBanner(
+          banner.show(
             `${unitAbbrev(unit.type)} ${unit.province.name} (${unit.nation.name})`
           );
         } else if (!unit) {
-          showBanner(provinceNameMap[province] ?? province);
+          banner.show(provinceNameMap[province] ?? province);
         }
         return;
       }
@@ -228,7 +227,7 @@ const GameMap: React.FC = () => {
         )
       : null;
 
-  const displayBannerText = bannerMessage ?? progressText;
+  const displayBannerText = progressText ?? banner.message;
 
   return (
     <div ref={containerRef} className="relative w-full h-full">

@@ -15,10 +15,14 @@ function buildOrderProgressText(
 
   if (!source) return "";
 
+  const unitsByProvince = Object.fromEntries(
+    phase.units.map((u) => [u.province.id, u])
+  );
+
   const sourceName = resolvedLabels["source"] ?? source;
 
   if (!orderType) {
-    const unit = phase.units.find((u) => u.province.id === source);
+    const unit = unitsByProvince[source];
     return unit ? `${unitAbbrev(unit.type)} ${sourceName}` : sourceName;
   }
 
@@ -27,7 +31,7 @@ function buildOrderProgressText(
     return `Build ${unitType} in ${sourceName}`;
   }
 
-  const unit = phase.units.find((u) => u.province.id === source);
+  const unit = unitsByProvince[source];
   const sourceLabel = unit ? `${unitAbbrev(unit.type)} ${sourceName}` : sourceName;
 
   if (orderType === "Hold") return `${sourceLabel} Hold`;
@@ -41,7 +45,7 @@ function buildOrderProgressText(
 
   if (orderType === "Support") {
     if (!aux) return `${sourceLabel} Supports ...`;
-    const auxUnit = phase.units.find((u) => u.province.id === aux);
+    const auxUnit = unitsByProvince[aux];
     const auxName = resolvedLabels["aux"] ?? aux;
     const auxLabel = auxUnit ? `${unitAbbrev(auxUnit.type)} ${auxName}` : auxName;
     if (!target) return `${sourceLabel} Supports ${auxLabel} ...`;
@@ -50,7 +54,7 @@ function buildOrderProgressText(
 
   if (orderType === "Convoy") {
     if (!aux) return `${sourceLabel} Convoys ...`;
-    const auxUnit = phase.units.find((u) => u.province.id === aux);
+    const auxUnit = unitsByProvince[aux];
     const auxName = resolvedLabels["aux"] ?? aux;
     const auxLabel = auxUnit ? `${unitAbbrev(auxUnit.type)} ${auxName}` : auxName;
     if (!target) return `${sourceLabel} Convoys ${auxLabel} to ...`;
