@@ -3060,11 +3060,14 @@ components:
       properties:
         id:
           type: string
+        name:
+          type: string
         parentId:
           type: string
           nullable: true
       required:
       - id
+      - name
       - parentId
     VariantTemplateNationRef:
       type: object
