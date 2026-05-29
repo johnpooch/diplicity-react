@@ -718,6 +718,7 @@ export interface VictoryConditions {
 
 export interface VariantProvince {
   id: string;
+  name: string;
   /** @nullable */
   parentId: string | null;
 }

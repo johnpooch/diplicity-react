@@ -1,8 +1,9 @@
 import * as React from "react";
 import { Portal } from "@radix-ui/react-portal";
 import { DismissableLayer } from "@radix-ui/react-dismissable-layer";
+import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 export interface FloatingMenuProps {
@@ -63,6 +64,9 @@ function FloatingMenu({
     return (
       <Sheet open={open} onOpenChange={open => !open && onClose?.()}>
         <SheetContent side="bottom" className="rounded-t-lg">
+          <VisuallyHidden.Root>
+            <SheetTitle>Order options</SheetTitle>
+          </VisuallyHidden.Root>
           <div role="menu" className="flex flex-col py-1">
             {children}
           </div>

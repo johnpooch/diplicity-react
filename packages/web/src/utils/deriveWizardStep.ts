@@ -17,6 +17,7 @@ export interface WizardStep {
   isComplete: boolean;
   selectedArray: string[];
   resolvedSelections: Record<string, string>;
+  resolvedLabels: Record<string, string>;
 }
 
 const UNIVERSAL_PREFIX: FieldName[] = ["source", "orderType"];
@@ -50,6 +51,7 @@ export function deriveWizardStep(
   selections: Record<string, string>
 ): WizardStep {
   const resolvedSelections: Record<string, string> = { ...selections };
+  const resolvedLabels: Record<string, string> = {};
 
   // Handle empty orders early
   if (orders.length === 0) {
@@ -59,6 +61,7 @@ export function deriveWizardStep(
       isComplete: false,
       selectedArray: [],
       resolvedSelections,
+      resolvedLabels,
     };
   }
 
@@ -80,6 +83,12 @@ export function deriveWizardStep(
     for (const f of sequence) {
       const field = f as FieldName;
       if (resolvedSelections[field] !== undefined) {
+        if (resolvedLabels[field] === undefined) {
+          const matchFV = filtered
+            .find((o) => o[field]?.id === resolvedSelections[field])
+            ?.[field];
+          if (matchFV) resolvedLabels[field] = matchFV.label;
+        }
         continue;
       }
 
@@ -99,8 +108,9 @@ export function deriveWizardStep(
       }
 
       if (distinct.length === 1) {
-        // Auto-advance: record and re-filter
+        // Auto-advance: record selection and label, then re-filter
         resolvedSelections[field] = distinct[0].id;
+        resolvedLabels[field] = distinct[0].label;
         filtered = filterOrders(orders, resolvedSelections);
         foundNextField = false;
         // Restart the sequence walk (break inner loop, re-run outer while)
@@ -114,6 +124,7 @@ export function deriveWizardStep(
         isComplete: false,
         selectedArray: buildSelectedArray(fieldOrder, resolvedSelections),
         resolvedSelections,
+        resolvedLabels,
       };
     }
 
@@ -140,6 +151,7 @@ export function deriveWizardStep(
         isComplete: true,
         selectedArray: buildSelectedArray(fieldOrder, resolvedSelections),
         resolvedSelections,
+        resolvedLabels,
       };
     }
 
@@ -154,6 +166,7 @@ export function deriveWizardStep(
     isComplete: false,
     selectedArray: buildSelectedArray(fieldOrder, resolvedSelections),
     resolvedSelections,
+    resolvedLabels,
   };
 }
 

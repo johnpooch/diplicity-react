@@ -26,6 +26,7 @@ class VictoryConditionsSerializer(serializers.Serializer):
 
 class VariantProvinceSerializer(serializers.Serializer):
     id = serializers.CharField(source="province_id")
+    name = serializers.CharField()
     parent_id = serializers.CharField(source="parent.province_id", allow_null=True)
 
 
