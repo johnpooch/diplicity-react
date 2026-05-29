@@ -18,9 +18,11 @@ const makePhase = (units: PhaseRetrieve["units"] = []): PhaseRetrieve => ({
   nextPhaseId: null,
 });
 
+const nation = { nationId: "england", name: "England", color: "#fff", flagUrl: null };
+
 const army = (provinceId: string, provinceName: string) => ({
   type: "Army",
-  nation: { id: "england", name: "England" },
+  nation,
   province: { id: provinceId, name: provinceName },
   dislodged: false,
   dislodgedBy: null,
@@ -28,7 +30,7 @@ const army = (provinceId: string, provinceName: string) => ({
 
 const fleet = (provinceId: string, provinceName: string) => ({
   type: "Fleet",
-  nation: { id: "england", name: "England" },
+  nation,
   province: { id: provinceId, name: provinceName },
   dislodged: false,
   dislodgedBy: null,
