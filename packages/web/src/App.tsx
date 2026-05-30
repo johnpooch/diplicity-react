@@ -14,6 +14,7 @@ import { deepLinkStorage, parseDeepLinkUrl } from "./deepLink";
 import { onNotificationClick } from "./messaging";
 import { addNotificationTapListener } from "./messaging-native";
 import { getVariantsListQueryKey } from "./api/generated/endpoints";
+import { useNotificationPermissionPrompt } from "./hooks/useNotificationPermissionPrompt";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ queryClient.setQueryDefaults(getVariantsListQueryKey(), {
 
 function AppContent() {
   const { loggedIn } = useAuth();
+  useNotificationPermissionPrompt();
 
   return <Router loggedIn={loggedIn} queryClient={queryClient} />;
 }

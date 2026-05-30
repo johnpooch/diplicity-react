@@ -16,6 +16,7 @@ import {
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { GameInfoContent } from "@/components/GameInfoContent";
+import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
 
 const GameInfo: React.FC = () => {
   const { gameId } = useRequiredParams<{ gameId: string }>();
@@ -25,12 +26,16 @@ const GameInfo: React.FC = () => {
   const { data: game } = useGameRetrieveSuspense(gameId);
   const joinGameMutation = useGameJoinCreate();
   const leaveGameMutation = useGameLeaveDestroy();
+  const checkNotificationPermission = useCheckNotificationPermission();
 
   const handleJoinGame = async () => {
     try {
       await joinGameMutation.mutateAsync({ gameId, data: {} });
       await queryClient.invalidateQueries({ queryKey: getGameRetrieveQueryKey(gameId) });
       toast.success("Game joined successfully");
+      if (!game.sandbox) {
+        checkNotificationPermission();
+      }
     } catch {
       toast.error("Failed to join game");
     }
