@@ -130,6 +130,7 @@ const matchedGame: GameList = {
       picture: null,
       isCurrentUser: false,
       nation: null,
+      nationColor: null,
       eliminated: false,
       kicked: false,
       isGameMaster: true,
@@ -142,6 +143,7 @@ const matchedGame: GameList = {
       picture: null,
       isCurrentUser: false,
       nation: null,
+      nationColor: null,
       eliminated: false,
       kicked: false,
       isGameMaster: false,
@@ -160,6 +162,8 @@ const matchedGame: GameList = {
   movementFrequency: null,
   retreatFrequency: null,
   pressType: "full_press",
+  unreadMessageCount: 0,
+  myOrderStatus: null,
 };
 
 const renderCreateGame = () => {

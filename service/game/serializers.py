@@ -6,7 +6,7 @@ from django.db.models import Count, Q, Subquery, OuterRef
 from django.apps import apps
 from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
-from common.constants import DeadlineMode, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType, VariantStatus
+from common.constants import DeadlineMode, GameStatus, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PhaseType, PressType, VariantStatus
 from member.serializers import MemberSerializer
 from unit.models import Unit
 from supply_center.models import SupplyCenter
@@ -37,6 +37,12 @@ def send_gm_action_notification(game, title, body, notification_type):
             data={"game_id": str(game.id)},
         )
     transaction.on_commit(_send)
+
+
+class MyOrderStatusSerializer(serializers.Serializer):
+    submitted = serializers.IntegerField()
+    total = serializers.IntegerField(allow_null=True)
+    confirmed = serializers.BooleanField()
 
 
 class GameListCurrentPhaseSerializer(serializers.Serializer):
@@ -81,6 +87,8 @@ class GameListSerializer(serializers.Serializer):
     movement_frequency = serializers.CharField(read_only=True, allow_null=True)
     retreat_frequency = serializers.CharField(read_only=True, allow_null=True)
     press_type = serializers.CharField(read_only=True)
+    unread_message_count = serializers.SerializerMethodField()
+    my_order_status = serializers.SerializerMethodField()
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):
@@ -126,6 +134,36 @@ class GameListSerializer(serializers.Serializer):
             if not user.is_authenticated:
                 return False
             return obj.phase_confirmed(user)
+
+    @extend_schema_field(serializers.IntegerField)
+    def get_unread_message_count(self, obj):
+        return getattr(obj, "_unread_message_count", 0)
+
+    @extend_schema_field(MyOrderStatusSerializer(allow_null=True))
+    def get_my_order_status(self, obj):
+        user = self.context["request"].user
+        if not user.is_authenticated or obj.status != GameStatus.ACTIVE:
+            return None
+        current_phase = obj.current_phase
+        if not current_phase:
+            return None
+        for phase_state in current_phase.phase_states.all():
+            if phase_state.member.user_id == user.id:
+                if not phase_state.has_possible_orders:
+                    return None
+                total = None
+                if current_phase.type == PhaseType.MOVEMENT:
+                    total = Unit.objects.filter(
+                        phase=current_phase,
+                        nation=phase_state.member.nation,
+                        dislodged=False,
+                    ).count()
+                return MyOrderStatusSerializer({
+                    "submitted": phase_state.order_count,
+                    "total": total,
+                    "confirmed": phase_state.orders_confirmed,
+                }).data
+        return None
 
 
 class GameFindSimilarSerializer(serializers.Serializer):

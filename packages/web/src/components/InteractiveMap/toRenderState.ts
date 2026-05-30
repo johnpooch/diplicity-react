@@ -4,7 +4,7 @@ import type {
 } from "../../api/generated/endpoints";
 import type { OrderState, RenderState, UnitState } from "./mapRenderer";
 
-type PhaseForRender = {
+export type PhaseForPreview = {
   units: Array<{
     province: { id: string };
     nation: { name: string };
@@ -37,7 +37,7 @@ const orderTargetId = (order: Order): string | undefined => {
 
 export const toRenderState = (
   variant: { nations: Nation[] },
-  phase: PhaseForRender,
+  phase: PhaseForPreview,
   orders: Order[],
   selected: string[],
   highlighted: string[] = [],

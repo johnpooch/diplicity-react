@@ -665,7 +665,25 @@ export class DiplicityMap {
     this.parsed = parseDsvg(svg);
   }
 
-  render(state: RenderState = {}): string {
+  getViewBox() {
+    return this.parsed.viewBox;
+  }
+
+  getProvinceCenter(provinceId: string): Point | undefined {
+    return (
+      this.parsed.unitPositions.get(provinceId) ??
+      this.parsed.supplyCenters.get(provinceId)
+    );
+  }
+
+  private buildSvgParts(
+    state: RenderState,
+    {
+      includeNames,
+      includeForeground,
+      includeMarkers,
+    }: { includeNames: boolean; includeForeground: boolean; includeMarkers: boolean }
+  ): string[] {
     const { viewBox, rootFill, defs, background, provinceNames, borders, foreground } =
       this.parsed;
     const viewBoxAttr = `${viewBox.minX} ${viewBox.minY} ${viewBox.width} ${viewBox.height}`;
@@ -677,9 +695,6 @@ export class DiplicityMap {
       ]),
       state
     );
-    const markers = supplyCenterMarkersLayer(this.parsed.supplyCenters);
-    const units = unitsLayer(this.parsed.unitPositions, state);
-    const orders = ordersLayer(this.parsed.unitPositions, state);
 
     const parts = [
       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBoxAttr}"${fillAttr}>`,
@@ -692,12 +707,40 @@ export class DiplicityMap {
     if (fills) {
       parts.push(layer("province-fills", fills));
     }
-    if (markers) {
-      parts.push(layer("supply-center-markers", markers));
+    if (includeMarkers) {
+      const markers = supplyCenterMarkersLayer(this.parsed.supplyCenters);
+      if (markers) parts.push(layer("supply-center-markers", markers));
     }
-    parts.push(layer("province-names", provinceNames));
+    if (includeNames) {
+      parts.push(layer("province-names", provinceNames));
+    }
     parts.push(layer("borders", borders));
-    parts.push(layer("foreground", foreground));
+    if (includeForeground) {
+      parts.push(layer("foreground", foreground));
+    }
+    return parts;
+  }
+
+  renderThumbnail(state: RenderState = {}): string {
+    const parts = this.buildSvgParts(state, {
+      includeNames: true,
+      includeForeground: true,
+      includeMarkers: true,
+    });
+    const units = unitsLayer(this.parsed.unitPositions, state);
+    if (units) parts.push(layer("units", units));
+    parts.push("</svg>");
+    return parts.join("\n");
+  }
+
+  render(state: RenderState = {}): string {
+    const parts = this.buildSvgParts(state, {
+      includeNames: true,
+      includeForeground: true,
+      includeMarkers: true,
+    });
+    const units = unitsLayer(this.parsed.unitPositions, state);
+    const orders = ordersLayer(this.parsed.unitPositions, state);
     if (units) {
       parts.push(layer("units", units));
     }

@@ -358,6 +358,8 @@ export interface Member {
   readonly isCurrentUser: boolean;
   /** @nullable */
   readonly nation: string | null;
+  /** @nullable */
+  readonly nationColor: string | null;
   readonly eliminated: boolean;
   readonly kicked: boolean;
   readonly isGameMaster: boolean;
@@ -370,6 +372,13 @@ export interface Victory {
   readonly type: string;
   readonly winningPhaseId: number;
   readonly members: readonly Member[];
+}
+
+export interface MyOrderStatus {
+  submitted: number;
+  /** @nullable */
+  total: number | null;
+  confirmed: boolean;
 }
 
 export interface GameList {
@@ -410,6 +419,8 @@ export interface GameList {
   /** @nullable */
   readonly retreatFrequency: string | null;
   readonly pressType: string;
+  readonly unreadMessageCount: number;
+  readonly myOrderStatus: MyOrderStatus | null;
 }
 
 export interface GameFindSimilar {
@@ -670,11 +681,11 @@ export interface PhaseRetrieve {
   status: StatusEnum;
   units: Unit[];
   supplyCenters: SupplyCenter[];
-  provinceNations: Record<string, string>;
   /** @nullable */
   previousPhaseId: number | null;
   /** @nullable */
   nextPhaseId: number | null;
+  readonly provinceNations: string;
 }
 
 export interface PhaseState {

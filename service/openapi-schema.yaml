@@ -2151,6 +2151,14 @@ components:
         pressType:
           type: string
           readOnly: true
+        unreadMessageCount:
+          type: integer
+          readOnly: true
+        myOrderStatus:
+          allOf:
+          - $ref: '#/components/schemas/MyOrderStatus'
+          nullable: true
+          readOnly: true
       required:
       - anonymous
       - canDelete
@@ -2167,6 +2175,7 @@ components:
       - members
       - movementFrequency
       - movementPhaseDuration
+      - myOrderStatus
       - name
       - nationAssignment
       - nmrExtensionsAllowed
@@ -2179,6 +2188,7 @@ components:
       - retreatPhaseDuration
       - sandbox
       - status
+      - unreadMessageCount
       - variantId
       - victory
     GameListCurrentPhase:
@@ -2380,6 +2390,10 @@ components:
           type: string
           readOnly: true
           nullable: true
+        nationColor:
+          type: string
+          nullable: true
+          readOnly: true
         eliminated:
           type: boolean
           readOnly: true
@@ -2404,6 +2418,7 @@ components:
       - kicked
       - name
       - nation
+      - nationColor
       - nmrExtensionsRemaining
       - picture
     MovementFrequencyEnum:
@@ -2418,6 +2433,20 @@ components:
         * `daily` - Daily
         * `every_2_days` - Every 2 days
         * `weekly` - Weekly
+    MyOrderStatus:
+      type: object
+      properties:
+        submitted:
+          type: integer
+        total:
+          type: integer
+          nullable: true
+        confirmed:
+          type: boolean
+      required:
+      - confirmed
+      - submitted
+      - total
     MyVote:
       type: object
       properties:
@@ -2782,9 +2811,8 @@ components:
           type: integer
           nullable: true
         provinceNations:
-          type: object
-          additionalProperties:
-            type: string
+          type: string
+          readOnly: true
       required:
       - id
       - name

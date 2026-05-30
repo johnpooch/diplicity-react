@@ -57,11 +57,18 @@ class BaseMemberSerializer(serializers.Serializer):
 
 class MemberSerializer(BaseMemberSerializer):
     nation = serializers.CharField(allow_null=True, read_only=True, source="nation.name")
+    nation_color = serializers.SerializerMethodField()
     eliminated = serializers.BooleanField(read_only=True)
     kicked = serializers.BooleanField(read_only=True)
     is_game_master = serializers.SerializerMethodField()
     nmr_extensions_remaining = serializers.IntegerField(read_only=True)
     civil_disorder = serializers.BooleanField(read_only=True)
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_nation_color(self, obj):
+        if obj.nation is None:
+            return None
+        return obj.nation.color
 
     @extend_schema_field(serializers.BooleanField)
     def get_is_game_master(self, obj):

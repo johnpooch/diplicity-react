@@ -55,9 +55,14 @@ const renderGameCard = (props: React.ComponentProps<typeof GameCard>) => {
 };
 
 const defaultProps = {
-  variant: { name: "Classical Diplomacy", id: "Classical" },
+  variant: {
+    name: "Classical Diplomacy",
+    id: "Classical",
+    nations: [],
+    templatePhase: { year: 1901, units: [], supplyCenters: [] },
+  },
   phaseId: 1,
-  map: <div data-testid="map" />,
+  map: () => <div data-testid="map" />,
 };
 
 describe("GameCard", () => {
@@ -194,9 +199,9 @@ describe("GameCard", () => {
       }
     });
 
-    it("shows avatar group for non-sandbox games", () => {
+    it("shows avatar group for pending non-sandbox games", () => {
       renderGameCard({
-        game: mockGames[0],
+        game: mockPendingGames[0],
         ...defaultProps,
       });
       expect(screen.getByText("A")).toBeInTheDocument();
