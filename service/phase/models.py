@@ -1,5 +1,6 @@
 import json
 import logging
+from functools import cached_property
 
 from django.db import models, transaction
 from django.db.models import Q, Exists, OuterRef, Count
@@ -25,13 +26,15 @@ tracer = trace.get_tracer(__name__)
 
 class PhaseQuerySet(models.QuerySet):
     def with_detail_data(self):
-        return self.prefetch_related(
+        return self.select_related("variant").prefetch_related(
             "units__nation__flag",
             "units__province__parent",
             "units__province__named_coasts",
             "supply_centers__nation__flag",
             "supply_centers__province__parent",
             "supply_centers__province__named_coasts",
+            "variant__provinces__parent",
+            "variant__nations",
         )
 
     def with_adjudication_data(self):
@@ -658,7 +661,7 @@ class Phase(BaseModel):
     def all_orders(self):
         return [order for phase_state in self.phase_states.all() for order in phase_state.orders.all()]
 
-    @property
+    @cached_property
     def transformed_options(self):
         return transform_options(self.options or {})
 

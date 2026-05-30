@@ -1,4 +1,5 @@
 from rest_framework import permissions, generics
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 
@@ -30,3 +31,9 @@ class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):
     def get_object(self):
         game = self.get_game()
         return get_object_or_404(Member, game=game, user=self.request.user)
+
+    def perform_destroy(self, instance):
+        game = instance.game
+        with transaction.atomic():
+            super().perform_destroy(instance)
+            game.delete_if_empty_pending()

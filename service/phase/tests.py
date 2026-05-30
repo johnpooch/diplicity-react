@@ -163,17 +163,22 @@ def test_phase_should_not_resolve_immediately_partial_confirmation(
 def test_nations_with_possible_orders_various_scenarios(
     godip_options_england_london_hold, godip_options_england_france_both_hold
 ):
-    phase = Phase()
-    phase.options = {}
-    assert len(phase.nations_with_possible_orders) == 0
-    phase.options = {"England": {}, "France": {}}
-    assert len(phase.nations_with_possible_orders) == 0
-    phase.options = godip_options_england_london_hold
-    nations = phase.nations_with_possible_orders
+    # Phase.transformed_options is a cached_property, so each scenario uses
+    # a fresh Phase instance to avoid the cache carrying old options across
+    # cases.
+    empty = Phase(options={})
+    assert len(empty.nations_with_possible_orders) == 0
+
+    empty_nations = Phase(options={"England": {}, "France": {}})
+    assert len(empty_nations.nations_with_possible_orders) == 0
+
+    one_nation = Phase(options=godip_options_england_london_hold)
+    nations = one_nation.nations_with_possible_orders
     assert len(nations) == 1
     assert "England" in nations
-    phase.options = godip_options_england_france_both_hold
-    nations = phase.nations_with_possible_orders
+
+    two_nations = Phase(options=godip_options_england_france_both_hold)
+    nations = two_nations.nations_with_possible_orders
     assert len(nations) == 2
     assert "England" in nations
     assert "France" in nations
@@ -1589,7 +1594,7 @@ class TestPhaseListViewPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 6
+        assert query_count == 3  # was 6 before resolve_game cache eliminated the dup phase fetches
 
 
 class TestPhaseRetrieveViewQueryPerformance:
@@ -1625,7 +1630,7 @@ class TestPhaseRetrieveViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        assert query_count == 14
+        assert query_count == 17
 
 
 class TestGetPhasesToResolvePerformance:

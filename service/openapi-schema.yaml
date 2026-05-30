@@ -2781,12 +2781,17 @@ components:
         nextPhaseId:
           type: integer
           nullable: true
+        provinceNations:
+          type: object
+          additionalProperties:
+            type: string
       required:
       - id
       - name
       - nextPhaseId
       - ordinal
       - previousPhaseId
+      - provinceNations
       - remainingTime
       - scheduledResolution
       - season
@@ -3060,11 +3065,14 @@ components:
       properties:
         id:
           type: string
+        name:
+          type: string
         parentId:
           type: string
           nullable: true
       required:
       - id
+      - name
       - parentId
     VariantTemplateNationRef:
       type: object
