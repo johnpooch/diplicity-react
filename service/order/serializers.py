@@ -90,6 +90,10 @@ class OrderSerializer(serializers.Serializer):
 
         if order.complete:
             Order.objects.delete_existing_for_source(order.phase_state, order.source)
+            try:
+                order.full_clean()
+            except exceptions.ValidationError as e:
+                raise serializers.ValidationError(e.messages)
             order.save()
             return Order.objects.with_related_data().get(id=order.id)
 

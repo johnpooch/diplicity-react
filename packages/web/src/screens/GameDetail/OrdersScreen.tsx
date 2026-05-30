@@ -54,6 +54,7 @@ import {
   useVariantsListSuspense,
   getGameRetrieveQueryKey,
   getGameOrdersListQueryKey,
+  getGamePhaseStatesListQueryKey,
   getGameOptionsRetrieveQueryKey,
   Order,
   GameRetrieve,
@@ -153,6 +154,9 @@ const OrdersScreen: React.FC = () => {
       await deleteOrderMutation.mutateAsync({ gameId, sourceId });
       queryClient.invalidateQueries({
         queryKey: getGameOrdersListQueryKey(gameId, selectedPhase),
+      });
+      queryClient.invalidateQueries({
+        queryKey: getGamePhaseStatesListQueryKey(gameId),
       });
       toast.success("Order deleted");
     } catch {

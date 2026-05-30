@@ -17,6 +17,7 @@ import {
   useGameOrdersList,
   useGameOrdersCreate,
   getGameOrdersListQueryKey,
+  getGamePhaseStatesListQueryKey,
   useGameOptionsRetrieve,
   type Order,
 } from "../api/generated/endpoints";
@@ -129,6 +130,9 @@ const GameMap: React.FC = () => {
             order,
           ]
         );
+        queryClient.invalidateQueries({
+          queryKey: getGamePhaseStatesListQueryKey(gameId),
+        });
         setPendingOrder(null);
         toast.success(order.title ?? "Order created");
         wizard.reset();
