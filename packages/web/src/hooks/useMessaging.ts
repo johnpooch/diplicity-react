@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   onMessageReceived,
   getToken as getWebToken,
@@ -24,7 +24,6 @@ type MessagingState = {
   enabled: boolean;
   permissionDenied: boolean;
   error: string | null;
-  isLoading: boolean;
   disableMessaging: () => Promise<void>;
   enableMessaging: () => Promise<void>;
 };
@@ -34,9 +33,7 @@ const getNativeDeviceType = (): "ios" | "android" =>
 
 const useMessaging = (): MessagingState => {
   const { loggedIn } = useAuth();
-  const [token, setToken] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
-  const [isCheckingToken, setIsCheckingToken] = useState(true);
   const [nativePermissionDenied, setNativePermissionDenied] = useState(false);
   const devicesListQuery = useDevicesList({
     query: { enabled: loggedIn },
@@ -45,88 +42,50 @@ const useMessaging = (): MessagingState => {
   const queryClient = useQueryClient();
 
   const native = isNativePlatform();
+  const deviceType = native ? getNativeDeviceType() : "web";
 
-  // Effect 1: Initialization (platform-branched)
-  useEffect(() => {
-    if (native) {
-      const initNative = async () => {
-        const permission = await checkPermission();
-        if (permission === "granted") {
-          const t = await getNativeToken();
-          if (t) setToken(t);
-        }
-        if (permission === "denied") {
-          setNativePermissionDenied(true);
-        }
-        setIsCheckingToken(false);
-      };
-      initNative();
-    } else {
-      registerServiceWorker();
+  const devicesRef = useRef(devicesListQuery.data);
+  devicesRef.current = devicesListQuery.data;
 
-      const isNotificationSupported = "Notification" in window;
-      if (isNotificationSupported) {
-        const checkInitialState = async () => {
-          if (Notification.permission === "granted") {
-            try {
-              const t = await getWebToken();
-              if (t) setToken(t);
-            } catch (err) {
-              console.error(
-                "An error occurred while retrieving token. ",
-                err
-              );
-            }
-          }
-          setIsCheckingToken(false);
-        };
-        checkInitialState();
-      } else {
-        setIsCheckingToken(false);
-      }
-    }
-  }, [native]);
-
-  // Effect 2: Token registration (shared, type-aware)
-  useEffect(() => {
-    const createDeviceFromToken = async (t: string) => {
-      await createDeviceMutation.mutateAsync({
-        data: {
-          type: native ? getNativeDeviceType() : "web",
-          registrationId: t,
-          active: true,
-        },
-      });
-      queryClient.invalidateQueries({ queryKey: getDevicesListQueryKey() });
-    };
-    if (token && loggedIn) {
-      createDeviceFromToken(token);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mutateAsync is stable, including the mutation object causes infinite loops
-  }, [token, loggedIn]);
-
-  // Effect 3: Token refresh listener (native only)
+  // Check native permission state on mount for the denied indicator
   useEffect(() => {
     if (!native) return;
-    const listener = addTokenRefreshListener((newToken) => {
-      setToken(newToken);
+    checkPermission().then(permission => {
+      if (permission === "denied") setNativePermissionDenied(true);
     });
-    return () => {
-      listener.then((l) => l.remove());
-    };
   }, [native]);
 
-  // Effect 4: Foreground message handler (platform-branched)
+  // Token refresh listener (native only) — re-register if notifications are active
+  useEffect(() => {
+    if (!native) return;
+    const listener = addTokenRefreshListener(async (newToken) => {
+      const activeDevice = devicesRef.current?.find(
+        d => d.active && d.type === getNativeDeviceType()
+      );
+      if (activeDevice) {
+        await createDeviceMutation.mutateAsync({
+          data: { type: getNativeDeviceType(), registrationId: newToken, active: true },
+        });
+        queryClient.invalidateQueries({ queryKey: getDevicesListQueryKey() });
+      }
+    });
+    return () => {
+      listener.then(l => l.remove());
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mutateAsync is stable
+  }, [native]);
+
+  // Foreground message handler
   useEffect(() => {
     if (native) {
       const listener = addNotificationReceivedListener(() => {
         queryClient.invalidateQueries();
       });
       return () => {
-        listener.then((l) => l.remove());
+        listener.then(l => l.remove());
       };
     } else {
-      onMessageReceived(() => {
+      return onMessageReceived(() => {
         queryClient.invalidateQueries();
       });
     }
@@ -135,26 +94,23 @@ const useMessaging = (): MessagingState => {
   const enableMessaging = async (): Promise<void> => {
     try {
       setError(null);
+      let token: string | null = null;
 
       if (native) {
         const result = await requestPermission();
-        if (result === "granted") {
-          const t = await getNativeToken();
-          if (t) setToken(t);
-          setNativePermissionDenied(false);
-        } else {
+        if (result !== "granted") {
           setNativePermissionDenied(true);
           setError(
             "Notification permission was denied. Please enable it in Settings > Diplicity > Notifications."
           );
+          return;
         }
+        setNativePermissionDenied(false);
+        token = await getNativeToken();
       } else {
-        const isNotificationSupported = "Notification" in window;
-        const currentPermission = isNotificationSupported
-          ? Notification.permission
-          : "granted";
+        if (!("Notification" in window)) return;
 
-        if (currentPermission === "denied") {
+        if (Notification.permission === "denied") {
           setError(
             "Notifications are blocked. Please enable them in your browser settings."
           );
@@ -162,30 +118,34 @@ const useMessaging = (): MessagingState => {
         }
 
         const permission =
-          currentPermission === "granted"
+          Notification.permission === "granted"
             ? "granted"
             : await Notification.requestPermission();
 
-        if (permission === "granted") {
-          try {
-            const t = await getWebToken();
-            if (t) setToken(t);
-          } catch (err) {
-            console.error(
-              "An error occurred while retrieving token. ",
-              err
-            );
-          }
-        } else if (permission === "denied") {
+        if (permission !== "granted") {
           setError(
-            "Notification permission was denied. Please enable it in your browser settings."
+            permission === "denied"
+              ? "Notification permission was denied. Please enable it in your browser settings."
+              : "Notification permission was not granted."
           );
-        } else {
-          setError("Notification permission was not granted.");
+          return;
+        }
+
+        registerServiceWorker();
+        try {
+          token = await getWebToken();
+        } catch (err) {
+          console.error("An error occurred while retrieving token.", err);
         }
       }
-    } catch (err) {
-      console.error("An error occurred while requesting permission. ", err);
+
+      if (token) {
+        await createDeviceMutation.mutateAsync({
+          data: { type: deviceType, registrationId: token, active: true },
+        });
+        queryClient.invalidateQueries({ queryKey: getDevicesListQueryKey() });
+      }
+    } catch {
       setError("Failed to enable notifications. Please try again.");
     }
   };
@@ -193,49 +153,29 @@ const useMessaging = (): MessagingState => {
   const disableMessaging = async (): Promise<void> => {
     try {
       setError(null);
-      if (token) {
+      const activeDevice = devicesListQuery.data?.find(
+        d => d.active && d.type === deviceType
+      );
+      if (activeDevice) {
         await createDeviceMutation.mutateAsync({
-          data: {
-            registrationId: token,
-            type: native ? getNativeDeviceType() : "web",
-            active: false,
-          },
+          data: { registrationId: activeDevice.registrationId, type: deviceType, active: false },
         });
         queryClient.invalidateQueries({ queryKey: getDevicesListQueryKey() });
-        setToken(undefined);
       }
-    } catch (err) {
-      console.error("An error occurred while deleting token. ", err);
+    } catch {
       setError("Failed to disable notifications. Please try again.");
     }
   };
 
-  const deviceType = native ? getNativeDeviceType() : "web";
   const enabled = Boolean(
-    token !== undefined &&
-      devicesListQuery.data?.some(
-        (device) =>
-          device.registrationId === token &&
-          device.active &&
-          device.type === deviceType
-      )
+    devicesListQuery.data?.some(d => d.active && d.type === deviceType)
   );
 
   const permissionDenied = native
     ? nativePermissionDenied
     : "Notification" in window && Notification.permission === "denied";
 
-  const isLoading =
-    isCheckingToken || (loggedIn && devicesListQuery.isLoading);
-
-  return {
-    enabled,
-    permissionDenied,
-    error,
-    isLoading,
-    disableMessaging,
-    enableMessaging,
-  };
+  return { enabled, permissionDenied, error, disableMessaging, enableMessaging };
 };
 
 export { useMessaging };
