@@ -1,5 +1,13 @@
 # Diplicity React - Release Notes
 
+## Android Push Notifications (May 26, 2026)
+
+**Release Date:** May 26, 2026
+
+### Feature: Push notifications now work on Android
+
+The Android app now supports push notifications via Firebase Cloud Messaging. After granting notification permission, the app registers your device with the backend and you'll receive game alerts (phase changes, chat messages, etc.) just like on iOS. Notifications received while the app is open also refresh the game data automatically.
+
 ## Per-Nation Flag Uploads for Variants (May 26, 2026)
 
 **Release Date:** May 26, 2026

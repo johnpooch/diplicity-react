@@ -26,13 +26,15 @@ tracer = trace.get_tracer(__name__)
 
 class PhaseQuerySet(models.QuerySet):
     def with_detail_data(self):
-        return self.prefetch_related(
+        return self.select_related("variant").prefetch_related(
             "units__nation__flag",
             "units__province__parent",
             "units__province__named_coasts",
             "supply_centers__nation__flag",
             "supply_centers__province__parent",
             "supply_centers__province__named_coasts",
+            "variant__provinces__parent",
+            "variant__nations",
         )
 
     def with_adjudication_data(self):

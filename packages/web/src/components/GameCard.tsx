@@ -25,6 +25,7 @@ import { formatTimeAgo, getGameLandingPath } from "../util";
 import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
 
 export interface GameCardProps {
   game: GameList;
@@ -39,6 +40,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
   const isMobile = useIsMobile();
   const phase = game.currentPhase;
   const joinGameMutation = useGameJoinCreate();
+  const checkNotificationPermission = useCheckNotificationPermission();
 
   const handleClickGame = () => {
     navigate(getGameLandingPath(game, isMobile));
@@ -57,6 +59,9 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
       await joinGameMutation.mutateAsync({ gameId: game.id, data: {} });
       toast.success("Successfully joined game");
       queryClient.invalidateQueries({ queryKey: getGamesListQueryKey() });
+      if (!game.sandbox) {
+        checkNotificationPermission();
+      }
     } catch {
       toast.error("Failed to join game");
     }

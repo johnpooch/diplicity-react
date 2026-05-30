@@ -525,6 +525,12 @@ class Game(BaseModel):
         self.paused_at = None
         self.save()
 
+    def delete_if_empty_pending(self):
+        if self.status == GameStatus.PENDING and not self.members.exists():
+            self.delete()
+            return True
+        return False
+
     def extend_deadline(self, duration):
         if self.status != GameStatus.ACTIVE:
             raise ValueError("Can only extend deadline for an active game")

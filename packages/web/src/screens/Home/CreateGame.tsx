@@ -65,6 +65,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
 
 const standardGameSchema = z.object({
   name: z
@@ -734,6 +735,7 @@ const CreateGame: React.FC = () => {
   );
   const createGameMutation = useGameCreate();
   const createSandboxGameMutation = useSandboxGameCreate();
+  const checkNotificationPermission = useCheckNotificationPermission();
 
   const [similarMatch, setSimilarMatch] = useState<GameList | null>(null);
   const [pendingFormData, setPendingFormData] =
@@ -802,6 +804,7 @@ const CreateGame: React.FC = () => {
         },
       });
       toast.success("Game created successfully");
+      checkNotificationPermission();
       navigate(`/game-info/${game.id}`);
     } catch {
       toast.error("Failed to create game");
