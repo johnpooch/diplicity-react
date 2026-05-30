@@ -121,7 +121,7 @@ const formatOrderText = (order: {
 };
 
 function formatRemainingTime(seconds: number): string {
-  if (seconds <= 0) return "Deadline passed";
+  if (seconds <= 0) return "Deadline passed: awaiting adjudication";
   if (seconds < 60) return "< 1m remaining";
 
   const days = Math.floor(seconds / 86400);
