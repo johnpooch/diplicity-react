@@ -107,8 +107,8 @@ export function deriveWizardStep(
         break;
       }
 
-      if (distinct.length === 1) {
-        // Auto-advance: record selection and label, then re-filter
+      if (distinct.length === 1 && field !== "source") {
+        // Auto-advance: record selection and label, then re-filter (never auto-advance source — user must click)
         resolvedSelections[field] = distinct[0].id;
         resolvedLabels[field] = distinct[0].label;
         filtered = filterOrders(orders, resolvedSelections);
