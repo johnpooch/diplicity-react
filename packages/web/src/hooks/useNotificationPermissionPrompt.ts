@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/auth";
 import {
-  useGamesListSuspense,
+  useGamesList,
   useDevicesList,
   useDevicesCreate,
   getDevicesListQueryKey,
@@ -19,7 +19,7 @@ const useNotificationPermissionPrompt = () => {
   const createDeviceMutation = useDevicesCreate();
   const queryClient = useQueryClient();
 
-  const { data: activeGamesData } = useGamesListSuspense(
+  const { data: activeGamesData } = useGamesList(
     { mine: true, status: "active", sandbox: false },
     { query: { enabled: loggedIn } }
   );
