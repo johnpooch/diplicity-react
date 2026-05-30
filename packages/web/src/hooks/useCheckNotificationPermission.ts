@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { toast } from "sonner";
-import { useDevicesCreate } from "@/api/generated/endpoints";
+import { useDevicesCreate, getDevicesListQueryKey } from "@/api/generated/endpoints";
+import { useQueryClient } from "@tanstack/react-query";
 import { checkPermission } from "@/messaging-native";
 import { isNativePlatform } from "@/utils/platform";
 import { requestNotificationPermission } from "@/utils/notificationToken";
@@ -10,6 +11,7 @@ const DENIED_MESSAGE =
 
 const useCheckNotificationPermission = () => {
   const createDeviceMutation = useDevicesCreate();
+  const queryClient = useQueryClient();
 
   return useCallback(async () => {
     if (isNativePlatform()) {
@@ -28,6 +30,7 @@ const useCheckNotificationPermission = () => {
     await createDeviceMutation.mutateAsync({
       data: { type: result.type, registrationId: result.token, active: true },
     });
+    queryClient.invalidateQueries({ queryKey: getDevicesListQueryKey() });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mutateAsync is stable
   }, []);
 };

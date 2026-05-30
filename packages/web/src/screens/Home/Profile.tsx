@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/theme/useTheme";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/auth";
 import { useNavigate } from "react-router";
 import { useMessaging } from "@/hooks/useMessaging";
@@ -198,25 +197,22 @@ const Profile: React.FC = () => {
           <h2 className="text-lg font-semibold">Notifications</h2>
 
           <div className="space-y-2">
-            {permissionDenied && (
-              <Alert>
-                <AlertDescription>
-                  Notifications are blocked in your browser. To enable them,
-                  click the icon in your address bar and allow notifications.
-                </AlertDescription>
-              </Alert>
-            )}
-
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
                 <Switch
                   id="push-notifications"
-                  checked={enabled}
+                  checked={!permissionDenied && enabled}
                   disabled={permissionDenied}
                   onCheckedChange={handleTogglePushNotifications}
                 />
                 <Label htmlFor="push-notifications">Push Notifications</Label>
               </div>
+              {permissionDenied && (
+                <p className="text-sm text-muted-foreground">
+                  Reset permissions for this app or website before notifications
+                  can be turned on.
+                </p>
+              )}
               {error && <p className="text-sm text-destructive">{error}</p>}
             </div>
           </div>

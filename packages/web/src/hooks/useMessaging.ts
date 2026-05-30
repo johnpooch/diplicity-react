@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { onMessageReceived } from "../messaging";
+import {
+  onMessageReceived,
+  getToken as getWebToken,
+  registerServiceWorker,
+} from "../messaging";
 import {
   checkPermission,
   addTokenRefreshListener,
@@ -30,6 +34,7 @@ const useMessaging = (): MessagingState => {
   const { loggedIn } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [nativePermissionDenied, setNativePermissionDenied] = useState(false);
+  const [webToken, setWebToken] = useState<string | undefined>(undefined);
   const devicesListQuery = useDevicesList({
     query: { enabled: loggedIn },
   });
@@ -47,6 +52,16 @@ const useMessaging = (): MessagingState => {
     if (!native) return;
     checkPermission().then(permission => {
       if (permission === "denied") setNativePermissionDenied(true);
+    });
+  }, [native]);
+
+  // On web, fetch existing token on mount if permission is already granted
+  // so enabled and disableMessaging are scoped to this browser session's token
+  useEffect(() => {
+    if (native) return;
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    registerServiceWorker().then(() => {
+      getWebToken().then(t => { if (t) setWebToken(t); });
     });
   }, [native]);
 
@@ -114,6 +129,7 @@ const useMessaging = (): MessagingState => {
       }
 
       if (native) setNativePermissionDenied(false);
+      if (!native) setWebToken(result.token);
       await createDeviceMutation.mutateAsync({
         data: { type: result.type, registrationId: result.token, active: true },
       });
@@ -126,23 +142,24 @@ const useMessaging = (): MessagingState => {
   const disableMessaging = async (): Promise<void> => {
     try {
       setError(null);
-      const activeDevice = devicesListQuery.data?.find(
-        d => d.active && d.type === deviceType
-      );
+      const activeDevice = native
+        ? devicesListQuery.data?.find(d => d.active && d.type === deviceType)
+        : devicesListQuery.data?.find(d => d.active && d.registrationId === webToken);
       if (activeDevice) {
         await createDeviceMutation.mutateAsync({
           data: { registrationId: activeDevice.registrationId, type: deviceType, active: false },
         });
         queryClient.invalidateQueries({ queryKey: getDevicesListQueryKey() });
+        if (!native) setWebToken(undefined);
       }
     } catch {
       setError("Failed to disable notifications. Please try again.");
     }
   };
 
-  const enabled = Boolean(
-    devicesListQuery.data?.some(d => d.active && d.type === deviceType)
-  );
+  const enabled = native
+    ? Boolean(devicesListQuery.data?.some(d => d.active && d.type === deviceType))
+    : Boolean(webToken && devicesListQuery.data?.some(d => d.active && d.registrationId === webToken));
 
   const permissionDenied = native
     ? nativePermissionDenied

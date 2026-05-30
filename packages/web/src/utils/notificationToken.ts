@@ -29,7 +29,7 @@ const requestNotificationPermission =
 
     if (permission !== "granted") return null;
 
-    registerServiceWorker();
+    await registerServiceWorker();
     try {
       const token = await getWebToken();
       return token ? { token, type: "web" } : null;
