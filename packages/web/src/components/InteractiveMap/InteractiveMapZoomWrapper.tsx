@@ -186,7 +186,7 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
         panning={{ velocityDisabled: true }}
         velocityAnimation={{ disabled: true }}
       >
-        <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }} contentStyle={{ willChange: "transform" }}>
+        <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
           <InteractiveMap
             ref={svgRef}
             {...interactiveMapProps}
