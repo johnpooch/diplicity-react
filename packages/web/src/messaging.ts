@@ -74,19 +74,14 @@ const deleteFirebaseToken = async () => {
     });
 };
 
-const registerServiceWorker = () => {
-  return isSupported().then(async supported => {
-    if (supported) {
-      navigator.serviceWorker
-        .register("/firebase-messaging-sw.js")
-        .then(() => {
-          console.log("Service worker registered successfully");
-        })
-        .catch(error => {
-          console.error("Service worker registration failed:", error);
-        });
-    }
-  });
+const registerServiceWorker = async () => {
+  const supported = await isSupported();
+  if (!supported) return;
+  try {
+    await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+  } catch (error) {
+    console.error("Service worker registration failed:", error);
+  }
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -1,5 +1,5 @@
 import "./App.css";
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Router from "./Router";
@@ -14,6 +14,7 @@ import { deepLinkStorage, parseDeepLinkUrl } from "./deepLink";
 import { onNotificationClick } from "./messaging";
 import { addNotificationTapListener } from "./messaging-native";
 import { getVariantsListQueryKey } from "./api/generated/endpoints";
+import { useNotificationPermissionPrompt } from "./hooks/useNotificationPermissionPrompt";
 
 const queryClient = new QueryClient();
 
@@ -26,10 +27,22 @@ queryClient.setQueryDefaults(getVariantsListQueryKey(), {
   staleTime: 60 * 60 * 1000,
 });
 
+const NotificationPermissionPrompter: React.FC = () => {
+  useNotificationPermissionPrompt();
+  return null;
+};
+
 function AppContent() {
   const { loggedIn } = useAuth();
 
-  return <Router loggedIn={loggedIn} queryClient={queryClient} />;
+  return (
+    <>
+      <Suspense fallback={null}>
+        <NotificationPermissionPrompter />
+      </Suspense>
+      <Router loggedIn={loggedIn} queryClient={queryClient} />
+    </>
+  );
 }
 
 const MaybeGoogleOAuthProvider: React.FC<{ children: React.ReactNode }> = ({
