@@ -1,16 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  onMessageReceived,
-  getToken as getWebToken,
-  registerServiceWorker,
-} from "../messaging";
+import { onMessageReceived } from "../messaging";
 import {
   checkPermission,
-  requestPermission,
-  getToken as getNativeToken,
   addTokenRefreshListener,
   addNotificationReceivedListener,
 } from "../messaging-native";
+import { requestNotificationPermission } from "../utils/notificationToken";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../auth";
 import {
@@ -94,57 +89,35 @@ const useMessaging = (): MessagingState => {
   const enableMessaging = async (): Promise<void> => {
     try {
       setError(null);
-      let token: string | null = null;
 
-      if (native) {
-        const result = await requestPermission();
-        if (result !== "granted") {
+      if (!native && "Notification" in window && Notification.permission === "denied") {
+        setError("Notifications are blocked. Please enable them in your browser settings.");
+        return;
+      }
+
+      const result = await requestNotificationPermission();
+
+      if (!result) {
+        if (native) {
           setNativePermissionDenied(true);
           setError(
             "Notification permission was denied. Please enable it in Settings > Diplicity > Notifications."
           );
-          return;
-        }
-        setNativePermissionDenied(false);
-        token = await getNativeToken();
-      } else {
-        if (!("Notification" in window)) return;
-
-        if (Notification.permission === "denied") {
+        } else {
           setError(
-            "Notifications are blocked. Please enable them in your browser settings."
-          );
-          return;
-        }
-
-        const permission =
-          Notification.permission === "granted"
-            ? "granted"
-            : await Notification.requestPermission();
-
-        if (permission !== "granted") {
-          setError(
-            permission === "denied"
+            "Notification" in window && Notification.permission === "denied"
               ? "Notification permission was denied. Please enable it in your browser settings."
               : "Notification permission was not granted."
           );
-          return;
         }
-
-        registerServiceWorker();
-        try {
-          token = await getWebToken();
-        } catch (err) {
-          console.error("An error occurred while retrieving token.", err);
-        }
+        return;
       }
 
-      if (token) {
-        await createDeviceMutation.mutateAsync({
-          data: { type: deviceType, registrationId: token, active: true },
-        });
-        queryClient.invalidateQueries({ queryKey: getDevicesListQueryKey() });
-      }
+      if (native) setNativePermissionDenied(false);
+      await createDeviceMutation.mutateAsync({
+        data: { type: result.type, registrationId: result.token, active: true },
+      });
+      queryClient.invalidateQueries({ queryKey: getDevicesListQueryKey() });
     } catch {
       setError("Failed to enable notifications. Please try again.");
     }
