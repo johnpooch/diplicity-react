@@ -36,7 +36,8 @@ class ChannelQuerySet(models.QuerySet):
         return self.annotate(
             unread_message_count=Count(
                 "messages",
-                filter=Q(messages__created_at__gt=last_read_subquery),
+                filter=Q(messages__created_at__gt=last_read_subquery)
+                & ~Q(messages__sender__user=user),
                 distinct=True,
             )
         )

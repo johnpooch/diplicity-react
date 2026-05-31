@@ -179,6 +179,7 @@ class GameRetrieveSerializer(serializers.Serializer):
                     ).values("last_read_at")[:1]
                 ),
             )
+            .exclude(sender__user=user)
             .distinct()
             .count()
         )
