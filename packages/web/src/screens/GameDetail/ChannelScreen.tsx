@@ -100,6 +100,14 @@ const ChannelScreen: React.FC = () => {
   if (!channel) throw new Error("Channel not found");
 
   const currentMember = game.members.find(m => m.isCurrentUser);
+  const currentNation = currentMember?.nation ?? undefined;
+  const channelDisplayName =
+    !channel.private || !currentNation
+      ? channel.name
+      : channel.name
+          .split(", ")
+          .filter(n => n !== currentNation)
+          .join(", ");
 
   useEffect(() => {
     if (currentMember) {
@@ -165,7 +173,7 @@ const ChannelScreen: React.FC = () => {
     return (
       <div className="flex flex-col flex-1 min-h-0">
         <GameDetailAppBar
-          title={channel.name}
+          title={channelDisplayName}
           onNavigateBack={() =>
             navigate(`/game/${gameId}/phase/${phaseId}/chat`)
           }
@@ -189,7 +197,7 @@ const ChannelScreen: React.FC = () => {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <GameDetailAppBar
-        title={channel.name}
+        title={channelDisplayName}
         onNavigateBack={() => navigate(`/game/${gameId}/phase/${phaseId}/chat`)}
         variant="secondary"
       />
