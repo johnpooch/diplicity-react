@@ -84,7 +84,7 @@ const ChannelListScreen: React.FC = () => {
               <ItemGroup>
                 {channels.map(channel => (
                   <React.Fragment key={channel.id}>
-                    <Item asChild size="sm">
+                    <Item asChild size="sm" className="py-2">
                       <Link
                         to={`/game/${gameId}/phase/${phaseId}/chat/channel/${channel.id}`}
                         className="text-foreground no-underline"
@@ -97,7 +97,7 @@ const ChannelListScreen: React.FC = () => {
                             variantNations
                           )}
                         />
-                        <ItemContent>
+                        <ItemContent className="gap-0.5">
                           <ItemTitle>
                             {getChannelDisplayName(channel, currentNationName)}
                             {!channel.private && (
