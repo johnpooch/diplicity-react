@@ -29,7 +29,21 @@ const getLatestMessagePreview = (
 ): string => {
   if (messages.length === 0) return "No messages";
   const latestMessage = messages[messages.length - 1];
-  return `${latestMessage.sender.nation.name}: ${latestMessage.body}`;
+  const senderLabel = latestMessage.sender.isCurrentUser
+    ? "You"
+    : latestMessage.sender.nation.name;
+  return `${senderLabel}: ${latestMessage.body}`;
+};
+
+const getChannelDisplayName = (
+  channel: { name: string; private: boolean },
+  currentNationName: string | undefined
+): string => {
+  if (!channel.private || !currentNationName) return channel.name;
+  const others = channel.name
+    .split(", ")
+    .filter(n => n !== currentNationName);
+  return others.join(", ");
 };
 
 const ChannelListScreen: React.FC = () => {
@@ -40,6 +54,8 @@ const ChannelListScreen: React.FC = () => {
   const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: channels } = useGamesChannelsListSuspense(gameId);
 
+  const currentNationName =
+    game.members.find(m => m.isCurrentUser)?.nation ?? undefined;
   const isSandboxGame = game.sandbox;
   const isNoPressActiveGame =
     game.pressType === "no_press" &&
@@ -81,7 +97,7 @@ const ChannelListScreen: React.FC = () => {
                       >
                         <ItemContent>
                           <ItemTitle>
-                            {channel.name}
+                            {getChannelDisplayName(channel, currentNationName)}
                             {!channel.private && (
                               <Badge variant="outline">Public</Badge>
                             )}
