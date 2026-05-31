@@ -23,6 +23,7 @@ import {
   useGameRetrieveSuspense,
   useGamesChannelsListSuspense,
 } from "@/api/generated/endpoints";
+import { getChannelDisplayName } from "./channelUtils";
 
 const getLatestMessagePreview = (
   messages: readonly ChannelMessage[]
@@ -33,17 +34,6 @@ const getLatestMessagePreview = (
     ? "You"
     : latestMessage.sender.nation.name;
   return `${senderLabel}: ${latestMessage.body}`;
-};
-
-const getChannelDisplayName = (
-  channel: { name: string; private: boolean },
-  currentNationName: string | undefined
-): string => {
-  if (!channel.private || !currentNationName) return channel.name;
-  const others = channel.name
-    .split(", ")
-    .filter(n => n !== currentNationName);
-  return others.join(", ");
 };
 
 const ChannelListScreen: React.FC = () => {

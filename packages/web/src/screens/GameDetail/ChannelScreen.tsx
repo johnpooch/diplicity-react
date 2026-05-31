@@ -17,6 +17,7 @@ import {
 import { Notice } from "@/components/Notice";
 import { NationFlag, findNationFlagUrl } from "@/components/NationFlag";
 import { GameDetailAppBar } from "./AppBar";
+import { getChannelDisplayName } from "./channelUtils";
 import { Panel } from "@/components/Panel";
 import {
   useGameRetrieveSuspense,
@@ -99,34 +100,24 @@ const ChannelScreen: React.FC = () => {
   const channel = channels.find(c => c.id === parseInt(channelId));
   if (!channel) throw new Error("Channel not found");
 
-  const currentMember = game.members.find(m => m.isCurrentUser);
-  const currentNation = currentMember?.nation ?? undefined;
-  const channelDisplayName =
-    !channel.private || !currentNation
-      ? channel.name
-      : channel.name
-          .split(", ")
-          .filter(n => n !== currentNation)
-          .join(", ");
+  const currentNationName =
+    game.members.find(m => m.isCurrentUser)?.nation ?? undefined;
+  const channelDisplayName = getChannelDisplayName(channel, currentNationName);
 
   useEffect(() => {
-    if (currentMember) {
-      markReadMutation.mutateAsync({
-        gameId,
-        channelId: parseInt(channelId),
-      }).then(() => {
-        queryClient.invalidateQueries({
-          queryKey: getGamesChannelsListQueryKey(gameId),
-        });
-        queryClient.invalidateQueries({
-          queryKey: getGameRetrieveQueryKey(gameId),
-        });
-      }).catch(() => {
-        // Fire-and-forget: silently ignore mark-read failures
+    markReadMutation.mutateAsync({
+      gameId,
+      channelId: parseInt(channelId),
+    }).then(() => {
+      queryClient.invalidateQueries({
+        queryKey: getGamesChannelsListQueryKey(gameId),
       });
-    }
+      queryClient.invalidateQueries({
+        queryKey: getGameRetrieveQueryKey(gameId),
+      });
+    }).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps -- markReadMutation is stable, fire once on mount
-  }, [gameId, channelId, currentMember]);
+  }, [gameId, channelId]);
 
   useEffect(() => {
     if (messagesContainerRef.current) {
@@ -201,7 +192,7 @@ const ChannelScreen: React.FC = () => {
         onNavigateBack={() => navigate(`/game/${gameId}/phase/${phaseId}/chat`)}
         variant="secondary"
       />
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-hidden">
         <Panel>
           <Panel.Content>
             <div className="h-full flex flex-col">
