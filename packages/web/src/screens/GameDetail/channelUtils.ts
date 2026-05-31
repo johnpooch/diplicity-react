@@ -1,6 +1,13 @@
 import { Channel, Member } from "@/api/generated/endpoints";
 import { findNationFlagUrl } from "@/components/NationFlag";
 
+export const brightnessByColor = (hex: string): number => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return (r * 299 + g * 587 + b * 114) / 1000;
+};
+
 export const getChannelDisplayName = (
   channel: Channel,
   currentNationName: string | undefined
