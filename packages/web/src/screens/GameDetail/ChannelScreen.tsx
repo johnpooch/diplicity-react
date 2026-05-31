@@ -266,6 +266,7 @@ const ChannelScreen: React.FC = () => {
                           <div className="w-8 flex-shrink-0" />
                         )}
                         <MessageContent
+                          className={item.isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"}
                           style={{
                             backgroundColor: item.sender.nationColor + BUBBLE_ALPHA_HEX,
                             border: brightnessByColor(item.sender.nationColor) > 128

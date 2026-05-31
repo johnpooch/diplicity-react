@@ -59,7 +59,15 @@ const ChannelAvatar: React.FC<ChannelAvatarProps> = ({ nations }) => {
   if (isSingle) {
     content = <FlagCell url={flags[0]} w={SIZE} h={SIZE} />;
   } else if (count === 2) {
-    content = <FlagRow flags={flags} w={HALF} h={SIZE} />;
+    content = (
+      <div style={{ display: "flex", width: SIZE, height: SIZE, alignItems: "center", justifyContent: "center" }}>
+        {flags.slice(0, 2).map((url, i) => (
+          <div key={i} style={{ width: HALF, height: HALF, borderRadius: "50%", overflow: "hidden", flexShrink: 0 }}>
+            {url && <img src={url} alt="" style={{ width: HALF, height: HALF, objectFit: "cover", display: "block" }} />}
+          </div>
+        ))}
+      </div>
+    );
   } else if (count <= 4) {
     content = (
       <>
