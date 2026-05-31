@@ -10,9 +10,6 @@ const SCALE = 1.2;
 type XAlign = "left" | "center" | "right";
 type YAlign = "top" | "center" | "bottom";
 
-// Each circle is SCALE times the cell size, positioned so its inner edge(s) align
-// with the cell's inner boundary. The outer 20% bleeds past the parent boundary
-// and is clipped by the parent's overflow-hidden rounded-full.
 const FlagCell: React.FC<{
   url: string | null;
   w: number;
@@ -135,8 +132,8 @@ const ChannelAvatar: React.FC<ChannelAvatarProps> = ({ nations }) => {
   return (
     <div
       className={cn(
-        "rounded-full overflow-hidden flex-shrink-0",
-        isSingle ? "bg-muted" : "bg-background dark:bg-black ring-1 ring-black dark:ring-white"
+        "rounded-full flex-shrink-0",
+        !isSingle && "ring-1 ring-black dark:ring-white"
       )}
       style={{
         width: SIZE,
@@ -144,7 +141,12 @@ const ChannelAvatar: React.FC<ChannelAvatarProps> = ({ nations }) => {
         boxShadow: isSingle ? `0 0 0 1px ${items[0].color}` : undefined,
       }}
     >
-      {content}
+      <div
+        className={isSingle ? "bg-muted" : "bg-background dark:bg-black"}
+        style={{ width: SIZE, height: SIZE, clipPath: "circle(50% at 50% 50%)" }}
+      >
+        {content}
+      </div>
     </div>
   );
 };
