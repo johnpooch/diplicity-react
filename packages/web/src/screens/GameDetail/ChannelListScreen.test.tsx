@@ -23,10 +23,19 @@ const mockChannelsData = vi.fn();
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({
-    data: { sandbox: false },
+    data: {
+      sandbox: false,
+      pressType: "public_press",
+      status: "active",
+      variantId: "standard",
+      members: [],
+    },
   }),
   useGamesChannelsListSuspense: () => ({
     data: mockChannelsData(),
+  }),
+  useVariantsListSuspense: () => ({
+    data: [],
   }),
 }));
 
