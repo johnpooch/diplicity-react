@@ -90,7 +90,7 @@ const ChannelListScreen: React.FC = () => {
                         className="text-foreground no-underline"
                       >
                         <ChannelAvatar
-                          flagUrls={getChannelFlagUrls(
+                          nations={getChannelFlagUrls(
                             channel,
                             game.members,
                             currentNationName,

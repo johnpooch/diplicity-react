@@ -129,7 +129,7 @@ const ChannelScreen: React.FC = () => {
   );
   const channelTitle = (
     <div className="flex items-center justify-start gap-2">
-      <ChannelAvatar flagUrls={channelFlagUrls} />
+      <ChannelAvatar nations={channelFlagUrls} />
       <span className="text-lg font-semibold truncate text-left">{channelDisplayName}</span>
     </div>
   );

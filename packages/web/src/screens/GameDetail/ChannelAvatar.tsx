@@ -1,4 +1,6 @@
 import React from "react";
+import { cn } from "@/lib/utils";
+import { ChannelNation } from "./channelUtils";
 
 const SIZE = 40;
 const HALF = SIZE / 2;
@@ -40,14 +42,17 @@ const FlagRow: React.FC<{
 );
 
 interface ChannelAvatarProps {
-  flagUrls: (string | null)[];
+  nations: ChannelNation[];
 }
 
-const ChannelAvatar: React.FC<ChannelAvatarProps> = ({ flagUrls }) => {
-  const flags = flagUrls.slice(0, 9);
-  const count = flags.length;
+const ChannelAvatar: React.FC<ChannelAvatarProps> = ({ nations }) => {
+  const items = nations.slice(0, 9);
+  const count = items.length;
 
   if (count === 0) return null;
+
+  const flags = items.map(n => n.flagUrl);
+  const isSingle = count === 1;
 
   let content: React.ReactNode;
 
@@ -82,8 +87,17 @@ const ChannelAvatar: React.FC<ChannelAvatarProps> = ({ flagUrls }) => {
 
   return (
     <div
-      className="rounded-full overflow-hidden bg-muted flex-shrink-0"
-      style={{ width: SIZE, height: SIZE }}
+      className={cn(
+        "rounded-full overflow-hidden flex-shrink-0",
+        isSingle ? "bg-muted" : "bg-background"
+      )}
+      style={{
+        width: SIZE,
+        height: SIZE,
+        boxShadow: isSingle
+          ? `0 0 0 1px ${items[0].color}`
+          : "0 0 0 1px hsl(var(--foreground))",
+      }}
     >
       {content}
     </div>

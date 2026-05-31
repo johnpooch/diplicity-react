@@ -1,5 +1,6 @@
 import { Channel, Member } from "@/api/generated/endpoints";
-import { findNationFlagUrl } from "@/components/NationFlag";
+
+export type ChannelNation = { flagUrl: string | null; color: string };
 
 export const brightnessByColor = (hex: string): number => {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -23,12 +24,15 @@ export const getChannelFlagUrls = (
   channel: Channel,
   members: readonly Member[],
   currentNationName: string | undefined,
-  variantNations: ReadonlyArray<{ name: string; flagUrl: string | null }>
-): (string | null)[] => {
-  const nations = channel.private
+  variantNations: ReadonlyArray<{ name: string; flagUrl: string | null; color: string }>
+): ChannelNation[] => {
+  const nationNames = channel.private
     ? channel.name.split(", ").filter(n => n !== currentNationName)
     : members
         .map(m => m.nation)
         .filter((n): n is string => n !== null && n !== currentNationName);
-  return nations.map(nation => findNationFlagUrl(variantNations, nation));
+  return nationNames.map(name => {
+    const vn = variantNations.find(n => n.name === name);
+    return { flagUrl: vn?.flagUrl ?? null, color: vn?.color ?? "#808080" };
+  });
 };
