@@ -75,6 +75,9 @@ vi.mock("@/api/generated/endpoints", () => ({
   getGameOrdersListQueryKey: (gameId: string, phaseId: number) => [
     `/game/${gameId}/orders/${phaseId}`,
   ],
+  getGamePhaseStatesListQueryKey: (gameId: string) => [
+    `/game/${gameId}/phase-states/`,
+  ],
 }));
 
 vi.mock("@/utils/provinces", () => ({
