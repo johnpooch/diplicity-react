@@ -17,7 +17,8 @@ import {
 import { Notice } from "@/components/Notice";
 import { NationFlag, findNationFlagUrl } from "@/components/NationFlag";
 import { GameDetailAppBar } from "./AppBar";
-import { getChannelDisplayName } from "./channelUtils";
+import { getChannelDisplayName, getChannelFlagUrls } from "./channelUtils";
+import { ChannelAvatar } from "./ChannelAvatar";
 import { Panel } from "@/components/Panel";
 import {
   useGameRetrieveSuspense,
@@ -103,6 +104,18 @@ const ChannelScreen: React.FC = () => {
   const currentNationName =
     game.members.find(m => m.isCurrentUser)?.nation ?? undefined;
   const channelDisplayName = getChannelDisplayName(channel, currentNationName);
+  const channelFlagUrls = getChannelFlagUrls(
+    channel,
+    game.members,
+    currentNationName,
+    variants.find(v => v.id === game.variantId)?.nations ?? []
+  );
+  const channelTitle = (
+    <div className="flex items-center justify-center gap-2">
+      <ChannelAvatar flagUrls={channelFlagUrls} />
+      <h1 className="text-lg font-semibold truncate">{channelDisplayName}</h1>
+    </div>
+  );
 
   useEffect(() => {
     markReadMutation.mutateAsync({
@@ -164,7 +177,7 @@ const ChannelScreen: React.FC = () => {
     return (
       <div className="flex flex-col flex-1 min-h-0">
         <GameDetailAppBar
-          title={channelDisplayName}
+          title={channelTitle}
           onNavigateBack={() =>
             navigate(`/game/${gameId}/phase/${phaseId}/chat`)
           }
@@ -188,7 +201,7 @@ const ChannelScreen: React.FC = () => {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <GameDetailAppBar
-        title={channelDisplayName}
+        title={channelTitle}
         onNavigateBack={() => navigate(`/game/${gameId}/phase/${phaseId}/chat`)}
         variant="secondary"
       />

@@ -22,8 +22,10 @@ import {
   ChannelMessage,
   useGameRetrieveSuspense,
   useGamesChannelsListSuspense,
+  useVariantsListSuspense,
 } from "@/api/generated/endpoints";
-import { getChannelDisplayName } from "./channelUtils";
+import { getChannelDisplayName, getChannelFlagUrls } from "./channelUtils";
+import { ChannelAvatar } from "./ChannelAvatar";
 
 const getLatestMessagePreview = (
   messages: readonly ChannelMessage[]
@@ -43,9 +45,11 @@ const ChannelListScreen: React.FC = () => {
   }>();
   const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: channels } = useGamesChannelsListSuspense(gameId);
+  const { data: variants } = useVariantsListSuspense();
 
   const currentNationName =
     game.members.find(m => m.isCurrentUser)?.nation ?? undefined;
+  const variantNations = variants.find(v => v.id === game.variantId)?.nations ?? [];
   const isSandboxGame = game.sandbox;
   const isNoPressActiveGame =
     game.pressType === "no_press" &&
@@ -85,6 +89,14 @@ const ChannelListScreen: React.FC = () => {
                         to={`/game/${gameId}/phase/${phaseId}/chat/channel/${channel.id}`}
                         className="text-foreground no-underline"
                       >
+                        <ChannelAvatar
+                          flagUrls={getChannelFlagUrls(
+                            channel,
+                            game.members,
+                            currentNationName,
+                            variantNations
+                          )}
+                        />
                         <ItemContent>
                           <ItemTitle>
                             {getChannelDisplayName(channel, currentNationName)}
