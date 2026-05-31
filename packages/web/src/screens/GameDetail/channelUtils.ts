@@ -3,9 +3,11 @@ import { Channel, Member } from "@/api/generated/endpoints";
 export type ChannelNation = { flagUrl: string | null; color: string };
 
 export const brightnessByColor = (hex: string): number => {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
+  const match = /^#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/.exec(hex);
+  if (!match) return 128;
+  const r = parseInt(match[1], 16);
+  const g = parseInt(match[2], 16);
+  const b = parseInt(match[3], 16);
   return (r * 299 + g * 587 + b * 114) / 1000;
 };
 
@@ -30,7 +32,7 @@ export const getChannelFlagUrls = (
     ? channel.name.split(", ").filter(n => n !== currentNationName)
     : members
         .map(m => m.nation)
-        .filter((n): n is string => n !== null && n !== currentNationName);
+        .filter((n): n is string => n !== null);
   return nationNames.map(name => {
     const vn = variantNations.find(n => n.name === name);
     return { flagUrl: vn?.flagUrl ?? null, color: vn?.color ?? "#808080" };

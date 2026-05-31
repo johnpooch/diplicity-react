@@ -56,7 +56,7 @@ const ChannelAvatar: React.FC<ChannelAvatarProps> = ({ nations }) => {
 
   let content: React.ReactNode;
 
-  if (count === 1) {
+  if (isSingle) {
     content = <FlagCell url={flags[0]} w={SIZE} h={SIZE} />;
   } else if (count === 2) {
     content = <FlagRow flags={flags} w={HALF} h={SIZE} />;

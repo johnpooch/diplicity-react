@@ -81,6 +81,8 @@ const buildMessageItems = (
   });
 };
 
+const BUBBLE_ALPHA_HEX = "26"; // 15% opacity (0x26/0xFF)
+
 const NewMessagesDivider: React.FC = () => (
   <div className="flex items-center gap-2 my-1">
     <div className="flex-1 h-px bg-border" />
@@ -120,12 +122,13 @@ const ChannelScreen: React.FC = () => {
 
   const currentNationName =
     game.members.find(m => m.isCurrentUser)?.nation ?? undefined;
+  const variant = variants.find(v => v.id === game.variantId);
   const channelDisplayName = getChannelDisplayName(channel, currentNationName);
   const channelFlagUrls = getChannelFlagUrls(
     channel,
     game.members,
     currentNationName,
-    variants.find(v => v.id === game.variantId)?.nations ?? []
+    variant?.nations ?? []
   );
   const channelTitle = (
     <div className="flex items-center justify-start gap-2">
@@ -146,7 +149,7 @@ const ChannelScreen: React.FC = () => {
         queryKey: getGameRetrieveQueryKey(gameId),
       });
     }).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- markReadMutation is stable, fire once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mutation object excluded per project convention (not referentially stable); fire once on mount
   }, [gameId, channelId]);
 
   useEffect(() => {
@@ -185,8 +188,6 @@ const ChannelScreen: React.FC = () => {
     game.pressType === "no_press" &&
     game.status !== "completed" &&
     game.status !== "abandoned";
-
-  const variant = variants.find(v => v.id === game.variantId);
 
   const messageItems = buildMessageItems(channel.messages);
 
@@ -271,9 +272,8 @@ const ChannelScreen: React.FC = () => {
                           <div className="w-8" />
                         )}
                         <MessageContent
-                          className="bg-transparent"
                           style={{
-                            backgroundColor: item.sender.nationColor + "26",
+                            backgroundColor: item.sender.nationColor + BUBBLE_ALPHA_HEX,
                             border: brightnessByColor(item.sender.nationColor) > 128
                               ? `1px solid ${item.sender.nationColor}`
                               : undefined,
