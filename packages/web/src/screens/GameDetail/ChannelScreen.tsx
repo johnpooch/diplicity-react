@@ -258,6 +258,7 @@ const ChannelScreen: React.FC = () => {
                               }
                               alt={item.sender.nationName}
                               size="lg"
+                              style={{ boxShadow: `0 0 0 1px ${item.sender.nationColor}` }}
                             />
                             <span
                               className="text-xs font-medium"
