@@ -10,52 +10,58 @@ const SCALE = 1.2;
 type XAlign = "left" | "center" | "right";
 type YAlign = "top" | "center" | "bottom";
 
-const FlagCell: React.FC<{
-  url: string | null;
-  w: number;
-  xAlign: XAlign;
-  yAlign: YAlign;
-}> = ({ url, w, xAlign, yAlign }) => {
-  const d = w * SCALE;
-  const centerOffset = (w - d) / 2; // negative half-overflow for centering
+const imgX = (d: number, xa: XAlign, xb: number): number =>
+  xa === "left"   ? xb - d :
+  xa === "right"  ? xb     :
+  xb - d / 2;
 
-  const xPos: React.CSSProperties =
-    xAlign === "left"   ? { right: 0 } :
-    xAlign === "right"  ? { left: 0 } :
-    { left: centerOffset };
+const imgY = (d: number, ya: YAlign, yb: number): number =>
+  ya === "top"    ? yb - d :
+  ya === "bottom" ? yb     :
+  yb - d / 2;
 
-  const yPos: React.CSSProperties =
-    yAlign === "top"    ? { bottom: 0 } :
-    yAlign === "bottom" ? { top: 0 } :
-    { top: centerOffset };
+interface FlagImg { url: string; x: number; y: number; d: number }
 
-  return (
-    <div style={{ width: w, height: w, flexShrink: 0, position: "relative" }}>
-      {url && (
-        <img
-          src={url}
-          alt=""
-          style={{
-            width: d,
-            height: d,
-            objectFit: "cover",
-            display: "block",
-            borderRadius: "50%",
-            position: "absolute",
-            ...xPos,
-            ...yPos,
-          }}
-        />
-      )}
-    </div>
-  );
+const buildImgs = (count: number, flag: (i: number) => string | null): FlagImg[] => {
+  const imgs: FlagImg[] = [];
+  const add = (fi: number, d: number, xa: XAlign, xb: number, ya: YAlign, yb: number) => {
+    const url = flag(fi);
+    if (url) imgs.push({ url, x: imgX(d, xa, xb), y: imgY(d, ya, yb), d });
+  };
+
+  const d2 = HALF * SCALE;
+  const d3 = THIRD * SCALE;
+  const T = THIRD;
+  const TT = 2 * THIRD;
+
+  if (count === 2) {
+    add(0, d2, "left",  HALF, "center", HALF);
+    add(1, d2, "right", HALF, "center", HALF);
+  } else if (count <= 4) {
+    add(0, d2, "left",  HALF, "top",    HALF);
+    add(1, d2, "right", HALF, "top",    HALF);
+    add(2, d2, "left",  HALF, "bottom", HALF);
+    add(3, d2, "right", HALF, "bottom", HALF);
+  } else if (count === 5) {
+    add(0, d3, "center", HALF,  "top",    T);
+    add(1, d3, "left",   T,     "center", HALF);
+    add(2, d3, "center", HALF,  "center", HALF);
+    add(3, d3, "right",  TT,    "center", HALF);
+    add(4, d3, "center", HALF,  "bottom", TT);
+  } else {
+    add(0, d3, "left",   T,    "top",    T);
+    add(1, d3, "center", HALF, "top",    T);
+    add(2, d3, "right",  TT,   "top",    T);
+    add(3, d3, "left",   T,    "center", HALF);
+    add(4, d3, "center", HALF, "center", HALF);
+    add(5, d3, "right",  TT,   "center", HALF);
+    add(6, d3, "left",   T,    "bottom", TT);
+    add(7, d3, "center", HALF, "bottom", TT);
+    add(8, d3, "right",  TT,   "bottom", TT);
+  }
+
+  return imgs;
 };
-
-const Row: React.FC<{ h: number; children: React.ReactNode }> = ({ h, children }) => (
-  <div style={{ display: "flex", width: SIZE, height: h }}>
-    {children}
-  </div>
-);
 
 interface ChannelAvatarProps {
   nations: ChannelNation[];
@@ -67,67 +73,9 @@ const ChannelAvatar: React.FC<ChannelAvatarProps> = ({ nations }) => {
 
   if (count === 0) return null;
 
-  const f = items.map(n => n.flagUrl);
-  const flag = (i: number): string | null => f[i] ?? null;
+  const flag = (i: number): string | null => items[i]?.flagUrl ?? null;
   const isSingle = count === 1;
-
-  let content: React.ReactNode;
-
-  if (isSingle) {
-    content = f[0] ? (
-      <img
-        src={f[0]}
-        alt=""
-        style={{ width: SIZE, height: SIZE, objectFit: "cover", display: "block" }}
-      />
-    ) : null;
-  } else if (count === 2) {
-    // 2×1: two cells side-by-side, vertically centred in parent
-    content = (
-      <div style={{ display: "flex", width: SIZE, height: SIZE, alignItems: "center", justifyContent: "center" }}>
-        <FlagCell url={flag(0)} w={HALF} xAlign="left"  yAlign="center" />
-        <FlagCell url={flag(1)} w={HALF} xAlign="right" yAlign="center" />
-      </div>
-    );
-  } else if (count <= 4) {
-    // 2×2 grid
-    content = (
-      <>
-        <Row h={HALF}>
-          <FlagCell url={flag(0)} w={HALF} xAlign="left"  yAlign="top" />
-          <FlagCell url={flag(1)} w={HALF} xAlign="right" yAlign="top" />
-        </Row>
-        <Row h={HALF}>
-          <FlagCell url={flag(2)} w={HALF} xAlign="left"  yAlign="bottom" />
-          <FlagCell url={flag(3)} w={HALF} xAlign="right" yAlign="bottom" />
-        </Row>
-      </>
-    );
-  } else {
-    // 3×3 grid.
-    // 5 nations: cross pattern (TC, ML, MC, MR, BC) — corners empty.
-    // 6–9 nations: fill left-to-right, top-to-bottom.
-    const cells: (string | null)[] = count === 5
-      ? [null, flag(0), null, flag(1), flag(2), flag(3), null, flag(4), null]
-      : [0, 1, 2, 3, 4, 5, 6, 7, 8].map(flag);
-
-    const xs: XAlign[] = ["left", "center", "right", "left", "center", "right", "left", "center", "right"];
-    const ys: YAlign[] = ["top", "top", "top", "center", "center", "center", "bottom", "bottom", "bottom"];
-
-    content = (
-      <>
-        <Row h={THIRD}>
-          {[0, 1, 2].map(i => <FlagCell key={i} url={cells[i]} w={THIRD} xAlign={xs[i]} yAlign={ys[i]} />)}
-        </Row>
-        <Row h={THIRD}>
-          {[3, 4, 5].map(i => <FlagCell key={i} url={cells[i]} w={THIRD} xAlign={xs[i]} yAlign={ys[i]} />)}
-        </Row>
-        <Row h={THIRD}>
-          {[6, 7, 8].map(i => <FlagCell key={i} url={cells[i]} w={THIRD} xAlign={xs[i]} yAlign={ys[i]} />)}
-        </Row>
-      </>
-    );
-  }
+  const singleUrl = isSingle ? flag(0) : null;
 
   return (
     <div
@@ -143,9 +91,40 @@ const ChannelAvatar: React.FC<ChannelAvatarProps> = ({ nations }) => {
     >
       <div
         className={isSingle ? "bg-muted" : "bg-background dark:bg-black"}
-        style={{ width: SIZE, height: SIZE, clipPath: "circle(50% at 50% 50%)" }}
+        style={{
+          width: SIZE,
+          height: SIZE,
+          position: "relative",
+          clipPath: "circle(50% at 50% 50%)",
+        }}
       >
-        {content}
+        {isSingle ? (
+          singleUrl && (
+            <img
+              src={singleUrl}
+              alt=""
+              style={{ width: SIZE, height: SIZE, objectFit: "cover", display: "block" }}
+            />
+          )
+        ) : (
+          buildImgs(count, flag).map((img, i) => (
+            <img
+              key={i}
+              src={img.url}
+              alt=""
+              style={{
+                position: "absolute",
+                left: img.x,
+                top: img.y,
+                width: img.d,
+                height: img.d,
+                objectFit: "cover",
+                display: "block",
+                borderRadius: "50%",
+              }}
+            />
+          ))
+        )}
       </div>
     </div>
   );
