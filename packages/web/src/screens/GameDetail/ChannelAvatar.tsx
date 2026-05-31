@@ -5,50 +5,58 @@ import { ChannelNation } from "./channelUtils";
 const SIZE = 40;
 const HALF = SIZE / 2;
 const THIRD = SIZE / 3;
-const OVERFLOW = 0.2; // each circle bleeds 20% of its cell size past the cell edge
-const SCALE = 1 + 2 * OVERFLOW;
+const SCALE = 1.2;
 
-const FlagCell: React.FC<{ url: string | null; w: number; h: number }> = ({
-  url,
-  w,
-  h,
-}) => (
-  <div style={{ width: w, height: h, flexShrink: 0, position: "relative" }}>
-    {url && (
-      <img
-        src={url}
-        alt=""
-        style={{
-          width: w * SCALE,
-          height: w * SCALE,
-          objectFit: "cover",
-          display: "block",
-          borderRadius: "50%",
-          position: "absolute",
-          top: -(w * OVERFLOW),
-          left: -(w * OVERFLOW),
-        }}
-      />
-    )}
-  </div>
-);
+type XAlign = "left" | "center" | "right";
+type YAlign = "top" | "center" | "bottom";
 
-const FlagRow: React.FC<{
-  flags: (string | null)[];
+// Each circle is SCALE times the cell size, positioned so its inner edge(s) align
+// with the cell's inner boundary. The outer 20% bleeds past the parent boundary
+// and is clipped by the parent's overflow-hidden rounded-full.
+const FlagCell: React.FC<{
+  url: string | null;
   w: number;
-  h: number;
-}> = ({ flags, w, h }) => (
-  <div
-    style={{
-      display: "flex",
-      width: SIZE,
-      height: h,
-      justifyContent: "center",
-    }}
-  >
-    {flags.map((url, i) => (
-      <FlagCell key={i} url={url} w={w} h={h} />
-    ))}
+  xAlign: XAlign;
+  yAlign: YAlign;
+}> = ({ url, w, xAlign, yAlign }) => {
+  const d = w * SCALE;
+  const centerOffset = (w - d) / 2; // negative half-overflow for centering
+
+  const xPos: React.CSSProperties =
+    xAlign === "left"   ? { right: 0 } :
+    xAlign === "right"  ? { left: 0 } :
+    { left: centerOffset };
+
+  const yPos: React.CSSProperties =
+    yAlign === "top"    ? { bottom: 0 } :
+    yAlign === "bottom" ? { top: 0 } :
+    { top: centerOffset };
+
+  return (
+    <div style={{ width: w, height: w, flexShrink: 0, position: "relative" }}>
+      {url && (
+        <img
+          src={url}
+          alt=""
+          style={{
+            width: d,
+            height: d,
+            objectFit: "cover",
+            display: "block",
+            borderRadius: "50%",
+            position: "absolute",
+            ...xPos,
+            ...yPos,
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+const Row: React.FC<{ h: number; children: React.ReactNode }> = ({ h, children }) => (
+  <div style={{ display: "flex", width: SIZE, height: h }}>
+    {children}
   </div>
 );
 
@@ -62,47 +70,64 @@ const ChannelAvatar: React.FC<ChannelAvatarProps> = ({ nations }) => {
 
   if (count === 0) return null;
 
-  const flags = items.map(n => n.flagUrl);
+  const f = items.map(n => n.flagUrl);
+  const flag = (i: number): string | null => f[i] ?? null;
   const isSingle = count === 1;
 
   let content: React.ReactNode;
 
   if (isSingle) {
-    content = flags[0] ? (
+    content = f[0] ? (
       <img
-        src={flags[0]}
+        src={f[0]}
         alt=""
         style={{ width: SIZE, height: SIZE, objectFit: "cover", display: "block" }}
       />
     ) : null;
   } else if (count === 2) {
+    // 2×1: two cells side-by-side, vertically centred in parent
     content = (
       <div style={{ display: "flex", width: SIZE, height: SIZE, alignItems: "center", justifyContent: "center" }}>
-        <FlagCell url={flags[0]} w={HALF} h={HALF} />
-        <FlagCell url={flags[1]} w={HALF} h={HALF} />
+        <FlagCell url={flag(0)} w={HALF} xAlign="left"  yAlign="center" />
+        <FlagCell url={flag(1)} w={HALF} xAlign="right" yAlign="center" />
       </div>
     );
   } else if (count <= 4) {
+    // 2×2 grid
     content = (
       <>
-        <FlagRow flags={flags.slice(0, 2)} w={HALF} h={HALF} />
-        <FlagRow flags={flags.slice(2, 4)} w={HALF} h={HALF} />
-      </>
-    );
-  } else if (count === 5) {
-    content = (
-      <>
-        <FlagRow flags={[flags[0]]} w={THIRD} h={THIRD} />
-        <FlagRow flags={flags.slice(1, 4)} w={THIRD} h={THIRD} />
-        <FlagRow flags={[flags[4]]} w={THIRD} h={THIRD} />
+        <Row h={HALF}>
+          <FlagCell url={flag(0)} w={HALF} xAlign="left"  yAlign="top" />
+          <FlagCell url={flag(1)} w={HALF} xAlign="right" yAlign="top" />
+        </Row>
+        <Row h={HALF}>
+          <FlagCell url={flag(2)} w={HALF} xAlign="left"  yAlign="bottom" />
+          <FlagCell url={flag(3)} w={HALF} xAlign="right" yAlign="bottom" />
+        </Row>
       </>
     );
   } else {
+    // 3×3 grid.
+    // 5 nations: cross pattern (TC, ML, MC, MR, BC) — corners empty.
+    // 6–9 nations: fill left-to-right, top-to-bottom.
+    const cells: (string | null)[] = count === 5
+      ? [null, flag(0), null, flag(1), flag(2), flag(3), null, flag(4), null]
+      : [0, 1, 2, 3, 4, 5, 6, 7, 8].map(flag);
+
+    const xs: XAlign[] = ["left", "center", "right", "left", "center", "right", "left", "center", "right"];
+    const ys: YAlign[] = ["top", "top", "top", "center", "center", "center", "bottom", "bottom", "bottom"];
+
     content = (
       <>
-        <FlagRow flags={flags.slice(0, 3)} w={THIRD} h={THIRD} />
-        <FlagRow flags={flags.slice(3, 6)} w={THIRD} h={THIRD} />
-        <FlagRow flags={flags.slice(6, 9)} w={THIRD} h={THIRD} />
+        <Row h={THIRD}>
+          {[0, 1, 2].map(i => <FlagCell key={i} url={cells[i]} w={THIRD} xAlign={xs[i]} yAlign={ys[i]} />)}
+        </Row>
+        <Row h={THIRD}>
+          {[3, 4, 5].map(i => <FlagCell key={i} url={cells[i]} w={THIRD} xAlign={xs[i]} yAlign={ys[i]} />)}
+        </Row>
+        <Row h={THIRD}>
+          {[6, 7, 8].map(i => <FlagCell key={i} url={cells[i]} w={THIRD} xAlign={xs[i]} yAlign={ys[i]} />)}
+        </Row>
       </>
     );
   }
