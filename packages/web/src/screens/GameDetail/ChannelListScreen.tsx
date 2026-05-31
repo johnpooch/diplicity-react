@@ -22,14 +22,20 @@ import {
   ChannelMessage,
   useGameRetrieveSuspense,
   useGamesChannelsListSuspense,
+  useVariantsListSuspense,
 } from "@/api/generated/endpoints";
+import { getChannelDisplayName, getChannelFlagUrls } from "./channelUtils";
+import { ChannelAvatar } from "./ChannelAvatar";
 
 const getLatestMessagePreview = (
   messages: readonly ChannelMessage[]
 ): string => {
   if (messages.length === 0) return "No messages";
   const latestMessage = messages[messages.length - 1];
-  return `${latestMessage.sender.nation.name}: ${latestMessage.body}`;
+  const senderLabel = latestMessage.sender.isCurrentUser
+    ? "You"
+    : latestMessage.sender.nation.name;
+  return `${senderLabel}: ${latestMessage.body}`;
 };
 
 const ChannelListScreen: React.FC = () => {
@@ -39,7 +45,11 @@ const ChannelListScreen: React.FC = () => {
   }>();
   const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: channels } = useGamesChannelsListSuspense(gameId);
+  const { data: variants } = useVariantsListSuspense();
 
+  const currentNationName =
+    game.members.find(m => m.isCurrentUser)?.nation ?? undefined;
+  const variantNations = variants.find(v => v.id === game.variantId)?.nations ?? [];
   const isSandboxGame = game.sandbox;
   const isNoPressActiveGame =
     game.pressType === "no_press" &&
@@ -74,14 +84,22 @@ const ChannelListScreen: React.FC = () => {
               <ItemGroup>
                 {channels.map(channel => (
                   <React.Fragment key={channel.id}>
-                    <Item asChild size="sm">
+                    <Item asChild size="sm" className="py-2">
                       <Link
                         to={`/game/${gameId}/phase/${phaseId}/chat/channel/${channel.id}`}
                         className="text-foreground no-underline"
                       >
-                        <ItemContent>
+                        <ChannelAvatar
+                          nations={getChannelFlagUrls(
+                            channel,
+                            game.members,
+                            currentNationName,
+                            variantNations
+                          )}
+                        />
+                        <ItemContent className="gap-0.5">
                           <ItemTitle>
-                            {channel.name}
+                            {getChannelDisplayName(channel, currentNationName)}
                             {!channel.private && (
                               <Badge variant="outline">Public</Badge>
                             )}

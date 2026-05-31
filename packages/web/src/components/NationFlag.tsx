@@ -6,6 +6,7 @@ interface NationFlagProps {
   alt?: string;
   size?: "sm" | "md" | "lg";
   className?: string;
+  style?: React.CSSProperties;
 }
 
 const sizeClasses = {
@@ -19,6 +20,7 @@ const NationFlag: React.FC<NationFlagProps> = ({
   alt,
   size = "md",
   className,
+  style,
 }) => {
   if (!flagUrl) return null;
 
@@ -27,6 +29,7 @@ const NationFlag: React.FC<NationFlagProps> = ({
       src={flagUrl}
       alt={alt ?? ""}
       className={cn("rounded-full object-cover", sizeClasses[size], className)}
+      style={style}
     />
   );
 };
