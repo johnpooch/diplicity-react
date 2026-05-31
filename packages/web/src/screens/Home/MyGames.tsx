@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { GameCard } from "@/components/GameCard";
-import { MapPreview } from "@/components/MapPreview";
+import { makeGameCardMap } from "@/components/MapPreview";
 import { Notice } from "@/components/Notice";
 import { Button } from "@/components/ui/button";
 import { Inbox, Loader2 } from "lucide-react";
@@ -118,15 +118,7 @@ const GameTabContent: React.FC<GameTabContentProps> = ({
           key={game.id}
           game={game}
           variant={variantMap.get(game.variantId)!}
-          map={(focusProvinceIds) => (
-              <MapPreview
-                variant={variantMap.get(game.variantId)!}
-                phase={variantMap.get(game.variantId)!.templatePhase}
-                focusProvinceIds={focusProvinceIds}
-                thumbnail
-                className="w-full h-full"
-              />
-            )}
+          map={makeGameCardMap(variantMap.get(game.variantId)!)}
         />
       ))}
       {isFetchingNextPage && (

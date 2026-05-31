@@ -8,7 +8,6 @@ from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
 from common.constants import DeadlineMode, GameStatus, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PhaseType, PressType, VariantStatus
 from member.serializers import MemberSerializer
-from unit.models import Unit
 from supply_center.models import SupplyCenter
 from notification import utils as notification_utils
 
@@ -153,11 +152,7 @@ class GameListSerializer(serializers.Serializer):
                     return None
                 total = None
                 if current_phase.type == PhaseType.MOVEMENT:
-                    total = Unit.objects.filter(
-                        phase=current_phase,
-                        nation=phase_state.member.nation,
-                        dislodged=False,
-                    ).count()
+                    total = phase_state.unit_count
                 return MyOrderStatusSerializer({
                     "submitted": phase_state.order_count,
                     "total": total,

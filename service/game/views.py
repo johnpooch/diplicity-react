@@ -44,7 +44,7 @@ class GameRetrieveView(generics.RetrieveAPIView):
 def _bulk_unread_counts(game_ids, user):
     ChannelMessage = apps.get_model("channel", "ChannelMessage")
     last_read_subq = ChannelMember.objects.filter(
-        channel=OuterRef("pk"),
+        channel=OuterRef("channel_id"),
         member__user=user,
     ).values("last_read_at")[:1]
     rows = (

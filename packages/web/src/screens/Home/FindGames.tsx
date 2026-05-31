@@ -5,7 +5,7 @@ import { ScreenHeader } from "@/components/ui/screen-header";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { GameCard } from "@/components/GameCard";
-import { MapPreview } from "@/components/MapPreview";
+import { makeGameCardMap } from "@/components/MapPreview";
 import { Notice } from "@/components/Notice";
 import { Button } from "@/components/ui/button";
 import {
@@ -138,15 +138,7 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
                 key={knownGames[0].id}
                 game={knownGames[0]}
                 variant={variantMap.get(knownGames[0].variantId)!}
-                map={(focusProvinceIds) => (
-                  <MapPreview
-                    variant={variantMap.get(knownGames[0].variantId)!}
-                    phase={variantMap.get(knownGames[0].variantId)!.templatePhase}
-                    focusProvinceIds={focusProvinceIds}
-                    thumbnail
-                    className="w-full h-full"
-                  />
-                )}
+                map={makeGameCardMap(variantMap.get(knownGames[0].variantId)!)}
               />
               {knownGames.length > 1 && (
                 <>
@@ -156,15 +148,7 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
                       key={game.id}
                       game={game}
                       variant={variantMap.get(game.variantId)!}
-                      map={(focusProvinceIds) => (
-                  <MapPreview
-                    variant={variantMap.get(game.variantId)!}
-                    phase={variantMap.get(game.variantId)!.templatePhase}
-                    focusProvinceIds={focusProvinceIds}
-                    thumbnail
-                    className="w-full h-full"
-                  />
-                )}
+                      map={makeGameCardMap(variantMap.get(game.variantId)!)}
                     />
                   ))}
                 </>
@@ -176,15 +160,7 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
                 key={game.id}
                 game={game}
                 variant={variantMap.get(game.variantId)!}
-                map={(focusProvinceIds) => (
-                  <MapPreview
-                    variant={variantMap.get(game.variantId)!}
-                    phase={variantMap.get(game.variantId)!.templatePhase}
-                    focusProvinceIds={focusProvinceIds}
-                    thumbnail
-                    className="w-full h-full"
-                  />
-                )}
+                map={makeGameCardMap(variantMap.get(game.variantId)!)}
               />
             ))
           )}

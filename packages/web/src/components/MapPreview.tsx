@@ -24,6 +24,20 @@ const getCachedMap = (svgUrl: string, dsvg: string): DiplicityMap => {
 
 type VariantForPreview = Pick<Variant, "nations" | "svgUrl">;
 
+type VariantForGameCardMap = Pick<Variant, "nations" | "svgUrl" | "templatePhase">;
+
+const makeGameCardMap =
+  (variant: VariantForGameCardMap) =>
+  (focusProvinceIds?: string[]) => (
+    <MapPreview
+      variant={variant}
+      phase={variant.templatePhase}
+      focusProvinceIds={focusProvinceIds}
+      thumbnail
+      className="w-full h-full"
+    />
+  );
+
 type MapPreviewProps = {
   variant: VariantForPreview;
   phase: PhaseRetrieve | VariantTemplatePhase | PhaseForPreview;
@@ -56,8 +70,9 @@ const computeFocusViewBox = (
   const viewSize = Math.max(spread + 300, Math.min(fullWidth, fullHeight) * 0.3);
 
   // Square viewBox — preserveAspectRatio="slice" fills the container.
-  const left = Math.max(fullMinX, cx - viewSize / 2);
-  const top = Math.max(fullMinY, cy - viewSize / 2);
+  // Clamp so the viewBox never extends beyond either edge of the map.
+  const left = Math.max(fullMinX, Math.min(fullMinX + fullWidth - viewSize, cx - viewSize / 2));
+  const top = Math.max(fullMinY, Math.min(fullMinY + fullHeight - viewSize, cy - viewSize / 2));
 
   return `${left} ${top} ${viewSize} ${viewSize}`;
 };
@@ -147,4 +162,4 @@ const MapPreview: React.FC<MapPreviewProps> = ({
   );
 };
 
-export { MapPreview };
+export { MapPreview, makeGameCardMap };

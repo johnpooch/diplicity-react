@@ -4,7 +4,7 @@ import uuid
 
 from django.db import models, transaction
 from django.utils import timezone
-from django.db.models import Count, Prefetch
+from django.db.models import Count, OuterRef, Prefetch, Subquery
 from opentelemetry import trace
 from common.constants import (
     DeadlineMode,
@@ -46,10 +46,16 @@ class GameQuerySet(models.QuerySet):
         # phase plus its phase_states.member.user_id. Prefetching the chain
         # here keeps the per-game cost flat (no N+1 across the games list).
         # order_count annotation provides submitted order count without extra queries.
+        unit_count_subq = Unit.objects.filter(
+            phase=OuterRef("phase"),
+            nation=OuterRef("member__nation"),
+            dislodged=False,
+        ).values("phase").annotate(c=Count("id")).values("c")
         phase_states_prefetch = Prefetch(
             "phase_states",
             queryset=PhaseState.objects.select_related("member__nation").annotate(
                 order_count=Count("orders"),
+                unit_count=Subquery(unit_count_subq[:1]),
             ),
         )
         phases_prefetch = Prefetch(
