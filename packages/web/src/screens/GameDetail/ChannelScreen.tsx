@@ -250,7 +250,7 @@ const ChannelScreen: React.FC = () => {
                         }
                       >
                         {item.showAvatar ? (
-                          <div className="flex flex-col items-center gap-0.5">
+                          <div className="w-8 flex-shrink-0 flex justify-center">
                             <NationFlag
                               flagUrl={
                                 variant
@@ -261,15 +261,9 @@ const ChannelScreen: React.FC = () => {
                               size="lg"
                               style={{ boxShadow: `0 0 0 1px ${item.sender.nationColor}` }}
                             />
-                            <span
-                              className="text-xs font-medium"
-                              style={{ color: item.sender.nationColor }}
-                            >
-                              {item.sender.nationName}
-                            </span>
                           </div>
                         ) : (
-                          <div className="w-8" />
+                          <div className="w-8 flex-shrink-0" />
                         )}
                         <MessageContent
                           style={{
@@ -280,9 +274,23 @@ const ChannelScreen: React.FC = () => {
                           }}
                         >
                           {item.body}
-                          <MessageTimestamp>
-                            {item.formattedTime}
-                          </MessageTimestamp>
+                          {item.showAvatar ? (
+                            <div className="flex items-center justify-between gap-2 mt-1">
+                              <span
+                                className="text-xs font-medium"
+                                style={{ color: item.sender.nationColor }}
+                              >
+                                {item.sender.nationName}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {item.formattedTime}
+                              </span>
+                            </div>
+                          ) : (
+                            <MessageTimestamp>
+                              {item.formattedTime}
+                            </MessageTimestamp>
+                          )}
                         </MessageContent>
                       </Message>
                     </React.Fragment>
