@@ -3,7 +3,7 @@ from unittest.mock import patch
 from django.apps import apps
 from django.urls import reverse
 from rest_framework import status
-from channel.models import Channel
+from channel.models import Channel, ChannelMessage
 
 from common.constants import GameStatus
 
@@ -507,6 +507,19 @@ class TestChannelUnreadCount:
             assert channel_data["unread_message_count"] == 0
 
     @pytest.mark.django_db
+    def test_own_messages_not_counted_as_unread(self, authenticated_client, game_with_public_channel_and_messages):
+        game = game_with_public_channel_and_messages
+        primary_member = game.members.first()
+        channel = Channel.objects.get(game=game, name="Public Press")
+        ChannelMessage.objects.create(channel=channel, sender=primary_member, body="Own message")
+
+        url = reverse("channel-list", args=[game.id])
+        response = authenticated_client.get(url)
+
+        channel_data = next(ch for ch in response.data if ch["name"] == "Public Press")
+        assert channel_data["unread_message_count"] == 2
+
+    @pytest.mark.django_db
     def test_unread_count_per_channel_independence(
         self, authenticated_client, game_with_public_channel_and_messages
     ):
@@ -517,7 +530,6 @@ class TestChannelUnreadCount:
         private_channel = Channel.objects.create(game=game, name="Private Channel", private=True)
         private_channel.members.add(primary_member, secondary_member)
 
-        from channel.models import ChannelMessage
         ChannelMessage.objects.create(channel=private_channel, sender=secondary_member, body="Private msg")
 
         public_channel = Channel.objects.get(game=game, name="Public Press")
@@ -557,6 +569,21 @@ class TestGameRetrieveUnreadCount:
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["total_unread_message_count"] == 0
+
+    @pytest.mark.django_db
+    def test_own_messages_not_counted_in_total_unread(
+        self, authenticated_client, game_with_public_channel_and_messages
+    ):
+        game = game_with_public_channel_and_messages
+        primary_member = game.members.first()
+        channel = Channel.objects.get(game=game, name="Public Press")
+        ChannelMessage.objects.create(channel=channel, sender=primary_member, body="Own message")
+
+        url = reverse("game-retrieve", args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["total_unread_message_count"] == 2
 
     @pytest.mark.django_db
     def test_game_retrieve_unread_count_resets_after_mark_read(
