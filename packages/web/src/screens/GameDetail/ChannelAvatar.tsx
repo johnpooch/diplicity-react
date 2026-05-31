@@ -10,15 +10,17 @@ const SCALE = 1.2;
 type XAlign = "left" | "center" | "right";
 type YAlign = "top" | "center" | "bottom";
 
-const imgX = (d: number, xa: XAlign, xb: number): number =>
-  xa === "left"   ? xb - d :
-  xa === "right"  ? xb     :
-  xb - d / 2;
+const imgX = (d: number, xa: XAlign, xb: number): number => {
+  if (xa === "left") return xb - d;
+  if (xa === "right") return xb;
+  return xb - d / 2;
+};
 
-const imgY = (d: number, ya: YAlign, yb: number): number =>
-  ya === "top"    ? yb - d :
-  ya === "bottom" ? yb     :
-  yb - d / 2;
+const imgY = (d: number, ya: YAlign, yb: number): number => {
+  if (ya === "top") return yb - d;
+  if (ya === "bottom") return yb;
+  return yb - d / 2;
+};
 
 interface FlagImg { url: string; x: number; y: number; d: number }
 
@@ -35,29 +37,29 @@ const buildImgs = (count: number, flag: (i: number) => string | null): FlagImg[]
   const TT = 2 * THIRD;
 
   if (count === 2) {
-    add(0, d2, "left",  HALF, "center", HALF);
+    add(0, d2, "left", HALF, "center", HALF);
     add(1, d2, "right", HALF, "center", HALF);
   } else if (count <= 4) {
-    add(0, d2, "left",  HALF, "top",    HALF);
-    add(1, d2, "right", HALF, "top",    HALF);
-    add(2, d2, "left",  HALF, "bottom", HALF);
+    add(0, d2, "left", HALF, "top", HALF);
+    add(1, d2, "right", HALF, "top", HALF);
+    add(2, d2, "left", HALF, "bottom", HALF);
     add(3, d2, "right", HALF, "bottom", HALF);
   } else if (count === 5) {
-    add(0, d3, "center", HALF,  "top",    T);
-    add(1, d3, "left",   T,     "center", HALF);
-    add(2, d3, "center", HALF,  "center", HALF);
-    add(3, d3, "right",  TT,    "center", HALF);
-    add(4, d3, "center", HALF,  "bottom", TT);
+    add(0, d3, "center", HALF, "top", T);
+    add(1, d3, "left", T, "center", HALF);
+    add(2, d3, "center", HALF, "center", HALF);
+    add(3, d3, "right", TT, "center", HALF);
+    add(4, d3, "center", HALF, "bottom", TT);
   } else {
-    add(0, d3, "left",   T,    "top",    T);
-    add(1, d3, "center", HALF, "top",    T);
-    add(2, d3, "right",  TT,   "top",    T);
-    add(3, d3, "left",   T,    "center", HALF);
+    add(0, d3, "left", T, "top", T);
+    add(1, d3, "center", HALF, "top", T);
+    add(2, d3, "right", TT, "top", T);
+    add(3, d3, "left", T, "center", HALF);
     add(4, d3, "center", HALF, "center", HALF);
-    add(5, d3, "right",  TT,   "center", HALF);
-    add(6, d3, "left",   T,    "bottom", TT);
+    add(5, d3, "right", TT, "center", HALF);
+    add(6, d3, "left", T, "bottom", TT);
     add(7, d3, "center", HALF, "bottom", TT);
-    add(8, d3, "right",  TT,   "bottom", TT);
+    add(8, d3, "right", TT, "bottom", TT);
   }
 
   return imgs;
@@ -109,7 +111,7 @@ const ChannelAvatar: React.FC<ChannelAvatarProps> = ({ nations }) => {
         ) : (
           buildImgs(count, flag).map((img, i) => (
             <img
-              key={i}
+              key={`grid-${i}`}
               src={img.url}
               alt=""
               style={{

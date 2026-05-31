@@ -1,4 +1,4 @@
-import React, { Suspense, useRef, useEffect, useState } from "react";
+import React, { Suspense, useRef, useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Send, MessageCircle, MessageSquareOff } from "lucide-react";
@@ -17,7 +17,7 @@ import {
 import { Notice } from "@/components/Notice";
 import { NationFlag, findNationFlagUrl } from "@/components/NationFlag";
 import { GameDetailAppBar } from "./AppBar";
-import { getChannelDisplayName, getChannelFlagUrls, brightnessByColor } from "./channelUtils";
+import { getChannelDisplayName, getChannelFlagUrls, brightnessByColor, toHex6 } from "./channelUtils";
 import { ChannelAvatar } from "./ChannelAvatar";
 import { Panel } from "@/components/Panel";
 import {
@@ -120,8 +120,8 @@ const ChannelScreen: React.FC = () => {
     return idx > 0 ? idx : null;
   });
 
-  const currentNationName =
-    game.members.find(m => m.isCurrentUser)?.nation ?? undefined;
+  const currentMember = game.members.find(m => m.isCurrentUser);
+  const currentNationName = currentMember?.nation ?? undefined;
   const variant = variants.find(v => v.id === game.variantId);
   const channelDisplayName = getChannelDisplayName(channel, currentNationName);
   const channelFlagUrls = getChannelFlagUrls(
@@ -138,6 +138,7 @@ const ChannelScreen: React.FC = () => {
   );
 
   useEffect(() => {
+    if (!currentMember) return;
     markReadMutation.mutateAsync({
       gameId,
       channelId: parseInt(channelId),
@@ -148,7 +149,9 @@ const ChannelScreen: React.FC = () => {
       queryClient.invalidateQueries({
         queryKey: getGameRetrieveQueryKey(gameId),
       });
-    }).catch(() => {});
+    }).catch(() => {
+      // Fire-and-forget: silently ignore mark-read failures
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mutation object excluded per project convention (not referentially stable); fire once on mount
   }, [gameId, channelId]);
 
@@ -189,7 +192,10 @@ const ChannelScreen: React.FC = () => {
     game.status !== "completed" &&
     game.status !== "abandoned";
 
-  const messageItems = buildMessageItems(channel.messages);
+  const messageItems = useMemo(
+    () => buildMessageItems(channel.messages),
+    [channel.messages]
+  );
 
   if (isNoPressActiveGame) {
     return (
@@ -201,7 +207,7 @@ const ChannelScreen: React.FC = () => {
           }
           variant="secondary"
         />
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-hidden">
           <Panel>
             <Panel.Content>
               <Notice
@@ -266,9 +272,9 @@ const ChannelScreen: React.FC = () => {
                           <div className="w-8 flex-shrink-0" />
                         )}
                         <MessageContent
-                          className={item.isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"}
+                          className={`py-1.5 px-2 ${item.isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"}`}
                           style={{
-                            backgroundColor: item.sender.nationColor + BUBBLE_ALPHA_HEX,
+                            backgroundColor: toHex6(item.sender.nationColor) + BUBBLE_ALPHA_HEX,
                             border: brightnessByColor(item.sender.nationColor) > 128
                               ? `1px solid ${item.sender.nationColor}`
                               : undefined,
@@ -276,7 +282,7 @@ const ChannelScreen: React.FC = () => {
                         >
                           {item.body}
                           {item.showAvatar ? (
-                            <div className="flex items-center justify-between gap-2 mt-1">
+                            <div className="flex items-center justify-between gap-2 mt-0.5">
                               <span
                                 className="text-xs font-medium"
                                 style={{ color: item.sender.nationColor }}
@@ -288,7 +294,7 @@ const ChannelScreen: React.FC = () => {
                               </span>
                             </div>
                           ) : (
-                            <MessageTimestamp>
+                            <MessageTimestamp className="mt-0.5">
                               {item.formattedTime}
                             </MessageTimestamp>
                           )}
