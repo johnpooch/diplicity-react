@@ -5,18 +5,29 @@ import { ChannelNation } from "./channelUtils";
 const SIZE = 40;
 const HALF = SIZE / 2;
 const THIRD = SIZE / 3;
+const OVERFLOW = 0.2; // each circle bleeds 20% of its cell size past the cell edge
+const SCALE = 1 + 2 * OVERFLOW;
 
 const FlagCell: React.FC<{ url: string | null; w: number; h: number }> = ({
   url,
   w,
   h,
 }) => (
-  <div style={{ width: w, height: h, flexShrink: 0 }}>
+  <div style={{ width: w, height: h, flexShrink: 0, position: "relative" }}>
     {url && (
       <img
         src={url}
         alt=""
-        style={{ width: w, height: h, objectFit: "cover", display: "block" }}
+        style={{
+          width: w * SCALE,
+          height: h * SCALE,
+          objectFit: "cover",
+          display: "block",
+          borderRadius: "50%",
+          position: "absolute",
+          top: -(h * OVERFLOW),
+          left: -(w * OVERFLOW),
+        }}
       />
     )}
   </div>
@@ -61,11 +72,8 @@ const ChannelAvatar: React.FC<ChannelAvatarProps> = ({ nations }) => {
   } else if (count === 2) {
     content = (
       <div style={{ display: "flex", width: SIZE, height: SIZE, alignItems: "center", justifyContent: "center" }}>
-        {flags.slice(0, 2).map((url, i) => (
-          <div key={i} style={{ width: HALF, height: HALF, borderRadius: "50%", overflow: "hidden", flexShrink: 0 }}>
-            {url && <img src={url} alt="" style={{ width: HALF, height: HALF, objectFit: "cover", display: "block" }} />}
-          </div>
-        ))}
+        <FlagCell url={flags[0]} w={HALF} h={HALF} />
+        <FlagCell url={flags[1]} w={HALF} h={HALF} />
       </div>
     );
   } else if (count <= 4) {
