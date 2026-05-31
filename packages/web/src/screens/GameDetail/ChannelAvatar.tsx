@@ -97,14 +97,12 @@ const ChannelAvatar: React.FC<ChannelAvatarProps> = ({ nations }) => {
     <div
       className={cn(
         "rounded-full overflow-hidden flex-shrink-0",
-        isSingle ? "bg-muted" : "bg-background"
+        isSingle ? "bg-muted" : "bg-background dark:bg-black ring-1 ring-black dark:ring-white"
       )}
       style={{
         width: SIZE,
         height: SIZE,
-        boxShadow: isSingle
-          ? `0 0 0 1px ${items[0].color}`
-          : "0 0 0 1px hsl(var(--foreground))",
+        boxShadow: isSingle ? `0 0 0 1px ${items[0].color}` : undefined,
       }}
     >
       {content}
