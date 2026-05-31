@@ -20,12 +20,12 @@ const FlagCell: React.FC<{ url: string | null; w: number; h: number }> = ({
         alt=""
         style={{
           width: w * SCALE,
-          height: h * SCALE,
+          height: w * SCALE,
           objectFit: "cover",
           display: "block",
           borderRadius: "50%",
           position: "absolute",
-          top: -(h * OVERFLOW),
+          top: -(w * OVERFLOW),
           left: -(w * OVERFLOW),
         }}
       />
@@ -68,7 +68,13 @@ const ChannelAvatar: React.FC<ChannelAvatarProps> = ({ nations }) => {
   let content: React.ReactNode;
 
   if (isSingle) {
-    content = <FlagCell url={flags[0]} w={SIZE} h={SIZE} />;
+    content = flags[0] ? (
+      <img
+        src={flags[0]}
+        alt=""
+        style={{ width: SIZE, height: SIZE, objectFit: "cover", display: "block" }}
+      />
+    ) : null;
   } else if (count === 2) {
     content = (
       <div style={{ display: "flex", width: SIZE, height: SIZE, alignItems: "center", justifyContent: "center" }}>
