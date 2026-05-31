@@ -111,9 +111,9 @@ const ChannelScreen: React.FC = () => {
     variants.find(v => v.id === game.variantId)?.nations ?? []
   );
   const channelTitle = (
-    <div className="flex items-center justify-center gap-2">
+    <div className="flex items-center justify-start gap-2">
       <ChannelAvatar flagUrls={channelFlagUrls} />
-      <h1 className="text-lg font-semibold truncate">{channelDisplayName}</h1>
+      <span className="text-lg font-semibold truncate text-left">{channelDisplayName}</span>
     </div>
   );
 
