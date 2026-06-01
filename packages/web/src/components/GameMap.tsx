@@ -1,8 +1,13 @@
 import { useRequiredParams } from "../hooks";
-import { useRef, useMemo, useEffect, useState } from "react";
+import { useRef, useMemo, useEffect, useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { determineRenderableProvinces } from "../utils/provinces";
+import { buildOptimisticOrder } from "../utils/buildOptimisticOrder";
+import {
+  buildOrderProgressText,
+  unitAbbrev,
+} from "../utils/buildOrderProgressText";
 import { InteractiveMapZoomWrapper } from "./InteractiveMap/InteractiveMapZoomWrapper";
 import { FloatingMenu, FloatingMenuItem } from "./FloatingMenu";
 import {
@@ -12,9 +17,36 @@ import {
   useGameOrdersList,
   useGameOrdersCreate,
   getGameOrdersListQueryKey,
+  getGamePhaseStatesListQueryKey,
   useGameOptionsRetrieve,
+  type Order,
 } from "../api/generated/endpoints";
 import { useOrderWizard } from "../hooks/useOrderWizard";
+
+function useBanner(duration = 3000) {
+  const [message, setMessage] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  const show = useCallback(
+    (text: string) => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      setMessage(text);
+      timerRef.current = setTimeout(() => {
+        setMessage(null);
+        timerRef.current = null;
+      }, duration);
+    },
+    [duration]
+  );
+
+  return { message, show };
+}
 
 const GameMap: React.FC = () => {
   const { gameId, phaseId } = useRequiredParams<{
@@ -36,6 +68,8 @@ const GameMap: React.FC = () => {
     x: number;
     y: number;
   } | null>(null);
+  const [pendingOrder, setPendingOrder] = useState<Order | null>(null);
+  const banner = useBanner();
   const createOrderMutation = useGameOrdersCreate();
 
   const wizard = useOrderWizard(
@@ -45,14 +79,27 @@ const GameMap: React.FC = () => {
 
   const variant = variants?.find((v) => v.id === game?.variantId);
 
-  const isWizardActive = Object.keys(wizard.selections).length > 0;
+  const civilDisorderNations = useMemo(
+    () =>
+      (game?.members ?? [])
+        .filter((m) => m.civilDisorder && m.nation)
+        .map((m) => m.nation as string),
+    [game?.members]
+  );
+
+  const isWizardActive = Object.keys(wizard.resolvedSelections).length > 0;
+
+  const provinceNameMap = useMemo(
+    () =>
+      Object.fromEntries(
+        (variant?.provinces ?? []).map((p) => [p.id, p.name])
+      ),
+    [variant?.provinces]
+  );
 
   const highlightedIds = useMemo(() => {
     if (!isWizardActive) return [];
-    if (
-      wizard.nextField === "target" ||
-      wizard.nextField === "aux"
-    ) {
+    if (wizard.nextField === "target" || wizard.nextField === "aux") {
       return wizard.choices.map((c) => c.id);
     }
     return [];
@@ -65,20 +112,34 @@ const GameMap: React.FC = () => {
 
   useEffect(() => {
     if (!wizard.isComplete || wizard.selectedArray.length === 0) return;
+    if (variant && phase) {
+      setPendingOrder(
+        buildOptimisticOrder(wizard.resolvedSelections, variant, phase)
+      );
+    }
     createOrderMutation
       .mutateAsync({
         gameId,
         data: { selected: wizard.selectedArray },
       })
       .then((order) => {
+        queryClient.setQueryData<Order[]>(
+          getGameOrdersListQueryKey(gameId, selectedPhase),
+          (old) => [
+            ...(old ?? []).filter((o) => o.source.id !== order.source.id),
+            order,
+          ]
+        );
+        queryClient.invalidateQueries({
+          queryKey: getGamePhaseStatesListQueryKey(gameId),
+        });
+        setPendingOrder(null);
         toast.success(order.title ?? "Order created");
         wizard.reset();
         setMenuPosition(null);
-        queryClient.invalidateQueries({
-          queryKey: getGameOrdersListQueryKey(gameId, selectedPhase),
-        });
       })
       .catch(() => {
+        setPendingOrder(null);
         toast.error("Failed to create order");
         wizard.reset();
         setMenuPosition(null);
@@ -106,7 +167,18 @@ const GameMap: React.FC = () => {
     }
 
     if (wizard.nextField === "source") {
-      if (!wizard.choices.some((c) => c.id === province)) return;
+      if (!wizard.choices.some((c) => c.id === province)) {
+        if (!phase) return;
+        const unit = phase.units.find((u) => u.province.id === province);
+        if (unit && !game?.sandbox) {
+          banner.show(
+            `${unitAbbrev(unit.type)} ${unit.province.name} (${unit.nation.name})`
+          );
+        } else if (!unit) {
+          banner.show(provinceNameMap[province] ?? province);
+        }
+        return;
+      }
       captureMenuPosition(event);
       wizard.select(province);
     } else if (
@@ -141,6 +213,27 @@ const GameMap: React.FC = () => {
       wizard.nextField === "namedCoast") &&
     menuPosition !== null;
 
+  const displayOrders = pendingOrder
+    ? [
+        ...(orders ?? []).filter(
+          (o) => o.source.id !== pendingOrder.source.id
+        ),
+        pendingOrder,
+      ]
+    : orders;
+
+  const progressText =
+    phase && isWizardActive
+      ? buildOrderProgressText(
+          wizard.resolvedSelections,
+          wizard.resolvedLabels,
+          phase,
+          wizard.isComplete
+        )
+      : null;
+
+  const displayBannerText = progressText ?? banner.message;
+
   return (
     <div ref={containerRef} className="relative w-full h-full">
       {game && variant && phase && orders && (
@@ -150,11 +243,12 @@ const GameMap: React.FC = () => {
               interactive: true,
               variant: variant,
               phase: phase,
-              orders: orders,
+              orders: displayOrders,
               selected: wizard.selectedArray,
               onClickProvince: handleProvinceClick,
               renderableProvinces: renderableProvinces,
               highlighted: highlightedIds,
+              civilDisorderNations: civilDisorderNations,
             }}
           />
           <FloatingMenu
@@ -174,6 +268,11 @@ const GameMap: React.FC = () => {
             ))}
           </FloatingMenu>
         </>
+      )}
+      {displayBannerText !== null && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-black/70 text-white px-4 py-2 rounded-full text-sm font-medium pointer-events-none whitespace-nowrap">
+          {displayBannerText}
+        </div>
       )}
     </div>
   );

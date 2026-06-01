@@ -44,6 +44,10 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-gdnbe1&siif)1gsuv+f
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 
+# How long a phase's deadline may be overdue before the resolution sweep treats it
+# as a missed primary trigger and emits a Sentry canary event (seconds).
+RESOLUTION_CANARY_GRACE_SECONDS = int(os.getenv("RESOLUTION_CANARY_GRACE_SECONDS", "300"))
+
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,service,192.168.68.50").split(",")
 
 # CSRF Settings
@@ -53,6 +57,12 @@ CSRF_TRUSTED_ORIGINS = os.getenv(
 ).split(",")
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
+
+# Railway and other PaaS proxies terminate TLS at the edge and forward the
+# original scheme via X-Forwarded-Proto. Without this, request.scheme is "http"
+# inside the container and build_absolute_uri returns http:// URLs that
+# browsers block as mixed content when the frontend is served over HTTPS.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 
 # Application definition
@@ -70,6 +80,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "rest_framework.authtoken",
+    "procrastinate.contrib.django",
     "game",
     "member",
     "order",
@@ -106,7 +117,7 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = os.getenv(
-    "DJANGO_CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173,http://diplicity-web:5173,capacitor://localhost"
+    "DJANGO_CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173,http://diplicity-web:5173,capacitor://localhost,https://localhost"
 ).split(",")
 
 CORS_ALLOW_HEADERS = [

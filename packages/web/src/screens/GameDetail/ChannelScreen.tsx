@@ -1,4 +1,4 @@
-import React, { Suspense, useRef, useEffect } from "react";
+import React, { Suspense, useRef, useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Send, MessageCircle, MessageSquareOff } from "lucide-react";
@@ -16,8 +16,10 @@ import {
   MessageTimestamp,
 } from "@/components/ui/message";
 import { Notice } from "@/components/Notice";
-import { NationFlag } from "@/components/NationFlag";
+import { NationFlag, findNationFlagUrl } from "@/components/NationFlag";
 import { GameDetailAppBar } from "./AppBar";
+import { getChannelDisplayName, getChannelFlagUrls, brightnessByColor, toHex6 } from "./channelUtils";
+import { ChannelAvatar } from "./ChannelAvatar";
 import { Panel } from "@/components/Panel";
 import {
   useGameRetrieveSuspense,
@@ -36,11 +38,24 @@ type MessageDisplayItem = {
   createdAt: string;
   sender: {
     nationName: string;
+    nationColor: string;
     picture: string | null;
   };
   isCurrentUser: boolean;
   showAvatar: boolean;
   formattedTime: string;
+};
+
+const formatMessageTime = (createdAt: string): string => {
+  const date = new Date(createdAt);
+  const today = new Date();
+  const isToday =
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate();
+  const time = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (isToday) return time;
+  return `${date.toLocaleDateString([], { month: "short", day: "numeric" })} ${time}`;
 };
 
 const buildMessageItems = (
@@ -57,17 +72,25 @@ const buildMessageItems = (
       createdAt: msg.createdAt,
       sender: {
         nationName: msg.sender.nation.name,
+        nationColor: msg.sender.nation.color,
         picture: msg.sender.picture,
       },
       isCurrentUser: msg.sender.isCurrentUser,
       showAvatar,
-      formattedTime: new Date(msg.createdAt).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      formattedTime: formatMessageTime(msg.createdAt),
     };
   });
 };
+
+const BUBBLE_ALPHA_HEX = "26"; // 15% opacity (0x26/0xFF)
+
+const NewMessagesDivider: React.FC = () => (
+  <div className="flex items-center gap-2 my-1">
+    <div className="flex-1 h-px bg-border" />
+    <span className="text-xs text-muted-foreground font-medium">New messages</span>
+    <div className="flex-1 h-px bg-border" />
+  </div>
+);
 
 const ChannelScreen: React.FC = () => {
   const { gameId, phaseId, channelId } = useRequiredParams<{
@@ -92,26 +115,47 @@ const ChannelScreen: React.FC = () => {
   const channel = channels.find(c => c.id === parseInt(channelId));
   if (!channel) throw new Error("Channel not found");
 
+  const [firstUnreadIndex] = useState<number | null>(() => {
+    const count = channel.unreadMessageCount;
+    if (count <= 0) return null;
+    const idx = channel.messages.length - count;
+    return idx > 0 ? idx : null;
+  });
+
   const currentMember = game.members.find(m => m.isCurrentUser);
+  const currentNationName = currentMember?.nation ?? undefined;
+  const variant = variants.find(v => v.id === game.variantId);
+  const channelDisplayName = getChannelDisplayName(channel, currentNationName);
+  const channelFlagUrls = getChannelFlagUrls(
+    channel,
+    game.members,
+    currentNationName,
+    variant?.nations ?? []
+  );
+  const channelTitle = (
+    <div className="flex items-center justify-start gap-2">
+      <ChannelAvatar nations={channelFlagUrls} />
+      <span className="text-lg font-semibold truncate text-left">{channelDisplayName}</span>
+    </div>
+  );
 
   useEffect(() => {
-    if (currentMember) {
-      markReadMutation.mutateAsync({
-        gameId,
-        channelId: parseInt(channelId),
-      }).then(() => {
-        queryClient.invalidateQueries({
-          queryKey: getGamesChannelsListQueryKey(gameId),
-        });
-        queryClient.invalidateQueries({
-          queryKey: getGameRetrieveQueryKey(gameId),
-        });
-      }).catch(() => {
-        // Fire-and-forget: silently ignore mark-read failures
+    if (!currentMember) return;
+    markReadMutation.mutateAsync({
+      gameId,
+      channelId: parseInt(channelId),
+    }).then(() => {
+      queryClient.invalidateQueries({
+        queryKey: getGamesChannelsListQueryKey(gameId),
       });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- markReadMutation is stable, fire once on mount
-  }, [gameId, channelId, currentMember]);
+      queryClient.invalidateQueries({
+        queryKey: getGameRetrieveQueryKey(gameId),
+      });
+    }).catch(() => {
+      // Fire-and-forget: silently ignore mark-read failures
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mutation object excluded per project convention (not referentially stable); fire once on mount
+  }, [gameId, channelId]);
 
   useEffect(() => {
     if (messagesContainerRef.current) {
@@ -150,22 +194,22 @@ const ChannelScreen: React.FC = () => {
     game.status !== "completed" &&
     game.status !== "abandoned";
 
-  const variant = variants.find(v => v.id === game.variantId);
-  const variantId = variant?.id;
-
-  const messageItems = buildMessageItems(channel.messages);
+  const messageItems = useMemo(
+    () => buildMessageItems(channel.messages),
+    [channel.messages]
+  );
 
   if (isNoPressActiveGame) {
     return (
       <div className="flex flex-col flex-1 min-h-0">
         <GameDetailAppBar
-          title={channel.name}
+          title={channelTitle}
           onNavigateBack={() =>
             navigate(`/game/${gameId}/phase/${phaseId}/chat`)
           }
           variant="secondary"
         />
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-hidden">
           <Panel>
             <Panel.Content>
               <Notice
@@ -183,11 +227,11 @@ const ChannelScreen: React.FC = () => {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <GameDetailAppBar
-        title={channel.name}
+        title={channelTitle}
         onNavigateBack={() => navigate(`/game/${gameId}/phase/${phaseId}/chat`)}
         variant="secondary"
       />
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-hidden">
         <Panel>
           <Panel.Content>
             <div className="h-full flex flex-col">
@@ -203,34 +247,62 @@ const ChannelScreen: React.FC = () => {
                   ref={messagesContainerRef}
                   className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 p-2"
                 >
-                  {messageItems.map(item => (
-                    <Message
-                      key={item.id}
-                      className={
-                        item.isCurrentUser ? "flex-row-reverse" : undefined
-                      }
-                    >
-                      {item.showAvatar ? (
-                        <div className="flex flex-col items-center gap-0.5">
-                          <NationFlag
-                            nation={item.sender.nationName}
-                            variantId={variantId!}
-                            size="lg"
-                          />
-                          <span className="text-xs text-muted-foreground">
-                            {item.sender.nationName}
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="w-8" />
+                  {messageItems.map((item, index) => (
+                    <React.Fragment key={item.id}>
+                      {firstUnreadIndex !== null && index === firstUnreadIndex && (
+                        <NewMessagesDivider />
                       )}
-                      <MessageContent>
-                        {item.body}
-                        <MessageTimestamp>
-                          {item.formattedTime}
-                        </MessageTimestamp>
-                      </MessageContent>
-                    </Message>
+                      <Message
+                        className={
+                          item.isCurrentUser ? "flex-row-reverse" : undefined
+                        }
+                      >
+                        {item.showAvatar ? (
+                          <div className="w-8 flex-shrink-0 flex justify-center">
+                            <NationFlag
+                              flagUrl={
+                                variant
+                                  ? findNationFlagUrl(variant.nations, item.sender.nationName)
+                                  : null
+                              }
+                              alt={item.sender.nationName}
+                              size="lg"
+                              color={item.sender.nationColor}
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-8 flex-shrink-0" />
+                        )}
+                        <MessageContent
+                          className={`py-1.5 px-2 ${item.isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"}`}
+                          style={{
+                            backgroundColor: toHex6(item.sender.nationColor) + BUBBLE_ALPHA_HEX,
+                            border: brightnessByColor(item.sender.nationColor) > 128
+                              ? `1px solid ${item.sender.nationColor}`
+                              : undefined,
+                          }}
+                        >
+                          {item.body}
+                          {item.showAvatar ? (
+                            <div className="flex items-center justify-between gap-2 mt-0.5">
+                              <span
+                                className="text-xs font-medium"
+                                style={{ color: item.sender.nationColor }}
+                              >
+                                {item.sender.nationName}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {item.formattedTime}
+                              </span>
+                            </div>
+                          ) : (
+                            <MessageTimestamp className="mt-0.5">
+                              {item.formattedTime}
+                            </MessageTimestamp>
+                          )}
+                        </MessageContent>
+                      </Message>
+                    </React.Fragment>
                   ))}
                 </div>
               )}

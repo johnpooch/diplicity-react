@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import { useForm, Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Users, Calendar, User, Clock } from "lucide-react";
+import { BookOpen, Calendar, Clock, Map, User, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/form";
 
 import { randomGameName } from "@/util";
-import { InteractiveMap } from "@/components/InteractiveMap/InteractiveMap";
+import { MapPreview } from "@/components/MapPreview";
 import { DeadlineSummary } from "@/components/DeadlineSummary";
 import {
   DURATION_OPTIONS,
@@ -49,9 +49,23 @@ import {
   useVariantsListSuspense,
   useGameCreate,
   useSandboxGameCreate,
+  getGamesFindSimilarRetrieveQueryOptions,
+  GameList,
   Variant,
   NationAssignmentEnum,
 } from "@/api/generated/endpoints";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
 
 const standardGameSchema = z.object({
   name: z
@@ -98,7 +112,8 @@ const modeToBackendFields = (mode: StandardGameFormValues["mode"]) => ({
 
 interface MetadataRow {
   label: string;
-  value: string | React.ReactNode;
+  value?: string | React.ReactNode;
+  text?: string;
   icon?: React.ReactNode;
 }
 
@@ -109,15 +124,25 @@ interface GameMetadataTableProps {
 const GameMetadataTable: React.FC<GameMetadataTableProps> = ({ rows }) => {
   return (
     <div className="divide-y border rounded-lg">
-      {rows.map((row, index) => (
-        <div key={index} className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-3">
-            {row.icon}
-            <span className="text-sm">{row.label}</span>
+      {rows.map((row, index) =>
+        row.text ? (
+          <div key={index} className="p-4">
+            <div className="flex items-center gap-3 mb-1">
+              {row.icon}
+              <span className="text-sm">{row.label}</span>
+            </div>
+            <p className="text-sm text-muted-foreground whitespace-pre-line pl-7">{row.text}</p>
           </div>
-          <span className="text-sm text-muted-foreground">{row.value}</span>
-        </div>
-      ))}
+        ) : (
+          <div key={index} className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-3">
+              {row.icon}
+              <span className="text-sm">{row.label}</span>
+            </div>
+            <span className="text-sm text-muted-foreground">{row.value}</span>
+          </div>
+        )
+      )}
     </div>
   );
 };
@@ -170,12 +195,9 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
       />
 
       {selectedVariant?.templatePhase ? (
-        <InteractiveMap
+        <MapPreview
           variant={selectedVariant}
           phase={selectedVariant.templatePhase}
-          interactive={false}
-          selected={[]}
-          orders={undefined}
           style={{ width: "100%", height: "100%" }}
         />
       ) : null}
@@ -197,6 +219,16 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
             value: selectedVariant?.author,
             icon: <User className="size-4" />,
           },
+          ...(selectedVariant?.description ? [{
+            label: "Description",
+            text: selectedVariant.description,
+            icon: <Map className="size-4" />,
+          }] : []),
+          ...(selectedVariant?.rules ? [{
+            label: "Rules",
+            text: selectedVariant.rules,
+            icon: <BookOpen className="size-4" />,
+          }] : []),
         ]}
       />
     </div>
@@ -695,9 +727,19 @@ const CreateSandboxGameForm: React.FC<CreateSandboxGameFormProps> = ({
 const CreateGame: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { data: variants } = useVariantsListSuspense();
+  const queryClient = useQueryClient();
+  const { data: allVariants } = useVariantsListSuspense();
+  const variants = React.useMemo(
+    () => allVariants.filter(v => v.status === "published"),
+    [allVariants]
+  );
   const createGameMutation = useGameCreate();
   const createSandboxGameMutation = useSandboxGameCreate();
+  const checkNotificationPermission = useCheckNotificationPermission();
+
+  const [similarMatch, setSimilarMatch] = useState<GameList | null>(null);
+  const [pendingFormData, setPendingFormData] =
+    useState<StandardGameFormValues | null>(null);
 
   const getInitialTab = (): "standard" | "sandbox" => {
     return searchParams.get("sandbox") === "true" ? "sandbox" : "standard";
@@ -726,7 +768,7 @@ const CreateGame: React.FC = () => {
     navigate(`?${newSearchParams.toString()}`, { replace: true });
   };
 
-  const handleStandardGameSubmit = async (data: StandardGameFormValues) => {
+  const submitCreateGame = async (data: StandardGameFormValues) => {
     try {
       const formattedTime = data.fixedDeadlineTime
         ? `${data.fixedDeadlineTime}:00`
@@ -762,10 +804,55 @@ const CreateGame: React.FC = () => {
         },
       });
       toast.success("Game created successfully");
+      checkNotificationPermission();
       navigate(`/game-info/${game.id}`);
     } catch {
       toast.error("Failed to create game");
     }
+  };
+
+  const handleStandardGameSubmit = async (data: StandardGameFormValues) => {
+    const skipSimilarCheck =
+      data.private ||
+      data.deadlineMode !== "duration" ||
+      !data.movementPhaseDuration;
+
+    if (!skipSimilarCheck) {
+      try {
+        const result = await queryClient.fetchQuery(
+          getGamesFindSimilarRetrieveQueryOptions({
+            variant: data.variantId,
+            movement_phase_duration: data.movementPhaseDuration as string,
+          })
+        );
+        if (result.game) {
+          setSimilarMatch(result.game);
+          setPendingFormData(data);
+          return;
+        }
+      } catch {
+        // Fall through to create on lookup failure — don't block the user.
+      }
+    }
+
+    await submitCreateGame(data);
+  };
+
+  const handleSimilarMatchContinue = async () => {
+    const data = pendingFormData;
+    setSimilarMatch(null);
+    setPendingFormData(null);
+    if (data) {
+      await submitCreateGame(data);
+    }
+  };
+
+  const handleSimilarMatchJoin = () => {
+    if (similarMatch) {
+      navigate(`/game-info/${similarMatch.id}`);
+    }
+    setSimilarMatch(null);
+    setPendingFormData(null);
   };
 
   const handleSandboxGameSubmit = async (data: SandboxGameFormValues) => {
@@ -779,6 +866,10 @@ const CreateGame: React.FC = () => {
       toast.error("Failed to create sandbox game");
     }
   };
+
+  const matchedVariant = similarMatch
+    ? variants.find(v => v.id === similarMatch.variantId)
+    : null;
 
   return (
     <div className="space-y-4">
@@ -816,6 +907,42 @@ const CreateGame: React.FC = () => {
           </ScreenCard>
         </TabsContent>
       </Tabs>
+
+      <AlertDialog
+        open={similarMatch !== null}
+        onOpenChange={open => {
+          if (!open) {
+            setSimilarMatch(null);
+            setPendingFormData(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>A similar game is already forming</AlertDialogTitle>
+            <AlertDialogDescription>
+              Join it instead to start playing sooner.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {similarMatch && (
+            <div className="space-y-1 text-sm">
+              <p className="font-semibold">{similarMatch.name}</p>
+              <p className="text-muted-foreground">
+                {similarMatch.members.length}
+                {matchedVariant ? ` / ${matchedVariant.nations.length}` : ""} players
+              </p>
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleSimilarMatchContinue}>
+              Continue
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleSimilarMatchJoin}>
+              Join Them?
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
@@ -823,7 +950,7 @@ const CreateGame: React.FC = () => {
 const CreateGameSuspense: React.FC = () => {
   return (
     <ScreenContainer>
-      <ScreenHeader title="Create Game" showUserAvatar />
+      <ScreenHeader title="Create Game" />
       <QueryErrorBoundary>
         <Suspense fallback={<div></div>}>
           <CreateGame />

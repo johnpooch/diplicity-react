@@ -1,0 +1,640 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: https://diplicity.com/schemas/variant.schema.yaml
+title: Variant
+description: |
+  The definition of a Diplomacy variant (excluding rendering data) — map topology,
+  nations, initial state, and rules — in a single language-neutral document.
+type: object
+additionalProperties: false
+required:
+  - schemaVersion
+  - id
+  - name
+  - description
+  - author
+  - victoryConditions
+  - phaseProgression
+  - nations
+  - provinces
+  - namedCoasts
+  - initialState
+
+properties:
+  schemaVersion:
+    const: 1
+    description: |
+      Version of *this schema*, not the variant. Bumped on breaking changes.
+      Loaders use this to decide how to parse older variants.
+
+  id:
+    type: string
+    pattern: "^[a-z0-9-]+$"
+    description: |
+      Stable identifier for the variant. Lowercase kebab-case. Used as a
+      foreign key throughout the system (game records, API URLs, asset
+      directories). Must be unique across all variants.
+    examples:
+      - "classical"
+
+  name:
+    type: string
+    description: Human-readable name shown in UI.
+    examples:
+      - "Classical"
+
+  description:
+    type: string
+    description: |
+      Short prose description of the variant for the variant catalogue.
+      One or two sentences — the equivalent of a tagline.
+    examples:
+      - "The original game of Diplomacy."
+
+  rules:
+    type: string
+    description: |
+      Optional long-form, player-facing rules text.
+      Free-form text.
+    examples:
+      - "The first nation to control 18 supply centers (a majority of the 34 on the board) wins outright. There is no fixed end year — games continue until a solo or until the surviving players agree to a draw."
+
+  author:
+    type: string
+    description: |
+      Free-form attribution for the variant designer (e.g. "Allan B. Calhamer").
+      Not a user account; just credit text.
+    examples:
+      - "Allan B. Calhamer"
+
+  victoryConditions:
+    type: array
+    minItems: 1
+    description: |
+      The ways a game on this variant can end. Each entry is a condition the
+      adjudicator evaluates after the relevant phase; the first condition to
+      fire ends the game. A variant may declare several at once (e.g. a solo
+      threshold *and* a fixed historical end year).
+
+      Only declarative, game-state-derivable conditions belong here. Victory
+      rules that need bespoke logic (per-player secret objectives, vote-based
+      scoring, etc.) are not modelled.
+    items:
+      $ref: "#/$defs/VictoryCondition"
+    examples:
+      - - type: supply-center-majority
+          supplyCenters: 18
+      - - type: supply-center-majority
+          supplyCenters: 18
+        - type: timed-resolution
+          year: 1453
+          resolution: most-supply-centers
+
+  adjudicationModifiers:
+    type: array
+    description: |
+      Behavioral toggles the adjudicator recognizes as opt-ins or opt-outs of
+      its default rules. Each entry is a string tag from a fixed vocabulary
+      defined by the adjudicator (e.g. "allow-builds-in-non-home-centers").
+    items:
+      type: string
+    uniqueItems: true
+    examples:
+      - ["allow-builds-in-non-home-centers"]
+
+  phaseProgression:
+    type: object
+    description: |
+      The phase state machine. Defines the cycle of seasons and phase types.
+
+      For Classical:
+        Spring Movement → Spring Retreat → Fall Movement → Fall Retreat →
+        Fall Adjustment → (next year) Spring Movement.
+
+      The adjudicator advances between phases according to `transitions`.
+      Skip behavior (e.g. skipping a Retreat phase when no units are
+      dislodged) is handled by the adjudicator, not encoded here.
+    examples:
+      - seasons: [Spring, Fall]
+        transitions:
+          - from: { season: Spring, type: Movement }
+            to:   { season: Spring, type: Retreat,    yearDelta: 0 }
+          - from: { season: Spring, type: Retreat }
+            to:   { season: Fall,   type: Movement,   yearDelta: 0 }
+          - from: { season: Fall,   type: Movement }
+            to:   { season: Fall,   type: Retreat,    yearDelta: 0 }
+          - from: { season: Fall,   type: Retreat }
+            to:   { season: Fall,   type: Adjustment, yearDelta: 0 }
+          - from: { season: Fall,   type: Adjustment }
+            to:   { season: Spring, type: Movement,   yearDelta: 1 }
+    additionalProperties: false
+    required: [seasons, transitions]
+    properties:
+      seasons:
+        type: array
+        description: |
+          Ordered list of season names used by the variant
+          (e.g. ["Spring", "Fall"] for Classical). These names appear
+          verbatim in phase identifiers and UI.
+        items:
+          type: string
+        minItems: 1
+        uniqueItems: true
+
+      transitions:
+        type: array
+        description: |
+          Edges of the phase state machine. Each transition declares what
+          phase follows the current one. The adjudicator looks up the
+          transition whose `from` matches the current phase and applies its
+          `to` (advancing the year if `yearDelta` is 1).
+
+          The set of transitions must cover every (season, type) pair that
+          can appear during play.
+        items:
+          $ref: "#/$defs/PhaseTransition"
+        minItems: 1
+
+  nations:
+    type: array
+    description: The playable powers in the variant.
+    minItems: 1
+    examples:
+      - - { id: austria, name: Austria, color: "#F44336" }
+        - { id: england, name: England, color: "#2196F3" }
+        - { id: france,  name: France,  color: "#80DEEA" }
+    items:
+      type: object
+      additionalProperties: false
+      required: [id, name, color]
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9-]+$"
+          description: Stable identifier (e.g. "austria").
+        name:
+          type: string
+          description: Display name (e.g. "Austria").
+        color:
+          type: string
+          pattern: "^#[0-9A-Fa-f]{6}$"
+          description: |
+            Hex color used to render the nation's units, supply-center
+            ownership marker, and chat badge.
+          examples:
+            - "#F44336"
+
+  provinces:
+    type: array
+    description: |
+      Geographic regions on the map. Each province is the unit of territorial
+      control and the addressable target of orders.
+
+      Provinces that have multiple named coasts (e.g. St. Petersburg) appear
+      here as a single `land`-typed entry; their coasts live in `namedCoasts`
+      as siblings, not children.
+
+      Impassable regions (e.g. Switzerland in Classical) are not provinces —
+      they have no presence in the data model and exist only as visual gaps
+      in the SVG.
+    minItems: 1
+    items:
+      $ref: "#/$defs/Province"
+
+  namedCoasts:
+    type: array
+    description: |
+      Multi-coast siblings of land provinces. A named coast is the addressable
+      target for a *fleet* moving to a province that has multiple distinct
+      coastlines (e.g. "stp/nc", "stp/sc", "spa/nc", "spa/sc", "bul/ec",
+      "bul/sc"). Armies move to the parent province directly and never
+      reference a named coast.
+
+      Empty array if the variant has no multi-coast provinces.
+    items:
+      $ref: "#/$defs/NamedCoast"
+
+  initialState:
+    type: object
+    description: The starting position of the game — opening phase, units, and supply-center ownership.
+    examples:
+      - phase: { season: Spring, year: 1901, type: Movement }
+        units:
+          - { nation: austria, type: Army,  location: vie }
+          - { nation: russia,  type: Fleet, location: stp/sc }
+          - { nation: england, type: Fleet, location: lon }
+        supplyCenters:
+          - { nation: austria, province: vie }
+          - { nation: russia,  province: stp }
+          - { nation: england, province: lon }
+    additionalProperties: false
+    required: [phase, units, supplyCenters]
+    properties:
+      phase:
+        type: object
+        description: |
+          The phase the game begins in. Typically Spring Movement of the
+          start year.
+        additionalProperties: false
+        required: [season, year, type]
+        properties:
+          season:
+            type: string
+            description: Must match one of the entries in `phaseProgression.seasons`.
+          year:
+            type: integer
+            description: Calendar year of the opening phase (e.g. 1901).
+          type:
+            $ref: "#/$defs/PhaseType"
+
+      units:
+        type: array
+        description: Units on the board at game start.
+        items:
+          type: object
+          additionalProperties: false
+          required: [nation, type, location]
+          properties:
+            nation:
+              type: string
+              description: Nation id this unit belongs to.
+            type:
+              enum: [Army, Fleet]
+              description: |
+                Unit type. Armies must start on land or coastal provinces;
+                fleets on sea or coastal provinces (or a named coast).
+            location:
+              type: string
+              description: |
+                Where the unit stands. A province id (e.g. "vie", "lon") or,
+                for a fleet on a multi-coast province, a named-coast id
+                (e.g. "stp/sc").
+
+                Named to make the dual nature explicit: armies always
+                reference parent provinces; fleets may reference either a
+                province or a named coast. Adjudicators that need the
+                parent province for a fleet on a named coast must resolve
+                it via `namedCoasts[].parentProvince`.
+
+      supplyCenters:
+        type: array
+        description: |
+          Initial ownership of supply centers. Typically every nation starts
+          owning all its home centers; neutral SCs are omitted.
+        items:
+          type: object
+          additionalProperties: false
+          required: [nation, province]
+          properties:
+            nation:
+              type: string
+              description: Nation id that owns this SC at game start.
+            province:
+              type: string
+              description: |
+                Province id of the supply center. Always the parent province,
+                never a named coast.
+
+  dominanceRules:
+    type: array
+    description: |
+      Optional contested-supply-center rules used by some variants
+      (e.g. Hundred, Ancient Mediterranean). Each rule says "this province
+      belongs to nation X *iff* certain other provinces are controlled by
+      certain nations."
+
+      Most variants leave this empty. If absent or empty, the adjudicator
+      uses default ownership rules (whoever last occupied the SC at the end
+      of a Fall phase controls it).
+    examples:
+      - - province: gas
+          nation: france
+          dependencies:
+            - { province: bre, nation: france }
+            - { province: par, nation: france }
+            - { province: mar, nation: france }
+            - { province: spa, nation: Empty }
+    items:
+      $ref: "#/$defs/DominanceRule"
+
+$defs:
+  PhaseType:
+    enum: [Movement, Retreat, Adjustment]
+    description: |
+      The three phase types in canonical Diplomacy:
+        - Movement:   players issue Move/Hold/Support/Convoy orders
+        - Retreat:    dislodged units must Retreat or Disband
+        - Adjustment: nations Build new units or Disband to match SC count
+
+  PhaseTransition:
+    type: object
+    additionalProperties: false
+    required: [from, to]
+    examples:
+      - from: { season: Fall, type: Adjustment }
+        to:   { season: Spring, type: Movement, yearDelta: 1 }
+    properties:
+      from:
+        type: object
+        additionalProperties: false
+        required: [season, type]
+        properties:
+          season: { type: string }
+          type: { $ref: "#/$defs/PhaseType" }
+      to:
+        type: object
+        additionalProperties: false
+        required: [season, type, yearDelta]
+        properties:
+          season: { type: string }
+          type: { $ref: "#/$defs/PhaseType" }
+          yearDelta:
+            type: integer
+            minimum: 0
+            description: |
+              How much to advance the calendar year on this transition. For
+              Classical, only the Fall Adjustment → Spring Movement transition
+              uses `yearDelta: 1`; all others are 0.
+
+              Larger values are valid for variants whose calendar advances
+              multiple years per cycle (e.g. godip's `hundred` variant uses
+              5-year jumps).
+
+      condition:
+        type: object
+        additionalProperties: false
+        required: [yearMod, yearModValue]
+        description: |
+          Optional. When present, the transition fires only when the current
+          phase's year satisfies `year % yearMod == yearModValue`. Variants
+          whose phase cycle is year-dependent use this — e.g. the `hundred`
+          variant skips the Adjustment phase in years ending in 5. A
+          transition with no `condition` is unconditional.
+        properties:
+          yearMod:
+            type: integer
+            minimum: 1
+          yearModValue:
+            type: integer
+            minimum: 0
+
+  VictoryCondition:
+    description: |
+      A single way a game can end. Discriminator: `type`.
+        - supply-center-majority — a nation solos by controlling enough SCs
+        - timed-resolution       — at a fixed calendar year, the game ends and
+                                   is decided by SC count or forced to a draw
+        - province-control       — a nation wins by holding a specific set of
+                                   provinces, optionally only from a given year
+    examples:
+      - type: supply-center-majority
+        supplyCenters: 18
+      - type: timed-resolution
+        year: 1453
+        resolution: most-supply-centers
+      - type: province-control
+        provinces: [stp, mos]
+        year: 1911
+    oneOf:
+      - type: object
+        additionalProperties: false
+        required: [type, supplyCenters]
+        properties:
+          type: { const: supply-center-majority }
+          supplyCenters:
+            type: integer
+            minimum: 1
+            description: |
+              Number of supply centers a single nation must control to win
+              outright. For Classical this is 18 (a majority of the 34 SCs).
+              Checked each adjustment phase.
+      - type: object
+        additionalProperties: false
+        required: [type, year, resolution]
+        properties:
+          type: { const: timed-resolution }
+          year:
+            type: integer
+            description: |
+              Calendar year at the end of which the game terminates regardless
+              of any solo. Used by variants with a fixed historical end
+              (e.g. godip's `hundred` ends in 1453).
+          resolution:
+            enum: [most-supply-centers, shared-draw]
+            description: |
+              How the terminated game is decided:
+                - most-supply-centers — the nation with the most SCs wins;
+                  ties produce a shared victory among the leaders
+                - shared-draw         — all surviving nations share a draw
+                  regardless of SC counts
+      - type: object
+        additionalProperties: false
+        required: [type, provinces]
+        properties:
+          type: { const: province-control }
+          provinces:
+            type: array
+            minItems: 1
+            uniqueItems: true
+            description: |
+              Province ids a single nation must simultaneously control to win.
+              Always parent province ids, never named coasts.
+            items:
+              type: string
+          year:
+            type: integer
+            description: |
+              Optional. If present, the condition is only evaluated from this
+              calendar year onward (e.g. Wall of Ice decides in winter 1911).
+              Omit to evaluate every phase.
+
+  Province:
+    type: object
+    additionalProperties: false
+    required:
+      - id
+      - name
+      - type
+      - supplyCenter
+      - adjacencies
+    examples:
+      - id: stp
+        name: St. Petersburg
+        type: land
+        supplyCenter: true
+        homeNation: russia
+        adjacencies:
+          - { to: lvn, pass: army }
+          - { to: mos, pass: army }
+          - { to: fin, pass: army }
+          - { to: nwy, pass: army }
+    properties:
+      id:
+        type: string
+        description: |
+          Stable identifier, lowercase. Three-letter codes are conventional for
+          canonical Classical provinces ("nat", "stp"); kebab-case is fine for
+          custom variants ("north-atlantic").
+        examples:
+          - "stp"
+          - "north-atlantic"
+      name:
+        type: string
+        description: Display name (e.g. "St. Petersburg").
+      type:
+        enum: [land, sea, coastal]
+        description: |
+          Terrain type. Determines which unit types may occupy the province:
+            - land:    armies only
+            - sea:     fleets only
+            - coastal: either
+
+          Provinces that have multiple named coasts are typed `land`. Their
+          coasts live in `namedCoasts` and carry the coast-specific fleet
+          adjacencies. A multi-coast parent may itself also carry fleet
+          adjacencies when the variant's map (in godip) declares them on both
+          endpoints — godip's Classical does this, while several other variants
+          leave the parent land-only. A `land`-typed province can therefore
+          legitimately appear with fleet edges.
+      supplyCenter:
+        type: boolean
+        description: Whether holding this province contributes to the supply-center count.
+      homeNation:
+        type: string
+        description: |
+          If present, the nation id that owns this province as a *home*
+          supply center. Home centers are typically the only places a nation
+          may build new units (subject to `adjudicationModifiers`).
+
+          Independent of `initialState.supplyCenters`: a province may be a
+          nation's home center even after another nation captures it, and
+          `homeNation` reflects the home-center designation, not current
+          ownership.
+      adjacencies:
+        type: array
+        description: |
+          Edges from this province to its neighbors, with the unit type that
+          may traverse each edge.
+
+          Symmetry is required. Every edge MUST be declared on both endpoints
+          with the same `pass` value. Loaders MUST reject variants in which
+          an edge appears on only one side, or in which the two sides
+          disagree on `pass`. This is a hard constraint, not a convention —
+          do not rely on the loader to mirror missing edges.
+
+          Edge typing:
+            - For coastal-to-coastal pairs that share a coast, use
+              `pass: both`.
+            - For coastal-to-coastal pairs that are land-adjacent only (a
+              strait or land bridge with no shared coastline — common in
+              variants like coldwar, sengoku, twentytwenty), use `pass: army`.
+            - For sea-to-sea or sea-to-coastal pairs, use `pass: fleet`.
+            - For land-to-land pairs, use `pass: army`.
+
+          A fleet edge into a province that has named coasts normally
+          references the specific named coast (e.g. "bul/ec"). A variant's map
+          may additionally declare a fleet edge to the parent province itself;
+          because symmetry is required, such a parent edge is only valid when
+          the variant declares it on both endpoints (godip's Classical does,
+          for `stp`/`spa`/`bul`). Army edges always reference parent provinces.
+        items:
+          $ref: "#/$defs/Adjacency"
+
+  NamedCoast:
+    type: object
+    additionalProperties: false
+    required:
+      - id
+      - name
+      - parentProvince
+      - adjacencies
+    examples:
+      - id: stp/sc
+        name: "St. Petersburg (SC)"
+        parentProvince: stp
+        adjacencies:
+          - { to: bot, pass: fleet }
+          - { to: lvn, pass: fleet }
+          - { to: fin, pass: fleet }
+    properties:
+      id:
+        type: string
+        description: |
+          Identifier in the form "<parent>/<coast>", e.g. "stp/nc", "stp/sc",
+          "bul/ec", "bul/sc", "spa/nc", "spa/sc".
+        examples:
+          - "stp/sc"
+      name:
+        type: string
+        description: Display name (e.g. "St. Petersburg (NC)").
+      parentProvince:
+        type: string
+        description: Id of the parent province (e.g. "stp").
+      adjacencies:
+        type: array
+        description: |
+          Edges from this coast to its sea / coastal neighbors. All entries
+          must use `pass: fleet` since named coasts are addressable only by
+          fleets — armies use the parent province.
+        items:
+          $ref: "#/$defs/Adjacency"
+
+  Adjacency:
+    type: object
+    additionalProperties: false
+    required: [to, pass]
+    examples:
+      - { to: par,    pass: army  }   # land-to-land
+      - { to: mid,    pass: fleet }   # coastal-to-sea
+      - { to: pic,    pass: both  }   # coastal-to-coastal sharing a coast
+      - { to: bul/ec, pass: fleet }   # fleet edge into a named coast
+    properties:
+      to:
+        type: string
+        description: |
+          Target province or named-coast id. Fleet edges into a multi-coast
+          province must reference the specific named coast.
+      pass:
+        enum: [army, fleet, both]
+        description: |
+          Which unit types may traverse this edge:
+            - army:  army-only (e.g. land bridge between two coastal
+                     provinces that don't share a coast)
+            - fleet: fleet-only (sea-to-sea or sea-to-coastal)
+            - both:  shared coast / either type can pass
+
+  DominanceRule:
+    type: object
+    additionalProperties: false
+    required: [province, nation, dependencies]
+    examples:
+      - province: gas
+        nation: france
+        dependencies:
+          - { province: bre, nation: france }
+          - { province: par, nation: france }
+          - { province: mar, nation: france }
+          - { province: spa, nation: Empty }
+    properties:
+      province:
+        type: string
+        description: The province whose ownership is being conditionally assigned.
+      nation:
+        type: string
+        description: |
+          The nation that owns the province when the dependencies are
+          satisfied.
+      dependencies:
+        type: array
+        description: Other province/nation pairs that must be true for this rule to fire.
+        items:
+          type: object
+          additionalProperties: false
+          required: [province, nation]
+          properties:
+            province:
+              type: string
+            nation:
+              type: string
+              description: |
+                Nation id, or "Empty"/"Neutral" to require the province
+                be unowned.

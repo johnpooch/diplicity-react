@@ -8,7 +8,6 @@ export default defineConfig({
       target: "./src/api/generated/endpoints.ts",
       client: "react-query",
       httpClient: "axios",
-      mock: true,
       override: {
         query: {
           useSuspenseQuery: true,

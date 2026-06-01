@@ -54,6 +54,19 @@ AuthKey*
 packages/web/ios/App/build/
 packages/web/ios/App/App/public/
 
+# Android / Gradle
+packages/web/android/.gradle/
+packages/web/android/build/
+packages/web/android/app/build/
+packages/web/android/app/release/
+packages/web/android/local.properties
+packages/web/android/captures/
+packages/web/android/.idea/
+packages/web/android/app/google-services.json
+packages/web/android/app/src/main/assets/public/
+packages/web/android/app/src/main/assets/capacitor.config.json
+packages/web/android/app/src/main/assets/capacitor.plugins.json
+
 screenshots/
 
 .claude/worktrees
@@ -63,8 +76,18 @@ AuthKey_*.p8
 *.mobileprovision
 *.cer
 
+# Release credentials (production env vars for release builds)
+.env.release
+
+# Android / Play credentials (upload keystore, Play service account, Firebase config)
+*.keystore
+*.jks
+google-services.json
+play-service-account*.json
+
 # Fastlane artifacts
 packages/web/fastlane/api_key.json
 packages/web/fastlane/report.xml
 packages/web/fastlane/README.md
+packages/web/fastlane/.play-service-account.json
 packages/web/build/

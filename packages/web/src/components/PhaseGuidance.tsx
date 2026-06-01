@@ -1,3 +1,4 @@
+import React from "react";
 import { Check } from "lucide-react";
 import { useRequiredParams } from "@/hooks";
 import {
@@ -10,7 +11,7 @@ import {
 type GuidanceResult = {
   text: string;
   isComplete: boolean;
-  isConfirmed: boolean;
+  isConfirmed?: boolean;
 } | null;
 
 function usePhaseGuidance(): GuidanceResult {
@@ -39,7 +40,8 @@ function usePhaseGuidance(): GuidanceResult {
   }
 
   const userNation = userMember.nation;
-  const isConfirmed = game.phaseConfirmed;
+  const confirmationApplies = !game.sandbox && game.deadlineMode !== "fixed_time";
+  const isConfirmed = confirmationApplies ? game.phaseConfirmed : undefined;
 
   switch (phase.type) {
     case "Movement": {
@@ -56,7 +58,9 @@ function usePhaseGuidance(): GuidanceResult {
 
       if (submittedCount === 0) {
         return {
-          text: `Submit orders for ${totalOrderable} unit${totalOrderable > 1 ? "s" : ""}`,
+          text: game.sandbox
+            ? "Orders for sandbox units"
+            : `Submit orders for ${totalOrderable} unit${totalOrderable > 1 ? "s" : ""}`,
           isComplete: false,
           isConfirmed,
         };
@@ -83,15 +87,40 @@ function usePhaseGuidance(): GuidanceResult {
       if (delta === 0) {
         return { text: "No adjustments needed", isComplete: true, isConfirmed };
       }
+
+      const requiredCount = Math.abs(delta);
+      const submittedCount = orders.filter(o => o.nation.name === userNation).length;
+
       if (delta > 0) {
+        if (submittedCount >= requiredCount) {
+          return { text: "All builds submitted", isComplete: true, isConfirmed };
+        }
+        if (submittedCount === 0) {
+          return {
+            text: `Build ${requiredCount} new unit${requiredCount > 1 ? "s" : ""}`,
+            isComplete: false,
+            isConfirmed,
+          };
+        }
         return {
-          text: `Build ${delta} new unit${delta > 1 ? "s" : ""}`,
+          text: `${submittedCount} of ${requiredCount} builds submitted`,
+          isComplete: false,
+          isConfirmed,
+        };
+      }
+
+      if (submittedCount >= requiredCount) {
+        return { text: "All disbands submitted", isComplete: true, isConfirmed };
+      }
+      if (submittedCount === 0) {
+        return {
+          text: `Disband ${requiredCount} unit${requiredCount > 1 ? "s" : ""}`,
           isComplete: false,
           isConfirmed,
         };
       }
       return {
-        text: `Disband ${Math.abs(delta)} unit${Math.abs(delta) > 1 ? "s" : ""}`,
+        text: `${submittedCount} of ${requiredCount} disbands submitted`,
         isComplete: false,
         isConfirmed,
       };
@@ -128,8 +157,12 @@ export const PhaseGuidance: React.FC = () => {
     <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
       {guidance.text}
       {guidance.isComplete && <Check className="size-3" />}
-      <span>·</span>
-      <span>{guidance.isConfirmed ? "confirmed" : "not confirmed"}</span>
+      {guidance.isConfirmed !== undefined && (
+        <>
+          <span>·</span>
+          <span>{guidance.isConfirmed ? "confirmed" : "not confirmed"}</span>
+        </>
+      )}
     </span>
   );
 };

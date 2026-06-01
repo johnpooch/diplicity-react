@@ -7,6 +7,7 @@ from unittest.mock import patch
 from rest_framework import status
 from game.models import Game
 from member.models import Member
+from victory.models import Victory
 from common.constants import (
     DeadlineMode,
     GameStatus,
@@ -315,38 +316,25 @@ def test_active_game_create_orders_and_confirm(
         title="Phase Resolved",
         body=f"Phase '{first_phase.name}' has been resolved!",
         notification_type="phase_resolved",
-        data={"game_id": str(active_game.id)},
+        data={"game_id": str(active_game.id), "link": f"https://diplicity.com/game/{active_game.id}"},
     )
 
-    # Second phase has been created
+    # The empty Spring 1901 Retreat is skipped, so resolving the movement
+    # phase lands directly on Fall 1901 Movement.
     second_phase = active_game.current_phase
     assert second_phase.status == PhaseStatus.ACTIVE
-    assert second_phase.season == "Spring"
+    assert second_phase.season == "Fall"
     assert second_phase.year == 1901
-    assert second_phase.type == "Retreat"
-
-    # Test auto-resolution behavior: Retreat phase should resolve immediately
-    # since typically no retreat moves are possible in small variants
-    assert second_phase.should_resolve_immediately
-
-    # Simulate the scheduled resolver task running
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.status_code == status.HTTP_200_OK
-    assert resolve_response.data["resolved"] >= 1  # At least the retreat phase resolved
+    assert second_phase.type == "Movement"
 
     # First phase has resolved
     first_phase.refresh_from_db()
     assert first_phase.status == PhaseStatus.COMPLETED
 
-    # Notification is sent to both users (combined notification for skipped phases)
-    third_phase = active_game.current_phase
-    mock_send_notification_to_users.assert_called_with(
-        user_ids=[germany_member.user.id, italy_member.user.id],
-        title="Phase Resolved",
-        body=f"{second_phase.name} resolved. No retreats needed. Next: {third_phase.name}.",
-        notification_type="phase_resolved",
-        data={"game_id": str(active_game.id)},
-    )
+    # No empty Spring 1901 Retreat row was ever created
+    assert not active_game.phases.filter(
+        season="Spring", year=1901, type="Retreat"
+    ).exists()
 
 
 @pytest.mark.django_db
@@ -421,6 +409,12 @@ def test_active_game_create_move_order_fleet_to_named_coast(
         create_order_url, create_order_payload, format="json"
     )
 
+    # Primary user submits a hold order to avoid entering civil disorder
+    # across consecutive movement-phase NMRs
+    authenticated_client.post(
+        create_order_url, {"selected": ["ber", "Hold"]}, format="json"
+    )
+
     # Phase has not resolved yet
     confirm_order_url = reverse("game-confirm-phase", args=[active_game.id])
 
@@ -441,21 +435,13 @@ def test_active_game_create_move_order_fleet_to_named_coast(
     assert resolve_response.status_code == status.HTTP_200_OK
     assert resolve_response.data["resolved"] >= 1
 
-    # Second phase has been created
+    # The empty Spring 1901 Retreat is skipped, so resolving the movement
+    # phase lands directly on Fall 1901 Movement.
     second_phase = active_game.current_phase
     assert second_phase.status == PhaseStatus.ACTIVE
-    assert second_phase.season == "Spring"
+    assert second_phase.season == "Fall"
     assert second_phase.year == 1901
-    assert second_phase.type == "Retreat"
-
-    # Test auto-resolution behavior: Retreat phase should resolve immediately
-    # since typically no retreat moves are possible in small variants
-    assert second_phase.should_resolve_immediately
-
-    # Simulate the scheduled resolver task running
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.status_code == status.HTTP_200_OK
-    assert resolve_response.data["resolved"] >= 1  # At least the retreat phase resolved
+    assert second_phase.type == "Movement"
 
     # First phase has resolved
     first_phase.refresh_from_db()
@@ -474,26 +460,9 @@ def test_active_game_create_move_order_fleet_to_named_coast(
     assert resolve_response.status_code == status.HTTP_200_OK
     assert resolve_response.data["resolved"] >= 1
 
-    phase = active_game.current_phase
-    assert phase.status == PhaseStatus.ACTIVE
-    assert phase.season == "Fall"
-    assert phase.year == 1901
-    assert phase.type == "Retreat"
-
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.status_code == status.HTTP_200_OK
-    assert resolve_response.data["resolved"] >= 1
-
-    phase = active_game.current_phase
-    assert phase.status == PhaseStatus.ACTIVE
-    assert phase.season == "Fall"
-    assert phase.year == 1901
-    assert phase.type == "Adjustment"
-
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.status_code == status.HTTP_200_OK
-    assert resolve_response.data["resolved"] >= 1
-
+    # 1901 saw no supply-center changes, so the empty Fall 1901 Retreat and the
+    # balanced Fall 1901 Adjustment are both skipped; we land on Spring 1902
+    # Movement.
     phase = active_game.current_phase
     assert phase.status == PhaseStatus.ACTIVE
     assert phase.season == "Spring"
@@ -512,17 +481,21 @@ def test_active_game_create_move_order_fleet_to_named_coast(
     confirm_order_response = authenticated_client.put(confirm_order_url)
     confirm_order_response = authenticated_client_for_secondary_user.put(confirm_order_url)
 
+    # Capture the Spring 1902 Movement phase so the order resolution can be
+    # checked on it after it resolves.
+    spring_1902_movement = active_game.current_phase
+    order = spring_1902_movement.phase_states.get(member=italy_member).orders.get(source__province_id="gol")
+
     resolve_response = authenticated_client.post(resolve_all_url)
     assert resolve_response.status_code == status.HTTP_200_OK
     assert resolve_response.data["resolved"] >= 1
 
-    order = phase.phase_states.get(member=italy_member).orders.get(source__province_id="gol")
-
+    # The empty Spring 1902 Retreat is skipped; we land on Fall 1902 Movement.
     phase = active_game.current_phase
     assert phase.status == PhaseStatus.ACTIVE
-    assert phase.season == "Spring"
+    assert phase.season == "Fall"
     assert phase.year == 1902
-    assert phase.type == "Retreat"
+    assert phase.type == "Movement"
 
     # Assert that order has resolved successfully
     order.refresh_from_db()
@@ -602,20 +575,10 @@ def test_dislodged_unit_scenario(
     resolve_response = authenticated_client.post(resolve_all_url)
     assert resolve_response.data["resolved"] >= 1
 
-    # ===== SPRING 1901 RETREAT PHASE =====
-    # No units dislodged, should auto-resolve
-
-    phase = active_game.current_phase
-    phase.refresh_from_db()
-    assert phase.season == "Spring"
-    assert phase.year == 1901
-    assert phase.type == "Retreat"
-
-    # Resolve retreat phase (no orders needed)
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.data["resolved"] >= 1
-
     # ===== FALL 1901 MOVEMENT PHASE =====
+    # Spring 1901 dislodged no one, so the empty Spring 1901 Retreat is
+    # skipped and resolving the movement phase lands directly on Fall 1901
+    # Movement.
     # Germany: Munich to Tyrolia (attacking Italy)
     # Germany: Bohemia supports Munich to Tyrolia
 
@@ -683,8 +646,10 @@ def test_dislodged_unit_scenario(
     resolve_response = authenticated_client.post(resolve_all_url)
     assert resolve_response.data["resolved"] >= 1
 
-    # ===== FALL 1901 ADJUSTMENT PHASE =====
-    # Verify final positions
+    # ===== NEXT INTERACTIVE PHASE =====
+    # Capturing Tyrolia changes no supply-center ownership, so the Fall 1901
+    # Adjustment is balanced and skipped; the units carry forward unchanged to
+    # the next interactive phase. Verify final positions.
 
     phase = active_game.current_phase
     phase.refresh_from_db()
@@ -697,6 +662,96 @@ def test_dislodged_unit_scenario(
 
     # Italian army should NOT be in Tyrolia anymore
     assert not phase.units.filter(nation__name="Italy", province__province_id="tyr").exists()
+
+
+@pytest.mark.django_db
+def test_empty_retreat_phase_is_skipped(
+    authenticated_client,
+    authenticated_client_for_secondary_user,
+    italy_vs_germany_variant,
+    mock_send_notification_to_users,
+    mock_immediate_on_commit,
+):
+    """A movement phase that dislodges no one advances straight to the next
+    movement phase: the empty retreat phase is never created, and phase
+    ordinals stay contiguous."""
+    active_game = create_active_game(
+        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+    )
+    first_phase = active_game.current_phase
+    assert first_phase.season == "Spring"
+    assert first_phase.year == 1901
+    assert first_phase.type == "Movement"
+
+    create_order_url = reverse("order-create", args=[active_game.id])
+    confirm_url = reverse("game-confirm-phase", args=[active_game.id])
+
+    # Holds dislodge nothing.
+    authenticated_client.post(create_order_url, {"selected": ["kie", "Hold"]}, format="json")
+    authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
+    authenticated_client.put(confirm_url)
+    authenticated_client_for_secondary_user.put(confirm_url)
+
+    resolve_response = authenticated_client.post(resolve_all_url)
+    assert resolve_response.status_code == status.HTTP_200_OK
+    assert resolve_response.data["resolved"] >= 1
+
+    # Landed directly on Fall 1901 Movement, skipping the empty Spring Retreat.
+    new_phase = active_game.current_phase
+    assert new_phase.season == "Fall"
+    assert new_phase.year == 1901
+    assert new_phase.type == "Movement"
+
+    # No Retreat phase row exists for the turn.
+    assert not active_game.phases.filter(type="Retreat").exists()
+
+    # Ordinals stay contiguous: template movement (1) then Fall movement (2).
+    ordinals = list(active_game.phases.order_by("ordinal").values_list("ordinal", flat=True))
+    assert ordinals == [1, 2]
+
+
+@pytest.mark.django_db
+def test_empty_adjustment_phase_is_skipped(
+    authenticated_client,
+    authenticated_client_for_secondary_user,
+    italy_vs_germany_variant,
+    mock_send_notification_to_users,
+    mock_immediate_on_commit,
+):
+    """A Fall movement with no supply-center changes skips both the empty
+    retreat and the balanced adjustment, landing on the next Spring movement.
+    Neither skipped phase is written to the database."""
+    active_game = create_active_game(
+        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+    )
+    create_order_url = reverse("order-create", args=[active_game.id])
+    confirm_url = reverse("game-confirm-phase", args=[active_game.id])
+
+    def hold_and_resolve():
+        authenticated_client.post(create_order_url, {"selected": ["kie", "Hold"]}, format="json")
+        authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
+        authenticated_client.put(confirm_url)
+        authenticated_client_for_secondary_user.put(confirm_url)
+        return authenticated_client.post(resolve_all_url)
+
+    # Spring 1901 holds -> skip empty retreat -> Fall 1901 Movement.
+    hold_and_resolve()
+    phase = active_game.current_phase
+    assert phase.season == "Fall"
+    assert phase.year == 1901
+    assert phase.type == "Movement"
+
+    # Fall 1901 holds: no supply centers change hands, so builds/disbands are
+    # balanced. Both the empty Fall Retreat and the balanced Fall Adjustment
+    # are skipped, landing on Spring 1902 Movement.
+    hold_and_resolve()
+    phase = active_game.current_phase
+    assert phase.season == "Spring"
+    assert phase.year == 1902
+    assert phase.type == "Movement"
+
+    assert not active_game.phases.filter(year=1901, type="Retreat").exists()
+    assert not active_game.phases.filter(year=1901, type="Adjustment").exists()
 
 
 def create_active_hundred_game(
@@ -854,12 +909,13 @@ def test_hundred_variant_movement_phase_resolution_with_errors(
     assert resolve_response.status_code == status.HTTP_200_OK
     assert resolve_response.data["resolved"] >= 1
 
-    # Verify new phase is Retreat phase
+    # The orders only bounce, so nothing is dislodged: the empty Year 1425
+    # Retreat is skipped and we land directly on Year 1430 Movement.
     new_phase = active_game.current_phase
     new_phase.refresh_from_db()
     assert new_phase.season == "Year"
-    assert new_phase.year == 1425
-    assert new_phase.type == "Retreat"
+    assert new_phase.year == 1430
+    assert new_phase.type == "Movement"
     assert new_phase.status == PhaseStatus.ACTIVE
 
     # Verify old phase is completed
@@ -1009,16 +1065,7 @@ def test_hundred_variant_france_solo_victory_after_one_year(
     assert resolve_response.status_code == status.HTTP_200_OK
     assert resolve_response.data["resolved"] >= 1
 
-    spring_retreat_phase = active_game.current_phase
-    spring_retreat_phase.refresh_from_db()
-    assert spring_retreat_phase.season == "Year"
-    assert spring_retreat_phase.year == 1425
-    assert spring_retreat_phase.type == "Retreat"
-
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.status_code == status.HTTP_200_OK
-    assert resolve_response.data["resolved"] >= 1
-
+    # The empty Year 1425 Retreat is skipped; we land on Year 1430 Movement.
     fall_movement_phase = active_game.current_phase
     fall_movement_phase.refresh_from_db()
     assert fall_movement_phase.season == "Year"
@@ -1037,16 +1084,9 @@ def test_hundred_variant_france_solo_victory_after_one_year(
     assert resolve_response.status_code == status.HTTP_200_OK
     assert resolve_response.data["resolved"] >= 1
 
-    fall_retreat_phase = active_game.current_phase
-    fall_retreat_phase.refresh_from_db()
-    assert fall_retreat_phase.season == "Year"
-    assert fall_retreat_phase.year == 1430
-    assert fall_retreat_phase.type == "Retreat"
-
-    resolve_response = authenticated_client.post(resolve_all_url)
-    assert resolve_response.status_code == status.HTTP_200_OK
-    assert resolve_response.data["resolved"] >= 1
-
+    # The empty Year 1430 Retreat is skipped; France's captures leave builds
+    # and disbands to resolve, so the Year 1430 Adjustment is interactive and
+    # is where the solo victory is detected.
     fall_adjustment_phase = active_game.current_phase
     fall_adjustment_phase.refresh_from_db()
     assert fall_adjustment_phase.season == "Year"
@@ -1066,3 +1106,295 @@ def test_hundred_variant_france_solo_victory_after_one_year(
     fall_adjustment_phase.refresh_from_db()
     assert fall_adjustment_phase.status == PhaseStatus.COMPLETED
     assert fall_adjustment_phase.scheduled_resolution is None
+
+
+@pytest.mark.django_db
+def test_player_enters_civil_disorder_after_two_movement_phase_nmrs(
+    authenticated_client,
+    authenticated_client_for_secondary_user,
+    italy_vs_germany_variant,
+    mock_send_notification_to_users,
+    mock_immediate_on_commit,
+):
+    """
+    - Both users submit orders and confirm for Spring 1901 → resolves normally
+    - Fall 1901: only Italy (secondary) submits; phase resolves after deadline → Germany NMR #1
+    - Spring 1902: only Italy submits; phase resolves after deadline → Germany NMR #2 → Germany enters CD
+    - Fall 1902: Italy submits + confirms; Germany's PhaseState is auto-confirmed, so phase
+      resolves immediately without Germany doing anything
+    """
+    active_game = create_active_game(
+        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+    )
+    germany_member = active_game.members.filter(nation__name="Germany").first()
+    italy_member = active_game.members.filter(nation__name="Italy").first()
+
+    create_order_url = reverse("order-create", args=[active_game.id])
+    confirm_order_url = reverse("game-confirm-phase", args=[active_game.id])
+
+    # Each new phase gets scheduled_resolution=creation_time+24h, so resolves driven by
+    # deadline-passed need cumulatively advancing "now".
+    days_advanced = [0]
+
+    def advance_and_resolve():
+        days_advanced[0] += 2
+        future = timezone.now() + timedelta(days=days_advanced[0])
+        with patch("django.utils.timezone.now", return_value=future):
+            return authenticated_client.post(resolve_all_url)
+
+    def resolve_until(season, year, type_):
+        for _ in range(10):
+            phase = active_game.current_phase
+            if phase.season == season and phase.year == year and phase.type == type_:
+                return phase
+            resp = advance_and_resolve()
+            if resp.data["resolved"] == 0:
+                break
+        raise AssertionError(f"Failed to reach {season} {year} {type_}; at {active_game.current_phase.name}")
+
+    # Spring 1901: both submit + confirm, normal early resolve.
+    authenticated_client.post(create_order_url, {"selected": ["ber", "Hold"]}, format="json")
+    authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
+    authenticated_client.put(confirm_order_url)
+    authenticated_client_for_secondary_user.put(confirm_order_url)
+    resolve_response = authenticated_client.post(resolve_all_url)
+    assert resolve_response.data["resolved"] >= 1
+
+    fall_1901 = resolve_until("Fall", 1901, "Movement")
+
+    # Fall 1901: only Italy submits. Germany NMRs once.
+    authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
+    authenticated_client_for_secondary_user.put(confirm_order_url)
+    resp = advance_and_resolve()
+    assert resp.data["resolved"] >= 1
+
+    germany_member.refresh_from_db()
+    assert germany_member.civil_disorder is False, "One NMR alone should not trigger CD"
+
+    spring_1902 = resolve_until("Spring", 1902, "Movement")
+
+    # Spring 1902: only Italy submits. Germany's second consecutive movement-phase NMR → CD.
+    authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
+    authenticated_client_for_secondary_user.put(confirm_order_url)
+    resp = advance_and_resolve()
+    assert resp.data["resolved"] >= 1
+
+    germany_member.refresh_from_db()
+    assert germany_member.civil_disorder is True
+
+    cd_calls = [
+        c for c in mock_send_notification_to_users.call_args_list
+        if c.kwargs.get("notification_type") == "civil_disorder"
+    ]
+    assert len(cd_calls) == 1
+    assert germany_member.user.id in cd_calls[0].kwargs["user_ids"]
+    assert italy_member.user.id in cd_calls[0].kwargs["user_ids"]
+
+    fall_1902 = resolve_until("Fall", 1902, "Movement")
+
+    # Germany's PhaseState in Fall 1902 should have been auto-confirmed.
+    germany_ps = fall_1902.phase_states.get(member=germany_member)
+    assert germany_ps.orders_confirmed is True
+
+    # Italy submits and confirms; phase should resolve immediately because the CD
+    # member's PhaseState no longer blocks the all-confirmed check.
+    authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
+    authenticated_client_for_secondary_user.put(confirm_order_url)
+    resolve_response = authenticated_client.post(resolve_all_url)
+    assert resolve_response.status_code == status.HTTP_200_OK
+    assert resolve_response.data["resolved"] >= 1
+    fall_1902.refresh_from_db()
+    assert fall_1902.status == PhaseStatus.COMPLETED
+
+
+@pytest.mark.django_db
+def test_game_becomes_abandoned_when_all_active_members_in_cd(
+    authenticated_client,
+    authenticated_client_for_secondary_user,
+    italy_vs_germany_variant,
+    mock_send_notification_to_users,
+    mock_immediate_on_commit,
+):
+    """
+    Both players stop submitting orders. After two consecutive movement-phase NMRs each,
+    both are in CD and the game's status becomes ABANDONED.
+    """
+    active_game = create_active_game(
+        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+    )
+    germany_member = active_game.members.filter(nation__name="Germany").first()
+    italy_member = active_game.members.filter(nation__name="Italy").first()
+
+    create_order_url = reverse("order-create", args=[active_game.id])
+    confirm_order_url = reverse("game-confirm-phase", args=[active_game.id])
+
+    days_advanced = [0]
+
+    def advance_and_resolve():
+        days_advanced[0] += 2
+        future = timezone.now() + timedelta(days=days_advanced[0])
+        with patch("django.utils.timezone.now", return_value=future):
+            return authenticated_client.post(resolve_all_url)
+
+    # Spring 1901: both submit so neither NMRs here.
+    authenticated_client.post(create_order_url, {"selected": ["ber", "Hold"]}, format="json")
+    authenticated_client_for_secondary_user.post(create_order_url, {"selected": ["ven", "Hold"]}, format="json")
+    authenticated_client.put(confirm_order_url)
+    authenticated_client_for_secondary_user.put(confirm_order_url)
+    resolve_response = authenticated_client.post(resolve_all_url)
+    assert resolve_response.data["resolved"] >= 1
+
+    # Advance through the rest of 1901 + Spring 1902 with nobody submitting orders.
+    # By the time Spring 1902 Movement resolves, both members will have NMR'd two
+    # consecutive movement phases (Fall 1901 + Spring 1902) and entered CD.
+    for _ in range(20):
+        resp = advance_and_resolve()
+        active_game.refresh_from_db()
+        if resp.data["resolved"] == 0:
+            break
+        if active_game.status == GameStatus.ABANDONED:
+            break
+
+    germany_member.refresh_from_db()
+    italy_member.refresh_from_db()
+
+    assert germany_member.civil_disorder is True
+    assert italy_member.civil_disorder is True
+    assert active_game.status == GameStatus.ABANDONED
+
+
+@pytest.mark.django_db
+def test_dias_draw_proposal_accepted_ends_game_in_draw(
+    authenticated_client,
+    authenticated_client_for_secondary_user,
+    italy_vs_germany_variant,
+    mock_send_notification_to_users,
+    mock_immediate_on_commit,
+):
+    """
+    Full DIAS happy path: one player proposes a draw via the API with no body,
+    every other active player accepts, and the game is marked completed with
+    every active player drawing.
+    """
+    active_game = create_active_game(
+        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+    )
+    germany_member = active_game.members.filter(nation__name="Germany").first()
+    italy_member = active_game.members.filter(nation__name="Italy").first()
+
+    create_url = reverse("draw-proposal-create", args=[active_game.id])
+    propose_response = authenticated_client.post(create_url, {}, format="json")
+    assert propose_response.status_code == status.HTTP_201_CREATED
+
+    # Proposer (Germany) already auto-accepted; Italy still needs to accept.
+    proposal = active_game.draw_proposals.first()
+    vote_url = reverse(
+        "draw-proposal-vote", args=[active_game.id, proposal.id]
+    )
+    vote_response = authenticated_client_for_secondary_user.patch(
+        vote_url, {"accepted": True}, format="json"
+    )
+    assert vote_response.status_code == status.HTTP_200_OK
+
+    # The vote response is the proposal in its tally form — no per-vote details.
+    assert "votes" not in vote_response.data
+    assert vote_response.data["accepted_count"] == 2
+    assert vote_response.data["status"] == "accepted"
+
+    active_game.refresh_from_db()
+    germany_member.refresh_from_db()
+    italy_member.refresh_from_db()
+
+    assert active_game.status == GameStatus.COMPLETED
+    assert germany_member.drew is True
+    assert italy_member.drew is True
+
+    victory = Victory.objects.get(game=active_game)
+    assert victory.members.count() == 2
+
+
+@pytest.mark.django_db
+def test_dias_draw_proposal_rejected_leaves_game_active(
+    authenticated_client,
+    authenticated_client_for_secondary_user,
+    italy_vs_germany_variant,
+    mock_send_notification_to_users,
+    mock_immediate_on_commit,
+):
+    """One active player rejects the proposal → status flips to rejected,
+    game stays active, no victory is created."""
+    active_game = create_active_game(
+        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+    )
+
+    create_url = reverse("draw-proposal-create", args=[active_game.id])
+    propose_response = authenticated_client.post(create_url, {}, format="json")
+    assert propose_response.status_code == status.HTTP_201_CREATED
+
+    proposal = active_game.draw_proposals.first()
+    vote_url = reverse(
+        "draw-proposal-vote", args=[active_game.id, proposal.id]
+    )
+    vote_response = authenticated_client_for_secondary_user.patch(
+        vote_url, {"accepted": False}, format="json"
+    )
+    assert vote_response.status_code == status.HTTP_200_OK
+    assert vote_response.data["status"] == "rejected"
+
+    active_game.refresh_from_db()
+    assert active_game.status == GameStatus.ACTIVE
+    assert not Victory.objects.filter(game=active_game).exists()
+
+
+@pytest.mark.django_db
+def test_cd_member_auto_accepts_dias_draw_and_is_excluded_from_victory(
+    authenticated_client,
+    authenticated_client_for_secondary_user,
+    italy_vs_germany_variant,
+    primary_user,
+    secondary_user,
+    mock_send_notification_to_users,
+    mock_immediate_on_commit,
+):
+    """
+    Cross-cutting end-to-end test:
+    - Set Germany into civil disorder (skipping the multi-phase NMR build-up
+      that's already covered by test_player_enters_civil_disorder_after_two_movement_phase_nmrs).
+    - Italy proposes a draw via the API with no body.
+    - Germany (CD) is auto-accepted at proposal creation.
+    - There are no other active members so the proposal is immediately accepted.
+    - Italy gets a draw victory; Germany does NOT.
+    """
+    active_game = create_active_game(
+        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+    )
+    germany_member = active_game.members.filter(nation__name="Germany").first()
+    italy_member = active_game.members.filter(nation__name="Italy").first()
+
+    germany_member.civil_disorder = True
+    germany_member.save()
+
+    # Italy (secondary) proposes the draw.
+    create_url = reverse("draw-proposal-create", args=[active_game.id])
+    propose_response = authenticated_client_for_secondary_user.post(
+        create_url, {}, format="json"
+    )
+    assert propose_response.status_code == status.HTTP_201_CREATED
+
+    # With Germany in CD (auto-accepted, excluded) and Italy proposing
+    # (auto-accepts as proposer), the proposal is already accepted.
+    proposal = active_game.draw_proposals.first()
+    assert proposal.status == "accepted"
+
+    active_game.refresh_from_db()
+    germany_member.refresh_from_db()
+    italy_member.refresh_from_db()
+
+    assert active_game.status == GameStatus.COMPLETED
+    assert italy_member.drew is True
+    assert germany_member.drew is False
+
+    victory = Victory.objects.get(game=active_game)
+    assert italy_member in victory.members.all()
+    assert germany_member not in victory.members.all()
+    assert victory.members.count() == 1

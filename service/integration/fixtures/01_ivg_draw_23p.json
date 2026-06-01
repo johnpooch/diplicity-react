@@ -1,0 +1,4441 @@
+{
+  "schema_version": 1,
+  "source": {
+    "original_game_id_hash": "5517f7b5ccae",
+    "captured_at": "2026-05-12T10:03:42.758903+00:00",
+    "captured_from": "database"
+  },
+  "variant": "Italy vs Germany",
+  "outcome": {
+    "type": "draw",
+    "winners": [
+      "Germany",
+      "Italy"
+    ],
+    "winning_phase_ordinal": 23
+  },
+  "phases": [
+    {
+      "ordinal": 1,
+      "season": "Spring",
+      "year": 1901,
+      "type": "Movement",
+      "resolution_trigger": "consensus",
+      "non_confirming_nations": [],
+      "orders": [
+        {
+          "nation": "Germany",
+          "selected": [
+            "ber",
+            "Move",
+            "pru"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "kie",
+            "Move",
+            "hel"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "mun",
+            "Move",
+            "bur"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "nap",
+            "Move",
+            "ion"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "rom",
+            "Move",
+            "ven"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "ven",
+            "Move",
+            "tri"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "bur",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "hel",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "pru",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "ion",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "tri",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "ven",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "ber": "Germany",
+          "kie": "Germany",
+          "mun": "Germany",
+          "nap": "Italy",
+          "rom": "Italy",
+          "ven": "Italy"
+        }
+      }
+    },
+    {
+      "ordinal": 2,
+      "season": "Spring",
+      "year": 1901,
+      "type": "Retreat",
+      "resolution_trigger": "auto",
+      "non_confirming_nations": [],
+      "orders": [],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "bur",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "hel",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "pru",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "ion",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "tri",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "ven",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "ber": "Germany",
+          "kie": "Germany",
+          "mun": "Germany",
+          "nap": "Italy",
+          "rom": "Italy",
+          "ven": "Italy"
+        }
+      }
+    },
+    {
+      "ordinal": 3,
+      "season": "Fall",
+      "year": 1901,
+      "type": "Movement",
+      "resolution_trigger": "consensus",
+      "non_confirming_nations": [],
+      "orders": [
+        {
+          "nation": "Germany",
+          "selected": [
+            "bur",
+            "Move",
+            "mar"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "hel",
+            "Move",
+            "den"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "pru",
+            "Move",
+            "war"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "ion",
+            "Move",
+            "gre"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "tri",
+            "Move",
+            "ser"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "ven",
+            "Move",
+            "tri"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "den",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "mar",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "war",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "gre",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "ser",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "tri",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "ber": "Germany",
+          "kie": "Germany",
+          "mun": "Germany",
+          "nap": "Italy",
+          "rom": "Italy",
+          "ven": "Italy"
+        }
+      }
+    },
+    {
+      "ordinal": 4,
+      "season": "Fall",
+      "year": 1901,
+      "type": "Retreat",
+      "resolution_trigger": "auto",
+      "non_confirming_nations": [],
+      "orders": [],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "den",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "mar",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "war",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "gre",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "ser",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "tri",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "ber": "Germany",
+          "den": "Germany",
+          "gre": "Italy",
+          "kie": "Germany",
+          "mar": "Germany",
+          "mun": "Germany",
+          "nap": "Italy",
+          "rom": "Italy",
+          "ser": "Italy",
+          "tri": "Italy",
+          "ven": "Italy",
+          "war": "Germany"
+        }
+      }
+    },
+    {
+      "ordinal": 5,
+      "season": "Fall",
+      "year": 1901,
+      "type": "Adjustment",
+      "resolution_trigger": "consensus",
+      "non_confirming_nations": [],
+      "orders": [
+        {
+          "nation": "Germany",
+          "selected": [
+            "ber",
+            "Build",
+            "Fleet"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "kie",
+            "Build",
+            "Army"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "mun",
+            "Build",
+            "Army"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "nap",
+            "Build",
+            "Fleet"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "rom",
+            "Build",
+            "Fleet"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "ven",
+            "Build",
+            "Army"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "ber",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "den",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "kie",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "mar",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "mun",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "war",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "gre",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "nap",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "rom",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "ser",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "tri",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "ven",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "ber": "Germany",
+          "den": "Germany",
+          "gre": "Italy",
+          "kie": "Germany",
+          "mar": "Germany",
+          "mun": "Germany",
+          "nap": "Italy",
+          "rom": "Italy",
+          "ser": "Italy",
+          "tri": "Italy",
+          "ven": "Italy",
+          "war": "Germany"
+        }
+      }
+    },
+    {
+      "ordinal": 6,
+      "season": "Spring",
+      "year": 1902,
+      "type": "Movement",
+      "resolution_trigger": "consensus",
+      "non_confirming_nations": [],
+      "orders": [
+        {
+          "nation": "Germany",
+          "selected": [
+            "ber",
+            "Move",
+            "bal"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "den",
+            "Move",
+            "nth"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "kie",
+            "Move",
+            "hol"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "mar",
+            "Move",
+            "pie"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "mun",
+            "Move",
+            "tyr"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "war",
+            "Move",
+            "gal"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "gre",
+            "Move",
+            "aeg"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "nap",
+            "Move",
+            "apu"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "rom",
+            "Move",
+            "tys"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "ser",
+            "Move",
+            "rum"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "tri",
+            "Move",
+            "vie"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "ven",
+            "Move",
+            "tri"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "bal",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "gal",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "hol",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "nth",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "pie",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "tyr",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "aeg",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "apu",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "rum",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "tri",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "tys",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "vie",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "ber": "Germany",
+          "den": "Germany",
+          "gre": "Italy",
+          "kie": "Germany",
+          "mar": "Germany",
+          "mun": "Germany",
+          "nap": "Italy",
+          "rom": "Italy",
+          "ser": "Italy",
+          "tri": "Italy",
+          "ven": "Italy",
+          "war": "Germany"
+        }
+      }
+    },
+    {
+      "ordinal": 7,
+      "season": "Spring",
+      "year": 1902,
+      "type": "Retreat",
+      "resolution_trigger": "auto",
+      "non_confirming_nations": [],
+      "orders": [],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "bal",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "gal",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "hol",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "nth",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "pie",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "tyr",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "aeg",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "apu",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "rum",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "tri",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "tys",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "vie",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "ber": "Germany",
+          "den": "Germany",
+          "gre": "Italy",
+          "kie": "Germany",
+          "mar": "Germany",
+          "mun": "Germany",
+          "nap": "Italy",
+          "rom": "Italy",
+          "ser": "Italy",
+          "tri": "Italy",
+          "ven": "Italy",
+          "war": "Germany"
+        }
+      }
+    },
+    {
+      "ordinal": 8,
+      "season": "Fall",
+      "year": 1902,
+      "type": "Movement",
+      "resolution_trigger": "consensus",
+      "non_confirming_nations": [],
+      "orders": [
+        {
+          "nation": "Germany",
+          "selected": [
+            "bal",
+            "Move",
+            "swe"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "gal",
+            "Move",
+            "vie"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "hol",
+            "Hold"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "nth",
+            "Move",
+            "edi"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "pie",
+            "Move",
+            "ven"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "tyr",
+            "Support",
+            "gal",
+            "vie"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "aeg",
+            "Move",
+            "smy"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "apu",
+            "Move",
+            "ven"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "rum",
+            "Move",
+            "bud"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "tri",
+            "Support",
+            "apu",
+            "ven"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "tys",
+            "Move",
+            "tun"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "vie",
+            "Move",
+            "bud"
+          ],
+          "expected_resolution": "ErrBounce"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "edi",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "hol",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "pie",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "swe",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "tyr",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "vie",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "rum",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "smy",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "tri",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "tun",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "ven",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "vie",
+            "dislodged": true
+          }
+        ],
+        "supply_centers": {
+          "ber": "Germany",
+          "den": "Germany",
+          "gre": "Italy",
+          "kie": "Germany",
+          "mar": "Germany",
+          "mun": "Germany",
+          "nap": "Italy",
+          "rom": "Italy",
+          "ser": "Italy",
+          "tri": "Italy",
+          "ven": "Italy",
+          "war": "Germany"
+        }
+      }
+    },
+    {
+      "ordinal": 9,
+      "season": "Fall",
+      "year": 1902,
+      "type": "Retreat",
+      "resolution_trigger": "consensus",
+      "non_confirming_nations": [],
+      "orders": [
+        {
+          "nation": "Italy",
+          "selected": [
+            "vie",
+            "Move",
+            "boh"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "edi",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "hol",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "pie",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "swe",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "tyr",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "vie",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "boh",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "rum",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "smy",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "tri",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "tun",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "ven",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "ber": "Germany",
+          "den": "Germany",
+          "edi": "Germany",
+          "gre": "Italy",
+          "hol": "Germany",
+          "kie": "Germany",
+          "mar": "Germany",
+          "mun": "Germany",
+          "nap": "Italy",
+          "rom": "Italy",
+          "rum": "Italy",
+          "ser": "Italy",
+          "smy": "Italy",
+          "swe": "Germany",
+          "tri": "Italy",
+          "tun": "Italy",
+          "ven": "Italy",
+          "vie": "Germany",
+          "war": "Germany"
+        }
+      }
+    },
+    {
+      "ordinal": 10,
+      "season": "Fall",
+      "year": 1902,
+      "type": "Adjustment",
+      "resolution_trigger": "consensus",
+      "non_confirming_nations": [],
+      "orders": [
+        {
+          "nation": "Germany",
+          "selected": [
+            "ber",
+            "Build",
+            "Army"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "kie",
+            "Build",
+            "Fleet"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "mun",
+            "Build",
+            "Army"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "nap",
+            "Build",
+            "Fleet"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "rom",
+            "Build",
+            "Army"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "ber",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "edi",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "hol",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "kie",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "mun",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "pie",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "swe",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "tyr",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "vie",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "boh",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "nap",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "rom",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "rum",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "smy",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "tri",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "tun",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "ven",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "ber": "Germany",
+          "den": "Germany",
+          "edi": "Germany",
+          "gre": "Italy",
+          "hol": "Germany",
+          "kie": "Germany",
+          "mar": "Germany",
+          "mun": "Germany",
+          "nap": "Italy",
+          "rom": "Italy",
+          "rum": "Italy",
+          "ser": "Italy",
+          "smy": "Italy",
+          "swe": "Germany",
+          "tri": "Italy",
+          "tun": "Italy",
+          "ven": "Italy",
+          "vie": "Germany",
+          "war": "Germany"
+        }
+      }
+    },
+    {
+      "ordinal": 11,
+      "season": "Spring",
+      "year": 1903,
+      "type": "Movement",
+      "resolution_trigger": "consensus",
+      "non_confirming_nations": [],
+      "orders": [
+        {
+          "nation": "Germany",
+          "selected": [
+            "ber",
+            "Move",
+            "sil"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "edi",
+            "Move",
+            "nth"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "hol",
+            "Move",
+            "bel"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "kie",
+            "Move",
+            "hel"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "mun",
+            "Move",
+            "boh"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "pie",
+            "Support",
+            "tyr",
+            "ven"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "swe",
+            "Move",
+            "nwy"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "tyr",
+            "Move",
+            "ven"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "vie",
+            "Move",
+            "bud"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "boh",
+            "Move",
+            "tyr"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "nap",
+            "Move",
+            "tys"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "rom",
+            "Move",
+            "ven"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "rum",
+            "Move",
+            "bud"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "smy",
+            "Move",
+            "con"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "tri",
+            "Support",
+            "rom",
+            "ven"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "tun",
+            "Move",
+            "wes"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "ven",
+            "Move",
+            "adr"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "bel",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "hel",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "mun",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "nth",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "nwy",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "pie",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "sil",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "tyr",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "vie",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "adr",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "boh",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "con",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "rom",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "rum",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "tri",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "tys",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "wes",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "ber": "Germany",
+          "den": "Germany",
+          "edi": "Germany",
+          "gre": "Italy",
+          "hol": "Germany",
+          "kie": "Germany",
+          "mar": "Germany",
+          "mun": "Germany",
+          "nap": "Italy",
+          "rom": "Italy",
+          "rum": "Italy",
+          "ser": "Italy",
+          "smy": "Italy",
+          "swe": "Germany",
+          "tri": "Italy",
+          "tun": "Italy",
+          "ven": "Italy",
+          "vie": "Germany",
+          "war": "Germany"
+        }
+      }
+    },
+    {
+      "ordinal": 12,
+      "season": "Spring",
+      "year": 1903,
+      "type": "Retreat",
+      "resolution_trigger": "auto",
+      "non_confirming_nations": [],
+      "orders": [],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "bel",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "hel",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "mun",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "nth",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "nwy",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "pie",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "sil",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "tyr",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "vie",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "adr",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "boh",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "con",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "rom",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "rum",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "tri",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "tys",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "wes",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "ber": "Germany",
+          "den": "Germany",
+          "edi": "Germany",
+          "gre": "Italy",
+          "hol": "Germany",
+          "kie": "Germany",
+          "mar": "Germany",
+          "mun": "Germany",
+          "nap": "Italy",
+          "rom": "Italy",
+          "rum": "Italy",
+          "ser": "Italy",
+          "smy": "Italy",
+          "swe": "Germany",
+          "tri": "Italy",
+          "tun": "Italy",
+          "ven": "Italy",
+          "vie": "Germany",
+          "war": "Germany"
+        }
+      }
+    },
+    {
+      "ordinal": 13,
+      "season": "Fall",
+      "year": 1903,
+      "type": "Movement",
+      "resolution_trigger": "consensus",
+      "non_confirming_nations": [],
+      "orders": [
+        {
+          "nation": "Germany",
+          "selected": [
+            "bel",
+            "Hold"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "hel",
+            "Move",
+            "nth"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "mun",
+            "Support",
+            "sil",
+            "boh"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "nth",
+            "Move",
+            "nrg"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "nwy",
+            "Hold"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "pie",
+            "Move",
+            "mar"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "sil",
+            "Move",
+            "boh"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "tyr",
+            "Move",
+            "tri"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "vie",
+            "Support",
+            "tyr",
+            "tri"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "adr",
+            "Support",
+            "rom",
+            "ven"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "boh",
+            "Move",
+            "vie"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "con",
+            "Move",
+            "ank"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "rom",
+            "Move",
+            "ven"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "rum",
+            "Move",
+            "bud"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "tri",
+            "Support",
+            "boh",
+            "vie"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "tys",
+            "Move",
+            "gol"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "wes",
+            "Move",
+            "spa",
+            "spa/sc"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "bel",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "boh",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "mar",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "mun",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "nrg",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "nth",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "nwy",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "tyr",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "vie",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "adr",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "ank",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "boh",
+            "dislodged": true
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "bud",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "gol",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "spa/sc",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "tri",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "ven",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "ber": "Germany",
+          "den": "Germany",
+          "edi": "Germany",
+          "gre": "Italy",
+          "hol": "Germany",
+          "kie": "Germany",
+          "mar": "Germany",
+          "mun": "Germany",
+          "nap": "Italy",
+          "rom": "Italy",
+          "rum": "Italy",
+          "ser": "Italy",
+          "smy": "Italy",
+          "swe": "Germany",
+          "tri": "Italy",
+          "tun": "Italy",
+          "ven": "Italy",
+          "vie": "Germany",
+          "war": "Germany"
+        }
+      }
+    },
+    {
+      "ordinal": 14,
+      "season": "Fall",
+      "year": 1903,
+      "type": "Retreat",
+      "resolution_trigger": "consensus",
+      "non_confirming_nations": [],
+      "orders": [
+        {
+          "nation": "Italy",
+          "selected": [
+            "boh",
+            "Move",
+            "gal"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "bel",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "boh",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "mar",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "mun",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "nrg",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "nth",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "nwy",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "tyr",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "vie",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "adr",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "ank",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "bud",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "gal",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "gol",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "spa/sc",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "tri",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "ven",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "ank": "Italy",
+          "bel": "Germany",
+          "ber": "Germany",
+          "bud": "Italy",
+          "den": "Germany",
+          "edi": "Germany",
+          "gre": "Italy",
+          "hol": "Germany",
+          "kie": "Germany",
+          "mar": "Germany",
+          "mun": "Germany",
+          "nap": "Italy",
+          "nwy": "Germany",
+          "rom": "Italy",
+          "rum": "Italy",
+          "ser": "Italy",
+          "smy": "Italy",
+          "spa": "Italy",
+          "swe": "Germany",
+          "tri": "Italy",
+          "tun": "Italy",
+          "ven": "Italy",
+          "vie": "Germany",
+          "war": "Germany"
+        }
+      }
+    },
+    {
+      "ordinal": 15,
+      "season": "Fall",
+      "year": 1903,
+      "type": "Adjustment",
+      "resolution_trigger": "consensus",
+      "non_confirming_nations": [],
+      "orders": [
+        {
+          "nation": "Germany",
+          "selected": [
+            "ber",
+            "Build",
+            "Army"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "kie",
+            "Build",
+            "Fleet"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "nap",
+            "Build",
+            "Fleet"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "rom",
+            "Build",
+            "Army"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "bel",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "ber",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "boh",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "kie",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "mar",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "mun",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "nrg",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "nth",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "nwy",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "tyr",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "vie",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "adr",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "ank",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "bud",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "gal",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "gol",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "nap",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "rom",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "spa/sc",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "tri",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "ven",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "ank": "Italy",
+          "bel": "Germany",
+          "ber": "Germany",
+          "bud": "Italy",
+          "den": "Germany",
+          "edi": "Germany",
+          "gre": "Italy",
+          "hol": "Germany",
+          "kie": "Germany",
+          "mar": "Germany",
+          "mun": "Germany",
+          "nap": "Italy",
+          "nwy": "Germany",
+          "rom": "Italy",
+          "rum": "Italy",
+          "ser": "Italy",
+          "smy": "Italy",
+          "spa": "Italy",
+          "swe": "Germany",
+          "tri": "Italy",
+          "tun": "Italy",
+          "ven": "Italy",
+          "vie": "Germany",
+          "war": "Germany"
+        }
+      }
+    },
+    {
+      "ordinal": 16,
+      "season": "Spring",
+      "year": 1904,
+      "type": "Movement",
+      "resolution_trigger": "consensus",
+      "non_confirming_nations": [],
+      "orders": [
+        {
+          "nation": "Germany",
+          "selected": [
+            "bel",
+            "Move",
+            "bur"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "ber",
+            "Move",
+            "pru"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "boh",
+            "Support",
+            "vie",
+            "gal"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "kie",
+            "Move",
+            "hel"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "mar",
+            "Move",
+            "spa"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "mun",
+            "Support",
+            "tyr",
+            "tyr"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "nrg",
+            "Move",
+            "nat"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "nth",
+            "Move",
+            "lon"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "nwy",
+            "Move",
+            "stp",
+            "stp/nc"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "tyr",
+            "Hold"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "vie",
+            "Move",
+            "gal"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "adr",
+            "Support",
+            "rom",
+            "ven"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "ank",
+            "Move",
+            "con"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "bud",
+            "Support",
+            "tri",
+            "vie"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "gal",
+            "Move",
+            "sil"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "gol",
+            "Move",
+            "spa",
+            "spa/sc"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "nap",
+            "Move",
+            "tys"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "rom",
+            "Move",
+            "ven"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "spa",
+            "Move",
+            "por"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "tri",
+            "Move",
+            "vie"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "ven",
+            "Move",
+            "pie"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "boh",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "bur",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "gal",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "hel",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "mar",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "mun",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "nat",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "pru",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "stp/nc",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "tyr",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "adr",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "bud",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "con",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "gol",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "pie",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "por",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "sil",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "tys",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "ven",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "vie",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "ank": "Italy",
+          "bel": "Germany",
+          "ber": "Germany",
+          "bud": "Italy",
+          "den": "Germany",
+          "edi": "Germany",
+          "gre": "Italy",
+          "hol": "Germany",
+          "kie": "Germany",
+          "mar": "Germany",
+          "mun": "Germany",
+          "nap": "Italy",
+          "nwy": "Germany",
+          "rom": "Italy",
+          "rum": "Italy",
+          "ser": "Italy",
+          "smy": "Italy",
+          "spa": "Italy",
+          "swe": "Germany",
+          "tri": "Italy",
+          "tun": "Italy",
+          "ven": "Italy",
+          "vie": "Germany",
+          "war": "Germany"
+        }
+      }
+    },
+    {
+      "ordinal": 17,
+      "season": "Spring",
+      "year": 1904,
+      "type": "Retreat",
+      "resolution_trigger": "auto",
+      "non_confirming_nations": [],
+      "orders": [],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "boh",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "bur",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "gal",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "hel",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "mar",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "mun",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "nat",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "pru",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "stp/nc",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "tyr",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "adr",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "bud",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "con",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "gol",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "pie",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "por",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "sil",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "tys",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "ven",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "vie",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "ank": "Italy",
+          "bel": "Germany",
+          "ber": "Germany",
+          "bud": "Italy",
+          "den": "Germany",
+          "edi": "Germany",
+          "gre": "Italy",
+          "hol": "Germany",
+          "kie": "Germany",
+          "mar": "Germany",
+          "mun": "Germany",
+          "nap": "Italy",
+          "nwy": "Germany",
+          "rom": "Italy",
+          "rum": "Italy",
+          "ser": "Italy",
+          "smy": "Italy",
+          "spa": "Italy",
+          "swe": "Germany",
+          "tri": "Italy",
+          "tun": "Italy",
+          "ven": "Italy",
+          "vie": "Germany",
+          "war": "Germany"
+        }
+      }
+    },
+    {
+      "ordinal": 18,
+      "season": "Fall",
+      "year": 1904,
+      "type": "Movement",
+      "resolution_trigger": "consensus",
+      "non_confirming_nations": [],
+      "orders": [
+        {
+          "nation": "Germany",
+          "selected": [
+            "boh",
+            "Move",
+            "vie"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "bur",
+            "Move",
+            "mar"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "gal",
+            "Support",
+            "boh",
+            "vie"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "hel",
+            "Move",
+            "nth"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "lon",
+            "Hold"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "mar",
+            "Move",
+            "spa"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "mun",
+            "Support",
+            "pru",
+            "sil"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "nat",
+            "Move",
+            "mid"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "pru",
+            "Move",
+            "sil"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "stp",
+            "Hold"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "tyr",
+            "Move",
+            "pie"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "adr",
+            "Move",
+            "tri"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "bud",
+            "Support",
+            "vie",
+            "vie"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "con",
+            "Move",
+            "bul",
+            "bul/ec"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "gol",
+            "Move",
+            "spa",
+            "spa/sc"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "pie",
+            "Support",
+            "ven",
+            "tyr"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "por",
+            "Support",
+            "gol",
+            "spa"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "sil",
+            "Move",
+            "boh"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "tys",
+            "Move",
+            "gol"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "ven",
+            "Move",
+            "tyr"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "vie",
+            "Support",
+            "ven",
+            "tyr"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "boh",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "bur",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "gal",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "mar",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "mid",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "mun",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "nth",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "sil",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "stp/nc",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "bud",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "bul/ec",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "gol",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "pie",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "por",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "sil",
+            "dislodged": true
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "spa/sc",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "tri",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "tyr",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "vie",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "ank": "Italy",
+          "bel": "Germany",
+          "ber": "Germany",
+          "bud": "Italy",
+          "den": "Germany",
+          "edi": "Germany",
+          "gre": "Italy",
+          "hol": "Germany",
+          "kie": "Germany",
+          "mar": "Germany",
+          "mun": "Germany",
+          "nap": "Italy",
+          "nwy": "Germany",
+          "rom": "Italy",
+          "rum": "Italy",
+          "ser": "Italy",
+          "smy": "Italy",
+          "spa": "Italy",
+          "swe": "Germany",
+          "tri": "Italy",
+          "tun": "Italy",
+          "ven": "Italy",
+          "vie": "Germany",
+          "war": "Germany"
+        }
+      }
+    },
+    {
+      "ordinal": 19,
+      "season": "Fall",
+      "year": 1904,
+      "type": "Retreat",
+      "resolution_trigger": "consensus",
+      "non_confirming_nations": [],
+      "orders": [
+        {
+          "nation": "Italy",
+          "selected": [
+            "sil",
+            "Move",
+            "ber"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "boh",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "bur",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "gal",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "mar",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "mid",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "mun",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "nth",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "sil",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "stp/nc",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "ber",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "bud",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "bul/ec",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "gol",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "pie",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "por",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "spa/sc",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "tri",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "tyr",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "vie",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "ank": "Italy",
+          "bel": "Germany",
+          "ber": "Italy",
+          "bud": "Italy",
+          "bul": "Italy",
+          "den": "Germany",
+          "edi": "Germany",
+          "gre": "Italy",
+          "hol": "Germany",
+          "kie": "Germany",
+          "lon": "Germany",
+          "mar": "Germany",
+          "mun": "Germany",
+          "nap": "Italy",
+          "nwy": "Germany",
+          "por": "Italy",
+          "rom": "Italy",
+          "rum": "Italy",
+          "ser": "Italy",
+          "smy": "Italy",
+          "spa": "Italy",
+          "stp": "Germany",
+          "swe": "Germany",
+          "tri": "Italy",
+          "tun": "Italy",
+          "ven": "Italy",
+          "vie": "Italy",
+          "war": "Germany"
+        }
+      }
+    },
+    {
+      "ordinal": 20,
+      "season": "Fall",
+      "year": 1904,
+      "type": "Adjustment",
+      "resolution_trigger": "consensus",
+      "non_confirming_nations": [],
+      "orders": [
+        {
+          "nation": "Germany",
+          "selected": [
+            "kie",
+            "Build",
+            "Army"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "nap",
+            "Build",
+            "Fleet"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "rom",
+            "Build",
+            "Fleet"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "ven",
+            "Build",
+            "Army"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "boh",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "bur",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "gal",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "kie",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "lon",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "mar",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "mid",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "mun",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "nth",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "sil",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "stp/nc",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "ber",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "bud",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "bul/ec",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "gol",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "nap",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "pie",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "por",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "rom",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "spa/sc",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "tri",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "tyr",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "ven",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "vie",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "ank": "Italy",
+          "bel": "Germany",
+          "ber": "Italy",
+          "bud": "Italy",
+          "bul": "Italy",
+          "den": "Germany",
+          "edi": "Germany",
+          "gre": "Italy",
+          "hol": "Germany",
+          "kie": "Germany",
+          "lon": "Germany",
+          "mar": "Germany",
+          "mun": "Germany",
+          "nap": "Italy",
+          "nwy": "Germany",
+          "por": "Italy",
+          "rom": "Italy",
+          "rum": "Italy",
+          "ser": "Italy",
+          "smy": "Italy",
+          "spa": "Italy",
+          "stp": "Germany",
+          "swe": "Germany",
+          "tri": "Italy",
+          "tun": "Italy",
+          "ven": "Italy",
+          "vie": "Italy",
+          "war": "Germany"
+        }
+      }
+    },
+    {
+      "ordinal": 21,
+      "season": "Spring",
+      "year": 1905,
+      "type": "Movement",
+      "resolution_trigger": "consensus",
+      "non_confirming_nations": [],
+      "orders": [
+        {
+          "nation": "Germany",
+          "selected": [
+            "boh",
+            "Support",
+            "mun",
+            "tyr"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "bur",
+            "Move",
+            "par"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "gal",
+            "Move",
+            "rum"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "kie",
+            "Support",
+            "sil",
+            "ber"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "lon",
+            "Move",
+            "eng"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "mar",
+            "Move",
+            "spa"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "mid",
+            "Move",
+            "por"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "mun",
+            "Move",
+            "tyr"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "nth",
+            "Move",
+            "ska"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "sil",
+            "Move",
+            "ber"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "stp",
+            "Move",
+            "bar"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "ber",
+            "Move",
+            "mun"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "bud",
+            "Move",
+            "gal"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "bul",
+            "Move",
+            "rum"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "gol",
+            "Support",
+            "pie",
+            "mar"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "nap",
+            "Move",
+            "ion"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "pie",
+            "Move",
+            "mar"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "por",
+            "Move",
+            "mid"
+          ],
+          "expected_resolution": "ErrBounce"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "rom",
+            "Move",
+            "tys"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "spa",
+            "Support",
+            "pie",
+            "mar"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "tri",
+            "Move",
+            "adr"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "tyr",
+            "Support",
+            "vie",
+            "vie"
+          ],
+          "expected_resolution": "ErrSupportBroken"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "ven",
+            "Support",
+            "tyr",
+            "tyr"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "vie",
+            "Support",
+            "bud",
+            "gal"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "bar",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "ber",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "boh",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "eng",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "gal",
+            "dislodged": true
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "kie",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "mar",
+            "dislodged": true
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "mid",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "mun",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "ska",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "adr",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "ber",
+            "dislodged": true
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "bul/ec",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "gal",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "gol",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "ion",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "mar",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "por",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "spa/sc",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "tyr",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "tys",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "ven",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "vie",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "ank": "Italy",
+          "bel": "Germany",
+          "ber": "Italy",
+          "bud": "Italy",
+          "bul": "Italy",
+          "den": "Germany",
+          "edi": "Germany",
+          "gre": "Italy",
+          "hol": "Germany",
+          "kie": "Germany",
+          "lon": "Germany",
+          "mar": "Germany",
+          "mun": "Germany",
+          "nap": "Italy",
+          "nwy": "Germany",
+          "por": "Italy",
+          "rom": "Italy",
+          "rum": "Italy",
+          "ser": "Italy",
+          "smy": "Italy",
+          "spa": "Italy",
+          "stp": "Germany",
+          "swe": "Germany",
+          "tri": "Italy",
+          "tun": "Italy",
+          "ven": "Italy",
+          "vie": "Italy",
+          "war": "Germany"
+        }
+      }
+    },
+    {
+      "ordinal": 22,
+      "season": "Spring",
+      "year": 1905,
+      "type": "Retreat",
+      "resolution_trigger": "consensus",
+      "non_confirming_nations": [],
+      "orders": [
+        {
+          "nation": "Germany",
+          "selected": [
+            "gal",
+            "Move",
+            "ukr"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Germany",
+          "selected": [
+            "mar",
+            "Move",
+            "gas"
+          ],
+          "expected_resolution": "OK"
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "ber",
+            "Move",
+            "pru"
+          ],
+          "expected_resolution": "OK"
+        }
+      ],
+      "expected_state_after": {
+        "units": [
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "bar",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "ber",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "boh",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "eng",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "gas",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "kie",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "mid",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "mun",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "par",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Fleet",
+            "province": "ska",
+            "dislodged": false
+          },
+          {
+            "nation": "Germany",
+            "type": "Army",
+            "province": "ukr",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "adr",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "bul/ec",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "gal",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "gol",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "ion",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "mar",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "por",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "pru",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "spa/sc",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "tyr",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Fleet",
+            "province": "tys",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "ven",
+            "dislodged": false
+          },
+          {
+            "nation": "Italy",
+            "type": "Army",
+            "province": "vie",
+            "dislodged": false
+          }
+        ],
+        "supply_centers": {
+          "ank": "Italy",
+          "bel": "Germany",
+          "ber": "Italy",
+          "bud": "Italy",
+          "bul": "Italy",
+          "den": "Germany",
+          "edi": "Germany",
+          "gre": "Italy",
+          "hol": "Germany",
+          "kie": "Germany",
+          "lon": "Germany",
+          "mar": "Germany",
+          "mun": "Germany",
+          "nap": "Italy",
+          "nwy": "Germany",
+          "por": "Italy",
+          "rom": "Italy",
+          "rum": "Italy",
+          "ser": "Italy",
+          "smy": "Italy",
+          "spa": "Italy",
+          "stp": "Germany",
+          "swe": "Germany",
+          "tri": "Italy",
+          "tun": "Italy",
+          "ven": "Italy",
+          "vie": "Italy",
+          "war": "Germany"
+        }
+      }
+    },
+    {
+      "ordinal": 23,
+      "season": "Fall",
+      "year": 1905,
+      "type": "Movement",
+      "resolution_trigger": "terminal",
+      "non_confirming_nations": [],
+      "orders": [
+        {
+          "nation": "Italy",
+          "selected": [
+            "adr",
+            "Move",
+            "ion"
+          ],
+          "expected_resolution": null
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "bul",
+            "Move",
+            "rum"
+          ],
+          "expected_resolution": null
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "gal",
+            "Support",
+            "pru",
+            "war"
+          ],
+          "expected_resolution": null
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "gol",
+            "Move",
+            "spa",
+            "spa/sc"
+          ],
+          "expected_resolution": null
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "ion",
+            "Move",
+            "aeg"
+          ],
+          "expected_resolution": null
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "mar",
+            "Support",
+            "gol",
+            "spa"
+          ],
+          "expected_resolution": null
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "por",
+            "Support",
+            "spa",
+            "mid"
+          ],
+          "expected_resolution": null
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "pru",
+            "Move",
+            "war"
+          ],
+          "expected_resolution": null
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "spa",
+            "Move",
+            "mid"
+          ],
+          "expected_resolution": null
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "tyr",
+            "Move",
+            "boh"
+          ],
+          "expected_resolution": null
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "tys",
+            "Move",
+            "wes"
+          ],
+          "expected_resolution": null
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "ven",
+            "Move",
+            "tyr"
+          ],
+          "expected_resolution": null
+        },
+        {
+          "nation": "Italy",
+          "selected": [
+            "vie",
+            "Support",
+            "tyr",
+            "boh"
+          ],
+          "expected_resolution": null
+        }
+      ],
+      "expected_state_after": null
+    }
+  ]
+}

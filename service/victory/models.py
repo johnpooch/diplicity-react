@@ -2,7 +2,6 @@ import logging
 from django.db import models
 from django.db.models import Count
 from common.models import BaseModel
-from common.constants import PhaseType, PhaseStatus, GameStatus
 from victory.constants import VictoryType
 from victory.utils import check_for_solo_winner
 
@@ -28,9 +27,6 @@ class VictoryManager(models.Manager):
         return self.get_queryset().draw_victories()
 
     def try_create_victory(self, phase):
-        if phase.type != PhaseType.ADJUSTMENT:
-            return None
-
         winner = check_for_solo_winner(phase.game, phase)
 
         if not winner:

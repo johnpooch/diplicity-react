@@ -1,8 +1,9 @@
 import React from "react";
 import { Shield, Star, Trophy } from "lucide-react";
 
+import { CivilDisorderBadge } from "@/components/CivilDisorderBadge";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
-import { NationFlag } from "@/components/NationFlag";
+import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
@@ -56,10 +57,11 @@ export const PlayerInfoContent: React.FC = () => {
               >
                 {member.nation && variant && (
                   <NationFlag
-                    nation={member.nation}
-                    variantId={variant.id}
+                    flagUrl={findNationFlagUrl(variant.nations, member.nation)}
+                    alt={member.nation}
                     size="lg"
                     className="size-8"
+                    color={findNationColor(variant.nations, member.nation)}
                   />
                 )}
 
@@ -78,6 +80,7 @@ export const PlayerInfoContent: React.FC = () => {
                         {game.victory?.type === "solo" ? "Winner" : "Draw"}
                       </Badge>
                     )}
+                    {member.civilDisorder && <CivilDisorderBadge />}
                   </div>
 
                   {member.nation && (

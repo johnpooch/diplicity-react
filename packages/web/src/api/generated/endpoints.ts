@@ -21,11 +21,6 @@ import type {
   UseSuspenseQueryResult,
 } from "@tanstack/react-query";
 
-import { faker } from "@faker-js/faker";
-
-import { HttpResponse, http } from "msw";
-import type { RequestHandlerOptions } from "msw";
-
 import { customInstance } from "../axiosInstance";
 
 // https://stackoverflow.com/questions/49579094/typescript-conditional-types-filter-out-readonly-properties-pick-only-requir/49579497#49579497
@@ -77,8 +72,11 @@ export interface Auth {
 }
 
 export interface Nation {
+  nationId: string;
   name: string;
   color: string;
+  /** @nullable */
+  readonly flagUrl: string | null;
 }
 
 export interface ChannelMember {
@@ -129,9 +127,7 @@ export interface DrawVoteMember {
   nation: string | null;
 }
 
-export interface DrawVote {
-  readonly id: number;
-  readonly member: DrawVoteMember;
+export interface MyVote {
   readonly included: boolean;
   /** @nullable */
   readonly accepted: boolean | null;
@@ -141,12 +137,14 @@ export interface DrawProposal {
   readonly id: number;
   readonly createdBy: DrawVoteMember;
   readonly status: string;
-  readonly combinedScCount: number;
-  readonly victoryThreshold: number;
-  readonly votes: readonly DrawVote[];
+  readonly acceptedCount: number;
+  readonly rejectedCount: number;
+  readonly pendingCount: number;
+  readonly totalVotes: number;
+  readonly includedMemberIds: readonly number[];
+  readonly myVote: MyVote | null;
   readonly phaseId: number;
   readonly createdAt: string;
-  includedMemberIds: number[];
 }
 
 export interface DrawVoteUpdate {
@@ -339,6 +337,19 @@ export interface GameExtendDeadline {
   duration: DurationEnum;
 }
 
+export interface GameListCurrentPhase {
+  readonly id: number;
+  readonly ordinal: number;
+  readonly season: string;
+  readonly year: number;
+  readonly name: string;
+  readonly type: string;
+  readonly status: string;
+  /** @nullable */
+  readonly scheduledResolution: string | null;
+  readonly remainingTime: number;
+}
+
 export interface Member {
   readonly id: number;
   readonly name: string;
@@ -351,6 +362,7 @@ export interface Member {
   readonly kicked: boolean;
   readonly isGameMaster: boolean;
   readonly nmrExtensionsRemaining: number;
+  readonly civilDisorder: boolean;
 }
 
 export interface Victory {
@@ -372,6 +384,8 @@ export interface GameList {
   readonly phases: readonly number[];
   /** @nullable */
   readonly currentPhaseId: number | null;
+  readonly currentPhase: GameListCurrentPhase | null;
+  readonly phaseConfirmed: boolean;
   readonly private: boolean;
   readonly anonymous: boolean;
   /** @nullable */
@@ -396,6 +410,10 @@ export interface GameList {
   /** @nullable */
   readonly retreatFrequency: string | null;
   readonly pressType: string;
+}
+
+export interface GameFindSimilar {
+  game: GameList | null;
 }
 
 export interface GameRetrieve {
@@ -436,6 +454,10 @@ export interface GameRetrieve {
   readonly retreatFrequency: string | null;
   readonly pressType: string;
   readonly totalUnreadMessageCount: number;
+}
+
+export interface NationFlagUpload {
+  flag: string;
 }
 
 export interface Province {
@@ -587,6 +609,11 @@ export interface PatchedUserProfile {
   readonly email?: string;
 }
 
+export interface PatchedVariantWrite {
+  dvar?: string;
+  dsvg?: string;
+}
+
 /**
  * * `pending` - Pending
  * `active` - Active
@@ -643,6 +670,7 @@ export interface PhaseRetrieve {
   status: StatusEnum;
   units: Unit[];
   supplyCenters: SupplyCenter[];
+  provinceNations: Record<string, string>;
   /** @nullable */
   previousPhaseId: number | null;
   /** @nullable */
@@ -681,15 +709,70 @@ export interface UserProfile {
   readonly email: string;
 }
 
+export interface VictoryConditions {
+  soloVictorySupplyCenters: number;
+  /** @nullable */
+  gameEndsYear: number | null;
+  /** @nullable */
+  drawAfterYear: number | null;
+}
+
+export interface VariantProvince {
+  id: string;
+  name: string;
+  /** @nullable */
+  parentId: string | null;
+}
+
+export interface VariantTemplateNationRef {
+  name: string;
+}
+
+export interface VariantTemplateProvinceRef {
+  id: string;
+}
+
+export interface VariantTemplateUnit {
+  type: string;
+  dislodged: boolean;
+  nation: VariantTemplateNationRef;
+  province: VariantTemplateProvinceRef;
+}
+
+export interface VariantTemplateSupplyCenter {
+  nation: VariantTemplateNationRef;
+  province: VariantTemplateProvinceRef;
+}
+
+export interface VariantTemplatePhase {
+  year: number;
+  units: VariantTemplateUnit[];
+  supplyCenters: VariantTemplateSupplyCenter[];
+}
+
 export interface Variant {
   id: string;
   name: string;
   description: string;
   author?: string;
-  soloVictoryScCount: number;
+  rules: string;
+  readonly status: string;
+  /** @nullable */
+  readonly ownerId: number | null;
+  /** @nullable */
+  readonly ownerUsername: string | null;
+  readonly canEdit: boolean;
+  victoryConditions: VictoryConditions;
+  /** @nullable */
+  readonly svgUrl: string | null;
   nations: Nation[];
-  provinces: Province[];
-  templatePhase: PhaseRetrieve;
+  provinces: VariantProvince[];
+  templatePhase: VariantTemplatePhase;
+}
+
+export interface VariantWrite {
+  dvar: string;
+  dsvg: string;
 }
 
 export interface VerifyEmail {
@@ -832,6 +915,9 @@ export type GamesListParams = {
   mine?: boolean;
   /**
    * * `1 hour` - 1 hour
+   * `2 hours` - 2 hours
+   * `4 hours` - 4 hours
+   * `8 hours` - 8 hours
    * `12 hours` - 12 hours
    * `24 hours` - 24 hours
    * `48 hours` - 48 hours
@@ -842,6 +928,7 @@ export type GamesListParams = {
    * @nullable
    */
   movement_phase_duration?: GamesListMovementPhaseDuration;
+  ordering?: string;
   /**
    * A page number within the paginated result set.
    */
@@ -861,14 +948,22 @@ export type GamesListMovementPhaseDuration =
 
 export const GamesListMovementPhaseDuration = {
   "1_hour": "1 hour",
+  "1_week": "1 week",
   "12_hours": "12 hours",
+  "2_hours": "2 hours",
+  "2_weeks": "2 weeks",
   "24_hours": "24 hours",
-  "48_hours": "48 hours",
   "3_days": "3 days",
   "4_days": "4 days",
-  "1_week": "1 week",
-  "2_weeks": "2 weeks",
+  "4_hours": "4 hours",
+  "48_hours": "48 hours",
+  "8_hours": "8 hours",
 } as const;
+
+export type GamesFindSimilarRetrieveParams = {
+  movement_phase_duration: string;
+  variant: string;
+};
 
 /**
  * OpenApi3 schema for this API. Format can be selected via content negotiation.
@@ -6759,6 +6854,283 @@ export const useGamesDrawProposalsCreateCreate = <
   );
 };
 
+export const gamesFindSimilarRetrieve = (
+  params: GamesFindSimilarRetrieveParams,
+  signal?: AbortSignal
+) => {
+  return customInstance<GameFindSimilar>({
+    url: `/games/find-similar/`,
+    method: "GET",
+    params,
+    signal,
+  });
+};
+
+export const getGamesFindSimilarRetrieveQueryKey = (
+  params?: GamesFindSimilarRetrieveParams
+) => {
+  return [`/games/find-similar/`, ...(params ? [params] : [])] as const;
+};
+
+export const getGamesFindSimilarRetrieveQueryOptions = <
+  TData = Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+  TError = unknown,
+>(
+  params: GamesFindSimilarRetrieveParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGamesFindSimilarRetrieveQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>
+  > = ({ signal }) => gamesFindSimilarRetrieve(params, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GamesFindSimilarRetrieveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>
+>;
+export type GamesFindSimilarRetrieveQueryError = unknown;
+
+export function useGamesFindSimilarRetrieve<
+  TData = Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+  TError = unknown,
+>(
+  params: GamesFindSimilarRetrieveParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesFindSimilarRetrieve<
+  TData = Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+  TError = unknown,
+>(
+  params: GamesFindSimilarRetrieveParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesFindSimilarRetrieve<
+  TData = Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+  TError = unknown,
+>(
+  params: GamesFindSimilarRetrieveParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGamesFindSimilarRetrieve<
+  TData = Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+  TError = unknown,
+>(
+  params: GamesFindSimilarRetrieveParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGamesFindSimilarRetrieveQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getGamesFindSimilarRetrieveSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+  TError = unknown,
+>(
+  params: GamesFindSimilarRetrieveParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGamesFindSimilarRetrieveQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>
+  > = ({ signal }) => gamesFindSimilarRetrieve(params, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GamesFindSimilarRetrieveSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>
+>;
+export type GamesFindSimilarRetrieveSuspenseQueryError = unknown;
+
+export function useGamesFindSimilarRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+  TError = unknown,
+>(
+  params: GamesFindSimilarRetrieveParams,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesFindSimilarRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+  TError = unknown,
+>(
+  params: GamesFindSimilarRetrieveParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGamesFindSimilarRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+  TError = unknown,
+>(
+  params: GamesFindSimilarRetrieveParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useGamesFindSimilarRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+  TError = unknown,
+>(
+  params: GamesFindSimilarRetrieveParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof gamesFindSimilarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGamesFindSimilarRetrieveSuspenseQueryOptions(
+    params,
+    options
+  );
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
 export const phaseDeadlineWarningsCreate = (signal?: AbortSignal) => {
   return customInstance<void>({
     url: `/phase/deadline-warnings/`,
@@ -7664,6 +8036,1038 @@ export function useVariantsListSuspense<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
+export const variantsCreate = (
+  variantWrite: VariantWrite,
+  signal?: AbortSignal
+) => {
+  const formData = new FormData();
+  formData.append(`dvar`, variantWrite.dvar);
+  formData.append(`dsvg`, variantWrite.dsvg);
+
+  return customInstance<VariantWrite>({
+    url: `/variants/`,
+    method: "POST",
+    headers: { "Content-Type": "multipart/form-data" },
+    data: formData,
+    signal,
+  });
+};
+
+export const getVariantsCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof variantsCreate>>,
+    TError,
+    { data: VariantWrite },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof variantsCreate>>,
+  TError,
+  { data: VariantWrite },
+  TContext
+> => {
+  const mutationKey = ["variantsCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof variantsCreate>>,
+    { data: VariantWrite }
+  > = props => {
+    const { data } = props ?? {};
+
+    return variantsCreate(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VariantsCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof variantsCreate>>
+>;
+export type VariantsCreateMutationBody = VariantWrite;
+export type VariantsCreateMutationError = unknown;
+
+export const useVariantsCreate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof variantsCreate>>,
+      TError,
+      { data: VariantWrite },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof variantsCreate>>,
+  TError,
+  { data: VariantWrite },
+  TContext
+> => {
+  return useMutation(getVariantsCreateMutationOptions(options), queryClient);
+};
+
+export const variantsRetrieve = (id: string, signal?: AbortSignal) => {
+  return customInstance<Variant>({
+    url: `/variants/${id}/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getVariantsRetrieveQueryKey = (id: string) => {
+  return [`/variants/${id}/`] as const;
+};
+
+export const getVariantsRetrieveQueryOptions = <
+  TData = Awaited<ReturnType<typeof variantsRetrieve>>,
+  TError = unknown,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof variantsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getVariantsRetrieveQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof variantsRetrieve>>
+  > = ({ signal }) => variantsRetrieve(id, signal);
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof variantsRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type VariantsRetrieveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof variantsRetrieve>>
+>;
+export type VariantsRetrieveQueryError = unknown;
+
+export function useVariantsRetrieve<
+  TData = Awaited<ReturnType<typeof variantsRetrieve>>,
+  TError = unknown,
+>(
+  id: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof variantsRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof variantsRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof variantsRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useVariantsRetrieve<
+  TData = Awaited<ReturnType<typeof variantsRetrieve>>,
+  TError = unknown,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof variantsRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof variantsRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof variantsRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useVariantsRetrieve<
+  TData = Awaited<ReturnType<typeof variantsRetrieve>>,
+  TError = unknown,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof variantsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useVariantsRetrieve<
+  TData = Awaited<ReturnType<typeof variantsRetrieve>>,
+  TError = unknown,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof variantsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getVariantsRetrieveQueryOptions(id, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getVariantsRetrieveSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof variantsRetrieve>>,
+  TError = unknown,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof variantsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getVariantsRetrieveQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof variantsRetrieve>>
+  > = ({ signal }) => variantsRetrieve(id, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof variantsRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type VariantsRetrieveSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof variantsRetrieve>>
+>;
+export type VariantsRetrieveSuspenseQueryError = unknown;
+
+export function useVariantsRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof variantsRetrieve>>,
+  TError = unknown,
+>(
+  id: string,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof variantsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useVariantsRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof variantsRetrieve>>,
+  TError = unknown,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof variantsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useVariantsRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof variantsRetrieve>>,
+  TError = unknown,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof variantsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useVariantsRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof variantsRetrieve>>,
+  TError = unknown,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof variantsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getVariantsRetrieveSuspenseQueryOptions(id, options);
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const variantsUpdate = (
+  id: string,
+  variantWrite: VariantWrite,
+  signal?: AbortSignal
+) => {
+  const formData = new FormData();
+  formData.append(`dvar`, variantWrite.dvar);
+  formData.append(`dsvg`, variantWrite.dsvg);
+
+  return customInstance<VariantWrite>({
+    url: `/variants/${id}/`,
+    method: "PUT",
+    headers: { "Content-Type": "multipart/form-data" },
+    data: formData,
+    signal,
+  });
+};
+
+export const getVariantsUpdateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof variantsUpdate>>,
+    TError,
+    { id: string; data: VariantWrite },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof variantsUpdate>>,
+  TError,
+  { id: string; data: VariantWrite },
+  TContext
+> => {
+  const mutationKey = ["variantsUpdate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof variantsUpdate>>,
+    { id: string; data: VariantWrite }
+  > = props => {
+    const { id, data } = props ?? {};
+
+    return variantsUpdate(id, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VariantsUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof variantsUpdate>>
+>;
+export type VariantsUpdateMutationBody = VariantWrite;
+export type VariantsUpdateMutationError = unknown;
+
+export const useVariantsUpdate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof variantsUpdate>>,
+      TError,
+      { id: string; data: VariantWrite },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof variantsUpdate>>,
+  TError,
+  { id: string; data: VariantWrite },
+  TContext
+> => {
+  return useMutation(getVariantsUpdateMutationOptions(options), queryClient);
+};
+
+export const variantsPartialUpdate = (
+  id: string,
+  patchedVariantWrite: PatchedVariantWrite,
+  signal?: AbortSignal
+) => {
+  const formData = new FormData();
+  if (patchedVariantWrite.dvar !== undefined) {
+    formData.append(`dvar`, patchedVariantWrite.dvar);
+  }
+  if (patchedVariantWrite.dsvg !== undefined) {
+    formData.append(`dsvg`, patchedVariantWrite.dsvg);
+  }
+
+  return customInstance<VariantWrite>({
+    url: `/variants/${id}/`,
+    method: "PATCH",
+    headers: { "Content-Type": "multipart/form-data" },
+    data: formData,
+    signal,
+  });
+};
+
+export const getVariantsPartialUpdateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof variantsPartialUpdate>>,
+    TError,
+    { id: string; data: PatchedVariantWrite },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof variantsPartialUpdate>>,
+  TError,
+  { id: string; data: PatchedVariantWrite },
+  TContext
+> => {
+  const mutationKey = ["variantsPartialUpdate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof variantsPartialUpdate>>,
+    { id: string; data: PatchedVariantWrite }
+  > = props => {
+    const { id, data } = props ?? {};
+
+    return variantsPartialUpdate(id, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VariantsPartialUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof variantsPartialUpdate>>
+>;
+export type VariantsPartialUpdateMutationBody = PatchedVariantWrite;
+export type VariantsPartialUpdateMutationError = unknown;
+
+export const useVariantsPartialUpdate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof variantsPartialUpdate>>,
+      TError,
+      { id: string; data: PatchedVariantWrite },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof variantsPartialUpdate>>,
+  TError,
+  { id: string; data: PatchedVariantWrite },
+  TContext
+> => {
+  return useMutation(
+    getVariantsPartialUpdateMutationOptions(options),
+    queryClient
+  );
+};
+
+export const variantsDestroy = (id: string, signal?: AbortSignal) => {
+  return customInstance<void>({
+    url: `/variants/${id}/`,
+    method: "DELETE",
+    signal,
+  });
+};
+
+export const getVariantsDestroyMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof variantsDestroy>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof variantsDestroy>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["variantsDestroy"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof variantsDestroy>>,
+    { id: string }
+  > = props => {
+    const { id } = props ?? {};
+
+    return variantsDestroy(id);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VariantsDestroyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof variantsDestroy>>
+>;
+
+export type VariantsDestroyMutationError = unknown;
+
+export const useVariantsDestroy = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof variantsDestroy>>,
+      TError,
+      { id: string },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof variantsDestroy>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getVariantsDestroyMutationOptions(options), queryClient);
+};
+
+export const variantsDvarRetrieve = (
+  variantId: string,
+  signal?: AbortSignal
+) => {
+  return customInstance<Variant>({
+    url: `/variants/${variantId}/dvar/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getVariantsDvarRetrieveQueryKey = (variantId: string) => {
+  return [`/variants/${variantId}/dvar/`] as const;
+};
+
+export const getVariantsDvarRetrieveQueryOptions = <
+  TData = Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+  TError = unknown,
+>(
+  variantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getVariantsDvarRetrieveQueryKey(variantId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof variantsDvarRetrieve>>
+  > = ({ signal }) => variantsDvarRetrieve(variantId, signal);
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!variantId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type VariantsDvarRetrieveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof variantsDvarRetrieve>>
+>;
+export type VariantsDvarRetrieveQueryError = unknown;
+
+export function useVariantsDvarRetrieve<
+  TData = Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+  TError = unknown,
+>(
+  variantId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof variantsDvarRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useVariantsDvarRetrieve<
+  TData = Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+  TError = unknown,
+>(
+  variantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof variantsDvarRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useVariantsDvarRetrieve<
+  TData = Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+  TError = unknown,
+>(
+  variantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useVariantsDvarRetrieve<
+  TData = Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+  TError = unknown,
+>(
+  variantId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getVariantsDvarRetrieveQueryOptions(variantId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getVariantsDvarRetrieveSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+  TError = unknown,
+>(
+  variantId: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getVariantsDvarRetrieveQueryKey(variantId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof variantsDvarRetrieve>>
+  > = ({ signal }) => variantsDvarRetrieve(variantId, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type VariantsDvarRetrieveSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof variantsDvarRetrieve>>
+>;
+export type VariantsDvarRetrieveSuspenseQueryError = unknown;
+
+export function useVariantsDvarRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+  TError = unknown,
+>(
+  variantId: string,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useVariantsDvarRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+  TError = unknown,
+>(
+  variantId: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useVariantsDvarRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+  TError = unknown,
+>(
+  variantId: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useVariantsDvarRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+  TError = unknown,
+>(
+  variantId: string,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof variantsDvarRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getVariantsDvarRetrieveSuspenseQueryOptions(
+    variantId,
+    options
+  );
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const variantsNationsFlagUpdate = (
+  variantId: string,
+  nationId: string,
+  nationFlagUpload: NationFlagUpload,
+  signal?: AbortSignal
+) => {
+  const formData = new FormData();
+  formData.append(`flag`, nationFlagUpload.flag);
+
+  return customInstance<Nation>({
+    url: `/variants/${variantId}/nations/${nationId}/flag/`,
+    method: "PUT",
+    headers: { "Content-Type": "multipart/form-data" },
+    data: formData,
+    signal,
+  });
+};
+
+export const getVariantsNationsFlagUpdateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof variantsNationsFlagUpdate>>,
+    TError,
+    { variantId: string; nationId: string; data: NationFlagUpload },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof variantsNationsFlagUpdate>>,
+  TError,
+  { variantId: string; nationId: string; data: NationFlagUpload },
+  TContext
+> => {
+  const mutationKey = ["variantsNationsFlagUpdate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof variantsNationsFlagUpdate>>,
+    { variantId: string; nationId: string; data: NationFlagUpload }
+  > = props => {
+    const { variantId, nationId, data } = props ?? {};
+
+    return variantsNationsFlagUpdate(variantId, nationId, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VariantsNationsFlagUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof variantsNationsFlagUpdate>>
+>;
+export type VariantsNationsFlagUpdateMutationBody = NationFlagUpload;
+export type VariantsNationsFlagUpdateMutationError = unknown;
+
+export const useVariantsNationsFlagUpdate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof variantsNationsFlagUpdate>>,
+      TError,
+      { variantId: string; nationId: string; data: NationFlagUpload },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof variantsNationsFlagUpdate>>,
+  TError,
+  { variantId: string; nationId: string; data: NationFlagUpload },
+  TContext
+> => {
+  return useMutation(
+    getVariantsNationsFlagUpdateMutationOptions(options),
+    queryClient
+  );
+};
+
+export const variantsNationsFlagDestroy = (
+  variantId: string,
+  nationId: string,
+  signal?: AbortSignal
+) => {
+  return customInstance<void>({
+    url: `/variants/${variantId}/nations/${nationId}/flag/`,
+    method: "DELETE",
+    signal,
+  });
+};
+
+export const getVariantsNationsFlagDestroyMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof variantsNationsFlagDestroy>>,
+    TError,
+    { variantId: string; nationId: string },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof variantsNationsFlagDestroy>>,
+  TError,
+  { variantId: string; nationId: string },
+  TContext
+> => {
+  const mutationKey = ["variantsNationsFlagDestroy"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof variantsNationsFlagDestroy>>,
+    { variantId: string; nationId: string }
+  > = props => {
+    const { variantId, nationId } = props ?? {};
+
+    return variantsNationsFlagDestroy(variantId, nationId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VariantsNationsFlagDestroyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof variantsNationsFlagDestroy>>
+>;
+
+export type VariantsNationsFlagDestroyMutationError = unknown;
+
+export const useVariantsNationsFlagDestroy = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof variantsNationsFlagDestroy>>,
+      TError,
+      { variantId: string; nationId: string },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof variantsNationsFlagDestroy>>,
+  TError,
+  { variantId: string; nationId: string },
+  TContext
+> => {
+  return useMutation(
+    getVariantsNationsFlagDestroyMutationOptions(options),
+    queryClient
+  );
+};
+
 export const versionRetrieve = (signal?: AbortSignal) => {
   return customInstance<Version>({ url: `/version/`, method: "GET", signal });
 };
@@ -7907,3135 +9311,3 @@ export function useVersionRetrieveSuspense<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
-
-export const getApiSchemaRetrieveResponseMock = ():
-  | Blob
-  | ApiSchemaRetrieve200Two
-  | ApiSchemaRetrieve200Three
-  | ApiSchemaRetrieve200Four =>
-  faker.helpers.arrayElement([
-    {
-      [faker.string.alphanumeric(5)]: {},
-    },
-    {
-      [faker.string.alphanumeric(5)]: {},
-    },
-    {
-      [faker.string.alphanumeric(5)]: {},
-    },
-    {
-      [faker.string.alphanumeric(5)]: {},
-    },
-  ]);
-
-export const getApiTokenRefreshCreateResponseMock = (
-  overrideResponse: Partial<TokenRefresh> = {}
-): TokenRefresh => ({
-  access: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  refresh: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  ...overrideResponse,
-});
-
-export const getAuthAppleLoginCreateResponseMock = (
-  overrideResponse: Partial<AppleAuth> = {}
-): AppleAuth => ({
-  idToken: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  firstName: faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  lastName: faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  id: faker.number.int({ min: undefined, max: undefined }),
-  email: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  accessToken: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  refreshToken: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  ...overrideResponse,
-});
-
-export const getAuthEmailLoginCreateResponseMock = (
-  overrideResponse: Partial<EmailLogin> = {}
-): EmailLogin => ({
-  email: faker.internet.email(),
-  password: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  id: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  accessToken: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  refreshToken: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  ...overrideResponse,
-});
-
-export const getAuthLoginCreateResponseMock = (
-  overrideResponse: Partial<Auth> = {}
-): Auth => ({
-  idToken: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  id: faker.number.int({ min: undefined, max: undefined }),
-  email: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  accessToken: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  refreshToken: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  ...overrideResponse,
-});
-
-export const getAuthPasswordResetCreateResponseMock = (
-  overrideResponse: Partial<PasswordReset> = {}
-): PasswordReset => ({ email: faker.internet.email(), ...overrideResponse });
-
-export const getAuthPasswordResetConfirmCreateResponseMock = (
-  overrideResponse: Partial<PasswordResetConfirm> = {}
-): PasswordResetConfirm => ({
-  uid: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  token: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  newPassword: faker.string.alpha({ length: { min: 8, max: 20 } }),
-  confirmPassword: faker.string.alpha({ length: { min: 8, max: 20 } }),
-  ...overrideResponse,
-});
-
-export const getAuthRegisterCreateResponseMock = (
-  overrideResponse: Partial<Register> = {}
-): Register => ({
-  email: faker.internet.email(),
-  password: faker.string.alpha({ length: { min: 8, max: 20 } }),
-  displayName: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  ...overrideResponse,
-});
-
-export const getAuthVerifyEmailCreateResponseMock = (
-  overrideResponse: Partial<VerifyEmail> = {}
-): VerifyEmail => ({
-  uid: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  token: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  ...overrideResponse,
-});
-
-export const getDevicesListResponseMock = (): FCMDevice[] =>
-  Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1
-  ).map(() => ({
-    id: faker.number.int({ min: undefined, max: undefined }),
-    name: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 255 } }),
-        null,
-      ]),
-      undefined,
-    ]),
-    registrationId: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    deviceId: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 255 } }),
-        null,
-      ]),
-      undefined,
-    ]),
-    active: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]),
-    dateCreated: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.date.past().toISOString().slice(0, 19) + "Z",
-        null,
-      ]),
-      null,
-    ]),
-    type: faker.helpers.arrayElement(Object.values(TypeEnum)),
-  }));
-
-export const getDevicesCreateResponseMock = (
-  overrideResponse: Partial<FCMDevice> = {}
-): FCMDevice => ({
-  id: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 255 } }),
-      null,
-    ]),
-    undefined,
-  ]),
-  registrationId: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  deviceId: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 255 } }),
-      null,
-    ]),
-    undefined,
-  ]),
-  active: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]),
-  dateCreated: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.date.past().toISOString().slice(0, 19) + "Z",
-      null,
-    ]),
-    null,
-  ]),
-  type: faker.helpers.arrayElement(Object.values(TypeEnum)),
-  ...overrideResponse,
-});
-
-export const getDevicesUpdateResponseMock = (
-  overrideResponse: Partial<FCMDevice> = {}
-): FCMDevice => ({
-  id: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 255 } }),
-      null,
-    ]),
-    undefined,
-  ]),
-  registrationId: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  deviceId: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 255 } }),
-      null,
-    ]),
-    undefined,
-  ]),
-  active: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]),
-  dateCreated: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.date.past().toISOString().slice(0, 19) + "Z",
-      null,
-    ]),
-    null,
-  ]),
-  type: faker.helpers.arrayElement(Object.values(TypeEnum)),
-  ...overrideResponse,
-});
-
-export const getGameCreateResponseMock = (
-  overrideResponse: Partial<GameCreate> = {}
-): GameCreate => ({
-  id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  variantId: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  nationAssignment: faker.helpers.arrayElement(
-    Object.values(NationAssignmentEnum)
-  ),
-  movementPhaseDuration: faker.helpers.arrayElement([
-    faker.helpers.arrayElement(Object.values(DurationEnum)),
-    undefined,
-  ]),
-  retreatPhaseDuration: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.helpers.arrayElement(Object.values(DurationEnum)),
-      faker.helpers.arrayElement([] as const),
-    ]),
-    undefined,
-  ]),
-  private: faker.datatype.boolean(),
-  anonymous: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]),
-  deadlineMode: faker.helpers.arrayElement([
-    faker.helpers.arrayElement(Object.values(DeadlineModeEnum)),
-    undefined,
-  ]),
-  fixedDeadlineTime: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      null,
-    ]),
-    undefined,
-  ]),
-  fixedDeadlineTimezone: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 50 } }),
-      null,
-    ]),
-    undefined,
-  ]),
-  movementFrequency: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.helpers.arrayElement(Object.values(MovementFrequencyEnum)),
-      faker.helpers.arrayElement([] as const),
-    ]),
-    undefined,
-  ]),
-  retreatFrequency: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.helpers.arrayElement(Object.values(RetreatFrequencyEnum)),
-      faker.helpers.arrayElement([] as const),
-    ]),
-    undefined,
-  ]),
-  nmrExtensionsAllowed: faker.helpers.arrayElement([
-    faker.number.int({ min: 0, max: 2 }),
-    undefined,
-  ]),
-  pressType: faker.helpers.arrayElement([
-    faker.helpers.arrayElement(Object.values(PressTypeEnum)),
-    undefined,
-  ]),
-  ...overrideResponse,
-});
-
-export const getGameRetrieveResponseMock = (
-  overrideResponse: Partial<GameRetrieve> = {}
-): GameRetrieve => ({
-  id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  status: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
-  canJoin: faker.datatype.boolean(),
-  canLeave: faker.datatype.boolean(),
-  canDelete: faker.datatype.boolean(),
-  phases: Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1
-  ).map(() => faker.number.int({ min: undefined, max: undefined })),
-  currentPhaseId: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.number.int({ min: undefined, max: undefined }),
-      null,
-    ]),
-    null,
-  ]),
-  members: Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1
-  ).map(() => ({
-    id: faker.number.int({ min: undefined, max: undefined }),
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    picture: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        null,
-      ]),
-      null,
-    ]),
-    isCurrentUser: faker.datatype.boolean(),
-    nation: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        null,
-      ]),
-      null,
-    ]),
-    eliminated: faker.datatype.boolean(),
-    kicked: faker.datatype.boolean(),
-    isGameMaster: faker.datatype.boolean(),
-    nmrExtensionsRemaining: faker.number.int({
-      min: undefined,
-      max: undefined,
-    }),
-  })),
-  sandbox: faker.datatype.boolean(),
-  victory: {
-    ...{
-      id: faker.number.int({ min: undefined, max: undefined }),
-      type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      winningPhaseId: faker.number.int({ min: undefined, max: undefined }),
-      members: Array.from(
-        { length: faker.number.int({ min: 1, max: 10 }) },
-        (_, i) => i + 1
-      ).map(() => ({
-        id: faker.number.int({ min: undefined, max: undefined }),
-        name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        picture: faker.helpers.arrayElement([
-          faker.helpers.arrayElement([
-            faker.string.alpha({ length: { min: 10, max: 20 } }),
-            null,
-          ]),
-          null,
-        ]),
-        isCurrentUser: faker.datatype.boolean(),
-        nation: faker.helpers.arrayElement([
-          faker.helpers.arrayElement([
-            faker.string.alpha({ length: { min: 10, max: 20 } }),
-            null,
-          ]),
-          null,
-        ]),
-        eliminated: faker.datatype.boolean(),
-        kicked: faker.datatype.boolean(),
-        isGameMaster: faker.datatype.boolean(),
-        nmrExtensionsRemaining: faker.number.int({
-          min: undefined,
-          max: undefined,
-        }),
-      })),
-    },
-  },
-  variantId: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  nationAssignment: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  phaseConfirmed: faker.datatype.boolean(),
-  movementPhaseDuration: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      null,
-    ]),
-    null,
-  ]),
-  retreatPhaseDuration: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      null,
-    ]),
-    null,
-  ]),
-  private: faker.datatype.boolean(),
-  anonymous: faker.datatype.boolean(),
-  isPaused: faker.datatype.boolean(),
-  pausedAt: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.date.past().toISOString().slice(0, 19) + "Z",
-      null,
-    ]),
-    null,
-  ]),
-  nmrExtensionsAllowed: faker.number.int({ min: undefined, max: undefined }),
-  deadlineMode: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  fixedDeadlineTime: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      null,
-    ]),
-    null,
-  ]),
-  fixedDeadlineTimezone: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      null,
-    ]),
-    null,
-  ]),
-  movementFrequency: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      null,
-    ]),
-    null,
-  ]),
-  retreatFrequency: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      null,
-    ]),
-    null,
-  ]),
-  pressType: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  totalUnreadMessageCount: faker.number.int({ min: undefined, max: undefined }),
-  ...overrideResponse,
-});
-
-export const getGameCloneToSandboxCreateResponseMock = (
-  overrideResponse: Partial<GameCloneToSandbox> = {}
-): GameCloneToSandbox => ({
-  id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  ...overrideResponse,
-});
-
-export const getGameConfirmPhaseUpdateResponseMock = (
-  overrideResponse: Partial<PhaseState> = {}
-): PhaseState => ({
-  id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  ordersConfirmed: faker.datatype.boolean(),
-  eliminated: faker.datatype.boolean(),
-  orderableProvinces: Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1
-  ).map(() => ({
-    id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    supplyCenter: faker.datatype.boolean(),
-    parentId: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        null,
-      ]),
-      null,
-    ]),
-    namedCoastIds: Array.from(
-      { length: faker.number.int({ min: 1, max: 10 }) },
-      (_, i) => i + 1
-    ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
-  })),
-  member: {
-    ...{
-      id: faker.number.int({ min: undefined, max: undefined }),
-      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      picture: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        null,
-      ]),
-      isCurrentUser: faker.datatype.boolean(),
-      nation: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        null,
-      ]),
-      eliminated: faker.datatype.boolean(),
-      kicked: faker.datatype.boolean(),
-      isGameMaster: faker.datatype.boolean(),
-      nmrExtensionsRemaining: faker.number.int({
-        min: undefined,
-        max: undefined,
-      }),
-    },
-  },
-  ...overrideResponse,
-});
-
-export const getGameConfirmPhasePartialUpdateResponseMock = (
-  overrideResponse: Partial<PhaseState> = {}
-): PhaseState => ({
-  id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  ordersConfirmed: faker.datatype.boolean(),
-  eliminated: faker.datatype.boolean(),
-  orderableProvinces: Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1
-  ).map(() => ({
-    id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    supplyCenter: faker.datatype.boolean(),
-    parentId: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        null,
-      ]),
-      null,
-    ]),
-    namedCoastIds: Array.from(
-      { length: faker.number.int({ min: 1, max: 10 }) },
-      (_, i) => i + 1
-    ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
-  })),
-  member: {
-    ...{
-      id: faker.number.int({ min: undefined, max: undefined }),
-      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      picture: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        null,
-      ]),
-      isCurrentUser: faker.datatype.boolean(),
-      nation: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        null,
-      ]),
-      eliminated: faker.datatype.boolean(),
-      kicked: faker.datatype.boolean(),
-      isGameMaster: faker.datatype.boolean(),
-      nmrExtensionsRemaining: faker.number.int({
-        min: undefined,
-        max: undefined,
-      }),
-    },
-  },
-  ...overrideResponse,
-});
-
-export const getGameExtendDeadlineUpdateResponseMock = (
-  overrideResponse: Partial<GameExtendDeadline> = {}
-): GameExtendDeadline => ({
-  duration: faker.helpers.arrayElement(Object.values(DurationEnum)),
-  ...overrideResponse,
-});
-
-export const getGameExtendDeadlinePartialUpdateResponseMock = (
-  overrideResponse: Partial<GameExtendDeadline> = {}
-): GameExtendDeadline => ({
-  duration: faker.helpers.arrayElement(Object.values(DurationEnum)),
-  ...overrideResponse,
-});
-
-export const getGameJoinCreateResponseMock = (
-  overrideResponse: Partial<Member> = {}
-): Member => ({
-  id: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  picture: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      null,
-    ]),
-    null,
-  ]),
-  isCurrentUser: faker.datatype.boolean(),
-  nation: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      null,
-    ]),
-    null,
-  ]),
-  eliminated: faker.datatype.boolean(),
-  kicked: faker.datatype.boolean(),
-  isGameMaster: faker.datatype.boolean(),
-  nmrExtensionsRemaining: faker.number.int({ min: undefined, max: undefined }),
-  ...overrideResponse,
-});
-
-export const getGameOptionsRetrieveResponseMock = (
-  overrideResponse: Partial<OrderOptionsResponse> = {}
-): OrderOptionsResponse => ({
-  orders: Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1
-  ).map(() => ({
-    source: {
-      ...{
-        id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        label: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      },
-    },
-    orderType: {
-      ...{
-        id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        label: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      },
-    },
-    target: {
-      ...{
-        id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        label: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      },
-    },
-    aux: {
-      ...{
-        id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        label: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      },
-    },
-    unitType: {
-      ...{
-        id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        label: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      },
-    },
-    namedCoast: {
-      ...{
-        id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        label: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      },
-    },
-  })),
-  fieldOrder: {
-    [faker.string.alphanumeric(5)]: Array.from(
-      { length: faker.number.int({ min: 1, max: 10 }) },
-      (_, i) => i + 1
-    ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
-  },
-  ...overrideResponse,
-});
-
-export const getGameOrdersCreateResponseMock = (
-  overrideResponse: Partial<Order> = {}
-): Order => ({
-  source: {
-    ...{
-      id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      supplyCenter: faker.datatype.boolean(),
-      parentId: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        null,
-      ]),
-      namedCoastIds: Array.from(
-        { length: faker.number.int({ min: 1, max: 10 }) },
-        (_, i) => i + 1
-      ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
-    },
-  },
-  sourceCoast: {
-    ...{
-      id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      supplyCenter: faker.datatype.boolean(),
-      parentId: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        null,
-      ]),
-      namedCoastIds: Array.from(
-        { length: faker.number.int({ min: 1, max: 10 }) },
-        (_, i) => i + 1
-      ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
-    },
-  },
-  target: {
-    ...{
-      id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      supplyCenter: faker.datatype.boolean(),
-      parentId: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        null,
-      ]),
-      namedCoastIds: Array.from(
-        { length: faker.number.int({ min: 1, max: 10 }) },
-        (_, i) => i + 1
-      ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
-    },
-  },
-  aux: {
-    ...{
-      id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      supplyCenter: faker.datatype.boolean(),
-      parentId: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        null,
-      ]),
-      namedCoastIds: Array.from(
-        { length: faker.number.int({ min: 1, max: 10 }) },
-        (_, i) => i + 1
-      ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
-    },
-  },
-  namedCoast: {
-    ...{
-      id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      supplyCenter: faker.datatype.boolean(),
-      parentId: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        null,
-      ]),
-      namedCoastIds: Array.from(
-        { length: faker.number.int({ min: 1, max: 10 }) },
-        (_, i) => i + 1
-      ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
-    },
-  },
-  resolution: {
-    ...{
-      status: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      by: {
-        ...{
-          id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-          name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-          type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-          supplyCenter: faker.datatype.boolean(),
-          parentId: faker.helpers.arrayElement([
-            faker.helpers.arrayElement([
-              faker.string.alpha({ length: { min: 10, max: 20 } }),
-              null,
-            ]),
-            null,
-          ]),
-          namedCoastIds: Array.from(
-            { length: faker.number.int({ min: 1, max: 10 }) },
-            (_, i) => i + 1
-          ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
-        },
-      },
-    },
-  },
-  options: Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1
-  ).map(() => ({
-    value: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    label: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  })),
-  orderType: faker.helpers.arrayElement(Object.values(OrderTypeEnum)),
-  unitType: faker.helpers.arrayElement(Object.values(UnitTypeEnum)),
-  nation: {
-    ...{
-      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      color: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    },
-  },
-  complete: faker.helpers.arrayElement([faker.datatype.boolean(), null]),
-  step: faker.helpers.arrayElement([
-    faker.helpers.arrayElement(Object.values(StepEnum)),
-    faker.helpers.arrayElement([] as const),
-  ]),
-  title: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      null,
-    ]),
-    null,
-  ]),
-  summary: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      null,
-    ]),
-    null,
-  ]),
-  selected: faker.helpers.arrayElement([
-    Array.from(
-      { length: faker.number.int({ min: 1, max: 10 }) },
-      (_, i) => i + 1
-    ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
-    undefined,
-  ]),
-  ...overrideResponse,
-});
-
-export const getGameOrdersListResponseMock = (): Order[] =>
-  Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1
-  ).map(() => ({
-    source: {
-      ...{
-        id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        supplyCenter: faker.datatype.boolean(),
-        parentId: faker.helpers.arrayElement([
-          faker.helpers.arrayElement([
-            faker.string.alpha({ length: { min: 10, max: 20 } }),
-            null,
-          ]),
-          null,
-        ]),
-        namedCoastIds: Array.from(
-          { length: faker.number.int({ min: 1, max: 10 }) },
-          (_, i) => i + 1
-        ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
-      },
-    },
-    sourceCoast: {
-      ...{
-        id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        supplyCenter: faker.datatype.boolean(),
-        parentId: faker.helpers.arrayElement([
-          faker.helpers.arrayElement([
-            faker.string.alpha({ length: { min: 10, max: 20 } }),
-            null,
-          ]),
-          null,
-        ]),
-        namedCoastIds: Array.from(
-          { length: faker.number.int({ min: 1, max: 10 }) },
-          (_, i) => i + 1
-        ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
-      },
-    },
-    target: {
-      ...{
-        id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        supplyCenter: faker.datatype.boolean(),
-        parentId: faker.helpers.arrayElement([
-          faker.helpers.arrayElement([
-            faker.string.alpha({ length: { min: 10, max: 20 } }),
-            null,
-          ]),
-          null,
-        ]),
-        namedCoastIds: Array.from(
-          { length: faker.number.int({ min: 1, max: 10 }) },
-          (_, i) => i + 1
-        ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
-      },
-    },
-    aux: {
-      ...{
-        id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        supplyCenter: faker.datatype.boolean(),
-        parentId: faker.helpers.arrayElement([
-          faker.helpers.arrayElement([
-            faker.string.alpha({ length: { min: 10, max: 20 } }),
-            null,
-          ]),
-          null,
-        ]),
-        namedCoastIds: Array.from(
-          { length: faker.number.int({ min: 1, max: 10 }) },
-          (_, i) => i + 1
-        ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
-      },
-    },
-    namedCoast: {
-      ...{
-        id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        supplyCenter: faker.datatype.boolean(),
-        parentId: faker.helpers.arrayElement([
-          faker.helpers.arrayElement([
-            faker.string.alpha({ length: { min: 10, max: 20 } }),
-            null,
-          ]),
-          null,
-        ]),
-        namedCoastIds: Array.from(
-          { length: faker.number.int({ min: 1, max: 10 }) },
-          (_, i) => i + 1
-        ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
-      },
-    },
-    resolution: {
-      ...{
-        status: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        by: {
-          ...{
-            id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-            name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-            type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-            supplyCenter: faker.datatype.boolean(),
-            parentId: faker.helpers.arrayElement([
-              faker.helpers.arrayElement([
-                faker.string.alpha({ length: { min: 10, max: 20 } }),
-                null,
-              ]),
-              null,
-            ]),
-            namedCoastIds: Array.from(
-              { length: faker.number.int({ min: 1, max: 10 }) },
-              (_, i) => i + 1
-            ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
-          },
-        },
-      },
-    },
-    options: Array.from(
-      { length: faker.number.int({ min: 1, max: 10 }) },
-      (_, i) => i + 1
-    ).map(() => ({
-      value: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      label: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    })),
-    orderType: faker.helpers.arrayElement(Object.values(OrderTypeEnum)),
-    unitType: faker.helpers.arrayElement(Object.values(UnitTypeEnum)),
-    nation: {
-      ...{
-        name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        color: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      },
-    },
-    complete: faker.helpers.arrayElement([faker.datatype.boolean(), null]),
-    step: faker.helpers.arrayElement([
-      faker.helpers.arrayElement(Object.values(StepEnum)),
-      faker.helpers.arrayElement([] as const),
-    ]),
-    title: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        null,
-      ]),
-      null,
-    ]),
-    summary: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        null,
-      ]),
-      null,
-    ]),
-    selected: faker.helpers.arrayElement([
-      Array.from(
-        { length: faker.number.int({ min: 1, max: 10 }) },
-        (_, i) => i + 1
-      ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
-      undefined,
-    ]),
-  }));
-
-export const getGamePhaseStatesListResponseMock = (): PhaseState[] =>
-  Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1
-  ).map(() => ({
-    id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    ordersConfirmed: faker.datatype.boolean(),
-    eliminated: faker.datatype.boolean(),
-    orderableProvinces: Array.from(
-      { length: faker.number.int({ min: 1, max: 10 }) },
-      (_, i) => i + 1
-    ).map(() => ({
-      id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      supplyCenter: faker.datatype.boolean(),
-      parentId: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        null,
-      ]),
-      namedCoastIds: Array.from(
-        { length: faker.number.int({ min: 1, max: 10 }) },
-        (_, i) => i + 1
-      ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
-    })),
-    member: {
-      ...{
-        id: faker.number.int({ min: undefined, max: undefined }),
-        name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        picture: faker.helpers.arrayElement([
-          faker.helpers.arrayElement([
-            faker.string.alpha({ length: { min: 10, max: 20 } }),
-            null,
-          ]),
-          null,
-        ]),
-        isCurrentUser: faker.datatype.boolean(),
-        nation: faker.helpers.arrayElement([
-          faker.helpers.arrayElement([
-            faker.string.alpha({ length: { min: 10, max: 20 } }),
-            null,
-          ]),
-          null,
-        ]),
-        eliminated: faker.datatype.boolean(),
-        kicked: faker.datatype.boolean(),
-        isGameMaster: faker.datatype.boolean(),
-        nmrExtensionsRemaining: faker.number.int({
-          min: undefined,
-          max: undefined,
-        }),
-      },
-    },
-  }));
-
-export const getGamePhaseRetrieveResponseMock = (
-  overrideResponse: Partial<PhaseRetrieve> = {}
-): PhaseRetrieve => ({
-  id: faker.number.int({ min: undefined, max: undefined }),
-  ordinal: faker.number.int({ min: undefined, max: undefined }),
-  season: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  year: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  remainingTime: faker.number.int({ min: undefined, max: undefined }),
-  scheduledResolution: faker.date.past().toISOString().slice(0, 19) + "Z",
-  status: faker.helpers.arrayElement(Object.values(StatusEnum)),
-  units: Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1
-  ).map(() => ({
-    type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    nation: {
-      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      color: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    },
-    province: {
-      id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      supplyCenter: faker.datatype.boolean(),
-      parentId: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        null,
-      ]),
-      namedCoastIds: Array.from(
-        { length: faker.number.int({ min: 1, max: 10 }) },
-        (_, i) => i + 1
-      ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
-    },
-    dislodged: faker.datatype.boolean(),
-    dislodgedBy: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([null]),
-      null,
-    ]),
-  })),
-  supplyCenters: Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1
-  ).map(() => ({
-    province: {
-      id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      supplyCenter: faker.datatype.boolean(),
-      parentId: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        null,
-      ]),
-      namedCoastIds: Array.from(
-        { length: faker.number.int({ min: 1, max: 10 }) },
-        (_, i) => i + 1
-      ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
-    },
-    nation: {
-      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      color: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    },
-  })),
-  previousPhaseId: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.number.int({ min: undefined, max: undefined }),
-      null,
-    ]),
-    null,
-  ]),
-  nextPhaseId: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.number.int({ min: undefined, max: undefined }),
-      null,
-    ]),
-    null,
-  ]),
-  ...overrideResponse,
-});
-
-export const getGamePhasesListResponseMock = (): PhaseList[] =>
-  Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1
-  ).map(() => ({
-    id: faker.number.int({ min: undefined, max: undefined }),
-    ordinal: faker.number.int({ min: undefined, max: undefined }),
-    season: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    year: faker.number.int({ min: undefined, max: undefined }),
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    status: faker.helpers.arrayElement(Object.values(StatusEnum)),
-  }));
-
-export const getGameResolvePhaseCreateResponseMock = (
-  overrideResponse: Partial<PhaseList> = {}
-): PhaseList => ({
-  id: faker.number.int({ min: undefined, max: undefined }),
-  ordinal: faker.number.int({ min: undefined, max: undefined }),
-  season: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  year: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  status: faker.helpers.arrayElement(Object.values(StatusEnum)),
-  ...overrideResponse,
-});
-
-export const getGamesListResponseMock = (
-  overrideResponse: Partial<PaginatedGameListList> = {}
-): PaginatedGameListList => ({
-  count: faker.number.int({ min: undefined, max: undefined }),
-  next: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([faker.internet.url(), null]),
-    undefined,
-  ]),
-  previous: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([faker.internet.url(), null]),
-    undefined,
-  ]),
-  results: Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1
-  ).map(() => ({
-    id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    status: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
-    canJoin: faker.datatype.boolean(),
-    canLeave: faker.datatype.boolean(),
-    canDelete: faker.datatype.boolean(),
-    variantId: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    phases: Array.from(
-      { length: faker.number.int({ min: 1, max: 10 }) },
-      (_, i) => i + 1
-    ).map(() => faker.number.int({ min: undefined, max: undefined })),
-    currentPhaseId: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.number.int({ min: undefined, max: undefined }),
-        null,
-      ]),
-      null,
-    ]),
-    private: faker.datatype.boolean(),
-    anonymous: faker.datatype.boolean(),
-    movementPhaseDuration: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        null,
-      ]),
-      null,
-    ]),
-    retreatPhaseDuration: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        null,
-      ]),
-      null,
-    ]),
-    nationAssignment: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    members: Array.from(
-      { length: faker.number.int({ min: 1, max: 10 }) },
-      (_, i) => i + 1
-    ).map(() => ({
-      id: faker.number.int({ min: undefined, max: undefined }),
-      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      picture: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        null,
-      ]),
-      isCurrentUser: faker.datatype.boolean(),
-      nation: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        null,
-      ]),
-      eliminated: faker.datatype.boolean(),
-      kicked: faker.datatype.boolean(),
-      isGameMaster: faker.datatype.boolean(),
-      nmrExtensionsRemaining: faker.number.int({
-        min: undefined,
-        max: undefined,
-      }),
-    })),
-    victory: {
-      ...{
-        id: faker.number.int({ min: undefined, max: undefined }),
-        type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        winningPhaseId: faker.number.int({ min: undefined, max: undefined }),
-        members: Array.from(
-          { length: faker.number.int({ min: 1, max: 10 }) },
-          (_, i) => i + 1
-        ).map(() => ({
-          id: faker.number.int({ min: undefined, max: undefined }),
-          name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-          picture: faker.helpers.arrayElement([
-            faker.helpers.arrayElement([
-              faker.string.alpha({ length: { min: 10, max: 20 } }),
-              null,
-            ]),
-            null,
-          ]),
-          isCurrentUser: faker.datatype.boolean(),
-          nation: faker.helpers.arrayElement([
-            faker.helpers.arrayElement([
-              faker.string.alpha({ length: { min: 10, max: 20 } }),
-              null,
-            ]),
-            null,
-          ]),
-          eliminated: faker.datatype.boolean(),
-          kicked: faker.datatype.boolean(),
-          isGameMaster: faker.datatype.boolean(),
-          nmrExtensionsRemaining: faker.number.int({
-            min: undefined,
-            max: undefined,
-          }),
-        })),
-      },
-    },
-    sandbox: faker.datatype.boolean(),
-    isPaused: faker.datatype.boolean(),
-    pausedAt: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.date.past().toISOString().slice(0, 19) + "Z",
-        null,
-      ]),
-      null,
-    ]),
-    nmrExtensionsAllowed: faker.number.int({ min: undefined, max: undefined }),
-    deadlineMode: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    fixedDeadlineTime: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        null,
-      ]),
-      null,
-    ]),
-    fixedDeadlineTimezone: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        null,
-      ]),
-      null,
-    ]),
-    movementFrequency: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        null,
-      ]),
-      null,
-    ]),
-    retreatFrequency: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        faker.string.alpha({ length: { min: 10, max: 20 } }),
-        null,
-      ]),
-      null,
-    ]),
-    pressType: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  })),
-  ...overrideResponse,
-});
-
-export const getGamesChannelsListResponseMock = (): Channel[] =>
-  Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1
-  ).map(() => ({
-    id: faker.number.int({ min: undefined, max: undefined }),
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    private: faker.datatype.boolean(),
-    messages: Array.from(
-      { length: faker.number.int({ min: 1, max: 10 }) },
-      (_, i) => i + 1
-    ).map(() => ({
-      id: faker.number.int({ min: undefined, max: undefined }),
-      body: faker.string.alpha({ length: { min: 10, max: 1000 } }),
-      sender: {
-        ...{
-          id: faker.number.int({ min: undefined, max: undefined }),
-          name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-          picture: faker.helpers.arrayElement([
-            faker.helpers.arrayElement([
-              faker.string.alpha({ length: { min: 10, max: 20 } }),
-              null,
-            ]),
-            null,
-          ]),
-          isCurrentUser: faker.datatype.boolean(),
-          nation: {
-            name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-            color: faker.string.alpha({ length: { min: 10, max: 20 } }),
-          },
-        },
-      },
-      createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
-    })),
-    unreadMessageCount: faker.number.int({ min: undefined, max: undefined }),
-    memberIds: Array.from(
-      { length: faker.number.int({ min: 1, max: 10 }) },
-      (_, i) => i + 1
-    ).map(() => faker.number.int({ min: undefined, max: undefined })),
-  }));
-
-export const getGamesChannelsMessagesCreateCreateResponseMock = (
-  overrideResponse: Partial<ChannelMessage> = {}
-): ChannelMessage => ({
-  id: faker.number.int({ min: undefined, max: undefined }),
-  body: faker.string.alpha({ length: { min: 10, max: 1000 } }),
-  sender: {
-    ...{
-      id: faker.number.int({ min: undefined, max: undefined }),
-      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      picture: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        null,
-      ]),
-      isCurrentUser: faker.datatype.boolean(),
-      nation: {
-        name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        color: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      },
-    },
-  },
-  createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
-  ...overrideResponse,
-});
-
-export const getGamesChannelsCreateCreateResponseMock = (
-  overrideResponse: Partial<Channel> = {}
-): Channel => ({
-  id: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  private: faker.datatype.boolean(),
-  messages: Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1
-  ).map(() => ({
-    id: faker.number.int({ min: undefined, max: undefined }),
-    body: faker.string.alpha({ length: { min: 10, max: 1000 } }),
-    sender: {
-      ...{
-        id: faker.number.int({ min: undefined, max: undefined }),
-        name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        picture: faker.helpers.arrayElement([
-          faker.helpers.arrayElement([
-            faker.string.alpha({ length: { min: 10, max: 20 } }),
-            null,
-          ]),
-          null,
-        ]),
-        isCurrentUser: faker.datatype.boolean(),
-        nation: {
-          name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-          color: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        },
-      },
-    },
-    createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
-  })),
-  unreadMessageCount: faker.number.int({ min: undefined, max: undefined }),
-  memberIds: Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1
-  ).map(() => faker.number.int({ min: undefined, max: undefined })),
-  ...overrideResponse,
-});
-
-export const getGamesDrawProposalsListResponseMock = (): DrawProposal[] =>
-  Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1
-  ).map(() => ({
-    id: faker.number.int({ min: undefined, max: undefined }),
-    createdBy: {
-      ...{
-        id: faker.number.int({ min: undefined, max: undefined }),
-        name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        picture: faker.helpers.arrayElement([
-          faker.helpers.arrayElement([
-            faker.string.alpha({ length: { min: 10, max: 20 } }),
-            null,
-          ]),
-          null,
-        ]),
-        isCurrentUser: faker.datatype.boolean(),
-        nation: faker.helpers.arrayElement([
-          faker.helpers.arrayElement([
-            faker.string.alpha({ length: { min: 10, max: 20 } }),
-            null,
-          ]),
-          null,
-        ]),
-      },
-    },
-    status: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    combinedScCount: faker.number.int({ min: undefined, max: undefined }),
-    victoryThreshold: faker.number.int({ min: undefined, max: undefined }),
-    votes: Array.from(
-      { length: faker.number.int({ min: 1, max: 10 }) },
-      (_, i) => i + 1
-    ).map(() => ({
-      id: faker.number.int({ min: undefined, max: undefined }),
-      member: {
-        ...{
-          id: faker.number.int({ min: undefined, max: undefined }),
-          name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-          picture: faker.helpers.arrayElement([
-            faker.helpers.arrayElement([
-              faker.string.alpha({ length: { min: 10, max: 20 } }),
-              null,
-            ]),
-            null,
-          ]),
-          isCurrentUser: faker.datatype.boolean(),
-          nation: faker.helpers.arrayElement([
-            faker.helpers.arrayElement([
-              faker.string.alpha({ length: { min: 10, max: 20 } }),
-              null,
-            ]),
-            null,
-          ]),
-        },
-      },
-      included: faker.datatype.boolean(),
-      accepted: faker.helpers.arrayElement([faker.datatype.boolean(), null]),
-    })),
-    phaseId: faker.number.int({ min: undefined, max: undefined }),
-    createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
-    includedMemberIds: Array.from(
-      { length: faker.number.int({ min: 1, max: 10 }) },
-      (_, i) => i + 1
-    ).map(() => faker.number.int({ min: undefined, max: undefined })),
-  }));
-
-export const getGamesDrawProposalsVoteUpdateResponseMock = (
-  overrideResponse: Partial<DrawVoteUpdate> = {}
-): DrawVoteUpdate => ({
-  accepted: faker.datatype.boolean(),
-  ...overrideResponse,
-});
-
-export const getGamesDrawProposalsVotePartialUpdateResponseMock = (
-  overrideResponse: Partial<DrawVoteUpdate> = {}
-): DrawVoteUpdate => ({
-  accepted: faker.datatype.boolean(),
-  ...overrideResponse,
-});
-
-export const getGamesDrawProposalsCreateCreateResponseMock = (
-  overrideResponse: Partial<DrawProposal> = {}
-): DrawProposal => ({
-  id: faker.number.int({ min: undefined, max: undefined }),
-  createdBy: {
-    ...{
-      id: faker.number.int({ min: undefined, max: undefined }),
-      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      picture: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        null,
-      ]),
-      isCurrentUser: faker.datatype.boolean(),
-      nation: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        null,
-      ]),
-    },
-  },
-  status: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  combinedScCount: faker.number.int({ min: undefined, max: undefined }),
-  victoryThreshold: faker.number.int({ min: undefined, max: undefined }),
-  votes: Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1
-  ).map(() => ({
-    id: faker.number.int({ min: undefined, max: undefined }),
-    member: {
-      ...{
-        id: faker.number.int({ min: undefined, max: undefined }),
-        name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        picture: faker.helpers.arrayElement([
-          faker.helpers.arrayElement([
-            faker.string.alpha({ length: { min: 10, max: 20 } }),
-            null,
-          ]),
-          null,
-        ]),
-        isCurrentUser: faker.datatype.boolean(),
-        nation: faker.helpers.arrayElement([
-          faker.helpers.arrayElement([
-            faker.string.alpha({ length: { min: 10, max: 20 } }),
-            null,
-          ]),
-          null,
-        ]),
-      },
-    },
-    included: faker.datatype.boolean(),
-    accepted: faker.helpers.arrayElement([faker.datatype.boolean(), null]),
-  })),
-  phaseId: faker.number.int({ min: undefined, max: undefined }),
-  createdAt: faker.date.past().toISOString().slice(0, 19) + "Z",
-  includedMemberIds: Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1
-  ).map(() => faker.number.int({ min: undefined, max: undefined })),
-  ...overrideResponse,
-});
-
-export const getSandboxGameCreateResponseMock = (
-  overrideResponse: Partial<GameCreateSandbox> = {}
-): GameCreateSandbox => ({
-  id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  variantId: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  ...overrideResponse,
-});
-
-export const getUserRetrieveResponseMock = (
-  overrideResponse: Partial<UserProfile> = {}
-): UserProfile => ({
-  id: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.string.alpha({ length: { min: 2, max: 255 } }),
-  picture: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      null,
-    ]),
-    null,
-  ]),
-  email: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  ...overrideResponse,
-});
-
-export const getUserUpdateUpdateResponseMock = (
-  overrideResponse: Partial<UserProfile> = {}
-): UserProfile => ({
-  id: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.string.alpha({ length: { min: 2, max: 255 } }),
-  picture: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      null,
-    ]),
-    null,
-  ]),
-  email: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  ...overrideResponse,
-});
-
-export const getUserUpdatePartialUpdateResponseMock = (
-  overrideResponse: Partial<UserProfile> = {}
-): UserProfile => ({
-  id: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.string.alpha({ length: { min: 2, max: 255 } }),
-  picture: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      null,
-    ]),
-    null,
-  ]),
-  email: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  ...overrideResponse,
-});
-
-export const getVariantsListResponseMock = (): Variant[] =>
-  Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1
-  ).map(() => ({
-    id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    description: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    author: faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      undefined,
-    ]),
-    soloVictoryScCount: faker.number.int({ min: undefined, max: undefined }),
-    nations: Array.from(
-      { length: faker.number.int({ min: 1, max: 10 }) },
-      (_, i) => i + 1
-    ).map(() => ({
-      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      color: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    })),
-    provinces: Array.from(
-      { length: faker.number.int({ min: 1, max: 10 }) },
-      (_, i) => i + 1
-    ).map(() => ({
-      id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      supplyCenter: faker.datatype.boolean(),
-      parentId: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-        null,
-      ]),
-      namedCoastIds: Array.from(
-        { length: faker.number.int({ min: 1, max: 10 }) },
-        (_, i) => i + 1
-      ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
-    })),
-    templatePhase: {
-      id: faker.number.int({ min: undefined, max: undefined }),
-      ordinal: faker.number.int({ min: undefined, max: undefined }),
-      season: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      year: faker.number.int({ min: undefined, max: undefined }),
-      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-      remainingTime: faker.number.int({ min: undefined, max: undefined }),
-      scheduledResolution: faker.date.past().toISOString().slice(0, 19) + "Z",
-      status: faker.helpers.arrayElement(Object.values(StatusEnum)),
-      units: Array.from(
-        { length: faker.number.int({ min: 1, max: 10 }) },
-        (_, i) => i + 1
-      ).map(() => ({
-        type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        nation: {
-          name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-          color: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        },
-        province: {
-          id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-          name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-          type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-          supplyCenter: faker.datatype.boolean(),
-          parentId: faker.helpers.arrayElement([
-            faker.helpers.arrayElement([
-              faker.string.alpha({ length: { min: 10, max: 20 } }),
-              null,
-            ]),
-            null,
-          ]),
-          namedCoastIds: Array.from(
-            { length: faker.number.int({ min: 1, max: 10 }) },
-            (_, i) => i + 1
-          ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
-        },
-        dislodged: faker.datatype.boolean(),
-        dislodgedBy: faker.helpers.arrayElement([
-          faker.helpers.arrayElement([null]),
-          null,
-        ]),
-      })),
-      supplyCenters: Array.from(
-        { length: faker.number.int({ min: 1, max: 10 }) },
-        (_, i) => i + 1
-      ).map(() => ({
-        province: {
-          id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-          name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-          type: faker.string.alpha({ length: { min: 10, max: 20 } }),
-          supplyCenter: faker.datatype.boolean(),
-          parentId: faker.helpers.arrayElement([
-            faker.helpers.arrayElement([
-              faker.string.alpha({ length: { min: 10, max: 20 } }),
-              null,
-            ]),
-            null,
-          ]),
-          namedCoastIds: Array.from(
-            { length: faker.number.int({ min: 1, max: 10 }) },
-            (_, i) => i + 1
-          ).map(() => faker.string.alpha({ length: { min: 10, max: 20 } })),
-        },
-        nation: {
-          name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-          color: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        },
-      })),
-      previousPhaseId: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.number.int({ min: undefined, max: undefined }),
-          null,
-        ]),
-        null,
-      ]),
-      nextPhaseId: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          faker.number.int({ min: undefined, max: undefined }),
-          null,
-        ]),
-        null,
-      ]),
-    },
-  }));
-
-export const getVersionRetrieveResponseMock = (
-  overrideResponse: Partial<Version> = {}
-): Version => ({
-  environment: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  version: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  ...overrideResponse,
-});
-
-export const getApiSchemaRetrieveMockHandler = (
-  overrideResponse?:
-    | Blob
-    | ApiSchemaRetrieve200Two
-    | ApiSchemaRetrieve200Three
-    | ApiSchemaRetrieve200Four
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0]
-      ) =>
-        | Promise<
-            | Blob
-            | ApiSchemaRetrieve200Two
-            | ApiSchemaRetrieve200Three
-            | ApiSchemaRetrieve200Four
-          >
-        | Blob
-        | ApiSchemaRetrieve200Two
-        | ApiSchemaRetrieve200Three
-        | ApiSchemaRetrieve200Four),
-  options?: RequestHandlerOptions
-) => {
-  return http.get(
-    "*/api/schema/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getApiSchemaRetrieveResponseMock()
-        ),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getApiTestSentryRetrieveMockHandler = (
-  overrideResponse?:
-    | void
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0]
-      ) => Promise<void> | void),
-  options?: RequestHandlerOptions
-) => {
-  return http.get(
-    "*/api/test-sentry/",
-    async info => {
-      if (typeof overrideResponse === "function") {
-        await overrideResponse(info);
-      }
-      return new HttpResponse(null, { status: 200 });
-    },
-    options
-  );
-};
-
-export const getApiTokenRefreshCreateMockHandler = (
-  overrideResponse?:
-    | TokenRefresh
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0]
-      ) => Promise<TokenRefresh> | TokenRefresh),
-  options?: RequestHandlerOptions
-) => {
-  return http.post(
-    "*/api/token/refresh/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getApiTokenRefreshCreateResponseMock()
-        ),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getAuthAppleLoginCreateMockHandler = (
-  overrideResponse?:
-    | AppleAuth
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0]
-      ) => Promise<AppleAuth> | AppleAuth),
-  options?: RequestHandlerOptions
-) => {
-  return http.post(
-    "*/auth/apple-login/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getAuthAppleLoginCreateResponseMock()
-        ),
-        { status: 201, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getAuthEmailLoginCreateMockHandler = (
-  overrideResponse?:
-    | EmailLogin
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0]
-      ) => Promise<EmailLogin> | EmailLogin),
-  options?: RequestHandlerOptions
-) => {
-  return http.post(
-    "*/auth/email-login/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getAuthEmailLoginCreateResponseMock()
-        ),
-        { status: 201, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getAuthLoginCreateMockHandler = (
-  overrideResponse?:
-    | Auth
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0]
-      ) => Promise<Auth> | Auth),
-  options?: RequestHandlerOptions
-) => {
-  return http.post(
-    "*/auth/login/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getAuthLoginCreateResponseMock()
-        ),
-        { status: 201, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getAuthPasswordResetCreateMockHandler = (
-  overrideResponse?:
-    | PasswordReset
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0]
-      ) => Promise<PasswordReset> | PasswordReset),
-  options?: RequestHandlerOptions
-) => {
-  return http.post(
-    "*/auth/password-reset/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getAuthPasswordResetCreateResponseMock()
-        ),
-        { status: 201, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getAuthPasswordResetConfirmCreateMockHandler = (
-  overrideResponse?:
-    | PasswordResetConfirm
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0]
-      ) => Promise<PasswordResetConfirm> | PasswordResetConfirm),
-  options?: RequestHandlerOptions
-) => {
-  return http.post(
-    "*/auth/password-reset/confirm/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getAuthPasswordResetConfirmCreateResponseMock()
-        ),
-        { status: 201, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getAuthRegisterCreateMockHandler = (
-  overrideResponse?:
-    | Register
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0]
-      ) => Promise<Register> | Register),
-  options?: RequestHandlerOptions
-) => {
-  return http.post(
-    "*/auth/register/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getAuthRegisterCreateResponseMock()
-        ),
-        { status: 201, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getAuthVerifyEmailCreateMockHandler = (
-  overrideResponse?:
-    | VerifyEmail
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0]
-      ) => Promise<VerifyEmail> | VerifyEmail),
-  options?: RequestHandlerOptions
-) => {
-  return http.post(
-    "*/auth/verify-email/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getAuthVerifyEmailCreateResponseMock()
-        ),
-        { status: 201, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getDevicesListMockHandler = (
-  overrideResponse?:
-    | FCMDevice[]
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0]
-      ) => Promise<FCMDevice[]> | FCMDevice[]),
-  options?: RequestHandlerOptions
-) => {
-  return http.get(
-    "*/devices/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getDevicesListResponseMock()
-        ),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getDevicesCreateMockHandler = (
-  overrideResponse?:
-    | FCMDevice
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0]
-      ) => Promise<FCMDevice> | FCMDevice),
-  options?: RequestHandlerOptions
-) => {
-  return http.post(
-    "*/devices/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getDevicesCreateResponseMock()
-        ),
-        { status: 201, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getDevicesUpdateMockHandler = (
-  overrideResponse?:
-    | FCMDevice
-    | ((
-        info: Parameters<Parameters<typeof http.put>[1]>[0]
-      ) => Promise<FCMDevice> | FCMDevice),
-  options?: RequestHandlerOptions
-) => {
-  return http.put(
-    "*/devices/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getDevicesUpdateResponseMock()
-        ),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getGameCreateMockHandler = (
-  overrideResponse?:
-    | GameCreate
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0]
-      ) => Promise<GameCreate> | GameCreate),
-  options?: RequestHandlerOptions
-) => {
-  return http.post(
-    "*/game/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getGameCreateResponseMock()
-        ),
-        { status: 201, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getGameRetrieveMockHandler = (
-  overrideResponse?:
-    | GameRetrieve
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0]
-      ) => Promise<GameRetrieve> | GameRetrieve),
-  options?: RequestHandlerOptions
-) => {
-  return http.get(
-    "*/game/:gameId/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getGameRetrieveResponseMock()
-        ),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getGameCloneToSandboxCreateMockHandler = (
-  overrideResponse?:
-    | GameCloneToSandbox
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0]
-      ) => Promise<GameCloneToSandbox> | GameCloneToSandbox),
-  options?: RequestHandlerOptions
-) => {
-  return http.post(
-    "*/game/:gameId/clone-to-sandbox/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getGameCloneToSandboxCreateResponseMock()
-        ),
-        { status: 201, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getGameConfirmPhaseUpdateMockHandler = (
-  overrideResponse?:
-    | PhaseState
-    | ((
-        info: Parameters<Parameters<typeof http.put>[1]>[0]
-      ) => Promise<PhaseState> | PhaseState),
-  options?: RequestHandlerOptions
-) => {
-  return http.put(
-    "*/game/:gameId/confirm-phase/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getGameConfirmPhaseUpdateResponseMock()
-        ),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getGameConfirmPhasePartialUpdateMockHandler = (
-  overrideResponse?:
-    | PhaseState
-    | ((
-        info: Parameters<Parameters<typeof http.patch>[1]>[0]
-      ) => Promise<PhaseState> | PhaseState),
-  options?: RequestHandlerOptions
-) => {
-  return http.patch(
-    "*/game/:gameId/confirm-phase/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getGameConfirmPhasePartialUpdateResponseMock()
-        ),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getGameDeleteDestroyMockHandler = (
-  overrideResponse?:
-    | void
-    | ((
-        info: Parameters<Parameters<typeof http.delete>[1]>[0]
-      ) => Promise<void> | void),
-  options?: RequestHandlerOptions
-) => {
-  return http.delete(
-    "*/game/:gameId/delete/",
-    async info => {
-      if (typeof overrideResponse === "function") {
-        await overrideResponse(info);
-      }
-      return new HttpResponse(null, { status: 204 });
-    },
-    options
-  );
-};
-
-export const getGameExtendDeadlineUpdateMockHandler = (
-  overrideResponse?:
-    | GameExtendDeadline
-    | ((
-        info: Parameters<Parameters<typeof http.put>[1]>[0]
-      ) => Promise<GameExtendDeadline> | GameExtendDeadline),
-  options?: RequestHandlerOptions
-) => {
-  return http.put(
-    "*/game/:gameId/extend-deadline/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getGameExtendDeadlineUpdateResponseMock()
-        ),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getGameExtendDeadlinePartialUpdateMockHandler = (
-  overrideResponse?:
-    | GameExtendDeadline
-    | ((
-        info: Parameters<Parameters<typeof http.patch>[1]>[0]
-      ) => Promise<GameExtendDeadline> | GameExtendDeadline),
-  options?: RequestHandlerOptions
-) => {
-  return http.patch(
-    "*/game/:gameId/extend-deadline/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getGameExtendDeadlinePartialUpdateResponseMock()
-        ),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getGameJoinCreateMockHandler = (
-  overrideResponse?:
-    | Member
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0]
-      ) => Promise<Member> | Member),
-  options?: RequestHandlerOptions
-) => {
-  return http.post(
-    "*/game/:gameId/join/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getGameJoinCreateResponseMock()
-        ),
-        { status: 201, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getGameLeaveDestroyMockHandler = (
-  overrideResponse?:
-    | void
-    | ((
-        info: Parameters<Parameters<typeof http.delete>[1]>[0]
-      ) => Promise<void> | void),
-  options?: RequestHandlerOptions
-) => {
-  return http.delete(
-    "*/game/:gameId/leave/",
-    async info => {
-      if (typeof overrideResponse === "function") {
-        await overrideResponse(info);
-      }
-      return new HttpResponse(null, { status: 204 });
-    },
-    options
-  );
-};
-
-export const getGameOptionsRetrieveMockHandler = (
-  overrideResponse?:
-    | OrderOptionsResponse
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0]
-      ) => Promise<OrderOptionsResponse> | OrderOptionsResponse),
-  options?: RequestHandlerOptions
-) => {
-  return http.get(
-    "*/game/:gameId/options/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getGameOptionsRetrieveResponseMock()
-        ),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getGameOrdersCreateMockHandler = (
-  overrideResponse?:
-    | Order
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0]
-      ) => Promise<Order> | Order),
-  options?: RequestHandlerOptions
-) => {
-  return http.post(
-    "*/game/:gameId/orders/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getGameOrdersCreateResponseMock()
-        ),
-        { status: 201, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getGameOrdersListMockHandler = (
-  overrideResponse?:
-    | Order[]
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0]
-      ) => Promise<Order[]> | Order[]),
-  options?: RequestHandlerOptions
-) => {
-  return http.get(
-    "*/game/:gameId/orders/:phaseId",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getGameOrdersListResponseMock()
-        ),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getGameOrdersDeleteDestroyMockHandler = (
-  overrideResponse?:
-    | void
-    | ((
-        info: Parameters<Parameters<typeof http.delete>[1]>[0]
-      ) => Promise<void> | void),
-  options?: RequestHandlerOptions
-) => {
-  return http.delete(
-    "*/game/:gameId/orders/delete/:sourceId",
-    async info => {
-      if (typeof overrideResponse === "function") {
-        await overrideResponse(info);
-      }
-      return new HttpResponse(null, { status: 204 });
-    },
-    options
-  );
-};
-
-export const getGamePauseUpdateMockHandler = (
-  overrideResponse?:
-    | void
-    | ((
-        info: Parameters<Parameters<typeof http.put>[1]>[0]
-      ) => Promise<void> | void),
-  options?: RequestHandlerOptions
-) => {
-  return http.put(
-    "*/game/:gameId/pause/",
-    async info => {
-      if (typeof overrideResponse === "function") {
-        await overrideResponse(info);
-      }
-      return new HttpResponse(null, { status: 200 });
-    },
-    options
-  );
-};
-
-export const getGamePausePartialUpdateMockHandler = (
-  overrideResponse?:
-    | void
-    | ((
-        info: Parameters<Parameters<typeof http.patch>[1]>[0]
-      ) => Promise<void> | void),
-  options?: RequestHandlerOptions
-) => {
-  return http.patch(
-    "*/game/:gameId/pause/",
-    async info => {
-      if (typeof overrideResponse === "function") {
-        await overrideResponse(info);
-      }
-      return new HttpResponse(null, { status: 200 });
-    },
-    options
-  );
-};
-
-export const getGamePhaseStatesListMockHandler = (
-  overrideResponse?:
-    | PhaseState[]
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0]
-      ) => Promise<PhaseState[]> | PhaseState[]),
-  options?: RequestHandlerOptions
-) => {
-  return http.get(
-    "*/game/:gameId/phase-states/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getGamePhaseStatesListResponseMock()
-        ),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getGamePhaseRetrieveMockHandler = (
-  overrideResponse?:
-    | PhaseRetrieve
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0]
-      ) => Promise<PhaseRetrieve> | PhaseRetrieve),
-  options?: RequestHandlerOptions
-) => {
-  return http.get(
-    "*/game/:gameId/phase/:phaseId/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getGamePhaseRetrieveResponseMock()
-        ),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getGamePhasesListMockHandler = (
-  overrideResponse?:
-    | PhaseList[]
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0]
-      ) => Promise<PhaseList[]> | PhaseList[]),
-  options?: RequestHandlerOptions
-) => {
-  return http.get(
-    "*/game/:gameId/phases/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getGamePhasesListResponseMock()
-        ),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getGameResolvePhaseCreateMockHandler = (
-  overrideResponse?:
-    | PhaseList
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0]
-      ) => Promise<PhaseList> | PhaseList),
-  options?: RequestHandlerOptions
-) => {
-  return http.post(
-    "*/game/:gameId/resolve-phase/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getGameResolvePhaseCreateResponseMock()
-        ),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getGameUnpauseUpdateMockHandler = (
-  overrideResponse?:
-    | void
-    | ((
-        info: Parameters<Parameters<typeof http.put>[1]>[0]
-      ) => Promise<void> | void),
-  options?: RequestHandlerOptions
-) => {
-  return http.put(
-    "*/game/:gameId/unpause/",
-    async info => {
-      if (typeof overrideResponse === "function") {
-        await overrideResponse(info);
-      }
-      return new HttpResponse(null, { status: 200 });
-    },
-    options
-  );
-};
-
-export const getGameUnpausePartialUpdateMockHandler = (
-  overrideResponse?:
-    | void
-    | ((
-        info: Parameters<Parameters<typeof http.patch>[1]>[0]
-      ) => Promise<void> | void),
-  options?: RequestHandlerOptions
-) => {
-  return http.patch(
-    "*/game/:gameId/unpause/",
-    async info => {
-      if (typeof overrideResponse === "function") {
-        await overrideResponse(info);
-      }
-      return new HttpResponse(null, { status: 200 });
-    },
-    options
-  );
-};
-
-export const getGamesListMockHandler = (
-  overrideResponse?:
-    | PaginatedGameListList
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0]
-      ) => Promise<PaginatedGameListList> | PaginatedGameListList),
-  options?: RequestHandlerOptions
-) => {
-  return http.get(
-    "*/games/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getGamesListResponseMock()
-        ),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getGamesChannelsListMockHandler = (
-  overrideResponse?:
-    | Channel[]
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0]
-      ) => Promise<Channel[]> | Channel[]),
-  options?: RequestHandlerOptions
-) => {
-  return http.get(
-    "*/games/:gameId/channels/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getGamesChannelsListResponseMock()
-        ),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getGamesChannelsMarkReadCreateMockHandler = (
-  overrideResponse?:
-    | void
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0]
-      ) => Promise<void> | void),
-  options?: RequestHandlerOptions
-) => {
-  return http.post(
-    "*/games/:gameId/channels/:channelId/mark-read/",
-    async info => {
-      if (typeof overrideResponse === "function") {
-        await overrideResponse(info);
-      }
-      return new HttpResponse(null, { status: 201 });
-    },
-    options
-  );
-};
-
-export const getGamesChannelsMessagesCreateCreateMockHandler = (
-  overrideResponse?:
-    | ChannelMessage
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0]
-      ) => Promise<ChannelMessage> | ChannelMessage),
-  options?: RequestHandlerOptions
-) => {
-  return http.post(
-    "*/games/:gameId/channels/:channelId/messages/create/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getGamesChannelsMessagesCreateCreateResponseMock()
-        ),
-        { status: 201, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getGamesChannelsCreateCreateMockHandler = (
-  overrideResponse?:
-    | Channel
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0]
-      ) => Promise<Channel> | Channel),
-  options?: RequestHandlerOptions
-) => {
-  return http.post(
-    "*/games/:gameId/channels/create/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getGamesChannelsCreateCreateResponseMock()
-        ),
-        { status: 201, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getGamesDrawProposalsListMockHandler = (
-  overrideResponse?:
-    | DrawProposal[]
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0]
-      ) => Promise<DrawProposal[]> | DrawProposal[]),
-  options?: RequestHandlerOptions
-) => {
-  return http.get(
-    "*/games/:gameId/draw-proposals/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getGamesDrawProposalsListResponseMock()
-        ),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getGamesDrawProposalsCancelDestroyMockHandler = (
-  overrideResponse?:
-    | void
-    | ((
-        info: Parameters<Parameters<typeof http.delete>[1]>[0]
-      ) => Promise<void> | void),
-  options?: RequestHandlerOptions
-) => {
-  return http.delete(
-    "*/games/:gameId/draw-proposals/:proposalId/cancel/",
-    async info => {
-      if (typeof overrideResponse === "function") {
-        await overrideResponse(info);
-      }
-      return new HttpResponse(null, { status: 204 });
-    },
-    options
-  );
-};
-
-export const getGamesDrawProposalsVoteUpdateMockHandler = (
-  overrideResponse?:
-    | DrawVoteUpdate
-    | ((
-        info: Parameters<Parameters<typeof http.put>[1]>[0]
-      ) => Promise<DrawVoteUpdate> | DrawVoteUpdate),
-  options?: RequestHandlerOptions
-) => {
-  return http.put(
-    "*/games/:gameId/draw-proposals/:proposalId/vote/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getGamesDrawProposalsVoteUpdateResponseMock()
-        ),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getGamesDrawProposalsVotePartialUpdateMockHandler = (
-  overrideResponse?:
-    | DrawVoteUpdate
-    | ((
-        info: Parameters<Parameters<typeof http.patch>[1]>[0]
-      ) => Promise<DrawVoteUpdate> | DrawVoteUpdate),
-  options?: RequestHandlerOptions
-) => {
-  return http.patch(
-    "*/games/:gameId/draw-proposals/:proposalId/vote/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getGamesDrawProposalsVotePartialUpdateResponseMock()
-        ),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getGamesDrawProposalsCreateCreateMockHandler = (
-  overrideResponse?:
-    | DrawProposal
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0]
-      ) => Promise<DrawProposal> | DrawProposal),
-  options?: RequestHandlerOptions
-) => {
-  return http.post(
-    "*/games/:gameId/draw-proposals/create/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getGamesDrawProposalsCreateCreateResponseMock()
-        ),
-        { status: 201, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getPhaseDeadlineWarningsCreateMockHandler = (
-  overrideResponse?:
-    | void
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0]
-      ) => Promise<void> | void),
-  options?: RequestHandlerOptions
-) => {
-  return http.post(
-    "*/phase/deadline-warnings/",
-    async info => {
-      if (typeof overrideResponse === "function") {
-        await overrideResponse(info);
-      }
-      return new HttpResponse(null, { status: 200 });
-    },
-    options
-  );
-};
-
-export const getPhaseResolveCreateMockHandler = (
-  overrideResponse?:
-    | void
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0]
-      ) => Promise<void> | void),
-  options?: RequestHandlerOptions
-) => {
-  return http.post(
-    "*/phase/resolve/",
-    async info => {
-      if (typeof overrideResponse === "function") {
-        await overrideResponse(info);
-      }
-      return new HttpResponse(null, { status: 200 });
-    },
-    options
-  );
-};
-
-export const getSandboxGameCreateMockHandler = (
-  overrideResponse?:
-    | GameCreateSandbox
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0]
-      ) => Promise<GameCreateSandbox> | GameCreateSandbox),
-  options?: RequestHandlerOptions
-) => {
-  return http.post(
-    "*/sandbox-game/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getSandboxGameCreateResponseMock()
-        ),
-        { status: 201, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getUserRetrieveMockHandler = (
-  overrideResponse?:
-    | UserProfile
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0]
-      ) => Promise<UserProfile> | UserProfile),
-  options?: RequestHandlerOptions
-) => {
-  return http.get(
-    "*/user/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getUserRetrieveResponseMock()
-        ),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getUserDeleteDestroyMockHandler = (
-  overrideResponse?:
-    | void
-    | ((
-        info: Parameters<Parameters<typeof http.delete>[1]>[0]
-      ) => Promise<void> | void),
-  options?: RequestHandlerOptions
-) => {
-  return http.delete(
-    "*/user/delete/",
-    async info => {
-      if (typeof overrideResponse === "function") {
-        await overrideResponse(info);
-      }
-      return new HttpResponse(null, { status: 204 });
-    },
-    options
-  );
-};
-
-export const getUserUpdateUpdateMockHandler = (
-  overrideResponse?:
-    | UserProfile
-    | ((
-        info: Parameters<Parameters<typeof http.put>[1]>[0]
-      ) => Promise<UserProfile> | UserProfile),
-  options?: RequestHandlerOptions
-) => {
-  return http.put(
-    "*/user/update/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getUserUpdateUpdateResponseMock()
-        ),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getUserUpdatePartialUpdateMockHandler = (
-  overrideResponse?:
-    | UserProfile
-    | ((
-        info: Parameters<Parameters<typeof http.patch>[1]>[0]
-      ) => Promise<UserProfile> | UserProfile),
-  options?: RequestHandlerOptions
-) => {
-  return http.patch(
-    "*/user/update/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getUserUpdatePartialUpdateResponseMock()
-        ),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getVariantsListMockHandler = (
-  overrideResponse?:
-    | Variant[]
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0]
-      ) => Promise<Variant[]> | Variant[]),
-  options?: RequestHandlerOptions
-) => {
-  return http.get(
-    "*/variants/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getVariantsListResponseMock()
-        ),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-
-export const getVersionRetrieveMockHandler = (
-  overrideResponse?:
-    | Version
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0]
-      ) => Promise<Version> | Version),
-  options?: RequestHandlerOptions
-) => {
-  return http.get(
-    "*/version/",
-    async info => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === "function"
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getVersionRetrieveResponseMock()
-        ),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    },
-    options
-  );
-};
-export const getMock = () => [
-  getApiSchemaRetrieveMockHandler(),
-  getApiTestSentryRetrieveMockHandler(),
-  getApiTokenRefreshCreateMockHandler(),
-  getAuthAppleLoginCreateMockHandler(),
-  getAuthEmailLoginCreateMockHandler(),
-  getAuthLoginCreateMockHandler(),
-  getAuthPasswordResetCreateMockHandler(),
-  getAuthPasswordResetConfirmCreateMockHandler(),
-  getAuthRegisterCreateMockHandler(),
-  getAuthVerifyEmailCreateMockHandler(),
-  getDevicesListMockHandler(),
-  getDevicesCreateMockHandler(),
-  getDevicesUpdateMockHandler(),
-  getGameCreateMockHandler(),
-  getGameRetrieveMockHandler(),
-  getGameCloneToSandboxCreateMockHandler(),
-  getGameConfirmPhaseUpdateMockHandler(),
-  getGameConfirmPhasePartialUpdateMockHandler(),
-  getGameDeleteDestroyMockHandler(),
-  getGameExtendDeadlineUpdateMockHandler(),
-  getGameExtendDeadlinePartialUpdateMockHandler(),
-  getGameJoinCreateMockHandler(),
-  getGameLeaveDestroyMockHandler(),
-  getGameOptionsRetrieveMockHandler(),
-  getGameOrdersCreateMockHandler(),
-  getGameOrdersListMockHandler(),
-  getGameOrdersDeleteDestroyMockHandler(),
-  getGamePauseUpdateMockHandler(),
-  getGamePausePartialUpdateMockHandler(),
-  getGamePhaseStatesListMockHandler(),
-  getGamePhaseRetrieveMockHandler(),
-  getGamePhasesListMockHandler(),
-  getGameResolvePhaseCreateMockHandler(),
-  getGameUnpauseUpdateMockHandler(),
-  getGameUnpausePartialUpdateMockHandler(),
-  getGamesListMockHandler(),
-  getGamesChannelsListMockHandler(),
-  getGamesChannelsMarkReadCreateMockHandler(),
-  getGamesChannelsMessagesCreateCreateMockHandler(),
-  getGamesChannelsCreateCreateMockHandler(),
-  getGamesDrawProposalsListMockHandler(),
-  getGamesDrawProposalsCancelDestroyMockHandler(),
-  getGamesDrawProposalsVoteUpdateMockHandler(),
-  getGamesDrawProposalsVotePartialUpdateMockHandler(),
-  getGamesDrawProposalsCreateCreateMockHandler(),
-  getPhaseDeadlineWarningsCreateMockHandler(),
-  getPhaseResolveCreateMockHandler(),
-  getSandboxGameCreateMockHandler(),
-  getUserRetrieveMockHandler(),
-  getUserDeleteDestroyMockHandler(),
-  getUserUpdateUpdateMockHandler(),
-  getUserUpdatePartialUpdateMockHandler(),
-  getVariantsListMockHandler(),
-  getVersionRetrieveMockHandler(),
-];

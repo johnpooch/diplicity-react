@@ -40,7 +40,7 @@ class TestOrderListView:
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 1
 
-        assert response.data[0]["nation"] == {"name": "England", "color": "#2196F3"}
+        assert response.data[0]["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "flag_url": "http://testserver/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"}
         assert response.data[0]["order_type"] == OrderType.MOVE
 
         assert response.data[0]["source"]["id"] == "lon"
@@ -173,7 +173,7 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"name": "England", "color": "#2196F3"}
+        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "flag_url": "http://testserver/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"}
         assert response.data["complete"] is False
         assert response.data["order_type"] is None
         assert response.data["unit_type"] is None
@@ -216,7 +216,7 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Move"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"name": "England", "color": "#2196F3"}
+        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "flag_url": "http://testserver/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"}
         assert response.data["complete"] is False
         assert response.data["order_type"] == "Move"
         assert response.data["unit_type"] is None
@@ -244,7 +244,7 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Move", "gal"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"name": "England", "color": "#2196F3"}
+        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "flag_url": "http://testserver/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"}
         assert response.data["complete"] is True
         assert response.data["order_type"] == "Move"
         assert response.data["unit_type"] is None
@@ -274,7 +274,7 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Support"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"name": "England", "color": "#2196F3"}
+        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "flag_url": "http://testserver/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"}
         assert response.data["complete"] is False
         assert response.data["order_type"] == "Support"
         assert response.data["unit_type"] is None
@@ -301,7 +301,7 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Support", "vie"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"name": "England", "color": "#2196F3"}
+        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "flag_url": "http://testserver/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"}
         assert response.data["complete"] is False
         assert response.data["order_type"] == "Support"
         assert response.data["unit_type"] is None
@@ -337,7 +337,7 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Support", "vie", "tri"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"name": "England", "color": "#2196F3"}
+        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "flag_url": "http://testserver/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"}
         assert response.data["complete"] is True
         assert response.data["order_type"] == "Support"
         assert response.data["unit_type"] is None
@@ -361,7 +361,7 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Hold"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"name": "England", "color": "#2196F3"}
+        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "flag_url": "http://testserver/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"}
         assert response.data["complete"] is True
         assert response.data["order_type"] == "Hold"
         assert response.data["unit_type"] is None
@@ -402,7 +402,7 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Build"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"name": "England", "color": "#2196F3"}
+        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "flag_url": "http://testserver/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"}
         assert response.data["complete"] is False
         assert response.data["order_type"] == "Build"
         assert response.data["unit_type"] is None
@@ -445,7 +445,7 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Build", "Army"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"name": "England", "color": "#2196F3"}
+        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "flag_url": "http://testserver/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"}
         assert response.data["complete"] is True
         assert response.data["order_type"] == "Build"
         assert response.data["unit_type"] == "Army"
@@ -476,7 +476,7 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "MoveViaConvoy"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"name": "England", "color": "#2196F3"}
+        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "flag_url": "http://testserver/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"}
         assert response.data["complete"] is False
         assert response.data["order_type"] == "MoveViaConvoy"
         assert response.data["unit_type"] is None
@@ -514,7 +514,7 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "MoveViaConvoy", "gal"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"name": "England", "color": "#2196F3"}
+        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "flag_url": "http://testserver/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"}
         assert response.data["complete"] is True
         assert response.data["order_type"] == "MoveViaConvoy"
         assert response.data["unit_type"] is None
@@ -572,7 +572,7 @@ class TestOrderCreateView:
         assert response.data["selected"] == ["bud", "Disband"]
         assert response.data["source"]["id"] == "bud"
         assert response.data["source"]["name"] == "Budapest"
-        assert response.data["nation"] == {"name": "England", "color": "#2196F3"}
+        assert response.data["nation"] == {"nation_id": "england", "name": "England", "color": "#2196F3", "flag_url": "http://testserver/variants/classical/nations/england/flag/0ede0375bd77bbf0d9e8a5706035bb3460193689cebe54ffe4c2760935a14f49.svg"}
         assert response.data["complete"] is True
         assert response.data["order_type"] == "Disband"
         assert response.data["unit_type"] is None
@@ -719,7 +719,7 @@ class TestOrderListViewQueryPerformance:
             response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(connection.queries) == 7
+        assert len(connection.queries) == 7  # was 8 before resolve_game cache + transformed_options cached_property
 
     @pytest.mark.django_db
     def test_list_orders_query_count_with_multiple_orders(
@@ -915,6 +915,66 @@ class TestOrderListViewQueryPerformance:
 
         assert query_count == 7
 
+    @pytest.mark.django_db
+    def test_list_orders_no_n_plus_one_for_named_coast_fleet_moves(
+        self,
+        authenticated_client,
+        order_active_game,
+        primary_user,
+        classical_england_nation,
+        classical_spain_province,
+        classical_spain_nc_province,
+        classical_spain_sc_province,
+        classical_stp_province,
+        classical_stp_nc_province,
+    ):
+        """Order.step's source_unit lookup must not add a query per order. It is reached
+        by a fleet move toward a target that has named coasts (source_unit.type is
+        evaluated before the named_coast check), which the other query-count tests never
+        trigger. Orders are complete (named_coast set) to match what is actually
+        persisted and listed. Regression guard for DIPLICITY-API-6W."""
+        game = order_active_game
+        phase = game.current_phase
+        primary_phase_state = phase.phase_states.get(member__user=primary_user)
+
+        # Fleets sit on named coasts; each order's source is the parent province.
+        phase.units.create(
+            type=UnitType.FLEET, nation=classical_england_nation, province=classical_spain_sc_province
+        )
+        phase.units.create(
+            type=UnitType.FLEET, nation=classical_england_nation, province=classical_stp_nc_province
+        )
+
+        url = reverse("order-list", args=[game.id, phase.id])
+
+        Order.objects.create(
+            phase_state=primary_phase_state,
+            order_type=OrderType.MOVE,
+            source=classical_spain_province,
+            target=classical_stp_province,
+            named_coast=classical_stp_nc_province,
+        )
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        one_order_query_count = len(connection.queries)
+
+        Order.objects.create(
+            phase_state=primary_phase_state,
+            order_type=OrderType.MOVE,
+            source=classical_stp_province,
+            target=classical_spain_province,
+            named_coast=classical_spain_nc_province,
+        )
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        two_orders_query_count = len(connection.queries)
+
+        assert two_orders_query_count == one_order_query_count
+
 
 class TestOrderCreateViewQueryPerformance:
 
@@ -931,7 +991,7 @@ class TestOrderCreateViewQueryPerformance:
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
 
-        assert query_count == 17
+        assert query_count == 15  # was 18 before resolve_game cache + dedup create_from_selected
 
     @pytest.mark.django_db
     def test_order_create_query_count_with_support_order(self, authenticated_client, game_with_options):
@@ -946,7 +1006,7 @@ class TestOrderCreateViewQueryPerformance:
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
 
-        assert query_count == 17
+        assert query_count == 15
 
     @pytest.mark.django_db
     def test_order_create_query_count_with_many_phase_states(self, authenticated_client, game_with_many_phase_states):
@@ -961,7 +1021,7 @@ class TestOrderCreateViewQueryPerformance:
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
 
-        assert query_count == 17
+        assert query_count == 15
 
 
 class TestOrderDeleteViewQueryPerformance:
@@ -995,7 +1055,7 @@ class TestOrderDeleteViewQueryPerformance:
         assert response.status_code == status.HTTP_204_NO_CONTENT
         query_count = len(connection.queries)
 
-        assert query_count == 8
+        assert query_count == 6
 
 
 class TestGetOptionsForOrder:
@@ -1941,6 +2001,106 @@ class TestOrderValidationLimits:
             order2.clean()
 
 
+class TestOrderCreateViewAdjustmentCap:
+    """Test that the API enforces adjustment phase build/disband caps."""
+
+    @pytest.mark.django_db
+    def test_second_build_rejected_when_cap_reached(
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        classical_england_nation,
+        classical_london_province,
+        classical_paris_province,
+    ):
+        game = active_game_with_phase_state
+        phase = game.current_phase
+        phase.type = PhaseType.ADJUSTMENT
+        phase.ordinal = phase.ordinal + 1
+        phase.options = {
+            "England": {
+                "lon": {
+                    "Next": {
+                        "Build": {
+                            "Next": {"Army": {"Next": {}, "Type": "UnitType"}},
+                            "Type": "OrderType",
+                        },
+                    },
+                    "Type": "Province",
+                },
+                "par": {
+                    "Next": {
+                        "Build": {
+                            "Next": {"Army": {"Next": {}, "Type": "UnitType"}},
+                            "Type": "OrderType",
+                        },
+                    },
+                    "Type": "Province",
+                },
+            },
+        }
+        phase.save()
+        # 3 SCs (edi from fixture, lon, par), 2 units (edi from fixture, lon) → 1 build allowed
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_paris_province)
+        phase.units.create(type="Army", nation=classical_england_nation, province=classical_london_province)
+
+        url = reverse("order-create", args=[game.id])
+
+        response = authenticated_client.post(url, {"selected": ["lon", "Build", "Army"]}, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        response = authenticated_client.post(url, {"selected": ["par", "Build", "Army"]}, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    def test_second_disband_rejected_when_cap_reached(
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        classical_england_nation,
+        classical_edinburgh_province,
+        classical_london_province,
+    ):
+        game = active_game_with_phase_state
+        phase = game.current_phase
+        phase.type = PhaseType.ADJUSTMENT
+        phase.ordinal = phase.ordinal + 1
+        phase.options = {
+            "England": {
+                "edi": {
+                    "Next": {
+                        "Disband": {
+                            "Next": {"edi": {"Next": {}, "Type": "SrcProvince"}},
+                            "Type": "OrderType",
+                        },
+                    },
+                    "Type": "Province",
+                },
+                "lon": {
+                    "Next": {
+                        "Disband": {
+                            "Next": {"lon": {"Next": {}, "Type": "SrcProvince"}},
+                            "Type": "OrderType",
+                        },
+                    },
+                    "Type": "Province",
+                },
+            },
+        }
+        phase.save()
+        # 1 SC (edi from fixture), 2 units (edi from fixture, lon) → 1 disband needed
+        phase.units.create(type="Army", nation=classical_england_nation, province=classical_london_province)
+
+        url = reverse("order-create", args=[game.id])
+
+        response = authenticated_client.post(url, {"selected": ["edi", "Disband"]}, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        response = authenticated_client.post(url, {"selected": ["lon", "Disband"]}, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
 class TestOrderNamedCoastStep:
 
     @pytest.mark.django_db
@@ -2091,6 +2251,35 @@ class TestOrderNamedCoastStep:
         )
 
         assert order.step == OrderCreationStep.COMPLETED
+
+    @pytest.mark.django_db
+    def test_move_fleet_step_selects_named_coast_when_fleet_on_named_coast(
+        self,
+        test_phase_state,
+        classical_spain_province,
+        classical_spain_sc_province,
+        classical_stp_province,
+        classical_england_nation,
+    ):
+        """A fleet on a named coast must still be found when its order source is the
+        parent province. Regression for DIPLICITY-API-6W where source_unit returned
+        None and step raised AttributeError on source_unit.type."""
+        phase = test_phase_state.phase
+        # Unit lives on the named coast child; the order source is the parent province.
+        phase.units.create(
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_spain_sc_province,
+        )
+
+        order = Order(
+            phase_state=test_phase_state,
+            source=classical_spain_province,
+            order_type=OrderType.MOVE,
+            target=classical_stp_province,
+        )
+
+        assert order.step == OrderCreationStep.SELECT_NAMED_COAST
 
 
 class TestOrderNamedCoastTitles:

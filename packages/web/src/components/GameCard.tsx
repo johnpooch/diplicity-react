@@ -19,33 +19,31 @@ import { RemainingTimeDisplay } from "./RemainingTimeDisplay";
 import {
   GameList,
   useGameJoinCreate,
-  useGamePhaseRetrieve,
   getGamesListQueryKey,
 } from "../api/generated/endpoints";
-import { formatTimeAgo } from "../util";
+import { formatTimeAgo, getGameLandingPath } from "../util";
 import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
 
 export interface GameCardProps {
   game: GameList;
   variant: Pick<Variant, "name" | "id">;
-  phaseId: number;
   map: React.ReactNode;
   className?: string;
 }
 
-const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
+const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { data: phase } = useGamePhaseRetrieve(game.id, phaseId);
+  const isMobile = useIsMobile();
+  const phase = game.currentPhase;
   const joinGameMutation = useGameJoinCreate();
+  const checkNotificationPermission = useCheckNotificationPermission();
 
   const handleClickGame = () => {
-    if (game.status === "pending") {
-      navigate(`/game-info/${game.id}`);
-    } else {
-      navigate(`/game/${game.id}`);
-    }
+    navigate(getGameLandingPath(game, isMobile));
   };
 
   const handleClickGameInfo = () => {
@@ -61,6 +59,9 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
       await joinGameMutation.mutateAsync({ gameId: game.id, data: {} });
       toast.success("Successfully joined game");
       queryClient.invalidateQueries({ queryKey: getGamesListQueryKey() });
+      if (!game.sandbox) {
+        checkNotificationPermission();
+      }
     } catch {
       toast.error("Failed to join game");
     }
@@ -122,7 +123,11 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, phaseId, map }) => {
                 {game.private && <Lock className="h-3 w-3" />}
                 <span>
                   {variant.name} •{" "}
-                  {game.movementPhaseDuration || "Resolve when ready"}
+                  {game.sandbox
+                    ? "Resolve when ready"
+                    : game.deadlineMode === "fixed_time"
+                    ? ({ hourly: "Hourly", daily: "Daily", every_2_days: "Every 2 days", weekly: "Weekly" }[game.movementFrequency ?? ""] ?? "Fixed time")
+                    : (game.movementPhaseDuration || "Resolve when ready")}
                 </span>
               </div>
               {game.status === "pending" ? (

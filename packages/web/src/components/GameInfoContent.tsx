@@ -1,5 +1,5 @@
 import React from "react";
-import { Calendar, Clock, Users, Lock, Unlock, User, Map, Trophy, Pause, Shield, MessageSquare, MessageSquareOff } from "lucide-react";
+import { BookOpen, Calendar, Clock, Users, Lock, Unlock, User, Map, Trophy, Pause, Shield, MessageSquare, MessageSquareOff } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,7 +11,7 @@ import {
   useVariantsListSuspense,
 } from "@/api/generated/endpoints";
 import { getCurrentPhaseId, formatDateTime, formatTimeAgo } from "@/util";
-import { InteractiveMap } from "@/components/InteractiveMap/InteractiveMap";
+import { MapPreview } from "@/components/MapPreview";
 import { CardTitle } from "@/components/ui/card";
 import {
   ScreenCard,
@@ -38,12 +38,32 @@ const MetadataRow: React.FC<MetadataRowProps> = ({ icon, label, value }) => {
   );
 };
 
+interface MetadataTextRowProps {
+  icon: React.ReactNode;
+  label: string;
+  text: string;
+}
+
+const MetadataTextRow: React.FC<MetadataTextRowProps> = ({ icon, label, text }) => {
+  return (
+    <div className="py-3 px-2">
+      <div className="flex items-center gap-3 mb-1">
+        <div className="text-muted-foreground">{icon}</div>
+        <span className="text-sm">{label}</span>
+      </div>
+      <p className="text-sm text-muted-foreground whitespace-pre-line pl-7">{text}</p>
+    </div>
+  );
+};
+
 interface GameInfoContentProps {
   onNavigateToPlayerInfo: () => void;
+  pendingAction?: React.ReactNode;
 }
 
 export const GameInfoContent: React.FC<GameInfoContentProps> = ({
   onNavigateToPlayerInfo,
+  pendingAction,
 }) => {
   const { gameId } = useRequiredParams<{ gameId: string }>();
 
@@ -61,7 +81,7 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
 
   return (
     <>
-      <GameStatusAlerts game={game} variant={variant} />
+      <GameStatusAlerts game={game} variant={variant} action={pendingAction} />
       <ScreenCard>
         <ScreenCardHeader>
           <CardTitle>{game.name}</CardTitle>
@@ -72,18 +92,27 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
             label="Variant"
             value={variant?.name ?? <Skeleton className="h-4 w-24" />}
           />
+          {variant?.description && (
+            <MetadataTextRow
+              icon={<Map className="size-4" />}
+              label="Description"
+              text={variant.description}
+            />
+          )}
           <MetadataRow
             icon={<Clock className="size-4" />}
             label="Created"
             value={formatTimeAgo(game.createdAt)}
           />
-          <MetadataRow
-            icon={<Calendar className="size-4" />}
-            label="Phase deadlines"
-            value={
+          <div className="py-3 px-2">
+            <div className="flex items-center gap-3 mb-1">
+              <div className="text-muted-foreground"><Calendar className="size-4" /></div>
+              <span className="text-sm">Phase deadlines</span>
+            </div>
+            <div className="text-sm text-muted-foreground pl-7">
               <DeadlineSummary game={game} />
-            }
-          />
+            </div>
+          </div>
           <MetadataRow
             icon={
               game.private ? (
@@ -181,14 +210,18 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
             label="Original author"
             value={variant?.author ?? <Skeleton className="h-4 w-24" />}
           />
+          {variant?.rules && (
+            <MetadataTextRow
+              icon={<BookOpen className="size-4" />}
+              label="Rules"
+              text={variant.rules}
+            />
+          )}
           {variant && currentPhase ? (
             <div className="w-full aspect-square overflow-hidden">
-              <InteractiveMap
+              <MapPreview
                 variant={variant}
                 phase={currentPhase}
-                orders={[]}
-                selected={[]}
-                interactive={false}
                 style={{ width: "100%", height: "100%" }}
               />
             </div>

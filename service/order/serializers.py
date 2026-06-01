@@ -4,7 +4,7 @@ from order.utils import get_options_for_order
 from province.serializers import ProvinceSerializer
 from nation.serializers import NationSerializer
 from .models import Order
-from common.constants import OrderType, UnitType, OrderCreationStep
+from common.constants import OrderType, UnitType, OrderCreationStep, PhaseType
 
 
 class FieldValueSerializer(serializers.Serializer):
@@ -72,18 +72,29 @@ class OrderSerializer(serializers.Serializer):
             get_options_for_order(order.phase.transformed_options, order)
         except Exception as e:
             raise exceptions.ValidationError(e)
+        # Stash the validated order so create() doesn't have to re-run
+        # create_from_selected (which would re-query phase_states and
+        # rebuild province_lookup).
+        self.context["_validated_order"] = order
         return order.selected
 
     def create(self, validated_data):
-        province_lookup = self.context.get("_province_lookup")
-        if province_lookup is None:
-            province_lookup = {p.province_id: p for p in self.context["phase"].variant.provinces.all()}
+        order = self.context.get("_validated_order")
+        if order is None:
+            province_lookup = self.context.get("_province_lookup")
+            if province_lookup is None:
+                province_lookup = {p.province_id: p for p in self.context["phase"].variant.provinces.all()}
+            order = Order.objects.create_from_selected(
+                self.context["request"].user, self.context["phase"], validated_data["selected"], province_lookup=province_lookup
+            )
 
-        order = Order.objects.create_from_selected(
-            self.context["request"].user, self.context["phase"], validated_data["selected"], province_lookup=province_lookup
-        )
         if order.complete:
             Order.objects.delete_existing_for_source(order.phase_state, order.source)
+            if self.context["phase"].type == PhaseType.ADJUSTMENT:
+                try:
+                    order.clean()
+                except exceptions.ValidationError as e:
+                    raise serializers.ValidationError(e.messages)
             order.save()
             return Order.objects.with_related_data().get(id=order.id)
 

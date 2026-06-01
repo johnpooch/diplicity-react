@@ -14,7 +14,7 @@ import { CheckEmail } from "./screens/CheckEmail";
 import { ForgotPassword } from "./screens/ForgotPassword";
 import { VerifyEmail } from "./screens/VerifyEmail";
 import { ResetPassword } from "./screens/ResetPassword";
-import { GameDetail, Home } from "./screens";
+import { GameDetail, Home, Variants } from "./screens";
 import { ErrorFallbackUI } from "./components/ErrorBoundary";
 import { HomeLayout } from "./components/HomeLayout";
 import { GameDetailLayout } from "./components/GameDetailLayout";
@@ -158,6 +158,14 @@ export const routeObjects: RouteObject[] = [
             ),
           },
           {
+            path: "learn-to-play",
+            element: (
+              <Suspense fallback={<RouteFallback />}>
+                <Home.LearnToPlay />
+              </Suspense>
+            ),
+          },
+          {
             path: "game-info/:gameId",
             element: (
               <Suspense fallback={<RouteFallback />}>
@@ -171,6 +179,36 @@ export const routeObjects: RouteObject[] = [
               <Suspense fallback={<RouteFallback />}>
                 <Home.PlayerInfoScreen />
               </Suspense>
+            ),
+          },
+          {
+            path: "variants",
+            element: (
+              <RequireAuth>
+                <Suspense fallback={<RouteFallback />}>
+                  <Variants.VariantsList />
+                </Suspense>
+              </RequireAuth>
+            ),
+          },
+          {
+            path: "variants/create",
+            element: (
+              <RequireAuth>
+                <Suspense fallback={<RouteFallback />}>
+                  <Variants.VariantCreate />
+                </Suspense>
+              </RequireAuth>
+            ),
+          },
+          {
+            path: "variants/:variantId/edit",
+            element: (
+              <RequireAuth>
+                <Suspense fallback={<RouteFallback />}>
+                  <Variants.VariantEditRoute />
+                </Suspense>
+              </RequireAuth>
             ),
           },
         ],

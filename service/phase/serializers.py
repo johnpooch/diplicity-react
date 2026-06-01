@@ -1,6 +1,9 @@
+from django.db import transaction
 from rest_framework import serializers
 from common.constants import PhaseStatus
 from member.serializers import MemberSerializer
+from phase.tasks import resolve_phase
+from phase.utils import compute_province_nations
 from province.serializers import ProvinceSerializer
 from supply_center.serializers import SupplyCenterSerializer
 from unit.serializers import UnitSerializer
@@ -19,8 +22,15 @@ class PhaseStateSerializer(serializers.Serializer):
     member = MemberSerializer(read_only=True)
 
     def update(self, instance, validated_data):
-        instance.orders_confirmed = not instance.orders_confirmed
-        instance.save()
+        with transaction.atomic():
+            instance.orders_confirmed = not instance.orders_confirmed
+            instance.save()
+
+            if instance.orders_confirmed:
+                resolve_phase.configure(
+                    lock=f"resolve-game-{instance.phase.game_id}",
+                ).defer(phase_id=instance.phase_id)
+
         return instance
 
 
@@ -48,3 +58,12 @@ class PhaseRetrieveSerializer(serializers.Serializer):
     supply_centers = SupplyCenterSerializer(many=True)
     previous_phase_id = serializers.IntegerField(allow_null=True)
     next_phase_id = serializers.IntegerField(allow_null=True)
+    province_nations = serializers.SerializerMethodField()
+
+    def get_province_nations(self, phase):
+        return compute_province_nations(
+            phase.supply_centers.all(),
+            phase.variant.provinces.all(),
+            phase.variant.dominance_rules,
+            phase.variant.nations.all(),
+        )

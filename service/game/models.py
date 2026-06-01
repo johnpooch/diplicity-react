@@ -34,29 +34,41 @@ class GameQuerySet(models.QuerySet):
     def with_list_data(self):
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.select_related("nation", "user__profile"),
+            queryset=Member.objects.select_related("nation__flag", "user__profile"),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile", "nation")
+            queryset=Member.objects.select_related("user__profile", "nation__flag")
+        )
+
+        # The list view's current_phase + phase_confirmed read the latest
+        # phase plus its phase_states.member.user_id. Prefetching the chain
+        # here keeps the per-game cost flat (no N+1 across the games list).
+        phase_states_prefetch = Prefetch(
+            "phase_states",
+            queryset=PhaseState.objects.select_related("member"),
+        )
+        phases_prefetch = Prefetch(
+            "phases",
+            queryset=Phase.objects.prefetch_related(phase_states_prefetch),
         )
 
         return self.select_related("variant", "victory").prefetch_related(
             members_prefetch,
             victory_members_prefetch,
-            "phases",
+            phases_prefetch,
         )
 
     def with_retrieve_data(self):
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.select_related("nation", "user__profile"),
+            queryset=Member.objects.select_related("nation__flag", "user__profile"),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile", "nation")
+            queryset=Member.objects.select_related("user__profile", "nation__flag")
         )
 
         phase_states_prefetch = Prefetch(
@@ -80,7 +92,7 @@ class GameQuerySet(models.QuerySet):
         units_prefetch = Prefetch(
             "units",
             queryset=Unit.objects.select_related(
-                "nation",
+                "nation__flag",
                 "province__parent",
                 "dislodged_by",
             ).prefetch_related("province__named_coasts"),
@@ -89,7 +101,7 @@ class GameQuerySet(models.QuerySet):
         supply_centers_prefetch = Prefetch(
             "supply_centers",
             queryset=SupplyCenter.objects.select_related(
-                "nation",
+                "nation__flag",
                 "province__parent",
             ).prefetch_related("province__named_coasts"),
         )
@@ -97,7 +109,7 @@ class GameQuerySet(models.QuerySet):
         phase_states_prefetch = Prefetch(
             "phase_states",
             queryset=PhaseState.objects.select_related(
-                "member__nation",
+                "member__nation__flag",
                 "member__user__profile",
             ),
         )
@@ -123,19 +135,19 @@ class GameQuerySet(models.QuerySet):
 
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.select_related("nation", "user__profile"),
+            queryset=Member.objects.select_related("nation__flag", "user__profile"),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile", "nation")
+            queryset=Member.objects.select_related("user__profile", "nation__flag")
         )
 
         return self.select_related("victory").prefetch_related(
             # Variant data with optimized template phase
             "variant__provinces__parent",
             "variant__provinces__named_coasts",
-            "variant__nations",
+            "variant__nations__flag",
             template_phase_prefetch,
             # Game phases data
             game_phases_prefetch,
@@ -255,7 +267,7 @@ class GameManager(models.Manager):
                 province=unit.province,
                 dislodged=unit.dislodged,
             )
-            for unit in source_phase.units.all()
+            for unit in source_phase.units.select_related("nation", "province")
         ]
         Unit.objects.bulk_create(units_to_create)
 
@@ -265,7 +277,7 @@ class GameManager(models.Manager):
                 nation=sc.nation,
                 province=sc.province,
             )
-            for sc in source_phase.supply_centers.all()
+            for sc in source_phase.supply_centers.select_related("nation", "province")
         ]
         SupplyCenter.objects.bulk_create(supply_centers_to_create)
 
@@ -382,7 +394,7 @@ class Game(BaseModel):
         else:
             return self.effective_retreat_frequency
 
-    def get_scheduled_resolution(self, phase_type):
+    def get_scheduled_resolution(self, phase_type, is_first_phase=False):
         if self.deadline_mode == DeadlineMode.FIXED_TIME:
             frequency = self.get_phase_frequency(phase_type)
             if not frequency or not self.fixed_deadline_time or not self.fixed_deadline_timezone:
@@ -391,6 +403,7 @@ class Game(BaseModel):
                 target_time=self.fixed_deadline_time,
                 frequency=frequency,
                 tz_name=self.fixed_deadline_timezone,
+                is_first_phase=is_first_phase,
             )
         else:
             phase_duration_seconds = self.get_phase_duration_seconds(phase_type)
@@ -449,7 +462,7 @@ class Game(BaseModel):
 
         current_phase.status = PhaseStatus.ACTIVE
         current_phase.options = adjudication_data["options"]
-        current_phase.scheduled_resolution = self.get_scheduled_resolution(current_phase.type)
+        current_phase.scheduled_resolution = self.get_scheduled_resolution(current_phase.type, is_first_phase=True)
         current_phase.save()
 
         # Use prefetched nations if available, otherwise fetch
@@ -511,6 +524,12 @@ class Game(BaseModel):
 
         self.paused_at = None
         self.save()
+
+    def delete_if_empty_pending(self):
+        if self.status == GameStatus.PENDING and not self.members.exists():
+            self.delete()
+            return True
+        return False
 
     def extend_deadline(self, duration):
         if self.status != GameStatus.ACTIVE:

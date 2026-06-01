@@ -1,13 +1,16 @@
 import json
 import logging
+from functools import cached_property
 
+import sentry_sdk
+from django.conf import settings
 from django.db import models, transaction
-from django.db.models import Q, Exists, OuterRef
+from django.db.models import Q, Exists, OuterRef, Count
 from django.utils import timezone
 from opentelemetry import trace
 from common.models import BaseModel
 from datetime import timedelta
-from common.constants import PhaseStatus, PhaseType, GameStatus
+from common.constants import PhaseStatus, PhaseType, GameStatus, DeadlineMode
 from adjudication.service import resolve
 from member.models import Member
 from order.models import OrderResolution, Order
@@ -25,23 +28,25 @@ tracer = trace.get_tracer(__name__)
 
 class PhaseQuerySet(models.QuerySet):
     def with_detail_data(self):
-        return self.prefetch_related(
-            "units__nation",
+        return self.select_related("variant").prefetch_related(
+            "units__nation__flag",
             "units__province__parent",
             "units__province__named_coasts",
-            "supply_centers__nation",
+            "supply_centers__nation__flag",
             "supply_centers__province__parent",
             "supply_centers__province__named_coasts",
+            "variant__provinces__parent",
+            "variant__nations",
         )
 
     def with_adjudication_data(self):
         return self.select_related("variant", "game").prefetch_related(
             "supply_centers__province",
-            "supply_centers__nation",
+            "supply_centers__nation__flag",
             "units__province",
-            "units__nation",
+            "units__nation__flag",
             "units__dislodged_by__province",
-            "phase_states__member__nation",
+            "phase_states__member__nation__flag",
             "phase_states__orders__source",
             "phase_states__orders__target",
             "phase_states__orders__aux",
@@ -49,19 +54,35 @@ class PhaseQuerySet(models.QuerySet):
             "phase_states__orders__resolution",
         )
 
+    def with_canonical_state_data(self):
+        return self.prefetch_related(
+            "units__nation__flag",
+            "units__province",
+            "units__dislodged_by__province__parent",
+            "supply_centers__nation__flag",
+            "supply_centers__province",
+            "phase_states__member__nation__flag",
+            "phase_states__orders__source",
+            "phase_states__orders__target",
+            "phase_states__orders__aux",
+            "phase_states__orders__named_coast",
+        )
+
     def filter_due_phases(self):
+        deadline_passed = (
+            Q(scheduled_resolution__isnull=False)
+            & Q(scheduled_resolution__lte=timezone.now())
+        )
+        all_confirmed = ~Exists(
+            PhaseState.objects.filter(phase=OuterRef("pk"), has_possible_orders=True, orders_confirmed=False)
+        )
         return self.filter(
             Q(status=PhaseStatus.ACTIVE)
             & Q(game__sandbox=False)
             & Q(game__paused_at__isnull=True)
             & ~Q(game__status=GameStatus.COMPLETED)
             & ~Q(game__status=GameStatus.ABANDONED)
-            & (
-                (Q(scheduled_resolution__isnull=False) & Q(scheduled_resolution__lte=timezone.now()))
-                | ~Exists(
-                    PhaseState.objects.filter(phase=OuterRef("pk"), has_possible_orders=True, orders_confirmed=False)
-                )
-            )
+            & (deadline_passed | (~Q(game__deadline_mode=DeadlineMode.FIXED_TIME) & all_confirmed))
         )
 
 
@@ -74,6 +95,9 @@ class PhaseManager(models.Manager):
 
     def with_adjudication_data(self):
         return self.get_queryset().with_adjudication_data()
+
+    def with_canonical_state_data(self):
+        return self.get_queryset().with_canonical_state_data()
 
     def filter_due_phases(self):
         return self.get_queryset().filter_due_phases()
@@ -101,7 +125,22 @@ class PhaseManager(models.Manager):
 
             return phases_to_resolve
 
-    def resolve_due_phases(self):
+    def resolve_if_due(self, phase_id):
+        with tracer.start_as_current_span("phase.manager.resolve_if_due") as span:
+            span.set_attribute("phase.id", phase_id)
+            with transaction.atomic():
+                locked = self.select_for_update().filter(pk=phase_id).first()
+                if locked is None:
+                    logger.info(f"Phase {phase_id} no longer exists; skipping resolve")
+                    return None
+                if not self.filter_due_phases().filter(pk=phase_id).exists():
+                    logger.info(f"Phase {phase_id} not due on re-check; skipping resolve")
+                    return None
+                phase = self.with_adjudication_data().get(pk=phase_id)
+                logger.info(f"Resolving due phase {phase.id} ({phase.name}) for game {phase.game_id}")
+                return self.resolve(phase)
+
+    def resolve_due_phases(self, canary=False):
         with tracer.start_as_current_span("phase.manager.resolve_due_phases") as span:
             logger.info("Starting resolution of due phases")
 
@@ -111,12 +150,31 @@ class PhaseManager(models.Manager):
             resolved_count = 0
             failed_count = 0
 
+            now = timezone.now()
+            grace = timedelta(seconds=getattr(settings, "RESOLUTION_CANARY_GRACE_SECONDS", 300))
+
             for phase in phases_to_resolve:
-                logger.info(f"Resolving phase {phase.id} ({phase.name}) for game {phase.game.id}")
+                if (
+                    canary
+                    and phase.scheduled_resolution
+                    and phase.scheduled_resolution < now - grace
+                ):
+                    overdue_seconds = (now - phase.scheduled_resolution).total_seconds()
+                    logger.error(
+                        f"Phase {phase.id} (game {phase.game_id}) overdue by {overdue_seconds:.0f}s; "
+                        f"a primary trigger should have resolved it. Capturing canary."
+                    )
+                    sentry_sdk.capture_message(
+                        f"Phase resolution overdue: phase {phase.id} game {phase.game_id} "
+                        f"overdue by {overdue_seconds:.0f}s",
+                        level="error",
+                    )
+
+                logger.info(f"Resolving phase {phase.id} ({phase.name}) for game {phase.game_id}")
                 try:
-                    self.resolve(phase)
-                    resolved_count += 1
-                    logger.info(f"Successfully resolved phase {phase.id}")
+                    if self.resolve_if_due(phase.id) is not None:
+                        resolved_count += 1
+                        logger.info(f"Successfully resolved phase {phase.id}")
                 except Exception as e:
                     failed_count += 1
                     logger.error(f"Failed to resolve phase {phase.id} ({phase.name}): {e}", exc_info=True)
@@ -134,6 +192,9 @@ class PhaseManager(models.Manager):
                 f"Phase resolution complete: {resolved_count} resolved, {failed_count} failed out of {total_phases_to_resolve} phases"
             )
             return result
+
+    def sweep_due_phases(self):
+        return self.resolve_due_phases(canary=True)
 
     def _check_and_apply_nmr_extensions(self, phase):
         unconfirmed = phase.phase_states.filter(
@@ -242,52 +303,121 @@ class PhaseManager(models.Manager):
                 if time_until_deadline <= 0 or time_until_deadline > warning_threshold:
                     continue
 
-                unconfirmed_members = [
-                    ps.member for ps in phase.phase_states.all()
-                    if ps.has_possible_orders and not ps.orders_confirmed
+                pending_states = [
+                    ps for ps in phase.phase_states.all()
+                    if ps.has_possible_orders
+                    and not ps.orders_confirmed
+                    and ps.deadline_warning_sent_for != phase.scheduled_resolution
                 ]
 
-                if not unconfirmed_members:
+                if not pending_states:
                     continue
 
-                user_ids = [m.user_id for m in unconfirmed_members if m.user_id is not None]
+                user_ids = [
+                    ps.member.user_id for ps in pending_states if ps.member.user_id is not None
+                ]
 
-                notification_utils.send_notification_to_users(
-                    user_ids=user_ids,
-                    title="Deadline Approaching",
-                    body=f"You haven't confirmed your orders in {phase.game.name}.",
-                    notification_type="deadline_warning",
-                    data={"game_id": str(phase.game.id)},
-                )
+                if user_ids:
+                    notification_utils.send_notification_to_users(
+                        user_ids=user_ids,
+                        title="Deadline Approaching",
+                        body=f"You haven't confirmed your orders in {phase.game.name}.",
+                        notification_type="deadline_warning",
+                        data={"game_id": str(phase.game.id)},
+                    )
+                    notifications_sent += len(user_ids)
+                    logger.info(f"Sent deadline warning to {len(user_ids)} player(s) for game {phase.game.name}")
 
-                notifications_sent += len(user_ids)
-                logger.info(f"Sent deadline warning to {len(user_ids)} player(s) for game {phase.game.name}")
+                for ps in pending_states:
+                    ps.deadline_warning_sent_for = phase.scheduled_resolution
+                PhaseState.objects.bulk_update(pending_states, ["deadline_warning_sent_for"])
 
             span.set_attribute("notifications.sent", notifications_sent)
             logger.info(f"Sent {notifications_sent} deadline warning notification(s)")
 
             return {"notifications_sent": notifications_sent}
 
+    def _check_civil_disorder(self, phase):
+        if phase.game.sandbox:
+            return []
+        if phase.type != PhaseType.MOVEMENT:
+            return []
+
+        current_nmr_members = []
+        for phase_state in phase.phase_states.all():
+            if not phase_state.has_possible_orders:
+                continue
+            if len(phase_state.orders.all()) > 0:
+                continue
+            member = phase_state.member
+            if member.civil_disorder or member.eliminated or member.kicked:
+                continue
+            current_nmr_members.append(member)
+
+        if not current_nmr_members:
+            return []
+
+        prev_movement_states = (
+            PhaseState.objects.filter(
+                member__in=current_nmr_members,
+                phase__game=phase.game,
+                phase__type=PhaseType.MOVEMENT,
+                phase__status=PhaseStatus.COMPLETED,
+                phase__ordinal__lt=phase.ordinal,
+                has_possible_orders=True,
+            )
+            .annotate(order_count=Count("orders"))
+            .order_by("member_id", "-phase__ordinal")
+        )
+
+        latest_prev_by_member = {}
+        for ps in prev_movement_states:
+            if ps.member_id not in latest_prev_by_member:
+                latest_prev_by_member[ps.member_id] = ps
+
+        newly_cd_members = [
+            m for m in current_nmr_members
+            if m.id in latest_prev_by_member
+            and latest_prev_by_member[m.id].order_count == 0
+        ]
+
+        if not newly_cd_members:
+            return []
+
+        for m in newly_cd_members:
+            m.civil_disorder = True
+        Member.objects.bulk_update(newly_cd_members, ["civil_disorder"])
+
+        user_ids = [
+            m.user_id for m in phase.game.members.all() if m.user_id is not None
+        ]
+        nation_names = ", ".join(
+            m.nation.name for m in newly_cd_members if m.nation is not None
+        )
+
+        def send_notifications():
+            if user_ids:
+                notification_utils.send_notification_to_users(
+                    user_ids=user_ids,
+                    title="Civil Disorder",
+                    body=f"{nation_names} entered civil disorder.",
+                    notification_type="civil_disorder",
+                    data={"game_id": str(phase.game.id)},
+                )
+
+        transaction.on_commit(send_notifications)
+
+        return newly_cd_members
+
     def _check_abandonment(self, game):
         if game.sandbox:
             return False
 
-        completed_movement_phases = list(
-            game.phases.filter(
-                status=PhaseStatus.COMPLETED,
-                type=PhaseType.MOVEMENT,
-            )
-            .order_by('-ordinal')[:2]
-        )
-
-        if len(completed_movement_phases) < 2:
+        active_members = list(game.members.filter(eliminated=False, kicked=False))
+        if not active_members:
             return False
 
-        for phase in completed_movement_phases:
-            if len(phase.all_orders) > 0:
-                return False
-
-        return True
+        return all(m.civil_disorder for m in active_members)
 
     def resolve(self, phase):
         with tracer.start_as_current_span("phase.manager.resolve") as span:
@@ -302,6 +432,7 @@ class PhaseManager(models.Manager):
 
             with tracer.start_as_current_span("phase.transaction_atomic"):
                 with transaction.atomic():
+                    self._check_civil_disorder(phase)
                     new_phase = self.create_from_adjudication_data(phase, adjudication_data)
 
                     victory = Victory.objects.try_create_victory(new_phase)
@@ -504,6 +635,7 @@ class PhaseManager(models.Manager):
                                 member=member,
                                 phase=new_phase,
                                 has_possible_orders=member.nation.name in nations_with_orders,
+                                orders_confirmed=member.civil_disorder,
                             )
                         )
 
@@ -576,7 +708,7 @@ class Phase(BaseModel):
     def all_orders(self):
         return [order for phase_state in self.phase_states.all() for order in phase_state.orders.all()]
 
-    @property
+    @cached_property
     def transformed_options(self):
         return transform_options(self.options or {})
 
@@ -656,6 +788,7 @@ class PhaseState(BaseModel):
     orders_confirmed = models.BooleanField(default=False)
     eliminated = models.BooleanField(default=False)
     has_possible_orders = models.BooleanField(default=False)
+    deadline_warning_sent_for = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         username = self.member.user.username if self.member.user else "Deleted User"

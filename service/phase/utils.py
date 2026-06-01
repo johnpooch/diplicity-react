@@ -3,7 +3,7 @@ from zoneinfo import ZoneInfo
 
 from django.utils import timezone
 
-from common.constants import PhaseFrequency
+from common.constants import OrderType, PhaseFrequency, PhaseType, ProvinceType
 
 
 def transform_options(raw_options):
@@ -304,11 +304,20 @@ def _group_named_coasts(provinces):
     return result
 
 
+FREQUENCY_INTERVALS = {
+    PhaseFrequency.HOURLY: timedelta(hours=1),
+    PhaseFrequency.DAILY: timedelta(days=1),
+    PhaseFrequency.EVERY_2_DAYS: timedelta(days=2),
+    PhaseFrequency.WEEKLY: timedelta(weeks=1),
+}
+
+
 def calculate_next_fixed_deadline(
     target_time,
     frequency,
     tz_name,
     reference_time=None,
+    is_first_phase=False,
 ):
     if reference_time is None:
         reference_time = timezone.now()
@@ -317,8 +326,25 @@ def calculate_next_fixed_deadline(
     local_now = reference_time.astimezone(tz)
 
     if frequency == PhaseFrequency.HOURLY:
-        next_deadline = local_now.replace(minute=0, second=0, microsecond=0)
-        next_deadline += timedelta(hours=1)
+        if is_first_phase:
+            candidate = local_now.replace(
+                hour=target_time.hour,
+                minute=target_time.minute,
+                second=0,
+                microsecond=0,
+            )
+            if candidate <= local_now:
+                candidate += timedelta(days=1)
+            next_deadline = candidate + FREQUENCY_INTERVALS[frequency]
+        else:
+            candidate = local_now.replace(
+                minute=target_time.minute,
+                second=0,
+                microsecond=0,
+            )
+            if candidate <= local_now:
+                candidate += FREQUENCY_INTERVALS[frequency]
+            next_deadline = candidate
     elif frequency == PhaseFrequency.DAILY:
         candidate = local_now.replace(
             hour=target_time.hour,
@@ -329,6 +355,8 @@ def calculate_next_fixed_deadline(
         if candidate <= local_now:
             candidate += timedelta(days=1)
         next_deadline = candidate
+        if is_first_phase:
+            next_deadline += FREQUENCY_INTERVALS[frequency]
     elif frequency == PhaseFrequency.EVERY_2_DAYS:
         candidate = local_now.replace(
             hour=target_time.hour,
@@ -345,6 +373,8 @@ def calculate_next_fixed_deadline(
         if days_from_now % 2 == 1:
             candidate += timedelta(days=1)
         next_deadline = candidate
+        if is_first_phase:
+            next_deadline += FREQUENCY_INTERVALS[frequency]
     elif frequency == PhaseFrequency.WEEKLY:
         candidate = local_now.replace(
             hour=target_time.hour,
@@ -358,7 +388,163 @@ def calculate_next_fixed_deadline(
         while candidate < min_deadline:
             candidate += timedelta(days=1)
         next_deadline = candidate
+        if is_first_phase:
+            next_deadline += FREQUENCY_INTERVALS[frequency]
     else:
         raise ValueError(f"Unknown frequency: {frequency}")
 
     return next_deadline
+
+
+def _parent_province_id(province):
+    if province.parent_id is not None:
+        return province.parent.province_id
+    return province.province_id
+
+
+def _canonical_order(order, phase_type):
+    # Django/godip use a Move order in a retreat phase to mean a retreat;
+    # the canonical adjudicator has a distinct Retreat order type. Django's
+    # MoveViaConvoy collapses to a Move with viaConvoy set.
+    via_convoy = False
+    if phase_type == PhaseType.RETREAT:
+        order_type = "Retreat" if order.order_type == OrderType.MOVE else order.order_type
+    elif order.order_type == OrderType.MOVE_VIA_CONVOY:
+        order_type = OrderType.MOVE
+        via_convoy = True
+    else:
+        order_type = order.order_type
+
+    source = order.source.province_id if order.source_id is not None else None
+    target = order.target.province_id if order.target_id is not None else None
+    aux = order.aux.province_id if order.aux_id is not None else None
+
+    # A named coast addresses the build location for builds and the
+    # destination for moves.
+    if order.named_coast_id is not None:
+        if order.order_type == OrderType.BUILD:
+            source = order.named_coast.province_id
+        else:
+            target = order.named_coast.province_id
+
+    return {
+        "nation": order.nation.nation_id,
+        "source": source,
+        "orderType": order_type,
+        "target": target,
+        "aux": aux,
+        "unitType": order.unit_type,
+        "viaConvoy": via_convoy,
+    }
+
+
+def compute_province_nations(supply_centers, provinces, dominance_rules, nations):
+    sc_owner_map = {sc.province.province_id: sc.nation.name for sc in supply_centers}
+    province_map = {p.province_id: p for p in provinces}
+    nation_id_to_name = {n.nation_id: n.name for n in nations}
+
+    rules_by_province = {}
+    for rule in dominance_rules:
+        rules_by_province.setdefault(rule["province"], []).append(rule)
+
+    UNOWNED_MARKERS = {"Empty", "Neutral"}
+
+    def resolve_to_sc_id(province_id):
+        p = province_map.get(province_id)
+        if not p:
+            return None
+        if p.supply_center:
+            return province_id
+        if p.parent_id:
+            parent = province_map.get(p.parent.province_id)
+            if parent and parent.supply_center:
+                return p.parent.province_id
+        return None
+
+    def dependency_matches(dep):
+        nation = dep["nation"]
+        prov = dep["province"]
+        if nation in UNOWNED_MARKERS:
+            return prov not in sc_owner_map
+        nation_name = nation_id_to_name.get(nation)
+        if not nation_name:
+            return False
+        return sc_owner_map.get(prov) == nation_name
+
+    def default_color(province):
+        adjacent_sc_ids = set()
+        for adj in province.adjacencies:
+            sc_id = resolve_to_sc_id(adj["to"])
+            if sc_id:
+                adjacent_sc_ids.add(sc_id)
+        if not adjacent_sc_ids:
+            return None
+        owner = None
+        for sc_id in adjacent_sc_ids:
+            sc_owner = sc_owner_map.get(sc_id)
+            if not sc_owner:
+                return None
+            if owner is None:
+                owner = sc_owner
+            elif owner != sc_owner:
+                return None
+        return owner
+
+    result = {}
+    for province in province_map.values():
+        if province.supply_center:
+            continue
+        if province.type in (ProvinceType.SEA, ProvinceType.NAMED_COAST):
+            continue
+
+        rules = rules_by_province.get(province.province_id)
+        if rules:
+            matched = next((r for r in rules if all(dependency_matches(d) for d in r["dependencies"])), None)
+            if matched:
+                nation_name = nation_id_to_name.get(matched["nation"])
+                if nation_name:
+                    result[province.province_id] = nation_name
+                continue
+
+        nation_name = default_color(province)
+        if nation_name:
+            result[province.province_id] = nation_name
+
+    return result
+
+
+def phase_to_canonical_game_state(phase):
+    phase = type(phase).objects.with_canonical_state_data().get(pk=phase.pk)
+    return {
+        "phase": {
+            "season": phase.season,
+            "year": phase.year,
+            "type": phase.type,
+        },
+        "units": [
+            {
+                "nation": unit.nation.nation_id,
+                "type": unit.type,
+                "location": unit.province.province_id,
+                "dislodged": unit.dislodged,
+                "dislodgedFrom": (
+                    _parent_province_id(unit.dislodged_by.province)
+                    if unit.dislodged_by_id is not None
+                    else None
+                ),
+            }
+            for unit in phase.units.all()
+        ],
+        "supplyCenters": [
+            {
+                "nation": supply_center.nation.nation_id,
+                "province": supply_center.province.province_id,
+            }
+            for supply_center in phase.supply_centers.all()
+        ],
+        "orders": [
+            _canonical_order(order, phase.type)
+            for phase_state in phase.phase_states.all()
+            for order in phase_state.orders.all()
+        ],
+    }

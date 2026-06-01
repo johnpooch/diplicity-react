@@ -52,7 +52,7 @@ class Command(BaseCommand):
         italy_scs = phase.supply_centers.filter(nation=italy).count()
         germany_scs = phase.supply_centers.filter(nation=germany).count()
         total_scs = italy_scs + germany_scs
-        threshold = variant.solo_victory_sc_count
+        threshold = variant.solo_victory_supply_centers
 
         self.stdout.write(self.style.SUCCESS(f"\nGame updated: {game.name}"))
         self.stdout.write(f"URL: http://localhost:5173/game/{game.id}")

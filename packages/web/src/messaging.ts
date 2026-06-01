@@ -74,19 +74,14 @@ const deleteFirebaseToken = async () => {
     });
 };
 
-const registerServiceWorker = () => {
-  return isSupported().then(async supported => {
-    if (supported) {
-      navigator.serviceWorker
-        .register("/firebase-messaging-sw.js")
-        .then(() => {
-          console.log("Service worker registered successfully");
-        })
-        .catch(error => {
-          console.error("Service worker registration failed:", error);
-        });
-    }
-  });
+const registerServiceWorker = async () => {
+  const supported = await isSupported();
+  if (!supported) return;
+  try {
+    await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+  } catch (error) {
+    console.error("Service worker registration failed:", error);
+  }
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -100,9 +95,21 @@ const onMessageReceived = (callback: (payload: any) => void) => {
   });
 };
 
+const onNotificationClick = (callback: (link: string) => void): (() => void) => {
+  if (!("serviceWorker" in navigator)) return () => {};
+  const handler = (event: MessageEvent) => {
+    if (event.data?.type === "NOTIFICATION_CLICK" && event.data.link) {
+      callback(event.data.link as string);
+    }
+  };
+  navigator.serviceWorker.addEventListener("message", handler);
+  return () => navigator.serviceWorker.removeEventListener("message", handler);
+};
+
 export {
   getFirebaseToken as getToken,
   deleteFirebaseToken as deleteToken,
   onMessageReceived,
+  onNotificationClick,
   registerServiceWorker,
 };

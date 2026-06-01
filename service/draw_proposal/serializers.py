@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import DrawProposal, DrawVote
+from drf_spectacular.utils import extend_schema_field
+from .models import DrawProposal
 from .constants import DrawProposalStatus
 from member.serializers import BaseMemberSerializer
 
@@ -8,9 +9,7 @@ class DrawVoteMemberSerializer(BaseMemberSerializer):
     nation = serializers.CharField(source="nation.name", allow_null=True)
 
 
-class DrawVoteSerializer(serializers.Serializer):
-    id = serializers.IntegerField(read_only=True)
-    member = DrawVoteMemberSerializer(read_only=True)
+class MyVoteSerializer(serializers.Serializer):
     included = serializers.BooleanField(read_only=True)
     accepted = serializers.BooleanField(read_only=True, allow_null=True)
 
@@ -19,58 +18,54 @@ class DrawProposalSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     created_by = DrawVoteMemberSerializer(read_only=True)
     status = serializers.CharField(read_only=True)
-    combined_sc_count = serializers.IntegerField(read_only=True)
-    victory_threshold = serializers.IntegerField(read_only=True)
-    votes = DrawVoteSerializer(many=True, read_only=True)
+    accepted_count = serializers.SerializerMethodField()
+    rejected_count = serializers.SerializerMethodField()
+    pending_count = serializers.SerializerMethodField()
+    total_votes = serializers.SerializerMethodField()
+    included_member_ids = serializers.SerializerMethodField()
+    my_vote = serializers.SerializerMethodField()
     phase_id = serializers.IntegerField(source="phase.id", read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
 
-    included_member_ids = serializers.ListField(
-        child=serializers.IntegerField(),
-        required=True,
-        write_only=True,
-    )
+    def get_accepted_count(self, obj) -> int:
+        return sum(1 for v in obj.votes.all() if v.accepted is True)
 
-    def validate_included_member_ids(self, value):
-        game = self.context["game"]
-        current_member = self.context["current_game_member"]
+    def get_rejected_count(self, obj) -> int:
+        return sum(1 for v in obj.votes.all() if v.accepted is False)
 
-        if current_member.id not in value:
-            raise serializers.ValidationError(
-                "You must include yourself in the draw proposal."
-            )
+    def get_pending_count(self, obj) -> int:
+        return sum(1 for v in obj.votes.all() if v.accepted is None)
 
-        if len(value) < 2:
-            raise serializers.ValidationError(
-                "A draw proposal must include at least 2 players."
-            )
+    def get_total_votes(self, obj) -> int:
+        return len(list(obj.votes.all()))
 
-        active_members = game.members.filter(eliminated=False, kicked=False)
-        active_member_ids = set(active_members.values_list("id", flat=True))
+    @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
+    def get_included_member_ids(self, obj):
+        return [v.member_id for v in obj.votes.all() if v.included]
 
-        for member_id in value:
-            if member_id not in active_member_ids:
-                raise serializers.ValidationError(
-                    f"Member {member_id} is not an active member of the game."
-                )
-
-        return value
+    @extend_schema_field(MyVoteSerializer(allow_null=True))
+    def get_my_vote(self, obj):
+        current_member = self.context.get("current_game_member")
+        if current_member is None:
+            return None
+        for vote in obj.votes.all():
+            if vote.member_id == current_member.id:
+                return {"included": vote.included, "accepted": vote.accepted}
+        return None
 
     def validate(self, attrs):
         game = self.context["game"]
         current_member = self.context["current_game_member"]
-        included_member_ids = attrs.get("included_member_ids", [])
 
         if game.sandbox:
             raise serializers.ValidationError(
                 "Draw proposals are not allowed in sandbox games."
             )
 
-        current_phase = game.current_phase
         existing_proposal = DrawProposal.objects.active().filter(
             game=game,
             created_by=current_member,
-            phase=current_phase,
+            phase=game.current_phase,
         ).first()
 
         if existing_proposal:
@@ -78,31 +73,15 @@ class DrawProposalSerializer(serializers.Serializer):
                 "You already have an active draw proposal for this phase."
             )
 
-        included_members = game.members.filter(id__in=included_member_ids)
-        phase = current_phase
-        included_nations = [m.nation for m in included_members]
-        combined_sc_count = phase.supply_centers.filter(
-            nation__in=included_nations
-        ).count()
-
-        victory_threshold = game.variant.solo_victory_sc_count
-        if combined_sc_count < victory_threshold:
-            raise serializers.ValidationError(
-                f"Combined SC count ({combined_sc_count}) must be at least "
-                f"the victory threshold ({victory_threshold})."
-            )
-
         return attrs
 
     def create(self, validated_data):
         game = self.context["game"]
         current_member = self.context["current_game_member"]
-        included_member_ids = validated_data["included_member_ids"]
 
         return DrawProposal.objects.create_proposal(
             game=game,
             created_by=current_member,
-            included_member_ids=included_member_ids,
         )
 
 

@@ -13,13 +13,13 @@ import type {
 } from "@/api/generated/endpoints";
 
 export const mockNations: Nation[] = [
-  { name: "Austria", color: "#FF0000" },
-  { name: "England", color: "#0000FF" },
-  { name: "France", color: "#00FFFF" },
-  { name: "Germany", color: "#000000" },
-  { name: "Italy", color: "#00FF00" },
-  { name: "Russia", color: "#FFFFFF" },
-  { name: "Turkey", color: "#FFFF00" },
+  { nationId: "austria", name: "Austria", color: "#FF0000", flagUrl: null },
+  { nationId: "england", name: "England", color: "#0000FF", flagUrl: null },
+  { nationId: "france", name: "France", color: "#00FFFF", flagUrl: null },
+  { nationId: "germany", name: "Germany", color: "#000000", flagUrl: null },
+  { nationId: "italy", name: "Italy", color: "#00FF00", flagUrl: null },
+  { nationId: "russia", name: "Russia", color: "#FFFFFF", flagUrl: null },
+  { nationId: "turkey", name: "Turkey", color: "#FFFF00", flagUrl: null },
 ];
 
 export const mockMembers: Member[] = [
@@ -33,6 +33,7 @@ export const mockMembers: Member[] = [
     kicked: false,
     isGameMaster: true,
     nmrExtensionsRemaining: 2,
+    civilDisorder: false,
   },
   {
     id: 2,
@@ -44,6 +45,7 @@ export const mockMembers: Member[] = [
     kicked: false,
     isGameMaster: false,
     nmrExtensionsRemaining: 2,
+    civilDisorder: false,
   },
   {
     id: 3,
@@ -55,6 +57,7 @@ export const mockMembers: Member[] = [
     kicked: false,
     isGameMaster: false,
     nmrExtensionsRemaining: 2,
+    civilDisorder: false,
   },
   {
     id: 4,
@@ -66,6 +69,7 @@ export const mockMembers: Member[] = [
     kicked: false,
     isGameMaster: false,
     nmrExtensionsRemaining: 2,
+    civilDisorder: false,
   },
   {
     id: 5,
@@ -77,6 +81,7 @@ export const mockMembers: Member[] = [
     kicked: false,
     isGameMaster: false,
     nmrExtensionsRemaining: 2,
+    civilDisorder: false,
   },
   {
     id: 6,
@@ -88,6 +93,7 @@ export const mockMembers: Member[] = [
     kicked: false,
     isGameMaster: false,
     nmrExtensionsRemaining: 2,
+    civilDisorder: false,
   },
   {
     id: 7,
@@ -99,6 +105,7 @@ export const mockMembers: Member[] = [
     kicked: false,
     isGameMaster: false,
     nmrExtensionsRemaining: 2,
+    civilDisorder: false,
   },
 ];
 
@@ -228,6 +235,7 @@ export const mockPhaseMovement: PhaseRetrieve = {
     province,
     nation: mockNations[index],
   })),
+  provinceNations: {},
 };
 
 export const mockPhaseRetreat: PhaseRetrieve = {
@@ -255,6 +263,7 @@ export const mockPhaseRetreat: PhaseRetrieve = {
     province,
     nation: mockNations[index],
   })),
+  provinceNations: {},
 };
 
 export const mockPhaseAdjustment: PhaseRetrieve = {
@@ -274,6 +283,7 @@ export const mockPhaseAdjustment: PhaseRetrieve = {
     province,
     nation: mockNations[index % mockNations.length],
   })),
+  provinceNations: {},
 };
 
 export const mockGames: GameList[] = [
@@ -288,6 +298,8 @@ export const mockGames: GameList[] = [
     variantId: "Classical",
     phases: [1, 2, 3, 4, 5],
     currentPhaseId: 5,
+    currentPhase: null,
+    phaseConfirmed: false,
     private: false,
     anonymous: false,
     movementPhaseDuration: "24 hours",
@@ -317,6 +329,8 @@ export const mockGames: GameList[] = [
     variantId: "Classical",
     phases: [1, 2],
     currentPhaseId: 2,
+    currentPhase: null,
+    phaseConfirmed: false,
     private: false,
     anonymous: false,
     movementPhaseDuration: "12 hours",
@@ -346,6 +360,8 @@ export const mockGames: GameList[] = [
     variantId: "Classical",
     phases: [1],
     currentPhaseId: null,
+    currentPhase: null,
+    phaseConfirmed: false,
     private: false,
     anonymous: false,
     movementPhaseDuration: "48 hours",
@@ -375,6 +391,8 @@ export const mockGames: GameList[] = [
     variantId: "Classical",
     phases: [1],
     currentPhaseId: null,
+    currentPhase: null,
+    phaseConfirmed: false,
     private: true,
     anonymous: false,
     movementPhaseDuration: "24 hours",
@@ -404,6 +422,8 @@ export const mockGames: GameList[] = [
     variantId: "Classical",
     phases: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     currentPhaseId: null,
+    currentPhase: null,
+    phaseConfirmed: false,
     private: false,
     anonymous: false,
     movementPhaseDuration: "24 hours",
@@ -438,6 +458,8 @@ export const mockGames: GameList[] = [
     variantId: "Italy vs Germany",
     phases: [1, 2, 3, 4, 5, 6, 7, 8],
     currentPhaseId: null,
+    currentPhase: null,
+    phaseConfirmed: false,
     private: false,
     anonymous: false,
     movementPhaseDuration: "48 hours",
@@ -490,6 +512,8 @@ export const mockSandboxGames: GameList[] = [
     variantId: "Classical",
     phases: [1, 2, 3],
     currentPhaseId: 3,
+    currentPhase: null,
+    phaseConfirmed: false,
     private: true,
     anonymous: false,
     movementPhaseDuration: "manual",
@@ -519,6 +543,8 @@ export const mockSandboxGames: GameList[] = [
     variantId: "Classical",
     phases: [1],
     currentPhaseId: 1,
+    currentPhase: null,
+    phaseConfirmed: false,
     private: true,
     anonymous: false,
     movementPhaseDuration: "manual",
@@ -545,21 +571,21 @@ export const mockVariants: Variant[] = [
     name: "Classical Diplomacy",
     description: "The original Diplomacy game",
     author: "Allan B. Calhamer",
+    rules: "The first to 18 Supply Centers (SC) is the winner.",
+    status: "published",
+    ownerId: null,
+    ownerUsername: null,
+    canEdit: false,
     nations: mockNations,
     provinces: mockProvinces,
-    soloVictoryScCount: 18,
+    victoryConditions: {
+      soloVictorySupplyCenters: 18,
+      gameEndsYear: null,
+      drawAfterYear: null,
+    },
+    svgUrl: null,
     templatePhase: {
-      id: 1,
-      ordinal: 1,
-      season: "Spring",
       year: 1901,
-      name: "Spring 1901 Movement",
-      type: "Movement",
-      remainingTime: 0,
-      scheduledResolution: "1901-01-01T00:00:00Z",
-      status: "template" as StatusEnum,
-      previousPhaseId: null,
-      nextPhaseId: null,
       units: [],
       supplyCenters: [],
     },
@@ -569,21 +595,21 @@ export const mockVariants: Variant[] = [
     name: "Italy vs Germany",
     description: "A 2-player variant",
     author: "Unknown",
+    rules: "The first to 18 supply centers is the winner.",
+    status: "published",
+    ownerId: null,
+    ownerUsername: null,
+    canEdit: false,
     nations: [mockNations[4], mockNations[3]],
     provinces: mockProvinces.slice(3, 5),
-    soloVictoryScCount: 4,
+    victoryConditions: {
+      soloVictorySupplyCenters: 4,
+      gameEndsYear: null,
+      drawAfterYear: null,
+    },
+    svgUrl: null,
     templatePhase: {
-      id: 2,
-      ordinal: 1,
-      season: "Spring",
       year: 1901,
-      name: "Spring 1901 Movement",
-      type: "Movement",
-      remainingTime: 0,
-      scheduledResolution: "1901-01-01T00:00:00Z",
-      status: "template" as StatusEnum,
-      previousPhaseId: null,
-      nextPhaseId: null,
       units: [],
       supplyCenters: [],
     },

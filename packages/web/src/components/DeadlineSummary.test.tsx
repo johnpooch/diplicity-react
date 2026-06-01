@@ -16,7 +16,7 @@ describe("DeadlineSummary", () => {
         <DeadlineSummary game={{ movementPhaseDuration: "24 hours" }} />
       );
       expect(
-        screen.getByText("Phases resolve every 24 hours")
+        screen.getByText(/Phases resolve every 24 hours/)
       ).toBeInTheDocument();
     });
 
@@ -30,7 +30,7 @@ describe("DeadlineSummary", () => {
         />
       );
       expect(
-        screen.getByText("Phases resolve every 48 hours")
+        screen.getByText(/Phases resolve every 48 hours/)
       ).toBeInTheDocument();
     });
 
@@ -62,7 +62,7 @@ describe("DeadlineSummary", () => {
         <DeadlineSummary game={{ movementPhaseDuration: duration }} />
       );
       expect(
-        screen.getByText(`Phases resolve every ${duration}`)
+        screen.getByText(new RegExp(`Phases resolve every ${duration}`))
       ).toBeInTheDocument();
     });
 
@@ -76,7 +76,7 @@ describe("DeadlineSummary", () => {
         />
       );
       expect(
-        screen.getByText("Phases resolve every 24 hours")
+        screen.getByText(/Phases resolve every 24 hours/)
       ).toBeInTheDocument();
     });
 
@@ -90,7 +90,7 @@ describe("DeadlineSummary", () => {
         />
       );
       expect(
-        screen.getByText("Phases resolve every 24 hours")
+        screen.getByText(/Phases resolve every 24 hours/)
       ).toBeInTheDocument();
     });
   });
@@ -123,7 +123,9 @@ describe("DeadlineSummary", () => {
           }}
         />
       );
-      expect(screen.getByText(/hourly at 2:30 PM CT/i)).toBeInTheDocument();
+      // first phase ends at 14:30 + 1h = 15:30
+      expect(screen.getByText(/The first phase ends at 3:30 PM CT/i)).toBeInTheDocument();
+      expect(screen.getByText(/after that every hour/i)).toBeInTheDocument();
     });
 
     it("renders fixed-time summary with weekly frequency", () => {
@@ -287,7 +289,7 @@ describe("DeadlineSummary", () => {
       expect(screen.getByText(/daily at 9:00 PM Africa\/Cairo/i)).toBeInTheDocument();
     });
 
-    it("handles hourly retreat frequency display", () => {
+    it("handles daily movement with hourly retreat", () => {
       render(
         <DeadlineSummary
           game={{
@@ -301,8 +303,29 @@ describe("DeadlineSummary", () => {
         />
       );
       expect(
-        screen.getByText(/Movement: daily at 9:00 PM GMT, Retreat: hourly/i)
+        screen.getByText(/Movement resolves daily at 9:00 PM GMT/i)
       ).toBeInTheDocument();
+      expect(
+        screen.getByText(/Retreat\/Adjustment resolves 1 hour later/i)
+      ).toBeInTheDocument();
+    });
+
+    it("renders hourly movement with non-hourly retreat", () => {
+      render(
+        <DeadlineSummary
+          game={{
+            movementPhaseDuration: null,
+            deadlineMode: "fixed_time",
+            fixedDeadlineTime: "21:00",
+            fixedDeadlineTimezone: "Europe/London",
+            movementFrequency: "hourly",
+            retreatFrequency: "daily",
+          }}
+        />
+      );
+      // first phase ends at 21:00 + 1h = 22:00
+      expect(screen.getByText(/The first phase ends at 10:00 PM GMT/i)).toBeInTheDocument();
+      expect(screen.getByText(/after that Movement: every hour and Retreat\/Adjustment: daily at 9:00 PM GMT/i)).toBeInTheDocument();
     });
   });
 });

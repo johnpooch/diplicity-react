@@ -250,7 +250,7 @@ class TestAnonymousGames:
         assert sender["picture"] is None
 
     @pytest.mark.django_db
-    def test_anonymous_game_masks_draw_proposal_members(
+    def test_anonymous_game_masks_draw_proposal_creator(
         self,
         authenticated_client_for_secondary_user,
         primary_user,
@@ -286,16 +286,12 @@ class TestAnonymousGames:
         assert len(response.data) == 1
 
         proposal_data = response.data[0]
+        # The proposer's identity is masked in anonymous games.
         assert proposal_data["created_by"]["name"] == "Anonymous"
         assert proposal_data["created_by"]["picture"] is None
-
-        for vote in proposal_data["votes"]:
-            member = vote["member"]
-            if member["is_current_user"]:
-                assert member["name"] == "Secondary User"
-            else:
-                assert member["name"] == "Anonymous"
-                assert member["picture"] is None
+        # Under DIAS / secret voting we no longer return per-member vote rows,
+        # so there is no member list on the proposal that could leak identity.
+        assert "votes" not in proposal_data
 
     @pytest.mark.django_db
     def test_anonymous_game_masks_members_in_game_list(

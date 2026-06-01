@@ -1770,7 +1770,7 @@
          x="576.73199">Savoy</tspan></text>
     <text
        x="-6"
-       id="Castile"
+       id="Spain"
        font-size="16"
        font-weight="bold"
        letter-spacing="1"
@@ -1805,12 +1805,12 @@
        font-style="italic"
        font-weight="normal"
        style="font-style:italic;font-weight:normal;font-size:12px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';fill:#000000"><tspan
-         x="112"
+         x="122.25"
          y="542"
-         id="tspan191">Bristol Channel</tspan><tspan
+         id="tspan191">Bristol</tspan><tspan
          x="117.63"
          y="557"
-         id="tspan193"></tspan></text>
+         id="tspan193">Channel</tspan></text>
     <text
        id="BRS"
        font-size="16"
@@ -1827,9 +1827,12 @@
        font-style="italic"
        font-weight="normal"
        style="font-style:italic;font-weight:normal;font-size:12px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';fill:#000000"><tspan
-         x="200"
-         y="500"
-         id="tspan183">English Channel</tspan></text>
+         x="211.826"
+         y="520"
+         id="tspan183">English</tspan><tspan
+         x="209.63"
+         y="535"
+         id="tspan185">Channel</tspan></text>
     <text
        style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:3;fill:#000000"
        letter-spacing="3"
@@ -1848,8 +1851,8 @@
        font-weight="normal"
        letter-spacing="3"
        style="font-style:italic;font-weight:normal;font-size:16px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:3;fill:#000000"><tspan
-         x="218"
-         y="485"
+         x="209.89192"
+         y="500"
          id="tspan177">ENG</tspan></text>
     <text
        id="Atlantic-Sea"
@@ -1899,15 +1902,15 @@
        id="of-Dover"
        transform="rotate(-42.999973,391.00032,419.50018)"><tspan
          id="tspan162"
-         y="423"
-         x="375">of Dover</tspan></text>
+         y="424"
+         x="365.48801">of Dover</tspan></text>
     <text
        style="font-style:italic;font-weight:normal;font-size:12px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:0.45;fill:#000000"
        letter-spacing="0.45"
        font-weight="normal"
        font-style="italic"
        font-size="12"
-       id="Strait"
+       id="Straight"
        transform="rotate(-42.999973,331.00029,473.50022)"><tspan
          id="tspan159"
          y="478"
@@ -1918,19 +1921,11 @@
        font-weight="normal"
        font-style="italic"
        font-size="20"
-       id="THE"
+       id="THE-WASH"
        transform="rotate(-9.9999875,500.00091,254.99963)"><tspan
          id="tspan154"
          y="250"
-         x="470.065">THE</tspan></text>
-             <text
-       style="font-style:italic;font-weight:normal;font-size:20px;font-family:LibreBaskerville-Italic, 'Libre Baskerville';letter-spacing:3.75;fill:#000000"
-       letter-spacing="3.75"
-       font-weight="normal"
-       font-style="italic"
-       font-size="20"
-       id="WASH"
-       transform="rotate(-9.9999875,500.00091,254.99963)"><tspan
+         x="470.065">THE</tspan><tspan
          id="tspan156"
          y="274"
          x="460.39001">WASH</tspan></text>
@@ -1968,7 +1963,7 @@
          id="tspan1088-5-9"
          sodipodi:role="line">EC</tspan></text>
     <text
-       id="SC"
+       id="text1090-6"
        y="906.94299"
        x="301.81714"
        style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
@@ -1979,7 +1974,7 @@
          id="tspan1088-5"
          sodipodi:role="line">SC</tspan></text>
     <text
-       id="NC"
+       id="text1090"
        y="812.74829"
        x="231.42874"
        style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"

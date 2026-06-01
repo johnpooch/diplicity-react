@@ -12,6 +12,45 @@ join_viewname = "game-join"
 retrieve_viewname = "game-retrieve"
 
 
+class TestCivilDisorderSerialization:
+
+    @pytest.mark.django_db
+    def test_civil_disorder_defaults_to_false_in_serialized_member(
+        self, authenticated_client, classical_variant, classical_england_nation, primary_user
+    ):
+        game = Game.objects.create(
+            name="Test Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        game.members.create(user=primary_user, nation=classical_england_nation)
+
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["members"][0]["civil_disorder"] is False
+
+    @pytest.mark.django_db
+    def test_civil_disorder_true_is_serialized(
+        self, authenticated_client, classical_variant, classical_england_nation, primary_user
+    ):
+        game = Game.objects.create(
+            name="Test Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        game.members.create(
+            user=primary_user, nation=classical_england_nation, civil_disorder=True
+        )
+
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["members"][0]["civil_disorder"] is True
+
+
 class TestDeletedUserMemberSerialization:
 
     @pytest.mark.django_db
@@ -195,6 +234,34 @@ def test_leave_game_not_found(authenticated_client):
     url = reverse(leave_viewname, args=[999])
     response = authenticated_client.delete(url)
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.django_db
+def test_leave_pending_game_as_sole_member_deletes_game(
+    authenticated_client, pending_game_created_by_primary_user
+):
+    game = pending_game_created_by_primary_user
+    game_id = game.id
+
+    url = reverse(leave_viewname, args=[game_id])
+    response = authenticated_client.delete(url)
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert not Game.objects.filter(id=game_id).exists()
+
+
+@pytest.mark.django_db
+def test_leave_pending_game_with_other_members_preserves_game(
+    authenticated_client, pending_game_created_by_secondary_user_joined_by_primary
+):
+    game = pending_game_created_by_secondary_user_joined_by_primary
+
+    url = reverse(leave_viewname, args=[game.id])
+    response = authenticated_client.delete(url)
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert Game.objects.filter(id=game.id).exists()
+    assert game.members.count() == 1
 
 
 @pytest.mark.django_db

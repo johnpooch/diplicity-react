@@ -117,7 +117,6 @@ const GameTabContent: React.FC<GameTabContentProps> = ({
           key={game.id}
           game={game}
           variant={variantMap.get(game.variantId)!}
-          phaseId={game.phases[0]}
           map={<div />}
         />
       ))}
@@ -174,7 +173,7 @@ const MyGames: React.FC = () => {
 const MyGamesSuspense: React.FC = () => {
   return (
     <ScreenContainer>
-      <ScreenHeader title="My Games" showUserAvatar />
+      <ScreenHeader title="My Games" />
       <MyGames />
     </ScreenContainer>
   );

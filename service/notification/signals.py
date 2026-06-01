@@ -4,11 +4,22 @@ from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from channel.models import ChannelMessage
 from game.models import Game
-from common.constants import GameStatus, PhaseStatus, PhaseType
+from common.constants import GameStatus, PhaseStatus
+from notification.tasks import send_notification
 from notification.utils import send_notification_to_users
 from phase.models import Phase
 
 logger = logging.getLogger(__name__)
+
+
+def _truncate_body(text: str, max_lines: int = 3, max_chars: int = 200) -> str:
+    lines = text.split("\n")
+    truncated = "\n".join(lines[:max_lines])
+    if len(truncated) > max_chars:
+        truncated = truncated[:max_chars].rstrip() + "…"
+    elif len(lines) > max_lines:
+        truncated += "…"
+    return truncated
 
 
 _game_status_cache = {}
@@ -19,27 +30,34 @@ def send_channel_message_notification(sender, instance, created, **kwargs):
     if not created:
         return
 
-    def send_notification():
-        if instance.channel.private:
-            other_members = instance.channel.members.exclude(id=instance.sender.id)
-        else:
-            other_members = instance.channel.game.members.exclude(id=instance.sender.id)
+    if instance.channel.private:
+        other_members = instance.channel.members.exclude(id=instance.sender.id)
+    else:
+        other_members = instance.channel.game.members.exclude(id=instance.sender.id)
 
-        user_ids = [member.user_id for member in other_members if member.user_id is not None]
+    user_ids = [member.user_id for member in other_members if member.user_id is not None]
+    if not user_ids:
+        return
 
-        sender_name = instance.sender.user.username if instance.sender.user else "Deleted User"
-        send_notification_to_users(
-            user_ids=user_ids,
-            title="New Message",
-            body=f"{sender_name} sent a message in {instance.channel.name}.",
-            notification_type="channel_message",
-            data={
-                "game_id": str(instance.channel.game.id),
-                "channel_id": str(instance.channel.id),
-            },
-        )
+    sender_name = instance.sender.name
+    game = instance.channel.game
+    current_phase = game.phases.last()
+    link = (
+        f"https://diplicity.com/game/{game.id}/phase/{current_phase.id}/chat/channel/{instance.channel.id}"
+        if current_phase
+        else f"https://diplicity.com/game/{game.id}"
+    )
 
-    transaction.on_commit(send_notification)
+    send_notification.defer(
+        user_ids=user_ids,
+        title=game.name,
+        body=f"{sender_name}: {_truncate_body(instance.body)}",
+        notification_type="channel_message",
+        data={
+            "game_id": str(game.id),
+            "link": link,
+        },
+    )
 
 
 @receiver(pre_save, sender=Game)
@@ -59,19 +77,20 @@ def send_game_start_notification(sender, instance, created, **kwargs):
 
     old_status = _game_status_cache.pop(instance.pk, None)
     if old_status == GameStatus.PENDING and instance.status == GameStatus.ACTIVE:
+        user_ids = [member.user_id for member in instance.members.all() if member.user_id is not None]
+        if not user_ids:
+            return
 
-        def send_notification():
-            user_ids = [member.user_id for member in instance.members.all() if member.user_id is not None]
-
-            send_notification_to_users(
-                user_ids=user_ids,
-                title="Game Started",
-                body=f"Game '{instance.name}' has started!",
-                notification_type="game_start",
-                data={"game_id": str(instance.id)},
-            )
-
-        transaction.on_commit(send_notification)
+        send_notification.defer(
+            user_ids=user_ids,
+            title="Game Started",
+            body=f"Game '{instance.name}' has started!",
+            notification_type="game_start",
+            data={
+                "game_id": str(instance.id),
+                "link": f"https://diplicity.com/game/{instance.id}",
+            },
+        )
 
 
 _phase_status_cache = {}
@@ -98,25 +117,15 @@ def send_phase_resolved_notification(sender, instance, created, **kwargs):  # no
         def send_notification():
             user_ids = [member.user_id for member in instance.game.members.all() if member.user_id is not None]
 
-            had_orders = len(instance.phase_states_with_possible_orders) > 0
-            new_phase = instance.game.current_phase
-
-            if not had_orders and new_phase:
-                if instance.type == PhaseType.RETREAT:
-                    body = f"{instance.name} resolved. No retreats needed. Next: {new_phase.name}."
-                elif instance.type == PhaseType.ADJUSTMENT:
-                    body = f"{instance.name} resolved. No builds/disbands needed. Next: {new_phase.name}."
-                else:
-                    body = f"Phase '{instance.name}' has been resolved!"
-            else:
-                body = f"Phase '{instance.name}' has been resolved!"
-
             send_notification_to_users(
                 user_ids=user_ids,
                 title="Phase Resolved",
-                body=body,
+                body=f"Phase '{instance.name}' has been resolved!",
                 notification_type="phase_resolved",
-                data={"game_id": str(instance.game.id)},
+                data={
+                    "game_id": str(instance.game.id),
+                    "link": f"https://diplicity.com/game/{instance.game.id}",
+                },
             )
 
         transaction.on_commit(send_notification)

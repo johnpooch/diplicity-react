@@ -3,7 +3,6 @@ from phase.models import Phase
 from game.models import Game
 from member.models import Member
 import adjudication.service as adjudication_service
-from adjudication.serializers import AdjudicationSerializer
 from common.constants import GameStatus, OrderType, UnitType
 
 
@@ -119,16 +118,33 @@ class TestAdjudicationService:
             variant=classical_variant, game=game, year=1901, season="Spring", type="Movement", ordinal=1
         )
         phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+        phase.units.create(
+            nation=classical_england_nation,
+            province=classical_edinburgh_province,
+            type=UnitType.FLEET,
+        )
 
         data = adjudication_service.start(phase)
 
-        assert isinstance(data["options"], dict)
         assert data["year"] == 1901
         assert data["season"] == "Spring"
         assert data["type"] == "Movement"
-        assert data["supply_centers"][0] == {"nation": "Turkey", "province": "ank"}
-        assert data["units"][0] == {"dislodged": False, "dislodged_by": None, "type": "Fleet", "nation": "Turkey", "province": "ank"}
         assert data["resolutions"] == []
+        assert {"nation": "England", "province": "edi"} in data["supply_centers"]
+        assert {
+            "dislodged": False,
+            "dislodged_by": None,
+            "type": "Fleet",
+            "nation": "England",
+            "province": "edi",
+        } in data["units"]
+        # Options are keyed by nation name and include an entry for each
+        # variant nation, even those without units this phase.
+        assert set(data["options"].keys()) == {
+            nation.name for nation in classical_variant.nations.all()
+        }
+        # England's Fleet at Edinburgh has at least Hold as a legal order.
+        assert "Hold" in data["options"]["England"]["edi"]["Next"]
 
     @pytest.mark.django_db
     def test_resolve_italy_vs_germany_spring_1901_movement(
@@ -180,8 +196,10 @@ class TestAdjudicationService:
         data = adjudication_service.resolve(phase_spring_1901_movement)
 
         assert data["year"] == 1901
-        assert data["season"] == "Spring"
-        assert data["type"] == "Retreat"
+        # Spring 1901 dislodges no one, so the empty Spring Retreat is skipped
+        # and resolve() returns the next interactive phase: Fall Movement.
+        assert data["season"] == "Fall"
+        assert data["type"] == "Movement"
         assert len(data["options"]) == 2
 
         assert sort_by_province(data["supply_centers"]) == sort_by_province(
@@ -326,21 +344,30 @@ class TestAdjudicationService:
         data = adjudication_service.resolve(phase_fall_1901_movement)
 
         assert data["year"] == 1901
+        # Fall 1901 captures Greece and Warsaw but dislodges no one, so the
+        # empty Fall Retreat is skipped and resolve() advances to the Fall
+        # Adjustment, where both powers can build. Supply-center ownership is
+        # recomputed during the skipped retreat, so the captured centers
+        # appear here.
         assert data["season"] == "Fall"
-        assert data["type"] == "Retreat"
+        assert data["type"] == "Adjustment"
 
         assert len(data["options"]) == 2
-        assert data["options"]["Italy"] == {}
-        assert data["options"]["Germany"] == {}
+        assert data["options"]["Italy"] != {}
+        assert data["options"]["Germany"] != {}
 
         assert sort_by_province(data["supply_centers"]) == sort_by_province(
             [
                 {"province": "ven", "nation": "Italy"},
                 {"province": "rom", "nation": "Italy"},
                 {"province": "nap", "nation": "Italy"},
+                {"province": "gre", "nation": "Italy"},
+                {"province": "tri", "nation": "Italy"},
                 {"province": "kie", "nation": "Germany"},
                 {"province": "ber", "nation": "Germany"},
                 {"province": "mun", "nation": "Germany"},
+                {"province": "den", "nation": "Germany"},
+                {"province": "war", "nation": "Germany"},
             ]
         )
 
@@ -680,8 +707,11 @@ class TestAdjudicationService:
         data = adjudication_service.resolve(phase)
 
         assert data["year"] == 1901
-        assert data["season"] == "Spring"
-        assert data["type"] == "Retreat"
+        # The bounce dislodges no one, so the empty Spring Retreat is skipped
+        # and resolve() returns Fall Movement. The bounce resolutions below
+        # still come from the resolved Spring Movement.
+        assert data["season"] == "Fall"
+        assert data["type"] == "Movement"
 
         # Check that order resolutions are correct
         mun_bounce_result = next((r for r in data["resolutions"] if r["province"] == "mun"), None)
@@ -815,8 +845,10 @@ class TestAdjudicationService:
         data = adjudication_service.resolve(phase_spring_1901_movement)
 
         assert data["year"] == 1901
-        assert data["season"] == "Spring"
-        assert data["type"] == "Retreat"
+        # No dislodgement, so the empty Spring Retreat is skipped and resolve()
+        # returns Fall Movement with the moved unit carried forward.
+        assert data["season"] == "Fall"
+        assert data["type"] == "Movement"
 
         assert sort_by_province(data["units"]) == sort_by_province(
             [
@@ -851,8 +883,10 @@ class TestAdjudicationService:
         data = adjudication_service.resolve(phase_spring_1901_movement)
 
         assert data["year"] == 1901
-        assert data["season"] == "Spring"
-        assert data["type"] == "Retreat"
+        # No dislodgement, so the empty Spring Retreat is skipped and resolve()
+        # returns Fall Movement with the moved unit carried forward.
+        assert data["season"] == "Fall"
+        assert data["type"] == "Movement"
 
         assert sort_by_province(data["units"]) == sort_by_province(
             [
@@ -865,3 +899,43 @@ class TestAdjudicationService:
                 {"province": "mar", "result": "OK", "by": None},
             ]
         )
+
+
+class TestUserUploadedVariant:
+    """Regression: prior to dropping the godip HTTP adjudicator, creating a
+    sandbox game with a freshly-uploaded variant (any id godip doesn't ship
+    with) failed at ``Game.start`` because the start-with-options request
+    404'd at godip-adjudication.appspot.com. With the in-process Python
+    adjudicator there is no per-variant gate."""
+
+    @pytest.mark.django_db
+    def test_create_sandbox_with_user_uploaded_variant(
+        self, primary_user, classical_variant
+    ):
+        import copy
+
+        from variant.utils import (
+            create_variant_from_dvar,
+            variant_to_canonical_dict,
+        )
+        from common.constants import GameStatus, PhaseStatus
+
+        dvar = copy.deepcopy(variant_to_canonical_dict(classical_variant))
+        dvar["id"] = "user-uploaded-variant"
+        dvar["name"] = "User Uploaded Variant"
+        variant = create_variant_from_dvar(dvar, owner=primary_user)
+
+        game = Game.objects.create_sandbox(
+            user=primary_user,
+            name="Sandbox With User Variant",
+            variant=variant,
+        )
+
+        assert game.status == GameStatus.ACTIVE
+        current_phase = game.current_phase
+        assert current_phase is not None
+        assert current_phase.status == PhaseStatus.ACTIVE
+        # Options dict is populated for every nation in the variant.
+        assert set(current_phase.options.keys()) == {
+            nation.name for nation in variant.nations.all()
+        }

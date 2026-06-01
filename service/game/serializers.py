@@ -6,7 +6,7 @@ from django.db.models import Count, Q, Subquery, OuterRef
 from django.apps import apps
 from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
-from common.constants import DeadlineMode, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType
+from common.constants import DeadlineMode, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType, VariantStatus
 from member.serializers import MemberSerializer
 from unit.models import Unit
 from supply_center.models import SupplyCenter
@@ -39,6 +39,18 @@ def send_gm_action_notification(game, title, body, notification_type):
     transaction.on_commit(_send)
 
 
+class GameListCurrentPhaseSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    ordinal = serializers.IntegerField(read_only=True)
+    season = serializers.CharField(read_only=True)
+    year = serializers.IntegerField(read_only=True)
+    name = serializers.CharField(read_only=True)
+    type = serializers.CharField(read_only=True)
+    status = serializers.CharField(read_only=True)
+    scheduled_resolution = serializers.DateTimeField(read_only=True, allow_null=True)
+    remaining_time = serializers.IntegerField(source="remaining_time_seconds", read_only=True)
+
+
 class GameListSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
     name = serializers.CharField(read_only=True)
@@ -50,6 +62,8 @@ class GameListSerializer(serializers.Serializer):
     variant_id = serializers.CharField(source="variant.id", read_only=True)
     phases = serializers.SerializerMethodField()
     current_phase_id = serializers.SerializerMethodField()
+    current_phase = serializers.SerializerMethodField()
+    phase_confirmed = serializers.SerializerMethodField()
     private = serializers.BooleanField(read_only=True)
     anonymous = serializers.BooleanField(read_only=True)
     movement_phase_duration = serializers.CharField(read_only=True, allow_null=True)
@@ -100,6 +114,23 @@ class GameListSerializer(serializers.Serializer):
         current = obj.current_phase
         return current.id if current else None
 
+    @extend_schema_field(GameListCurrentPhaseSerializer(allow_null=True))
+    def get_current_phase(self, obj):
+        current = obj.current_phase
+        return GameListCurrentPhaseSerializer(current).data if current else None
+
+    @extend_schema_field(serializers.BooleanField)
+    def get_phase_confirmed(self, obj):
+        with tracer.start_as_current_span("game.serializers.get_phase_confirmed"):
+            user = self.context["request"].user
+            if not user.is_authenticated:
+                return False
+            return obj.phase_confirmed(user)
+
+
+class GameFindSimilarSerializer(serializers.Serializer):
+    game = GameListSerializer(allow_null=True)
+
 
 class GameRetrieveSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
@@ -148,6 +179,7 @@ class GameRetrieveSerializer(serializers.Serializer):
                     ).values("last_read_at")[:1]
                 ),
             )
+            .exclude(sender__user=user)
             .distinct()
             .count()
         )
@@ -245,7 +277,7 @@ class GameCreateSerializer(serializers.Serializer):
     )
 
     def validate_variant_id(self, value):
-        if not Variant.objects.filter(id=value).exists():
+        if not Variant.objects.filter(id=value, status=VariantStatus.PUBLISHED).exists():
             raise serializers.ValidationError("Variant with this ID does not exist.")
         return value
 
@@ -273,6 +305,8 @@ class GameCreateSerializer(serializers.Serializer):
                 raise serializers.ValidationError({
                     "movement_frequency": "Required when deadline_mode is 'fixed_time'."
                 })
+            attrs["movement_phase_duration"] = None
+            attrs["retreat_phase_duration"] = None
         else:
             attrs["fixed_deadline_time"] = None
             attrs["fixed_deadline_timezone"] = None

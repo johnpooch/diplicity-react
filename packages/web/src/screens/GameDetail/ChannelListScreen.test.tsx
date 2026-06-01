@@ -45,10 +45,20 @@ vi.mock("@/auth", () => ({
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({
-    data: { id: "1", sandbox: false },
+    data: {
+      id: "1",
+      sandbox: false,
+      pressType: "public_press",
+      status: "active",
+      variantId: "standard",
+      members: [],
+    },
   }),
   useGamesChannelsListSuspense: () => ({
     data: mockChannelsData(),
+  }),
+  useVariantsListSuspense: () => ({
+    data: [],
   }),
 }));
 

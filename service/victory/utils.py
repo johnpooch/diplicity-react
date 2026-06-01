@@ -1,15 +1,19 @@
-def check_for_solo_winner(game, phase):
-    required_sc_count = game.variant.solo_victory_sc_count
+from django.db.models import Count
 
-    sc_counts = {}
-    for member in game.members.all():
-        count = phase.supply_centers.filter(nation=member.nation).count()
-        sc_counts[member] = count
+
+def check_for_solo_winner(game, phase):
+    required_sc_count = game.variant.solo_victory_supply_centers
+
+    counts_by_nation = {
+        row["nation"]: row["count"]
+        for row in phase.supply_centers.values("nation").annotate(count=Count("id"))
+    }
 
     highest_count = 0
     leader = None
 
-    for member, count in sc_counts.items():
+    for member in game.members.all():
+        count = counts_by_nation.get(member.nation_id, 0)
         if count > highest_count:
             leader = member
             highest_count = count

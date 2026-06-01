@@ -1,7 +1,5 @@
 from typing import Optional
 
-ADJUDICATION_BASE_URL = "https://godip-adjudication.appspot.com"
-
 
 class GameStatus:
     PENDING = "pending"
@@ -105,6 +103,18 @@ class NationAssignment:
     NATION_ASSIGNMENT_CHOICES = (
         (RANDOM, "Random"),
         (ORDERED, "Ordered"),
+    )
+
+
+class VariantStatus:
+    DRAFT = "draft"
+    PUBLISHED = "published"
+    ARCHIVED = "archived"
+
+    STATUS_CHOICES = (
+        (DRAFT, "Draft"),
+        (PUBLISHED, "Published"),
+        (ARCHIVED, "Archived"),
     )
 
 

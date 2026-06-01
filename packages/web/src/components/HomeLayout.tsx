@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { useLocation, useNavigate, Link } from "react-router";
 import { cn } from "@/lib/utils";
 import {
   Sidebar,
@@ -7,15 +7,17 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
   SidebarProvider,
 } from "@/components/ui/sidebar";
 import { Item, ItemMedia, ItemContent, ItemTitle } from "@/components/ui/item";
 import { DiplicityLogo } from "@/components/DiplicityLogo";
 import { Navigation } from "@/components/Navigation";
-import { InfoPanel } from "@/components/InfoPanel";
 import { SidebarUserArea } from "@/components/SidebarUserArea";
 import { SafeAreaView } from "@/components/SafeAreaView";
-import { Home, Search, PlusCircle, MessageCircle } from "lucide-react";
+import { Home, Search, PlusCircle, MessageCircle, CircleHelp } from "lucide-react";
 
 const navigationItems = [
   { label: "My Games", icon: Home, path: "/" },
@@ -93,6 +95,16 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
               />
             </SidebarContent>
             <SidebarFooter>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Learn how to play">
+                    <Link to="/learn-to-play">
+                      <CircleHelp />
+                      <span>Learn how to play</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
               <Suspense fallback={null}>
                 <SidebarUserArea />
               </Suspense>
@@ -109,12 +121,7 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
             </div>
           </SidebarInset>
 
-          {/* Right Sidebar - Info Panel */}
-          <div className="hidden xl:flex w-64 border-l flex-col">
-            <div className="bg-sidebar flex h-full w-full flex-col p-2">
-              <InfoPanel />
-            </div>
-          </div>
+
         </div>
 
         {/* Bottom Navigation */}

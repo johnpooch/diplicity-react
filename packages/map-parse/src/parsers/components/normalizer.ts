@@ -1,4 +1,5 @@
 import { IElementConverterFactory } from "./converter";
+import { parseMatrix, applyMatrixToPath } from "../util/path-transform";
 
 /**
  * Normalizes an element by applying a transformation to it.
@@ -41,4 +42,21 @@ class IdNormalizer implements INormalizer {
     }
 }
 
-export { INormalizer, PathConverterNormalizer, IdNormalizer }
+/**
+ * Bakes element-level transform attributes into path coordinates and removes the attribute.
+ */
+class TransformNormalizer implements INormalizer {
+    public normalize(element: Element): Element {
+        const transform = element.getAttribute("transform");
+        if (!transform) return element;
+        const matrix = parseMatrix(transform);
+        if (!matrix) return element;
+        const d = element.getAttribute("d");
+        if (!d) return element;
+        element.setAttribute("d", applyMatrixToPath(d, matrix));
+        element.removeAttribute("transform");
+        return element;
+    }
+}
+
+export { INormalizer, PathConverterNormalizer, IdNormalizer, TransformNormalizer }

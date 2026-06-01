@@ -1,12 +1,13 @@
 import React from "react";
-import { Flags } from "../assets/flags";
 import { cn } from "../lib/utils";
 
 interface NationFlagProps {
-  nation: string;
-  variantId: string;
+  flagUrl: string | null | undefined;
+  alt?: string;
   size?: "sm" | "md" | "lg";
+  color?: string | null;
   className?: string;
+  style?: React.CSSProperties;
 }
 
 const sizeClasses = {
@@ -16,25 +17,39 @@ const sizeClasses = {
 };
 
 const NationFlag: React.FC<NationFlagProps> = ({
-  nation,
-  variantId,
+  flagUrl,
+  alt,
   size = "md",
+  color,
   className,
+  style,
 }) => {
-  const flag =
-    Flags[variantId as keyof typeof Flags]?.[
-      nation.toLowerCase() as keyof (typeof Flags)[keyof typeof Flags]
-    ];
-
-  if (!flag) return null;
+  if (!flagUrl) return null;
 
   return (
     <img
-      src={flag}
-      alt={nation}
+      src={flagUrl}
+      alt={alt ?? ""}
       className={cn("rounded-full object-cover", sizeClasses[size], className)}
+      style={color ? { boxShadow: `0 0 0 1px ${color}`, ...style } : style}
     />
   );
 };
 
-export { NationFlag };
+const findNationFlagUrl = (
+  nations: ReadonlyArray<{ name: string; flagUrl: string | null }>,
+  nationName: string | null | undefined
+): string | null => {
+  if (!nationName) return null;
+  return nations.find((n) => n.name === nationName)?.flagUrl ?? null;
+};
+
+const findNationColor = (
+  nations: ReadonlyArray<{ name: string; color: string }>,
+  nationName: string | null | undefined
+): string | null => {
+  if (!nationName) return null;
+  return nations.find((n) => n.name === nationName)?.color ?? null;
+};
+
+export { NationFlag, findNationFlagUrl, findNationColor };
