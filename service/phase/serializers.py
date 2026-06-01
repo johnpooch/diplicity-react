@@ -2,6 +2,7 @@ from django.db import transaction
 from rest_framework import serializers
 from common.constants import PhaseStatus
 from member.serializers import MemberSerializer
+from phase.tasks import resolve_phase
 from phase.utils import compute_province_nations
 from province.serializers import ProvinceSerializer
 from supply_center.serializers import SupplyCenterSerializer
@@ -26,8 +27,6 @@ class PhaseStateSerializer(serializers.Serializer):
             instance.save()
 
             if instance.orders_confirmed:
-                from phase.tasks import resolve_phase
-
                 resolve_phase.configure(
                     lock=f"resolve-game-{instance.phase.game_id}",
                 ).defer(phase_id=instance.phase_id)

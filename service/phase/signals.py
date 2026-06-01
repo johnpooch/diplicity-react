@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from common.constants import PhaseStatus
 from phase.models import Phase
+from phase.tasks import resolve_phase
 
 logger = logging.getLogger(__name__)
 
@@ -39,8 +40,6 @@ def arm_deadline_resolution(sender, instance, created, **kwargs):
 
     if scheduled_resolution <= timezone.now():
         return
-
-    from phase.tasks import resolve_phase
 
     resolve_phase.configure(
         schedule_at=scheduled_resolution,

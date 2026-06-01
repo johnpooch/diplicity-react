@@ -5,6 +5,7 @@ from django.dispatch import receiver
 from channel.models import ChannelMessage
 from game.models import Game
 from common.constants import GameStatus, PhaseStatus
+from notification.tasks import send_notification
 from notification.utils import send_notification_to_users
 from phase.models import Phase
 
@@ -47,8 +48,6 @@ def send_channel_message_notification(sender, instance, created, **kwargs):
         else f"https://diplicity.com/game/{game.id}"
     )
 
-    from notification.tasks import send_notification
-
     send_notification.defer(
         user_ids=user_ids,
         title=game.name,
@@ -81,8 +80,6 @@ def send_game_start_notification(sender, instance, created, **kwargs):
         user_ids = [member.user_id for member in instance.members.all() if member.user_id is not None]
         if not user_ids:
             return
-
-        from notification.tasks import send_notification
 
         send_notification.defer(
             user_ids=user_ids,
