@@ -43,7 +43,7 @@ vi.mock("@/api/generated/endpoints", () => ({
   getGameRetrieveQueryKey: () => ["game"],
 }));
 
-vi.mock("@/components/NationFlag", () => ({ NationFlag: () => null, findNationFlagUrl: () => null }));
+vi.mock("@/components/NationFlag", () => ({ NationFlag: () => null, findNationFlagUrl: () => null, findNationColor: () => null }));
 
 const baseMember = (overrides = {}) => ({
   id: 1,
