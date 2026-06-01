@@ -18,3 +18,10 @@ def resolve_phase(phase_id: int):
 def sweep_due_phases(timestamp: int):
     logger.info(f"Running sweep_due_phases task (scheduled for {timestamp})")
     Phase.objects.sweep_due_phases()
+
+
+@app.periodic(cron="* * * * *")
+@app.task(name="phase.send_deadline_warnings")
+def send_deadline_warnings(timestamp: int):
+    logger.info(f"Running send_deadline_warnings task (scheduled for {timestamp})")
+    Phase.objects.send_deadline_warnings()

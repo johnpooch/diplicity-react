@@ -12,6 +12,13 @@ resolves within a couple of seconds of the last confirmation and within a few se
 its deadline. A once-a-minute safety net still catches anything a trigger misses, so
 nothing gets stuck.
 
+### Improvement: Deadline reminders are sent once per deadline
+
+The "Deadline Approaching" reminder is now sent at most once per deadline to each player
+who still has orders to give. If a deadline is later extended, players who still haven't
+confirmed get a fresh reminder before the new deadline. Push notifications are now all
+sent in the background, so posting a message or starting a game responds immediately.
+
 ## Android Push Notifications (May 26, 2026)
 
 **Release Date:** May 26, 2026

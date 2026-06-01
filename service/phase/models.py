@@ -303,26 +303,34 @@ class PhaseManager(models.Manager):
                 if time_until_deadline <= 0 or time_until_deadline > warning_threshold:
                     continue
 
-                unconfirmed_members = [
-                    ps.member for ps in phase.phase_states.all()
-                    if ps.has_possible_orders and not ps.orders_confirmed
+                pending_states = [
+                    ps for ps in phase.phase_states.all()
+                    if ps.has_possible_orders
+                    and not ps.orders_confirmed
+                    and ps.deadline_warning_sent_for != phase.scheduled_resolution
                 ]
 
-                if not unconfirmed_members:
+                if not pending_states:
                     continue
 
-                user_ids = [m.user_id for m in unconfirmed_members if m.user_id is not None]
+                user_ids = [
+                    ps.member.user_id for ps in pending_states if ps.member.user_id is not None
+                ]
 
-                notification_utils.send_notification_to_users(
-                    user_ids=user_ids,
-                    title="Deadline Approaching",
-                    body=f"You haven't confirmed your orders in {phase.game.name}.",
-                    notification_type="deadline_warning",
-                    data={"game_id": str(phase.game.id)},
-                )
+                if user_ids:
+                    notification_utils.send_notification_to_users(
+                        user_ids=user_ids,
+                        title="Deadline Approaching",
+                        body=f"You haven't confirmed your orders in {phase.game.name}.",
+                        notification_type="deadline_warning",
+                        data={"game_id": str(phase.game.id)},
+                    )
+                    notifications_sent += len(user_ids)
+                    logger.info(f"Sent deadline warning to {len(user_ids)} player(s) for game {phase.game.name}")
 
-                notifications_sent += len(user_ids)
-                logger.info(f"Sent deadline warning to {len(user_ids)} player(s) for game {phase.game.name}")
+                for ps in pending_states:
+                    ps.deadline_warning_sent_for = phase.scheduled_resolution
+                PhaseState.objects.bulk_update(pending_states, ["deadline_warning_sent_for"])
 
             span.set_attribute("notifications.sent", notifications_sent)
             logger.info(f"Sent {notifications_sent} deadline warning notification(s)")
@@ -780,6 +788,7 @@ class PhaseState(BaseModel):
     orders_confirmed = models.BooleanField(default=False)
     eliminated = models.BooleanField(default=False)
     has_possible_orders = models.BooleanField(default=False)
+    deadline_warning_sent_for = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         username = self.member.user.username if self.member.user else "Deleted User"
