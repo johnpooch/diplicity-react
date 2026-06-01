@@ -74,6 +74,7 @@ const GameInfo: React.FC = () => {
       <Button
         onClick={handleJoinGame}
         disabled={joinGameMutation.isPending}
+        className="w-full sm:w-auto"
       >
         Join game
       </Button>

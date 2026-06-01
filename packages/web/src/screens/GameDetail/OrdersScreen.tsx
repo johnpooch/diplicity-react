@@ -106,16 +106,22 @@ const buildNationGroups = (
     {} as Record<string, Order[]>
   );
 
-  return Object.entries(ordersByNation).map(([nation, nationOrders]) => ({
-    nation,
-    member: game.members.find(m => m.nation === nation) ?? { isCurrentUser: false },
-    items: nationOrders.map(order => ({
-      province: order.source,
-      order,
-      unit: phase.units.find(u => u.province.id === order.source.id && u.dislodged)
-        ?? phase.units.find(u => u.province.id === order.source.id),
-    })),
-  }));
+  return Object.entries(ordersByNation).map(([nation, nationOrders]) => {
+    const member = game.members.find(m => m.nation === nation);
+    if (!member && import.meta.env.DEV) {
+      console.warn(`buildNationGroups: no member found for nation "${nation}"`);
+    }
+    return {
+      nation,
+      member: member ?? { isCurrentUser: false },
+      items: nationOrders.map(order => ({
+        province: order.source,
+        order,
+        unit: phase.units.find(u => u.province.id === order.source.id && u.dislodged)
+          ?? phase.units.find(u => u.province.id === order.source.id),
+      })),
+    };
+  });
 };
 
 const DrawProposalsBadge: React.FC<{ gameId: string; currentMemberId?: number }> = ({
@@ -123,12 +129,10 @@ const DrawProposalsBadge: React.FC<{ gameId: string; currentMemberId?: number }>
   currentMemberId,
 }) => {
   const { data: proposals } = useGamesDrawProposalsListSuspense(gameId);
-  const count =
-    currentMemberId === undefined
-      ? 0
-      : proposals.filter(
-          p => p.status === "pending" && !!p.myVote && p.myVote.accepted === null
-        ).length;
+  if (currentMemberId === undefined) return null;
+  const count = proposals.filter(
+    p => p.status === "pending" && p.myVote !== null && p.myVote.accepted === null
+  ).length;
   if (count === 0) return null;
   return (
     <Badge
@@ -240,11 +244,11 @@ const OrdersScreen: React.FC = () => {
   );
   const hasContent = nationGroups.length > 0;
 
-  const isActiveOrFinishedGame =
+  const isStartedGame =
     game.status === "active" ||
     game.status === "completed" ||
     game.status === "abandoned";
-  const showDrawProposalsButton = !game.sandbox && isActiveOrFinishedGame;
+  const showDrawProposalsButton = !game.sandbox && isStartedGame;
 
   const handleNavigateToDrawProposals = () => {
     navigate(`/game/${gameId}/phase/${phaseId}/draw-proposals`);
@@ -340,75 +344,75 @@ const OrdersScreen: React.FC = () => {
                 {nationGroups.map(({ nation, items }) => {
                   const nationColor = findNationColor(variant.nations, nation);
                   return (
-                  <AccordionItem key={nation} value={nation}>
-                    <AccordionTrigger className="p-2 items-center">
-                      <div className="flex items-center gap-2">
-                        <NationFlag
-                          flagUrl={findNationFlagUrl(variant.nations, nation)}
-                          alt={nation}
-                          size="md"
-                          style={nationColor ? { boxShadow: `0 0 0 1px ${nationColor}` } : undefined}
-                        />
-                        <span>{nation}</span>
-                        <span className="text-muted-foreground">•</span>
-                        <span className="inline-flex items-center gap-1 text-muted-foreground">
-                          <Star className="size-3" />
-                          <span>{getSupplyCenterCount(nation)}</span>
-                        </span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="p-0">
-                      <ItemGroup>
-                        {items.map((item, index) => (
-                          <React.Fragment key={item.province.id}>
-                            {index === 0 && <Separator />}
-                            <Item size="sm">
-                              <ItemContent>
-                                <ItemTitle>
-                                  {item.unit?.type} {item.province.name}
-                                </ItemTitle>
-                                <ItemDescription>
-                                  {item.order
-                                    ? item.order.summary
-                                    : "Order not provided"}
-                                </ItemDescription>
-                              </ItemContent>
-                              {canModifyOrders && item.order && (
-                                <ItemActions>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() =>
-                                      handleDeleteOrder(item.province.id)
-                                    }
-                                    disabled={deleteOrderMutation.isPending}
-                                  >
-                                    <Trash2 className="size-4" />
-                                  </Button>
-                                </ItemActions>
-                              )}
-                              {!isActivePhase &&
-                                item.order &&
-                                item.order.resolution?.status && (
-                                  <ItemContent
-                                    className={cn(
-                                      "text-xs",
-                                      item.order.resolution.status ===
-                                        "Succeeded"
-                                        ? "text-green-600"
-                                        : "text-red-600"
-                                    )}
-                                  >
-                                    {item.order.resolution.status}
-                                  </ItemContent>
+                    <AccordionItem key={nation} value={nation}>
+                      <AccordionTrigger className="p-2 items-center">
+                        <div className="flex items-center gap-2">
+                          <NationFlag
+                            flagUrl={findNationFlagUrl(variant.nations, nation)}
+                            alt={nation}
+                            size="md"
+                            color={nationColor}
+                          />
+                          <span>{nation}</span>
+                          <span className="text-muted-foreground">•</span>
+                          <span className="inline-flex items-center gap-1 text-muted-foreground">
+                            <Star className="size-3" />
+                            <span>{getSupplyCenterCount(nation)}</span>
+                          </span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="p-0">
+                        <ItemGroup>
+                          {items.map((item, index) => (
+                            <React.Fragment key={item.province.id}>
+                              {index === 0 && <Separator />}
+                              <Item size="sm">
+                                <ItemContent>
+                                  <ItemTitle>
+                                    {item.unit?.type} {item.province.name}
+                                  </ItemTitle>
+                                  <ItemDescription>
+                                    {item.order
+                                      ? item.order.summary
+                                      : "Order not provided"}
+                                  </ItemDescription>
+                                </ItemContent>
+                                {canModifyOrders && item.order && (
+                                  <ItemActions>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() =>
+                                        handleDeleteOrder(item.province.id)
+                                      }
+                                      disabled={deleteOrderMutation.isPending}
+                                    >
+                                      <Trash2 className="size-4" />
+                                    </Button>
+                                  </ItemActions>
                                 )}
-                            </Item>
-                            {index < items.length - 1 && <ItemSeparator />}
-                          </React.Fragment>
-                        ))}
-                      </ItemGroup>
-                    </AccordionContent>
-                  </AccordionItem>
+                                {!isActivePhase &&
+                                  item.order &&
+                                  item.order.resolution?.status && (
+                                    <ItemContent
+                                      className={cn(
+                                        "text-xs",
+                                        item.order.resolution.status ===
+                                          "Succeeded"
+                                          ? "text-green-600"
+                                          : "text-red-600"
+                                      )}
+                                    >
+                                      {item.order.resolution.status}
+                                    </ItemContent>
+                                  )}
+                              </Item>
+                              {index < items.length - 1 && <ItemSeparator />}
+                            </React.Fragment>
+                          ))}
+                        </ItemGroup>
+                      </AccordionContent>
+                    </AccordionItem>
                   );
                 })}
               </Accordion>
@@ -416,32 +420,29 @@ const OrdersScreen: React.FC = () => {
           </Panel.Content>
 
           {(rightFooterButton || showDrawProposalsButton) && (
-            <>
-              <Separator />
-              <Panel.Footer>
-                <div className="flex w-full items-center">
-                  <div className="flex-1">
-                    {showDrawProposalsButton && (
-                      <Button
-                        variant="outline"
-                        onClick={handleNavigateToDrawProposals}
-                        className="relative"
-                      >
-                        <Handshake className="size-4" />
-                        Draw proposals
-                        <Suspense fallback={null}>
-                          <DrawProposalsBadge
-                            gameId={gameId}
-                            currentMemberId={currentMember?.id}
-                          />
-                        </Suspense>
-                      </Button>
-                    )}
-                  </div>
-                  {rightFooterButton}
+            <Panel.Footer divider>
+              <div className="flex w-full items-center">
+                <div className="flex-1">
+                  {showDrawProposalsButton && (
+                    <Button
+                      variant="outline"
+                      onClick={handleNavigateToDrawProposals}
+                      className="relative"
+                    >
+                      <Handshake className="size-4" />
+                      Draw proposals
+                      <Suspense fallback={null}>
+                        <DrawProposalsBadge
+                          gameId={gameId}
+                          currentMemberId={currentMember?.id}
+                        />
+                      </Suspense>
+                    </Button>
+                  )}
                 </div>
-              </Panel.Footer>
-            </>
+                {rightFooterButton}
+              </div>
+            </Panel.Footer>
           )}
         </Panel>
       </div>
