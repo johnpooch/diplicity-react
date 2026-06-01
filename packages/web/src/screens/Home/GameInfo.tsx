@@ -79,21 +79,19 @@ const GameInfo: React.FC = () => {
         Join game
       </Button>
     ) : (
-      <div className="flex flex-col gap-2 w-full">
+      <div className="flex gap-2 w-full sm:w-auto">
         <Button
           onClick={handleLeaveGame}
           disabled={leaveGameMutation.isPending}
           variant="outline"
-          className="w-full sm:w-auto"
+          className="flex-1 sm:flex-none"
         >
-          Leave game
+          Leave
         </Button>
-        <div className="flex items-center gap-2 justify-between sm:justify-end">
-          <span className="text-sm text-muted-foreground">Share this link to invite your friends</span>
-          <Button variant="outline" size="icon" onClick={handleShare}>
-            <Share className="size-4" />
-          </Button>
-        </div>
+        <Button variant="outline" className="flex-1 sm:flex-none" onClick={handleShare}>
+          <Share className="size-4" />
+          Share
+        </Button>
       </div>
     )
   ) : null;
