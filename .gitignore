@@ -76,6 +76,9 @@ AuthKey_*.p8
 *.mobileprovision
 *.cer
 
+# Release credentials (production env vars for release builds)
+.env.release
+
 # Android / Play credentials (upload keystore, Play service account, Firebase config)
 *.keystore
 *.jks
