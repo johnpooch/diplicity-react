@@ -88,7 +88,7 @@ describe("GameInfoScreen", () => {
 
       const content = screen.getByTestId("game-info-content");
       expect(
-        within(content).getByRole("button", { name: /leave game/i })
+        within(content).getByRole("button", { name: /^leave$/i })
       ).toBeInTheDocument();
     });
 
@@ -101,7 +101,7 @@ describe("GameInfoScreen", () => {
         within(content).queryByRole("button", { name: /join game/i })
       ).not.toBeInTheDocument();
       expect(
-        within(content).queryByRole("button", { name: /leave game/i })
+        within(content).queryByRole("button", { name: /^leave$/i })
       ).not.toBeInTheDocument();
     });
   });
@@ -132,12 +132,12 @@ describe("GameInfoScreen", () => {
   });
 
   describe("leave game", () => {
-    it("calls the leave mutation when 'Leave game' is clicked", async () => {
+    it("calls the leave mutation when 'Leave' is clicked", async () => {
       mockUseGameRetrieveSuspense.mockReturnValue({ data: pendingGameCanLeave });
       renderGameInfo(pendingGameCanLeave.id);
 
       await userEvent.click(
-        screen.getByRole("button", { name: /leave game/i })
+        screen.getByRole("button", { name: /^leave$/i })
       );
 
       expect(mockLeaveMutateAsync).toHaveBeenCalledWith({
@@ -150,7 +150,7 @@ describe("GameInfoScreen", () => {
       const { queryClient } = renderGameInfo(pendingGameCanLeave.id);
 
       await userEvent.click(
-        screen.getByRole("button", { name: /leave game/i })
+        screen.getByRole("button", { name: /^leave$/i })
       );
 
       expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
