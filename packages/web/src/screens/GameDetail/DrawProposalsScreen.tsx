@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Button } from "@/components/ui/button";
-import { NationFlag, findNationFlagUrl } from "@/components/NationFlag";
+import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
 import {
   Item,
   ItemContent,
@@ -74,6 +74,10 @@ const ProposalItem: React.FC<ProposalItemProps> = ({
     .map(id => game.members.find(m => m.id === id))
     .filter((m): m is Member => Boolean(m));
 
+  const nationColor = variant
+    ? findNationColor(variant.nations, proposal.createdBy.nation)
+    : null;
+
   return (
     <Item className="border-b border-b-border">
       <NationFlag
@@ -81,6 +85,7 @@ const ProposalItem: React.FC<ProposalItemProps> = ({
         alt={proposal.createdBy.nation ?? ""}
         size="md"
         className="size-8 self-start"
+        color={nationColor}
       />
       <ItemContent>
         <div className="flex items-center justify-between">
@@ -120,11 +125,11 @@ const ProposalItem: React.FC<ProposalItemProps> = ({
         <ItemDescription>
           {includedMembers.map(m => m.nation).join(", ")}
         </ItemDescription>
-        <div className="mt-2 text-sm text-muted-foreground">
+        <div className="text-sm text-muted-foreground">
           {proposal.acceptedCount} of {proposal.totalVotes} accepted
         </div>
         {proposal.myVote && proposal.myVote.accepted !== null && (
-          <div className="mt-1 text-sm">
+          <div className="text-sm">
             Your vote:{" "}
             {proposal.myVote.accepted ? (
               <span className="text-green-600">Accepted</span>
@@ -134,7 +139,7 @@ const ProposalItem: React.FC<ProposalItemProps> = ({
           </div>
         )}
         {canVote && (
-          <div className="flex gap-2 mt-3">
+          <div className="flex gap-2">
             <Button
               size="sm"
               variant="outline"
@@ -244,8 +249,9 @@ const DrawProposalsScreen: React.FC = () => {
         onNavigateBack={handleBack}
         rightButton={
           canProposeDraw ? (
-            <Button variant="outline" size="icon" onClick={handleProposeDraw}>
+            <Button variant="outline" onClick={handleProposeDraw}>
               <Plus />
+              New proposal
             </Button>
           ) : undefined
         }

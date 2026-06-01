@@ -35,7 +35,7 @@ export function GameStatusAlerts({ game, variant, action }: GameStatusAlertsProp
               {nationCount} players have joined.
             </AlertDescription>
             {action && (
-              <div className="[&>button]:w-full sm:[&>button]:w-auto sm:flex sm:items-center sm:h-[1lh] shrink-0">
+              <div className="shrink-0 w-full sm:w-auto">
                 {action}
               </div>
             )}
@@ -57,7 +57,7 @@ export function GameStatusAlerts({ game, variant, action }: GameStatusAlertsProp
           <Trophy className="size-4" />
           <AlertDescription>
             {game.victory.type === "solo"
-              ? `${game.victory.members[0]?.name} has won the game!`
+              ? `${game.victory.members[0]?.name ?? "A player"} has won the game!`
               : `The game ended in a draw between ${game.victory.members.length} players.`}
           </AlertDescription>
         </Alert>
