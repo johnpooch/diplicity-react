@@ -39,7 +39,10 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
   }>();
 
   const { data: game } = useGameRetrieve(gameId, {
-    query: { refetchInterval: 30000 },
+    query: {
+      refetchInterval: (query) =>
+        query.state.data?.status === "active" ? 10000 : false,
+    },
   });
 
   const navItems = useMemo(() => {
