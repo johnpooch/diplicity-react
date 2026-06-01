@@ -453,7 +453,10 @@ This eliminates the need for runtime null checks when the route guarantees the p
 
 ### General
 
-- **Comments**: Do not add docstrings or comments.
+- **Comments**: Do not add docstrings or comments. This applies to test code too — do
+  not annotate assertions to explain their values. In particular, when a change shifts a
+  query-count (or similar magic-number) assertion, update the number only; do not add a
+  comment explaining the delta.
 
 ### Imports
 
