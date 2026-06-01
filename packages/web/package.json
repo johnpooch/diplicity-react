@@ -17,7 +17,8 @@
     "analyze": "ANALYZE=true npm run build",
     "cap:sync": "cap sync",
     "cap:open": "cap open",
-    "cap:run": "cap run"
+    "cap:run": "cap run",
+    "release:android": "bash scripts/release-android.sh"
   },
   "dependencies": {
     "@capacitor-firebase/messaging": "^8.1.0",

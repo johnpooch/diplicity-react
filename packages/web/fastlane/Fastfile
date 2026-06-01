@@ -179,15 +179,16 @@ platform :android do
     has_screenshots = Dir.exist?(screenshots_dir) && !Dir.glob("#{screenshots_dir}/*.{png,jpg}").empty?
 
     release_status = options.fetch(:release_status, "completed")
+    track = options.fetch(:track, ENV.fetch("PLAY_TRACK", "internal"))
 
     base_params = {
       package_name: "com.diplicityreact.app",
       aab: aab_path,
-      track: "internal",
+      track: track,
       release_status: release_status,
       skip_upload_apk: true,
       skip_upload_metadata: false,
-      skip_upload_changelogs: true,
+      skip_upload_changelogs: false,
       skip_upload_images: false,
       skip_upload_screenshots: !has_screenshots,
     }
@@ -200,8 +201,18 @@ platform :android do
     end
   end
 
+  private_lane :bump_patch_version do
+    package_json_path = File.join(WEB_ROOT, "package.json")
+    package = JSON.parse(File.read(package_json_path))
+    major, minor, patch = package["version"].split(".").map(&:to_i)
+    package["version"] = "#{major}.#{minor}.#{patch + 1}"
+    File.write(package_json_path, JSON.pretty_generate(package) + "\n")
+    UI.success("Bumped version to #{package["version"]}")
+  end
+
   desc "Build signed AAB and upload to Play Console internal testing track"
   lane :release do
+    bump_patch_version
     build_aab
     upload_to_play
   end
