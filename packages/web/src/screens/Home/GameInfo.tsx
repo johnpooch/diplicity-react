@@ -1,6 +1,7 @@
 import React, { Suspense } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
+import { Share } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRequiredParams } from "@/hooks";
 
@@ -51,6 +52,15 @@ const GameInfo: React.FC = () => {
     }
   };
 
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(`https://diplicity.com/game/${gameId}`);
+      toast.success("Link copied to clipboard");
+    } catch {
+      toast.error("Failed to copy link");
+    }
+  };
+
   const handlePlayerInfo = () => {
     navigate(`/player-info/${gameId}`);
   };
@@ -68,13 +78,22 @@ const GameInfo: React.FC = () => {
         Join game
       </Button>
     ) : (
-      <Button
-        onClick={handleLeaveGame}
-        disabled={leaveGameMutation.isPending}
-        variant="outline"
-      >
-        Leave game
-      </Button>
+      <div className="flex flex-col gap-2 w-full">
+        <Button
+          onClick={handleLeaveGame}
+          disabled={leaveGameMutation.isPending}
+          variant="outline"
+          className="w-full sm:w-auto"
+        >
+          Leave game
+        </Button>
+        <div className="flex items-center gap-2 justify-between sm:justify-end">
+          <span className="text-sm text-muted-foreground">Share this link to invite your friends</span>
+          <Button variant="outline" size="icon" onClick={handleShare}>
+            <Share className="size-4" />
+          </Button>
+        </div>
+      </div>
     )
   ) : null;
 

@@ -42,4 +42,12 @@ const findNationFlagUrl = (
   return nations.find((n) => n.name === nationName)?.flagUrl ?? null;
 };
 
-export { NationFlag, findNationFlagUrl };
+const findNationColor = (
+  nations: ReadonlyArray<{ name: string; color: string }>,
+  nationName: string | null | undefined
+): string | null => {
+  if (!nationName) return null;
+  return nations.find((n) => n.name === nationName)?.color ?? null;
+};
+
+export { NationFlag, findNationFlagUrl, findNationColor };
