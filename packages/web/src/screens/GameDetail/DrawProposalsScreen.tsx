@@ -85,7 +85,7 @@ const ProposalItem: React.FC<ProposalItemProps> = ({
         alt={proposal.createdBy.nation ?? ""}
         size="md"
         className="size-8 self-start"
-        style={nationColor ? { boxShadow: `0 0 0 1px ${nationColor}` } : undefined}
+        color={nationColor}
       />
       <ItemContent>
         <div className="flex items-center justify-between">

@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Button } from "@/components/ui/button";
-import { NationFlag, findNationFlagUrl } from "@/components/NationFlag";
+import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Item,
@@ -95,6 +95,7 @@ const ProposeDrawScreen: React.FC = () => {
                         alt={member.nation ?? ""}
                         size="md"
                         className="size-10"
+                        color={variant ? findNationColor(variant.nations, member.nation) : null}
                       />
                     </ItemMedia>
                     <ItemContent>
@@ -114,6 +115,7 @@ const ProposeDrawScreen: React.FC = () => {
                         alt={member.nation ?? ""}
                         size="md"
                         className="size-10"
+                        color={variant ? findNationColor(variant.nations, member.nation) : null}
                       />
                     </ItemMedia>
                     <ItemContent>
