@@ -5,7 +5,7 @@ from functools import cached_property
 import sentry_sdk
 from django.conf import settings
 from django.db import models, transaction
-from django.db.models import Q, Exists, OuterRef, Count
+from django.db.models import Q, Exists, OuterRef, Count, Prefetch
 from django.utils import timezone
 from opentelemetry import trace
 from common.models import BaseModel
@@ -14,13 +14,14 @@ from common.constants import PhaseStatus, PhaseType, GameStatus, DeadlineMode
 from adjudication.service import resolve
 from member.models import Member
 from order.models import OrderResolution, Order
-from phase.utils import transform_options
+from phase.utils import transform_options, format_time_remaining, format_deadline, build_notification_body
 from province.models import Province
 from supply_center.models import SupplyCenter
 from unit.models import Unit
 from victory.utils import check_for_solo_winner
 from victory.models import Victory
 from notification import utils as notification_utils
+from notification.tasks import send_notification
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
@@ -224,16 +225,18 @@ class PhaseManager(models.Manager):
             f"Applied NMR extensions for {len(members_with_extensions)} members in phase {phase.id}"
         )
 
+        deadline_str = format_deadline(phase.scheduled_resolution, phase.game.fixed_deadline_timezone)
+
         def send_notifications():
             for member in members_with_extensions:
                 if member.user_id is None:
                     continue
                 notification_utils.send_notification_to_users(
                     user_ids=[member.user_id],
-                    title="Extension Used",
-                    body=f"You used an automatic extension. {member.nmr_extensions_remaining} remaining.",
+                    title=phase.game.name,
+                    body=f"You did not submit orders and used an automatic extension ({member.nmr_extensions_remaining} remaining). The current phase is extended until {deadline_str}.",
                     notification_type="nmr_extension_used",
-                    data={"game_id": str(phase.game.id)},
+                    data={"game_id": str(phase.game.id), "link": f"{settings.FRONTEND_URL}/game/{phase.game.id}"},
                 )
 
             extension_ids = {m.user_id for m in members_with_extensions if m.user_id is not None}
@@ -244,10 +247,10 @@ class PhaseManager(models.Manager):
             if other_ids:
                 notification_utils.send_notification_to_users(
                     user_ids=other_ids,
-                    title="Deadline Extended",
-                    body="Some player(s) did not submit orders. Deadline extended.",
+                    title=phase.game.name,
+                    body=f"Some player(s) did not submit orders and used an extension. The current phase is extended until {deadline_str}.",
                     notification_type="nmr_extension_applied",
-                    data={"game_id": str(phase.game.id)},
+                    data={"game_id": str(phase.game.id), "link": f"{settings.FRONTEND_URL}/game/{phase.game.id}"},
                 )
 
         transaction.on_commit(send_notifications)
@@ -286,51 +289,77 @@ class PhaseManager(models.Manager):
                 Q(game__status=GameStatus.COMPLETED) | Q(game__status=GameStatus.ABANDONED)
             ).select_related('game').prefetch_related(
                 'phase_states__member__user',
-                'game__members'
+                'phase_states__member__nation',
+                'phase_states__orders',
+                Prefetch('units', queryset=Unit.objects.select_related('nation'), to_attr='prefetched_units'),
+                Prefetch('supply_centers', queryset=SupplyCenter.objects.select_related('nation'), to_attr='prefetched_supply_centers'),
             )
 
             notifications_sent = 0
 
             for phase in active_phases:
-                if not phase.scheduled_resolution:
-                    continue
-
                 duration_seconds = phase.game.get_phase_duration_seconds(phase.type)
                 warning_threshold = get_warning_threshold(duration_seconds)
-
                 time_until_deadline = (phase.scheduled_resolution - now).total_seconds()
 
                 if time_until_deadline <= 0 or time_until_deadline > warning_threshold:
                     continue
 
-                pending_states = [
-                    ps for ps in phase.phase_states.all()
-                    if ps.has_possible_orders
-                    and not ps.orders_confirmed
-                    and ps.deadline_warning_sent_for != phase.scheduled_resolution
-                ]
+                is_fixed_time = phase.game.deadline_mode == DeadlineMode.FIXED_TIME
+                time_left = format_time_remaining(time_until_deadline)
 
-                if not pending_states:
-                    continue
+                units_by_nation = {}
+                for unit in phase.prefetched_units:
+                    units_by_nation[unit.nation_id] = units_by_nation.get(unit.nation_id, 0) + 1
 
-                user_ids = [
-                    ps.member.user_id for ps in pending_states if ps.member.user_id is not None
-                ]
+                sc_by_nation = {}
+                for sc in phase.prefetched_supply_centers:
+                    sc_by_nation[sc.nation_id] = sc_by_nation.get(sc.nation_id, 0) + 1
 
-                if user_ids:
-                    notification_utils.send_notification_to_users(
-                        user_ids=user_ids,
-                        title="Deadline Approaching",
-                        body=f"You haven't confirmed your orders in {phase.game.name}.",
-                        notification_type="deadline_warning",
-                        data={"game_id": str(phase.game.id)},
+                warned_states = []
+
+                for ps in phase.phase_states.all():
+                    if not ps.has_possible_orders:
+                        continue
+                    if ps.deadline_warning_sent_for == phase.scheduled_resolution:
+                        continue
+
+                    nation_id = ps.member.nation_id
+                    unit_count = units_by_nation.get(nation_id, 0)
+
+                    if phase.type == PhaseType.ADJUSTMENT:
+                        sc_count = sc_by_nation.get(nation_id, 0)
+                        total_units = abs(sc_count - unit_count)
+                    else:
+                        total_units = unit_count
+
+                    if total_units == 0:
+                        continue
+
+                    body = build_notification_body(
+                        ps.orders_confirmed, is_fixed_time, len(ps.orders.all()), total_units, time_left,
+                        ps.member.nmr_extensions_remaining,
                     )
-                    notifications_sent += len(user_ids)
-                    logger.info(f"Sent deadline warning to {len(user_ids)} player(s) for game {phase.game.name}")
+                    if body is None:
+                        continue
 
-                for ps in pending_states:
+                    if ps.member.user_id is None:
+                        continue
+
+                    notification_utils.send_notification_to_users(
+                        user_ids=[ps.member.user_id],
+                        title=phase.game.name,
+                        body=body,
+                        notification_type="deadline_warning",
+                        data={"game_id": str(phase.game.id), "link": f"{settings.FRONTEND_URL}/game/{phase.game.id}"},
+                    )
                     ps.deadline_warning_sent_for = phase.scheduled_resolution
-                PhaseState.objects.bulk_update(pending_states, ["deadline_warning_sent_for"])
+                    warned_states.append(ps)
+                    notifications_sent += 1
+                    logger.info(f"Sent deadline warning to user {ps.member.user_id} for game {phase.game.name}")
+
+                if warned_states:
+                    PhaseState.objects.bulk_update(warned_states, ["deadline_warning_sent_for"])
 
             span.set_attribute("notifications.sent", notifications_sent)
             logger.info(f"Sent {notifications_sent} deadline warning notification(s)")
@@ -409,6 +438,47 @@ class PhaseManager(models.Manager):
 
         return newly_cd_members
 
+    def _check_eliminations(self, previous_phase, new_phase):
+        units_by_nation = {}
+        for unit in new_phase.units.all():
+            units_by_nation[unit.nation_id] = units_by_nation.get(unit.nation_id, 0) + 1
+
+        sc_by_nation = {}
+        for sc in new_phase.supply_centers.all():
+            sc_by_nation[sc.nation_id] = sc_by_nation.get(sc.nation_id, 0) + 1
+
+        candidates = list(
+            previous_phase.game.members.filter(
+                eliminated=False, kicked=False, nation__isnull=False
+            ).select_related("user", "nation")
+        )
+
+        newly_eliminated = [
+            m for m in candidates
+            if units_by_nation.get(m.nation_id, 0) == 0
+            and sc_by_nation.get(m.nation_id, 0) == 0
+        ]
+
+        if not newly_eliminated:
+            return
+
+        for m in newly_eliminated:
+            m.eliminated = True
+        Member.objects.bulk_update(newly_eliminated, ["eliminated"])
+
+        game = previous_phase.game
+
+        for member in newly_eliminated:
+            if member.user_id is None:
+                continue
+            send_notification.defer(
+                user_ids=[member.user_id],
+                title=game.name,
+                body="You've been eliminated. You are not required to enter any orders anymore. You can still chat with players. Better luck next time!",
+                notification_type="elimination",
+                data={"game_id": str(game.id), "link": f"{settings.FRONTEND_URL}/game/{game.id}"},
+            )
+
     def _check_abandonment(self, game):
         if game.sandbox:
             return False
@@ -434,6 +504,7 @@ class PhaseManager(models.Manager):
                 with transaction.atomic():
                     self._check_civil_disorder(phase)
                     new_phase = self.create_from_adjudication_data(phase, adjudication_data)
+                    self._check_eliminations(phase, new_phase)
 
                     victory = Victory.objects.try_create_victory(new_phase)
 

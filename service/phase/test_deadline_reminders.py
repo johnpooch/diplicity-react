@@ -4,20 +4,23 @@ from unittest.mock import patch
 import pytest
 from django.utils import timezone
 
-from common.constants import DeadlineMode, GameStatus
+from common.constants import DeadlineMode, GameStatus, UnitType
 from phase.models import Phase
 
 
 class TestDeadlineReminderGuard:
 
     @pytest.mark.django_db
-    def test_sends_one_reminder_per_deadline(self, phase_factory, classical_england_nation):
+    def test_sends_one_reminder_per_deadline(
+        self, phase_factory, classical_england_nation, classical_edinburgh_province
+    ):
         phase = phase_factory(
             scheduled_resolution=timezone.now() + timedelta(minutes=30),
             phase_states_config=[
                 {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
             ],
         )
+        phase.units.create(type=UnitType.ARMY, nation=classical_england_nation, province=classical_edinburgh_province)
 
         with patch("phase.models.notification_utils.send_notification_to_users") as mock_send:
             first = Phase.objects.send_deadline_warnings()
@@ -32,13 +35,16 @@ class TestDeadlineReminderGuard:
         assert phase_state.deadline_warning_sent_for == phase.scheduled_resolution
 
     @pytest.mark.django_db
-    def test_fresh_reminder_after_deadline_moves(self, phase_factory, classical_england_nation):
+    def test_fresh_reminder_after_deadline_moves(
+        self, phase_factory, classical_england_nation, classical_edinburgh_province
+    ):
         phase = phase_factory(
             scheduled_resolution=timezone.now() + timedelta(minutes=30),
             phase_states_config=[
                 {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
             ],
         )
+        phase.units.create(type=UnitType.ARMY, nation=classical_england_nation, province=classical_edinburgh_province)
 
         with patch("phase.models.notification_utils.send_notification_to_users") as mock_send:
             Phase.objects.send_deadline_warnings()
@@ -53,7 +59,13 @@ class TestDeadlineReminderGuard:
 
     @pytest.mark.django_db
     def test_confirmed_player_not_reminded(
-        self, phase_factory, classical_england_nation, classical_france_nation, secondary_user
+        self,
+        phase_factory,
+        classical_england_nation,
+        classical_france_nation,
+        classical_edinburgh_province,
+        classical_paris_province,
+        secondary_user,
     ):
         phase = phase_factory(
             scheduled_resolution=timezone.now() + timedelta(minutes=30),
@@ -67,6 +79,8 @@ class TestDeadlineReminderGuard:
                 },
             ],
         )
+        phase.units.create(type=UnitType.ARMY, nation=classical_england_nation, province=classical_edinburgh_province)
+        phase.units.create(type=UnitType.ARMY, nation=classical_france_nation, province=classical_paris_province)
 
         with patch("phase.models.notification_utils.send_notification_to_users") as mock_send:
             result = Phase.objects.send_deadline_warnings()
@@ -92,7 +106,7 @@ class TestDeadlineReminderGuard:
 
     @pytest.mark.django_db
     def test_fixed_time_game_reminds_players_with_orders(
-        self, phase_factory, classical_variant, classical_england_nation
+        self, phase_factory, classical_variant, classical_england_nation, classical_edinburgh_province
     ):
         from game.models import Game
 
@@ -102,13 +116,14 @@ class TestDeadlineReminderGuard:
             status=GameStatus.ACTIVE,
             deadline_mode=DeadlineMode.FIXED_TIME,
         )
-        phase_factory(
+        phase = phase_factory(
             game=game,
             scheduled_resolution=timezone.now() + timedelta(minutes=30),
             phase_states_config=[
                 {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
             ],
         )
+        phase.units.create(type=UnitType.ARMY, nation=classical_england_nation, province=classical_edinburgh_province)
 
         with patch("phase.models.notification_utils.send_notification_to_users") as mock_send:
             result = Phase.objects.send_deadline_warnings()

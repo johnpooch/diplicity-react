@@ -1,8 +1,10 @@
 import pytest
 from datetime import timedelta
 from django.utils import timezone
+from game.models import Game
+from member.models import Member
 from phase.models import Phase
-from common.constants import PhaseStatus, UnitType, OrderType, GameStatus, MovementPhaseDuration, DeadlineMode
+from common.constants import PhaseStatus, PhaseType, UnitType, OrderType, GameStatus, MovementPhaseDuration, DeadlineMode
 
 
 @pytest.fixture
@@ -20,9 +22,6 @@ def italy_vs_germany_phase_with_orders(
     primary_user,
     secondary_user,
 ):
-    from game.models import Game
-    from member.models import Member
-
     game = Game.objects.create(
         variant=italy_vs_germany_variant,
         name="Test Game",
@@ -156,8 +155,6 @@ def game_with_three_phases(
     primary_user,
     secondary_user,
 ):
-    from game.models import Game
-    from member.models import Member
     from order.models import OrderResolution
 
     game = Game.objects.create(
@@ -292,9 +289,6 @@ def game_with_three_phases(
 
 @pytest.fixture
 def phase_factory(db, classical_variant, primary_user, secondary_user):
-    from game.models import Game
-    from member.models import Member
-
     def _create_phase(
         scheduled_resolution=None,
         phase_states_config=None,
@@ -359,8 +353,6 @@ def multiple_games_with_phases(
     classical_england_nation,
     classical_france_nation,
 ):
-    from game.models import Game
-    from member.models import Member
 
     games_data = []
 
@@ -434,3 +426,72 @@ def multiple_games_with_phases(
         })
 
     return games_data
+
+
+@pytest.fixture
+def make_deadline_warning_game(
+    db,
+    italy_vs_germany_variant,
+    italy_vs_germany_italy_nation,
+    italy_vs_germany_germany_nation,
+    primary_user,
+    secondary_user,
+):
+    def _create(deadline_mode, scheduled_resolution):
+        game = Game.objects.create(
+            name=f"Test Game {deadline_mode}",
+            variant=italy_vs_germany_variant,
+            deadline_mode=deadline_mode,
+            movement_phase_duration="24h",
+        )
+        italy = game.members.create(nation=italy_vs_germany_italy_nation, user=primary_user)
+        germany = game.members.create(nation=italy_vs_germany_germany_nation, user=secondary_user)
+        phase = Phase.objects.create(
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.ACTIVE,
+            scheduled_resolution=scheduled_resolution,
+        )
+        return game, italy, germany, phase
+
+    return _create
+
+
+@pytest.fixture
+def add_italy_germany_units(
+    italy_vs_germany_italy_nation,
+    italy_vs_germany_germany_nation,
+    italy_vs_germany_venice_province,
+    italy_vs_germany_kiel_province,
+):
+    def _add(phase):
+        phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
+        phase.units.create(province=italy_vs_germany_kiel_province, type=UnitType.ARMY, nation=italy_vs_germany_germany_nation)
+
+    return _add
+
+
+@pytest.fixture
+def make_elimination_game(
+    db,
+    italy_vs_germany_variant,
+    italy_vs_germany_italy_nation,
+    italy_vs_germany_germany_nation,
+    primary_user,
+    secondary_user,
+):
+    def _create():
+        game = Game.objects.create(
+            name="Elimination Test",
+            variant=italy_vs_germany_variant,
+            status=GameStatus.ACTIVE,
+        )
+        italy = game.members.create(user=primary_user, nation=italy_vs_germany_italy_nation)
+        germany = game.members.create(user=secondary_user, nation=italy_vs_germany_germany_nation)
+        return game, italy, germany
+
+    return _create
