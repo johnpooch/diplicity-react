@@ -1,5 +1,17 @@
 # Diplicity React - Release Notes
 
+## Faster Phase Resolution (June 1, 2026)
+
+**Release Date:** June 1, 2026
+
+### Improvement: Phases resolve within seconds
+
+Phase resolution now runs on a background worker triggered the moment the last player
+confirms or the deadline arrives, instead of waiting for a once-a-minute check. A phase
+resolves within a couple of seconds of the last confirmation and within a few seconds of
+its deadline. A once-a-minute safety net still catches anything a trigger misses, so
+nothing gets stuck.
+
 ## Android Push Notifications (May 26, 2026)
 
 **Release Date:** May 26, 2026

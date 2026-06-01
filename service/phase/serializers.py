@@ -1,3 +1,4 @@
+from django.db import transaction
 from rest_framework import serializers
 from common.constants import PhaseStatus
 from member.serializers import MemberSerializer
@@ -20,8 +21,17 @@ class PhaseStateSerializer(serializers.Serializer):
     member = MemberSerializer(read_only=True)
 
     def update(self, instance, validated_data):
-        instance.orders_confirmed = not instance.orders_confirmed
-        instance.save()
+        with transaction.atomic():
+            instance.orders_confirmed = not instance.orders_confirmed
+            instance.save()
+
+            if instance.orders_confirmed:
+                from phase.tasks import resolve_phase
+
+                resolve_phase.configure(
+                    lock=f"resolve-game-{instance.phase.game_id}",
+                ).defer(phase_id=instance.phase_id)
+
         return instance
 
 

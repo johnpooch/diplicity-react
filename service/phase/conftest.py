@@ -6,6 +6,16 @@ from common.constants import PhaseStatus, UnitType, OrderType, GameStatus, Movem
 
 
 @pytest.fixture
+def in_memory_procrastinate():
+    from procrastinate import testing
+    from procrastinate.contrib.django import app
+
+    connector = testing.InMemoryConnector()
+    with app.replace_connector(connector):
+        yield connector
+
+
+@pytest.fixture
 def italy_vs_germany_phase_with_orders(
     db,
     italy_vs_germany_variant,

@@ -2148,7 +2148,7 @@ class TestSandboxGameCreateViewPerformance:
         for i, query in enumerate(connection.queries, 1):
             print(f"\nQuery {i}: {query['sql']}")
 
-        assert query_count == 48
+        assert query_count == 49
 
     @pytest.mark.django_db
     def test_create_sandbox_game_query_count_large_variant(
@@ -2174,7 +2174,7 @@ class TestSandboxGameCreateViewPerformance:
         for i, query in enumerate(connection.queries, 1):
             print(f"\nQuery {i}: {query['sql']}")
 
-        assert query_count == 48
+        assert query_count == 49
 
 
 class TestSandboxGameFiltering:

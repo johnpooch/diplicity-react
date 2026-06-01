@@ -2,6 +2,8 @@ import json
 import logging
 from functools import cached_property
 
+import sentry_sdk
+from django.conf import settings
 from django.db import models, transaction
 from django.db.models import Q, Exists, OuterRef, Count
 from django.utils import timezone
@@ -123,7 +125,22 @@ class PhaseManager(models.Manager):
 
             return phases_to_resolve
 
-    def resolve_due_phases(self):
+    def resolve_if_due(self, phase_id):
+        with tracer.start_as_current_span("phase.manager.resolve_if_due") as span:
+            span.set_attribute("phase.id", phase_id)
+            with transaction.atomic():
+                locked = self.select_for_update().filter(pk=phase_id).first()
+                if locked is None:
+                    logger.info(f"Phase {phase_id} no longer exists; skipping resolve")
+                    return None
+                if not self.filter_due_phases().filter(pk=phase_id).exists():
+                    logger.info(f"Phase {phase_id} not due on re-check; skipping resolve")
+                    return None
+                phase = self.with_adjudication_data().get(pk=phase_id)
+                logger.info(f"Resolving due phase {phase.id} ({phase.name}) for game {phase.game_id}")
+                return self.resolve(phase)
+
+    def resolve_due_phases(self, canary=False):
         with tracer.start_as_current_span("phase.manager.resolve_due_phases") as span:
             logger.info("Starting resolution of due phases")
 
@@ -133,12 +150,31 @@ class PhaseManager(models.Manager):
             resolved_count = 0
             failed_count = 0
 
+            now = timezone.now()
+            grace = timedelta(seconds=getattr(settings, "RESOLUTION_CANARY_GRACE_SECONDS", 300))
+
             for phase in phases_to_resolve:
-                logger.info(f"Resolving phase {phase.id} ({phase.name}) for game {phase.game.id}")
+                if (
+                    canary
+                    and phase.scheduled_resolution
+                    and phase.scheduled_resolution < now - grace
+                ):
+                    overdue_seconds = (now - phase.scheduled_resolution).total_seconds()
+                    logger.error(
+                        f"Phase {phase.id} (game {phase.game_id}) overdue by {overdue_seconds:.0f}s; "
+                        f"a primary trigger should have resolved it. Capturing canary."
+                    )
+                    sentry_sdk.capture_message(
+                        f"Phase resolution overdue: phase {phase.id} game {phase.game_id} "
+                        f"overdue by {overdue_seconds:.0f}s",
+                        level="error",
+                    )
+
+                logger.info(f"Resolving phase {phase.id} ({phase.name}) for game {phase.game_id}")
                 try:
-                    self.resolve(phase)
-                    resolved_count += 1
-                    logger.info(f"Successfully resolved phase {phase.id}")
+                    if self.resolve_if_due(phase.id) is not None:
+                        resolved_count += 1
+                        logger.info(f"Successfully resolved phase {phase.id}")
                 except Exception as e:
                     failed_count += 1
                     logger.error(f"Failed to resolve phase {phase.id} ({phase.name}): {e}", exc_info=True)
@@ -156,6 +192,9 @@ class PhaseManager(models.Manager):
                 f"Phase resolution complete: {resolved_count} resolved, {failed_count} failed out of {total_phases_to_resolve} phases"
             )
             return result
+
+    def sweep_due_phases(self):
+        return self.resolve_due_phases(canary=True)
 
     def _check_and_apply_nmr_extensions(self, phase):
         unconfirmed = phase.phase_states.filter(

@@ -1103,7 +1103,7 @@ class TestCreateFromAdjudicationDataPerformance:
 
         query_count = len(connection.queries)
 
-        assert query_count == 12
+        assert query_count == 14
 
     @pytest.mark.django_db
     def test_create_from_adjudication_data_query_count_with_full_game(
@@ -1218,7 +1218,7 @@ class TestCreateFromAdjudicationDataPerformance:
 
         query_count = len(connection.queries)
 
-        assert query_count == 12
+        assert query_count == 13
 
 
 class TestPhaseReversion:

@@ -44,6 +44,10 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-gdnbe1&siif)1gsuv+f
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 
+# How long a phase's deadline may be overdue before the resolution sweep treats it
+# as a missed primary trigger and emits a Sentry canary event (seconds).
+RESOLUTION_CANARY_GRACE_SECONDS = int(os.getenv("RESOLUTION_CANARY_GRACE_SECONDS", "300"))
+
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,service,192.168.68.50").split(",")
 
 # CSRF Settings
