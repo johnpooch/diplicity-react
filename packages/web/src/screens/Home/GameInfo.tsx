@@ -90,7 +90,7 @@ const GameInfo: React.FC = () => {
         </Button>
         <Button variant="outline" className="flex-1 sm:flex-none" onClick={handleShare}>
           <Share className="size-4" />
-          Share
+          Share &amp; invite
         </Button>
       </div>
     )
