@@ -60,7 +60,8 @@ export const PhaseSelect: React.FC = () => {
       if (newPhaseId) {
         const phasePrefix = `/game/${gameId}/phase/${phaseId}`;
         const suffix = location.pathname.slice(phasePrefix.length);
-        toast.info("A new phase has started", {
+        toast.success("A new phase has started", {
+          duration: 10000,
           action: {
             label: "Jump to newest",
             onClick: () => navigate(`/game/${gameId}/phase/${newPhaseId}${suffix}`),
@@ -77,23 +78,25 @@ export const PhaseSelect: React.FC = () => {
       <Button
         variant="ghost"
         size="icon"
+        className="h-7 w-7"
         onClick={goToFirstPhase}
         disabled={isOnFirstPhase}
         aria-label="First phase"
       >
-        <ChevronsLeft className="h-4 w-4" />
+        <ChevronsLeft className="h-3.5 w-3.5" />
       </Button>
       <Button
         variant="ghost"
         size="icon"
+        className="h-7 w-7"
         onClick={goToPreviousPhase}
         disabled={phase.previousPhaseId === null}
         aria-label="Previous phase"
       >
-        <ChevronLeft className="h-4 w-4" />
+        <ChevronLeft className="h-3.5 w-3.5" />
       </Button>
       <div className="flex flex-col items-center">
-        <span className="text-sm font-medium">{phase.name}</span>
+        <span className="text-xs font-medium">{phase.name}</span>
         {phase.status === "active" && phase.scheduledResolution && (
           <RemainingTimeDisplay
             remainingTime={phase.remainingTime}
@@ -106,20 +109,22 @@ export const PhaseSelect: React.FC = () => {
       <Button
         variant="ghost"
         size="icon"
+        className="h-7 w-7"
         onClick={goToNextPhase}
         disabled={phase.nextPhaseId === null}
         aria-label="Next phase"
       >
-        <ChevronRight className="h-4 w-4" />
+        <ChevronRight className="h-3.5 w-3.5" />
       </Button>
       <Button
         variant="ghost"
         size="icon"
+        className="h-7 w-7"
         onClick={goToLatestPhase}
         disabled={isOnLatestPhase}
         aria-label="Latest phase"
       >
-        <ChevronsRight className="h-4 w-4" />
+        <ChevronsRight className="h-3.5 w-3.5" />
       </Button>
     </div>
   );
