@@ -1,5 +1,6 @@
 from re import I
 import pytest
+from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
@@ -313,10 +314,10 @@ def test_active_game_create_orders_and_confirm(
     # Notification is sent to both users
     mock_send_notification_to_users.assert_called_with(
         user_ids=[germany_member.user.id, italy_member.user.id],
-        title="Phase Resolved",
-        body=f"Phase '{first_phase.name}' has been resolved!",
+        title=active_game.name,
+        body=f"{first_phase.name} has been resolved",
         notification_type="phase_resolved",
-        data={"game_id": str(active_game.id), "link": f"https://diplicity.com/game/{active_game.id}"},
+        data={"game_id": str(active_game.id), "link": f"{settings.FRONTEND_URL}/game/{active_game.id}"},
     )
 
     # The empty Spring 1901 Retreat is skipped, so resolving the movement

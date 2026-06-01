@@ -3747,3 +3747,552 @@ class TestPhaseToCanonicalGameStatePerformance:
         large_count = self._count_queries(large_phase)
 
         assert small_count == large_count
+
+
+class TestSendDeadlineWarnings:
+
+    @pytest.mark.django_db
+    def test_fixed_time_all_orders_no_notification(
+        self,
+        make_deadline_warning_game,
+        add_italy_germany_units,
+        italy_vs_germany_venice_province,
+        italy_vs_germany_kiel_province,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = make_deadline_warning_game(DeadlineMode.FIXED_TIME, now + timedelta(minutes=10))
+        add_italy_germany_units(phase)
+        italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True)
+        germany_ps = phase.phase_states.create(member=germany, has_possible_orders=True)
+        italy_ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
+        germany_ps.orders.create(source=italy_vs_germany_kiel_province, order_type=OrderType.HOLD)
+
+        Phase.objects.send_deadline_warnings()
+
+        mock_send_notification_to_users.assert_not_called()
+
+    @pytest.mark.django_db
+    def test_fixed_time_some_orders_sends_partial_notification(
+        self,
+        make_deadline_warning_game,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+        italy_vs_germany_rome_province,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = make_deadline_warning_game(DeadlineMode.FIXED_TIME, now + timedelta(minutes=10))
+        phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
+        phase.units.create(province=italy_vs_germany_rome_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
+        italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True)
+        italy_ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
+
+        Phase.objects.send_deadline_warnings()
+
+        mock_send_notification_to_users.assert_called_once()
+        call_kwargs = mock_send_notification_to_users.call_args.kwargs
+        assert call_kwargs["title"] == game.name
+        assert "1/2" in call_kwargs["body"]
+        assert "orders incomplete" in call_kwargs["body"]
+
+    @pytest.mark.django_db
+    def test_fixed_time_no_orders_sends_no_orders_notification(
+        self,
+        make_deadline_warning_game,
+        add_italy_germany_units,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = make_deadline_warning_game(DeadlineMode.FIXED_TIME, now + timedelta(minutes=10))
+        add_italy_germany_units(phase)
+        phase.phase_states.create(member=italy, has_possible_orders=True)
+
+        Phase.objects.send_deadline_warnings()
+
+        mock_send_notification_to_users.assert_called_once()
+        call_kwargs = mock_send_notification_to_users.call_args.kwargs
+        assert "no orders given" in call_kwargs["body"]
+        assert "stop waiting for you" in call_kwargs["body"]
+
+    @pytest.mark.django_db
+    def test_duration_confirmed_no_notification(
+        self,
+        make_deadline_warning_game,
+        add_italy_germany_units,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = make_deadline_warning_game(DeadlineMode.DURATION, now + timedelta(minutes=10))
+        add_italy_germany_units(phase)
+        phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=True)
+
+        Phase.objects.send_deadline_warnings()
+
+        mock_send_notification_to_users.assert_not_called()
+
+    @pytest.mark.django_db
+    def test_duration_all_orders_unconfirmed_sends_ready_notification(
+        self,
+        make_deadline_warning_game,
+        add_italy_germany_units,
+        italy_vs_germany_venice_province,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = make_deadline_warning_game(DeadlineMode.DURATION, now + timedelta(minutes=10))
+        add_italy_germany_units(phase)
+        italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
+        italy_ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
+
+        Phase.objects.send_deadline_warnings()
+
+        mock_send_notification_to_users.assert_called_once()
+        call_kwargs = mock_send_notification_to_users.call_args.kwargs
+        assert call_kwargs["title"] == game.name
+        assert "orders ready" in call_kwargs["body"]
+        assert "waiting confirmation" in call_kwargs["body"]
+
+    @pytest.mark.django_db
+    def test_duration_some_orders_unconfirmed_sends_partial_notification(
+        self,
+        make_deadline_warning_game,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+        italy_vs_germany_rome_province,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = make_deadline_warning_game(DeadlineMode.DURATION, now + timedelta(minutes=10))
+        phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
+        phase.units.create(province=italy_vs_germany_rome_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
+        italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
+        italy_ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
+
+        Phase.objects.send_deadline_warnings()
+
+        mock_send_notification_to_users.assert_called_once()
+        call_kwargs = mock_send_notification_to_users.call_args.kwargs
+        assert "1/2" in call_kwargs["body"]
+        assert "orders incomplete" in call_kwargs["body"]
+        assert "standing orders will execute" in call_kwargs["body"]
+
+    @pytest.mark.django_db
+    def test_duration_no_orders_sends_no_orders_notification(
+        self,
+        make_deadline_warning_game,
+        add_italy_germany_units,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = make_deadline_warning_game(DeadlineMode.DURATION, now + timedelta(minutes=10))
+        add_italy_germany_units(phase)
+        phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
+
+        Phase.objects.send_deadline_warnings()
+
+        mock_send_notification_to_users.assert_called_once()
+        call_kwargs = mock_send_notification_to_users.call_args.kwargs
+        assert "no orders given" in call_kwargs["body"]
+        assert "stop waiting for you" in call_kwargs["body"]
+
+    @pytest.mark.django_db
+    def test_second_call_does_not_resend(
+        self,
+        make_deadline_warning_game,
+        add_italy_germany_units,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = make_deadline_warning_game(DeadlineMode.DURATION, now + timedelta(minutes=10))
+        add_italy_germany_units(phase)
+        phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
+
+        Phase.objects.send_deadline_warnings()
+        Phase.objects.send_deadline_warnings()
+
+        assert mock_send_notification_to_users.call_count == 1
+
+    @pytest.mark.django_db
+    def test_marker_set_to_scheduled_resolution_after_send(
+        self,
+        make_deadline_warning_game,
+        add_italy_germany_units,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = make_deadline_warning_game(DeadlineMode.DURATION, now + timedelta(minutes=10))
+        add_italy_germany_units(phase)
+        ps = phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
+
+        Phase.objects.send_deadline_warnings()
+
+        ps.refresh_from_db()
+        assert ps.deadline_warning_sent_for == phase.scheduled_resolution
+
+    @pytest.mark.django_db
+    def test_deadline_extension_sends_fresh_warning(
+        self,
+        make_deadline_warning_game,
+        add_italy_germany_units,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = make_deadline_warning_game(DeadlineMode.DURATION, now + timedelta(hours=1))
+        game.movement_phase_duration = "48 hours"
+        game.save()
+        add_italy_germany_units(phase)
+        phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
+
+        Phase.objects.send_deadline_warnings()
+        assert mock_send_notification_to_users.call_count == 1
+
+        game.status = GameStatus.ACTIVE
+        game.save()
+        game.extend_deadline("1 hour")
+
+        Phase.objects.send_deadline_warnings()
+        assert mock_send_notification_to_users.call_count == 2
+
+    @pytest.mark.django_db
+    def test_deadline_move_after_nmr_extension_sends_fresh_warning(
+        self,
+        make_deadline_warning_game,
+        add_italy_germany_units,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = make_deadline_warning_game(DeadlineMode.DURATION, now + timedelta(hours=1))
+        game.movement_phase_duration = "48 hours"
+        game.save()
+        add_italy_germany_units(phase)
+        italy.nmr_extensions_remaining = 1
+        italy.save()
+        ps = phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
+
+        Phase.objects.send_deadline_warnings()
+        assert mock_send_notification_to_users.call_count == 1
+        ps.refresh_from_db()
+        assert ps.deadline_warning_sent_for == phase.scheduled_resolution
+
+        Phase.objects._check_and_apply_nmr_extensions(phase)
+
+        phase.refresh_from_db()
+        phase.scheduled_resolution = now + timedelta(minutes=30)
+        phase.save()
+
+        Phase.objects.send_deadline_warnings()
+        assert mock_send_notification_to_users.call_count == 2
+
+    @pytest.mark.django_db
+    def test_fixed_time_no_orders_with_extensions_shows_extension_message(
+        self,
+        make_deadline_warning_game,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = make_deadline_warning_game(DeadlineMode.FIXED_TIME, now + timedelta(minutes=10))
+        italy.nmr_extensions_remaining = 2
+        italy.save()
+        phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
+        phase.phase_states.create(member=italy, has_possible_orders=True)
+
+        Phase.objects.send_deadline_warnings()
+
+        call_kwargs = mock_send_notification_to_users.call_args.kwargs
+        assert "deadline will extend" in call_kwargs["body"]
+        assert "lose an extension" in call_kwargs["body"]
+
+    @pytest.mark.django_db
+    def test_fixed_time_no_orders_no_extensions_shows_stop_waiting_message(
+        self,
+        make_deadline_warning_game,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = make_deadline_warning_game(DeadlineMode.FIXED_TIME, now + timedelta(minutes=10))
+        phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
+        phase.phase_states.create(member=italy, has_possible_orders=True)
+
+        Phase.objects.send_deadline_warnings()
+
+        call_kwargs = mock_send_notification_to_users.call_args.kwargs
+        assert "stop waiting for you" in call_kwargs["body"]
+
+    @pytest.mark.django_db
+    def test_duration_no_orders_with_extensions_shows_extension_message(
+        self,
+        make_deadline_warning_game,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = make_deadline_warning_game(DeadlineMode.DURATION, now + timedelta(minutes=10))
+        italy.nmr_extensions_remaining = 1
+        italy.save()
+        phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
+        phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
+
+        Phase.objects.send_deadline_warnings()
+
+        call_kwargs = mock_send_notification_to_users.call_args.kwargs
+        assert "deadline will extend" in call_kwargs["body"]
+        assert "lose an extension" in call_kwargs["body"]
+
+    @pytest.mark.django_db
+    def test_duration_no_orders_no_extensions_shows_stop_waiting_message(
+        self,
+        make_deadline_warning_game,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = make_deadline_warning_game(DeadlineMode.DURATION, now + timedelta(minutes=10))
+        phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
+        phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
+
+        Phase.objects.send_deadline_warnings()
+
+        call_kwargs = mock_send_notification_to_users.call_args.kwargs
+        assert "stop waiting for you" in call_kwargs["body"]
+
+    @pytest.mark.django_db
+    def test_no_notification_when_member_has_no_units_in_movement_phase(
+        self,
+        make_deadline_warning_game,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = make_deadline_warning_game(DeadlineMode.FIXED_TIME, now + timedelta(minutes=10))
+        phase.phase_states.create(member=italy, has_possible_orders=True)
+
+        Phase.objects.send_deadline_warnings()
+
+        mock_send_notification_to_users.assert_not_called()
+
+    @pytest.mark.django_db
+    def test_no_notification_when_adjustment_phase_has_zero_net_builds(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+        primary_user,
+        secondary_user,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game = Game.objects.create(
+            name="Adjustment Zero Test",
+            variant=italy_vs_germany_variant,
+            deadline_mode=DeadlineMode.FIXED_TIME,
+            movement_phase_duration="24h",
+        )
+        italy = game.members.create(nation=italy_vs_germany_italy_nation, user=primary_user)
+        phase = Phase.objects.create(
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.ADJUSTMENT,
+            ordinal=1,
+            status=PhaseStatus.ACTIVE,
+            scheduled_resolution=now + timedelta(minutes=10),
+        )
+        phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
+        phase.supply_centers.create(province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation)
+        phase.phase_states.create(member=italy, has_possible_orders=True)
+
+        Phase.objects.send_deadline_warnings()
+
+        mock_send_notification_to_users.assert_not_called()
+
+
+def _elimination_jobs(connector):
+    return [
+        j for j in connector.jobs.values()
+        if j["task_name"] == "notification.send_notification"
+        and j["args"].get("notification_type") == "elimination"
+    ]
+
+
+class TestCheckEliminations:
+
+    @pytest.mark.django_db
+    def test_member_eliminated_when_no_units_and_no_sc(
+        self,
+        make_elimination_game,
+        italy_vs_germany_variant,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_kiel_province,
+        in_memory_procrastinate,
+    ):
+        game, italy, germany = make_elimination_game()
+        previous_phase = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Spring", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=1, status=PhaseStatus.COMPLETED,
+        )
+        new_phase = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Fall", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=2, status=PhaseStatus.ACTIVE,
+        )
+        new_phase.units.create(province=italy_vs_germany_kiel_province, type=UnitType.ARMY, nation=italy_vs_germany_germany_nation)
+        new_phase.supply_centers.create(province=italy_vs_germany_kiel_province, nation=italy_vs_germany_germany_nation)
+
+        Phase.objects._check_eliminations(previous_phase, new_phase)
+
+        italy.refresh_from_db()
+        germany.refresh_from_db()
+        assert italy.eliminated is True
+        assert germany.eliminated is False
+
+    @pytest.mark.django_db
+    def test_member_not_eliminated_when_has_unit(
+        self,
+        make_elimination_game,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+        in_memory_procrastinate,
+    ):
+        game, italy, germany = make_elimination_game()
+        previous_phase = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Spring", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=1, status=PhaseStatus.COMPLETED,
+        )
+        new_phase = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Fall", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=2, status=PhaseStatus.ACTIVE,
+        )
+        new_phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
+
+        Phase.objects._check_eliminations(previous_phase, new_phase)
+
+        italy.refresh_from_db()
+        assert italy.eliminated is False
+
+    @pytest.mark.django_db
+    def test_member_not_eliminated_when_has_sc_only(
+        self,
+        make_elimination_game,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+        in_memory_procrastinate,
+    ):
+        game, italy, germany = make_elimination_game()
+        previous_phase = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Fall", year=1901, type=PhaseType.ADJUSTMENT,
+            ordinal=1, status=PhaseStatus.COMPLETED,
+        )
+        new_phase = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Spring", year=1902, type=PhaseType.MOVEMENT,
+            ordinal=2, status=PhaseStatus.ACTIVE,
+        )
+        new_phase.supply_centers.create(province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation)
+
+        Phase.objects._check_eliminations(previous_phase, new_phase)
+
+        italy.refresh_from_db()
+        assert italy.eliminated is False
+
+    @pytest.mark.django_db
+    def test_already_eliminated_member_skipped(
+        self,
+        make_elimination_game,
+        italy_vs_germany_variant,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_kiel_province,
+        in_memory_procrastinate,
+    ):
+        game, italy, germany = make_elimination_game()
+        italy.eliminated = True
+        italy.save()
+
+        previous_phase = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Spring", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=1, status=PhaseStatus.COMPLETED,
+        )
+        new_phase = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Fall", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=2, status=PhaseStatus.ACTIVE,
+        )
+        new_phase.units.create(province=italy_vs_germany_kiel_province, type=UnitType.ARMY, nation=italy_vs_germany_germany_nation)
+
+        Phase.objects._check_eliminations(previous_phase, new_phase)
+
+        assert _elimination_jobs(in_memory_procrastinate) == []
+
+    @pytest.mark.django_db
+    def test_sends_elimination_notification_to_eliminated_member(
+        self,
+        make_elimination_game,
+        italy_vs_germany_variant,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_kiel_province,
+        primary_user,
+        in_memory_procrastinate,
+    ):
+        game, italy, germany = make_elimination_game()
+        previous_phase = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Spring", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=1, status=PhaseStatus.COMPLETED,
+        )
+        new_phase = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Fall", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=2, status=PhaseStatus.ACTIVE,
+        )
+        new_phase.units.create(province=italy_vs_germany_kiel_province, type=UnitType.ARMY, nation=italy_vs_germany_germany_nation)
+        new_phase.supply_centers.create(province=italy_vs_germany_kiel_province, nation=italy_vs_germany_germany_nation)
+
+        Phase.objects._check_eliminations(previous_phase, new_phase)
+
+        jobs = _elimination_jobs(in_memory_procrastinate)
+        assert len(jobs) == 1
+        args = jobs[0]["args"]
+        assert args["user_ids"] == [primary_user.id]
+        assert args["title"] == game.name
+
+    @pytest.mark.django_db
+    def test_no_notification_when_no_new_eliminations(
+        self,
+        make_elimination_game,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        italy_vs_germany_kiel_province,
+        in_memory_procrastinate,
+    ):
+        game, italy, germany = make_elimination_game()
+        previous_phase = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Spring", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=1, status=PhaseStatus.COMPLETED,
+        )
+        new_phase = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Fall", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=2, status=PhaseStatus.ACTIVE,
+        )
+        new_phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
+        new_phase.units.create(province=italy_vs_germany_kiel_province, type=UnitType.ARMY, nation=italy_vs_germany_germany_nation)
+
+        Phase.objects._check_eliminations(previous_phase, new_phase)
+
+        assert _elimination_jobs(in_memory_procrastinate) == []

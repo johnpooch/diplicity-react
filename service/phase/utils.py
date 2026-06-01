@@ -1,9 +1,74 @@
 from datetime import timedelta
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.utils import timezone
 
 from common.constants import OrderType, PhaseFrequency, PhaseType, ProvinceType
+
+
+def format_time_remaining(seconds):
+    if seconds >= 2 * 3600:
+        return f"{int(seconds // 3600)} hours"
+    if seconds >= 3600:
+        return "1 hour"
+    if seconds >= 2 * 60:
+        return f"{int(seconds // 60)} minutes"
+    return "less than a minute"
+
+
+def format_deadline(dt, tz_name=None):
+    if tz_name:
+        try:
+            dt_local = dt.astimezone(ZoneInfo(tz_name))
+            return dt_local.strftime("%b %d, %Y at %I:%M %p") + f" {tz_name}"
+        except ZoneInfoNotFoundError:
+            pass
+    return dt.strftime("%b %d, %Y at %I:%M %p UTC")
+
+
+def build_notification_body(orders_confirmed, is_fixed_time, orders_given, total_units, time_left, extensions_remaining):
+    if extensions_remaining > 0:
+        nmr_suffix = "If no orders given, the deadline will extend, but you'll lose an extension."
+    else:
+        nmr_suffix = "If no orders given, the game will stop waiting for you for next turns."
+
+    if is_fixed_time:
+        if orders_given == total_units:
+            return None
+        if orders_given > 0:
+            return (
+                f"Deadline approaching - orders incomplete. "
+                f"{orders_given}/{total_units} units have an order. "
+                f"{time_left} to adjust your orders."
+            )
+        return (
+            f"Deadline approaching - no orders given. "
+            f"Your units have not received orders. "
+            f"{time_left} to adjust your orders. "
+            f"{nmr_suffix}"
+        )
+    else:
+        if orders_confirmed:
+            return None
+        if orders_given == total_units:
+            return (
+                f"Deadline approaching - orders ready, waiting confirmation. "
+                f"You have {time_left} to adjust your orders. "
+                f"If not confirmed, standing orders will execute."
+            )
+        if orders_given > 0:
+            return (
+                f"Deadline approaching - orders incomplete. "
+                f"{orders_given}/{total_units} units have an order. "
+                f"{time_left} to adjust your orders. "
+                f"If not confirmed, standing orders will execute."
+            )
+        return (
+            f"Deadline approaching - no orders given. "
+            f"Your units don't have orders yet. "
+            f"{time_left} to provide orders. "
+            f"{nmr_suffix}"
+        )
 
 
 def transform_options(raw_options):

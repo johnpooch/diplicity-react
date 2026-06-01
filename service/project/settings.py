@@ -245,6 +245,8 @@ APPLE_CLIENT_ID = os.getenv("APPLE_CLIENT_ID", "com.diplicity.app")
 
 SOCIAL_AUTH_PASSWORD = os.getenv("SOCIAL_AUTH_PASSWORD", "default_social_password")
 
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://diplicity.com")
+
 
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
