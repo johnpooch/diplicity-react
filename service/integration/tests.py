@@ -1,5 +1,6 @@
 from re import I
 import pytest
+from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
@@ -313,10 +314,10 @@ def test_active_game_create_orders_and_confirm(
     # Notification is sent to both users
     mock_send_notification_to_users.assert_called_with(
         user_ids=[germany_member.user.id, italy_member.user.id],
-        title="Phase Resolved",
-        body=f"Phase '{first_phase.name}' has been resolved!",
+        title=active_game.name,
+        body=f"{first_phase.name} has been resolved",
         notification_type="phase_resolved",
-        data={"game_id": str(active_game.id)},
+        data={"game_id": str(active_game.id), "link": f"{settings.FRONTEND_URL}/game/{active_game.id}"},
     )
 
     # The empty Spring 1901 Retreat is skipped, so resolving the movement
@@ -1409,8 +1410,7 @@ def test_eliminated_nation_is_flagged_and_excluded_from_dias_draw(
     primary_user,
     secondary_user,
     tertiary_user,
-    mock_send_notification_to_users,
-    mock_immediate_on_commit,
+    in_memory_procrastinate,
 ):
     """
     A nation reduced to 0 units and 0 supply centers is flagged eliminated when
@@ -1470,14 +1470,13 @@ def test_eliminated_nation_is_flagged_and_excluded_from_dias_draw(
     game.refresh_from_db()
     assert game.status == GameStatus.ACTIVE
 
-    elim_calls = [
-        c for c in mock_send_notification_to_users.call_args_list
-        if c.kwargs.get("notification_type") == "eliminated"
+    elim_jobs = [
+        j for j in in_memory_procrastinate.jobs.values()
+        if j["task_name"] == "notification.send_notification"
+        and j["args"].get("notification_type") == "elimination"
     ]
-    assert len(elim_calls) == 1
-    assert set(elim_calls[0].kwargs["user_ids"]) == {
-        primary_user.id, secondary_user.id, tertiary_user.id
-    }
+    assert len(elim_jobs) == 1
+    assert elim_jobs[0]["args"]["user_ids"] == [tertiary_user.id]
 
     # A new draw proposal excludes the eliminated nation.
     proposal = DrawProposal.objects.create_proposal(game=game, created_by=england)

@@ -172,6 +172,39 @@ class TestUserAccountDelete:
         assert member.kicked is True
         assert member.user is None
 
+    @pytest.mark.django_db
+    def test_pending_game_with_sole_user_is_deleted(
+        self, delete_user, delete_client, base_pending_game_for_primary_user
+    ):
+        user = delete_user()
+        client = delete_client(user)
+        game = base_pending_game_for_primary_user
+        game.members.create(user=user)
+        game_id = game.id
+
+        url = reverse("user-delete")
+        client.delete(url)
+
+        assert not Game.objects.filter(id=game_id).exists()
+
+    @pytest.mark.django_db
+    def test_pending_game_with_other_members_is_preserved(
+        self, delete_user, delete_client, base_pending_game_for_primary_user, secondary_user
+    ):
+        user = delete_user()
+        user_id = user.id
+        client = delete_client(user)
+        game = base_pending_game_for_primary_user
+        game.members.create(user=user)
+        other_member = game.members.create(user=secondary_user)
+
+        url = reverse("user-delete")
+        client.delete(url)
+
+        assert Game.objects.filter(id=game.id).exists()
+        assert Member.objects.filter(id=other_member.id).exists()
+        assert not Member.objects.filter(game=game, user_id=user_id).exists()
+
 
 class TestWelcomeSandboxGameCreation:
 

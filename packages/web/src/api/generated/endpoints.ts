@@ -670,6 +670,7 @@ export interface PhaseRetrieve {
   status: StatusEnum;
   units: Unit[];
   supplyCenters: SupplyCenter[];
+  provinceNations: Record<string, string>;
   /** @nullable */
   previousPhaseId: number | null;
   /** @nullable */
@@ -718,6 +719,7 @@ export interface VictoryConditions {
 
 export interface VariantProvince {
   id: string;
+  name: string;
   /** @nullable */
   parentId: string | null;
 }

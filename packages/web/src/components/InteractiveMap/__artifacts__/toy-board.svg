@@ -2,7 +2,7 @@
 <defs><style>.label{font-family:serif}</style></defs>
 <defs><pattern patternTransform="rotate(45)" height="8" width="8" patternUnits="userSpaceOnUse" id="highlightedStripes"><line stroke-width="2" stroke-opacity="0.6" stroke="#FFFFFF" y2="8" x2="0" y1="0" x1="0"/></pattern></defs>
 <g id="background"><rect width="600" height="400" fill="#cce"/></g>
-<g id="province-fills"><path d="M105 70 L210 65 L235 130 L200 200 L110 205 L90 135 Z" fill="rgba(27, 79, 156, 0.5)" stroke="none" stroke-width="1"/>
+<g id="province-fills"><path d="M105 70 L210 65 L235 130 L200 200 L110 205 L90 135 Z" fill="rgba(27, 79, 156, 0.4)" stroke="none" stroke-width="1"/>
 <path d="M250 235 L360 230 L385 295 L350 365 L255 370 L230 300 Z" fill="rgba(255, 255, 255, 0.8)" stroke="white" stroke-width="5"/>
 <path d="M395 70 L510 65 L535 130 L500 200 L405 205 L375 135 Z" fill="rgba(59, 156, 59, 0.3)" stroke="#FFFFFF" stroke-width="5"><animate attributeName="stroke-width" values="5;7;5" dur="2s" repeatCount="indefinite"/></path>
 <path d="M395 70 L510 65 L535 130 L500 200 L405 205 L375 135 Z" fill="url(#highlightedStripes)" stroke="none" pointer-events="none"/></g>

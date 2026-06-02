@@ -4,7 +4,7 @@ from order.utils import get_options_for_order
 from province.serializers import ProvinceSerializer
 from nation.serializers import NationSerializer
 from .models import Order
-from common.constants import OrderType, UnitType, OrderCreationStep
+from common.constants import OrderType, UnitType, OrderCreationStep, PhaseType
 
 
 class FieldValueSerializer(serializers.Serializer):
@@ -90,6 +90,11 @@ class OrderSerializer(serializers.Serializer):
 
         if order.complete:
             Order.objects.delete_existing_for_source(order.phase_state, order.source)
+            if self.context["phase"].type == PhaseType.ADJUSTMENT:
+                try:
+                    order.clean()
+                except exceptions.ValidationError as e:
+                    raise serializers.ValidationError(e.messages)
             order.save()
             return Order.objects.with_related_data().get(id=order.id)
 

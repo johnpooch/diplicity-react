@@ -20,7 +20,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -35,8 +34,6 @@ import {
   MoreHorizontal,
   LogOut,
   Copy,
-  Handshake,
-  Vote,
   Clock,
   Pause,
   Play,
@@ -53,14 +50,11 @@ import {
   getGameRetrieveQueryKey,
   GameList,
   GameRetrieve,
-  useGamesDrawProposalsListSuspense,
-  DrawProposal,
   DurationEnum,
   getGamePhasesListQueryKey,
   getGamePhaseRetrieveQueryKey,
 } from "@/api/generated/endpoints";
 import { EXTEND_DURATION_OPTIONS } from "@/constants";
-import { Suspense } from "react";
 
 interface GameDropdownMenuProps {
   game: Pick<GameList, "id" | "sandbox" | "canLeave" | "canDelete" | "isPaused"> &
@@ -68,58 +62,6 @@ interface GameDropdownMenuProps {
   onNavigateToGameInfo: () => void;
   onNavigateToPlayerInfo: () => void;
 }
-
-interface DrawProposalBadgeProps {
-  gameId: string;
-  currentMemberId?: number;
-}
-
-const getPendingVotesCount = (
-  proposals: DrawProposal[],
-  currentMemberId?: number
-) => {
-  if (currentMemberId === undefined) return 0;
-  return proposals.filter(p => {
-    if (p.status !== "pending") return false;
-    if (!p.myVote) return false;
-    return p.myVote.accepted === null;
-  }).length;
-};
-
-const DrawProposalBadge: React.FC<DrawProposalBadgeProps> = ({
-  gameId,
-  currentMemberId,
-}) => {
-  const { data: proposals } = useGamesDrawProposalsListSuspense(gameId);
-  const pendingVotesCount = getPendingVotesCount(proposals, currentMemberId);
-
-  if (pendingVotesCount === 0) return null;
-
-  return (
-    <Badge variant="destructive" className="ml-auto h-5 w-5 p-0 justify-center">
-      {pendingVotesCount}
-    </Badge>
-  );
-};
-
-const DrawProposalTriggerBadge: React.FC<DrawProposalBadgeProps> = ({
-  gameId,
-  currentMemberId,
-}) => {
-  const { data: proposals } = useGamesDrawProposalsListSuspense(gameId);
-  const pendingVotesCount = getPendingVotesCount(proposals, currentMemberId);
-
-  if (pendingVotesCount === 0) return null;
-
-  return (
-    <Badge
-      variant="destructive"
-      className="absolute -top-1 -right-1 h-4 w-4 p-0 justify-center text-[10px]"
-    >
-      {pendingVotesCount}
-    </Badge>
-  );
-};
 
 export function GameDropdownMenu({
   game,
@@ -152,13 +94,6 @@ export function GameDropdownMenu({
     isCurrentUserGameMaster && isActiveGame && !game.isPaused;
   const canUnpauseGame =
     isCurrentUserGameMaster && isActiveGame && game.isPaused;
-  const isActiveOrFinishedGame =
-    game.status === "active" ||
-    game.status === "completed" ||
-    game.status === "abandoned";
-  const canProposeDraw = !game.sandbox && isActiveGame;
-  const canViewDrawProposals = !game.sandbox && isActiveOrFinishedGame;
-
   const handleLeaveGame = async () => {
     try {
       await leaveGameMutation.mutateAsync({ gameId: game.id });
@@ -196,14 +131,6 @@ export function GameDropdownMenu({
     }
   };
 
-  const handleNavigateToProposeDraw = () => {
-    navigate(`/game/${game.id}/phase/${phaseId}/propose-draw`);
-  };
-
-  const handleNavigateToDrawProposals = () => {
-    navigate(`/game/${game.id}/phase/${phaseId}/draw-proposals`);
-  };
-
   const handleExtendDeadlineDialogChange = (open: boolean) => {
     setShowExtendDeadlineDialog(open);
     if (!open) {
@@ -226,9 +153,11 @@ export function GameDropdownMenu({
       queryClient.invalidateQueries({
         queryKey: getGamePhasesListQueryKey(game.id),
       });
-      queryClient.invalidateQueries({
-        queryKey: getGamePhaseRetrieveQueryKey(game.id, Number(phaseId)),
-      });
+      if (phaseId !== undefined) {
+        queryClient.invalidateQueries({
+          queryKey: getGamePhaseRetrieveQueryKey(game.id, Number(phaseId)),
+        });
+      }
     } catch {
       toast.error("Failed to extend deadline");
     }
@@ -270,14 +199,6 @@ export function GameDropdownMenu({
           className="relative"
         >
           <MoreHorizontal />
-          {canViewDrawProposals && phaseId && (
-            <Suspense fallback={null}>
-              <DrawProposalTriggerBadge
-                gameId={game.id}
-                currentMemberId={currentMember?.id}
-              />
-            </Suspense>
-          )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
@@ -291,11 +212,15 @@ export function GameDropdownMenu({
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onClick={() => {
-            navigator.clipboard.writeText(
-              `https://diplicity.com/game/${game.id}`
-            );
-            toast.success("Link copied to clipboard");
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(
+                `https://diplicity.com/game/${game.id}`
+              );
+              toast.success("Link copied to clipboard");
+            } catch {
+              toast.error("Failed to copy link");
+            }
           }}
         >
           <Share />
@@ -329,30 +254,6 @@ export function GameDropdownMenu({
             <Play />
             Resume game
           </DropdownMenuItem>
-        )}
-        {canProposeDraw && phaseId && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleNavigateToProposeDraw}>
-              <Handshake />
-              Propose draw
-            </DropdownMenuItem>
-          </>
-        )}
-        {canViewDrawProposals && phaseId && (
-          <>
-            {!canProposeDraw && <DropdownMenuSeparator />}
-            <DropdownMenuItem onClick={handleNavigateToDrawProposals}>
-              <Vote />
-              Draw proposals
-              <Suspense fallback={null}>
-                <DrawProposalBadge
-                  gameId={game.id}
-                  currentMemberId={currentMember?.id}
-                />
-              </Suspense>
-            </DropdownMenuItem>
-          </>
         )}
         {game.canLeave && (
           <>

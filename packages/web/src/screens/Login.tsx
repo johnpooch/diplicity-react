@@ -11,7 +11,7 @@ import {
   useAuthEmailLoginCreate,
   useAuthLoginCreate,
 } from "../api/generated/endpoints";
-import { isNativePlatform } from "@/utils/platform";
+import { isIosPlatform, isNativePlatform } from "@/utils/platform";
 import { nativeAppleSignIn } from "@/auth/nativeAppleAuth";
 import { nativeGoogleSignIn } from "@/auth/nativeGoogleAuth";
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -178,18 +178,20 @@ const Login: React.FC = () => {
           <p className="text-[17px] leading-[1.6] text-white/85 max-w-[520px]">
             Diplomacy is the legendary game of negotiation, alliance, and betrayal — a war where every move is decided by the people playing, not by chance. Outwit, out-talk, and outlast everyone else to take the map.
           </p>
-          <a
-            href="https://apps.apple.com/app/id6759169536"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-block mt-8"
-          >
-            <img
-              src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us"
-              alt="Download on the App Store"
-              className="h-10"
-            />
-          </a>
+          {(!isNativePlatform() || isIosPlatform()) && (
+            <a
+              href="https://apps.apple.com/app/id6759169536"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-block mt-8"
+            >
+              <img
+                src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us"
+                alt="Download on the App Store"
+                className="h-10"
+              />
+            </a>
+          )}
         </div>
 
         {/* Scroll hint */}
@@ -281,9 +283,11 @@ const Login: React.FC = () => {
                   <Button variant="outline" onClick={handleNativeLogin}>
                     Sign in with Google
                   </Button>
-                  <Button variant="outline" onClick={handleAppleLogin}>
-                    Sign in with Apple
-                  </Button>
+                  {isIosPlatform() && (
+                    <Button variant="outline" onClick={handleAppleLogin}>
+                      Sign in with Apple
+                    </Button>
+                  )}
                 </>
               ) : (
                 <GoogleLogin
@@ -303,18 +307,20 @@ const Login: React.FC = () => {
         </div>
 
         {/* App Store badge — mobile only, inside hero below login card */}
-        <a
-          href="https://apps.apple.com/app/id6759169536"
-          target="_blank"
-          rel="noreferrer"
-          className="relative z-10 lg:hidden mt-6"
-        >
-          <img
-            src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us"
-            alt="Download on the App Store"
-            className="h-10"
-          />
-        </a>
+        {(!isNativePlatform() || isIosPlatform()) && (
+          <a
+            href="https://apps.apple.com/app/id6759169536"
+            target="_blank"
+            rel="noreferrer"
+            className="relative z-10 lg:hidden mt-6"
+          >
+            <img
+              src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us"
+              alt="Download on the App Store"
+              className="h-10"
+            />
+          </a>
+        )}
 
       </section>
 

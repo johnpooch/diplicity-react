@@ -2001,6 +2001,106 @@ class TestOrderValidationLimits:
             order2.clean()
 
 
+class TestOrderCreateViewAdjustmentCap:
+    """Test that the API enforces adjustment phase build/disband caps."""
+
+    @pytest.mark.django_db
+    def test_second_build_rejected_when_cap_reached(
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        classical_england_nation,
+        classical_london_province,
+        classical_paris_province,
+    ):
+        game = active_game_with_phase_state
+        phase = game.current_phase
+        phase.type = PhaseType.ADJUSTMENT
+        phase.ordinal = phase.ordinal + 1
+        phase.options = {
+            "England": {
+                "lon": {
+                    "Next": {
+                        "Build": {
+                            "Next": {"Army": {"Next": {}, "Type": "UnitType"}},
+                            "Type": "OrderType",
+                        },
+                    },
+                    "Type": "Province",
+                },
+                "par": {
+                    "Next": {
+                        "Build": {
+                            "Next": {"Army": {"Next": {}, "Type": "UnitType"}},
+                            "Type": "OrderType",
+                        },
+                    },
+                    "Type": "Province",
+                },
+            },
+        }
+        phase.save()
+        # 3 SCs (edi from fixture, lon, par), 2 units (edi from fixture, lon) → 1 build allowed
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_paris_province)
+        phase.units.create(type="Army", nation=classical_england_nation, province=classical_london_province)
+
+        url = reverse("order-create", args=[game.id])
+
+        response = authenticated_client.post(url, {"selected": ["lon", "Build", "Army"]}, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        response = authenticated_client.post(url, {"selected": ["par", "Build", "Army"]}, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    def test_second_disband_rejected_when_cap_reached(
+        self,
+        authenticated_client,
+        active_game_with_phase_state,
+        classical_england_nation,
+        classical_edinburgh_province,
+        classical_london_province,
+    ):
+        game = active_game_with_phase_state
+        phase = game.current_phase
+        phase.type = PhaseType.ADJUSTMENT
+        phase.ordinal = phase.ordinal + 1
+        phase.options = {
+            "England": {
+                "edi": {
+                    "Next": {
+                        "Disband": {
+                            "Next": {"edi": {"Next": {}, "Type": "SrcProvince"}},
+                            "Type": "OrderType",
+                        },
+                    },
+                    "Type": "Province",
+                },
+                "lon": {
+                    "Next": {
+                        "Disband": {
+                            "Next": {"lon": {"Next": {}, "Type": "SrcProvince"}},
+                            "Type": "OrderType",
+                        },
+                    },
+                    "Type": "Province",
+                },
+            },
+        }
+        phase.save()
+        # 1 SC (edi from fixture), 2 units (edi from fixture, lon) → 1 disband needed
+        phase.units.create(type="Army", nation=classical_england_nation, province=classical_london_province)
+
+        url = reverse("order-create", args=[game.id])
+
+        response = authenticated_client.post(url, {"selected": ["edi", "Disband"]}, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        response = authenticated_client.post(url, {"selected": ["lon", "Disband"]}, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
 class TestOrderNamedCoastStep:
 
     @pytest.mark.django_db

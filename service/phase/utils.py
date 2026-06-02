@@ -1,9 +1,74 @@
 from datetime import timedelta
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.utils import timezone
 
-from common.constants import OrderType, PhaseFrequency, PhaseType
+from common.constants import OrderType, PhaseFrequency, PhaseType, ProvinceType
+
+
+def format_time_remaining(seconds):
+    if seconds >= 2 * 3600:
+        return f"{int(seconds // 3600)} hours"
+    if seconds >= 3600:
+        return "1 hour"
+    if seconds >= 2 * 60:
+        return f"{int(seconds // 60)} minutes"
+    return "less than a minute"
+
+
+def format_deadline(dt, tz_name=None):
+    if tz_name:
+        try:
+            dt_local = dt.astimezone(ZoneInfo(tz_name))
+            return dt_local.strftime("%b %d, %Y at %I:%M %p") + f" {tz_name}"
+        except ZoneInfoNotFoundError:
+            pass
+    return dt.strftime("%b %d, %Y at %I:%M %p UTC")
+
+
+def build_notification_body(orders_confirmed, is_fixed_time, orders_given, total_units, time_left, extensions_remaining):
+    if extensions_remaining > 0:
+        nmr_suffix = "If no orders given, the deadline will extend, but you'll lose an extension."
+    else:
+        nmr_suffix = "If no orders given, the game will stop waiting for you for next turns."
+
+    if is_fixed_time:
+        if orders_given == total_units:
+            return None
+        if orders_given > 0:
+            return (
+                f"Deadline approaching - orders incomplete. "
+                f"{orders_given}/{total_units} units have an order. "
+                f"{time_left} to adjust your orders."
+            )
+        return (
+            f"Deadline approaching - no orders given. "
+            f"Your units have not received orders. "
+            f"{time_left} to adjust your orders. "
+            f"{nmr_suffix}"
+        )
+    else:
+        if orders_confirmed:
+            return None
+        if orders_given == total_units:
+            return (
+                f"Deadline approaching - orders ready, waiting confirmation. "
+                f"You have {time_left} to adjust your orders. "
+                f"If not confirmed, standing orders will execute."
+            )
+        if orders_given > 0:
+            return (
+                f"Deadline approaching - orders incomplete. "
+                f"{orders_given}/{total_units} units have an order. "
+                f"{time_left} to adjust your orders. "
+                f"If not confirmed, standing orders will execute."
+            )
+        return (
+            f"Deadline approaching - no orders given. "
+            f"Your units don't have orders yet. "
+            f"{time_left} to provide orders. "
+            f"{nmr_suffix}"
+        )
 
 
 def transform_options(raw_options):
@@ -436,6 +501,81 @@ def _canonical_order(order, phase_type):
         "unitType": order.unit_type,
         "viaConvoy": via_convoy,
     }
+
+
+def compute_province_nations(supply_centers, provinces, dominance_rules, nations):
+    sc_owner_map = {sc.province.province_id: sc.nation.name for sc in supply_centers}
+    province_map = {p.province_id: p for p in provinces}
+    nation_id_to_name = {n.nation_id: n.name for n in nations}
+
+    rules_by_province = {}
+    for rule in dominance_rules:
+        rules_by_province.setdefault(rule["province"], []).append(rule)
+
+    UNOWNED_MARKERS = {"Empty", "Neutral"}
+
+    def resolve_to_sc_id(province_id):
+        p = province_map.get(province_id)
+        if not p:
+            return None
+        if p.supply_center:
+            return province_id
+        if p.parent_id:
+            parent = province_map.get(p.parent.province_id)
+            if parent and parent.supply_center:
+                return p.parent.province_id
+        return None
+
+    def dependency_matches(dep):
+        nation = dep["nation"]
+        prov = dep["province"]
+        if nation in UNOWNED_MARKERS:
+            return prov not in sc_owner_map
+        nation_name = nation_id_to_name.get(nation)
+        if not nation_name:
+            return False
+        return sc_owner_map.get(prov) == nation_name
+
+    def default_color(province):
+        adjacent_sc_ids = set()
+        for adj in province.adjacencies:
+            sc_id = resolve_to_sc_id(adj["to"])
+            if sc_id:
+                adjacent_sc_ids.add(sc_id)
+        if not adjacent_sc_ids:
+            return None
+        owner = None
+        for sc_id in adjacent_sc_ids:
+            sc_owner = sc_owner_map.get(sc_id)
+            if not sc_owner:
+                return None
+            if owner is None:
+                owner = sc_owner
+            elif owner != sc_owner:
+                return None
+        return owner
+
+    result = {}
+    for province in province_map.values():
+        if province.supply_center:
+            continue
+        if province.type in (ProvinceType.SEA, ProvinceType.NAMED_COAST):
+            continue
+
+        rules = rules_by_province.get(province.province_id)
+        if rules:
+            matched = next((r for r in rules if all(dependency_matches(d) for d in r["dependencies"])), None)
+            if matched:
+                nation_name = nation_id_to_name.get(matched["nation"])
+                if nation_name:
+                    result[province.province_id] = nation_name
+                continue
+
+        nation_name = default_color(province)
+        if nation_name:
+            result[province.province_id] = nation_name
+
+    return result
 
 
 def phase_to_canonical_game_state(phase):

@@ -235,15 +235,14 @@ describe("deriveWizardStep", () => {
     expect(result.isComplete).toBe(false);
   });
 
-  it("14. Single order → full auto-advance", () => {
+  it("14. Single order, no selections → source presented (not auto-completed)", () => {
     const orders = [
       option({ source: fv("lon"), orderType: fv("Hold") }),
     ];
     const result = deriveWizardStep(orders, FIELD_ORDER, {});
-    expect(result.isComplete).toBe(true);
-    expect(result.selectedArray).toEqual(["lon", "Hold"]);
-    expect(result.resolvedSelections["source"]).toBe("lon");
-    expect(result.resolvedSelections["orderType"]).toBe("Hold");
+    expect(result.nextField).toBe("source");
+    expect(result.choices).toEqual([fv("lon")]);
+    expect(result.isComplete).toBe(false);
   });
 
   it("15. selectedArray ordering for Move", () => {
@@ -301,7 +300,7 @@ describe("deriveWizardStep", () => {
     expect(result.selectedArray).toEqual(["nth", "Convoy", "yor", "bel"]);
   });
 
-  it("18. Retreat phase: single dislodged unit auto-advances source, presents order type choices", () => {
+  it("18. Retreat phase: single dislodged unit → source presented (user must click unit)", () => {
     // Scenario: one dislodged unit in Paris can retreat (Move) or Disband
     const orders = [
       option({
@@ -320,14 +319,39 @@ describe("deriveWizardStep", () => {
       }),
     ];
     const result = deriveWizardStep(orders, FIELD_ORDER, {});
-    // Source should auto-advance (only one unit)
-    expect(result.resolvedSelections["source"]).toBe("par");
-    // Should stop at orderType with Move and Disband choices
-    expect(result.nextField).toBe("orderType");
-    expect(result.choices).toEqual([
-      fv("Move", "Move"),
-      fv("Disband", "Disband"),
-    ]);
+    // Source is not auto-advanced; user must click the unit to start
+    expect(result.nextField).toBe("source");
+    expect(result.choices).toEqual([fv("par", "Paris")]);
     expect(result.isComplete).toBe(false);
+  });
+
+  it("19. Single build option, no selections → source presented, not auto-completed", () => {
+    // Regression: adjustment phase with one build location and one unit type must
+    // not auto-create the order without user interaction
+    const orders = [
+      option({
+        source: fv("lon", "London"),
+        orderType: fv("Build", "Build"),
+        unitType: fv("Army", "Army"),
+      }),
+    ];
+    const result = deriveWizardStep(orders, FIELD_ORDER, {});
+    expect(result.nextField).toBe("source");
+    expect(result.choices).toEqual([fv("lon", "London")]);
+    expect(result.isComplete).toBe(false);
+  });
+
+  it("20. Single build option, source selected → auto-advances to complete", () => {
+    // Once the user clicks the province, remaining single-choice fields auto-advance
+    const orders = [
+      option({
+        source: fv("lon", "London"),
+        orderType: fv("Build", "Build"),
+        unitType: fv("Army", "Army"),
+      }),
+    ];
+    const result = deriveWizardStep(orders, FIELD_ORDER, { source: "lon" });
+    expect(result.isComplete).toBe(true);
+    expect(result.selectedArray).toEqual(["lon", "Build", "Army"]);
   });
 });

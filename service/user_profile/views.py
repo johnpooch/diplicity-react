@@ -1,5 +1,7 @@
 from rest_framework import permissions, generics
+from django.db import transaction
 
+from game.models import Game
 from member.models import Member
 from common.constants import GameStatus
 from .models import UserProfile
@@ -29,9 +31,17 @@ class UserAccountDeleteView(generics.DestroyAPIView):
         return self.request.user
 
     def perform_destroy(self, instance):
-        user_members = Member.objects.filter(user=instance)
-        user_members.filter(game__status=GameStatus.PENDING).delete()
-        user_members.filter(
-            game__status__in=[GameStatus.ACTIVE, GameStatus.COMPLETED]
-        ).update(kicked=True)
-        instance.delete()
+        with transaction.atomic():
+            user_members = Member.objects.filter(user=instance)
+            pending_game_ids = list(
+                user_members.filter(game__status=GameStatus.PENDING).values_list(
+                    "game_id", flat=True
+                )
+            )
+            user_members.filter(game__status=GameStatus.PENDING).delete()
+            user_members.filter(
+                game__status__in=[GameStatus.ACTIVE, GameStatus.COMPLETED]
+            ).update(kicked=True)
+            for game in Game.objects.filter(id__in=pending_game_ids):
+                game.delete_if_empty_pending()
+            instance.delete()

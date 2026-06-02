@@ -7,6 +7,9 @@ const config: CapacitorConfig = {
   ios: {
     webContentsDebuggingEnabled: true,
   },
+  android: {
+    webContentsDebuggingEnabled: true,
+  },
   server: {
     iosScheme: "capacitor",
   },

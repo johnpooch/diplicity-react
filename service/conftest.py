@@ -560,6 +560,16 @@ def mock_immediate_on_commit():
         yield
 
 
+@pytest.fixture
+def in_memory_procrastinate():
+    from procrastinate import testing
+    from procrastinate.contrib.django import app
+
+    connector = testing.InMemoryConnector()
+    with app.replace_connector(connector):
+        yield connector
+
+
 @pytest.fixture(scope="session")
 def classical_italy_nation(django_db_setup, django_db_blocker, classical_variant):
     with django_db_blocker.unblock():

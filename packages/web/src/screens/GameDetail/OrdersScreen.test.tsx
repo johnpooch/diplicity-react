@@ -36,12 +36,17 @@ vi.mock("@/api/generated/endpoints", () => ({
   useGameOrdersDeleteDestroy: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useGameConfirmPhasePartialUpdate: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useGameResolvePhaseCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useGamesDrawProposalsListSuspense: () => ({ data: [] }),
   getGameRetrieveQueryKey: () => ["game"],
   getGameOrdersListQueryKey: () => ["orders"],
   getGameOptionsRetrieveQueryKey: () => ["options"],
 }));
 
-vi.mock("@/components/NationFlag", () => ({ NationFlag: () => null, findNationFlagUrl: () => null }));
+vi.mock("@/components/NationFlag", () => ({
+  NationFlag: () => null,
+  findNationFlagUrl: () => null,
+  findNationColor: () => null,
+}));
 vi.mock("@/components/PhaseSelect", () => ({ PhaseSelect: () => null }));
 vi.mock("@/components/PhaseGuidance", () => ({ PhaseGuidance: () => null }));
 vi.mock("@/components/GameDropdownMenu", () => ({ GameDropdownMenu: () => null }));

@@ -17,3 +17,22 @@ firebase.initializeApp({
 });
 
 const messaging = firebase.messaging();
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const link = event.notification.data?.FCM_MSG?.data?.link;
+  if (!link) return;
+  event.waitUntil(
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((windowClients) => {
+        for (const client of windowClients) {
+          if ("focus" in client) {
+            client.postMessage({ type: "NOTIFICATION_CLICK", link });
+            return client.focus();
+          }
+        }
+        return clients.openWindow(link);
+      })
+  );
+});

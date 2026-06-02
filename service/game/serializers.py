@@ -1,5 +1,6 @@
 from zoneinfo import ZoneInfo
 
+from django.conf import settings
 from rest_framework import serializers
 from django.db import transaction
 from django.db.models import Count, Q, Subquery, OuterRef
@@ -11,6 +12,7 @@ from member.serializers import MemberSerializer
 from unit.models import Unit
 from supply_center.models import SupplyCenter
 from notification import utils as notification_utils
+from phase.utils import format_deadline
 
 from victory.serializers import VictorySerializer
 from variant.models import Variant
@@ -34,7 +36,7 @@ def send_gm_action_notification(game, title, body, notification_type):
             title=title,
             body=body,
             notification_type=notification_type,
-            data={"game_id": str(game.id)},
+            data={"game_id": str(game.id), "link": f"{settings.FRONTEND_URL}/game/{game.id}"},
         )
     transaction.on_commit(_send)
 
@@ -179,6 +181,7 @@ class GameRetrieveSerializer(serializers.Serializer):
                     ).values("last_read_at")[:1]
                 ),
             )
+            .exclude(sender__user=user)
             .distinct()
             .count()
         )
@@ -422,7 +425,7 @@ class GamePauseSerializer(serializers.Serializer):
         instance.pause()
         send_gm_action_notification(
             instance,
-            title="Game Paused",
+            title=instance.name,
             body=f"Game paused by Game Master ({gm_username})",
             notification_type="game_paused",
         )
@@ -442,10 +445,10 @@ class GameUnpauseSerializer(serializers.Serializer):
         gm_username = self.context["request"].user.username
         instance.unpause()
         new_deadline = instance.current_phase.scheduled_resolution if instance.current_phase else None
-        deadline_str = new_deadline.strftime("%b %d, %Y at %I:%M %p") if new_deadline else "N/A"
+        deadline_str = format_deadline(new_deadline, instance.fixed_deadline_timezone) if new_deadline else "N/A"
         send_gm_action_notification(
             instance,
-            title="Game Resumed",
+            title=instance.name,
             body=f"Game resumed by Game Master ({gm_username}). New deadline: {deadline_str}",
             notification_type="game_resumed",
         )
@@ -473,10 +476,12 @@ class GameExtendDeadlineSerializer(serializers.Serializer):
     def update(self, instance, validated_data):
         gm_username = self.context["request"].user.username
         instance.extend_deadline(validated_data["duration"])
+        new_deadline = instance.current_phase.scheduled_resolution if instance.current_phase else None
+        deadline_str = format_deadline(new_deadline, instance.fixed_deadline_timezone) if new_deadline else "N/A"
         send_gm_action_notification(
             instance,
-            title="Deadline Extended",
-            body=f"Deadline extended by Game Master ({gm_username})",
+            title=instance.name,
+            body=f"Deadline extended by Game Master ({gm_username}). New deadline: {deadline_str}",
             notification_type="game_deadline_extended",
         )
         return instance

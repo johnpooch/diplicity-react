@@ -1,8 +1,12 @@
+require 'base64'
+
 default_platform(:ios)
 
 REPO_ROOT = File.expand_path("../../..", __dir__)
 WEB_ROOT = File.expand_path("..", __dir__)
 XCODEPROJ = File.join(WEB_ROOT, "ios/App/App.xcodeproj")
+ANDROID_DIR = File.join(WEB_ROOT, "android")
+ANDROID_KEYSTORE_FILE = File.join(REPO_ROOT, "diplicity-android-upload.keystore")
 
 platform :ios do
   before_all do
@@ -135,5 +139,90 @@ platform :ios do
     ensure
       restore_signing unless is_ci
     end
+  end
+end
+
+platform :android do
+  before_all do
+    if is_ci
+      setup_ci
+      # Decode upload keystore from base64 secret to a file the Gradle signing
+      # config can read (ANDROID_KEYSTORE_PATH env var, set below).
+      File.binwrite(ANDROID_KEYSTORE_FILE, Base64.decode64(ENV.fetch("ANDROID_KEYSTORE_BASE64")))
+      ENV["ANDROID_KEYSTORE_PATH"] = ANDROID_KEYSTORE_FILE
+    end
+  end
+
+  private_lane :build_aab do
+    gradle(
+      task: "bundle",
+      build_type: "Release",
+      project_dir: ANDROID_DIR,
+    )
+  end
+
+  private_lane :upload_to_play do |options|
+    json_key_env = ENV["PLAY_SERVICE_ACCOUNT_JSON"]
+
+    unless json_key_env
+      UI.important("PLAY_SERVICE_ACCOUNT_JSON not set — skipping Play upload")
+      next
+    end
+
+    aab_path = lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH]
+
+    # skip_upload_screenshots: true until phone screenshots are added to
+    # fastlane/metadata/android/en-US/images/phoneScreenshots/
+    screenshots_dir = File.join(
+      __dir__, "metadata/android/en-US/images/phoneScreenshots"
+    )
+    has_screenshots = Dir.exist?(screenshots_dir) && !Dir.glob("#{screenshots_dir}/*.{png,jpg}").empty?
+
+    release_status = options.fetch(:release_status, "completed")
+    track = options.fetch(:track, ENV.fetch("PLAY_TRACK", "internal"))
+
+    base_params = {
+      package_name: "com.diplicityreact.app",
+      aab: aab_path,
+      track: track,
+      release_status: release_status,
+      skip_upload_apk: true,
+      skip_upload_metadata: false,
+      skip_upload_changelogs: false,
+      skip_upload_images: false,
+      skip_upload_screenshots: !has_screenshots,
+    }
+
+    # Accept either a file path (local dev) or raw JSON string (CI secret)
+    if File.exist?(json_key_env.to_s)
+      supply(base_params.merge(json_key: json_key_env))
+    else
+      supply(base_params.merge(json_key_data: json_key_env))
+    end
+  end
+
+  private_lane :bump_patch_version do
+    package_json_path = File.join(WEB_ROOT, "package.json")
+    package = JSON.parse(File.read(package_json_path))
+    major, minor, patch = package["version"].split(".").map(&:to_i)
+    package["version"] = "#{major}.#{minor}.#{patch + 1}"
+    File.write(package_json_path, JSON.pretty_generate(package) + "\n")
+    UI.success("Bumped version to #{package["version"]}")
+  end
+
+  desc "Build signed AAB and upload to Play Console internal testing track"
+  lane :release do
+    bump_patch_version
+    build_aab
+    upload_to_play
+  end
+
+  desc "Build signed AAB for PR and upload to Play Console internal testing track"
+  lane :pr_build do
+    pr_number = ENV.fetch("PR_NUMBER", "0")
+    pr_title = ENV.fetch("PR_TITLE", "PR Build")
+    UI.message("Building for PR ##{pr_number}: #{pr_title}")
+    build_aab
+    upload_to_play(release_status: "draft")
   end
 end

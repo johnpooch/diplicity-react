@@ -4,7 +4,7 @@ import { Shield, Star, Trophy } from "lucide-react";
 import { CivilDisorderBadge } from "@/components/CivilDisorderBadge";
 import { EliminatedBadge } from "@/components/EliminatedBadge";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
-import { NationFlag, findNationFlagUrl } from "@/components/NationFlag";
+import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
@@ -62,6 +62,7 @@ export const PlayerInfoContent: React.FC = () => {
                     alt={member.nation}
                     size="lg"
                     className="size-8"
+                    color={findNationColor(variant.nations, member.nation)}
                   />
                 )}
 

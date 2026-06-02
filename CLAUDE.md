@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## !!! EXTERNAL SERVICE UIs CHANGE — DO NOT GIVE STALE NAVIGATION INSTRUCTIONS !!!
+
+Google Play Console, Google Cloud Console, Firebase Console, and similar external services update their UIs frequently. **Never give step-by-step navigation instructions for these UIs from memory** — the menu names, sidebar items, and page layouts in your training data are likely out of date. Instead:
+
+- Describe **what the user is trying to accomplish** (e.g. "find the App signing certificate SHA-1")
+- Give the **direct URL** if known (e.g. the `keymanagement` path for App signing)
+- Ask the user to share a screenshot if they can't find something, then guide from what's actually visible
+
+---
+
 ## !!! VERY IMPORTANT PRECURSOR - READ THIS FIRST !!!
 
 **Under no circumstances should you agree with any assertion or claim without providing concrete, evidence-based reasoning.**
@@ -443,7 +453,10 @@ This eliminates the need for runtime null checks when the route guarantees the p
 
 ### General
 
-- **Comments**: Do not add docstrings or comments.
+- **Comments**: Do not add docstrings or comments. This applies to test code too — do
+  not annotate assertions to explain their values. In particular, when a change shifts a
+  query-count (or similar magic-number) assertion, update the number only; do not add a
+  comment explaining the delta.
 
 ### Imports
 
@@ -666,6 +679,143 @@ This generates OpenAPI schema and TypeScript client code for the frontend.
 
 ---
 
+# Android Development (Capacitor)
+
+## Real Device Testing (Preferred)
+
+**Always use the physical Pixel 8a for Android testing — do not use the emulator.** The emulator consumes too much RAM; the real device is the preferred testing target.
+
+- **Bundle ID / Application ID**: `com.diplicityreact.app`
+- **Android Project**: `packages/web/android/`
+- **Connected device UDID**: `46101JEKB13333`
+
+## Environment Prerequisites
+
+The following must be installed on the development machine:
+
+- **JDK 21**: `sudo apt install openjdk-21-jdk` (Capacitor Android 8 requires Java 21; Java 17 is not sufficient)
+- **Android Studio**: `sudo snap install android-studio --classic` (bundles the Android SDK, build-tools, and platform-tools including ADB)
+- **`ANDROID_HOME`**: Set to `$HOME/Android/Sdk` — add to `~/.bashrc`:
+  ```bash
+  export ANDROID_HOME="$HOME/Android/Sdk"
+  export PATH="$ANDROID_HOME/platform-tools:$PATH"
+  ```
+
+## ADB Device Setup (Linux)
+
+Linux requires a udev rule to access the Pixel over USB:
+
+```bash
+echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="18d1", MODE="0664", GROUP="plugdev"' | sudo tee /etc/udev/rules.d/51-android.rules
+sudo udevadm control --reload-rules && sudo udevadm trigger
+sudo usermod -aG plugdev $USER
+# Log out and back in, then unplug/replug the device
+adb kill-server && adb devices
+# Accept the "Allow USB debugging" prompt on the phone
+```
+
+## Build & Deploy Workflow
+
+**IMPORTANT**: All Capacitor commands must be run from `packages/web/` — they use the `capacitor.config.ts` in that directory and will fail if run from the repo root.
+
+```bash
+# All commands run from packages/web/
+cd packages/web
+npm run build                          # Build the web app
+ANDROID_HOME=$HOME/Android/Sdk npx cap sync android   # Sync web assets to Android project
+ANDROID_HOME=$HOME/Android/Sdk npx cap run android --target 46101JEKB13333  # Build and deploy to device
+```
+
+## Version Management
+
+- `versionName` is read from `packages/web/package.json` `version` field (via `rootProject.projectDir/../package.json` in `build.gradle`)
+- `versionCode` is a Unix timestamp (seconds), auto-generated per build
+- Both are set in `android/app/build.gradle` — no manual editing needed
+
+## Firebase Cloud Messaging (Android)
+
+Android push notifications use Firebase Cloud Messaging via the `@capacitor-firebase/messaging` plugin (same plugin as iOS). The Android-specific config file `google-services.json` must be present at `packages/web/android/app/google-services.json` (gitignored).
+
+To set up:
+1. Go to [Firebase console](https://console.firebase.google.com/) → project `diplicity-react` → Project settings → Add app → Android
+2. Enter package name `com.diplicityreact.app`
+3. Download `google-services.json` and place it at `packages/web/android/app/google-services.json`
+
+The `android/app/build.gradle` conditionally applies the `com.google.gms.google-services` plugin when this file exists — no manual Gradle editing needed.
+
+Runtime `POST_NOTIFICATIONS` permission for Android 13+ is handled by `FirebaseMessaging.requestPermissions()` in `messaging-native.ts`.
+
+## Google Sign-In
+
+Android Google Sign-In uses the existing `VITE_GOOGLE_CLIENT_ID` (web client ID) as the `webClientId` in `SocialLogin.initialize()`. No separate Android client ID is needed in app code.
+
+However, an **Android OAuth client must be registered in Google Cloud Console** (Credentials page, same project as the web client) with:
+- Package name: `com.diplicityreact.app`
+- SHA-1 fingerprint — see below
+
+This registration is what allows Google Sign-In to trust builds from this machine/keystore.
+
+### SHA-1 Fingerprints
+
+| Keystore | SHA-1 | Purpose |
+|----------|-------|---------|
+| `~/.android/debug.keystore` (alias `androiddebugkey`) | `6F:9D:E2:20:2F:35:17:10:8C:41:28:B2:61:F5:4F:DE:7F:B1:0E:38` | Local dev / `npx cap run android` debug builds |
+| `diplicity-android-upload.keystore` (alias `upload`) | `6A:39:8D:D3:B4:43:12:22:0C:4C:FA:08:93:B7:AD:19:58:D2:E0:0E` | Release builds / Play Console upload key |
+| Play App Signing certificate | `17:CF:46:81:F1:B2:95:8E:16:25:4A:9E:3E:85:F9:84:17:42:AD:58` | Play Store / CI release builds |
+
+To re-extract the debug SHA-1:
+```bash
+keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
+```
+
+## Credentials
+
+### Upload Keystore
+
+The upload keystore signs AAB/APK builds before submission to Play Console. Play App Signing re-signs the app with Google's key before distribution, so the upload key is never seen by end users — but it must match across all future uploads.
+
+| Item | Value |
+|------|-------|
+| File | `diplicity-android-upload.keystore` (repo root, gitignored) |
+| Key alias | `upload` |
+| SHA-1 | `6A:39:8D:D3:B4:43:12:22:0C:4C:FA:08:93:B7:AD:19:58:D2:E0:0E` |
+| SHA-256 | `72:86:DC:A5:6F:C9:E1:5E:CF:E1:38:8A:AD:D9:C5:FC:B6:0D:2F:5B:CC:05:4D:B1:E5:E9:27:BD:05:EA:32:F8` |
+| Validity | 10 000 days (expires 2053-10-11) |
+| Password | Store in your password manager under "diplicity-android-upload.keystore" |
+
+**Required env vars for release builds:**
+
+```bash
+ANDROID_KEYSTORE_PATH=/path/to/diplicity-android-upload.keystore  # defaults to repo root
+ANDROID_KEYSTORE_PASSWORD=<password>
+ANDROID_KEY_ALIAS=upload
+ANDROID_KEY_PASSWORD=<password>
+```
+
+**Local release build:**
+```bash
+cd packages/web/android
+ANDROID_HOME=$HOME/Android/Sdk \
+  ANDROID_KEYSTORE_PATH="$(git rev-parse --show-toplevel)/diplicity-android-upload.keystore" \
+  ANDROID_KEYSTORE_PASSWORD="..." \
+  ANDROID_KEY_ALIAS="upload" \
+  ANDROID_KEY_PASSWORD="..." \
+  ./gradlew bundleRelease
+```
+
+**Restoring the keystore from scratch:** If the file is lost, a new upload key must be generated and submitted to Play Console via "Upload new key" in the Play App Signing settings. The app can still be distributed — Google holds the actual signing key.
+
+### Gitignored credential files (repo root)
+
+| File | Purpose |
+|------|---------|
+| `diplicity-android-upload.keystore` | Android upload keystore |
+| `google-services.json` | _(at `packages/web/android/app/`)_ Firebase Android config |
+| `AuthKey_C6JM6K4J2X.p8` | APNs key (iOS push notifications) |
+| `AuthKey_WVUV6626PT.p8` | App Store Connect API key (iOS Fastlane CI) |
+
+---
+
 # iOS Development (Capacitor)
 
 ## Real Device Testing (Preferred)
@@ -722,14 +872,30 @@ The Team ID is `G76UP8FNMS` (stored in `.env` as `CAPACITOR_IOS_TEAM_ID`). The c
 
 Run from `packages/web/`:
 ```bash
-# Full release to TestFlight
+# iOS — full release to TestFlight
 npm run build && npx cap sync ios && bundle exec fastlane ios release
 
-# PR validation build
+# iOS — PR validation build
 PR_NUMBER=42 PR_TITLE="My feature" bundle exec fastlane ios pr_build
+
+# Android — full release to Play Console internal track
+VITE_DIPLICITY_API_BASE_URL=https://diplicity-react-production.up.railway.app \
+  npm run build && npx cap sync android && bundle exec fastlane android release
+
+# Android — PR build
+PR_NUMBER=42 PR_TITLE="My feature" bundle exec fastlane android pr_build
 ```
 
-Requires `ASC_KEY_ID` and `ASC_ISSUER_ID` in `.env`, and the `.p8` key file in the repo root.
+iOS requires `ASC_KEY_ID` and `ASC_ISSUER_ID` in `.env`, and the `.p8` key file in the repo root.
+
+Android requires these env vars (add to shell or `.env`):
+```bash
+ANDROID_KEYSTORE_PATH=/path/to/diplicity-android-upload.keystore
+ANDROID_KEYSTORE_PASSWORD=<password>
+ANDROID_KEY_ALIAS=upload
+ANDROID_KEY_PASSWORD=<password>
+PLAY_SERVICE_ACCOUNT_JSON=/path/to/play-service-account.json  # optional; upload skipped if unset
+```
 
 ### Signing Strategy
 
@@ -752,6 +918,8 @@ Fastlane uses `update_code_signing_settings` to switch the App target to Manual 
 
 ### Required GitHub Secrets
 
+#### iOS
+
 | Secret | Description |
 |--------|-------------|
 | `ASC_KEY_ID` | App Store Connect API key ID (`WVUV6626PT`) |
@@ -761,3 +929,13 @@ Fastlane uses `update_code_signing_settings` to switch the App target to Manual 
 | `MATCH_PASSWORD` | Encryption password for match certificates |
 | `MATCH_GIT_BASIC_AUTHORIZATION` | Base64-encoded `user:token` for HTTPS Git auth |
 | `VITE_GOOGLE_IOS_CLIENT_ID` | Google OAuth iOS client ID |
+
+#### Android
+
+| Secret | Description |
+|--------|-------------|
+| `ANDROID_KEYSTORE_BASE64` | Base64-encoded `diplicity-android-upload.keystore` |
+| `ANDROID_KEYSTORE_PASSWORD` | Keystore and key password |
+| `ANDROID_KEY_ALIAS` | Key alias (`upload`) |
+| `ANDROID_KEY_PASSWORD` | Key password (same as keystore password) |
+| `PLAY_SERVICE_ACCOUNT_JSON` | Play Console service account JSON (raw JSON string) |

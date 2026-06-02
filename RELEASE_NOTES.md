@@ -1,5 +1,32 @@
 # Diplicity React - Release Notes
 
+## Faster Phase Resolution (June 1, 2026)
+
+**Release Date:** June 1, 2026
+
+### Improvement: Phases resolve within seconds
+
+Phase resolution now runs on a background worker triggered the moment the last player
+confirms or the deadline arrives, instead of waiting for a once-a-minute check. A phase
+resolves within a couple of seconds of the last confirmation and within a few seconds of
+its deadline. A once-a-minute safety net still catches anything a trigger misses, so
+nothing gets stuck.
+
+### Improvement: Deadline reminders are sent once per deadline
+
+The "Deadline Approaching" reminder is now sent at most once per deadline to each player
+who still has orders to give. If a deadline is later extended, players who still haven't
+confirmed get a fresh reminder before the new deadline. Push notifications are now all
+sent in the background, so posting a message or starting a game responds immediately.
+
+## Android Push Notifications (May 26, 2026)
+
+**Release Date:** May 26, 2026
+
+### Feature: Push notifications now work on Android
+
+The Android app now supports push notifications via Firebase Cloud Messaging. After granting notification permission, the app registers your device with the backend and you'll receive game alerts (phase changes, chat messages, etc.) just like on iOS. Notifications received while the app is open also refresh the game data automatically.
+
 ## Player Elimination (May 24, 2026)
 
 **Release Date:** May 24, 2026

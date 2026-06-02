@@ -1,6 +1,7 @@
 import React, { Suspense } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
+import { Share } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRequiredParams } from "@/hooks";
 
@@ -16,6 +17,7 @@ import {
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { GameInfoContent } from "@/components/GameInfoContent";
+import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
 
 const GameInfo: React.FC = () => {
   const { gameId } = useRequiredParams<{ gameId: string }>();
@@ -25,12 +27,16 @@ const GameInfo: React.FC = () => {
   const { data: game } = useGameRetrieveSuspense(gameId);
   const joinGameMutation = useGameJoinCreate();
   const leaveGameMutation = useGameLeaveDestroy();
+  const checkNotificationPermission = useCheckNotificationPermission();
 
   const handleJoinGame = async () => {
     try {
       await joinGameMutation.mutateAsync({ gameId, data: {} });
       await queryClient.invalidateQueries({ queryKey: getGameRetrieveQueryKey(gameId) });
       toast.success("Game joined successfully");
+      if (!game.sandbox) {
+        checkNotificationPermission();
+      }
     } catch {
       toast.error("Failed to join game");
     }
@@ -43,6 +49,15 @@ const GameInfo: React.FC = () => {
       toast.success("Game left successfully");
     } catch {
       toast.error("Failed to leave game");
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(`https://diplicity.com/game/${gameId}`);
+      toast.success("Link copied to clipboard");
+    } catch {
+      toast.error("Failed to copy link");
     }
   };
 
@@ -59,17 +74,25 @@ const GameInfo: React.FC = () => {
       <Button
         onClick={handleJoinGame}
         disabled={joinGameMutation.isPending}
+        className="w-full sm:w-auto"
       >
         Join game
       </Button>
     ) : (
-      <Button
-        onClick={handleLeaveGame}
-        disabled={leaveGameMutation.isPending}
-        variant="outline"
-      >
-        Leave game
-      </Button>
+      <div className="flex gap-2 w-full sm:w-auto">
+        <Button
+          onClick={handleLeaveGame}
+          disabled={leaveGameMutation.isPending}
+          variant="outline"
+          className="flex-1 sm:flex-none"
+        >
+          Leave
+        </Button>
+        <Button variant="outline" className="flex-1 sm:flex-none" onClick={handleShare}>
+          <Share className="size-4" />
+          Share &amp; invite
+        </Button>
+      </div>
     )
   ) : null;
 

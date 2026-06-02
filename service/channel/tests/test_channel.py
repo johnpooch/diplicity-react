@@ -3,9 +3,13 @@ from unittest.mock import patch
 from django.apps import apps
 from django.urls import reverse
 from rest_framework import status
-from channel.models import Channel
+from channel.models import Channel, ChannelMessage
 
 from common.constants import GameStatus
+
+
+def _notification_jobs(connector):
+    return [j for j in connector.jobs.values() if j["task_name"] == "notification.send_notification"]
 
 
 class TestChannelCreateView:
@@ -173,8 +177,7 @@ class TestChannelMessageCreateView:
         self,
         authenticated_client,
         active_game_with_private_channel,
-        mock_send_notification_to_users,
-        mock_immediate_on_commit,
+        in_memory_procrastinate,
     ):
         private_channel = Channel.objects.get(game=active_game_with_private_channel, private=True)
         url = reverse("channel-message-create", args=[active_game_with_private_channel.id, private_channel.id])
@@ -182,15 +185,15 @@ class TestChannelMessageCreateView:
         response = authenticated_client.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        mock_send_notification_to_users.assert_called_once()
+        # Author is the only channel member, so there is no one to notify.
+        assert _notification_jobs(in_memory_procrastinate) == []
 
     @pytest.mark.django_db
     def test_create_message_in_public_channel_as_member_success(
         self,
         authenticated_client,
         active_game_with_public_channel,
-        mock_send_notification_to_users,
-        mock_immediate_on_commit,
+        in_memory_procrastinate,
     ):
         public_channel = Channel.objects.get(game=active_game_with_public_channel, private=False)
         public_channel.members.add(active_game_with_public_channel.members.first())
@@ -200,29 +203,34 @@ class TestChannelMessageCreateView:
         response = authenticated_client.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        mock_send_notification_to_users.assert_called_once()
+        # Author is the only game member, so there is no one to notify.
+        assert _notification_jobs(in_memory_procrastinate) == []
 
     @pytest.mark.django_db
     def test_create_message_in_public_channel_without_explicit_members(
-        self, authenticated_client, game_with_two_members, mock_send_notification_to_users, mock_immediate_on_commit
+        self, authenticated_client, game_with_two_members, in_memory_procrastinate
     ):
         public_channel = Channel.objects.create(game=game_with_two_members, name="Public Press", private=False)
+        sender_user_id = game_with_two_members.members.first().user_id
 
         url = reverse("channel-message-create", args=[game_with_two_members.id, public_channel.id])
         payload = {"body": "Hello in public channel!"}
         response = authenticated_client.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        mock_send_notification_to_users.assert_called_once()
+        jobs = _notification_jobs(in_memory_procrastinate)
+        assert len(jobs) == 1
+        user_ids = jobs[0]["args"]["user_ids"]
+        assert len(user_ids) == 1
+        assert sender_user_id not in user_ids
 
     @pytest.mark.django_db
     def test_create_message_in_private_channel_notifies_only_channel_members(
         self,
         authenticated_client,
         game_with_two_members,
-        mock_send_notification_to_users,
+        in_memory_procrastinate,
         classical_england_nation,
-        mock_immediate_on_commit,
     ):
         private_channel = Channel.objects.create(game=game_with_two_members, name="Private Channel", private=True)
         primary_member = game_with_two_members.members.get(nation=classical_england_nation)
@@ -233,15 +241,15 @@ class TestChannelMessageCreateView:
         response = authenticated_client.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        mock_send_notification_to_users.assert_called_once()
+        # The other game member is not in this private channel, so is not notified.
+        assert _notification_jobs(in_memory_procrastinate) == []
 
     @pytest.mark.django_db
     def test_create_message_in_private_channel_with_multiple_members(
         self,
         authenticated_client,
         game_with_two_members,
-        mock_send_notification_to_users,
-        mock_immediate_on_commit,
+        in_memory_procrastinate,
         classical_england_nation,
         classical_france_nation,
     ):
@@ -255,15 +263,16 @@ class TestChannelMessageCreateView:
         response = authenticated_client.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        mock_send_notification_to_users.assert_called_once()
+        jobs = _notification_jobs(in_memory_procrastinate)
+        assert len(jobs) == 1
+        assert jobs[0]["args"]["user_ids"] == [secondary_member.user_id]
 
     @pytest.mark.django_db
     def test_create_message_in_public_channel_with_explicit_members_still_notifies_all(
         self,
         authenticated_client,
         game_with_two_members,
-        mock_send_notification_to_users,
-        mock_immediate_on_commit,
+        in_memory_procrastinate,
         classical_england_nation,
         classical_france_nation,
     ):
@@ -277,7 +286,9 @@ class TestChannelMessageCreateView:
         response = authenticated_client.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        mock_send_notification_to_users.assert_called_once()
+        jobs = _notification_jobs(in_memory_procrastinate)
+        assert len(jobs) == 1
+        assert jobs[0]["args"]["user_ids"] == [secondary_member.user_id]
 
     @pytest.mark.django_db
     def test_create_message_in_private_channel_as_non_member_fails(
@@ -507,6 +518,19 @@ class TestChannelUnreadCount:
             assert channel_data["unread_message_count"] == 0
 
     @pytest.mark.django_db
+    def test_own_messages_not_counted_as_unread(self, authenticated_client, game_with_public_channel_and_messages):
+        game = game_with_public_channel_and_messages
+        primary_member = game.members.first()
+        channel = Channel.objects.get(game=game, name="Public Press")
+        ChannelMessage.objects.create(channel=channel, sender=primary_member, body="Own message")
+
+        url = reverse("channel-list", args=[game.id])
+        response = authenticated_client.get(url)
+
+        channel_data = next(ch for ch in response.data if ch["name"] == "Public Press")
+        assert channel_data["unread_message_count"] == 2
+
+    @pytest.mark.django_db
     def test_unread_count_per_channel_independence(
         self, authenticated_client, game_with_public_channel_and_messages
     ):
@@ -517,7 +541,6 @@ class TestChannelUnreadCount:
         private_channel = Channel.objects.create(game=game, name="Private Channel", private=True)
         private_channel.members.add(primary_member, secondary_member)
 
-        from channel.models import ChannelMessage
         ChannelMessage.objects.create(channel=private_channel, sender=secondary_member, body="Private msg")
 
         public_channel = Channel.objects.get(game=game, name="Public Press")
@@ -557,6 +580,21 @@ class TestGameRetrieveUnreadCount:
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["total_unread_message_count"] == 0
+
+    @pytest.mark.django_db
+    def test_own_messages_not_counted_in_total_unread(
+        self, authenticated_client, game_with_public_channel_and_messages
+    ):
+        game = game_with_public_channel_and_messages
+        primary_member = game.members.first()
+        channel = Channel.objects.get(game=game, name="Public Press")
+        ChannelMessage.objects.create(channel=channel, sender=primary_member, body="Own message")
+
+        url = reverse("game-retrieve", args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["total_unread_message_count"] == 2
 
     @pytest.mark.django_db
     def test_game_retrieve_unread_count_resets_after_mark_read(

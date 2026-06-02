@@ -16,7 +16,7 @@ vi.mock("react-router", async () => {
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({
-    data: { isPaused: false },
+    data: { isPaused: false, currentPhaseId: 6, phases: [1, 2, 3, 4, 5, 6] },
   }),
   useGamePhaseRetrieveSuspense: () => ({
     data: {
