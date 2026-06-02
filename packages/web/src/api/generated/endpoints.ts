@@ -607,6 +607,8 @@ export interface PatchedUserProfile {
   /** @nullable */
   readonly picture?: string | null;
   readonly email?: string;
+  colourProfileEnabled?: boolean;
+  customColourProfile?: string[];
 }
 
 export interface PatchedVariantWrite {
@@ -670,11 +672,11 @@ export interface PhaseRetrieve {
   status: StatusEnum;
   units: Unit[];
   supplyCenters: SupplyCenter[];
-  provinceNations: Record<string, string>;
   /** @nullable */
   previousPhaseId: number | null;
   /** @nullable */
   nextPhaseId: number | null;
+  readonly provinceNations: string;
 }
 
 export interface PhaseState {
@@ -707,6 +709,8 @@ export interface UserProfile {
   /** @nullable */
   readonly picture: string | null;
   readonly email: string;
+  colourProfileEnabled: boolean;
+  customColourProfile: string[];
 }
 
 export interface VictoryConditions {
