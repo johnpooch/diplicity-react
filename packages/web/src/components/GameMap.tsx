@@ -1,5 +1,6 @@
 import { useRequiredParams } from "../hooks";
 import { useRef, useMemo, useEffect, useState, useCallback } from "react";
+import { useAuth } from "../auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { determineRenderableProvinces } from "../utils/provinces";
@@ -56,12 +57,15 @@ const GameMap: React.FC = () => {
   const selectedPhase = Number(phaseId);
 
   const queryClient = useQueryClient();
+  const { loggedIn } = useAuth();
 
   const { data: game } = useGameRetrieve(gameId);
   const { data: variants } = useVariantsList();
   const { data: phase } = useGamePhaseRetrieve(gameId, selectedPhase);
   const { data: orders } = useGameOrdersList(gameId, selectedPhase);
-  const { data: optionsData } = useGameOptionsRetrieve(gameId);
+  const { data: optionsData } = useGameOptionsRetrieve(gameId, {
+    query: { enabled: loggedIn },
+  });
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [menuPosition, setMenuPosition] = useState<{

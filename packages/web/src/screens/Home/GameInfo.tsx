@@ -75,11 +75,8 @@ const GameInfo: React.FC = () => {
 
   const pendingAction = game.status === "pending" ? (
     !loggedIn ? (
-      <Button className="w-full sm:w-auto" onClick={() => {
-        deepLinkStorage.setPendingPath(location.pathname);
-        navigate("/");
-      }}>
-        Log in to join
+      <Button size="sm" onClick={() => { deepLinkStorage.setPendingPath(location.pathname); navigate("/"); }}>
+        Log in to join game
       </Button>
     ) : game.canJoin ? (
       <Button
@@ -112,11 +109,13 @@ const GameInfo: React.FC = () => {
       <ScreenHeader
         title="Game Info"
         actions={
-          <GameDropdownMenu
-            game={game}
-            onNavigateToGameInfo={handleGameInfo}
-            onNavigateToPlayerInfo={handlePlayerInfo}
-          />
+          (loggedIn || game.private || game.sandbox) ? (
+            <GameDropdownMenu
+              game={game}
+              onNavigateToGameInfo={handleGameInfo}
+              onNavigateToPlayerInfo={handlePlayerInfo}
+            />
+          ) : undefined
         }
       />
       <GameInfoContent

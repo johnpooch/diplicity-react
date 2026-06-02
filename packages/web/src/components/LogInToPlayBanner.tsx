@@ -1,15 +1,8 @@
 import { useLocation, useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
-import {
-  Empty,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-  EmptyDescription,
-  EmptyContent,
-} from "@/components/ui/empty";
 import { DiplicityLogo } from "@/components/DiplicityLogo";
 import { deepLinkStorage } from "@/deepLink";
+import { isIosPlatform, isNativePlatform } from "@/utils/platform";
 
 const LogInToPlayBanner: React.FC = () => {
   const navigate = useNavigate();
@@ -20,27 +13,38 @@ const LogInToPlayBanner: React.FC = () => {
   };
 
   return (
-    <Empty>
-      <EmptyHeader>
-        <EmptyMedia variant="image">
-          <DiplicityLogo />
-        </EmptyMedia>
-        <EmptyTitle>Register to play</EmptyTitle>
-        <EmptyDescription>
-          Diplomacy is the legendary game of negotiation, alliance, and betrayal — a war where every move is decided by the people playing, not by chance.
-        </EmptyDescription>
-      </EmptyHeader>
-      <EmptyContent>
-        <div className="flex flex-col gap-2 w-full">
-          <Button className="w-full" onClick={() => { storePath(); navigate("/register"); }}>
-            Sign up to play
-          </Button>
-          <Button variant="outline" className="w-full" onClick={() => { storePath(); navigate("/"); }}>
-            Log in
-          </Button>
-        </div>
-      </EmptyContent>
-    </Empty>
+    <div className="flex flex-col items-center gap-3 text-center">
+      <div className="flex items-center gap-2">
+        <DiplicityLogo />
+        <p className="text-2xl font-bold">Diplicity</p>
+      </div>
+      <div className="flex flex-col gap-1">
+        <p className="text-xs text-muted-foreground">
+          A digital implementation of Diplomacy — the legendary game of negotiation, alliance, and betrayal.
+        </p>
+      </div>
+      <div className="flex gap-2">
+        <Button size="sm" onClick={() => { storePath(); navigate("/"); }}>
+          Sign in
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => { storePath(); navigate("/register"); }}>
+          Register
+        </Button>
+      </div>
+      {(!isNativePlatform() || isIosPlatform()) && (
+        <a
+          href="https://apps.apple.com/app/id6759169536"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <img
+            src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us"
+            alt="Download on the App Store"
+            className="h-8"
+          />
+        </a>
+      )}
+    </div>
   );
 };
 

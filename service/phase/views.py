@@ -1,5 +1,4 @@
 from rest_framework import permissions, generics, views, status
-from rest_framework.exceptions import PermissionDenied
 from drf_spectacular.utils import extend_schema
 from opentelemetry import trace
 from common.permissions import (
@@ -82,11 +81,6 @@ class PhaseListView(SelectedGameMixin, generics.ListAPIView):
 
     def get_queryset(self):
         game = self.get_game()
-        if game.private and not (
-            self.request.user.is_authenticated
-            and game.members.filter(user=self.request.user).exists()
-        ):
-            raise PermissionDenied
         return Phase.objects.filter(game=game).only(
             'id', 'ordinal', 'season', 'year', 'type', 'status', 'game_id', 'variant_id'
         ).order_by('ordinal')
@@ -99,10 +93,7 @@ class PhaseRetrieveView(generics.RetrieveAPIView):
     lookup_url_kwarg = 'phase_id'
 
     def get_queryset(self):
-        qs = Phase.objects.with_detail_data()
-        if not self.request.user.is_authenticated:
-            return qs.filter(game__private=False)
-        return qs
+        return Phase.objects.with_detail_data()
 
 
 class PhaseResolveView(SelectedGameMixin, views.APIView):

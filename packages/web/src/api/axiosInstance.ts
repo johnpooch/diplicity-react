@@ -54,10 +54,14 @@ axiosInstance.interceptors.response.use(
           });
       }
 
+      const { refreshToken } = tokenStorage.getTokenState();
+
+      if (!refreshToken) {
+        return Promise.reject(error);
+      }
+
       originalRequest._retry = true;
       isRefreshing = true;
-
-      const { refreshToken } = tokenStorage.getTokenState();
 
       try {
         const refreshResult = await axios.post(
