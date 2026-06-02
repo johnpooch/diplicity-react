@@ -15,6 +15,7 @@ import {
 } from "@/api/generated/endpoints";
 import { getCurrentPhaseId } from "@/util";
 import { useRequiredParams } from "@/hooks";
+import { useCustomNationColours } from "@/hooks/useCustomNationColours";
 
 export const PlayerInfoContent: React.FC = () => {
   const { gameId } = useRequiredParams<{ gameId: string }>();
@@ -29,7 +30,11 @@ export const PlayerInfoContent: React.FC = () => {
     { query: { enabled: !!currentPhaseId } }
   );
 
-  const variant = variants.find(v => v.id === game.variantId);
+  const applyCustomColours = useCustomNationColours();
+  const rawVariant = variants.find(v => v.id === game.variantId);
+  const variant = rawVariant
+    ? { ...rawVariant, nations: applyCustomColours(rawVariant.nations) }
+    : undefined;
 
   const getSupplyCenterCount = (member: Member) => {
     if (!currentPhase) return undefined;

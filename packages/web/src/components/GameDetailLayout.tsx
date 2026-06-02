@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, Suspense } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useRequiredParams } from "@/hooks";
 import { ArrowLeft, Map, Gavel, MessageCircle } from "lucide-react";
@@ -113,7 +113,9 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
 
           {/* Right Panel - GameMap (desktop only) */}
           <div className="hidden md:flex flex-1 border-l overflow-hidden">
-            <GameMap />
+            <Suspense fallback={null}>
+              <GameMap />
+            </Suspense>
           </div>
         </div>
 

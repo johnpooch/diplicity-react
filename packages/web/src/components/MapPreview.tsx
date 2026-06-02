@@ -5,6 +5,7 @@ import type {
   VariantTemplatePhase,
 } from "../api/generated/endpoints";
 import { useDsvg } from "../hooks/useDsvg";
+import { useCustomNationColours } from "../hooks/useCustomNationColours";
 import { DiplicityMap } from "./InteractiveMap/mapRenderer";
 import { toRenderState } from "./InteractiveMap/toRenderState";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,12 +26,14 @@ const MapPreview: React.FC<MapPreviewProps> = ({
   className,
 }) => {
   const { data: dsvg } = useDsvg(variant.svgUrl);
+  const applyCustomColours = useCustomNationColours();
 
   const svg = useMemo(() => {
     if (!dsvg) return null;
-    const renderState = toRenderState(variant, phase, [], [], []);
+    const variantWithColours = { ...variant, nations: applyCustomColours(variant.nations) };
+    const renderState = toRenderState(variantWithColours, phase, [], [], []);
     return new DiplicityMap(dsvg).render(renderState);
-  }, [dsvg, variant, phase]);
+  }, [dsvg, variant, phase, applyCustomColours]);
 
   if (!svg) {
     return <Skeleton className={className} style={style} />;

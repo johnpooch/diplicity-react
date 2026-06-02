@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Send, MessageCircle, MessageSquareOff } from "lucide-react";
 import { useDraft, useRequiredParams } from "@/hooks";
+import { useCustomNationColours } from "@/hooks/useCustomNationColours";
 import { toast } from "sonner";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
@@ -122,7 +123,15 @@ const ChannelScreen: React.FC = () => {
 
   const currentMember = game.members.find(m => m.isCurrentUser);
   const currentNationName = currentMember?.nation ?? undefined;
-  const variant = variants.find(v => v.id === game.variantId);
+  const applyCustomColours = useCustomNationColours();
+  const rawVariant = variants.find(v => v.id === game.variantId);
+  const variant = rawVariant
+    ? { ...rawVariant, nations: applyCustomColours(rawVariant.nations) }
+    : undefined;
+  const customColourMap = useMemo(
+    () => new Map(variant?.nations.map(n => [n.name, n.color]) ?? []),
+    [variant?.nations]
+  );
   const channelDisplayName = getChannelDisplayName(channel, currentNationName);
   const channelFlagUrls = getChannelFlagUrls(
     channel,
@@ -193,8 +202,14 @@ const ChannelScreen: React.FC = () => {
     game.status !== "abandoned";
 
   const messageItems = useMemo(
-    () => buildMessageItems(channel.messages),
-    [channel.messages]
+    () => buildMessageItems(channel.messages).map(item => ({
+      ...item,
+      sender: {
+        ...item.sender,
+        nationColor: customColourMap.get(item.sender.nationName) ?? item.sender.nationColor,
+      },
+    })),
+    [channel.messages, customColourMap]
   );
 
   if (isNoPressActiveGame) {

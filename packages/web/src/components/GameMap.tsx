@@ -1,5 +1,6 @@
 import { useRequiredParams } from "../hooks";
 import { useRef, useMemo, useEffect, useState, useCallback } from "react";
+import { useCustomNationColours } from "../hooks/useCustomNationColours";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { determineRenderableProvinces } from "../utils/provinces";
@@ -77,7 +78,11 @@ const GameMap: React.FC = () => {
     optionsData?.fieldOrder ?? {}
   );
 
-  const variant = variants?.find((v) => v.id === game?.variantId);
+  const applyCustomColours = useCustomNationColours();
+  const rawVariant = variants?.find((v) => v.id === game?.variantId);
+  const variant = rawVariant
+    ? { ...rawVariant, nations: applyCustomColours(rawVariant.nations) }
+    : undefined;
 
   const civilDisorderNations = useMemo(
     () =>

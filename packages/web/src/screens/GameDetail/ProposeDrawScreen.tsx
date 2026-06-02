@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Handshake, Info } from "lucide-react";
 import { useRequiredParams } from "@/hooks";
+import { useCustomNationColours } from "@/hooks/useCustomNationColours";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
@@ -40,7 +41,11 @@ const ProposeDrawScreen: React.FC = () => {
   const { data: variants } = useVariantsListSuspense();
   const createProposalMutation = useGamesDrawProposalsCreateCreate();
 
-  const variant = variants.find(v => v.id === game.variantId);
+  const applyCustomColours = useCustomNationColours();
+  const rawVariant = variants.find(v => v.id === game.variantId);
+  const variant = rawVariant
+    ? { ...rawVariant, nations: applyCustomColours(rawVariant.nations) }
+    : undefined;
   const activeMembers = game.members.filter(m => !m.eliminated && !m.kicked);
   const includedMembers = activeMembers.filter(m => !m.civilDisorder);
   const cdMembers = activeMembers.filter(m => m.civilDisorder);

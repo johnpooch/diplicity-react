@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { Check, X, Handshake, Plus, MoreVertical, Ban } from "lucide-react";
 import { useRequiredParams } from "@/hooks";
+import { useCustomNationColours } from "@/hooks/useCustomNationColours";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
@@ -185,7 +186,11 @@ const DrawProposalsScreen: React.FC = () => {
   const voteMutation = useGamesDrawProposalsVotePartialUpdate();
   const cancelMutation = useGamesDrawProposalsCancelDestroy();
 
-  const variant = variants.find(v => v.id === game.variantId);
+  const applyCustomColours = useCustomNationColours();
+  const rawVariant = variants.find(v => v.id === game.variantId);
+  const variant = rawVariant
+    ? { ...rawVariant, nations: applyCustomColours(rawVariant.nations) }
+    : undefined;
   const currentMember = game.members.find(m => m.isCurrentUser);
 
   const handleVote = async (proposalId: number, accepted: boolean) => {
