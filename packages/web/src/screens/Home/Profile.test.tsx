@@ -11,7 +11,14 @@ const mockUserProfile = {
   name: "Test Player",
   picture: null,
   colourProfileEnabled: false,
-  customColourProfile: [],
+  customColourProfile: [
+    "#0072B2", "#E69F00", "#009E73", "#D55E00", "#CC79A7",
+    "#56B4E9", "#F0E442", "#332288", "#882255", "#117733",
+    "#44AA99", "#AA4499", "#DDCC77", "#999933", "#EE6677",
+    "#88CCEE", "#EE8866", "#AA3377", "#BBBBBB", "#DDDDDD",
+    "#4B0082", "#7B3F00", "#40E0D0", "#FFD700", "#1B4F72",
+    "#708090", "#D2691E", "#9B59B6", "#F4A460", "#98D8C8",
+  ],
   defaultColourProfile: [
     "#0072B2", "#E69F00", "#009E73", "#D55E00", "#CC79A7",
     "#56B4E9", "#F0E442", "#332288", "#882255", "#117733",

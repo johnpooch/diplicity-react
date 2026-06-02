@@ -6,6 +6,7 @@ from user_profile.models import default_colour_profile as _default_colour_profil
 
 _HEX_COLOUR_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
 _COLOUR_PROFILE_LENGTH = 30
+_DEFAULT_COLOUR_PROFILE = _default_colour_profile()
 
 
 class UserProfileSerializer(serializers.Serializer):
@@ -18,7 +19,7 @@ class UserProfileSerializer(serializers.Serializer):
     default_colour_profile = serializers.SerializerMethodField()
 
     def get_default_colour_profile(self, obj):
-        return _default_colour_profile()
+        return _DEFAULT_COLOUR_PROFILE
 
     def validate_name(self, value):
         value = value.strip()

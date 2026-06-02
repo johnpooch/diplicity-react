@@ -28,12 +28,16 @@ const MapPreview: React.FC<MapPreviewProps> = ({
   const { data: dsvg } = useDsvg(variant.svgUrl);
   const applyCustomColours = useCustomNationColours();
 
+  const variantWithColours = useMemo(
+    () => ({ ...variant, nations: applyCustomColours(variant.nations) }),
+    [variant, applyCustomColours],
+  );
+
   const svg = useMemo(() => {
     if (!dsvg) return null;
-    const variantWithColours = { ...variant, nations: applyCustomColours(variant.nations) };
     const renderState = toRenderState(variantWithColours, phase, [], [], []);
     return new DiplicityMap(dsvg).render(renderState);
-  }, [dsvg, variant, phase, applyCustomColours]);
+  }, [dsvg, variantWithColours, phase]);
 
   if (!svg) {
     return <Skeleton className={className} style={style} />;

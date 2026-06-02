@@ -44,10 +44,6 @@ const ColourProfileSection: React.FC = () => {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setLocalColours(userProfile.customColourProfile);
-  }, [userProfile.customColourProfile]);
-
-  useEffect(() => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
