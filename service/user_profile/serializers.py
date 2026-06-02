@@ -5,8 +5,8 @@ from rest_framework import serializers
 from user_profile.models import default_colour_profile as _default_colour_profile
 
 _HEX_COLOUR_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
-_COLOUR_PROFILE_LENGTH = 30
 _DEFAULT_COLOUR_PROFILE = _default_colour_profile()
+_COLOUR_PROFILE_LENGTH = len(_DEFAULT_COLOUR_PROFILE)
 
 
 class UserProfileSerializer(serializers.Serializer):

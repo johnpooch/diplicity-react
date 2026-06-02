@@ -112,7 +112,7 @@ class TestUserProfileUpdateView:
         assert response.status_code == status.HTTP_200_OK
         assert response.data["colour_profile_enabled"] is False
         assert isinstance(response.data["custom_colour_profile"], list)
-        assert len(response.data["default_colour_profile"]) == 30
+        assert len(response.data["default_colour_profile"]) == 36
 
     @pytest.mark.django_db
     def test_update_colour_profile_enabled(self, authenticated_client, primary_user):
@@ -127,7 +127,7 @@ class TestUserProfileUpdateView:
     @pytest.mark.django_db
     def test_update_custom_colour_profile_valid(self, authenticated_client, primary_user):
         url = reverse("user-profile-update")
-        new_profile = ["#AABBCC"] * 30
+        new_profile = ["#AABBCC"] * 36
         response = authenticated_client.patch(url, {"custom_colour_profile": new_profile}, format="json")
 
         assert response.status_code == status.HTTP_200_OK
@@ -146,7 +146,7 @@ class TestUserProfileUpdateView:
     @pytest.mark.django_db
     def test_update_custom_colour_profile_invalid_hex(self, authenticated_client, primary_user):
         url = reverse("user-profile-update")
-        invalid_profile = ["#GGGGGG"] + ["#AABBCC"] * 29
+        invalid_profile = ["#GGGGGG"] + ["#AABBCC"] * 35
         response = authenticated_client.patch(url, {"custom_colour_profile": invalid_profile}, format="json")
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
