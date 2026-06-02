@@ -2,7 +2,6 @@ import React, { Suspense } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import { useAuth } from "@/auth";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { LogInToPlayBanner } from "@/components/LogInToPlayBanner";
 import {
   Trash2,
@@ -151,7 +150,6 @@ const OrdersScreen: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { loggedIn } = useAuth();
-  const isMobile = useIsMobile();
   const { gameId, phaseId } = useRequiredParams<{
     gameId: string;
     phaseId: string;
@@ -321,16 +319,82 @@ const OrdersScreen: React.FC = () => {
     />
   );
 
-  if (!loggedIn && isMobile) {
+  if (!loggedIn) {
     return (
       <div className="flex flex-col flex-1 min-h-0">
         {appBar}
         <div className="flex-1 overflow-y-auto">
-          <Panel>
-            <Panel.Content>
+          <div className="p-4 space-y-4">
+            <div className="rounded-xl border bg-card p-6 shadow-sm">
               <LogInToPlayBanner />
-            </Panel.Content>
-          </Panel>
+            </div>
+            {!isActivePhase && hasContent && (
+              <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
+                <Accordion
+                  type="multiple"
+                  defaultValue={nationGroups.map(g => g.nation)}
+                >
+                  {nationGroups.map(({ nation, items }) => {
+                    const nationColor = findNationColor(variant.nations, nation);
+                    return (
+                      <AccordionItem key={nation} value={nation}>
+                        <AccordionTrigger className="p-2 items-center">
+                          <div className="flex items-center gap-2">
+                            <NationFlag
+                              flagUrl={findNationFlagUrl(variant.nations, nation)}
+                              alt={nation}
+                              size="md"
+                              color={nationColor}
+                            />
+                            <span>{nation}</span>
+                            <span className="text-muted-foreground">•</span>
+                            <span className="inline-flex items-center gap-1 text-muted-foreground">
+                              <Star className="size-3" />
+                              <span>{getSupplyCenterCount(nation)}</span>
+                            </span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="p-0">
+                          <ItemGroup>
+                            {items.map((item, index) => (
+                              <React.Fragment key={item.province.id}>
+                                {index === 0 && <Separator />}
+                                <Item size="sm">
+                                  <ItemContent>
+                                    <ItemTitle>
+                                      {item.unit?.type} {item.province.name}
+                                    </ItemTitle>
+                                    <ItemDescription>
+                                      {item.order
+                                        ? item.order.summary
+                                        : "Order not provided"}
+                                    </ItemDescription>
+                                  </ItemContent>
+                                  {item.order?.resolution?.status && (
+                                    <ItemContent
+                                      className={cn(
+                                        "text-xs",
+                                        item.order.resolution.status === "Succeeded"
+                                          ? "text-green-600"
+                                          : "text-red-600"
+                                      )}
+                                    >
+                                      {item.order.resolution.status}
+                                    </ItemContent>
+                                  )}
+                                </Item>
+                                {index < items.length - 1 && <ItemSeparator />}
+                              </React.Fragment>
+                            ))}
+                          </ItemGroup>
+                        </AccordionContent>
+                      </AccordionItem>
+                    );
+                  })}
+                </Accordion>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -351,7 +415,6 @@ const OrdersScreen: React.FC = () => {
             </Alert>
           )}
           <Panel.Content>
-            {!loggedIn && <LogInToPlayBanner />}
             {!hasContent ? (
               <Notice
                 icon={emptyState.icon}
