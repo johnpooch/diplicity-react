@@ -11,15 +11,9 @@ import {
   useAuthEmailLoginCreate,
   useAuthLoginCreate,
 } from "../api/generated/endpoints";
-import AppleSignin from "react-apple-signin-auth";
 import { isIosPlatform, isNativePlatform } from "@/utils/platform";
 import { nativeAppleSignIn } from "@/auth/nativeAppleAuth";
 import { nativeGoogleSignIn } from "@/auth/nativeGoogleAuth";
-import {
-  AppleAuthResponse,
-  parseAppleResponse,
-  webAppleAuthOptions,
-} from "@/auth/webAppleAuth";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +28,43 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+
+interface AppleAuthResponse {
+  authorization?: { id_token?: string };
+  user?: { name?: { firstName?: string; lastName?: string } };
+}
+
+declare global {
+  interface Window {
+    AppleID: {
+      auth: {
+        init: (config: {
+          clientId: string;
+          scope: string;
+          redirectURI: string;
+          usePopup: boolean;
+        }) => void;
+        signIn: () => Promise<AppleAuthResponse>;
+      };
+    };
+  }
+}
+
+function parseAppleResponse(response: AppleAuthResponse): {
+  idToken: string;
+  firstName?: string;
+  lastName?: string;
+} {
+  const idToken = response.authorization?.id_token;
+  if (!idToken) {
+    throw new Error("No ID token received from Apple Sign-In");
+  }
+  return {
+    idToken,
+    firstName: response.user?.name?.firstName ?? undefined,
+    lastName: response.user?.name?.lastName ?? undefined,
+  };
+}
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email"),
@@ -139,8 +170,15 @@ const Login: React.FC = () => {
     }
   };
 
-  const handleWebAppleLogin = async (response: AppleAuthResponse) => {
+  const handleWebAppleLogin = async () => {
     try {
+      window.AppleID.auth.init({
+        clientId: import.meta.env.VITE_APPLE_WEB_CLIENT_ID,
+        scope: "name email",
+        redirectURI: import.meta.env.VITE_APPLE_REDIRECT_URI,
+        usePopup: true,
+      });
+      const response = await window.AppleID.auth.signIn();
       await finishAppleLogin(parseAppleResponse(response));
     } catch {
       toast.error("Login failed");
@@ -315,14 +353,13 @@ const Login: React.FC = () => {
                     onSuccess={handleWebLoginSuccess}
                     onError={handleWebLoginError}
                   />
-                  <AppleSignin
-                    authOptions={webAppleAuthOptions}
-                    uiType="dark"
-                    buttonExtraChildren="Sign in with Apple"
-                    className="!h-10 !w-[220px]"
-                    onSuccess={handleWebAppleLogin}
-                    onError={handleWebLoginError}
-                  />
+                  <Button
+                    variant="outline"
+                    className="w-[220px]"
+                    onClick={handleWebAppleLogin}
+                  >
+                    Sign in with Apple
+                  </Button>
                 </>
               )}
             </div>

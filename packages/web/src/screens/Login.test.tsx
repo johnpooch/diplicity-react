@@ -8,6 +8,7 @@ import { Login } from "./Login";
 const mockLogin = vi.fn();
 const mockMutateAsync = vi.fn();
 const mockAppleMutateAsync = vi.fn();
+const mockAppleSignIn = vi.fn();
 
 vi.mock("@/auth", () => ({
   useAuth: () => ({ login: mockLogin }),
@@ -32,22 +33,6 @@ vi.mock("@react-oauth/google", () => ({
   GoogleLogin: () => <div data-testid="google-login">Google Sign In</div>,
 }));
 
-vi.mock("react-apple-signin-auth", () => ({
-  default: ({ onSuccess }: { onSuccess: (response: unknown) => void }) => (
-    <button
-      data-testid="apple-login"
-      onClick={() =>
-        onSuccess({
-          authorization: { id_token: "apple-id-token" },
-          user: { name: { firstName: "Ada", lastName: "Lovelace" } },
-        })
-      }
-    >
-      Apple
-    </button>
-  ),
-}));
-
 vi.mock("@/utils/platform", () => ({
   isNativePlatform: () => false,
 }));
@@ -62,6 +47,9 @@ const renderLogin = () =>
 describe("Login", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal("AppleID", {
+      auth: { init: vi.fn(), signIn: mockAppleSignIn },
+    });
   });
 
   it("submits email and password and stores tokens on success", async () => {
@@ -80,7 +68,7 @@ describe("Login", () => {
       screen.getByLabelText(/password/i),
       "strongpass123"
     );
-    await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
 
     expect(mockMutateAsync).toHaveBeenCalledWith({
       data: { email: "player@example.com", password: "strongpass123" },
@@ -104,7 +92,7 @@ describe("Login", () => {
       screen.getByLabelText(/password/i),
       "wrongpass"
     );
-    await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
 
     expect(toastErrorSpy).toHaveBeenCalledWith("Invalid email or password");
     expect(mockLogin).not.toHaveBeenCalled();
@@ -129,10 +117,14 @@ describe("Login", () => {
 
     expect(screen.getByText("OR")).toBeInTheDocument();
     expect(screen.getByTestId("google-login")).toBeInTheDocument();
-    expect(screen.getByTestId("apple-login")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /sign in with apple/i })).toBeInTheDocument();
   });
 
   it("signs in with Apple and stores tokens on success", async () => {
+    mockAppleSignIn.mockResolvedValue({
+      authorization: { id_token: "apple-id-token" },
+      user: { name: { firstName: "Ada", lastName: "Lovelace" } },
+    });
     mockAppleMutateAsync.mockResolvedValue({
       id: 2,
       email: "ada@example.com",
@@ -143,7 +135,7 @@ describe("Login", () => {
 
     renderLogin();
 
-    await userEvent.click(screen.getByTestId("apple-login"));
+    await userEvent.click(screen.getByRole("button", { name: /sign in with apple/i }));
 
     expect(mockAppleMutateAsync).toHaveBeenCalledWith({
       data: {
