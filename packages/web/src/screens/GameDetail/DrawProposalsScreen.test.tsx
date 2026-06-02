@@ -31,6 +31,9 @@ vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({ data: mockGameData() }),
   useGamesDrawProposalsListSuspense: () => ({ data: mockProposalsData() }),
   useVariantsListSuspense: () => ({ data: mockVariantsData() }),
+  useUserRetrieveSuspense: () => ({
+    data: { colourProfileEnabled: false, customColourProfile: [], defaultColourProfile: [] },
+  }),
   useGamesDrawProposalsVotePartialUpdate: () => ({
     mutateAsync: mockVoteMutation,
     isPending: false,

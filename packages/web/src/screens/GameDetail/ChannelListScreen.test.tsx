@@ -37,6 +37,9 @@ vi.mock("@/api/generated/endpoints", () => ({
   useVariantsListSuspense: () => ({
     data: [],
   }),
+  useUserRetrieveSuspense: () => ({
+    data: { colourProfileEnabled: false, customColourProfile: [], defaultColourProfile: [] },
+  }),
 }));
 
 const renderChannelList = () =>

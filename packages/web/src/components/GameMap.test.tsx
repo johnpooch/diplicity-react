@@ -72,6 +72,9 @@ vi.mock("@/api/generated/endpoints", () => ({
   useGameOrdersList: () => ({ data: mockExistingOrders }),
   useGameOptionsRetrieve: () => ({ data: { orders: [], fieldOrder: {} } }),
   useGameOrdersCreate: () => ({ mutateAsync: mockMutateAsync }),
+  useUserRetrieveSuspense: () => ({
+    data: { colourProfileEnabled: false, customColourProfile: [], defaultColourProfile: [] },
+  }),
   getGameOrdersListQueryKey: (gameId: string, phaseId: number) => [
     `/game/${gameId}/orders/${phaseId}`,
   ],

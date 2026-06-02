@@ -28,6 +28,9 @@ const mockCreateMutation = vi.fn();
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({ data: mockGameData() }),
   useVariantsListSuspense: () => ({ data: mockVariantsData() }),
+  useUserRetrieveSuspense: () => ({
+    data: { colourProfileEnabled: false, customColourProfile: [], defaultColourProfile: [] },
+  }),
   useGamesDrawProposalsCreateCreate: () => ({
     mutateAsync: mockCreateMutation,
     isPending: false,

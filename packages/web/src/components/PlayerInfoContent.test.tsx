@@ -12,6 +12,9 @@ vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({ data: mockGameData() }),
   useVariantsListSuspense: () => ({ data: mockVariantsData() }),
   useGamePhaseRetrieve: () => ({ data: mockCurrentPhaseData() }),
+  useUserRetrieveSuspense: () => ({
+    data: { colourProfileEnabled: false, customColourProfile: [], defaultColourProfile: [] },
+  }),
 }));
 
 vi.mock("@/components/NationFlag", () => ({
