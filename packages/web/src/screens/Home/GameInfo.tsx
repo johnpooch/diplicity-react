@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 import { toast } from "sonner";
 import { Share } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -18,12 +18,17 @@ import { ScreenHeader } from "@/components/ui/screen-header";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { GameInfoContent } from "@/components/GameInfoContent";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
+import { useAuth } from "@/auth";
+import { LogInToPlayBanner } from "@/components/LogInToPlayBanner";
+import { deepLinkStorage } from "@/deepLink";
 
 const GameInfo: React.FC = () => {
   const { gameId } = useRequiredParams<{ gameId: string }>();
 
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
+  const { loggedIn } = useAuth();
   const { data: game } = useGameRetrieveSuspense(gameId);
   const joinGameMutation = useGameJoinCreate();
   const leaveGameMutation = useGameLeaveDestroy();
@@ -70,7 +75,14 @@ const GameInfo: React.FC = () => {
   };
 
   const pendingAction = game.status === "pending" ? (
-    game.canJoin ? (
+    !loggedIn ? (
+      <Button className="w-full sm:w-auto" onClick={() => {
+        deepLinkStorage.setPendingPath(location.pathname);
+        navigate("/");
+      }}>
+        Log in to join
+      </Button>
+    ) : game.canJoin ? (
       <Button
         onClick={handleJoinGame}
         disabled={joinGameMutation.isPending}
@@ -108,6 +120,7 @@ const GameInfo: React.FC = () => {
           />
         }
       />
+      {!loggedIn && <LogInToPlayBanner />}
       <GameInfoContent
         onNavigateToPlayerInfo={handlePlayerInfo}
         pendingAction={pendingAction}
