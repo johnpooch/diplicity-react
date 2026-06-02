@@ -104,6 +104,54 @@ class TestUserProfileUpdateView:
         assert response.status_code == status.HTTP_200_OK
         assert response.data["name"] == "Trimmed Name"
 
+    @pytest.mark.django_db
+    def test_retrieve_returns_colour_profile_fields(self, authenticated_client, primary_user):
+        url = reverse("user-profile")
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["colour_profile_enabled"] is False
+        assert isinstance(response.data["custom_colour_profile"], list)
+        assert len(response.data["default_colour_profile"]) == 30
+
+    @pytest.mark.django_db
+    def test_update_colour_profile_enabled(self, authenticated_client, primary_user):
+        url = reverse("user-profile-update")
+        response = authenticated_client.patch(url, {"colour_profile_enabled": True}, format="json")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["colour_profile_enabled"] is True
+        primary_user.profile.refresh_from_db()
+        assert primary_user.profile.colour_profile_enabled is True
+
+    @pytest.mark.django_db
+    def test_update_custom_colour_profile_valid(self, authenticated_client, primary_user):
+        url = reverse("user-profile-update")
+        new_profile = ["#AABBCC"] * 30
+        response = authenticated_client.patch(url, {"custom_colour_profile": new_profile}, format="json")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["custom_colour_profile"] == new_profile
+        primary_user.profile.refresh_from_db()
+        assert primary_user.profile.custom_colour_profile == new_profile
+
+    @pytest.mark.django_db
+    def test_update_custom_colour_profile_wrong_count(self, authenticated_client, primary_user):
+        url = reverse("user-profile-update")
+        response = authenticated_client.patch(url, {"custom_colour_profile": ["#AABBCC"] * 5}, format="json")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "custom_colour_profile" in response.data
+
+    @pytest.mark.django_db
+    def test_update_custom_colour_profile_invalid_hex(self, authenticated_client, primary_user):
+        url = reverse("user-profile-update")
+        invalid_profile = ["#GGGGGG"] + ["#AABBCC"] * 29
+        response = authenticated_client.patch(url, {"custom_colour_profile": invalid_profile}, format="json")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "custom_colour_profile" in response.data
+
 
 class TestUserAccountDelete:
 

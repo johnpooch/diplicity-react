@@ -59,7 +59,8 @@ const formatMessageTime = (createdAt: string): string => {
 };
 
 const buildMessageItems = (
-  messages: readonly ChannelMessageType[]
+  messages: readonly ChannelMessageType[],
+  colourMap: Map<string, string>,
 ): MessageDisplayItem[] => {
   return messages.map((msg, index) => {
     const showAvatar =
@@ -72,7 +73,7 @@ const buildMessageItems = (
       createdAt: msg.createdAt,
       sender: {
         nationName: msg.sender.nation.name,
-        nationColor: msg.sender.nation.color,
+        nationColor: colourMap.get(msg.sender.nation.name) ?? msg.sender.nation.color,
         picture: msg.sender.picture,
       },
       isCurrentUser: msg.sender.isCurrentUser,
@@ -126,7 +127,7 @@ const ChannelScreen: React.FC = () => {
   const variant = useVariantWithCustomColours(variants, game.variantId);
   const customColourMap = useMemo(
     () => new Map(variant?.nations.map(n => [n.name, n.color]) ?? []),
-    [variant]
+    [variant],
   );
   const channelDisplayName = getChannelDisplayName(channel, currentNationName);
   const channelFlagUrls = getChannelFlagUrls(
@@ -198,14 +199,8 @@ const ChannelScreen: React.FC = () => {
     game.status !== "abandoned";
 
   const messageItems = useMemo(
-    () => buildMessageItems(channel.messages).map(item => ({
-      ...item,
-      sender: {
-        ...item.sender,
-        nationColor: customColourMap.get(item.sender.nationName) ?? item.sender.nationColor,
-      },
-    })),
-    [channel.messages, customColourMap]
+    () => buildMessageItems(channel.messages, customColourMap),
+    [channel.messages, customColourMap],
   );
 
   if (isNoPressActiveGame) {

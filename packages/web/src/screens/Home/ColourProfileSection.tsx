@@ -36,10 +36,7 @@ const ColourProfileSection: React.FC = () => {
   const { data: userProfile } = useUserRetrieveSuspense();
   const updateMutation = useUserUpdatePartialUpdate();
 
-  const savedColours =
-    userProfile.customColourProfile.length === 30
-      ? userProfile.customColourProfile
-      : userProfile.defaultColourProfile;
+  const savedColours = userProfile.customColourProfile;
   const savedColoursRef = useRef(savedColours);
   savedColoursRef.current = savedColours;
 
@@ -47,12 +44,8 @@ const ColourProfileSection: React.FC = () => {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setLocalColours(
-      userProfile.customColourProfile.length === 30
-        ? userProfile.customColourProfile
-        : userProfile.defaultColourProfile,
-    );
-  }, [userProfile.customColourProfile, userProfile.defaultColourProfile]);
+    setLocalColours(userProfile.customColourProfile);
+  }, [userProfile.customColourProfile]);
 
   useEffect(() => {
     return () => {

@@ -21,7 +21,7 @@ class UserProfileUpdateView(generics.UpdateAPIView):
     serializer_class = UserProfileSerializer
 
     def get_object(self):
-        return UserProfile.objects.get(user=self.request.user)
+        return UserProfile.objects.with_related_data().get(user=self.request.user)
 
 
 class UserAccountDeleteView(generics.DestroyAPIView):
