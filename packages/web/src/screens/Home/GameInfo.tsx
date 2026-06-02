@@ -19,7 +19,6 @@ import { ScreenContainer } from "@/components/ui/screen-container";
 import { GameInfoContent } from "@/components/GameInfoContent";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
 import { useAuth } from "@/auth";
-import { LogInToPlayBanner } from "@/components/LogInToPlayBanner";
 import { deepLinkStorage } from "@/deepLink";
 
 const GameInfo: React.FC = () => {
@@ -120,7 +119,6 @@ const GameInfo: React.FC = () => {
           />
         }
       />
-      {!loggedIn && <LogInToPlayBanner />}
       <GameInfoContent
         onNavigateToPlayerInfo={handlePlayerInfo}
         pendingAction={pendingAction}

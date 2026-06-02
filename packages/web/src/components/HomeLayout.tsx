@@ -17,6 +17,7 @@ import { DiplicityLogo } from "@/components/DiplicityLogo";
 import { Navigation } from "@/components/Navigation";
 import { SidebarUserArea } from "@/components/SidebarUserArea";
 import { SafeAreaView } from "@/components/SafeAreaView";
+import { LogInToPlayBanner } from "@/components/LogInToPlayBanner";
 import { useAuth } from "@/auth";
 import { Home, Search, PlusCircle, MessageCircle, CircleHelp } from "lucide-react";
 
@@ -90,29 +91,35 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
               </Item>
             </SidebarHeader>
             <SidebarContent>
-              <Navigation
-                items={navItems}
-                variant="sidebar"
-                onItemClick={path => navigate(path)}
-              />
+              {loggedIn ? (
+                <Navigation
+                  items={navItems}
+                  variant="sidebar"
+                  onItemClick={path => navigate(path)}
+                />
+              ) : (
+                <div className="p-3">
+                  <LogInToPlayBanner />
+                </div>
+              )}
             </SidebarContent>
-            <SidebarFooter>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Learn how to play">
-                    <Link to="/learn-to-play">
-                      <CircleHelp />
-                      <span>Learn how to play</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-              {loggedIn && (
+            {loggedIn && (
+              <SidebarFooter>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Learn how to play">
+                      <Link to="/learn-to-play">
+                        <CircleHelp />
+                        <span>Learn how to play</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
                 <Suspense fallback={null}>
                   <SidebarUserArea />
                 </Suspense>
-              )}
-            </SidebarFooter>
+              </SidebarFooter>
+            )}
           </Sidebar>
 
           {/* Main Content Area */}
@@ -129,13 +136,15 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
         </div>
 
         {/* Bottom Navigation */}
-        <div className={bottomClasses}>
-          <Navigation
-            items={navItems}
-            variant="bottom"
-            onItemClick={path => navigate(path)}
-          />
-        </div>
+        {loggedIn && (
+          <div className={bottomClasses}>
+            <Navigation
+              items={navItems}
+              variant="bottom"
+              onItemClick={path => navigate(path)}
+            />
+          </div>
+        )}
       </SafeAreaView>
     </SidebarProvider>
   );
