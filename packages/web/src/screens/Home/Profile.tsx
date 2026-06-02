@@ -49,12 +49,15 @@ const COLOUR_PALETTE = [
 const HEX_PATTERN = /^#[0-9A-Fa-f]{6}$/;
 
 const DEFAULT_COLOUR_PROFILE = [
-  "#E63946", "#F4A261", "#E9C46A", "#2A9D8F", "#264653",
-  "#457B9D", "#A8DADC", "#90BE6D", "#43AA8B", "#F94144",
-  "#F3722C", "#F8961E", "#F9C74F", "#4D908E", "#277DA1",
-  "#9D0208", "#3A0CA3", "#7B2D8B", "#C77DFF", "#48CAE4",
-  "#023E8A", "#606C38", "#DDA15E", "#BC6C25", "#8B2FC9",
-  "#5C4033", "#B5E48C", "#FF6B6B", "#4ECDC4", "#45B7D1",
+  // 1–10: Okabe-Ito + Tol — maximum differentiability for all common colour-blindness types
+  "#0072B2", "#E69F00", "#009E73", "#D55E00", "#CC79A7",
+  "#56B4E9", "#F0E442", "#332288", "#882255", "#117733",
+  // 11–20: Tol Muted — strong perceptual separation, varied luminance
+  "#44AA99", "#AA4499", "#DDCC77", "#999933", "#EE6677",
+  "#88CCEE", "#EE8866", "#AA3377", "#BBBBBB", "#DDDDDD",
+  // 21–30: best remaining differentiation across hue, chroma and lightness
+  "#4B0082", "#7B3F00", "#40E0D0", "#FFD700", "#1B4F72",
+  "#708090", "#D2691E", "#9B59B6", "#F4A460", "#98D8C8",
 ];
 
 const Profile: React.FC = () => {
@@ -302,10 +305,10 @@ const Profile: React.FC = () => {
           </div>
           <div
             className={cn(
-              "rounded-lg border p-4 transition-all duration-300",
+              "rounded-lg border transition-all duration-300",
               colourProfileEnabled
-                ? "border-border shadow-md"
-                : "border-transparent shadow-none",
+                ? "border-border shadow-md p-4"
+                : "border-transparent shadow-none p-0",
             )}
           >
             <div className="flex items-center space-x-2">
@@ -315,7 +318,10 @@ const Profile: React.FC = () => {
                 disabled={updateProfileMutation.isPending}
                 onCheckedChange={handleToggleColourProfile}
               />
-              <Label htmlFor="colour-profile">Custom colour profile</Label>
+              <div className="flex flex-col">
+                <Label htmlFor="colour-profile">Custom nation colours</Label>
+                <span className="text-xs text-muted-foreground">Colourblind mode</span>
+              </div>
             </div>
             <div
               className={cn(
