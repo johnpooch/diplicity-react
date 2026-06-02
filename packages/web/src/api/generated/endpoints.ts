@@ -609,6 +609,7 @@ export interface PatchedUserProfile {
   readonly email?: string;
   colourProfileEnabled?: boolean;
   customColourProfile?: string[];
+  readonly defaultColourProfile?: string[];
 }
 
 export interface PatchedVariantWrite {
@@ -711,6 +712,7 @@ export interface UserProfile {
   readonly email: string;
   colourProfileEnabled: boolean;
   customColourProfile: string[];
+  readonly defaultColourProfile: string[];
 }
 
 export interface VictoryConditions {

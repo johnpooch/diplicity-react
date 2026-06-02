@@ -2716,6 +2716,12 @@ components:
           items:
             type: string
             maxLength: 7
+        defaultColourProfile:
+          type: array
+          items:
+            type: string
+            maxLength: 7
+          readOnly: true
     PatchedVariantWrite:
       type: object
       properties:
@@ -3013,9 +3019,16 @@ components:
           items:
             type: string
             maxLength: 7
+        defaultColourProfile:
+          type: array
+          items:
+            type: string
+            maxLength: 7
+          readOnly: true
       required:
       - colourProfileEnabled
       - customColourProfile
+      - defaultColourProfile
       - email
       - id
       - name

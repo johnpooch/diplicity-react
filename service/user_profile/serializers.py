@@ -2,6 +2,8 @@ import re
 
 from rest_framework import serializers
 
+from user_profile.models import default_colour_profile as _default_colour_profile
+
 _HEX_COLOUR_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
 _COLOUR_PROFILE_LENGTH = 30
 
@@ -13,6 +15,10 @@ class UserProfileSerializer(serializers.Serializer):
     email = serializers.CharField(source="user.email", read_only=True)
     colour_profile_enabled = serializers.BooleanField()
     custom_colour_profile = serializers.ListField(child=serializers.CharField(max_length=7))
+    default_colour_profile = serializers.SerializerMethodField()
+
+    def get_default_colour_profile(self, obj):
+        return _default_colour_profile()
 
     def validate_name(self, value):
         value = value.strip()

@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useUserRetrieveSuspense, type Nation } from "@/api/generated/endpoints";
 
+// Requires a Suspense boundary — suspends until the user profile resolves.
 export function useCustomNationColours(): (nations: Nation[]) => Nation[] {
   const { data: userProfile } = useUserRetrieveSuspense();
 
