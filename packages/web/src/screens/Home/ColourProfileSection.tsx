@@ -51,9 +51,10 @@ const ColourProfileSection: React.FC = () => {
     };
   }, []);
 
-  const isDefaultColours = userProfile.defaultColourProfile.every(
-    (c, i) => c === localColours[i],
-  );
+  const defaultColourProfile = userProfile.defaultColourProfile ?? [];
+  const isDefaultColours =
+    defaultColourProfile.length === localColours.length &&
+    defaultColourProfile.every((c, i) => c === localColours[i]);
 
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingColour, setEditingColour] = useState("#000000");
@@ -124,7 +125,7 @@ const ColourProfileSection: React.FC = () => {
   };
 
   const handleResetColours = () => {
-    const defaults = userProfile.defaultColourProfile;
+    const defaults = defaultColourProfile;
     setLocalColours(defaults);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     abortControllerRef.current?.abort();
