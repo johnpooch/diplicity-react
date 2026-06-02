@@ -670,11 +670,11 @@ export interface PhaseRetrieve {
   status: StatusEnum;
   units: Unit[];
   supplyCenters: SupplyCenter[];
-  provinceNations: Record<string, string>;
   /** @nullable */
   previousPhaseId: number | null;
   /** @nullable */
   nextPhaseId: number | null;
+  readonly provinceNations: string;
 }
 
 export interface PhaseState {

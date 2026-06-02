@@ -1,20 +1,27 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, generics
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from .models import Order
 from .serializers import OrderSerializer, OrderOptionsResponseSerializer
 from .utils import flatten_options, FIELD_ORDER
 from common.permissions import IsActiveGame, IsActiveGameMember
-from common.views import SelectedPhaseMixin, CurrentPhaseMixin
+from common.views import SelectedPhaseMixin, CurrentPhaseMixin, resolve_game
 from common.serializers import EmptySerializer
 
 
 class OrderListView(SelectedPhaseMixin, generics.ListAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     serializer_class = OrderSerializer
 
     def get_queryset(self):
+        game = resolve_game(self.request, self.kwargs.get("game_id"))
+        if game.private and not (
+            self.request.user.is_authenticated
+            and game.members.filter(user=self.request.user).exists()
+        ):
+            raise PermissionDenied
         return Order.objects.visible_to_user_in_phase(self.request.user, self.get_phase()).with_related_data()
 
 

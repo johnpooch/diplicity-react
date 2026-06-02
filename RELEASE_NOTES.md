@@ -1,5 +1,13 @@
 # Diplicity React - Release Notes
 
+## Public Game Viewing (June 2, 2026)
+
+**Release Date:** June 2, 2026
+
+### Feature: View games without logging in
+
+Public games are now viewable without an account. Shared game links open directly to the map and orders for any visitor — no sign-in required. Guests can browse the current board state, step through the full move history, and see all resolved orders. A "Log in to play" prompt appears in the orders panel, making it easy to sign up when ready to join. Chat and active order entry remain restricted to players.
+
 ## Faster Phase Resolution (June 1, 2026)
 
 **Release Date:** June 1, 2026

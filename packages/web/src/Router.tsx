@@ -299,6 +299,29 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
               element: <ResetPassword />,
             },
             {
+              path: "game/:gameId",
+              errorElement: <RootErrorBoundary />,
+              loader: createVariantsLoader(queryClient),
+              children: [
+                { index: true, element: <GamePhaseRedirect /> },
+                {
+                  path: "phase/:phaseId",
+                  element: <GameDetailLayoutWrapper />,
+                  children: [
+                    { index: true, element: <GameIndexRoute /> },
+                    {
+                      path: "orders",
+                      element: (
+                        <Suspense fallback={<RouteFallback />}>
+                          <GameDetail.OrdersScreen />
+                        </Suspense>
+                      ),
+                    },
+                  ],
+                },
+              ],
+            },
+            {
               path: "*",
               loader: ({ request }) => {
                 const url = new URL(request.url);

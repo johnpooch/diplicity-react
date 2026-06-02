@@ -1,4 +1,5 @@
 from rest_framework import permissions, generics, views, status
+from rest_framework.exceptions import PermissionDenied
 from drf_spectacular.utils import extend_schema
 from opentelemetry import trace
 from common.permissions import (
@@ -14,7 +15,7 @@ from common.permissions import (
 from common.serializers import EmptySerializer
 from common.views import SelectedGameMixin, CurrentGameMemberMixin
 from rest_framework.response import Response
-from .models import Phase
+from .models import Phase, PhaseState
 from .serializers import PhaseStateSerializer, PhaseResolveResponseSerializer, PhaseRetrieveSerializer, PhaseListSerializer
 
 tracer = trace.get_tracer(__name__)
@@ -39,16 +40,16 @@ class PhaseStateUpdateView(SelectedGameMixin, CurrentGameMemberMixin, generics.U
 
 
 class PhaseStateListView(SelectedGameMixin, generics.ListAPIView):
-    permission_classes = [
-        permissions.IsAuthenticated,
-        IsActiveOrCompletedGame,
-        IsGameMember,
-    ]
+    permission_classes = [permissions.AllowAny]
     serializer_class = PhaseStateSerializer
 
     def get_queryset(self):
         game = self.get_game()
         current_phase = game.current_phase
+        if current_phase is None:
+            return PhaseState.objects.none()
+        if not self.request.user.is_authenticated:
+            return current_phase.phase_states.none()
         return current_phase.phase_states.filter(member__user=self.request.user)
 
 
@@ -76,28 +77,32 @@ class DeadlineWarningsView(views.APIView):
 
 
 class PhaseListView(SelectedGameMixin, generics.ListAPIView):
-    permission_classes = [
-        permissions.IsAuthenticated,
-        IsActiveOrCompletedGame,
-        IsGameMember,
-    ]
+    permission_classes = [permissions.AllowAny]
     serializer_class = PhaseListSerializer
 
     def get_queryset(self):
         game = self.get_game()
+        if game.private and not (
+            self.request.user.is_authenticated
+            and game.members.filter(user=self.request.user).exists()
+        ):
+            raise PermissionDenied
         return Phase.objects.filter(game=game).only(
             'id', 'ordinal', 'season', 'year', 'type', 'status', 'game_id', 'variant_id'
         ).order_by('ordinal')
 
 
 class PhaseRetrieveView(generics.RetrieveAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     serializer_class = PhaseRetrieveSerializer
     lookup_field = 'id'
     lookup_url_kwarg = 'phase_id'
 
     def get_queryset(self):
-        return Phase.objects.with_detail_data()
+        qs = Phase.objects.with_detail_data()
+        if not self.request.user.is_authenticated:
+            return qs.filter(game__private=False)
+        return qs
 
 
 class PhaseResolveView(SelectedGameMixin, views.APIView):

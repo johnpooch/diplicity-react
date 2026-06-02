@@ -1,6 +1,9 @@
 import React, { Suspense } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
+import { useAuth } from "@/auth";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { LogInToPlayBanner } from "@/components/LogInToPlayBanner";
 import {
   Trash2,
   CheckSquare,
@@ -147,6 +150,8 @@ const DrawProposalsBadge: React.FC<{ gameId: string; currentMemberId?: number }>
 const OrdersScreen: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { loggedIn } = useAuth();
+  const isMobile = useIsMobile();
   const { gameId, phaseId } = useRequiredParams<{
     gameId: string;
     phaseId: string;
@@ -171,7 +176,7 @@ const OrdersScreen: React.FC = () => {
   const currentMember = game.members.find(m => m.isCurrentUser);
   const isCurrentMemberInCivilDisorder = currentMember?.civilDisorder ?? false;
   const canModifyOrders =
-    isActivePhase && !isGameFinished && !isCurrentMemberInCivilDisorder;
+    !!currentMember && isActivePhase && !isGameFinished && !isCurrentMemberInCivilDisorder;
 
   const getSupplyCenterCount = (nation: string) => {
     return phase.supplyCenters.filter(sc => sc.nation.name === nation).length;
@@ -248,7 +253,7 @@ const OrdersScreen: React.FC = () => {
     game.status === "active" ||
     game.status === "completed" ||
     game.status === "abandoned";
-  const showDrawProposalsButton = !game.sandbox && isStartedGame;
+  const showDrawProposalsButton = !!currentMember && !game.sandbox && isStartedGame;
 
   const handleNavigateToDrawProposals = () => {
     navigate(`/game/${gameId}/phase/${phaseId}/draw-proposals`);
@@ -295,26 +300,45 @@ const OrdersScreen: React.FC = () => {
         message: "No orders were created by any nation in this phase.",
       };
 
+  const appBar = (
+    <GameDetailAppBar
+      title={
+        <div className="flex items-center gap-2">
+          <div className="flex-1 flex flex-col items-center gap-0.5">
+            <PhaseSelect />
+            <Suspense fallback={null}>
+              <PhaseGuidance />
+            </Suspense>
+          </div>
+          <GameDropdownMenu
+            game={game}
+            onNavigateToGameInfo={handleNavigateToGameInfo}
+            onNavigateToPlayerInfo={handleNavigateToPlayerInfo}
+          />
+        </div>
+      }
+      onNavigateBack={() => navigate("/")}
+    />
+  );
+
+  if (!loggedIn && isMobile) {
+    return (
+      <div className="flex flex-col flex-1 min-h-0">
+        {appBar}
+        <div className="flex-1 overflow-y-auto">
+          <Panel>
+            <Panel.Content>
+              <LogInToPlayBanner />
+            </Panel.Content>
+          </Panel>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <GameDetailAppBar
-        title={
-          <div className="flex items-center gap-2">
-            <div className="flex-1 flex flex-col items-center gap-0.5">
-              <PhaseSelect />
-              <Suspense fallback={null}>
-                <PhaseGuidance />
-              </Suspense>
-            </div>
-            <GameDropdownMenu
-              game={game}
-              onNavigateToGameInfo={handleNavigateToGameInfo}
-              onNavigateToPlayerInfo={handleNavigateToPlayerInfo}
-            />
-          </div>
-        }
-        onNavigateBack={() => navigate("/")}
-      />
+      {appBar}
       <div className="flex-1 overflow-y-auto">
         <Panel>
           {isCurrentMemberInCivilDisorder && (
@@ -327,6 +351,7 @@ const OrdersScreen: React.FC = () => {
             </Alert>
           )}
           <Panel.Content>
+            {!loggedIn && <LogInToPlayBanner />}
             {!hasContent ? (
               <Notice
                 icon={emptyState.icon}

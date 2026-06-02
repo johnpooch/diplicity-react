@@ -14,9 +14,12 @@ class OrderQuerySet(models.QuerySet):
         return self.filter(phase_state__phase=phase)
 
     def visible_to_user_in_phase(self, user, phase):
+        completed = Q(phase_state__phase__status=PhaseStatus.COMPLETED)
+        if not user.is_authenticated:
+            return self.filter(Q(phase_state__phase=phase) & completed)
         return self.filter(
             Q(phase_state__phase=phase)
-            & (Q(phase_state__phase__status=PhaseStatus.COMPLETED) | Q(phase_state__member__user=user))
+            & (completed | Q(phase_state__member__user=user))
         )
 
     def for_source_in_phase(self, phase_state, source):

@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useRequiredParams } from "@/hooks";
+import { useAuth } from "@/auth";
 import { ArrowLeft, Map, Gavel, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -33,6 +34,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { loggedIn } = useAuth();
   const { gameId, phaseId } = useRequiredParams<{
     gameId: string;
     phaseId: string;
@@ -46,7 +48,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
   });
 
   const navItems = useMemo(() => {
-    const items = game?.sandbox
+    const items = (game?.sandbox || !loggedIn)
       ? navigationItems.filter(item => item.label !== "Chat")
       : navigationItems;
     return items.map(item => {
@@ -66,7 +68,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
         badge,
       };
     });
-  }, [gameId, phaseId, location.pathname, game?.totalUnreadMessageCount, game?.sandbox]);
+  }, [gameId, phaseId, location.pathname, game?.totalUnreadMessageCount, game?.sandbox, loggedIn]);
 
   // Filter out Map for desktop sidebar since map is already visible in right panel
   const sidebarNavItems = useMemo(
