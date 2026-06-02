@@ -1417,6 +1417,17 @@ class TestPhaseReversion:
         assert phase1.status == PhaseStatus.ACTIVE
 
 
+class TestPhaseStateListView:
+
+    @pytest.mark.django_db
+    def test_list_phase_states_unauthenticated(self, unauthenticated_client, active_game_with_phase_state):
+        game = active_game_with_phase_state
+        url = reverse("phase-state-list", args=[game.id])
+        response = unauthenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == []
+
+
 class TestPhaseRetrieveView:
 
     @pytest.mark.django_db

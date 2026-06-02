@@ -94,6 +94,7 @@ vi.mock("@tanstack/react-query", async () => {
 
 vi.mock("@/components/NationFlag", () => ({
   NationFlag: () => <div data-testid="nation-flag" />,
+  findNationFlagUrl: () => null,
 }));
 
 import { ChannelScreen } from "./ChannelScreen";

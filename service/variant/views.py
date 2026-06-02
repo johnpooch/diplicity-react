@@ -43,7 +43,7 @@ def _variants_list_etag(user_id):
 
 class VariantListCreateView(generics.ListCreateAPIView):
     queryset = Variant.objects.all().with_related_data()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     parser_classes = [MultiPartParser]
 
     def get_serializer_class(self):

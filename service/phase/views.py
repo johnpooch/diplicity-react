@@ -40,13 +40,13 @@ class PhaseStateUpdateView(SelectedGameMixin, CurrentGameMemberMixin, generics.U
 
 class PhaseStateListView(SelectedGameMixin, generics.ListAPIView):
     permission_classes = [
-        permissions.IsAuthenticated,
         IsActiveOrCompletedGame,
-        IsGameMember,
     ]
     serializer_class = PhaseStateSerializer
 
     def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return Phase.objects.none()
         game = self.get_game()
         current_phase = game.current_phase
         return current_phase.phase_states.filter(member__user=self.request.user)

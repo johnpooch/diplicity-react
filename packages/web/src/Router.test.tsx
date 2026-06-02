@@ -69,6 +69,7 @@ vi.mock("./screens", () => ({
     Profile: () => <div>Profile</div>,
     DeleteAccount: () => <div>Delete Account</div>,
     Community: () => <div>Community</div>,
+    LearnToPlay: () => <div>Learn To Play</div>,
     GameInfoScreen: () => <div>Game Info</div>,
     PlayerInfoScreen: () => <div>Player Info</div>,
   },
@@ -82,6 +83,11 @@ vi.mock("./screens", () => ({
     PlayerInfoScreen: () => <div>Player Info</div>,
     ProposeDrawScreen: () => <div>Propose Draw</div>,
     DrawProposalsScreen: () => <div>Draw Proposals</div>,
+  },
+  Variants: {
+    VariantsList: () => <div>Variants List</div>,
+    VariantCreate: () => <div>Variant Create</div>,
+    VariantEditRoute: () => <div>Variant Edit</div>,
   },
 }));
 
