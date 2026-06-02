@@ -32,6 +32,11 @@ const Profile: React.FC = () => {
   const queryClient = useQueryClient();
   const { logout } = useAuth();
   const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
   const { data: userProfile } = useUserRetrieveSuspense();
   const updateProfileMutation = useUserUpdatePartialUpdate();
 
@@ -92,7 +97,7 @@ const Profile: React.FC = () => {
           <h2 className="text-lg font-semibold">User</h2>
           <Button
             variant="outline"
-            onClick={logout}
+            onClick={handleLogout}
             className="hidden sm:inline-flex"
           >
             Log out
@@ -170,7 +175,7 @@ const Profile: React.FC = () => {
         </div>
         <Button
           variant="outline"
-          onClick={logout}
+          onClick={handleLogout}
           className="sm:hidden"
         >
           Log out
