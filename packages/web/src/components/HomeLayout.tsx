@@ -81,14 +81,16 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
           {/* Left Sidebar - ShadCN Sidebar with collapsible functionality */}
           <Sidebar collapsible="icon">
             <SidebarHeader>
-              <Item className="p-1">
-                <ItemMedia variant="image">
-                  <DiplicityLogo />
-                </ItemMedia>
-                <ItemContent>
-                  <ItemTitle>Diplicity</ItemTitle>
-                </ItemContent>
-              </Item>
+              <Link to="/">
+                <Item className="p-1">
+                  <ItemMedia variant="image">
+                    <DiplicityLogo />
+                  </ItemMedia>
+                  <ItemContent>
+                    <ItemTitle>Diplicity</ItemTitle>
+                  </ItemContent>
+                </Item>
+              </Link>
             </SidebarHeader>
             <SidebarContent>
               {loggedIn ? (
