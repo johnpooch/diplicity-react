@@ -17,6 +17,7 @@ import { DiplicityLogo } from "@/components/DiplicityLogo";
 import { Navigation } from "@/components/Navigation";
 import { SidebarUserArea } from "@/components/SidebarUserArea";
 import { SafeAreaView } from "@/components/SafeAreaView";
+import { useAuth } from "@/auth";
 import { Home, Search, PlusCircle, MessageCircle, CircleHelp } from "lucide-react";
 
 const navigationItems = [
@@ -58,6 +59,7 @@ interface HomeLayoutProps {
 const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { loggedIn } = useAuth();
 
   const navItems = navigationItems.map(item => ({
     ...item,
@@ -105,9 +107,11 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
-              <Suspense fallback={null}>
-                <SidebarUserArea />
-              </Suspense>
+              {loggedIn && (
+                <Suspense fallback={null}>
+                  <SidebarUserArea />
+                </Suspense>
+              )}
             </SidebarFooter>
           </Sidebar>
 

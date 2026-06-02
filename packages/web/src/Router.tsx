@@ -299,12 +299,17 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
               element: <ResetPassword />,
             },
             {
-              path: "game-info/:gameId",
-              element: (
-                <Suspense fallback={<RouteFallback />}>
-                  <Home.GameInfoScreen />
-                </Suspense>
-              ),
+              element: <HomeLayoutWrapper />,
+              children: [
+                {
+                  path: "game-info/:gameId",
+                  element: (
+                    <Suspense fallback={<RouteFallback />}>
+                      <Home.GameInfoScreen />
+                    </Suspense>
+                  ),
+                },
+              ],
             },
             {
               path: "game/:gameId",
