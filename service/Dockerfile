@@ -12,6 +12,8 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     libpq-dev \
+    libxml2-dev \
+    libxslt1-dev \
     curl \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
