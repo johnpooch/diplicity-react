@@ -28,6 +28,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='unit',
-            constraint=models.CheckConstraint(check=models.Q(models.Q(('dislodged', False), ('dislodged_by__isnull', True)), ('dislodged', True), _connector='OR'), name='dislodged_by_requires_dislodged'),
+            constraint=models.CheckConstraint(condition=models.Q(models.Q(('dislodged', False), ('dislodged_by__isnull', True)), ('dislodged', True), _connector='OR'), name='dislodged_by_requires_dislodged'),
         ),
     ]
