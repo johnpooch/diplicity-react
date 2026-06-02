@@ -113,7 +113,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
 
           {/* Right Panel - GameMap (desktop only) */}
           <div className="hidden md:flex flex-1 border-l overflow-hidden">
-            <Suspense fallback={null}>
+            <Suspense fallback={<div className="flex-1 bg-muted animate-pulse" />}>
               <GameMap />
             </Suspense>
           </div>

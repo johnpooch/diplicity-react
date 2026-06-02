@@ -42,10 +42,12 @@ const ColourProfileSection: React.FC = () => {
 
   const [localColours, setLocalColours] = useState<string[]>(savedColours);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
+      abortControllerRef.current?.abort();
     };
   }, []);
 
@@ -103,12 +105,20 @@ const ColourProfileSection: React.FC = () => {
     setLocalColours(next);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
+      abortControllerRef.current?.abort();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
       updateMutation
         .mutateAsync({ data: { customColourProfile: next } })
-        .then(result => queryClient.setQueryData(getUserRetrieveQueryKey(), result))
+        .then(result => {
+          if (!controller.signal.aborted)
+            queryClient.setQueryData(getUserRetrieveQueryKey(), result);
+        })
         .catch(() => {
-          setLocalColours(savedColoursRef.current);
-          toast.error("Failed to save colour profile");
+          if (!controller.signal.aborted) {
+            setLocalColours(savedColoursRef.current);
+            toast.error("Failed to save colour profile");
+          }
         });
     }, 600);
   };
@@ -117,12 +127,20 @@ const ColourProfileSection: React.FC = () => {
     const defaults = userProfile.defaultColourProfile;
     setLocalColours(defaults);
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     updateMutation
       .mutateAsync({ data: { customColourProfile: defaults } })
-      .then(result => queryClient.setQueryData(getUserRetrieveQueryKey(), result))
+      .then(result => {
+        if (!controller.signal.aborted)
+          queryClient.setQueryData(getUserRetrieveQueryKey(), result);
+      })
       .catch(() => {
-        setLocalColours(savedColoursRef.current);
-        toast.error("Failed to reset colour profile");
+        if (!controller.signal.aborted) {
+          setLocalColours(savedColoursRef.current);
+          toast.error("Failed to reset colour profile");
+        }
       });
   };
 
