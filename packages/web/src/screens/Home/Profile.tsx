@@ -1,4 +1,4 @@
-import React, { Suspense, useRef, useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import { Check, X, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -91,6 +91,25 @@ const Profile: React.FC = () => {
   const [localColours, setLocalColours] = useState<string[]>(() => savedColours);
   const saveColourTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  useEffect(() => {
+    setColourProfileEnabled(userProfile.colourProfileEnabled ?? false);
+  }, [userProfile.colourProfileEnabled]);
+
+  useEffect(() => {
+    setLocalColours(
+      Array.isArray(userProfile.customColourProfile) &&
+      userProfile.customColourProfile.length === 30
+        ? userProfile.customColourProfile
+        : DEFAULT_COLOUR_PROFILE
+    );
+  }, [userProfile.customColourProfile]);
+
+  useEffect(() => {
+    return () => {
+      if (saveColourTimeoutRef.current) clearTimeout(saveColourTimeoutRef.current);
+    };
+  }, []);
+
   const isDefaultColours = DEFAULT_COLOUR_PROFILE.every((c, i) => c === localColours[i]);
 
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -139,10 +158,10 @@ const Profile: React.FC = () => {
     const trimmedName = editedName.trim();
     if (trimmedName.length >= 2) {
       try {
-        await updateProfileMutation.mutateAsync({
+        const result = await updateProfileMutation.mutateAsync({
           data: { name: trimmedName },
         });
-        queryClient.invalidateQueries({ queryKey: getUserRetrieveQueryKey() });
+        queryClient.setQueryData(getUserRetrieveQueryKey(), result);
         setIsEditingName(false);
         setEditedName("");
         setSaveNameError(false);
@@ -163,10 +182,10 @@ const Profile: React.FC = () => {
   const handleToggleColourProfile = async (checked: boolean) => {
     setColourProfileEnabled(checked);
     try {
-      await updateProfileMutation.mutateAsync({
+      const result = await updateProfileMutation.mutateAsync({
         data: { colourProfileEnabled: checked },
       });
-      queryClient.invalidateQueries({ queryKey: getUserRetrieveQueryKey() });
+      queryClient.setQueryData(getUserRetrieveQueryKey(), result);
     } catch {
       setColourProfileEnabled(!checked);
     }
@@ -179,10 +198,11 @@ const Profile: React.FC = () => {
     saveColourTimeoutRef.current = setTimeout(() => {
       updateProfileMutation
         .mutateAsync({ data: { customColourProfile: next } })
-        .then(() =>
-          queryClient.invalidateQueries({ queryKey: getUserRetrieveQueryKey() }),
-        )
-        .catch(() => toast.error("Failed to save colour profile"));
+        .then(result => queryClient.setQueryData(getUserRetrieveQueryKey(), result))
+        .catch(() => {
+          setLocalColours(savedColours);
+          toast.error("Failed to save colour profile");
+        });
     }, 600);
   };
 
@@ -191,10 +211,11 @@ const Profile: React.FC = () => {
     if (saveColourTimeoutRef.current) clearTimeout(saveColourTimeoutRef.current);
     updateProfileMutation
       .mutateAsync({ data: { customColourProfile: DEFAULT_COLOUR_PROFILE } })
-      .then(() =>
-        queryClient.invalidateQueries({ queryKey: getUserRetrieveQueryKey() }),
-      )
-      .catch(() => toast.error("Failed to reset colour profile"));
+      .then(result => queryClient.setQueryData(getUserRetrieveQueryKey(), result))
+      .catch(() => {
+        setLocalColours(savedColours);
+        toast.error("Failed to reset colour profile");
+      });
   };
 
   return (

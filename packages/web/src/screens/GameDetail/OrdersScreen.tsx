@@ -42,7 +42,7 @@ import { Panel } from "@/components/Panel";
 import { PhaseSelect } from "@/components/PhaseSelect";
 import { PhaseGuidance } from "@/components/PhaseGuidance";
 import { useRequiredParams } from "@/hooks";
-import { useCustomNationColours } from "@/hooks/useCustomNationColours";
+import { useVariantWithCustomColours } from "@/hooks/useVariantWithCustomColours";
 import {
   PhaseRetrieve,
   PhaseState,
@@ -164,9 +164,7 @@ const OrdersScreen: React.FC = () => {
   const confirmOrdersMutation = useGameConfirmPhasePartialUpdate();
   const resolvePhaseMutation = useGameResolvePhaseCreate();
 
-  const applyCustomColours = useCustomNationColours();
-  const rawVariant = variants.find(v => v.id === game.variantId)!;
-  const variant = { ...rawVariant, nations: applyCustomColours(rawVariant.nations) };
+  const variant = useVariantWithCustomColours(variants, game.variantId)!;
 
   const isActivePhase = phase.status === "active";
   const isGameFinished =

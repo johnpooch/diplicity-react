@@ -2789,7 +2789,9 @@ components:
           type: integer
           nullable: true
         provinceNations:
-          type: string
+          type: object
+          additionalProperties:
+            type: string
           readOnly: true
       required:
       - id

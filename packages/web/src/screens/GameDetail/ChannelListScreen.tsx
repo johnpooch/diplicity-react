@@ -2,7 +2,7 @@ import React, { Suspense } from "react";
 import { Link } from "react-router";
 import { UserPlus, MessageSquare, MessageSquareOff } from "lucide-react";
 import { useRequiredParams } from "@/hooks";
-import { useCustomNationColours } from "@/hooks/useCustomNationColours";
+import { useVariantWithCustomColours } from "@/hooks/useVariantWithCustomColours";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Button } from "@/components/ui/button";
@@ -50,9 +50,8 @@ const ChannelListScreen: React.FC = () => {
 
   const currentNationName =
     game.members.find(m => m.isCurrentUser)?.nation ?? undefined;
-  const applyCustomColours = useCustomNationColours();
-  const rawVariantNations = variants.find(v => v.id === game.variantId)?.nations ?? [];
-  const variantNations = applyCustomColours(rawVariantNations);
+  const variant = useVariantWithCustomColours(variants, game.variantId);
+  const variantNations = variant?.nations ?? [];
   const isSandboxGame = game.sandbox;
   const isNoPressActiveGame =
     game.pressType === "no_press" &&

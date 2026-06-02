@@ -1,5 +1,13 @@
 # Diplicity React - Release Notes
 
+## Custom Nation Colours / Colourblind Mode (June 2, 2026)
+
+**Release Date:** June 2, 2026
+
+### Feature: Customisable nation colour palette
+
+You can now enable a custom colour profile in your Profile settings. When active, nation colours are replaced with a fixed 30-colour palette across all game views — maps, player lists, messages, and draw proposals. The default palette is optimised for common colour-blindness types (Okabe-Ito + Tol schemes). Each colour can be individually changed by tapping the swatch and entering a hex code or picking from the preset palette.
+
 ## Faster Phase Resolution (June 1, 2026)
 
 **Release Date:** June 1, 2026

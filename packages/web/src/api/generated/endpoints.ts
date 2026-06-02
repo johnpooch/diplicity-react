@@ -676,7 +676,7 @@ export interface PhaseRetrieve {
   previousPhaseId: number | null;
   /** @nullable */
   nextPhaseId: number | null;
-  readonly provinceNations: string;
+  readonly provinceNations: Record<string, string>;
 }
 
 export interface PhaseState {

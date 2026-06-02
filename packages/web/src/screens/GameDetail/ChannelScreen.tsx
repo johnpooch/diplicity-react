@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Send, MessageCircle, MessageSquareOff } from "lucide-react";
 import { useDraft, useRequiredParams } from "@/hooks";
-import { useCustomNationColours } from "@/hooks/useCustomNationColours";
+import { useVariantWithCustomColours } from "@/hooks/useVariantWithCustomColours";
 import { toast } from "sonner";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
@@ -123,14 +123,10 @@ const ChannelScreen: React.FC = () => {
 
   const currentMember = game.members.find(m => m.isCurrentUser);
   const currentNationName = currentMember?.nation ?? undefined;
-  const applyCustomColours = useCustomNationColours();
-  const rawVariant = variants.find(v => v.id === game.variantId);
-  const variant = rawVariant
-    ? { ...rawVariant, nations: applyCustomColours(rawVariant.nations) }
-    : undefined;
+  const variant = useVariantWithCustomColours(variants, game.variantId);
   const customColourMap = useMemo(
     () => new Map(variant?.nations.map(n => [n.name, n.color]) ?? []),
-    [variant?.nations]
+    [variant]
   );
   const channelDisplayName = getChannelDisplayName(channel, currentNationName);
   const channelFlagUrls = getChannelFlagUrls(
