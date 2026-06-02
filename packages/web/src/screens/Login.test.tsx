@@ -7,6 +7,7 @@ import { Login } from "./Login";
 
 const mockLogin = vi.fn();
 const mockMutateAsync = vi.fn();
+const mockAppleMutateAsync = vi.fn();
 
 vi.mock("@/auth", () => ({
   useAuth: () => ({ login: mockLogin }),
@@ -14,7 +15,7 @@ vi.mock("@/auth", () => ({
 
 vi.mock("@/api/generated/endpoints", () => ({
   useAuthAppleLoginCreate: () => ({
-    mutateAsync: vi.fn(),
+    mutateAsync: mockAppleMutateAsync,
     isPending: false,
   }),
   useAuthEmailLoginCreate: () => ({
@@ -29,6 +30,22 @@ vi.mock("@/api/generated/endpoints", () => ({
 
 vi.mock("@react-oauth/google", () => ({
   GoogleLogin: () => <div data-testid="google-login">Google Sign In</div>,
+}));
+
+vi.mock("react-apple-signin-auth", () => ({
+  default: ({ onSuccess }: { onSuccess: (response: unknown) => void }) => (
+    <button
+      data-testid="apple-login"
+      onClick={() =>
+        onSuccess({
+          authorization: { id_token: "apple-id-token" },
+          user: { name: { firstName: "Ada", lastName: "Lovelace" } },
+        })
+      }
+    >
+      Apple
+    </button>
+  ),
 }));
 
 vi.mock("@/utils/platform", () => ({
@@ -107,10 +124,39 @@ describe("Login", () => {
     expect(forgotLink).toHaveAttribute("href", "/forgot-password");
   });
 
-  it("shows Google sign-in below an OR divider", () => {
+  it("shows Google and Apple sign-in below an OR divider", () => {
     renderLogin();
 
     expect(screen.getByText("OR")).toBeInTheDocument();
     expect(screen.getByTestId("google-login")).toBeInTheDocument();
+    expect(screen.getByTestId("apple-login")).toBeInTheDocument();
+  });
+
+  it("signs in with Apple and stores tokens on success", async () => {
+    mockAppleMutateAsync.mockResolvedValue({
+      id: 2,
+      email: "ada@example.com",
+      name: "Ada Lovelace",
+      accessToken: "apple-access-jwt",
+      refreshToken: "apple-refresh-jwt",
+    });
+
+    renderLogin();
+
+    await userEvent.click(screen.getByTestId("apple-login"));
+
+    expect(mockAppleMutateAsync).toHaveBeenCalledWith({
+      data: {
+        idToken: "apple-id-token",
+        firstName: "Ada",
+        lastName: "Lovelace",
+      },
+    });
+    expect(mockLogin).toHaveBeenCalledWith({
+      accessToken: "apple-access-jwt",
+      refreshToken: "apple-refresh-jwt",
+      email: "ada@example.com",
+      name: "Ada Lovelace",
+    });
   });
 });

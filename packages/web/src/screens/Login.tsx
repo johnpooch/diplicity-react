@@ -11,9 +11,15 @@ import {
   useAuthEmailLoginCreate,
   useAuthLoginCreate,
 } from "../api/generated/endpoints";
+import AppleSignin from "react-apple-signin-auth";
 import { isIosPlatform, isNativePlatform } from "@/utils/platform";
 import { nativeAppleSignIn } from "@/auth/nativeAppleAuth";
 import { nativeGoogleSignIn } from "@/auth/nativeGoogleAuth";
+import {
+  AppleAuthResponse,
+  parseAppleResponse,
+  webAppleAuthOptions,
+} from "@/auth/webAppleAuth";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -110,19 +116,32 @@ const Login: React.FC = () => {
     }
   };
 
+  const finishAppleLogin = async (credentials: {
+    idToken: string;
+    firstName?: string;
+    lastName?: string;
+  }) => {
+    const result = await appleLoginMutation.mutateAsync({ data: credentials });
+    login({
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      email: result.email,
+      name: result.name,
+    });
+    toast.success(`Logged in as ${result.name}`);
+  };
+
   const handleAppleLogin = async () => {
     try {
-      const { idToken, firstName, lastName } = await nativeAppleSignIn();
-      const result = await appleLoginMutation.mutateAsync({
-        data: { idToken, firstName, lastName },
-      });
-      login({
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
-        email: result.email,
-        name: result.name,
-      });
-      toast.success(`Logged in as ${result.name}`);
+      await finishAppleLogin(await nativeAppleSignIn());
+    } catch {
+      toast.error("Login failed");
+    }
+  };
+
+  const handleWebAppleLogin = async (response: AppleAuthResponse) => {
+    try {
+      await finishAppleLogin(parseAppleResponse(response));
     } catch {
       toast.error("Login failed");
     }
@@ -290,10 +309,21 @@ const Login: React.FC = () => {
                   )}
                 </>
               ) : (
-                <GoogleLogin
-                  onSuccess={handleWebLoginSuccess}
-                  onError={handleWebLoginError}
-                />
+                <>
+                  <GoogleLogin
+                    width="220"
+                    onSuccess={handleWebLoginSuccess}
+                    onError={handleWebLoginError}
+                  />
+                  <AppleSignin
+                    authOptions={webAppleAuthOptions}
+                    uiType="dark"
+                    buttonExtraChildren="Sign in with Apple"
+                    className="!h-10 !w-[220px]"
+                    onSuccess={handleWebAppleLogin}
+                    onError={handleWebLoginError}
+                  />
+                </>
               )}
             </div>
 
