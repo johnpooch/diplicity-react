@@ -25,9 +25,9 @@ const LogInToPlayBanner: React.FC = () => {
         <EmptyMedia variant="image">
           <DiplicityLogo />
         </EmptyMedia>
-        <EmptyTitle>Play Diplomacy, free</EmptyTitle>
+        <EmptyTitle>Sign in to play</EmptyTitle>
         <EmptyDescription>
-          Command a Great Power in 1900s Europe. Form alliances, negotiate, and outmaneuver your rivals — no dice, just pure strategy.
+          Diplomacy is the legendary game of negotiation, alliance, and betrayal — a war where every move is decided by the people playing, not by chance.
         </EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
