@@ -25,7 +25,7 @@ const LogInToPlayBanner: React.FC = () => {
         <EmptyMedia variant="image">
           <DiplicityLogo />
         </EmptyMedia>
-        <EmptyTitle>Sign in to play</EmptyTitle>
+        <EmptyTitle>Register to play</EmptyTitle>
         <EmptyDescription>
           Diplomacy is the legendary game of negotiation, alliance, and betrayal — a war where every move is decided by the people playing, not by chance.
         </EmptyDescription>
