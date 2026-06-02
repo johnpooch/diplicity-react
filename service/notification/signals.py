@@ -1,13 +1,16 @@
 import logging
+from django.conf import settings
 from django.db import transaction
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from channel.models import ChannelMessage
+from draw_proposal.models import DrawProposal
 from game.models import Game
 from common.constants import GameStatus, PhaseStatus
 from notification.tasks import send_notification
 from notification.utils import send_notification_to_users
 from phase.models import Phase
+from victory.models import Victory
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +23,35 @@ def _truncate_body(text: str, max_lines: int = 3, max_chars: int = 200) -> str:
     elif len(lines) > max_lines:
         truncated += "…"
     return truncated
+
+
+@receiver(post_save, sender=DrawProposal)
+def send_draw_proposal_notification(sender, instance, created, **kwargs):
+    if not created:
+        return
+
+    other_members = instance.game.members.filter(
+        eliminated=False, kicked=False, civil_disorder=False
+    ).exclude(id=instance.created_by.id)
+    user_ids = [member.user_id for member in other_members if member.user_id is not None]
+    if not user_ids:
+        return
+
+    proposer_name = instance.created_by.name
+    game = instance.game
+    phase = instance.phase
+    link = (
+        f"{settings.FRONTEND_URL}/game/{game.id}/phase/{phase.id}/draw-proposals"
+        if phase is not None
+        else f"{settings.FRONTEND_URL}/game/{game.id}"
+    )
+    send_notification.defer(
+        user_ids=user_ids,
+        title=game.name,
+        body=f"{proposer_name} has proposed a draw. Respond to it now.",
+        notification_type="draw_proposal",
+        data={"game_id": str(game.id), "link": link},
+    )
 
 
 _game_status_cache = {}
@@ -43,9 +75,9 @@ def send_channel_message_notification(sender, instance, created, **kwargs):
     game = instance.channel.game
     current_phase = game.phases.last()
     link = (
-        f"https://diplicity.com/game/{game.id}/phase/{current_phase.id}/chat/channel/{instance.channel.id}"
+        f"{settings.FRONTEND_URL}/game/{game.id}/phase/{current_phase.id}/chat/channel/{instance.channel.id}"
         if current_phase
-        else f"https://diplicity.com/game/{game.id}"
+        else f"{settings.FRONTEND_URL}/game/{game.id}"
     )
 
     send_notification.defer(
@@ -70,27 +102,75 @@ def cache_game_status(sender, instance, **kwargs):
             pass
 
 
+def _send_game_start_notification(instance):
+    user_ids = [member.user_id for member in instance.members.all() if member.user_id is not None]
+    if not user_ids:
+        return
+
+    send_notification.defer(
+        user_ids=user_ids,
+        title=instance.name,
+        body="The game has started. You can now chat with other players and submit your orders. Good luck!",
+        notification_type="game_start",
+        data={
+            "game_id": str(instance.id),
+            "link": f"{settings.FRONTEND_URL}/game/{instance.id}",
+        },
+    )
+
+
+def _send_game_end_notification(game_id, game_name, all_member_user_ids):
+    try:
+        victory = Victory.objects.prefetch_related("members").get(game_id=game_id)
+    except Victory.DoesNotExist:
+        return
+
+    victory_members = list(victory.members.all())
+    link = f"{settings.FRONTEND_URL}/game/{game_id}"
+
+    if len(victory_members) >= 2:
+        names = ", ".join(m.name for m in victory_members)
+        send_notification.defer(
+            user_ids=all_member_user_ids,
+            title=game_name,
+            body=f"The game has ended in a draw, including {names}. Well played!",
+            notification_type="game_draw",
+            data={"game_id": str(game_id), "link": link},
+        )
+    elif len(victory_members) == 1:
+        winner = victory_members[0]
+        winner_user_ids = [winner.user_id] if winner.user_id is not None else []
+        other_user_ids = [uid for uid in all_member_user_ids if uid != winner.user_id]
+        if winner_user_ids:
+            send_notification.defer(
+                user_ids=winner_user_ids,
+                title=game_name,
+                body="The game has ended, you achieved a solo win! Congratulations!",
+                notification_type="game_solo_win",
+                data={"game_id": str(game_id), "link": link},
+            )
+        if other_user_ids:
+            send_notification.defer(
+                user_ids=other_user_ids,
+                title=game_name,
+                body=f"The game has ended, and {winner.name} achieved a solo win! Better luck next time!",
+                notification_type="game_solo_loss",
+                data={"game_id": str(game_id), "link": link},
+            )
+
+
 @receiver(post_save, sender=Game)
-def send_game_start_notification(sender, instance, created, **kwargs):
+def send_game_status_notifications(sender, instance, created, **kwargs):
     if created:
         return
 
     old_status = _game_status_cache.pop(instance.pk, None)
-    if old_status == GameStatus.PENDING and instance.status == GameStatus.ACTIVE:
-        user_ids = [member.user_id for member in instance.members.all() if member.user_id is not None]
-        if not user_ids:
-            return
 
-        send_notification.defer(
-            user_ids=user_ids,
-            title="Game Started",
-            body=f"Game '{instance.name}' has started!",
-            notification_type="game_start",
-            data={
-                "game_id": str(instance.id),
-                "link": f"https://diplicity.com/game/{instance.id}",
-            },
-        )
+    if old_status == GameStatus.PENDING and instance.status == GameStatus.ACTIVE:
+        _send_game_start_notification(instance)
+    elif old_status == GameStatus.ACTIVE and instance.status == GameStatus.COMPLETED:
+        all_member_user_ids = [m.user_id for m in instance.members.all() if m.user_id is not None]
+        _send_game_end_notification(instance.id, instance.name, all_member_user_ids)
 
 
 _phase_status_cache = {}
@@ -114,18 +194,18 @@ def send_phase_resolved_notification(sender, instance, created, **kwargs):  # no
     old_status = _phase_status_cache.pop(instance.pk, None)
     if old_status == PhaseStatus.ACTIVE and instance.status == PhaseStatus.COMPLETED:
 
-        def send_notification():
+        def _send():
             user_ids = [member.user_id for member in instance.game.members.all() if member.user_id is not None]
 
             send_notification_to_users(
                 user_ids=user_ids,
-                title="Phase Resolved",
-                body=f"Phase '{instance.name}' has been resolved!",
+                title=instance.game.name,
+                body=f"{instance.name} has been resolved",
                 notification_type="phase_resolved",
                 data={
                     "game_id": str(instance.game.id),
-                    "link": f"https://diplicity.com/game/{instance.game.id}",
+                    "link": f"{settings.FRONTEND_URL}/game/{instance.game.id}",
                 },
             )
 
-        transaction.on_commit(send_notification)
+        transaction.on_commit(_send)
