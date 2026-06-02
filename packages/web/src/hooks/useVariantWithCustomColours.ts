@@ -4,7 +4,7 @@ import type { Variant } from "@/api/generated/endpoints";
 
 export function useVariantWithCustomColours(
   variants: Variant[] | undefined,
-  variantId: number | undefined,
+  variantId: string | undefined,
 ): Variant | undefined {
   const applyCustomColours = useCustomNationColours();
   return useMemo(() => {

@@ -621,6 +621,9 @@ export const mockUserProfile: UserProfile = {
   name: "John Doe",
   picture: null,
   email: "john.doe@example.com",
+  colourProfileEnabled: false,
+  customColourProfile: [],
+  defaultColourProfile: [],
 };
 
 export const mockOrders: Order[] = [
