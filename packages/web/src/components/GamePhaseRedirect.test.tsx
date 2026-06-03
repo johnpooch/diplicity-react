@@ -2,11 +2,9 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GamePhaseRedirect } from "./GamePhaseRedirect";
-import { deepLinkStorage } from "@/deepLink";
 
 const mockUseGameRetrieveSuspense = vi.fn();
 const mockUseIsMobile = vi.fn();
-const mockUseAuth = vi.fn();
 
 vi.mock("@/api/generated/endpoints", async (importOriginal) => {
   const actual =
@@ -20,10 +18,6 @@ vi.mock("@/api/generated/endpoints", async (importOriginal) => {
 
 vi.mock("@/hooks/use-mobile", () => ({
   useIsMobile: () => mockUseIsMobile(),
-}));
-
-vi.mock("@/auth", () => ({
-  useAuth: () => mockUseAuth(),
 }));
 
 const LocationProbe: React.FC = () => {
@@ -45,8 +39,6 @@ describe("GamePhaseRedirect", () => {
   beforeEach(() => {
     mockUseGameRetrieveSuspense.mockReset();
     mockUseIsMobile.mockReset();
-    mockUseAuth.mockReturnValue({ loggedIn: true });
-    deepLinkStorage.consumePendingPath();
   });
 
   it("redirects forming games to the game-info screen", () => {
@@ -112,24 +104,23 @@ describe("GamePhaseRedirect", () => {
     expect(screen.getByTestId("location")).toHaveTextContent("/");
   });
 
-  it("redirects to / and stores path when game is private and user is not logged in", () => {
+  it("navigates to phase view for private games regardless of auth", () => {
     mockUseGameRetrieveSuspense.mockReturnValue({
       data: { id: "priv-1", status: "active", currentPhaseId: 3, private: true },
     });
-    mockUseAuth.mockReturnValue({ loggedIn: false });
     mockUseIsMobile.mockReturnValue(false);
 
     renderAtGameRoute("priv-1");
 
-    expect(screen.getByTestId("location")).toHaveTextContent("/");
-    expect(deepLinkStorage.getPendingPath()).toBe("/game/priv-1");
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/game/priv-1/phase/3/orders"
+    );
   });
 
-  it("does not redirect private game when user is logged in", () => {
+  it("navigates to phase view for private games when logged in", () => {
     mockUseGameRetrieveSuspense.mockReturnValue({
       data: { id: "priv-2", status: "active", currentPhaseId: 5, private: true },
     });
-    mockUseAuth.mockReturnValue({ loggedIn: true });
     mockUseIsMobile.mockReturnValue(false);
 
     renderAtGameRoute("priv-2");
@@ -137,14 +128,12 @@ describe("GamePhaseRedirect", () => {
     expect(screen.getByTestId("location")).toHaveTextContent(
       "/game/priv-2/phase/5/orders"
     );
-    expect(deepLinkStorage.getPendingPath()).toBeNull();
   });
 
-  it("proceeds normally for public game when user is not logged in", () => {
+  it("navigates to phase view for public games", () => {
     mockUseGameRetrieveSuspense.mockReturnValue({
       data: { id: "pub-1", status: "active", currentPhaseId: 7, private: false },
     });
-    mockUseAuth.mockReturnValue({ loggedIn: false });
     mockUseIsMobile.mockReturnValue(false);
 
     renderAtGameRoute("pub-1");
@@ -152,6 +141,5 @@ describe("GamePhaseRedirect", () => {
     expect(screen.getByTestId("location")).toHaveTextContent(
       "/game/pub-1/phase/7/orders"
     );
-    expect(deepLinkStorage.getPendingPath()).toBeNull();
   });
 });
