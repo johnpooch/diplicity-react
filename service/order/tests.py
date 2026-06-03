@@ -144,11 +144,12 @@ class TestOrderListView:
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     @pytest.mark.django_db
-    def test_list_orders_unauthorized(self, unauthenticated_client, order_active_game):
+    def test_list_orders_unauthenticated(self, unauthenticated_client, order_active_game):
         game = order_active_game
         url = reverse("order-list", args=[game.id, game.current_phase.id])
         response = unauthenticated_client.get(url)
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == []
 
 
 class TestOrderCreateView:

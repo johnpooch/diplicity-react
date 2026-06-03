@@ -31,6 +31,14 @@ vi.mock("@/hooks/useInfiniteScroll", () => ({
   useInfiniteScroll: () => ({ current: null }),
 }));
 
+vi.mock("@/auth", () => ({
+  useAuth: () => ({
+    loggedIn: true,
+    login: vi.fn(),
+    logout: vi.fn(),
+  }),
+}));
+
 vi.mock("@/hooks/use-mobile", () => ({
   useIsMobile: () => false,
 }));

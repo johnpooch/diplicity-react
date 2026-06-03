@@ -64,6 +64,7 @@ import {
   Unit,
 } from "@/api/generated/endpoints";
 import { cn } from "../../lib/utils";
+import { useAuth } from "@/auth";
 
 type NationGroup = {
   nation: string;
@@ -152,6 +153,7 @@ const OrdersScreen: React.FC = () => {
     phaseId: string;
   }>();
   const selectedPhase = Number(phaseId);
+  const { loggedIn } = useAuth();
 
   const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: phase } = useGamePhaseRetrieveSuspense(gameId, selectedPhase);
@@ -171,7 +173,7 @@ const OrdersScreen: React.FC = () => {
   const currentMember = game.members.find(m => m.isCurrentUser);
   const isCurrentMemberInCivilDisorder = currentMember?.civilDisorder ?? false;
   const canModifyOrders =
-    isActivePhase && !isGameFinished && !isCurrentMemberInCivilDisorder;
+    !!currentMember && isActivePhase && !isGameFinished && !isCurrentMemberInCivilDisorder;
 
   const getSupplyCenterCount = (nation: string) => {
     return phase.supplyCenters.filter(sc => sc.nation.name === nation).length;
@@ -248,7 +250,7 @@ const OrdersScreen: React.FC = () => {
     game.status === "active" ||
     game.status === "completed" ||
     game.status === "abandoned";
-  const showDrawProposalsButton = !game.sandbox && isStartedGame;
+  const showDrawProposalsButton = loggedIn && !!currentMember && !game.sandbox && isStartedGame;
 
   const handleNavigateToDrawProposals = () => {
     navigate(`/game/${gameId}/phase/${phaseId}/draw-proposals`);

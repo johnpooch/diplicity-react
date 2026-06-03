@@ -1417,6 +1417,17 @@ class TestPhaseReversion:
         assert phase1.status == PhaseStatus.ACTIVE
 
 
+class TestPhaseStateListView:
+
+    @pytest.mark.django_db
+    def test_list_phase_states_unauthenticated(self, unauthenticated_client, active_game_with_phase_state):
+        game = active_game_with_phase_state
+        url = reverse("phase-state-list", args=[game.id])
+        response = unauthenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == []
+
+
 class TestPhaseRetrieveView:
 
     @pytest.mark.django_db
@@ -1439,7 +1450,8 @@ class TestPhaseRetrieveView:
         phase = game.current_phase
         url = reverse("phase-retrieve", args=[game.id, phase.id])
         response = unauthenticated_client.get(url)
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["id"] == phase.id
 
     @pytest.mark.django_db
     def test_retrieve_phase_not_found(self, authenticated_client, active_game_with_phase_state):
@@ -1566,7 +1578,8 @@ class TestPhaseListView:
         url = reverse("phase-list", args=[game.id])
         response = unauthenticated_client.get(url)
 
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) > 0
 
 
 class TestPhaseListViewPerformance:
@@ -1594,7 +1607,7 @@ class TestPhaseListViewPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 3  # was 6 before resolve_game cache eliminated the dup phase fetches
+        assert query_count == 3
 
 
 class TestPhaseRetrieveViewQueryPerformance:

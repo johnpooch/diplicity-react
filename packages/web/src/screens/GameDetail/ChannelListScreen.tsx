@@ -24,6 +24,7 @@ import {
   useGamesChannelsListSuspense,
   useVariantsListSuspense,
 } from "@/api/generated/endpoints";
+import { useAuth } from "@/auth";
 import { getChannelDisplayName, getChannelFlagUrls } from "./channelUtils";
 import { ChannelAvatar } from "./ChannelAvatar";
 
@@ -43,6 +44,7 @@ const ChannelListScreen: React.FC = () => {
     gameId: string;
     phaseId: string;
   }>();
+  const { loggedIn } = useAuth();
   const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: channels } = useGamesChannelsListSuspense(gameId);
   const { data: variants } = useVariantsListSuspense();
@@ -121,7 +123,7 @@ const ChannelListScreen: React.FC = () => {
               </ItemGroup>
             )}
           </Panel.Content>
-          {!isSandboxGame && !isNoPressActiveGame && (
+          {!isSandboxGame && !isNoPressActiveGame && loggedIn && (
             <>
               <Separator />
               <Panel.Footer>

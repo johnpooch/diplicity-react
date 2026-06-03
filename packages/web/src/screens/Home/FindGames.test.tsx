@@ -34,6 +34,16 @@ vi.mock("@/hooks/useGamesListInfinite", () => ({
   useGamesListInfinite: vi.fn(() => defaultGamesListResult),
 }));
 
+const mockLoggedIn = vi.fn(() => true);
+
+vi.mock("@/auth", () => ({
+  useAuth: () => ({
+    loggedIn: mockLoggedIn(),
+    login: vi.fn(),
+    logout: vi.fn(),
+  }),
+}));
+
 vi.mock("@/hooks/useInfiniteScroll", () => ({
   useInfiniteScroll: () => mockSentinelRef,
 }));

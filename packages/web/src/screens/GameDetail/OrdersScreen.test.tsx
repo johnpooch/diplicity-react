@@ -42,6 +42,10 @@ vi.mock("@/api/generated/endpoints", () => ({
   getGameOptionsRetrieveQueryKey: () => ["options"],
 }));
 
+vi.mock("@/auth", () => ({
+  useAuth: () => ({ loggedIn: true, login: vi.fn(), logout: vi.fn() }),
+}));
+
 vi.mock("@/components/NationFlag", () => ({
   NationFlag: () => null,
   findNationFlagUrl: () => null,

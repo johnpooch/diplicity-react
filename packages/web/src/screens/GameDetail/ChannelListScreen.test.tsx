@@ -1,7 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router";
 import { describe, it, expect, vi, beforeAll } from "vitest";
-import { ChannelListScreen } from "./ChannelListScreen";
+import { MemoryRouter, Route, Routes } from "react-router";
 
 beforeAll(() => {
   Object.defineProperty(window, "matchMedia", {
@@ -19,11 +18,35 @@ beforeAll(() => {
   });
 });
 
-const mockChannelsData = vi.fn();
+const mockLoggedIn = vi.fn(() => true);
+const defaultChannels: unknown[] = [
+  {
+    id: 1,
+    name: "Public Chat",
+    private: false,
+    messages: [
+      {
+        id: 1,
+        body: "Hello",
+        sender: { nation: { name: "France" } },
+      },
+    ],
+  },
+];
+const mockChannelsData = vi.fn<() => unknown[]>(() => defaultChannels);
+
+vi.mock("@/auth", () => ({
+  useAuth: () => ({
+    loggedIn: mockLoggedIn(),
+    login: vi.fn(),
+    logout: vi.fn(),
+  }),
+}));
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({
     data: {
+      id: "1",
       sandbox: false,
       pressType: "public_press",
       status: "active",
@@ -39,9 +62,11 @@ vi.mock("@/api/generated/endpoints", () => ({
   }),
 }));
 
+import { ChannelListScreen } from "./ChannelListScreen";
+
 const renderChannelList = () =>
   render(
-    <MemoryRouter initialEntries={["/game/game-1/phase/1/chat"]}>
+    <MemoryRouter initialEntries={["/game/1/phase/1/chat"]}>
       <Routes>
         <Route
           path="/game/:gameId/phase/:phaseId/chat"
@@ -52,7 +77,23 @@ const renderChannelList = () =>
   );
 
 describe("ChannelListScreen", () => {
+  it("shows Create Channel button when logged in", async () => {
+    mockLoggedIn.mockReturnValue(true);
+    renderChannelList();
+
+    expect(await screen.findByText("Create Channel")).toBeInTheDocument();
+  });
+
+  it("hides Create Channel button when not logged in", async () => {
+    mockLoggedIn.mockReturnValue(false);
+    renderChannelList();
+
+    expect(await screen.findByText("Public Chat")).toBeInTheDocument();
+    expect(screen.queryByText("Create Channel")).not.toBeInTheDocument();
+  });
+
   it("shows unread badge when channel has unread messages", () => {
+    mockLoggedIn.mockReturnValue(true);
     mockChannelsData.mockReturnValue([
       {
         id: 1,
@@ -83,6 +124,7 @@ describe("ChannelListScreen", () => {
   });
 
   it("does not show unread badge when count is zero", () => {
+    mockLoggedIn.mockReturnValue(true);
     mockChannelsData.mockReturnValue([
       {
         id: 1,
@@ -101,6 +143,7 @@ describe("ChannelListScreen", () => {
   });
 
   it("shows multiple badges for multiple channels with unread counts", () => {
+    mockLoggedIn.mockReturnValue(true);
     mockChannelsData.mockReturnValue([
       {
         id: 1,
@@ -124,7 +167,6 @@ describe("ChannelListScreen", () => {
 
     expect(screen.getByText("3")).toBeInTheDocument();
     expect(screen.getByText("Public")).toBeInTheDocument();
-    // No badge for zero unread
     expect(screen.queryByText("0")).not.toBeInTheDocument();
   });
 });

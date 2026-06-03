@@ -40,13 +40,13 @@ class PhaseStateUpdateView(SelectedGameMixin, CurrentGameMemberMixin, generics.U
 
 class PhaseStateListView(SelectedGameMixin, generics.ListAPIView):
     permission_classes = [
-        permissions.IsAuthenticated,
         IsActiveOrCompletedGame,
-        IsGameMember,
     ]
     serializer_class = PhaseStateSerializer
 
     def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return Phase.objects.none()
         game = self.get_game()
         current_phase = game.current_phase
         return current_phase.phase_states.filter(member__user=self.request.user)
@@ -77,9 +77,7 @@ class DeadlineWarningsView(views.APIView):
 
 class PhaseListView(SelectedGameMixin, generics.ListAPIView):
     permission_classes = [
-        permissions.IsAuthenticated,
         IsActiveOrCompletedGame,
-        IsGameMember,
     ]
     serializer_class = PhaseListSerializer
 
@@ -91,7 +89,7 @@ class PhaseListView(SelectedGameMixin, generics.ListAPIView):
 
 
 class PhaseRetrieveView(generics.RetrieveAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     serializer_class = PhaseRetrieveSerializer
     lookup_field = 'id'
     lookup_url_kwarg = 'phase_id'
