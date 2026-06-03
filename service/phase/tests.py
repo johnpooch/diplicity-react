@@ -6,10 +6,10 @@ from django.urls import reverse
 from django.utils import timezone
 from django.test.utils import override_settings
 from django.db import connection
-from datetime import timedelta
+from datetime import timedelta, time
 from unittest.mock import patch, Mock
 from rest_framework import status
-from common.constants import PhaseStatus, PhaseType, OrderType, UnitType, GameStatus, DeadlineMode, ProvinceType
+from common.constants import PhaseStatus, PhaseType, OrderType, UnitType, GameStatus, DeadlineMode, ProvinceType, PhaseFrequency
 from game.models import Game
 from .models import Phase, PhaseState
 from .serializers import PhaseStateSerializer
@@ -4144,7 +4144,9 @@ class TestNMRExtensionsFixedTime:
         game, italy, germany, phase = make_deadline_warning_game(
             DeadlineMode.FIXED_TIME, now - timedelta(minutes=1)
         )
-        game.movement_phase_duration = "24 hours"
+        game.movement_frequency = PhaseFrequency.EVERY_2_DAYS
+        game.fixed_deadline_time = time(12, 0)
+        game.fixed_deadline_timezone = "UTC"
         game.save()
         italy.nmr_extensions_remaining = 1
         italy.save()
@@ -4160,6 +4162,8 @@ class TestNMRExtensionsFixedTime:
         assert result is not None
         italy.refresh_from_db()
         assert italy.nmr_extensions_remaining == 0
+        phase.refresh_from_db()
+        assert phase.scheduled_resolution > now + timedelta(hours=24)
 
     @pytest.mark.django_db
     def test_fixed_time_with_any_order_skips_extension(
@@ -4172,8 +4176,6 @@ class TestNMRExtensionsFixedTime:
         game, italy, germany, phase = make_deadline_warning_game(
             DeadlineMode.FIXED_TIME, now - timedelta(minutes=1)
         )
-        game.movement_phase_duration = "24 hours"
-        game.save()
         italy.nmr_extensions_remaining = 1
         italy.save()
         phase.units.create(

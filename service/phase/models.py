@@ -217,11 +217,11 @@ class PhaseManager(models.Manager):
         if not members_with_extensions:
             return None
 
-        duration = phase.game.get_phase_duration_seconds(phase.type)
-        if not duration:
+        new_resolution = phase.game.get_scheduled_resolution(phase.type)
+        if not new_resolution:
             return None
 
-        phase.scheduled_resolution = timezone.now() + timedelta(seconds=duration)
+        phase.scheduled_resolution = new_resolution
         phase.save()
 
         for member in members_with_extensions:
@@ -305,7 +305,7 @@ class PhaseManager(models.Manager):
             notifications_sent = 0
 
             for phase in active_phases:
-                duration_seconds = phase.game.get_phase_duration_seconds(phase.type)
+                duration_seconds = phase.game.get_effective_phase_duration_seconds(phase.type)
                 warning_threshold = get_warning_threshold(duration_seconds)
                 time_until_deadline = (phase.scheduled_resolution - now).total_seconds()
 

@@ -19,7 +19,7 @@ from common.constants import (
 )
 from common.models import BaseModel
 from phase.models import Phase, PhaseState
-from phase.utils import calculate_next_fixed_deadline
+from phase.utils import calculate_next_fixed_deadline, FREQUENCY_INTERVALS
 from member.models import Member
 from unit.models import Unit
 from supply_center.models import SupplyCenter
@@ -387,6 +387,13 @@ class Game(BaseModel):
             return self.movement_phase_duration_seconds
         else:
             return self.retreat_phase_duration_seconds
+
+    def get_effective_phase_duration_seconds(self, phase_type):
+        if self.deadline_mode == DeadlineMode.FIXED_TIME:
+            frequency = self.get_phase_frequency(phase_type)
+            interval = FREQUENCY_INTERVALS.get(frequency) if frequency else None
+            return int(interval.total_seconds()) if interval else None
+        return self.get_phase_duration_seconds(phase_type)
 
     def get_phase_frequency(self, phase_type):
         if phase_type == PhaseType.MOVEMENT:
