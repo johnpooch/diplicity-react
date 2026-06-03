@@ -12,7 +12,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { GameDropdownMenu } from "./GameDropdownMenu";
-import { UserPlus, Lock } from "lucide-react";
+import { UserPlus, Lock, MessageSquareOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { RemainingTimeDisplay } from "./RemainingTimeDisplay";
@@ -103,6 +103,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
               >
                 <CardTitle className="flex items-center gap-2">
                   {game.name}
+                  {game.pressType === "no_press" && <MessageSquareOff className="h-3 w-3" aria-label="Gunboat" />}
                   {game.sandbox && (
                     <Badge variant="secondary">Sandbox</Badge>
                   )}
