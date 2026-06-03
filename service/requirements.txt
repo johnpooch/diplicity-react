@@ -1,13 +1,13 @@
-Django>=6.0.5,<7.0
+Django>=6.0.6,<7.0
 djangorestframework>=3.17.1,<4.0
-django-cors-headers>=4.0,<5.0
+django-cors-headers>=4.9.0,<5.0
 djangorestframework-camel-case>=1.4.2,<2.0
 djangorestframework-simplejwt>=5.5.1,<6.0
 drf-spectacular>=0.29.0,<1.0
 gunicorn>=23.0.0,<24.0
 psycopg2-binary
 google-auth>=2.53.0,<3.0
-cryptography>=38.0.3,<49.0
+cryptography>=38.0.4,<49.0
 PyJWT>=2.13.0,<3.0
 fcm-django>=2.3.1,<4.0
 firebase-admin>=7.4.0,<8.0
@@ -16,8 +16,8 @@ requests>=2.34.2,<3.0
 dj-database-url>=2.3.0,<3.0
 whitenoise>=6.12.0
 flask>=2.3.3,<3.0
-django-filter>=23.1,<26.0
-sentry-sdk>=2.60.0,<3.0
+django-filter>=25.2,<26.0
+sentry-sdk>=2.61.1,<3.0
 opentelemetry-api>=1.42.1,<2.0
 opentelemetry-sdk>=1.42.1,<2.0
 opentelemetry-exporter-otlp-proto-grpc>=1.42.1,<2.0
