@@ -4,3 +4,10 @@
 
 [context.deploy-preview]
   command = "VITE_DIPLICITY_API_BASE_URL=https://diplicity-react-staging-pr-${REVIEW_ID}.up.railway.app npm run build"
+
+# Required for Sign in with Apple popup mode: Apple's popup calls window.opener.postMessage()
+# back to this page, which only works when COOP allows the opener reference to be preserved.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cross-Origin-Opener-Policy = "same-origin-allow-popups"
