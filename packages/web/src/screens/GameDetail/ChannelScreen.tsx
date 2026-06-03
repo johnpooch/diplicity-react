@@ -1,7 +1,7 @@
 import React, { Suspense, useRef, useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Send, MessageCircle, MessageSquareOff } from "lucide-react";
+import { Send, MessageSquareOff } from "lucide-react";
 import { useDraft, useRequiredParams } from "@/hooks";
 import { toast } from "sonner";
 
@@ -9,17 +9,12 @@ import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import {
-  Message,
-  MessageContent,
-  MessageTimestamp,
-} from "@/components/ui/message";
 import { Notice } from "@/components/Notice";
-import { NationFlag, findNationFlagUrl } from "@/components/NationFlag";
 import { GameDetailAppBar } from "./AppBar";
-import { getChannelDisplayName, getChannelFlagUrls, brightnessByColor, toHex6 } from "./channelUtils";
+import { getChannelDisplayName, getChannelFlagUrls } from "./channelUtils";
 import { ChannelAvatar } from "./ChannelAvatar";
 import { Panel } from "@/components/Panel";
+import { buildMessageDisplayItems, ChannelMessageList } from "./ChannelMessageList";
 import {
   useGameRetrieveSuspense,
   useGamesChannelsListSuspense,
@@ -28,68 +23,7 @@ import {
   useGamesChannelsMarkReadCreate,
   getGamesChannelsListQueryKey,
   getGameRetrieveQueryKey,
-  ChannelMessage as ChannelMessageType,
 } from "@/api/generated/endpoints";
-
-type MessageDisplayItem = {
-  id: number;
-  body: string;
-  createdAt: string;
-  sender: {
-    nationName: string;
-    nationColor: string;
-    picture: string | null;
-  };
-  isCurrentUser: boolean;
-  showAvatar: boolean;
-  formattedTime: string;
-};
-
-const formatMessageTime = (createdAt: string): string => {
-  const date = new Date(createdAt);
-  const today = new Date();
-  const isToday =
-    date.getFullYear() === today.getFullYear() &&
-    date.getMonth() === today.getMonth() &&
-    date.getDate() === today.getDate();
-  const time = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  if (isToday) return time;
-  return `${date.toLocaleDateString([], { month: "short", day: "numeric" })} ${time}`;
-};
-
-const buildMessageItems = (
-  messages: readonly ChannelMessageType[]
-): MessageDisplayItem[] => {
-  return messages.map((msg, index) => {
-    const showAvatar =
-      index === 0 ||
-      messages[index - 1].sender.nation.name !== msg.sender.nation.name;
-
-    return {
-      id: msg.id,
-      body: msg.body,
-      createdAt: msg.createdAt,
-      sender: {
-        nationName: msg.sender.nation.name,
-        nationColor: msg.sender.nation.color,
-        picture: msg.sender.picture,
-      },
-      isCurrentUser: msg.sender.isCurrentUser,
-      showAvatar,
-      formattedTime: formatMessageTime(msg.createdAt),
-    };
-  });
-};
-
-const BUBBLE_ALPHA_HEX = "26"; // 15% opacity (0x26/0xFF)
-
-const NewMessagesDivider: React.FC = () => (
-  <div className="flex items-center gap-2 my-1">
-    <div className="flex-1 h-px bg-border" />
-    <span className="text-xs text-muted-foreground font-medium">New messages</span>
-    <div className="flex-1 h-px bg-border" />
-  </div>
-);
 
 const ChannelScreen: React.FC = () => {
   const { gameId, phaseId, channelId } = useRequiredParams<{
@@ -193,7 +127,7 @@ const ChannelScreen: React.FC = () => {
     game.status !== "abandoned";
 
   const messageItems = useMemo(
-    () => buildMessageItems(channel.messages),
+    () => buildMessageDisplayItems(channel.messages),
     [channel.messages]
   );
 
@@ -233,77 +167,13 @@ const ChannelScreen: React.FC = () => {
         <Panel>
           <Panel.Content>
             <div className="h-full flex flex-col">
-              {channel.messages.length === 0 ? (
-                <Notice
-                  icon={MessageCircle}
-                  title="No messages yet"
-                  message="Start the conversation by sending a message"
-                  className="h-full"
-                />
-              ) : (
-                <div
-                  ref={messagesContainerRef}
-                  className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 p-2"
-                >
-                  {messageItems.map((item, index) => (
-                    <React.Fragment key={item.id}>
-                      {firstUnreadIndex !== null && index === firstUnreadIndex && (
-                        <NewMessagesDivider />
-                      )}
-                      <Message
-                        className={
-                          item.isCurrentUser ? "flex-row-reverse" : undefined
-                        }
-                      >
-                        {item.showAvatar ? (
-                          <div className="w-8 flex-shrink-0 flex justify-center">
-                            <NationFlag
-                              flagUrl={
-                                variant
-                                  ? findNationFlagUrl(variant.nations, item.sender.nationName)
-                                  : null
-                              }
-                              alt={item.sender.nationName}
-                              size="lg"
-                              color={item.sender.nationColor}
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-8 flex-shrink-0" />
-                        )}
-                        <MessageContent
-                          className={`py-1.5 px-2 ${item.isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"}`}
-                          style={{
-                            backgroundColor: toHex6(item.sender.nationColor) + BUBBLE_ALPHA_HEX,
-                            border: brightnessByColor(item.sender.nationColor) > 128
-                              ? `1px solid ${item.sender.nationColor}`
-                              : undefined,
-                          }}
-                        >
-                          {item.body}
-                          {item.showAvatar ? (
-                            <div className="flex items-center justify-between gap-2 mt-0.5">
-                              <span
-                                className="text-xs font-medium"
-                                style={{ color: item.sender.nationColor }}
-                              >
-                                {item.sender.nationName}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {item.formattedTime}
-                              </span>
-                            </div>
-                          ) : (
-                            <MessageTimestamp className="mt-0.5">
-                              {item.formattedTime}
-                            </MessageTimestamp>
-                          )}
-                        </MessageContent>
-                      </Message>
-                    </React.Fragment>
-                  ))}
-                </div>
-              )}
+              <ChannelMessageList
+                messageItems={messageItems}
+                variantNations={variant?.nations ?? []}
+                firstUnreadIndex={firstUnreadIndex}
+                scrollContainerRef={messagesContainerRef}
+                emptyMessage="Start the conversation by sending a message"
+              />
             </div>
           </Panel.Content>
           <Separator />

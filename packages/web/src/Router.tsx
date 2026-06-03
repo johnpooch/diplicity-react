@@ -9,6 +9,7 @@ import {
   useParams,
   useRouteError,
 } from "react-router";
+import { useAuth } from "./auth";
 import { QueryClient } from "@tanstack/react-query";
 import { Login } from "./screens/Login";
 import { Register } from "./screens/Register";
@@ -26,10 +27,8 @@ import * as Sentry from "@sentry/react";
 import { deepLinkStorage, useDeepLink } from "./deepLink";
 import { useIsMobile } from "./hooks/use-mobile";
 
-const LoggedInContext = React.createContext(false);
-
 const RequireAuth: React.FC<{ children: React.ReactNode; fallbackPath?: string }> = ({ children, fallbackPath = "/" }) => {
-  const loggedIn = React.useContext(LoggedInContext);
+  const { loggedIn } = useAuth();
   const location = useLocation();
 
   React.useEffect(() => {
@@ -51,7 +50,7 @@ const RequireAuthInGame: React.FC<{ children: React.ReactNode }> = ({ children }
 };
 
 const GuestOnly: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const loggedIn = React.useContext(LoggedInContext);
+  const { loggedIn } = useAuth();
   if (loggedIn) return <Navigate to="/" replace />;
   return <>{children}</>;
 };
@@ -95,13 +94,13 @@ const GameDetailLayoutWrapper: React.FC = () => {
 };
 
 const AuthenticatedRoot: React.FC = () => {
-  const loggedIn = React.useContext(LoggedInContext);
+  const { loggedIn } = useAuth();
   useDeepLink(loggedIn);
   return <Outlet />;
 };
 
 const RootIndex: React.FC = () => {
-  const loggedIn = React.useContext(LoggedInContext);
+  const { loggedIn } = useAuth();
   if (!loggedIn) return <Login />;
   return (
     <HomeLayout>
@@ -122,11 +121,10 @@ const GameIndexRoute: React.FC = () => {
 };
 
 interface RouterProps {
-  loggedIn: boolean;
   queryClient: QueryClient;
 }
 
-const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
+const Router: React.FC<RouterProps> = ({ queryClient }) => {
   const router = React.useMemo(
     () =>
       createBrowserRouter([
@@ -402,11 +400,7 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
     [queryClient]
   );
 
-  return (
-    <LoggedInContext value={loggedIn}>
-      <RouterProvider router={router} />
-    </LoggedInContext>
-  );
+  return <RouterProvider router={router} />;
 };
 
 export default Router;
