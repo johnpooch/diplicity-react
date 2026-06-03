@@ -14,7 +14,7 @@ const GamePhaseRedirectInner: React.FC = () => {
   const isMobile = useIsMobile();
   const { loggedIn } = useAuth();
   const location = useLocation();
-  const shouldRedirect = game.private && !loggedIn;
+  const shouldRedirect = game.private && !game.sandbox && !loggedIn;
 
   useEffect(() => {
     if (shouldRedirect) {
