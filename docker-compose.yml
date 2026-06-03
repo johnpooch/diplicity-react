@@ -72,7 +72,7 @@ services:
 
   db:
     container_name: diplicity-db
-    image: postgres:13
+    image: postgres:17
     environment:
       POSTGRES_DB: diplicity
       POSTGRES_USER: postgres
