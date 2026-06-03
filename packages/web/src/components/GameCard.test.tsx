@@ -165,6 +165,24 @@ describe("GameCard", () => {
     });
   });
 
+  describe("gunboat icon", () => {
+    it("shows gunboat icon when pressType is no_press", () => {
+      renderGameCard({
+        game: { ...mockGames[0], pressType: "no_press" },
+        ...defaultProps,
+      });
+      expect(screen.getByLabelText("Gunboat")).toBeInTheDocument();
+    });
+
+    it("does not show gunboat icon when pressType is full_press", () => {
+      renderGameCard({
+        game: { ...mockGames[0], pressType: "full_press" },
+        ...defaultProps,
+      });
+      expect(screen.queryByLabelText("Gunboat")).not.toBeInTheDocument();
+    });
+  });
+
   describe("sandbox visual treatment", () => {
     it("displays a Sandbox badge when game.sandbox is true", () => {
       renderGameCard({
