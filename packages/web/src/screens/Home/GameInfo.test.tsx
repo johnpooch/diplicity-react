@@ -11,6 +11,10 @@ const mockJoinMutateAsync = vi.fn();
 const mockLeaveMutateAsync = vi.fn();
 const mockUseGameRetrieveSuspense = vi.fn();
 
+vi.mock("@/auth", () => ({
+  useAuth: () => ({ loggedIn: true }),
+}));
+
 vi.mock("@/api/generated/endpoints", async (importOriginal) => {
   const actual = await importOriginal();
   return {

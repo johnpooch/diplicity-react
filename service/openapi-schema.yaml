@@ -698,6 +698,7 @@ paths:
       - game
       security:
       - jwtAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -784,6 +785,7 @@ paths:
       - game
       security:
       - jwtAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -811,6 +813,7 @@ paths:
       - game
       security:
       - jwtAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -834,6 +837,7 @@ paths:
       - game
       security:
       - jwtAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -1373,6 +1377,7 @@ paths:
       - variants
       security:
       - jwtAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -2782,9 +2787,8 @@ components:
           type: integer
           nullable: true
         provinceNations:
-          type: object
-          additionalProperties:
-            type: string
+          type: string
+          readOnly: true
       required:
       - id
       - name

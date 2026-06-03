@@ -14,7 +14,7 @@ from common.permissions import (
 from common.serializers import EmptySerializer
 from common.views import SelectedGameMixin, CurrentGameMemberMixin
 from rest_framework.response import Response
-from .models import Phase
+from .models import Phase, PhaseState
 from .serializers import PhaseStateSerializer, PhaseResolveResponseSerializer, PhaseRetrieveSerializer, PhaseListSerializer
 
 tracer = trace.get_tracer(__name__)
@@ -39,16 +39,16 @@ class PhaseStateUpdateView(SelectedGameMixin, CurrentGameMemberMixin, generics.U
 
 
 class PhaseStateListView(SelectedGameMixin, generics.ListAPIView):
-    permission_classes = [
-        permissions.IsAuthenticated,
-        IsActiveOrCompletedGame,
-        IsGameMember,
-    ]
+    permission_classes = [permissions.AllowAny]
     serializer_class = PhaseStateSerializer
 
     def get_queryset(self):
         game = self.get_game()
         current_phase = game.current_phase
+        if current_phase is None:
+            return PhaseState.objects.none()
+        if not self.request.user.is_authenticated:
+            return current_phase.phase_states.none()
         return current_phase.phase_states.filter(member__user=self.request.user)
 
 
@@ -76,11 +76,7 @@ class DeadlineWarningsView(views.APIView):
 
 
 class PhaseListView(SelectedGameMixin, generics.ListAPIView):
-    permission_classes = [
-        permissions.IsAuthenticated,
-        IsActiveOrCompletedGame,
-        IsGameMember,
-    ]
+    permission_classes = [permissions.AllowAny]
     serializer_class = PhaseListSerializer
 
     def get_queryset(self):
@@ -91,13 +87,14 @@ class PhaseListView(SelectedGameMixin, generics.ListAPIView):
 
 
 class PhaseRetrieveView(generics.RetrieveAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     serializer_class = PhaseRetrieveSerializer
     lookup_field = 'id'
     lookup_url_kwarg = 'phase_id'
 
     def get_queryset(self):
-        return Phase.objects.with_detail_data()
+        game_id = self.kwargs.get("game_id")
+        return Phase.objects.with_detail_data().filter(game_id=game_id)
 
 
 class PhaseResolveView(SelectedGameMixin, views.APIView):

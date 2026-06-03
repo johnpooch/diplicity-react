@@ -17,6 +17,8 @@ import { DiplicityLogo } from "@/components/DiplicityLogo";
 import { Navigation } from "@/components/Navigation";
 import { SidebarUserArea } from "@/components/SidebarUserArea";
 import { SafeAreaView } from "@/components/SafeAreaView";
+import { useAuth } from "@/auth";
+import { LogInToPlayBanner } from "@/components/LogInToPlayBanner";
 import { Home, Search, PlusCircle, MessageCircle, CircleHelp } from "lucide-react";
 
 const navigationItems = [
@@ -58,6 +60,7 @@ interface HomeLayoutProps {
 const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { loggedIn } = useAuth();
 
   const navItems = navigationItems.map(item => ({
     ...item,
@@ -75,41 +78,49 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
         )}
       >
         <div className="flex items-stretch flex-1 min-h-0 w-full">
-          {/* Left Sidebar - ShadCN Sidebar with collapsible functionality */}
-          <Sidebar collapsible="icon">
-            <SidebarHeader>
-              <Item className="p-1">
-                <ItemMedia variant="image">
-                  <DiplicityLogo />
-                </ItemMedia>
-                <ItemContent>
-                  <ItemTitle>Diplicity</ItemTitle>
-                </ItemContent>
-              </Item>
-            </SidebarHeader>
-            <SidebarContent>
-              <Navigation
-                items={navItems}
-                variant="sidebar"
-                onItemClick={path => navigate(path)}
-              />
-            </SidebarContent>
-            <SidebarFooter>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Learn how to play">
-                    <Link to="/learn-to-play">
-                      <CircleHelp />
-                      <span>Learn how to play</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-              <Suspense fallback={null}>
-                <SidebarUserArea />
-              </Suspense>
-            </SidebarFooter>
-          </Sidebar>
+          {/* Left Sidebar */}
+          {loggedIn ? (
+            <Sidebar collapsible="icon">
+              <SidebarHeader>
+                <Link to="/">
+                  <Item className="p-1">
+                    <ItemMedia variant="image">
+                      <DiplicityLogo />
+                    </ItemMedia>
+                    <ItemContent>
+                      <ItemTitle>Diplicity</ItemTitle>
+                    </ItemContent>
+                  </Item>
+                </Link>
+              </SidebarHeader>
+              <SidebarContent>
+                <Navigation
+                  items={navItems}
+                  variant="sidebar"
+                  onItemClick={path => navigate(path)}
+                />
+              </SidebarContent>
+              <SidebarFooter>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Learn how to play">
+                      <Link to="/learn-to-play">
+                        <CircleHelp />
+                        <span>Learn how to play</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+                <Suspense fallback={null}>
+                  <SidebarUserArea />
+                </Suspense>
+              </SidebarFooter>
+            </Sidebar>
+          ) : (
+            <div className="hidden md:flex w-64 shrink-0 flex-col p-4 border-r">
+              <LogInToPlayBanner />
+            </div>
+          )}
 
           {/* Main Content Area */}
           <SidebarInset className="flex min-w-0 flex-1 flex-col">
@@ -125,13 +136,15 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
         </div>
 
         {/* Bottom Navigation */}
-        <div className={bottomClasses}>
-          <Navigation
-            items={navItems}
-            variant="bottom"
-            onItemClick={path => navigate(path)}
-          />
-        </div>
+        {loggedIn && (
+          <div className={bottomClasses}>
+            <Navigation
+              items={navItems}
+              variant="bottom"
+              onItemClick={path => navigate(path)}
+            />
+          </div>
+        )}
       </SafeAreaView>
     </SidebarProvider>
   );

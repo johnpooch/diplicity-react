@@ -103,4 +103,43 @@ describe("GamePhaseRedirect", () => {
 
     expect(screen.getByTestId("location")).toHaveTextContent("/");
   });
+
+  it("navigates to phase view for private games regardless of auth", () => {
+    mockUseGameRetrieveSuspense.mockReturnValue({
+      data: { id: "priv-1", status: "active", currentPhaseId: 3, private: true },
+    });
+    mockUseIsMobile.mockReturnValue(false);
+
+    renderAtGameRoute("priv-1");
+
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/game/priv-1/phase/3/orders"
+    );
+  });
+
+  it("navigates to phase view for private games when logged in", () => {
+    mockUseGameRetrieveSuspense.mockReturnValue({
+      data: { id: "priv-2", status: "active", currentPhaseId: 5, private: true },
+    });
+    mockUseIsMobile.mockReturnValue(false);
+
+    renderAtGameRoute("priv-2");
+
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/game/priv-2/phase/5/orders"
+    );
+  });
+
+  it("navigates to phase view for public games", () => {
+    mockUseGameRetrieveSuspense.mockReturnValue({
+      data: { id: "pub-1", status: "active", currentPhaseId: 7, private: false },
+    });
+    mockUseIsMobile.mockReturnValue(false);
+
+    renderAtGameRoute("pub-1");
+
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/game/pub-1/phase/7/orders"
+    );
+  });
 });

@@ -148,8 +148,8 @@ class TestOrderListView:
         game = order_active_game
         url = reverse("order-list", args=[game.id, game.current_phase.id])
         response = unauthenticated_client.get(url)
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
-
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == []
 
 class TestOrderCreateView:
 
@@ -719,7 +719,7 @@ class TestOrderListViewQueryPerformance:
             response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(connection.queries) == 7  # was 8 before resolve_game cache + transformed_options cached_property
+        assert len(connection.queries) == 7
 
     @pytest.mark.django_db
     def test_list_orders_query_count_with_multiple_orders(

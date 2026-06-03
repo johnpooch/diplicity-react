@@ -235,7 +235,7 @@ export const mockPhaseMovement: PhaseRetrieve = {
     province,
     nation: mockNations[index],
   })),
-  provinceNations: {},
+  provinceNations: "{}",
 };
 
 export const mockPhaseRetreat: PhaseRetrieve = {
@@ -263,7 +263,7 @@ export const mockPhaseRetreat: PhaseRetrieve = {
     province,
     nation: mockNations[index],
   })),
-  provinceNations: {},
+  provinceNations: "{}",
 };
 
 export const mockPhaseAdjustment: PhaseRetrieve = {
@@ -283,7 +283,7 @@ export const mockPhaseAdjustment: PhaseRetrieve = {
     province,
     nation: mockNations[index % mockNations.length],
   })),
-  provinceNations: {},
+  provinceNations: "{}",
 };
 
 export const mockGames: GameList[] = [

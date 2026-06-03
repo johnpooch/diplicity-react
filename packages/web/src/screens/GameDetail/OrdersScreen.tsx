@@ -1,6 +1,8 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
+import { useAuth } from "@/auth";
+import { LogInToPlayBanner } from "@/components/LogInToPlayBanner";
 import {
   Trash2,
   CheckSquare,
@@ -11,6 +13,8 @@ import {
   Star,
   UserX,
   Handshake,
+  LucideIcon,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -36,6 +40,9 @@ import {
 } from "@/components/ui/item";
 import { Notice } from "@/components/Notice";
 import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
+import { getChannelFlagUrls } from "./channelUtils";
+import { buildMessageDisplayItems, ChannelMessageList } from "./ChannelMessageList";
+import { ChannelAvatar } from "./ChannelAvatar";
 import { GameDropdownMenu } from "@/components/GameDropdownMenu";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
@@ -46,6 +53,7 @@ import {
   PhaseRetrieve,
   PhaseState,
   Province,
+  Channel,
   useGameOrdersDeleteDestroy,
   useGameOrdersListSuspense,
   useGamePhaseRetrieveSuspense,
@@ -54,6 +62,7 @@ import {
   useGameResolvePhaseCreate,
   useGameRetrieveSuspense,
   useVariantsListSuspense,
+  useGamesChannelsListSuspense,
   useGamesDrawProposalsListSuspense,
   getGameRetrieveQueryKey,
   getGameOrdersListQueryKey,
@@ -62,8 +71,47 @@ import {
   Order,
   GameRetrieve,
   Unit,
+  Variant,
 } from "@/api/generated/endpoints";
 import { cn } from "../../lib/utils";
+
+
+interface GuestChannelViewProps {
+  channel: Channel;
+  game: GameRetrieve;
+  variant: Variant;
+  onClose: () => void;
+}
+
+const GuestChannelView: React.FC<GuestChannelViewProps> = ({ channel, game, variant, onClose }) => {
+  const flagUrls = getChannelFlagUrls(channel, game.members, undefined, variant.nations);
+  const messageItems = useMemo(() => buildMessageDisplayItems(channel.messages), [channel.messages]);
+
+  const channelTitle = (
+    <div className="flex items-center justify-start gap-2">
+      <ChannelAvatar nations={flagUrls} />
+      <span className="text-lg font-semibold truncate text-left">{channel.name}</span>
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col flex-1 min-h-0">
+      <GameDetailAppBar title={channelTitle} onNavigateBack={onClose} variant="secondary" />
+      <div className="flex-1 overflow-hidden">
+        <Panel>
+          <Panel.Content>
+            <div className="h-full flex flex-col">
+              <ChannelMessageList
+                messageItems={messageItems}
+                variantNations={variant.nations}
+              />
+            </div>
+          </Panel.Content>
+        </Panel>
+      </div>
+    </div>
+  );
+};
 
 type NationGroup = {
   nation: string;
@@ -124,6 +172,120 @@ const buildNationGroups = (
   });
 };
 
+interface OrdersDisplayProps {
+  nationGroups: NationGroup[];
+  phase: PhaseRetrieve;
+  variant: Variant;
+  isActivePhase: boolean;
+  canModifyOrders: boolean;
+  accordionDefaultValue: string[];
+  emptyState?: { icon: LucideIcon; title: string; message: string };
+  onDeleteOrder?: (sourceId: string) => void;
+  deleteIsPending?: boolean;
+}
+
+const OrdersDisplay: React.FC<OrdersDisplayProps> = ({
+  nationGroups,
+  phase,
+  variant,
+  isActivePhase,
+  canModifyOrders,
+  accordionDefaultValue,
+  emptyState,
+  onDeleteOrder,
+  deleteIsPending,
+}) => {
+  const hasContent = nationGroups.length > 0;
+
+  const getSupplyCenterCount = (nation: string) =>
+    phase.supplyCenters.filter(sc => sc.nation.name === nation).length;
+
+  if (!hasContent && !emptyState) return null;
+
+  if (!hasContent && emptyState) {
+    return (
+      <Notice
+        icon={emptyState.icon}
+        title={emptyState.title}
+        message={emptyState.message}
+        className="h-full"
+      />
+    );
+  }
+
+  return (
+    <Accordion type="multiple" defaultValue={accordionDefaultValue}>
+      {nationGroups.map(({ nation, items }) => {
+        const nationColor = findNationColor(variant.nations, nation);
+        return (
+          <AccordionItem key={nation} value={nation}>
+            <AccordionTrigger className="p-2 items-center">
+              <div className="flex items-center gap-2">
+                <NationFlag
+                  flagUrl={findNationFlagUrl(variant.nations, nation)}
+                  alt={nation}
+                  size="md"
+                  color={nationColor}
+                />
+                <span>{nation}</span>
+                <span className="text-muted-foreground">•</span>
+                <span className="inline-flex items-center gap-1 text-muted-foreground">
+                  <Star className="size-3" />
+                  <span>{getSupplyCenterCount(nation)}</span>
+                </span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="p-0">
+              <ItemGroup>
+                {items.map((item, index) => (
+                  <React.Fragment key={item.province.id}>
+                    {index === 0 && <Separator />}
+                    <Item size="sm">
+                      <ItemContent>
+                        <ItemTitle>
+                          {item.unit?.type} {item.province.name}
+                        </ItemTitle>
+                        <ItemDescription>
+                          {item.order ? item.order.summary : "Order not provided"}
+                        </ItemDescription>
+                      </ItemContent>
+                      {canModifyOrders && item.order && onDeleteOrder && (
+                        <ItemActions>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onDeleteOrder(item.province.id)}
+                            disabled={deleteIsPending}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </ItemActions>
+                      )}
+                      {!isActivePhase && item.order?.resolution?.status && (
+                        <ItemContent
+                          className={cn(
+                            "text-xs",
+                            item.order.resolution.status === "Succeeded"
+                              ? "text-green-600"
+                              : "text-red-600"
+                          )}
+                        >
+                          {item.order.resolution.status}
+                        </ItemContent>
+                      )}
+                    </Item>
+                    {index < items.length - 1 && <ItemSeparator />}
+                  </React.Fragment>
+                ))}
+              </ItemGroup>
+            </AccordionContent>
+          </AccordionItem>
+        );
+      })}
+    </Accordion>
+  );
+};
+
 const DrawProposalsBadge: React.FC<{ gameId: string; currentMemberId?: number }> = ({
   gameId,
   currentMemberId,
@@ -171,11 +333,7 @@ const OrdersScreen: React.FC = () => {
   const currentMember = game.members.find(m => m.isCurrentUser);
   const isCurrentMemberInCivilDisorder = currentMember?.civilDisorder ?? false;
   const canModifyOrders =
-    isActivePhase && !isGameFinished && !isCurrentMemberInCivilDisorder;
-
-  const getSupplyCenterCount = (nation: string) => {
-    return phase.supplyCenters.filter(sc => sc.nation.name === nation).length;
-  };
+    !!currentMember && isActivePhase && !isGameFinished && !isCurrentMemberInCivilDisorder;
 
   const handleDeleteOrder = async (sourceId: string) => {
     try {
@@ -248,7 +406,7 @@ const OrdersScreen: React.FC = () => {
     game.status === "active" ||
     game.status === "completed" ||
     game.status === "abandoned";
-  const showDrawProposalsButton = !game.sandbox && isStartedGame;
+  const showDrawProposalsButton = !!currentMember && !game.sandbox && isStartedGame;
 
   const handleNavigateToDrawProposals = () => {
     navigate(`/game/${gameId}/phase/${phaseId}/draw-proposals`);
@@ -295,26 +453,30 @@ const OrdersScreen: React.FC = () => {
         message: "No orders were created by any nation in this phase.",
       };
 
+  const appBar = (
+    <GameDetailAppBar
+      title={
+        <div className="flex items-center gap-2">
+          <div className="flex-1 flex flex-col items-center gap-0.5">
+            <PhaseSelect />
+            <Suspense fallback={null}>
+              <PhaseGuidance />
+            </Suspense>
+          </div>
+          <GameDropdownMenu
+            game={game}
+            onNavigateToGameInfo={handleNavigateToGameInfo}
+            onNavigateToPlayerInfo={handleNavigateToPlayerInfo}
+          />
+        </div>
+      }
+      onNavigateBack={() => navigate("/")}
+    />
+  );
+
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <GameDetailAppBar
-        title={
-          <div className="flex items-center gap-2">
-            <div className="flex-1 flex flex-col items-center gap-0.5">
-              <PhaseSelect />
-              <Suspense fallback={null}>
-                <PhaseGuidance />
-              </Suspense>
-            </div>
-            <GameDropdownMenu
-              game={game}
-              onNavigateToGameInfo={handleNavigateToGameInfo}
-              onNavigateToPlayerInfo={handleNavigateToPlayerInfo}
-            />
-          </div>
-        }
-        onNavigateBack={() => navigate("/")}
-      />
+      {appBar}
       <div className="flex-1 overflow-y-auto">
         <Panel>
           {isCurrentMemberInCivilDisorder && (
@@ -327,96 +489,19 @@ const OrdersScreen: React.FC = () => {
             </Alert>
           )}
           <Panel.Content>
-            {!hasContent ? (
-              <Notice
-                icon={emptyState.icon}
-                title={emptyState.title}
-                message={emptyState.message}
-                className="h-full"
-              />
-            ) : (
-              <Accordion
-                type="multiple"
-                defaultValue={[
-                  nationGroups.find(g => g.member.isCurrentUser)?.nation ?? "",
-                ]}
-              >
-                {nationGroups.map(({ nation, items }) => {
-                  const nationColor = findNationColor(variant.nations, nation);
-                  return (
-                    <AccordionItem key={nation} value={nation}>
-                      <AccordionTrigger className="p-2 items-center">
-                        <div className="flex items-center gap-2">
-                          <NationFlag
-                            flagUrl={findNationFlagUrl(variant.nations, nation)}
-                            alt={nation}
-                            size="md"
-                            color={nationColor}
-                          />
-                          <span>{nation}</span>
-                          <span className="text-muted-foreground">•</span>
-                          <span className="inline-flex items-center gap-1 text-muted-foreground">
-                            <Star className="size-3" />
-                            <span>{getSupplyCenterCount(nation)}</span>
-                          </span>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="p-0">
-                        <ItemGroup>
-                          {items.map((item, index) => (
-                            <React.Fragment key={item.province.id}>
-                              {index === 0 && <Separator />}
-                              <Item size="sm">
-                                <ItemContent>
-                                  <ItemTitle>
-                                    {item.unit?.type} {item.province.name}
-                                  </ItemTitle>
-                                  <ItemDescription>
-                                    {item.order
-                                      ? item.order.summary
-                                      : "Order not provided"}
-                                  </ItemDescription>
-                                </ItemContent>
-                                {canModifyOrders && item.order && (
-                                  <ItemActions>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() =>
-                                        handleDeleteOrder(item.province.id)
-                                      }
-                                      disabled={deleteOrderMutation.isPending}
-                                    >
-                                      <Trash2 className="size-4" />
-                                    </Button>
-                                  </ItemActions>
-                                )}
-                                {!isActivePhase &&
-                                  item.order &&
-                                  item.order.resolution?.status && (
-                                    <ItemContent
-                                      className={cn(
-                                        "text-xs",
-                                        item.order.resolution.status ===
-                                          "Succeeded"
-                                          ? "text-green-600"
-                                          : "text-red-600"
-                                      )}
-                                    >
-                                      {item.order.resolution.status}
-                                    </ItemContent>
-                                  )}
-                              </Item>
-                              {index < items.length - 1 && <ItemSeparator />}
-                            </React.Fragment>
-                          ))}
-                        </ItemGroup>
-                      </AccordionContent>
-                    </AccordionItem>
-                  );
-                })}
-              </Accordion>
-            )}
+            <OrdersDisplay
+              nationGroups={nationGroups}
+              phase={phase}
+              variant={variant}
+              isActivePhase={isActivePhase}
+              canModifyOrders={canModifyOrders}
+              accordionDefaultValue={[
+                nationGroups.find(g => g.member.isCurrentUser)?.nation ?? "",
+              ]}
+              emptyState={emptyState}
+              onDeleteOrder={handleDeleteOrder}
+              deleteIsPending={deleteOrderMutation.isPending}
+            />
           </Panel.Content>
 
           {(rightFooterButton || showDrawProposalsButton) && (
@@ -450,10 +535,102 @@ const OrdersScreen: React.FC = () => {
   );
 };
 
+const GuestOrdersScreen: React.FC = () => {
+  const navigate = useNavigate();
+  const [showPublicPress, setShowPublicPress] = useState(false);
+  const { gameId, phaseId } = useRequiredParams<{ gameId: string; phaseId: string }>();
+  const selectedPhase = Number(phaseId);
+
+  const { data: game } = useGameRetrieveSuspense(gameId);
+  const { data: phase } = useGamePhaseRetrieveSuspense(gameId, selectedPhase);
+  const { data: orders } = useGameOrdersListSuspense(gameId, selectedPhase);
+  const { data: variants } = useVariantsListSuspense();
+  const { data: channels } = useGamesChannelsListSuspense(gameId);
+
+  const isActivePhase = phase.status === "active";
+  const variant = variants.find(v => v.id === game.variantId);
+  const publicPressChannel = channels.find(c => !c.private);
+  const nationGroups = buildNationGroups(isActivePhase, [], orders, phase, game);
+
+  if (!variant) return null;
+
+  if (showPublicPress && publicPressChannel) {
+    return (
+      <GuestChannelView
+        channel={publicPressChannel}
+        game={game}
+        variant={variant}
+        onClose={() => setShowPublicPress(false)}
+      />
+    );
+  }
+
+  const isOngoingGame = game.status === "active";
+
+  return (
+    <div className="flex flex-col flex-1 min-h-0">
+      <GameDetailAppBar
+        title={
+          <div className="flex justify-center">
+            <PhaseSelect />
+          </div>
+        }
+        onNavigateBack={() => navigate("/")}
+      />
+      <div className="flex-1 overflow-y-auto">
+        <Panel>
+          <Panel.Content>
+            <div className="p-4">
+              <div className="rounded-xl border bg-card p-3 shadow-sm">
+                <LogInToPlayBanner />
+              </div>
+            </div>
+            {isOngoingGame && publicPressChannel && (
+              <Item
+                size="sm"
+                className="mx-4 mb-2 cursor-pointer rounded-lg border bg-card"
+                onClick={() => setShowPublicPress(true)}
+              >
+                <ChannelAvatar
+                  nations={getChannelFlagUrls(publicPressChannel, game.members, undefined, variant.nations)}
+                />
+                <ItemContent className="gap-0.5">
+                  <ItemTitle>{publicPressChannel.name}</ItemTitle>
+                  {publicPressChannel.messages.length > 0 && (
+                    <ItemDescription>
+                      {publicPressChannel.messages[publicPressChannel.messages.length - 1].body}
+                    </ItemDescription>
+                  )}
+                </ItemContent>
+                <ChevronRight className="text-muted-foreground size-4" />
+              </Item>
+            )}
+            {!isActivePhase && (
+              <OrdersDisplay
+                nationGroups={nationGroups}
+                phase={phase}
+                variant={variant}
+                isActivePhase={isActivePhase}
+                canModifyOrders={false}
+                accordionDefaultValue={nationGroups.map(g => g.nation)}
+              />
+            )}
+          </Panel.Content>
+        </Panel>
+      </div>
+    </div>
+  );
+};
+
+const OrdersScreenSelector: React.FC = () => {
+  const { loggedIn } = useAuth();
+  return loggedIn ? <OrdersScreen /> : <GuestOrdersScreen />;
+};
+
 const OrdersScreenSuspense: React.FC = () => (
   <QueryErrorBoundary>
     <Suspense fallback={<div></div>}>
-      <OrdersScreen />
+      <OrdersScreenSelector />
     </Suspense>
   </QueryErrorBoundary>
 );

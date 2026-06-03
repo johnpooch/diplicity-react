@@ -43,8 +43,18 @@ def _variants_list_etag(user_id):
 
 class VariantListCreateView(generics.ListCreateAPIView):
     queryset = Variant.objects.all().with_related_data()
-    permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser]
+
+    def get_permissions(self):
+        if self.request.method in permissions.SAFE_METHODS:
+            return [permissions.AllowAny()]
+        return [IsAuthenticated()]
+
+    def get_queryset(self):
+        qs = Variant.objects.all().with_related_data()
+        if not self.request.user.is_authenticated:
+            return qs.filter(status=VariantStatus.PUBLISHED)
+        return qs
 
     def get_serializer_class(self):
         if self.request.method == "POST":

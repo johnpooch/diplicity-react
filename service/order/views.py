@@ -11,7 +11,7 @@ from common.serializers import EmptySerializer
 
 
 class OrderListView(SelectedPhaseMixin, generics.ListAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     serializer_class = OrderSerializer
 
     def get_queryset(self):

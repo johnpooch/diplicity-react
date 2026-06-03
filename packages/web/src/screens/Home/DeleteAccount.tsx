@@ -23,6 +23,7 @@ const DeleteAccount: React.FC = () => {
     try {
       await deleteMutation.mutateAsync();
       logout();
+      navigate("/");
     } catch {
       toast.error("Failed to delete account");
     }

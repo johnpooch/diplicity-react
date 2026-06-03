@@ -10,6 +10,10 @@ const mockUseGamesListInfinite = vi.fn();
 const mockUseGamePhaseRetrieve = vi.fn();
 const mockUseVariantsListSuspense = vi.fn();
 
+vi.mock("@/auth", () => ({
+  useAuth: () => ({ loggedIn: false }),
+}));
+
 vi.mock("@/hooks/useGamesListInfinite", () => ({
   useGamesListInfinite: (...args: unknown[]) => mockUseGamesListInfinite(...args),
 }));

@@ -29,6 +29,7 @@ const SidebarUserArea: React.FC = () => {
 
   const handleLogout = () => {
     logout();
+    navigate("/");
   };
 
   return (
