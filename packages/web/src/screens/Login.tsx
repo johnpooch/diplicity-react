@@ -44,7 +44,7 @@ declare global {
           redirectURI: string;
           usePopup: boolean;
         }) => void;
-        signIn: () => Promise<AppleAuthResponse>;
+        signIn: () => void;
       };
     };
   }
@@ -170,19 +170,32 @@ const Login: React.FC = () => {
     }
   };
 
-  const handleWebAppleLogin = async () => {
-    try {
-      window.AppleID.auth.init({
-        clientId: import.meta.env.VITE_APPLE_WEB_CLIENT_ID,
-        scope: "name email",
-        redirectURI: import.meta.env.VITE_APPLE_REDIRECT_URI,
-        usePopup: true,
-      });
-      const response = await window.AppleID.auth.signIn();
-      await finishAppleLogin(parseAppleResponse(response));
-    } catch {
+  React.useEffect(() => {
+    if (isNativePlatform()) return;
+    window.AppleID.auth.init({
+      clientId: import.meta.env.VITE_APPLE_WEB_CLIENT_ID,
+      scope: "name email",
+      redirectURI: import.meta.env.VITE_APPLE_REDIRECT_URI,
+      usePopup: true,
+    });
+  }, []);
+
+  const handleWebAppleLogin = () => {
+    const onSuccess = (event: Event) => {
+      document.removeEventListener("AppleIDSignInOnSuccess", onSuccess);
+      document.removeEventListener("AppleIDSignInOnFailure", onFailure);
+      finishAppleLogin(parseAppleResponse((event as CustomEvent<AppleAuthResponse>).detail)).catch(
+        () => toast.error("Login failed")
+      );
+    };
+    const onFailure = () => {
+      document.removeEventListener("AppleIDSignInOnSuccess", onSuccess);
+      document.removeEventListener("AppleIDSignInOnFailure", onFailure);
       toast.error("Login failed");
-    }
+    };
+    document.addEventListener("AppleIDSignInOnSuccess", onSuccess);
+    document.addEventListener("AppleIDSignInOnFailure", onFailure);
+    window.AppleID.auth.signIn();
   };
 
   return (
