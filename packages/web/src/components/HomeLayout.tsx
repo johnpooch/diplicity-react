@@ -18,6 +18,7 @@ import { Navigation } from "@/components/Navigation";
 import { SidebarUserArea } from "@/components/SidebarUserArea";
 import { SafeAreaView } from "@/components/SafeAreaView";
 import { useAuth } from "@/auth";
+import { LogInToPlayBanner } from "@/components/LogInToPlayBanner";
 import { Home, Search, PlusCircle, MessageCircle, CircleHelp } from "lucide-react";
 
 const navigationItems = [
@@ -77,8 +78,8 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
         )}
       >
         <div className="flex items-stretch flex-1 min-h-0 w-full">
-          {/* Left Sidebar - only shown when logged in */}
-          {loggedIn && (
+          {/* Left Sidebar */}
+          {loggedIn ? (
             <Sidebar collapsible="icon">
               <SidebarHeader>
                 <Link to="/">
@@ -115,6 +116,10 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
                 </Suspense>
               </SidebarFooter>
             </Sidebar>
+          ) : (
+            <div className="hidden md:flex w-64 shrink-0 flex-col p-4 border-r">
+              <LogInToPlayBanner />
+            </div>
           )}
 
           {/* Main Content Area */}
