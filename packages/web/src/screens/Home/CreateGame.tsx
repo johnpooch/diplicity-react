@@ -10,8 +10,9 @@ import {
   Lock,
   Map,
   MessageSquare,
+  MessageSquareOff,
   Monitor,
-  Sailboat,
+
   Timer,
   User,
   Users,
@@ -353,7 +354,7 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
                   {
                     value: "gunboat" as const,
                     label: "Gunboat (no press)",
-                    icon: <Sailboat className="size-5" />,
+                    icon: <MessageSquareOff className="size-5" />,
                   },
                 ]}
                 value={field.value}
