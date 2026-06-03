@@ -6,6 +6,7 @@ import {
   RouterProvider,
   redirect,
   useLocation,
+  useParams,
   useRouteError,
 } from "react-router";
 import { QueryClient } from "@tanstack/react-query";
@@ -27,7 +28,7 @@ import { useIsMobile } from "./hooks/use-mobile";
 
 const LoggedInContext = React.createContext(false);
 
-const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const RequireAuth: React.FC<{ children: React.ReactNode; fallbackPath?: string }> = ({ children, fallbackPath = "/" }) => {
   const loggedIn = React.useContext(LoggedInContext);
   const location = useLocation();
 
@@ -39,8 +40,14 @@ const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     }
   }, [loggedIn, location]);
 
-  if (!loggedIn) return <Navigate to="/" replace />;
+  if (!loggedIn) return <Navigate to={fallbackPath} replace />;
   return <>{children}</>;
+};
+
+const RequireAuthInGame: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { gameId, phaseId } = useParams<{ gameId: string; phaseId: string }>();
+  const fallbackPath = gameId && phaseId ? `/game/${gameId}/phase/${phaseId}` : "/";
+  return <RequireAuth fallbackPath={fallbackPath}>{children}</RequireAuth>;
 };
 
 const GuestOnly: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -307,71 +314,71 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
                     {
                       path: "chat",
                       element: (
-                        <RequireAuth>
+                        <RequireAuthInGame>
                           <Suspense fallback={<RouteFallback />}>
                             <GameDetail.ChannelListScreen />
                           </Suspense>
-                        </RequireAuth>
+                        </RequireAuthInGame>
                       ),
                     },
                     {
                       path: "chat/channel/create",
                       element: (
-                        <RequireAuth>
+                        <RequireAuthInGame>
                           <Suspense fallback={<RouteFallback />}>
                             <GameDetail.ChannelCreateScreen />
                           </Suspense>
-                        </RequireAuth>
+                        </RequireAuthInGame>
                       ),
                     },
                     {
                       path: "chat/channel/:channelId",
                       element: (
-                        <RequireAuth>
+                        <RequireAuthInGame>
                           <Suspense fallback={<RouteFallback />}>
                             <GameDetail.ChannelScreen />
                           </Suspense>
-                        </RequireAuth>
+                        </RequireAuthInGame>
                       ),
                     },
                     {
                       path: "game-info",
                       element: (
-                        <RequireAuth>
+                        <RequireAuthInGame>
                           <Suspense fallback={<RouteFallback />}>
                             <GameDetail.GameInfoScreen />
                           </Suspense>
-                        </RequireAuth>
+                        </RequireAuthInGame>
                       ),
                     },
                     {
                       path: "player-info",
                       element: (
-                        <RequireAuth>
+                        <RequireAuthInGame>
                           <Suspense fallback={<RouteFallback />}>
                             <GameDetail.PlayerInfoScreen />
                           </Suspense>
-                        </RequireAuth>
+                        </RequireAuthInGame>
                       ),
                     },
                     {
                       path: "propose-draw",
                       element: (
-                        <RequireAuth>
+                        <RequireAuthInGame>
                           <Suspense fallback={<RouteFallback />}>
                             <GameDetail.ProposeDrawScreen />
                           </Suspense>
-                        </RequireAuth>
+                        </RequireAuthInGame>
                       ),
                     },
                     {
                       path: "draw-proposals",
                       element: (
-                        <RequireAuth>
+                        <RequireAuthInGame>
                           <Suspense fallback={<RouteFallback />}>
                             <GameDetail.DrawProposalsScreen />
                           </Suspense>
-                        </RequireAuth>
+                        </RequireAuthInGame>
                       ),
                     },
                   ],
