@@ -12,6 +12,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { GameDropdownMenu } from "./GameDropdownMenu";
+import { findNationColor } from "./NationFlag";
 import { UserPlus, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -29,7 +30,7 @@ import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPerm
 
 export interface GameCardProps {
   game: GameList;
-  variant: Pick<Variant, "name" | "id">;
+  variant: Pick<Variant, "name" | "id" | "nations">;
   map: React.ReactNode;
   className?: string;
 }
@@ -39,6 +40,8 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const phase = game.currentPhase;
+  const playerNation = game.members.find(m => m.isCurrentUser)?.nation ?? null;
+  const nationColor = findNationColor(variant.nations, playerNation);
   const joinGameMutation = useGameJoinCreate();
   const checkNotificationPermission = useCheckNotificationPermission();
 
@@ -105,6 +108,11 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
                   {game.name}
                   {game.sandbox && (
                     <Badge variant="secondary">Sandbox</Badge>
+                  )}
+                  {!game.sandbox && playerNation && (
+                    <Badge className="leading-none" style={{ backgroundColor: nationColor ?? undefined }}>
+                      {playerNation}
+                    </Badge>
                   )}
                 </CardTitle>
               </button>
