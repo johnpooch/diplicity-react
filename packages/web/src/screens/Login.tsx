@@ -36,7 +36,7 @@ interface AppleAuthResponse {
 
 declare global {
   interface Window {
-    AppleID: {
+    AppleID?: {
       auth: {
         init: (config: {
           clientId: string;
@@ -170,17 +170,17 @@ const Login: React.FC = () => {
     }
   };
 
-  React.useEffect(() => {
-    if (isNativePlatform()) return;
+  const handleWebAppleLogin = () => {
+    if (!window.AppleID) {
+      toast.error("Apple Sign-In failed to load");
+      return;
+    }
     window.AppleID.auth.init({
       clientId: import.meta.env.VITE_APPLE_WEB_CLIENT_ID,
       scope: "name email",
       redirectURI: import.meta.env.VITE_APPLE_REDIRECT_URI,
       usePopup: true,
     });
-  }, []);
-
-  const handleWebAppleLogin = () => {
     const onSuccess = (event: Event) => {
       document.removeEventListener("AppleIDSignInOnSuccess", onSuccess);
       document.removeEventListener("AppleIDSignInOnFailure", onFailure);
