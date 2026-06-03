@@ -119,7 +119,7 @@ const GameInfo: React.FC = () => {
         }
       />
       <GameInfoContent
-        onNavigateToPlayerInfo={handlePlayerInfo}
+        onNavigateToPlayerInfo={loggedIn ? handlePlayerInfo : undefined}
         pendingAction={pendingAction}
       />
     </ScreenContainer>

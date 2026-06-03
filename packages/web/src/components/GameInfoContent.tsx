@@ -57,7 +57,7 @@ const MetadataTextRow: React.FC<MetadataTextRowProps> = ({ icon, label, text }) 
 };
 
 interface GameInfoContentProps {
-  onNavigateToPlayerInfo: () => void;
+  onNavigateToPlayerInfo?: () => void;
   pendingAction?: React.ReactNode;
 }
 
@@ -161,27 +161,48 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
             label="Players"
             value={
               variant ? (
-                <button
-                  onClick={onNavigateToPlayerInfo}
-                  className="flex -space-x-2"
-                >
-                  {game.members.slice(0, 7).map(member => (
-                    <Avatar
-                      key={member.id}
-                      className="h-8 w-8 border-2 border-background"
-                    >
-                      <AvatarImage src={member.picture ?? undefined} />
-                      <AvatarFallback>
-                        {member.name?.[0]?.toUpperCase() ?? "?"}
-                      </AvatarFallback>
-                    </Avatar>
-                  ))}
-                  {game.members.length > 7 && (
-                    <div className="h-8 w-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs">
-                      +{game.members.length - 7}
-                    </div>
-                  )}
-                </button>
+                onNavigateToPlayerInfo ? (
+                  <button
+                    onClick={onNavigateToPlayerInfo}
+                    className="flex -space-x-2"
+                  >
+                    {game.members.slice(0, 7).map(member => (
+                      <Avatar
+                        key={member.id}
+                        className="h-8 w-8 border-2 border-background"
+                      >
+                        <AvatarImage src={member.picture ?? undefined} />
+                        <AvatarFallback>
+                          {member.name?.[0]?.toUpperCase() ?? "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                    ))}
+                    {game.members.length > 7 && (
+                      <div className="h-8 w-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs">
+                        +{game.members.length - 7}
+                      </div>
+                    )}
+                  </button>
+                ) : (
+                  <div className="flex -space-x-2">
+                    {game.members.slice(0, 7).map(member => (
+                      <Avatar
+                        key={member.id}
+                        className="h-8 w-8 border-2 border-background"
+                      >
+                        <AvatarImage src={member.picture ?? undefined} />
+                        <AvatarFallback>
+                          {member.name?.[0]?.toUpperCase() ?? "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                    ))}
+                    {game.members.length > 7 && (
+                      <div className="h-8 w-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs">
+                        +{game.members.length - 7}
+                      </div>
+                    )}
+                  </div>
+                )
               ) : (
                 <Skeleton className="h-8 w-24" />
               )
