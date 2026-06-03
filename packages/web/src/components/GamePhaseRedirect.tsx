@@ -16,7 +16,7 @@ const GamePhaseRedirectInner: React.FC = () => {
   const location = useLocation();
 
   if (game.private && !loggedIn) {
-    deepLinkStorage.setPendingPath(location.pathname);
+    deepLinkStorage.setPendingPath(location.pathname + location.search);
     return <Navigate to="/" replace />;
   }
 

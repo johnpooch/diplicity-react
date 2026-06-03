@@ -151,7 +151,6 @@ class TestOrderListView:
         assert response.status_code == status.HTTP_200_OK
         assert response.data == []
 
-
 class TestOrderCreateView:
 
     @pytest.mark.django_db
@@ -720,7 +719,7 @@ class TestOrderListViewQueryPerformance:
             response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(connection.queries) == 8
+        assert len(connection.queries) == 7
 
     @pytest.mark.django_db
     def test_list_orders_query_count_with_multiple_orders(
@@ -757,7 +756,7 @@ class TestOrderListViewQueryPerformance:
             response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(connection.queries) == 8
+        assert len(connection.queries) == 7
 
     @pytest.mark.django_db
     def test_list_orders_query_count_with_many_orders(
@@ -830,7 +829,7 @@ class TestOrderListViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        assert query_count == 8
+        assert query_count == 7
 
     @pytest.mark.django_db
     def test_list_orders_query_count_with_many_orders_with_resolutions(
@@ -914,7 +913,7 @@ class TestOrderListViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        assert query_count == 8
+        assert query_count == 7
 
     @pytest.mark.django_db
     def test_list_orders_no_n_plus_one_for_named_coast_fleet_moves(

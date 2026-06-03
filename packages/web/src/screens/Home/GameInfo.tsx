@@ -75,7 +75,7 @@ const GameInfo: React.FC = () => {
 
   const pendingAction = game.status === "pending" ? (
     !loggedIn ? (
-      <Button size="sm" onClick={() => { deepLinkStorage.setPendingPath(location.pathname); navigate("/"); }}>
+      <Button size="sm" onClick={() => { deepLinkStorage.setPendingPath(location.pathname + location.search); navigate("/"); }}>
         Log in to join game
       </Button>
     ) : game.canJoin ? (
