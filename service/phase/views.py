@@ -93,7 +93,8 @@ class PhaseRetrieveView(generics.RetrieveAPIView):
     lookup_url_kwarg = 'phase_id'
 
     def get_queryset(self):
-        return Phase.objects.with_detail_data()
+        game_id = self.kwargs.get("game_id")
+        return Phase.objects.with_detail_data().filter(game_id=game_id)
 
 
 class PhaseResolveView(SelectedGameMixin, views.APIView):

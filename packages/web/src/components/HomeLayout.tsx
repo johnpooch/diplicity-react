@@ -18,7 +18,6 @@ import { Navigation } from "@/components/Navigation";
 import { SidebarUserArea } from "@/components/SidebarUserArea";
 import { SafeAreaView } from "@/components/SafeAreaView";
 import { useAuth } from "@/auth";
-import { LogInToPlayBanner } from "@/components/LogInToPlayBanner";
 import { Home, Search, PlusCircle, MessageCircle, CircleHelp } from "lucide-react";
 
 const navigationItems = [
@@ -78,9 +77,9 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
         )}
       >
         <div className="flex items-stretch flex-1 min-h-0 w-full">
-          {/* Left Sidebar - ShadCN Sidebar with collapsible functionality */}
-          <Sidebar collapsible="icon">
-            {loggedIn && (
+          {/* Left Sidebar - only shown when logged in */}
+          {loggedIn && (
+            <Sidebar collapsible="icon">
               <SidebarHeader>
                 <Link to="/">
                   <Item className="p-1">
@@ -93,21 +92,13 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
                   </Item>
                 </Link>
               </SidebarHeader>
-            )}
-            <SidebarContent>
-              {loggedIn ? (
+              <SidebarContent>
                 <Navigation
                   items={navItems}
                   variant="sidebar"
                   onItemClick={path => navigate(path)}
                 />
-              ) : (
-                <div className="px-3 pt-4 pb-3">
-                  <LogInToPlayBanner />
-                </div>
-              )}
-            </SidebarContent>
-            {loggedIn && (
+              </SidebarContent>
               <SidebarFooter>
                 <SidebarMenu>
                   <SidebarMenuItem>
@@ -123,8 +114,8 @@ const HomeLayout: React.FC<HomeLayoutProps> = ({ children, className }) => {
                   <SidebarUserArea />
                 </Suspense>
               </SidebarFooter>
-            )}
-          </Sidebar>
+            </Sidebar>
+          )}
 
           {/* Main Content Area */}
           <SidebarInset className="flex min-w-0 flex-1 flex-col">

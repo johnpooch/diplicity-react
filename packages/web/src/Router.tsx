@@ -25,23 +25,26 @@ import * as Sentry from "@sentry/react";
 import { deepLinkStorage, useDeepLink } from "./deepLink";
 import { useIsMobile } from "./hooks/use-mobile";
 
-const AuthContext = React.createContext(false);
+const LoggedInContext = React.createContext(false);
 
 const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const loggedIn = React.useContext(AuthContext);
+  const loggedIn = React.useContext(LoggedInContext);
   const location = useLocation();
-  if (!loggedIn) {
-    const path = `${location.pathname}${location.search}${location.hash}`;
-    if (location.pathname !== "/") {
-      deepLinkStorage.setPendingPath(path);
+
+  React.useEffect(() => {
+    if (!loggedIn && location.pathname !== "/") {
+      deepLinkStorage.setPendingPath(
+        `${location.pathname}${location.search}${location.hash}`
+      );
     }
-    return <Navigate to="/" replace />;
-  }
+  }, [loggedIn, location]);
+
+  if (!loggedIn) return <Navigate to="/" replace />;
   return <>{children}</>;
 };
 
 const GuestOnly: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const loggedIn = React.useContext(AuthContext);
+  const loggedIn = React.useContext(LoggedInContext);
   if (loggedIn) return <Navigate to="/" replace />;
   return <>{children}</>;
 };
@@ -85,18 +88,20 @@ const GameDetailLayoutWrapper: React.FC = () => {
 };
 
 const AuthenticatedRoot: React.FC = () => {
-  const loggedIn = React.useContext(AuthContext);
+  const loggedIn = React.useContext(LoggedInContext);
   useDeepLink(loggedIn);
   return <Outlet />;
 };
 
 const RootIndex: React.FC = () => {
-  const loggedIn = React.useContext(AuthContext);
+  const loggedIn = React.useContext(LoggedInContext);
   if (!loggedIn) return <Login />;
   return (
-    <Suspense fallback={<RouteFallback />}>
-      <Home.MyGames />
-    </Suspense>
+    <HomeLayout>
+      <Suspense fallback={<RouteFallback />}>
+        <Home.MyGames />
+      </Suspense>
+    </HomeLayout>
   );
 };
 
@@ -126,12 +131,12 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
           loader: createVariantsLoader(queryClient),
           children: [
             {
+              index: true,
+              element: <RootIndex />,
+            },
+            {
               element: <HomeLayoutWrapper />,
               children: [
-                {
-                  index: true,
-                  element: <RootIndex />,
-                },
                 {
                   path: "find-games",
                   element: (
@@ -391,9 +396,9 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
   );
 
   return (
-    <AuthContext value={loggedIn}>
+    <LoggedInContext value={loggedIn}>
       <RouterProvider router={router} />
-    </AuthContext>
+    </LoggedInContext>
   );
 };
 

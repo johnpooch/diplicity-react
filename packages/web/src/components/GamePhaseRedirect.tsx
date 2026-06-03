@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { Navigate, useLocation } from "react-router";
 import { useRequiredParams } from "@/hooks";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -14,9 +14,15 @@ const GamePhaseRedirectInner: React.FC = () => {
   const isMobile = useIsMobile();
   const { loggedIn } = useAuth();
   const location = useLocation();
+  const shouldRedirect = game.private && !loggedIn;
 
-  if (game.private && !loggedIn) {
-    deepLinkStorage.setPendingPath(location.pathname + location.search);
+  useEffect(() => {
+    if (shouldRedirect) {
+      deepLinkStorage.setPendingPath(location.pathname + location.search);
+    }
+  }, [shouldRedirect, location.pathname, location.search]);
+
+  if (shouldRedirect) {
     return <Navigate to="/" replace />;
   }
 

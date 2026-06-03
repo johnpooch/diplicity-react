@@ -502,8 +502,10 @@ const GuestOrdersScreen: React.FC = () => {
   const { data: variants } = useVariantsListSuspense();
 
   const isActivePhase = phase.status === "active";
-  const variant = variants.find(v => v.id === game.variantId)!;
+  const variant = variants.find(v => v.id === game.variantId);
   const nationGroups = buildNationGroups(isActivePhase, [], orders, phase, game);
+
+  if (!variant) return null;
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
