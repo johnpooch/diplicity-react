@@ -2074,6 +2074,24 @@ class TestFilterDuePhasesBasicFiltering:
 
         assert phase in phases
 
+    @pytest.mark.django_db
+    def test_filter_due_phases_duration_game_no_phase_states_is_due(self, phase_factory):
+        # A duration-mode phase with no phase states is vacuously "all confirmed"
+        # (the Exists() subquery returns no rows, so ~Exists is True), making it
+        # appear immediately resolvable. This is the intermediate DB state that
+        # exists inside game.start() between current_phase.save() and
+        # PhaseState.objects.bulk_create(). Wrapping game.start() in
+        # transaction.atomic() ensures this intermediate state is never committed
+        # and therefore never visible to concurrent sweep tasks.
+        phase = phase_factory(
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=None,
+        )
+
+        phases = Phase.objects.filter_due_phases()
+
+        assert phase in phases
+
 
 class TestPhaseAdminQueryPerformance:
 
@@ -4111,6 +4129,66 @@ class TestSendDeadlineWarnings:
         Phase.objects.send_deadline_warnings()
 
         mock_send_notification_to_users.assert_not_called()
+
+
+class TestNMRExtensionsFixedTime:
+
+    @pytest.mark.django_db
+    def test_fixed_time_no_orders_applies_extension(
+        self,
+        make_deadline_warning_game,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = make_deadline_warning_game(
+            DeadlineMode.FIXED_TIME, now - timedelta(minutes=1)
+        )
+        game.movement_phase_duration = "24 hours"
+        game.save()
+        italy.nmr_extensions_remaining = 1
+        italy.save()
+        phase.units.create(
+            province=italy_vs_germany_venice_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
+        )
+        phase.phase_states.create(member=italy, has_possible_orders=True)
+
+        result = Phase.objects._check_and_apply_nmr_extensions(phase)
+
+        assert result is not None
+        italy.refresh_from_db()
+        assert italy.nmr_extensions_remaining == 0
+
+    @pytest.mark.django_db
+    def test_fixed_time_with_any_order_skips_extension(
+        self,
+        make_deadline_warning_game,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = make_deadline_warning_game(
+            DeadlineMode.FIXED_TIME, now - timedelta(minutes=1)
+        )
+        game.movement_phase_duration = "24 hours"
+        game.save()
+        italy.nmr_extensions_remaining = 1
+        italy.save()
+        phase.units.create(
+            province=italy_vs_germany_venice_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
+        )
+        ps = phase.phase_states.create(member=italy, has_possible_orders=True)
+        ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
+
+        result = Phase.objects._check_and_apply_nmr_extensions(phase)
+
+        assert result is None
+        italy.refresh_from_db()
+        assert italy.nmr_extensions_remaining == 1
 
 
 def _elimination_jobs(connector):
