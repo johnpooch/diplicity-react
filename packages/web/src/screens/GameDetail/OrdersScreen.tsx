@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import { useAuth } from "@/auth";
@@ -14,6 +14,8 @@ import {
   UserX,
   Handshake,
   LucideIcon,
+  MessageCircle,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -39,6 +41,9 @@ import {
 } from "@/components/ui/item";
 import { Notice } from "@/components/Notice";
 import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
+import { Message, MessageContent, MessageTimestamp } from "@/components/ui/message";
+import { getChannelFlagUrls, brightnessByColor, toHex6 } from "./channelUtils";
+import { ChannelAvatar } from "./ChannelAvatar";
 import { GameDropdownMenu } from "@/components/GameDropdownMenu";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
@@ -49,6 +54,8 @@ import {
   PhaseRetrieve,
   PhaseState,
   Province,
+  Channel,
+  ChannelMessage as ChannelMessageType,
   useGameOrdersDeleteDestroy,
   useGameOrdersListSuspense,
   useGamePhaseRetrieveSuspense,
@@ -57,6 +64,7 @@ import {
   useGameResolvePhaseCreate,
   useGameRetrieveSuspense,
   useVariantsListSuspense,
+  useGamesChannelsListSuspense,
   useGamesDrawProposalsListSuspense,
   getGameRetrieveQueryKey,
   getGameOrdersListQueryKey,
@@ -68,6 +76,115 @@ import {
   Variant,
 } from "@/api/generated/endpoints";
 import { cn } from "../../lib/utils";
+
+const BUBBLE_ALPHA_HEX = "26";
+
+type MessageDisplayItem = {
+  id: number;
+  body: string;
+  sender: { nationName: string; nationColor: string };
+  isCurrentUser: boolean;
+  showAvatar: boolean;
+  formattedTime: string;
+};
+
+const formatMessageTime = (createdAt: string): string => {
+  const date = new Date(createdAt);
+  const today = new Date();
+  const isToday =
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate();
+  const time = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (isToday) return time;
+  return `${date.toLocaleDateString([], { month: "short", day: "numeric" })} ${time}`;
+};
+
+const buildMessageDisplayItems = (messages: readonly ChannelMessageType[]): MessageDisplayItem[] =>
+  messages.map((msg, index) => ({
+    id: msg.id,
+    body: msg.body,
+    sender: { nationName: msg.sender.nation.name, nationColor: msg.sender.nation.color },
+    isCurrentUser: msg.sender.isCurrentUser,
+    showAvatar: index === 0 || messages[index - 1].sender.nation.name !== msg.sender.nation.name,
+    formattedTime: formatMessageTime(msg.createdAt),
+  }));
+
+interface GuestChannelViewProps {
+  channel: Channel;
+  game: GameRetrieve;
+  variant: Variant;
+  onClose: () => void;
+}
+
+const GuestChannelView: React.FC<GuestChannelViewProps> = ({ channel, game, variant, onClose }) => {
+  const flagUrls = getChannelFlagUrls(channel, game.members, undefined, variant.nations);
+  const messageItems = useMemo(() => buildMessageDisplayItems(channel.messages), [channel.messages]);
+
+  const channelTitle = (
+    <div className="flex items-center justify-start gap-2">
+      <ChannelAvatar nations={flagUrls} />
+      <span className="text-lg font-semibold truncate text-left">{channel.name}</span>
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col flex-1 min-h-0">
+      <GameDetailAppBar title={channelTitle} onNavigateBack={onClose} variant="secondary" />
+      <div className="flex-1 overflow-hidden">
+        <Panel>
+          <Panel.Content>
+            <div className="h-full flex flex-col">
+              {messageItems.length === 0 ? (
+                <Notice icon={MessageCircle} title="No messages yet" className="h-full" />
+              ) : (
+                <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 p-2">
+                  {messageItems.map(item => (
+                    <Message key={item.id} className={item.isCurrentUser ? "flex-row-reverse" : undefined}>
+                      {item.showAvatar ? (
+                        <div className="w-8 flex-shrink-0 flex justify-center">
+                          <NationFlag
+                            flagUrl={findNationFlagUrl(variant.nations, item.sender.nationName)}
+                            alt={item.sender.nationName}
+                            size="lg"
+                            color={item.sender.nationColor}
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-8 flex-shrink-0" />
+                      )}
+                      <MessageContent
+                        className={`py-1.5 px-2 ${item.isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"}`}
+                        style={{
+                          backgroundColor: toHex6(item.sender.nationColor) + BUBBLE_ALPHA_HEX,
+                          border: brightnessByColor(item.sender.nationColor) > 128
+                            ? `1px solid ${item.sender.nationColor}`
+                            : undefined,
+                        }}
+                      >
+                        {item.body}
+                        {item.showAvatar ? (
+                          <div className="flex items-center justify-between gap-2 mt-0.5">
+                            <span className="text-xs font-medium" style={{ color: item.sender.nationColor }}>
+                              {item.sender.nationName}
+                            </span>
+                            <span className="text-xs text-muted-foreground">{item.formattedTime}</span>
+                          </div>
+                        ) : (
+                          <MessageTimestamp className="mt-0.5">{item.formattedTime}</MessageTimestamp>
+                        )}
+                      </MessageContent>
+                    </Message>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Panel.Content>
+        </Panel>
+      </div>
+    </div>
+  );
+};
 
 type NationGroup = {
   nation: string;
@@ -493,6 +610,7 @@ const OrdersScreen: React.FC = () => {
 
 const GuestOrdersScreen: React.FC = () => {
   const navigate = useNavigate();
+  const [showPublicPress, setShowPublicPress] = useState(false);
   const { gameId, phaseId } = useRequiredParams<{ gameId: string; phaseId: string }>();
   const selectedPhase = Number(phaseId);
 
@@ -500,12 +618,27 @@ const GuestOrdersScreen: React.FC = () => {
   const { data: phase } = useGamePhaseRetrieveSuspense(gameId, selectedPhase);
   const { data: orders } = useGameOrdersListSuspense(gameId, selectedPhase);
   const { data: variants } = useVariantsListSuspense();
+  const { data: channels } = useGamesChannelsListSuspense(gameId);
 
   const isActivePhase = phase.status === "active";
   const variant = variants.find(v => v.id === game.variantId);
+  const publicPressChannel = channels.find(c => !c.private);
   const nationGroups = buildNationGroups(isActivePhase, [], orders, phase, game);
 
   if (!variant) return null;
+
+  if (showPublicPress && publicPressChannel) {
+    return (
+      <GuestChannelView
+        channel={publicPressChannel}
+        game={game}
+        variant={variant}
+        onClose={() => setShowPublicPress(false)}
+      />
+    );
+  }
+
+  const isOngoingGame = game.status === "active";
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -525,6 +658,26 @@ const GuestOrdersScreen: React.FC = () => {
                 <LogInToPlayBanner />
               </div>
             </div>
+            {isOngoingGame && publicPressChannel && (
+              <Item
+                size="sm"
+                className="mx-4 mb-2 cursor-pointer rounded-lg border bg-card"
+                onClick={() => setShowPublicPress(true)}
+              >
+                <ChannelAvatar
+                  nations={getChannelFlagUrls(publicPressChannel, game.members, undefined, variant.nations)}
+                />
+                <ItemContent className="gap-0.5">
+                  <ItemTitle>{publicPressChannel.name}</ItemTitle>
+                  {publicPressChannel.messages.length > 0 && (
+                    <ItemDescription>
+                      {publicPressChannel.messages[publicPressChannel.messages.length - 1].body}
+                    </ItemDescription>
+                  )}
+                </ItemContent>
+                <ChevronRight className="text-muted-foreground size-4" />
+              </Item>
+            )}
             {!isActivePhase && (
               <OrdersDisplay
                 nationGroups={nationGroups}

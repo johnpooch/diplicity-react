@@ -42,6 +42,7 @@ vi.mock("@/api/generated/endpoints", () => ({
   useGameOrdersListSuspense: () => ({ data: mockOrdersData() }),
   useVariantsListSuspense: () => ({ data: mockVariantsData() }),
   useGamePhaseStatesListSuspense: () => ({ data: mockPhaseStatesData() }),
+  useGamesChannelsListSuspense: () => ({ data: [] }),
   useGameOrdersDeleteDestroy: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useGameConfirmPhasePartialUpdate: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useGameResolvePhaseCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
