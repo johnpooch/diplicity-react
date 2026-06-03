@@ -13,6 +13,7 @@ import {
   Star,
   UserX,
   Handshake,
+  LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -64,6 +65,7 @@ import {
   Order,
   GameRetrieve,
   Unit,
+  Variant,
 } from "@/api/generated/endpoints";
 import { cn } from "../../lib/utils";
 
@@ -126,6 +128,120 @@ const buildNationGroups = (
   });
 };
 
+interface OrdersDisplayProps {
+  nationGroups: NationGroup[];
+  phase: PhaseRetrieve;
+  variant: Variant;
+  isActivePhase: boolean;
+  canModifyOrders: boolean;
+  accordionDefaultValue: string[];
+  emptyState?: { icon: LucideIcon; title: string; message: string };
+  onDeleteOrder?: (sourceId: string) => void;
+  deleteIsPending?: boolean;
+}
+
+const OrdersDisplay: React.FC<OrdersDisplayProps> = ({
+  nationGroups,
+  phase,
+  variant,
+  isActivePhase,
+  canModifyOrders,
+  accordionDefaultValue,
+  emptyState,
+  onDeleteOrder,
+  deleteIsPending,
+}) => {
+  const hasContent = nationGroups.length > 0;
+
+  const getSupplyCenterCount = (nation: string) =>
+    phase.supplyCenters.filter(sc => sc.nation.name === nation).length;
+
+  if (!hasContent && !emptyState) return null;
+
+  if (!hasContent && emptyState) {
+    return (
+      <Notice
+        icon={emptyState.icon}
+        title={emptyState.title}
+        message={emptyState.message}
+        className="h-full"
+      />
+    );
+  }
+
+  return (
+    <Accordion type="multiple" defaultValue={accordionDefaultValue}>
+      {nationGroups.map(({ nation, items }) => {
+        const nationColor = findNationColor(variant.nations, nation);
+        return (
+          <AccordionItem key={nation} value={nation}>
+            <AccordionTrigger className="p-2 items-center">
+              <div className="flex items-center gap-2">
+                <NationFlag
+                  flagUrl={findNationFlagUrl(variant.nations, nation)}
+                  alt={nation}
+                  size="md"
+                  color={nationColor}
+                />
+                <span>{nation}</span>
+                <span className="text-muted-foreground">•</span>
+                <span className="inline-flex items-center gap-1 text-muted-foreground">
+                  <Star className="size-3" />
+                  <span>{getSupplyCenterCount(nation)}</span>
+                </span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="p-0">
+              <ItemGroup>
+                {items.map((item, index) => (
+                  <React.Fragment key={item.province.id}>
+                    {index === 0 && <Separator />}
+                    <Item size="sm">
+                      <ItemContent>
+                        <ItemTitle>
+                          {item.unit?.type} {item.province.name}
+                        </ItemTitle>
+                        <ItemDescription>
+                          {item.order ? item.order.summary : "Order not provided"}
+                        </ItemDescription>
+                      </ItemContent>
+                      {canModifyOrders && item.order && onDeleteOrder && (
+                        <ItemActions>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onDeleteOrder(item.province.id)}
+                            disabled={deleteIsPending}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </ItemActions>
+                      )}
+                      {!isActivePhase && item.order?.resolution?.status && (
+                        <ItemContent
+                          className={cn(
+                            "text-xs",
+                            item.order.resolution.status === "Succeeded"
+                              ? "text-green-600"
+                              : "text-red-600"
+                          )}
+                        >
+                          {item.order.resolution.status}
+                        </ItemContent>
+                      )}
+                    </Item>
+                    {index < items.length - 1 && <ItemSeparator />}
+                  </React.Fragment>
+                ))}
+              </ItemGroup>
+            </AccordionContent>
+          </AccordionItem>
+        );
+      })}
+    </Accordion>
+  );
+};
+
 const DrawProposalsBadge: React.FC<{ gameId: string; currentMemberId?: number }> = ({
   gameId,
   currentMemberId,
@@ -174,10 +290,6 @@ const OrdersScreen: React.FC = () => {
   const isCurrentMemberInCivilDisorder = currentMember?.civilDisorder ?? false;
   const canModifyOrders =
     !!currentMember && isActivePhase && !isGameFinished && !isCurrentMemberInCivilDisorder;
-
-  const getSupplyCenterCount = (nation: string) => {
-    return phase.supplyCenters.filter(sc => sc.nation.name === nation).length;
-  };
 
   const handleDeleteOrder = async (sourceId: string) => {
     try {
@@ -333,96 +445,19 @@ const OrdersScreen: React.FC = () => {
             </Alert>
           )}
           <Panel.Content>
-            {!hasContent ? (
-              <Notice
-                icon={emptyState.icon}
-                title={emptyState.title}
-                message={emptyState.message}
-                className="h-full"
-              />
-            ) : (
-              <Accordion
-                type="multiple"
-                defaultValue={[
-                  nationGroups.find(g => g.member.isCurrentUser)?.nation ?? "",
-                ]}
-              >
-                {nationGroups.map(({ nation, items }) => {
-                  const nationColor = findNationColor(variant.nations, nation);
-                  return (
-                    <AccordionItem key={nation} value={nation}>
-                      <AccordionTrigger className="p-2 items-center">
-                        <div className="flex items-center gap-2">
-                          <NationFlag
-                            flagUrl={findNationFlagUrl(variant.nations, nation)}
-                            alt={nation}
-                            size="md"
-                            color={nationColor}
-                          />
-                          <span>{nation}</span>
-                          <span className="text-muted-foreground">•</span>
-                          <span className="inline-flex items-center gap-1 text-muted-foreground">
-                            <Star className="size-3" />
-                            <span>{getSupplyCenterCount(nation)}</span>
-                          </span>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="p-0">
-                        <ItemGroup>
-                          {items.map((item, index) => (
-                            <React.Fragment key={item.province.id}>
-                              {index === 0 && <Separator />}
-                              <Item size="sm">
-                                <ItemContent>
-                                  <ItemTitle>
-                                    {item.unit?.type} {item.province.name}
-                                  </ItemTitle>
-                                  <ItemDescription>
-                                    {item.order
-                                      ? item.order.summary
-                                      : "Order not provided"}
-                                  </ItemDescription>
-                                </ItemContent>
-                                {canModifyOrders && item.order && (
-                                  <ItemActions>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() =>
-                                        handleDeleteOrder(item.province.id)
-                                      }
-                                      disabled={deleteOrderMutation.isPending}
-                                    >
-                                      <Trash2 className="size-4" />
-                                    </Button>
-                                  </ItemActions>
-                                )}
-                                {!isActivePhase &&
-                                  item.order &&
-                                  item.order.resolution?.status && (
-                                    <ItemContent
-                                      className={cn(
-                                        "text-xs",
-                                        item.order.resolution.status ===
-                                          "Succeeded"
-                                          ? "text-green-600"
-                                          : "text-red-600"
-                                      )}
-                                    >
-                                      {item.order.resolution.status}
-                                    </ItemContent>
-                                  )}
-                              </Item>
-                              {index < items.length - 1 && <ItemSeparator />}
-                            </React.Fragment>
-                          ))}
-                        </ItemGroup>
-                      </AccordionContent>
-                    </AccordionItem>
-                  );
-                })}
-              </Accordion>
-            )}
+            <OrdersDisplay
+              nationGroups={nationGroups}
+              phase={phase}
+              variant={variant}
+              isActivePhase={isActivePhase}
+              canModifyOrders={canModifyOrders}
+              accordionDefaultValue={[
+                nationGroups.find(g => g.member.isCurrentUser)?.nation ?? "",
+              ]}
+              emptyState={emptyState}
+              onDeleteOrder={handleDeleteOrder}
+              deleteIsPending={deleteOrderMutation.isPending}
+            />
           </Panel.Content>
 
           {(rightFooterButton || showDrawProposalsButton) && (
@@ -469,10 +504,6 @@ const GuestOrdersScreen: React.FC = () => {
   const isActivePhase = phase.status === "active";
   const variant = variants.find(v => v.id === game.variantId)!;
   const nationGroups = buildNationGroups(isActivePhase, [], orders, phase, game);
-  const hasContent = nationGroups.length > 0;
-
-  const getSupplyCenterCount = (nation: string) =>
-    phase.supplyCenters.filter(sc => sc.nation.name === nation).length;
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -492,67 +523,15 @@ const GuestOrdersScreen: React.FC = () => {
                 <LogInToPlayBanner />
               </div>
             </div>
-            {!isActivePhase && hasContent && (
-              <Accordion
-                type="multiple"
-                defaultValue={nationGroups.map(g => g.nation)}
-              >
-                {nationGroups.map(({ nation, items }) => {
-                  const nationColor = findNationColor(variant.nations, nation);
-                  return (
-                    <AccordionItem key={nation} value={nation}>
-                      <AccordionTrigger className="p-2 items-center">
-                        <div className="flex items-center gap-2">
-                          <NationFlag
-                            flagUrl={findNationFlagUrl(variant.nations, nation)}
-                            alt={nation}
-                            size="md"
-                            color={nationColor}
-                          />
-                          <span>{nation}</span>
-                          <span className="text-muted-foreground">•</span>
-                          <span className="inline-flex items-center gap-1 text-muted-foreground">
-                            <Star className="size-3" />
-                            <span>{getSupplyCenterCount(nation)}</span>
-                          </span>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="p-0">
-                        <ItemGroup>
-                          {items.map((item, index) => (
-                            <React.Fragment key={item.province.id}>
-                              {index === 0 && <Separator />}
-                              <Item size="sm">
-                                <ItemContent>
-                                  <ItemTitle>
-                                    {item.unit?.type} {item.province.name}
-                                  </ItemTitle>
-                                  <ItemDescription>
-                                    {item.order ? item.order.summary : "Order not provided"}
-                                  </ItemDescription>
-                                </ItemContent>
-                                {item.order?.resolution?.status && (
-                                  <ItemContent
-                                    className={cn(
-                                      "text-xs",
-                                      item.order.resolution.status === "Succeeded"
-                                        ? "text-green-600"
-                                        : "text-red-600"
-                                    )}
-                                  >
-                                    {item.order.resolution.status}
-                                  </ItemContent>
-                                )}
-                              </Item>
-                              {index < items.length - 1 && <ItemSeparator />}
-                            </React.Fragment>
-                          ))}
-                        </ItemGroup>
-                      </AccordionContent>
-                    </AccordionItem>
-                  );
-                })}
-              </Accordion>
+            {!isActivePhase && (
+              <OrdersDisplay
+                nationGroups={nationGroups}
+                phase={phase}
+                variant={variant}
+                isActivePhase={isActivePhase}
+                canModifyOrders={false}
+                accordionDefaultValue={nationGroups.map(g => g.nation)}
+              />
             )}
           </Panel.Content>
         </Panel>
