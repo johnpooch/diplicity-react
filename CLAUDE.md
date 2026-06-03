@@ -2,6 +2,55 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+---
+
+# Metabase Analytics
+
+## Creating native SQL questions
+
+The Metabase MCP tools (`query`, `construct_query`) **do not support explicit joins** — only single-hop implicit FK traversal. For any query that needs more than one FK hop, use native SQL.
+
+**Always write the SQL to a file, never inline it in a shell command.** Shell escaping corrupts SQL (`=` becomes `:`, DEL chars appear silently). The reliable pattern:
+
+```python
+# 1. Write SQL to /tmp/query.sql via the Write tool
+
+# 2. Encode in a Python heredoc:
+import json, base64
+
+with open('/tmp/query.sql') as f:
+    sql = f.read().strip()
+
+payload = {
+    'lib/type': 'mbql/query',
+    'stages': [{'lib/type': 'mbql.stage/native', 'native': sql, 'template-tags': {}}],
+    'database': DATABASE_ID   # 2 for the production diplicity DB
+}
+encoded = base64.b64encode(json.dumps(payload).encode('ascii')).decode('ascii')
+
+# 3. Always roundtrip-assert before using:
+decoded = json.loads(base64.b64decode(encoded))
+assert decoded['stages'][0]['native'] == sql
+
+print(encoded)
+```
+
+**Use the base64 immediately in the next tool call** — don't store it and reference it in a later message. The context window can corrupt long base64 strings between turns.
+
+Always test with `execute_query` before `create_question`. If the query from the Bash output looks correct but `execute_query` fails with a syntax error, regenerate the base64 from the file rather than trying to fix the stored string.
+
+To save to the root "Our analytics" collection, pass `collection_id=null`.
+
+## Schema gotchas (phase / game tables)
+
+- `phase_phase.completed_at` is **always NULL** — use `status = 'completed'` to identify resolved phases.
+- `phase_phase.updated_at` is **unreliable for time-bucketing** — batch operations reset it, causing all historical data to cluster in recent weeks. Use `scheduled_resolution` instead.
+- `phase_phase.scheduled_resolution IS NOT NULL` is required — ~21% of phases have no deadline (manual-resolution games) and no meaningful NMR timestamp.
+- `phase_phase.started_at` is also always NULL.
+- The Metabase MCP tools only support single-hop implicit FK joins. To join `phase_phasestate → phase_phase → game_game`, you must use native SQL (two hops via implicit FK fails with "missing FROM-clause entry").
+
+---
+
 ## !!! EXTERNAL SERVICE UIs CHANGE — DO NOT GIVE STALE NAVIGATION INSTRUCTIONS !!!
 
 Google Play Console, Google Cloud Console, Firebase Console, and similar external services update their UIs frequently. **Never give step-by-step navigation instructions for these UIs from memory** — the menu names, sidebar items, and page layouts in your training data are likely out of date. Instead:
