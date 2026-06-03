@@ -64,6 +64,7 @@ import {
   Unit,
 } from "@/api/generated/endpoints";
 import { cn } from "../../lib/utils";
+import { getContrastColor } from "../../util";
 
 type NationGroup = {
   nation: string;
@@ -341,7 +342,7 @@ const OrdersScreen: React.FC = () => {
                   nationGroups.find(g => g.member.isCurrentUser)?.nation ?? "",
                 ]}
               >
-                {nationGroups.map(({ nation, items }) => {
+                {nationGroups.map(({ nation, member, items }) => {
                   const nationColor = findNationColor(variant.nations, nation);
                   return (
                     <AccordionItem key={nation} value={nation}>
@@ -355,6 +356,12 @@ const OrdersScreen: React.FC = () => {
                           />
                           <span>{nation}</span>
                           <span className="text-muted-foreground">•</span>
+                          {member.isCurrentUser && (
+                            <>
+                              <Badge className="leading-none" style={{ backgroundColor: nationColor ?? undefined, color: getContrastColor(nationColor) }}>you</Badge>
+                              <span className="text-muted-foreground">•</span>
+                            </>
+                          )}
                           <span className="inline-flex items-center gap-1 text-muted-foreground">
                             <Star className="size-3" />
                             <span>{getSupplyCenterCount(nation)}</span>
