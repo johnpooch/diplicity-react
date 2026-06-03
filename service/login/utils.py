@@ -47,6 +47,15 @@ def verify_google_id_token(id_token):
     return id_info
 
 
+def _get_valid_apple_client_ids():
+    client_ids = []
+    if settings.APPLE_CLIENT_ID:
+        client_ids.append(settings.APPLE_CLIENT_ID)
+    if settings.APPLE_WEB_CLIENT_ID:
+        client_ids.append(settings.APPLE_WEB_CLIENT_ID)
+    return client_ids
+
+
 def _fetch_apple_public_keys():
     response = urllib.request.urlopen(APPLE_JWKS_URL)
     return json.loads(response.read())
@@ -84,7 +93,7 @@ def verify_apple_id_token(id_token):
             id_token,
             public_key,
             algorithms=["RS256"],
-            audience=settings.APPLE_CLIENT_ID,
+            audience=_get_valid_apple_client_ids(),
             issuer=APPLE_ISSUER,
         )
     except jwt.ExpiredSignatureError:

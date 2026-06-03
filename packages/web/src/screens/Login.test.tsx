@@ -7,6 +7,8 @@ import { Login } from "./Login";
 
 const mockLogin = vi.fn();
 const mockMutateAsync = vi.fn();
+const mockAppleMutateAsync = vi.fn();
+const mockAppleSignIn = vi.fn();
 
 vi.mock("@/auth", () => ({
   useAuth: () => ({ login: mockLogin }),
@@ -14,7 +16,7 @@ vi.mock("@/auth", () => ({
 
 vi.mock("@/api/generated/endpoints", () => ({
   useAuthAppleLoginCreate: () => ({
-    mutateAsync: vi.fn(),
+    mutateAsync: mockAppleMutateAsync,
     isPending: false,
   }),
   useAuthEmailLoginCreate: () => ({
@@ -45,6 +47,9 @@ const renderLogin = () =>
 describe("Login", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal("AppleID", {
+      auth: { init: vi.fn(), signIn: mockAppleSignIn },
+    });
   });
 
   it("submits email and password and stores tokens on success", async () => {
@@ -63,7 +68,7 @@ describe("Login", () => {
       screen.getByLabelText(/password/i),
       "strongpass123"
     );
-    await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
 
     expect(mockMutateAsync).toHaveBeenCalledWith({
       data: { email: "player@example.com", password: "strongpass123" },
@@ -87,7 +92,7 @@ describe("Login", () => {
       screen.getByLabelText(/password/i),
       "wrongpass"
     );
-    await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
 
     expect(toastErrorSpy).toHaveBeenCalledWith("Invalid email or password");
     expect(mockLogin).not.toHaveBeenCalled();
@@ -107,10 +112,43 @@ describe("Login", () => {
     expect(forgotLink).toHaveAttribute("href", "/forgot-password");
   });
 
-  it("shows Google sign-in below an OR divider", () => {
+  it("shows Google and Apple sign-in below an OR divider", () => {
     renderLogin();
 
     expect(screen.getByText("OR")).toBeInTheDocument();
     expect(screen.getByTestId("google-login")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /sign in with apple/i })).toBeInTheDocument();
+  });
+
+  it("signs in with Apple and stores tokens on success", async () => {
+    mockAppleSignIn.mockResolvedValue({
+      authorization: { id_token: "apple-id-token" },
+      user: { name: { firstName: "Ada", lastName: "Lovelace" } },
+    });
+    mockAppleMutateAsync.mockResolvedValue({
+      id: 2,
+      email: "ada@example.com",
+      name: "Ada Lovelace",
+      accessToken: "apple-access-jwt",
+      refreshToken: "apple-refresh-jwt",
+    });
+
+    renderLogin();
+
+    await userEvent.click(screen.getByRole("button", { name: /sign in with apple/i }));
+
+    expect(mockAppleMutateAsync).toHaveBeenCalledWith({
+      data: {
+        idToken: "apple-id-token",
+        firstName: "Ada",
+        lastName: "Lovelace",
+      },
+    });
+    expect(mockLogin).toHaveBeenCalledWith({
+      accessToken: "apple-access-jwt",
+      refreshToken: "apple-refresh-jwt",
+      email: "ada@example.com",
+      name: "Ada Lovelace",
+    });
   });
 });

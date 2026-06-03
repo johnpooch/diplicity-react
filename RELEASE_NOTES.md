@@ -1,5 +1,14 @@
 # Diplicity React - Release Notes
 
+## Sign in with Apple on the Web (June 2, 2026)
+
+**Release Date:** June 2, 2026
+
+### Feature: Sign in with Apple now works in the browser
+
+"Sign in with Apple" is now available on the web app, alongside Google sign-in. Previously
+it was only offered in the iOS app. Web and iOS Apple sign-ins resolve to the same account.
+
 ## Faster Phase Resolution (June 1, 2026)
 
 **Release Date:** June 1, 2026
