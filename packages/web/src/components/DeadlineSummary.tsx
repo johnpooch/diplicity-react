@@ -161,8 +161,8 @@ export const DeadlineSummary: React.FC<DeadlineSummaryProps> = ({ game }) => {
   ) {
     return (
       <span>
-        Phases resolve every {movementPhaseDuration}, but earlier if all players
-        confirmed their orders.
+        Phases are at least {movementPhaseDuration}, but can resolve earlier if
+        all players confirmed their orders.
       </span>
     );
   }

@@ -441,7 +441,7 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
                 <p className="text-sm text-muted-foreground">
                   {field.value === "fixed_time"
                     ? "Deadlines are always at the fixed time, turns are always the same length."
-                    : "Turns can resolve earlier if all players confirm their orders, which means the deadline time can shift."}
+                    : "Phases can resolve earlier if all players confirm their orders, meaning the deadline time can shift."}
                 </p>
                 <FormMessage />
               </FormItem>
