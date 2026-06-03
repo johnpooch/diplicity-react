@@ -3,8 +3,9 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from rest_framework import status
 from game.models import Game
+from phase.models import Phase
 from user_profile.models import UserProfile
-from common.constants import GameStatus
+from common.constants import GameStatus, NationAssignment
 
 User = get_user_model()
 
@@ -297,3 +298,33 @@ def test_game_has_exactly_one_game_master(
     game_masters = game.members.filter(is_game_master=True)
     assert game_masters.count() == 1
     assert game_masters.first().user == secondary_user
+
+
+@pytest.mark.django_db
+def test_game_start_phase_not_immediately_resolvable(classical_variant, primary_user):
+    # After game.start(), the active phase must NOT appear in filter_due_phases()
+    # for a duration-based game with a future deadline.
+    #
+    # Before the fix, game.start() was not wrapped in transaction.atomic(). Between
+    # current_phase.save() and PhaseState.objects.bulk_create(), the phase was ACTIVE
+    # with no phase states — making all_confirmed vacuously True and the phase appear
+    # immediately due to any concurrent sweep task. The transaction.atomic() wrapper
+    # ensures the intermediate state (phase active, no phase states) is never committed
+    # and therefore never visible to concurrent resolvers.
+    from common.constants import MovementPhaseDuration, DeadlineMode
+
+    game = Game.objects.create_from_template(
+        classical_variant,
+        name="Test Duration Game",
+        nation_assignment=NationAssignment.ORDERED,
+        deadline_mode=DeadlineMode.DURATION,
+        movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+    )
+    for _ in classical_variant.nations.all():
+        game.members.create(user=primary_user)
+    game.start()
+
+    phase = game.current_phase
+    assert phase.status == "active"
+    assert phase.phase_states.exists()
+    assert phase not in Phase.objects.filter_due_phases()
