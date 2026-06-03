@@ -22,7 +22,7 @@ import {
   useGameJoinCreate,
   getGamesListQueryKey,
 } from "../api/generated/endpoints";
-import { formatTimeAgo, getGameLandingPath } from "../util";
+import { formatTimeAgo, getGameLandingPath, getContrastColor } from "../util";
 import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -110,7 +110,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
                     <Badge variant="secondary">Sandbox</Badge>
                   )}
                   {!game.sandbox && playerNation && (
-                    <Badge className="leading-none" style={{ backgroundColor: nationColor ?? undefined }}>
+                    <Badge className="leading-none" style={{ backgroundColor: nationColor ?? undefined, color: getContrastColor(nationColor) }}>
                       {playerNation}
                     </Badge>
                   )}

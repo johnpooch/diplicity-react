@@ -64,6 +64,7 @@ import {
   Unit,
 } from "@/api/generated/endpoints";
 import { cn } from "../../lib/utils";
+import { getContrastColor } from "../../util";
 
 type NationGroup = {
   nation: string;
@@ -357,7 +358,7 @@ const OrdersScreen: React.FC = () => {
                           <span className="text-muted-foreground">•</span>
                           {member.isCurrentUser && (
                             <>
-                              <Badge className="leading-none" style={{ backgroundColor: nationColor ?? undefined }}>you</Badge>
+                              <Badge className="leading-none" style={{ backgroundColor: nationColor ?? undefined, color: getContrastColor(nationColor) }}>you</Badge>
                               <span className="text-muted-foreground">•</span>
                             </>
                           )}
