@@ -8,6 +8,7 @@ import { Login } from "./Login";
 const mockLogin = vi.fn();
 const mockMutateAsync = vi.fn();
 const mockAppleMutateAsync = vi.fn();
+const mockAppleInit = vi.fn();
 const mockAppleSignIn = vi.fn();
 
 vi.mock("@/auth", () => ({
@@ -47,8 +48,18 @@ const renderLogin = () =>
 describe("Login", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAppleSignIn.mockImplementation(() => {
+      document.dispatchEvent(
+        new CustomEvent("AppleIDSignInOnSuccess", {
+          detail: {
+            authorization: { id_token: "apple-id-token" },
+            user: { name: { firstName: "Ada", lastName: "Lovelace" } },
+          },
+        })
+      );
+    });
     vi.stubGlobal("AppleID", {
-      auth: { init: vi.fn(), signIn: mockAppleSignIn },
+      auth: { init: mockAppleInit, signIn: mockAppleSignIn },
     });
   });
 
@@ -121,10 +132,6 @@ describe("Login", () => {
   });
 
   it("signs in with Apple and stores tokens on success", async () => {
-    mockAppleSignIn.mockResolvedValue({
-      authorization: { id_token: "apple-id-token" },
-      user: { name: { firstName: "Ada", lastName: "Lovelace" } },
-    });
     mockAppleMutateAsync.mockResolvedValue({
       id: 2,
       email: "ada@example.com",
