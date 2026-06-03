@@ -35,7 +35,7 @@ const emptyPhase: PhaseRetrieve = {
   status: "active",
   units: [],
   supplyCenters: [],
-  provinceNations: {},
+  provinceNations: "{}",
   previousPhaseId: null,
   nextPhaseId: null,
 };
@@ -381,7 +381,7 @@ describe("toRenderState", () => {
     test("maps provinceNations nation names to colours from the variant", () => {
       const state = toRenderState(
         variant,
-        { ...emptyPhase, provinceNations: { yor: "England", gas: "France" } },
+        { ...emptyPhase, provinceNations: JSON.stringify({ yor: "England", gas: "France" }) },
         [],
         []
       );
@@ -399,7 +399,7 @@ describe("toRenderState", () => {
     test("omits provinces whose nation name has no matching colour", () => {
       const state = toRenderState(
         variant,
-        { ...emptyPhase, provinceNations: { yor: "UnknownNation" } },
+        { ...emptyPhase, provinceNations: JSON.stringify({ yor: "UnknownNation" }) },
         [],
         []
       );

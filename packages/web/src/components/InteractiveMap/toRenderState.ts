@@ -15,7 +15,7 @@ type PhaseForRender = {
     province: { id: string };
     nation: { name: string };
   }>;
-  provinceNations?: Record<string, string>;
+  provinceNations?: string;
 };
 
 const orderSourceId = (order: Order): string => {
@@ -63,8 +63,11 @@ export const toRenderState = (
     nation: sc.nation.name,
   }));
 
+  const parsedProvinceNations: Record<string, string> = phase.provinceNations
+    ? (JSON.parse(phase.provinceNations) as Record<string, string>)
+    : {};
   const nonScProvinceColors: Record<string, string> = {};
-  for (const [provinceId, nationName] of Object.entries(phase.provinceNations ?? {})) {
+  for (const [provinceId, nationName] of Object.entries(parsedProvinceNations)) {
     const color = nationColors[nationName];
     if (color) nonScProvinceColors[provinceId] = color;
   }

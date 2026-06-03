@@ -57,7 +57,7 @@ interface ChannelMessageListProps {
   messageItems: MessageDisplayItem[];
   variantNations: ReadonlyArray<{ name: string; flagUrl: string | null }>;
   firstUnreadIndex?: number | null;
-  scrollContainerRef?: React.RefObject<HTMLDivElement>;
+  scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
   emptyMessage?: string;
 }
 

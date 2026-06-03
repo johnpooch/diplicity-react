@@ -1,3 +1,4 @@
+import json
 from django.db import transaction
 from rest_framework import serializers
 from common.constants import PhaseStatus
@@ -61,9 +62,9 @@ class PhaseRetrieveSerializer(serializers.Serializer):
     province_nations = serializers.SerializerMethodField()
 
     def get_province_nations(self, phase):
-        return compute_province_nations(
+        return json.dumps(compute_province_nations(
             phase.supply_centers.all(),
             phase.variant.provinces.all(),
             phase.variant.dominance_rules,
             phase.variant.nations.all(),
-        )
+        ))
