@@ -5,6 +5,14 @@
 [context.deploy-preview]
   command = "VITE_DIPLICITY_API_BASE_URL=https://diplicity-react-staging-pr-${REVIEW_ID}.up.railway.app npm run build"
 
+# Redirect www to apex so Apple Sign In's postMessage targetOrigin (https://diplicity.com)
+# always matches the page the user is actually on.
+[[redirects]]
+  from = "https://www.diplicity.com/*"
+  to = "https://diplicity.com/:splat"
+  status = 301
+  force = true
+
 # Required for Sign in with Apple popup mode: Apple's popup calls window.opener.postMessage()
 # back to this page, which only works when COOP allows the opener reference to be preserved.
 [[headers]]
