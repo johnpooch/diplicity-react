@@ -505,11 +505,11 @@ class PhaseManager(models.Manager):
             if extension_members:
                 return phase
 
+            self._check_civil_disorder(phase)
             adjudication_data = resolve(phase)
 
             with tracer.start_as_current_span("phase.transaction_atomic"):
                 with transaction.atomic():
-                    self._check_civil_disorder(phase)
                     new_phase = self.create_from_adjudication_data(phase, adjudication_data)
                     self._check_eliminations(phase, new_phase)
 

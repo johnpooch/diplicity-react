@@ -73,6 +73,23 @@ def start(phase) -> Dict[str, Any]:
         }
 
 
+def _should_skip(options, units, cd_nations, nation_name_by_id):
+    if not options:
+        return True
+    if not cd_nations:
+        return False
+    location_to_nation = {
+        u.location: nation_name_by_id.get(u.nation, u.nation)
+        for u in units
+    }
+    option_nations = {
+        location_to_nation[opt.source]
+        for opt in options
+        if opt.source is not None and opt.source in location_to_nation
+    }
+    return bool(option_nations) and option_nations.issubset(cd_nations)
+
+
 def resolve(phase) -> Dict[str, Any]:
     logger.info(f"Resolving phase {phase.id} of game {phase.game.id}")
     with tracer.start_as_current_span("adjudication.resolve") as span:
@@ -81,23 +98,29 @@ def resolve(phase) -> Dict[str, Any]:
         span.set_attribute("variant.id", phase.variant.id)
 
         state, variant = _build_state(phase)
+        nation_name_by_id = {nation.id: nation.name for nation in variant.nations}
+        cd_nations = set(
+            phase.game.members
+            .filter(civil_disorder=True)
+            .values_list("nation__name", flat=True)
+        )
+
         states = Engine().adjudicate(state)
         resolved = states[0]
         next_state = states[1] if len(states) > 1 else resolved
 
         # Advance through phases nobody can act in (empty retreat / empty
-        # adjustment) so we land on the next phase that needs player input.
+        # adjustment, or retreat where every retreating nation is in Civil
+        # Disorder) so we land on the next phase that needs player input.
         # Engine.adjudicate advances one phase per call and keeps phase
         # skipping out of scope by contract, so skipping is orchestrated
         # here. Skipped phases are never persisted -- only the final
         # interactive phase is written by create_from_adjudication_data.
         next_options = get_options(next_state) if len(states) > 1 else []
-        while len(states) > 1 and not next_options:
+        while len(states) > 1 and _should_skip(next_options, next_state.units, cd_nations, nation_name_by_id):
             states = Engine().adjudicate(next_state)
             next_state = states[1] if len(states) > 1 else states[0]
             next_options = get_options(next_state) if len(states) > 1 else []
-
-        nation_name_by_id = {nation.id: nation.name for nation in variant.nations}
 
         if len(states) > 1:
             godip_options = python_options_to_godip_dict(
