@@ -98,17 +98,18 @@ const VariantRow: React.FC<VariantRowProps> = ({
   const navigate = useNavigate();
   return (
     <div className="border rounded-lg overflow-hidden">
-      <div className="flex flex-col sm:flex-row">
+      <div className="flex flex-col sm:flex-row sm:h-44">
         {variant.svgUrl && (
-          <div className="sm:w-44 flex-shrink-0">
+          <div className="sm:w-44 flex-shrink-0 overflow-hidden">
             <MapPreview
               variant={variant}
               phase={variant.templatePhase}
+              cover
               className="w-full aspect-video sm:aspect-auto sm:h-full"
             />
           </div>
         )}
-        <div className="flex flex-col gap-2 p-4 flex-1 min-w-0">
+        <div className="flex flex-col gap-2 p-4 flex-1 min-w-0 overflow-hidden">
           <div className="space-y-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-semibold">{variant.name}</h3>
@@ -121,7 +122,7 @@ const VariantRow: React.FC<VariantRowProps> = ({
               {variant.ownerUsername ? ` · owner: ${variant.ownerUsername}` : ""}
             </p>
             {variant.description && (
-              <p className="text-sm text-muted-foreground">{variant.description}</p>
+              <p className="text-sm text-muted-foreground line-clamp-2">{variant.description}</p>
             )}
           </div>
           <div className="flex flex-wrap gap-2">
