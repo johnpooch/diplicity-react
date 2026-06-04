@@ -14,6 +14,7 @@ type VariantForPreview = Pick<Variant, "nations" | "svgUrl">;
 type MapPreviewProps = {
   variant: VariantForPreview;
   phase: PhaseRetrieve | VariantTemplatePhase;
+  cover?: boolean;
   style?: React.CSSProperties;
   className?: string;
 };
@@ -21,6 +22,7 @@ type MapPreviewProps = {
 const MapPreview: React.FC<MapPreviewProps> = ({
   variant,
   phase,
+  cover = false,
   style,
   className,
 }) => {
@@ -29,8 +31,15 @@ const MapPreview: React.FC<MapPreviewProps> = ({
   const svg = useMemo(() => {
     if (!dsvg) return null;
     const renderState = toRenderState(variant, phase, [], [], []);
-    return new DiplicityMap(dsvg).render(renderState);
-  }, [dsvg, variant, phase]);
+    const rendered = new DiplicityMap(dsvg).render(renderState);
+    if (cover) {
+      return rendered.replace(
+        "<svg ",
+        '<svg preserveAspectRatio="xMidYMid slice" width="100%" height="100%" '
+      );
+    }
+    return rendered;
+  }, [dsvg, variant, phase, cover]);
 
   if (!svg) {
     return <Skeleton className={className} style={style} />;
