@@ -9,11 +9,11 @@ const fetchDsvg = async (svgUrl: string): Promise<string> => {
   return response.data;
 };
 
-export const useDsvg = (svgUrl: string | null | undefined) => {
+export const useDsvg = (svgUrl: string | null | undefined, enabled = true) => {
   return useQuery({
     queryKey: ["dsvg", svgUrl],
     queryFn: () => fetchDsvg(svgUrl as string),
-    enabled: !!svgUrl,
+    enabled: !!svgUrl && enabled,
     staleTime: Infinity,
     gcTime: Infinity,
   });

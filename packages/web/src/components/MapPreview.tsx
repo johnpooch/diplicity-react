@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   PhaseRetrieve,
   Variant,
@@ -26,7 +26,26 @@ const MapPreview: React.FC<MapPreviewProps> = ({
   style,
   className,
 }) => {
-  const { data: dsvg } = useDsvg(variant.svgUrl);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const { data: dsvg } = useDsvg(variant.svgUrl, inView);
 
   const svg = useMemo(() => {
     if (!dsvg) return null;
@@ -41,16 +60,14 @@ const MapPreview: React.FC<MapPreviewProps> = ({
     return rendered;
   }, [dsvg, variant, phase, cover]);
 
-  if (!svg) {
-    return <Skeleton className={className} style={style} />;
-  }
-
   return (
-    <div
-      className={className}
-      style={style}
-      dangerouslySetInnerHTML={{ __html: svg }}
-    />
+    <div ref={containerRef} className={className} style={style}>
+      {svg ? (
+        <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: svg }} />
+      ) : (
+        <Skeleton className="w-full h-full" />
+      )}
+    </div>
   );
 };
 
