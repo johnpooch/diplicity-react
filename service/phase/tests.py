@@ -3203,6 +3203,127 @@ class TestCivilDisorderDetection:
         mock_send_notification_to_users.assert_not_called()
 
 
+class TestSetOrdersOutcome:
+
+    def _setup_phase(self, variant, italy_nation, germany_nation, primary_user, secondary_user):
+        game = Game.objects.create(
+            variant=variant,
+            name="Orders Outcome Test",
+            status=GameStatus.ACTIVE,
+        )
+        italy = Member.objects.create(nation=italy_nation, user=primary_user, game=game)
+        germany = Member.objects.create(nation=germany_nation, user=secondary_user, game=game)
+        phase = Phase.objects.create(
+            game=game,
+            variant=variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            ordinal=1,
+            status=PhaseStatus.ACTIVE,
+        )
+        return phase, italy, germany
+
+    @pytest.mark.django_db
+    def test_no_possible_orders_stays_null(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        primary_user,
+        secondary_user,
+    ):
+        phase, italy, _ = self._setup_phase(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            primary_user,
+            secondary_user,
+        )
+        ps = phase.phase_states.create(member=italy, has_possible_orders=False)
+
+        Phase.objects._set_orders_outcome(phase)
+
+        ps.refresh_from_db()
+        assert ps.orders_outcome is None
+
+    @pytest.mark.django_db
+    def test_orders_submitted_gets_received(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        primary_user,
+        secondary_user,
+    ):
+        phase, italy, _ = self._setup_phase(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            primary_user,
+            secondary_user,
+        )
+        ps = phase.phase_states.create(member=italy, has_possible_orders=True)
+        ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
+
+        Phase.objects._set_orders_outcome(phase)
+
+        ps.refresh_from_db()
+        assert ps.orders_outcome == PhaseState.OrdersOutcome.RECEIVED
+
+    @pytest.mark.django_db
+    def test_no_orders_gets_nmr(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        primary_user,
+        secondary_user,
+    ):
+        phase, italy, _ = self._setup_phase(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            primary_user,
+            secondary_user,
+        )
+        ps = phase.phase_states.create(member=italy, has_possible_orders=True)
+
+        Phase.objects._set_orders_outcome(phase)
+
+        ps.refresh_from_db()
+        assert ps.orders_outcome == PhaseState.OrdersOutcome.NMR
+
+    @pytest.mark.django_db
+    def test_civil_disorder_member_with_no_orders_gets_nmr(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        primary_user,
+        secondary_user,
+    ):
+        """Civil disorder auto-sets orders_confirmed=True, but outcome must still be nmr."""
+        phase, italy, _ = self._setup_phase(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            primary_user,
+            secondary_user,
+        )
+        italy.civil_disorder = True
+        italy.save()
+        ps = phase.phase_states.create(
+            member=italy, has_possible_orders=True, orders_confirmed=True
+        )
+
+        Phase.objects._set_orders_outcome(phase)
+
+        ps.refresh_from_db()
+        assert ps.orders_outcome == PhaseState.OrdersOutcome.NMR
+
+
 class TestCivilDisorderAutoConfirm:
 
     @pytest.mark.django_db
