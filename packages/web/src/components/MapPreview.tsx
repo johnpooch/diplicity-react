@@ -32,6 +32,14 @@ const MapPreview: React.FC<MapPreviewProps> = ({
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+
+    let root: HTMLElement | null = el.parentElement;
+    while (root) {
+      const overflow = window.getComputedStyle(root).overflowY;
+      if (overflow === "auto" || overflow === "scroll") break;
+      root = root.parentElement;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -39,7 +47,7 @@ const MapPreview: React.FC<MapPreviewProps> = ({
           observer.disconnect();
         }
       },
-      { rootMargin: "200px" }
+      { root, rootMargin: "200px" }
     );
     observer.observe(el);
     return () => observer.disconnect();
