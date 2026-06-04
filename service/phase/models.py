@@ -373,6 +373,23 @@ class PhaseManager(models.Manager):
 
             return {"notifications_sent": notifications_sent}
 
+    def _set_orders_outcome(self, phase):
+        base_qs = phase.phase_states.filter(
+            has_possible_orders=True
+        ).annotate(order_count=Count("orders"))
+
+        received_ids = list(base_qs.filter(order_count__gt=0).values_list("id", flat=True))
+        nmr_ids = list(base_qs.filter(order_count=0).values_list("id", flat=True))
+
+        if received_ids:
+            PhaseState.objects.filter(id__in=received_ids).update(
+                orders_outcome=PhaseState.OrdersOutcome.RECEIVED
+            )
+        if nmr_ids:
+            PhaseState.objects.filter(id__in=nmr_ids).update(
+                orders_outcome=PhaseState.OrdersOutcome.NMR
+            )
+
     def _check_civil_disorder(self, phase):
         if phase.game.sandbox:
             return []
@@ -510,6 +527,7 @@ class PhaseManager(models.Manager):
             with tracer.start_as_current_span("phase.transaction_atomic"):
                 with transaction.atomic():
                     self._check_civil_disorder(phase)
+                    self._set_orders_outcome(phase)
                     new_phase = self.create_from_adjudication_data(phase, adjudication_data)
                     self._check_eliminations(phase, new_phase)
 
@@ -861,12 +879,19 @@ class Phase(BaseModel):
 
 
 class PhaseState(BaseModel):
+    class OrdersOutcome(models.TextChoices):
+        RECEIVED = "received"
+        NMR = "nmr"
+
     member = models.ForeignKey("member.Member", on_delete=models.CASCADE, related_name="phase_states")
     phase = models.ForeignKey(Phase, on_delete=models.CASCADE, related_name="phase_states")
     orders_confirmed = models.BooleanField(default=False)
     eliminated = models.BooleanField(default=False)
     has_possible_orders = models.BooleanField(default=False)
     deadline_warning_sent_for = models.DateTimeField(null=True, blank=True)
+    orders_outcome = models.CharField(
+        max_length=8, choices=OrdersOutcome, null=True, blank=True, default=None
+    )
 
     def __str__(self):
         username = self.member.user.username if self.member.user else "Deleted User"
