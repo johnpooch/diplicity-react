@@ -27,6 +27,7 @@ import {
   getVariantsListQueryKey,
   Variant,
 } from "@/api/generated/endpoints";
+import { MapPreview } from "@/components/MapPreview";
 import axiosInstance from "@/api/axiosInstance";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -96,65 +97,76 @@ const VariantRow: React.FC<VariantRowProps> = ({
 }) => {
   const navigate = useNavigate();
   return (
-    <div className="flex flex-col gap-2 border rounded-lg p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="space-y-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-semibold">{variant.name}</h3>
-            <Badge variant={statusVariant[variant.status] ?? "outline"}>
-              {statusLabel[variant.status] ?? variant.status}
-            </Badge>
+    <div className="border rounded-lg overflow-hidden">
+      <div className="flex flex-col sm:flex-row">
+        {variant.svgUrl && (
+          <div className="sm:w-44 flex-shrink-0">
+            <MapPreview
+              variant={variant}
+              phase={variant.templatePhase}
+              className="w-full aspect-video sm:aspect-auto sm:h-full"
+            />
           </div>
-          <p className="text-xs text-muted-foreground">
-            id: {variant.id}
-            {variant.ownerUsername ? ` · owner: ${variant.ownerUsername}` : ""}
-          </p>
-          {variant.description && (
-            <p className="text-sm text-muted-foreground">{variant.description}</p>
-          )}
-        </div>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => downloadDvar(variant.id)}
-        >
-          <Download className="size-4" /> DVAR
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => downloadDsvg(variant)}
-        >
-          <Download className="size-4" /> DSVG
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onCreateSandbox(variant)}
-          disabled={isCreatingSandbox}
-        >
-          <Play className="size-4" /> Sandbox
-        </Button>
-        {variant.canEdit && (
-          <>
+        )}
+        <div className="flex flex-col gap-2 p-4 flex-1 min-w-0">
+          <div className="space-y-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-semibold">{variant.name}</h3>
+              <Badge variant={statusVariant[variant.status] ?? "outline"}>
+                {statusLabel[variant.status] ?? variant.status}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              id: {variant.id}
+              {variant.ownerUsername ? ` · owner: ${variant.ownerUsername}` : ""}
+            </p>
+            {variant.description && (
+              <p className="text-sm text-muted-foreground">{variant.description}</p>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate(`/variants/${variant.id}/edit`)}
+              onClick={() => downloadDvar(variant.id)}
             >
-              <Pencil className="size-4" /> Edit
+              <Download className="size-4" /> DVAR
             </Button>
             <Button
-              variant="destructive"
+              variant="outline"
               size="sm"
-              onClick={() => onDelete(variant.id)}
+              onClick={() => downloadDsvg(variant)}
             >
-              <Trash2 className="size-4" /> Delete
+              <Download className="size-4" /> DSVG
             </Button>
-          </>
-        )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onCreateSandbox(variant)}
+              disabled={isCreatingSandbox}
+            >
+              <Play className="size-4" /> Sandbox
+            </Button>
+            {variant.canEdit && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/variants/${variant.id}/edit`)}
+                >
+                  <Pencil className="size-4" /> Edit
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => onDelete(variant.id)}
+                >
+                  <Trash2 className="size-4" /> Delete
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
