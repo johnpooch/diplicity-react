@@ -1,5 +1,16 @@
 # Diplicity React - Release Notes
 
+## Civil Disorder Retreat Fix (June 5, 2026)
+
+**Release Date:** June 5, 2026
+
+### Fix: Civil Disorder units now automatically disband during Retreat phases
+
+Units belonging to a nation in Civil Disorder are now automatically disbanded when a
+Retreat phase begins. Previously, games with a Civil Disorder player could stall waiting
+for a manual resolution step. The game now advances immediately to the next interactive
+phase without requiring any action.
+
 ## Sign in with Apple on the Web (June 2, 2026)
 
 **Release Date:** June 2, 2026

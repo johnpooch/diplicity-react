@@ -901,6 +901,50 @@ class TestAdjudicationService:
         )
 
 
+    @pytest.mark.django_db
+    def test_resolve_cd_retreat_phase_is_skipped(
+        self,
+        phase_spring_1901_movement,
+        member_italy,
+        member_germany,
+    ):
+        """
+        When the only nation with retreat orders is in Civil Disorder, the
+        Retreat phase is skipped: resolve() returns the next interactive
+        phase (Fall Movement) and the dislodged unit is removed from the board.
+
+        Italian Army Berlin moves to Kiel (supported by Munich).
+        German Fleet Kiel holds — dislodged, but Germany is in Civil Disorder.
+        """
+        member_germany.civil_disorder = True
+        member_germany.save()
+
+        phase_state_italy = phase_spring_1901_movement.phase_states.create(member=member_italy)
+        phase_state_germany = phase_spring_1901_movement.phase_states.create(member=member_germany)
+
+        create_supply_center(phase_state_italy, "ber")
+        create_supply_center(phase_state_italy, "mun")
+        create_supply_center(phase_state_germany, "kie")
+
+        create_unit(phase_state_italy, "ber", "Army")
+        create_unit(phase_state_italy, "mun", "Army")
+        create_unit(phase_state_germany, "kie", "Fleet")
+
+        create_order(phase_state_italy, "ber", OrderType.MOVE, "kie")
+        create_order(phase_state_italy, "mun", OrderType.SUPPORT, "kie", "ber")
+
+        data = adjudication_service.resolve(phase_spring_1901_movement)
+
+        assert data["year"] == 1901
+        assert data["season"] == "Fall"
+        assert data["type"] == "Movement"
+
+        # The dislodged German fleet was disbanded automatically — no Germany
+        # units remain on the board going into Fall Movement.
+        germany_units = [u for u in data["units"] if u["nation"] == "Germany"]
+        assert germany_units == []
+
+
 class TestUserUploadedVariant:
     """Regression: prior to dropping the godip HTTP adjudicator, creating a
     sandbox game with a freshly-uploaded variant (any id godip doesn't ship

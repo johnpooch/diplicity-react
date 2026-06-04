@@ -15,9 +15,13 @@ from common.constants import (
     NationAssignment,
     OrderCreationStep,
     OrderResolutionStatus,
+    OrderType,
     PhaseStatus,
     UnitType,
 )
+from phase.models import Phase
+from supply_center.models import SupplyCenter
+from unit.models import Unit
 
 resolve_all_url = reverse("phase-resolve-all")
 
@@ -753,6 +757,76 @@ def test_empty_adjustment_phase_is_skipped(
 
     assert not active_game.phases.filter(year=1901, type="Retreat").exists()
     assert not active_game.phases.filter(year=1901, type="Adjustment").exists()
+
+
+@pytest.mark.django_db
+def test_cd_only_retreat_phase_is_skipped(
+    authenticated_client,
+    authenticated_client_for_secondary_user,
+    italy_vs_germany_variant,
+    primary_user,
+    secondary_user,
+    mock_send_notification_to_users,
+    mock_immediate_on_commit,
+):
+    """When the only nation with retreat orders is in Civil Disorder, the
+    Retreat phase is never persisted. After a Spring 1901 Movement where
+    Italy dislodges Germany's fleet and Germany is in Civil Disorder, the
+    game advances directly to Fall 1901 Movement."""
+    active_game = create_active_game(
+        authenticated_client, authenticated_client_for_secondary_user, italy_vs_germany_variant
+    )
+    phase = active_game.current_phase
+
+    germany_member = active_game.members.get(user=primary_user)
+    italy_member = active_game.members.get(user=secondary_user)
+    germany_nation = germany_member.nation
+    italy_nation = italy_member.nation
+
+    variant = phase.variant
+    ber = variant.provinces.get(province_id="ber")
+    mun = variant.provinces.get(province_id="mun")
+    kie = variant.provinces.get(province_id="kie")
+
+    # Replace the initial units with a conflict scenario:
+    # Italy at Berlin + Munich attacks Kiel; Germany fleet holds Kiel.
+    phase.units.all().delete()
+    Unit.objects.create(phase=phase, nation=italy_nation, type=UnitType.ARMY, province=ber)
+    Unit.objects.create(phase=phase, nation=italy_nation, type=UnitType.ARMY, province=mun)
+    Unit.objects.create(phase=phase, nation=germany_nation, type=UnitType.FLEET, province=kie)
+
+    phase.supply_centers.all().delete()
+    SupplyCenter.objects.create(phase=phase, nation=italy_nation, province=ber)
+    SupplyCenter.objects.create(phase=phase, nation=italy_nation, province=mun)
+    SupplyCenter.objects.create(phase=phase, nation=germany_nation, province=kie)
+
+    # Italy attacks Kiel from Berlin, supported by Munich.
+    italy_ps = phase.phase_states.get(member=italy_member)
+    italy_ps.orders.create(source=ber, order_type=OrderType.MOVE, target=kie)
+    italy_ps.orders.create(source=mun, order_type=OrderType.SUPPORT, target=kie, aux=ber)
+
+    # Germany is in Civil Disorder — no orders, confirmed automatically.
+    germany_member.civil_disorder = True
+    germany_member.save()
+
+    # Confirm both sides so filter_due_phases picks up the phase.
+    italy_ps.orders_confirmed = True
+    italy_ps.save()
+    germany_ps = phase.phase_states.get(member=germany_member)
+    germany_ps.orders_confirmed = True
+    germany_ps.save()
+
+    Phase.objects.resolve(phase)
+
+    # Landed directly on Fall 1901 Movement — no Retreat phase persisted.
+    new_phase = active_game.current_phase
+    assert new_phase.season == "Fall"
+    assert new_phase.year == 1901
+    assert new_phase.type == "Movement"
+    assert not active_game.phases.filter(type="Retreat").exists()
+
+    # Germany's dislodged fleet was auto-disbanded; no Germany units remain.
+    assert not new_phase.units.filter(nation=germany_nation).exists()
 
 
 def create_active_hundred_game(
