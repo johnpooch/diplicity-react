@@ -20,7 +20,7 @@ class MemberCreateView(SelectedGameMixin, generics.CreateAPIView):
 
     def perform_create(self, serializer):
         member = serializer.save()
-        if member.game.variant.nations.count() == member.game.members.count():
+        if member.game.variant.nations.filter(non_playable=False).count() == member.game.members.count():
             member.game.start()
 
 
