@@ -3,6 +3,8 @@ from django.urls import reverse
 from rest_framework import status
 
 from game.models import Game
+from variant.models import Variant
+from common.constants import VariantStatus
 
 create_viewname = "game-create"
 
@@ -84,3 +86,44 @@ class TestGameCreateView:
         game = Game.objects.get(id=response.data["id"])
         assert game.fixed_deadline_time is None
         assert game.fixed_deadline_timezone is None
+
+
+class TestDraftVariantGameCreate:
+
+    @pytest.fixture
+    def draft_variant_owned_by_primary(self, db, primary_user):
+        return Variant.objects.create(
+            id="draft-owned-by-primary",
+            name="Draft Variant",
+            description="Test draft variant",
+            status=VariantStatus.DRAFT,
+            owner=primary_user,
+        )
+
+    @pytest.fixture
+    def draft_variant_owned_by_secondary(self, db, secondary_user):
+        return Variant.objects.create(
+            id="draft-owned-by-secondary",
+            name="Draft Variant (secondary)",
+            description="Test draft variant owned by secondary",
+            status=VariantStatus.DRAFT,
+            owner=secondary_user,
+        )
+
+    @pytest.mark.django_db
+    def test_non_owner_cannot_create_game_with_others_draft_variant(
+        self, authenticated_client, draft_variant_owned_by_secondary
+    ):
+        url = reverse(create_viewname)
+        payload = {**duration_payload(draft_variant_owned_by_secondary.id), "private": True}
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    def test_owner_cannot_create_public_game_with_draft_variant(
+        self, authenticated_client, draft_variant_owned_by_primary
+    ):
+        url = reverse(create_viewname)
+        payload = {**duration_payload(draft_variant_owned_by_primary.id), "private": False}
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
