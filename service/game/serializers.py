@@ -419,7 +419,7 @@ class GameCloneToSandboxSerializer(serializers.Serializer):
                 name=f"{source_game.name} (Sandbox)",
             )
 
-            nations_list = list(source_game.variant.nations.all())
+            nations_list = list(source_game.variant.nations.filter(non_playable=False))
             members_to_create = [Member(game=game, user=user) for _ in nations_list]
             created_members = Member.objects.bulk_create(members_to_create)
 

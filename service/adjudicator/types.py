@@ -1056,10 +1056,20 @@ class NationView:
         )
 
     def allowed_builds(self) -> int:
+        if self._is_non_playable():
+            return 0
         return max(0, len(self.owned_supply_centers()) - self.standing_unit_count())
 
     def required_disbands(self) -> int:
+        if self._is_non_playable():
+            return 0
         return max(0, self.standing_unit_count() - len(self.owned_supply_centers()))
+
+    def _is_non_playable(self) -> bool:
+        for nation in self._state.variant.nations:
+            if nation.id == self._nation:
+                return nation.non_playable
+        return False
 
     def civil_disorder_ranking(self) -> Tuple[Unit, ...]:
         """Units of this nation ordered for civil-disorder selection:
