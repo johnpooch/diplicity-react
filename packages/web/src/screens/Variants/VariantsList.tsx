@@ -172,13 +172,15 @@ const VariantRow: React.FC<VariantRowProps> = ({
               >
                 <Monitor className="size-4" /> Sandbox
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onCreatePrivateGame(variant)}
-              >
-                <Users className="size-4" /> Private Game
-              </Button>
+              {(variant.status !== "draft" || variant.canEdit) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onCreatePrivateGame(variant)}
+                >
+                  <Users className="size-4" /> Private Game
+                </Button>
+              )}
             </div>
           </div>
         </div>
