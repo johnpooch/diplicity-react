@@ -22,7 +22,7 @@ Query: $ARGUMENTS
 3. **Execute the script** using base64 encoding to avoid quoting issues:
    ```bash
    SCRIPT=$(base64 < /path/to/script.py)
-   railway ssh "python3 manage.py shell -c \"import base64;exec(base64.b64decode(b'${SCRIPT}'))\""
+   railway ssh -i ~/.ssh/id_diplicity "python3 manage.py shell -c \"import base64;exec(base64.b64decode(b'${SCRIPT}'))\""
    ```
 
 4. **Present the results** clearly to the user. If the output is large, summarize it and highlight key findings.

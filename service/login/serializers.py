@@ -51,9 +51,13 @@ class AuthSerializer(serializers.Serializer):
         if not user.is_active:
             user.is_active = True
             user.save(update_fields=["is_active"])
-        UserProfile.objects.update_or_create(
-            user=user, defaults={"name": id_info.get("name"), "picture": id_info.get("picture")}
+        profile, created = UserProfile.objects.get_or_create(
+            user=user,
+            defaults={"name": id_info.get("name"), "picture": id_info.get("picture")},
         )
+        if not created:
+            profile.picture = id_info.get("picture")
+            profile.save(update_fields=["picture"])
         refresh = RefreshToken.for_user(user)
         user.access_token = str(refresh.access_token)
         user.refresh_token = str(refresh)
@@ -82,7 +86,7 @@ class AppleAuthSerializer(serializers.Serializer):
             user.is_active = True
             user.save(update_fields=["is_active"])
         if created or validated_data.get("first_name") or validated_data.get("last_name"):
-            UserProfile.objects.update_or_create(user=user, defaults={"name": name})
+            UserProfile.objects.get_or_create(user=user, defaults={"name": name})
         elif not hasattr(user, "profile"):
             UserProfile.objects.create(user=user, name=name)
         refresh = RefreshToken.for_user(user)

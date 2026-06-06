@@ -63,7 +63,7 @@ def test_existing_user_sign_in(unauthenticated_client, mock_google_auth, mock_re
     )
     user_profile = UserProfile.objects.create(
         user=user,
-        name="Test User",
+        name="Custom Name",
         picture="http://example.com/picture.jpg",
     )
 
@@ -75,7 +75,7 @@ def test_existing_user_sign_in(unauthenticated_client, mock_google_auth, mock_re
 
     user_profile.refresh_from_db()
     assert user_profile.picture == "http://example.com/picture.jpg"
-    assert user_profile.name == "Test User"
+    assert user_profile.name == "Custom Name"
 
 
 @pytest.mark.django_db
@@ -154,7 +154,7 @@ def test_google_oauth_links_to_existing_email_password_account(
     assert user.is_active is True
 
     user_profile = UserProfile.objects.get(user=user)
-    assert user_profile.name == "Test User"
+    assert user_profile.name == "Original Name"
     assert user_profile.picture == "http://example.com/picture.jpg"
 
     assert User.objects.filter(email="test@example.com").count() == 1
