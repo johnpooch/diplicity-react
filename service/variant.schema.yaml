@@ -182,6 +182,15 @@ properties:
             ownership marker, and chat badge.
           examples:
             - "#F44336"
+        non_playable:
+          type: boolean
+          default: false
+          description: |
+            If true, no human player controls this nation. Its units hold
+            automatically every turn and are disbanded immediately if
+            dislodged. Non-playable nations must have as many units as
+            supply centers they own in initialState so the adjustment
+            phase stays balanced.
 
   provinces:
     type: array

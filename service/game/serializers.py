@@ -279,7 +279,12 @@ class GameCreateSerializer(serializers.Serializer):
     )
 
     def validate_variant_id(self, value):
-        if not Variant.objects.filter(id=value, status=VariantStatus.PUBLISHED).exists():
+        try:
+            self._validated_variant = Variant.objects.get(
+                id=value,
+                status__in=[VariantStatus.PUBLISHED, VariantStatus.DRAFT],
+            )
+        except Variant.DoesNotExist:
             raise serializers.ValidationError("Variant with this ID does not exist.")
         return value
 
@@ -292,6 +297,18 @@ class GameCreateSerializer(serializers.Serializer):
         return value
 
     def validate(self, attrs):
+        variant = self._validated_variant
+        if variant.status == VariantStatus.DRAFT:
+            request = self.context["request"]
+            if not attrs.get("private"):
+                raise serializers.ValidationError(
+                    {"variant_id": "Draft variants can only be used for private games."}
+                )
+            if variant.owner_id is None or variant.owner_id != request.user.id:
+                raise serializers.ValidationError(
+                    {"variant_id": "You can only create games with your own draft variants."}
+                )
+
         deadline_mode = attrs["deadline_mode"]
 
         if deadline_mode == DeadlineMode.FIXED_TIME:
@@ -402,7 +419,7 @@ class GameCloneToSandboxSerializer(serializers.Serializer):
                 name=f"{source_game.name} (Sandbox)",
             )
 
-            nations_list = list(source_game.variant.nations.all())
+            nations_list = list(source_game.variant.nations.filter(non_playable=False))
             members_to_create = [Member(game=game, user=user) for _ in nations_list]
             created_members = Member.objects.bulk_create(members_to_create)
 

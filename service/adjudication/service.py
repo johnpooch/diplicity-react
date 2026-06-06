@@ -73,10 +73,15 @@ def start(phase) -> Dict[str, Any]:
         }
 
 
-def _should_skip(options, units, cd_nations, nation_name_by_id):
+def _should_skip(options, units, skip_nations, nation_name_by_id):
+    """Return True if the phase can be skipped — no human input is needed.
+
+    A phase is skippable when it has no options at all, or when every nation
+    with options is in `skip_nations` (civil disorder or non-playable).
+    """
     if not options:
         return True
-    if not cd_nations:
+    if not skip_nations:
         return False
     location_to_nation = {
         u.location: nation_name_by_id.get(u.nation, u.nation)
@@ -87,7 +92,7 @@ def _should_skip(options, units, cd_nations, nation_name_by_id):
         for opt in options
         if opt.source is not None and opt.source in location_to_nation
     }
-    return bool(option_nations) and option_nations.issubset(cd_nations)
+    return bool(option_nations) and option_nations.issubset(skip_nations)
 
 
 def resolve(phase) -> Dict[str, Any]:
@@ -104,6 +109,8 @@ def resolve(phase) -> Dict[str, Any]:
             .filter(civil_disorder=True)
             .values_list("nation__name", flat=True)
         )
+        non_playable_nations = {n.name for n in variant.nations if n.non_playable}
+        skip_nations = cd_nations | non_playable_nations
 
         states = Engine().adjudicate(state)
         resolved = states[0]
@@ -117,7 +124,7 @@ def resolve(phase) -> Dict[str, Any]:
         # here. Skipped phases are never persisted -- only the final
         # interactive phase is written by create_from_adjudication_data.
         next_options = get_options(next_state) if len(states) > 1 else []
-        while len(states) > 1 and _should_skip(next_options, next_state.units, cd_nations, nation_name_by_id):
+        while len(states) > 1 and _should_skip(next_options, next_state.units, skip_nations, nation_name_by_id):
             states = Engine().adjudicate(next_state)
             next_state = states[1] if len(states) > 1 else states[0]
             next_options = get_options(next_state) if len(states) > 1 else []
