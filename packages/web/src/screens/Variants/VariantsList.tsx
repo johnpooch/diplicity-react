@@ -30,6 +30,7 @@ import {
 import { MapPreview } from "@/components/MapPreview";
 import axiosInstance from "@/api/axiosInstance";
 import { useQueryClient } from "@tanstack/react-query";
+import { createGamePath } from "@/utils/routes";
 
 const statusLabel: Record<string, string> = {
   draft: "Draft",
@@ -227,7 +228,7 @@ const VariantsList: React.FC = () => {
   };
 
   const handleCreatePrivateGame = (variant: Variant) => {
-    navigate(`/create-game?variantId=${variant.id}&private=true`);
+    navigate(createGamePath({ variantId: variant.id, private: true }));
   };
 
   const handleCreateSandbox = async (variant: Variant) => {

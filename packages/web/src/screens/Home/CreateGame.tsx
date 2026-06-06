@@ -66,6 +66,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
+import { CREATE_GAME_PARAM } from "@/utils/routes";
 
 const standardGameSchema = z.object({
   name: z
@@ -277,6 +278,9 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
 
   const selectedVariant = variants?.find(v => v.id === form.watch("variantId"));
   const deadlineMode = form.watch("deadlineMode");
+  const isInitialVariantDraft =
+    initialVariantId !== undefined &&
+    variants.find(v => v.id === initialVariantId)?.status === "draft";
 
   return (
     <Form {...form}>
@@ -338,7 +342,7 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
                   <Checkbox
                     checked={field.value}
                     onCheckedChange={field.onChange}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isInitialVariantDraft}
                   />
                 </FormControl>
                 <div className="space-y-1 leading-none">
@@ -603,7 +607,7 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
           <VariantSelector
             control={form.control}
             name="variantId"
-            disabled={isSubmitting || !!initialVariantId}
+            disabled={isSubmitting || isInitialVariantDraft}
             variants={variants}
             selectedVariant={selectedVariant}
           />
@@ -671,7 +675,7 @@ const CreateSandboxGameForm: React.FC<CreateSandboxGameFormProps> = ({
     defaultValues: {
       sandboxGame: {
         name: randomGameName(),
-        variantId: variants[0].id,
+        variantId: variants[0]?.id ?? "",
       },
     },
   });
@@ -738,15 +742,15 @@ const CreateGame: React.FC = () => {
     [allVariants]
   );
 
-  const initialVariantId = searchParams.get("variantId") ?? undefined;
-  const initialPrivate = searchParams.get("private") === "true";
+  const initialVariantId = searchParams.get(CREATE_GAME_PARAM.variantId) ?? undefined;
+  const initialPrivate = searchParams.get(CREATE_GAME_PARAM.private) === "true";
 
-  // Support draft variants linked from the variants page
-  const initialVariant = initialVariantId
-    ? allVariants.find(v => v.id === initialVariantId)
-    : undefined;
+  const initialVariant = React.useMemo(
+    () => (initialVariantId ? allVariants.find(v => v.id === initialVariantId) : undefined),
+    [allVariants, initialVariantId]
+  );
   const variants = React.useMemo(() => {
-    if (initialVariant && !publishedVariants.find(v => v.id === initialVariant.id)) {
+    if (initialVariant && !publishedVariants.some(v => v.id === initialVariant.id)) {
       return [initialVariant, ...publishedVariants];
     }
     return publishedVariants;

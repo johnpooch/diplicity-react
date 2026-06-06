@@ -39,19 +39,13 @@ const GitHubIcon: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
+const openDiscord = () => window.open(DISCORD_URL, "_blank", "noopener,noreferrer");
+const openVariantCreator = () =>
+  window.open(VARIANT_CREATOR_URL, "_blank", "noopener,noreferrer");
+const openDiscussions = () =>
+  window.open(GITHUB_DISCUSSIONS_URL, "_blank", "noopener,noreferrer");
+
 const Community: React.FC = () => {
-  const handleOpenVariantCreator = () => {
-    window.open(VARIANT_CREATOR_URL, "_blank", "noopener,noreferrer");
-  };
-
-  const handleOpenDiscord = () => {
-    window.open(DISCORD_URL, "_blank", "noopener,noreferrer");
-  };
-
-  const handleOpenDiscussions = () => {
-    window.open(GITHUB_DISCUSSIONS_URL, "_blank", "noopener,noreferrer");
-  };
-
   return (
     <div className="space-y-4">
       <ScreenCard>
@@ -66,7 +60,7 @@ const Community: React.FC = () => {
             the game or a seasoned veteran, there's a place for you — and you
             can chat directly with the developers.
           </p>
-          <Button onClick={handleOpenDiscord} className="w-full">
+          <Button onClick={openDiscord} className="w-full">
             <ExternalLink className="size-4" />
             Open Discord
           </Button>
@@ -87,7 +81,7 @@ const Community: React.FC = () => {
             strongly advised to join the Discord so you can get guidance and
             help.
           </p>
-          <Button onClick={handleOpenVariantCreator} className="w-full">
+          <Button onClick={openVariantCreator} className="w-full">
             <ExternalLink className="size-4" />
             Open Variant Creator
           </Button>
@@ -108,7 +102,7 @@ const Community: React.FC = () => {
             report and suggestion genuinely helps. You can also browse the code
             and contribute directly, or with our help.
           </p>
-          <Button onClick={handleOpenDiscussions} className="w-full">
+          <Button onClick={openDiscussions} className="w-full">
             <ExternalLink className="size-4" />
             Open GitHub Discussions
           </Button>
