@@ -279,7 +279,9 @@ class GameCreateSerializer(serializers.Serializer):
     )
 
     def validate_variant_id(self, value):
-        if not Variant.objects.filter(id=value, status=VariantStatus.PUBLISHED).exists():
+        if not Variant.objects.filter(
+            Q(status=VariantStatus.PUBLISHED) | Q(status=VariantStatus.DRAFT)
+        ).filter(id=value).exists():
             raise serializers.ValidationError("Variant with this ID does not exist.")
         return value
 
@@ -292,6 +294,18 @@ class GameCreateSerializer(serializers.Serializer):
         return value
 
     def validate(self, attrs):
+        variant = Variant.objects.get(id=attrs["variant_id"])
+        if variant.status == VariantStatus.DRAFT:
+            request = self.context["request"]
+            if not attrs.get("private"):
+                raise serializers.ValidationError(
+                    {"variant_id": "Draft variants can only be used for private games."}
+                )
+            if variant.owner_id != request.user.id:
+                raise serializers.ValidationError(
+                    {"variant_id": "You can only create games with your own draft variants."}
+                )
+
         deadline_mode = attrs["deadline_mode"]
 
         if deadline_mode == DeadlineMode.FIXED_TIME:

@@ -1,6 +1,6 @@
 import React, { Suspense } from "react";
 import { Link, useNavigate } from "react-router";
-import { Download, FilePlus, Pencil, Play, Trash2 } from "lucide-react";
+import { Download, FilePlus, Monitor, Pencil, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { ScreenContainer } from "@/components/ui/screen-container";
@@ -86,6 +86,7 @@ interface VariantRowProps {
   variant: Variant;
   onDelete: (variantId: string) => void;
   onCreateSandbox: (variant: Variant) => void;
+  onCreatePrivateGame: (variant: Variant) => void;
   isCreatingSandbox: boolean;
 }
 
@@ -93,12 +94,13 @@ const VariantRow: React.FC<VariantRowProps> = ({
   variant,
   onDelete,
   onCreateSandbox,
+  onCreatePrivateGame,
   isCreatingSandbox,
 }) => {
   const navigate = useNavigate();
   return (
     <div className="border rounded-lg overflow-hidden">
-      <div className="flex flex-col sm:flex-row sm:h-44">
+      <div className="flex flex-col sm:flex-row sm:h-56">
         {variant.svgUrl && (
           <div className="sm:w-44 flex-shrink-0 overflow-hidden">
             <MapPreview
@@ -125,47 +127,58 @@ const VariantRow: React.FC<VariantRowProps> = ({
               <p className="text-sm text-muted-foreground line-clamp-2">{variant.description}</p>
             )}
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => downloadDvar(variant.id)}
-            >
-              <Download className="size-4" /> DVAR
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => downloadDsvg(variant)}
-            >
-              <Download className="size-4" /> DSVG
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onCreateSandbox(variant)}
-              disabled={isCreatingSandbox}
-            >
-              <Play className="size-4" /> Sandbox
-            </Button>
-            {variant.canEdit && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate(`/variants/${variant.id}/edit`)}
-                >
-                  <Pencil className="size-4" /> Edit
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => onDelete(variant.id)}
-                >
-                  <Trash2 className="size-4" /> Delete
-                </Button>
-              </>
-            )}
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => downloadDvar(variant.id)}
+              >
+                <Download className="size-4" /> DVAR
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => downloadDsvg(variant)}
+              >
+                <Download className="size-4" /> DSVG
+              </Button>
+              {variant.canEdit && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate(`/variants/${variant.id}/edit`)}
+                  >
+                    <Pencil className="size-4" /> Edit
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => onDelete(variant.id)}
+                  >
+                    <Trash2 className="size-4" /> Delete
+                  </Button>
+                </>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onCreateSandbox(variant)}
+                disabled={isCreatingSandbox}
+              >
+                <Monitor className="size-4" /> Sandbox
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onCreatePrivateGame(variant)}
+              >
+                <Users className="size-4" /> Private Game
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -213,6 +226,10 @@ const VariantsList: React.FC = () => {
     }
   };
 
+  const handleCreatePrivateGame = (variant: Variant) => {
+    navigate(`/create-game?variantId=${variant.id}&private=true`);
+  };
+
   const handleCreateSandbox = async (variant: Variant) => {
     try {
       const game = await sandboxMutation.mutateAsync({
@@ -248,6 +265,7 @@ const VariantsList: React.FC = () => {
           variant={variant}
           onDelete={setPendingDeleteId}
           onCreateSandbox={handleCreateSandbox}
+          onCreatePrivateGame={handleCreatePrivateGame}
           isCreatingSandbox={sandboxMutation.isPending}
         />
       ))}

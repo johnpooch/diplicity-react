@@ -245,21 +245,25 @@ interface CreateStandardGameFormProps {
   onSubmit: (data: StandardGameFormValues) => Promise<void>;
   isSubmitting: boolean;
   variants: Variant[];
+  initialVariantId?: string;
+  initialPrivate?: boolean;
 }
 
 const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
   onSubmit,
   isSubmitting,
   variants,
+  initialVariantId,
+  initialPrivate,
 }) => {
   const form = useForm<StandardGameFormValues>({
     resolver: zodResolver(standardGameSchema),
     defaultValues: {
       name: randomGameName(),
-      variantId: variants[0].id,
+      variantId: initialVariantId ?? variants[0]?.id ?? "",
       mode: "standard",
       nationAssignment: "random" as NationAssignmentEnum,
-      private: false,
+      private: initialPrivate ?? false,
       deadlineMode: "fixed_time",
       movementPhaseDuration: "24 hours",
       retreatPhaseDuration: null,
@@ -599,7 +603,7 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
           <VariantSelector
             control={form.control}
             name="variantId"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !!initialVariantId}
             variants={variants}
             selectedVariant={selectedVariant}
           />
@@ -729,10 +733,24 @@ const CreateGame: React.FC = () => {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { data: allVariants } = useVariantsListSuspense();
-  const variants = React.useMemo(
+  const publishedVariants = React.useMemo(
     () => allVariants.filter(v => v.status === "published"),
     [allVariants]
   );
+
+  const initialVariantId = searchParams.get("variantId") ?? undefined;
+  const initialPrivate = searchParams.get("private") === "true";
+
+  // Support draft variants linked from the variants page
+  const initialVariant = initialVariantId
+    ? allVariants.find(v => v.id === initialVariantId)
+    : undefined;
+  const variants = React.useMemo(() => {
+    if (initialVariant && !publishedVariants.find(v => v.id === initialVariant.id)) {
+      return [initialVariant, ...publishedVariants];
+    }
+    return publishedVariants;
+  }, [publishedVariants, initialVariant]);
   const createGameMutation = useGameCreate();
   const createSandboxGameMutation = useSandboxGameCreate();
   const checkNotificationPermission = useCheckNotificationPermission();
@@ -890,6 +908,8 @@ const CreateGame: React.FC = () => {
                 onSubmit={handleStandardGameSubmit}
                 isSubmitting={createGameMutation.isPending}
                 variants={variants}
+                initialVariantId={initialVariantId}
+                initialPrivate={initialPrivate}
               />
             </ScreenCardContent>
           </ScreenCard>

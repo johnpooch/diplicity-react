@@ -1,10 +1,12 @@
 import React from "react";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Map } from "lucide-react";
 
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
 import { Button } from "@/components/ui/button";
+
+const VARIANT_CREATOR_URL = "https://variantcreator.diplicity.com";
 
 const DISCORD_URL = "https://discord.gg/2TkZbBRPW";
 
@@ -38,6 +40,10 @@ const GitHubIcon: React.FC<{ className?: string }> = ({ className }) => (
 );
 
 const Community: React.FC = () => {
+  const handleOpenVariantCreator = () => {
+    window.open(VARIANT_CREATOR_URL, "_blank", "noopener,noreferrer");
+  };
+
   const handleOpenDiscord = () => {
     window.open(DISCORD_URL, "_blank", "noopener,noreferrer");
   };
@@ -63,6 +69,27 @@ const Community: React.FC = () => {
           <Button onClick={handleOpenDiscord} className="w-full">
             <ExternalLink className="size-4" />
             Open Discord
+          </Button>
+        </ScreenCardContent>
+      </ScreenCard>
+
+      <ScreenCard>
+        <ScreenCardContent className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Map className="size-5" />
+            <h2 className="text-lg font-semibold">Create your own variant</h2>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Contribute by making your own custom variant. If you know how to
+            use an image editing app, you can make a variant using the Variant
+            Creator tool. This allows you to create private games on this
+            variant, and it might be added to the official variant pool! It is
+            strongly advised to join the Discord so you can get guidance and
+            help.
+          </p>
+          <Button onClick={handleOpenVariantCreator} className="w-full">
+            <ExternalLink className="size-4" />
+            Open Variant Creator
           </Button>
         </ScreenCardContent>
       </ScreenCard>
