@@ -54,6 +54,7 @@ const ORDER_TYPE_KEYS: Record<string, string> = {
   Move: "M",
   Support: "S",
   Convoy: "C",
+  MoveViaConvoy: "V",
 };
 
 const GameMap: React.FC = () => {
