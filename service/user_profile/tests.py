@@ -4,7 +4,9 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework import status
 from adjudication import service as adjudication_service
+from common.constants import GameStatus, PhaseStatus, PhaseType
 from game.models import Game
+from phase.models import PhaseState
 from user_profile.models import UserProfile
 from member.models import Member
 
@@ -268,3 +270,294 @@ class TestWelcomeSandboxGameCreation:
             UserProfile.objects.create(user=user, name="Failed Game User")
 
         assert UserProfile.objects.filter(user=user).exists()
+
+
+class TestPublicUserProfileRetrieveView:
+
+    @pytest.mark.django_db
+    def test_retrieve_public_profile_success(self, authenticated_client, primary_user):
+        url = reverse("public-user-profile", kwargs={"user_id": primary_user.id})
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["id"] == primary_user.id
+        assert response.data["name"] == primary_user.profile.name
+        assert response.data["picture"] == primary_user.profile.picture
+        assert "created_at" in response.data
+        assert "email" not in response.data
+
+    @pytest.mark.django_db
+    def test_retrieve_public_profile_unauthenticated(self, unauthenticated_client, primary_user):
+        url = reverse("public-user-profile", kwargs={"user_id": primary_user.id})
+        response = unauthenticated_client.get(url)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_retrieve_public_profile_not_found(self, authenticated_client):
+        url = reverse("public-user-profile", kwargs={"user_id": 99999})
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
+    def test_new_player_reliability_tier(self, authenticated_client, primary_user):
+        url = reverse("public-user-profile", kwargs={"user_id": primary_user.id})
+        response = authenticated_client.get(url)
+
+        assert response.data["reliability_tier"] == "new"
+        assert response.data["total_games"] == 0
+        assert response.data["solo_wins"] == 0
+        assert response.data["draws"] == 0
+        assert response.data["losses"] == 0
+        assert response.data["nmr_rate"] == 0.0
+        assert response.data["cd_rate"] == 0.0
+
+    @pytest.mark.django_db
+    def test_stats_with_completed_games(
+        self,
+        authenticated_client,
+        classical_variant,
+        classical_england_nation,
+    ):
+        user = User.objects.create_user(
+            username="statsuser", email="stats@example.com", password="testpass123"
+        )
+        UserProfile.objects.create(user=user, name="Stats User")
+
+        for i in range(10):
+            game = Game.objects.create(
+                name=f"Completed Game {i}",
+                variant=classical_variant,
+                status=GameStatus.COMPLETED,
+            )
+            member = game.members.create(
+                user=user,
+                nation=classical_england_nation,
+                won=(i == 0),
+                drew=(i in [1, 2]),
+            )
+            phase = game.phases.create(
+                variant=classical_variant,
+                season="Spring",
+                year=1901,
+                type=PhaseType.MOVEMENT,
+                status=PhaseStatus.COMPLETED,
+                ordinal=1,
+            )
+            phase.phase_states.create(
+                member=member,
+                has_possible_orders=True,
+                orders_outcome=PhaseState.OrdersOutcome.RECEIVED,
+            )
+
+        url = reverse("public-user-profile", kwargs={"user_id": user.id})
+        response = authenticated_client.get(url)
+
+        assert response.data["total_games"] == 10
+        assert response.data["solo_wins"] == 1
+        assert response.data["draws"] == 2
+        assert response.data["losses"] == 7
+        assert response.data["nmr_rate"] == 0.0
+        assert response.data["cd_rate"] == 0.0
+        assert response.data["reliability_tier"] == "reliable"
+
+    @pytest.mark.django_db
+    def test_nmr_rate_calculation(
+        self,
+        authenticated_client,
+        classical_variant,
+        classical_england_nation,
+    ):
+        user = User.objects.create_user(
+            username="nmruser", email="nmr@example.com", password="testpass123"
+        )
+        UserProfile.objects.create(user=user, name="NMR User")
+
+        for i in range(10):
+            game = Game.objects.create(
+                name=f"NMR Game {i}",
+                variant=classical_variant,
+                status=GameStatus.COMPLETED,
+            )
+            member = game.members.create(user=user, nation=classical_england_nation)
+            phase = game.phases.create(
+                variant=classical_variant,
+                season="Spring",
+                year=1901,
+                type=PhaseType.MOVEMENT,
+                status=PhaseStatus.COMPLETED,
+                ordinal=1,
+            )
+            outcome = (
+                PhaseState.OrdersOutcome.NMR if i < 3
+                else PhaseState.OrdersOutcome.RECEIVED
+            )
+            phase.phase_states.create(
+                member=member,
+                has_possible_orders=True,
+                orders_outcome=outcome,
+            )
+
+        url = reverse("public-user-profile", kwargs={"user_id": user.id})
+        response = authenticated_client.get(url)
+
+        assert response.data["nmr_rate"] == 0.3
+        assert response.data["reliability_tier"] is None
+
+    @pytest.mark.django_db
+    def test_cd_rate_calculation(
+        self,
+        authenticated_client,
+        classical_variant,
+        classical_england_nation,
+    ):
+        user = User.objects.create_user(
+            username="cduser", email="cd@example.com", password="testpass123"
+        )
+        UserProfile.objects.create(user=user, name="CD User")
+
+        for i in range(10):
+            game = Game.objects.create(
+                name=f"CD Game {i}",
+                variant=classical_variant,
+                status=GameStatus.COMPLETED,
+            )
+            member = game.members.create(
+                user=user,
+                nation=classical_england_nation,
+                civil_disorder=(i < 2),
+            )
+            phase = game.phases.create(
+                variant=classical_variant,
+                season="Spring",
+                year=1901,
+                type=PhaseType.MOVEMENT,
+                status=PhaseStatus.COMPLETED,
+                ordinal=1,
+            )
+            phase.phase_states.create(
+                member=member,
+                has_possible_orders=True,
+                orders_outcome=PhaseState.OrdersOutcome.RECEIVED,
+            )
+
+        url = reverse("public-user-profile", kwargs={"user_id": user.id})
+        response = authenticated_client.get(url)
+
+        assert response.data["cd_rate"] == 0.2
+        assert response.data["reliability_tier"] is None
+
+    @pytest.mark.django_db
+    def test_sandbox_games_excluded_from_stats(
+        self,
+        authenticated_client,
+        classical_variant,
+        classical_england_nation,
+    ):
+        user = User.objects.create_user(
+            username="sandboxuser", email="sandbox@example.com", password="testpass123"
+        )
+        UserProfile.objects.create(user=user, name="Sandbox User")
+
+        game = Game.objects.create(
+            name="Sandbox Game",
+            variant=classical_variant,
+            status=GameStatus.COMPLETED,
+            sandbox=True,
+        )
+        game.members.create(user=user, nation=classical_england_nation, won=True)
+
+        url = reverse("public-user-profile", kwargs={"user_id": user.id})
+        response = authenticated_client.get(url)
+
+        assert response.data["total_games"] == 0
+        assert response.data["solo_wins"] == 0
+
+    @pytest.mark.django_db
+    def test_kicked_members_excluded_from_stats(
+        self,
+        authenticated_client,
+        classical_variant,
+        classical_england_nation,
+    ):
+        user = User.objects.create_user(
+            username="kickeduser", email="kicked@example.com", password="testpass123"
+        )
+        UserProfile.objects.create(user=user, name="Kicked User")
+
+        game = Game.objects.create(
+            name="Kicked Game",
+            variant=classical_variant,
+            status=GameStatus.COMPLETED,
+        )
+        game.members.create(
+            user=user, nation=classical_england_nation, kicked=True
+        )
+
+        url = reverse("public-user-profile", kwargs={"user_id": user.id})
+        response = authenticated_client.get(url)
+
+        assert response.data["total_games"] == 0
+
+    @pytest.mark.django_db
+    def test_only_movement_phases_count_for_nmr_rate(
+        self,
+        authenticated_client,
+        classical_variant,
+        classical_england_nation,
+    ):
+        user = User.objects.create_user(
+            username="movementuser", email="movement@example.com", password="testpass123"
+        )
+        UserProfile.objects.create(user=user, name="Movement User")
+
+        for i in range(10):
+            game = Game.objects.create(
+                name=f"Movement Game {i}",
+                variant=classical_variant,
+                status=GameStatus.COMPLETED,
+            )
+            member = game.members.create(user=user, nation=classical_england_nation)
+            movement_phase = game.phases.create(
+                variant=classical_variant,
+                season="Spring",
+                year=1901,
+                type=PhaseType.MOVEMENT,
+                status=PhaseStatus.COMPLETED,
+                ordinal=1,
+            )
+            movement_phase.phase_states.create(
+                member=member,
+                has_possible_orders=True,
+                orders_outcome=PhaseState.OrdersOutcome.RECEIVED,
+            )
+            retreat_phase = game.phases.create(
+                variant=classical_variant,
+                season="Spring",
+                year=1901,
+                type=PhaseType.RETREAT,
+                status=PhaseStatus.COMPLETED,
+                ordinal=2,
+            )
+            retreat_phase.phase_states.create(
+                member=member,
+                has_possible_orders=True,
+                orders_outcome=PhaseState.OrdersOutcome.NMR,
+            )
+
+        url = reverse("public-user-profile", kwargs={"user_id": user.id})
+        response = authenticated_client.get(url)
+
+        assert response.data["nmr_rate"] == 0.0
+        assert response.data["reliability_tier"] == "reliable"
+
+    @pytest.mark.django_db
+    def test_can_view_other_users_profile(
+        self,
+        authenticated_client,
+        secondary_user,
+    ):
+        url = reverse("public-user-profile", kwargs={"user_id": secondary_user.id})
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["name"] == secondary_user.profile.name

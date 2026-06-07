@@ -1,11 +1,12 @@
 from rest_framework import permissions, generics
 from django.db import transaction
+from django.shortcuts import get_object_or_404
 
 from game.models import Game
 from member.models import Member
 from common.constants import GameStatus
 from .models import UserProfile
-from .serializers import UserProfileSerializer
+from .serializers import UserProfileSerializer, PublicUserProfileSerializer
 
 
 class UserProfileRetrieveView(generics.RetrieveAPIView):
@@ -22,6 +23,15 @@ class UserProfileUpdateView(generics.UpdateAPIView):
 
     def get_object(self):
         return UserProfile.objects.get(user=self.request.user)
+
+
+class PublicUserProfileRetrieveView(generics.RetrieveAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PublicUserProfileSerializer
+
+    def get_object(self):
+        user_id = self.kwargs["user_id"]
+        return get_object_or_404(UserProfile.objects.with_related_data(), user_id=user_id)
 
 
 class UserAccountDeleteView(generics.DestroyAPIView):

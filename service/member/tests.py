@@ -328,3 +328,102 @@ def test_game_start_phase_not_immediately_resolvable(classical_variant, primary_
     assert phase.status == "active"
     assert phase.phase_states.exists()
     assert phase not in Phase.objects.filter_due_phases()
+
+
+class TestMemberUserIdSerialization:
+
+    @pytest.mark.django_db
+    def test_user_id_exposed_on_member(
+        self, authenticated_client, classical_variant, classical_england_nation, primary_user
+    ):
+        game = Game.objects.create(
+            name="Test Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        game.members.create(user=primary_user, nation=classical_england_nation)
+
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["members"][0]["user_id"] == primary_user.id
+
+    @pytest.mark.django_db
+    def test_user_id_masked_in_anonymous_active_game(
+        self,
+        authenticated_client,
+        authenticated_client_for_secondary_user,
+        classical_variant,
+        classical_england_nation,
+        classical_france_nation,
+        primary_user,
+        secondary_user,
+    ):
+        game = Game.objects.create(
+            name="Anon Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+            anonymous=True,
+        )
+        game.members.create(user=primary_user, nation=classical_england_nation)
+        game.members.create(user=secondary_user, nation=classical_france_nation)
+
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+
+        for member_data in response.data["members"]:
+            if member_data["is_current_user"]:
+                assert member_data["user_id"] == primary_user.id
+            else:
+                assert member_data["user_id"] is None
+
+    @pytest.mark.django_db
+    def test_user_id_visible_in_completed_anonymous_game(
+        self,
+        authenticated_client,
+        classical_variant,
+        classical_england_nation,
+        classical_france_nation,
+        primary_user,
+        secondary_user,
+    ):
+        game = Game.objects.create(
+            name="Completed Anon",
+            variant=classical_variant,
+            status=GameStatus.COMPLETED,
+            anonymous=True,
+        )
+        game.members.create(user=primary_user, nation=classical_england_nation)
+        game.members.create(user=secondary_user, nation=classical_france_nation)
+
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+
+        user_ids = [m["user_id"] for m in response.data["members"]]
+        assert primary_user.id in user_ids
+        assert secondary_user.id in user_ids
+
+    @pytest.mark.django_db
+    def test_user_id_null_for_deleted_user(
+        self,
+        authenticated_client,
+        classical_variant,
+        classical_england_nation,
+        classical_france_nation,
+        primary_user,
+    ):
+        game = Game.objects.create(
+            name="Deleted User Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        game.members.create(user=primary_user, nation=classical_england_nation)
+        game.members.create(user=None, nation=classical_france_nation)
+
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+
+        for member_data in response.data["members"]:
+            if member_data["name"] == "Deleted User":
+                assert member_data["user_id"] is None
