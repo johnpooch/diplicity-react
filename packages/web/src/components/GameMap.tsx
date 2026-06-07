@@ -57,6 +57,8 @@ const ORDER_TYPE_KEYS: Record<string, string> = {
   MoveViaConvoy: "V",
   Army: "A",
   Fleet: "F",
+  Disband: "D",
+  Build: "B",
 };
 
 const GameMap: React.FC = () => {
