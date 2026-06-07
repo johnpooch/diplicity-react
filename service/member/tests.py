@@ -2,6 +2,7 @@ import pytest
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from rest_framework import status
+from rest_framework.test import APIClient
 from game.models import Game
 from phase.models import Phase
 from user_profile.models import UserProfile
@@ -298,6 +299,124 @@ def test_game_has_exactly_one_game_master(
     game_masters = game.members.filter(is_game_master=True)
     assert game_masters.count() == 1
     assert game_masters.first().user == secondary_user
+
+
+kick_viewname = "game-kick"
+
+
+class TestKickMember:
+
+    @pytest.mark.django_db
+    def test_kick_member_success(
+        self,
+        authenticated_client,
+        pending_game_created_by_primary_user,
+        secondary_user,
+    ):
+        game = pending_game_created_by_primary_user
+        member = game.members.create(user=secondary_user)
+
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert not game.members.filter(user=secondary_user).exists()
+
+    @pytest.mark.django_db
+    def test_kick_member_non_game_master_forbidden(
+        self,
+        authenticated_client,
+        pending_game_created_by_secondary_user_joined_by_primary,
+        secondary_user,
+    ):
+        game = pending_game_created_by_secondary_user_joined_by_primary
+        gm_member = game.members.get(user=secondary_user)
+
+        url = reverse(kick_viewname, args=[game.id, gm_member.id])
+        response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_kick_member_active_game_forbidden(
+        self,
+        authenticated_client,
+        active_game_created_by_primary_user,
+        secondary_user,
+    ):
+        game = active_game_created_by_primary_user
+        member = game.members.create(user=secondary_user)
+
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_kick_self_forbidden(
+        self,
+        authenticated_client,
+        pending_game_created_by_primary_user,
+        primary_user,
+    ):
+        game = pending_game_created_by_primary_user
+        gm_member = game.members.get(user=primary_user)
+
+        url = reverse(kick_viewname, args=[game.id, gm_member.id])
+        response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_kick_nonexistent_member_404(
+        self,
+        authenticated_client,
+        pending_game_created_by_primary_user,
+    ):
+        game = pending_game_created_by_primary_user
+
+        url = reverse(kick_viewname, args=[game.id, 99999])
+        response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
+    def test_kick_unauthenticated(
+        self,
+        unauthenticated_client,
+        pending_game_created_by_secondary_user,
+        secondary_user,
+    ):
+        game = pending_game_created_by_secondary_user
+        member = game.members.get(user=secondary_user)
+
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        response = unauthenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_kicked_player_can_rejoin(
+        self,
+        authenticated_client,
+        pending_game_created_by_secondary_user,
+        primary_user,
+        secondary_user,
+    ):
+        game = pending_game_created_by_secondary_user
+        member = game.members.create(user=primary_user)
+
+        secondary_client = APIClient()
+        secondary_client.force_authenticate(user=secondary_user)
+
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        secondary_client.delete(url)
+
+        assert not game.members.filter(user=primary_user).exists()
+
+        join_url = reverse(join_viewname, args=[game.id])
+        response = authenticated_client.post(join_url)
+        assert response.status_code == status.HTTP_201_CREATED
 
 
 @pytest.mark.django_db
