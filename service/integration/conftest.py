@@ -5,6 +5,11 @@ from django.contrib.auth.models import User
 from user_profile.models import UserProfile
 
 
+@pytest.fixture(autouse=True)
+def _use_in_memory_procrastinate(in_memory_procrastinate):
+    pass
+
+
 @pytest.fixture(scope="session")
 def _extra_users(django_db_setup, django_db_blocker):
     with django_db_blocker.unblock():
