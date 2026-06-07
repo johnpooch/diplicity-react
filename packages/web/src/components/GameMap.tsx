@@ -293,7 +293,7 @@ const GameMap: React.FC = () => {
                 onClick={() => handleSelectOrderOption(c.id)}
               >
                 {isDesktopWeb && ORDER_TYPE_KEYS[c.id] && (
-                  <kbd className="inline-flex items-center justify-center size-5 rounded border border-border bg-muted text-muted-foreground font-mono text-xs shrink-0 pl-px pt-px">
+                  <kbd className="inline-flex items-center justify-center size-5 rounded border border-border bg-muted text-muted-foreground font-mono text-xs shrink-0 pl-px pt-0.5">
                     {ORDER_TYPE_KEYS[c.id]}
                   </kbd>
                 )}
