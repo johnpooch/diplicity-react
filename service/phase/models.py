@@ -535,6 +535,7 @@ class PhaseManager(models.Manager):
 
                     if victory:
                         new_phase.game.status = GameStatus.COMPLETED
+                        new_phase.game.finished_at = timezone.now()
                         new_phase.game.save()
 
                         new_phase.status = PhaseStatus.COMPLETED
@@ -542,6 +543,7 @@ class PhaseManager(models.Manager):
                         new_phase.save()
                     elif self._check_abandonment(new_phase.game):
                         new_phase.game.status = GameStatus.ABANDONED
+                        new_phase.game.finished_at = timezone.now()
                         new_phase.game.save()
 
                         new_phase.status = PhaseStatus.COMPLETED
