@@ -50,10 +50,10 @@ function useBanner(duration = 3000) {
 }
 
 const ORDER_TYPE_KEYS: Record<string, string> = {
-  Hold: "h",
-  Move: "m",
-  Support: "s",
-  Convoy: "c",
+  Hold: "H",
+  Move: "M",
+  Support: "S",
+  Convoy: "C",
 };
 
 const GameMap: React.FC = () => {
@@ -230,7 +230,7 @@ const GameMap: React.FC = () => {
     );
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      const orderTypeId = keyToOrderType[event.key.toLowerCase()];
+      const orderTypeId = keyToOrderType[event.key.toUpperCase()];
       if (!orderTypeId) return;
       const match = wizard.choices.find((c) => c.id === orderTypeId);
       if (match) {
