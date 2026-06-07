@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useRequiredParams } from "@/hooks";
 import { ArrowLeft, Map, Gavel, MessageCircle } from "lucide-react";
@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Navigation } from "@/components/Navigation";
 import { GameMap } from "@/components/GameMap";
 import { SafeAreaView } from "@/components/SafeAreaView";
+import { GameEndDialog } from "@/components/GameEndDialog";
 import { useGameRetrieve } from "@/api/generated/endpoints";
 
 const navigationItems = [
@@ -31,6 +32,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
   children,
   className,
 }) => {
+  const [gameEndDialogOpen, setGameEndDialogOpen] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
   const { gameId, phaseId } = useRequiredParams<{
@@ -77,6 +79,10 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
   const bottomClasses = cn("border-t bg-background", "block md:hidden");
 
   return (
+    <>
+    {game && (
+      <GameEndDialog game={game} open={gameEndDialogOpen} onClose={() => setGameEndDialogOpen(false)} />
+    )}
     <SidebarProvider>
       <SafeAreaView
         className={cn(
@@ -127,6 +133,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
         </div>
       </SafeAreaView>
     </SidebarProvider>
+    </>
   );
 };
 
