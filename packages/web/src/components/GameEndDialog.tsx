@@ -128,27 +128,37 @@ const GameEndDialogInner: React.FC<GameEndDialogInnerProps> = ({ game, result })
   });
 
   return (
-    <>
-      <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/50 to-black/90" />
-
-      <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-4 p-6 max-h-[70vh]">
-        <div className="shrink-0">
-          <p className="text-white/70 text-xs uppercase tracking-widest font-semibold drop-shadow">
+    <div className="flex flex-col h-full">
+      {/* Hero — fixed height, background image only here */}
+      <div
+        className="relative h-64 shrink-0 flex flex-col justify-end"
+        style={{
+          backgroundImage: result.backgroundImage,
+          backgroundSize: "cover",
+          backgroundPosition: "center top",
+        }}
+      >
+        <div className="absolute inset-x-0 top-0 bottom-[-1px] bg-gradient-to-b from-transparent via-black/50 to-black" />
+        <div className="relative z-10 px-6 pb-6">
+          <p className="text-white/70 text-xs uppercase tracking-widest font-semibold">
             Game ended
           </p>
-          <h2 className="text-4xl font-bold text-white mt-0.5 drop-shadow-lg">{result.title}</h2>
-          <p className="text-white/90 text-sm mt-2 leading-relaxed drop-shadow">{result.blurb}</p>
+          <h2 className="text-4xl font-bold text-white mt-0.5">{result.title}</h2>
+          <p className="text-white/90 text-sm mt-2 leading-relaxed">{result.blurb}</p>
         </div>
+      </div>
 
-        <div className="overflow-y-auto flex-1 min-h-0 bg-black/40 rounded-lg px-3">
+      {/* Leaderboard — plain dark background, no image */}
+      <div className="flex flex-col flex-1 min-h-0 bg-black px-4 pt-3 pb-6 gap-4">
+        <div className="overflow-y-auto flex-1 min-h-0">
           {showSurvivorSections ? (
             <>
               {survivors.length > 0 && (
                 <>
-                  <p className="text-white/50 text-xs uppercase tracking-wider font-medium pt-2.5 pb-1">
+                  <p className="text-white/40 text-xs uppercase tracking-wider font-medium pb-1">
                     Surviving powers
                   </p>
-                  <div className="divide-y divide-white/15">
+                  <div className="divide-y divide-white/10">
                     {survivors.map(({ member, scCount }) => (
                       <NationRow key={member.id} member={member} scCount={scCount} {...getNationProps(member)} />
                     ))}
@@ -157,10 +167,10 @@ const GameEndDialogInner: React.FC<GameEndDialogInnerProps> = ({ game, result })
               )}
               {eliminated.length > 0 && (
                 <>
-                  <p className="text-white/50 text-xs uppercase tracking-wider font-medium pt-2.5 pb-1">
+                  <p className="text-white/40 text-xs uppercase tracking-wider font-medium pt-3 pb-1">
                     Eliminated
                   </p>
-                  <div className="divide-y divide-white/15">
+                  <div className="divide-y divide-white/10">
                     {eliminated.map(({ member, scCount }) => (
                       <NationRow key={member.id} member={member} scCount={scCount} {...getNationProps(member)} dim />
                     ))}
@@ -169,7 +179,7 @@ const GameEndDialogInner: React.FC<GameEndDialogInnerProps> = ({ game, result })
               )}
             </>
           ) : (
-            <div className="divide-y divide-white/15">
+            <div className="divide-y divide-white/10">
               {sortedMembers.map(({ member, scCount }) => (
                 <NationRow key={member.id} member={member} scCount={scCount} {...getNationProps(member)} />
               ))}
@@ -179,14 +189,14 @@ const GameEndDialogInner: React.FC<GameEndDialogInnerProps> = ({ game, result })
 
         <DialogPrimitive.Close asChild>
           <Button
-            className="w-full border-white/30 bg-white/10 text-white hover:bg-white/20 shrink-0"
+            className="w-full border-white/20 bg-white/10 text-white hover:bg-white/20 shrink-0"
             variant="outline"
           >
             OK
           </Button>
         </DialogPrimitive.Close>
       </div>
-    </>
+    </div>
   );
 };
 
@@ -210,27 +220,18 @@ const GameEndDialog: React.FC<GameEndDialogProps> = ({ game, open, onClose }) =>
             data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
         />
         <DialogPrimitive.Content
-          className="fixed z-50 overflow-hidden
+          className="fixed z-50 overflow-hidden bg-black
             inset-0
             sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2
             sm:w-full sm:max-w-md sm:h-[85vh] sm:rounded-2xl
             data-[state=open]:animate-in data-[state=closed]:animate-out
             data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0
             data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
-          style={{
-            backgroundImage: result.backgroundImage,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
         >
           <DialogPrimitive.Title className="sr-only">
             Game ended — {result.title}
           </DialogPrimitive.Title>
-          <Suspense
-            fallback={
-              <div className="absolute inset-0 bg-gradient-to-t from-black/95 to-black/40" />
-            }
-          >
+          <Suspense fallback={<div className="h-64 shrink-0 bg-black" />}>
             <GameEndDialogInner game={game} result={result} />
           </Suspense>
         </DialogPrimitive.Content>
