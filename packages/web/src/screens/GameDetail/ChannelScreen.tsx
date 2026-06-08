@@ -7,7 +7,7 @@ import { toast } from "sonner";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import {
   Message,
@@ -111,8 +111,9 @@ const ChannelScreen: React.FC = () => {
   const createMessageMutation = useGamesChannelsMessagesCreateCreate();
   const markReadMutation = useGamesChannelsMarkReadCreate();
 
+  const isMobileDevice = useMemo(() => window.matchMedia("(pointer: coarse)").matches, []);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const isFocusedRef = useRef(false);
 
   useEffect(() => {
@@ -204,10 +205,23 @@ const ChannelScreen: React.FC = () => {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (isMobileDevice) return;
+    if (e.key === "Enter") {
       e.preventDefault();
-      handleSubmit();
+      if (e.altKey) {
+        const textarea = e.currentTarget;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const newValue = message.slice(0, start) + "\n" + message.slice(end);
+        setMessage(newValue);
+        requestAnimationFrame(() => {
+          textarea.selectionStart = start + 1;
+          textarea.selectionEnd = start + 1;
+        });
+      } else {
+        handleSubmit();
+      }
     }
   };
 
@@ -332,25 +346,34 @@ const ChannelScreen: React.FC = () => {
           </Panel.Content>
           <Separator />
           <Panel.Footer>
-            <div className="flex gap-2 w-full">
-              <Input
-                ref={inputRef}
-                placeholder="Type a message"
-                value={message}
-                onChange={e => setMessage(e.target.value)}
-                onKeyDown={handleKeyDown}
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
-                disabled={createMessageMutation.isPending}
-                className="flex-1"
-              />
-              <Button
-                onClick={handleSubmit}
-                disabled={!message.trim() || createMessageMutation.isPending}
-                size="icon"
-              >
-                <Send className="size-4" />
-              </Button>
+            <div className="flex flex-col gap-1 w-full">
+              <div className="flex gap-2">
+                <Textarea
+                  ref={inputRef}
+                  placeholder="Type a message"
+                  value={message}
+                  rows={1}
+                  onChange={e => setMessage(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  onFocus={handleInputFocus}
+                  onBlur={handleInputBlur}
+                  disabled={createMessageMutation.isPending}
+                  enterKeyHint={isMobileDevice ? "enter" : "send"}
+                  className="flex-1 min-h-0 max-h-32 resize-none py-2"
+                />
+                <Button
+                  onClick={handleSubmit}
+                  disabled={!message.trim() || createMessageMutation.isPending}
+                  size="icon"
+                >
+                  <Send className="size-4" />
+                </Button>
+              </div>
+              {!isMobileDevice && (
+                <p className="text-[10px] text-muted-foreground/60 leading-none">
+                  Alt+Enter to add a new line
+                </p>
+              )}
             </div>
           </Panel.Footer>
         </Panel>
