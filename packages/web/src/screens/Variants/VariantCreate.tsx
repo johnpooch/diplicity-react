@@ -118,9 +118,11 @@ const VariantUploadForm: React.FC<VariantUploadFormProps> = ({
       await onSubmit({ dvar, dsvg });
     } catch (error) {
       const axiosError = error as AxiosError<ServerError>;
-      const data = axiosError.response?.data ?? {
-        detail: axiosError.message ?? "Unknown error",
-      };
+      const raw = axiosError.response?.data;
+      const data: ServerError =
+        raw !== null && raw !== undefined && typeof raw === "object"
+          ? (raw as ServerError)
+          : { detail: axiosError.message ?? "Unknown error" };
       setErrors(data);
     }
   };
