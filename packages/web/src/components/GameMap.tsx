@@ -273,6 +273,7 @@ const GameMap: React.FC = () => {
       {game && variant && phase && orders && (
         <>
           <InteractiveMapZoomWrapper
+            cacheKey={`${gameId}-${selectedPhase}`}
             interactiveMapProps={{
               interactive: true,
               variant: variant,
