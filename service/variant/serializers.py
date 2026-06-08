@@ -1,7 +1,7 @@
 import json
 from typing import Optional
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.urls import reverse
 from lxml import etree
 from rest_framework import serializers
@@ -153,9 +153,12 @@ class VariantWriteSerializer(serializers.Serializer):
         dsvg_text = self._parse_dsvg(validated_data["dsvg"])
         self._validate_dvar_payload(dvar)
         user = self.context["request"].user
-        with transaction.atomic():
-            variant = create_variant_from_dvar(dvar, owner=user, status=VariantStatus.DRAFT)
-            self._save_dsvg(variant, dsvg_text)
+        try:
+            with transaction.atomic():
+                variant = create_variant_from_dvar(dvar, owner=user, status=VariantStatus.DRAFT)
+                self._save_dsvg(variant, dsvg_text)
+        except IntegrityError as exc:
+            raise serializers.ValidationError({"dvar": str(exc)}) from exc
         return Variant.objects.with_related_data().get(id=variant.id)
 
     def update(self, instance, validated_data):
