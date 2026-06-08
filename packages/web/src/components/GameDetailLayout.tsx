@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useRequiredParams } from "@/hooks";
 import { ArrowLeft, Map, Gavel, MessageCircle } from "lucide-react";
@@ -45,16 +45,17 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
     },
   });
 
-  const [lastChatPath, setLastChatPath] = useState<string | null>(null);
+  const lastChatPathRef = useRef<string | null>(null);
 
   useEffect(() => {
     const chatPrefix = `/game/${gameId}/phase/${phaseId}/chat`;
     if (location.pathname.startsWith(chatPrefix)) {
-      setLastChatPath(location.pathname);
+      lastChatPathRef.current = location.pathname;
     }
   }, [location.pathname, gameId, phaseId]);
 
   const navItems = useMemo(() => {
+    const chatPrefix = `/game/${gameId}/phase/${phaseId}/chat`;
     const items = game?.sandbox
       ? navigationItems.filter(item => item.label !== "Chat")
       : navigationItems;
@@ -69,9 +70,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
           ? "•"
           : undefined;
       const isChat = item.label === "Chat";
-      // Only use lastChatPath if it still belongs to the current phase — guards against
-      // stale paths surviving a phase advance.
-      const chatPrefix = `/game/${gameId}/phase/${phaseId}/chat`;
+      const lastChatPath = lastChatPathRef.current;
       const validChatPath = lastChatPath?.startsWith(chatPrefix) ? lastChatPath : null;
       const clickPath = isChat && validChatPath ? validChatPath : basePath;
       const isActive = isChat
@@ -84,7 +83,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
         badge,
       };
     });
-  }, [gameId, phaseId, location.pathname, game?.totalUnreadMessageCount, game?.sandbox, lastChatPath]);
+  }, [gameId, phaseId, location.pathname, game?.totalUnreadMessageCount, game?.sandbox]);
 
   // Filter out Map for desktop sidebar since map is already visible in right panel
   const sidebarNavItems = useMemo(

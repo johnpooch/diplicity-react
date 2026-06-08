@@ -204,7 +204,7 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
         velocityAnimation={{ disabled: true }}
         onTransformed={(_ref: ReactZoomPanPinchRef, state) => {
           if (cacheKey) {
-            if (transformCache.size >= TRANSFORM_CACHE_MAX) {
+            if (transformCache.size >= TRANSFORM_CACHE_MAX && !transformCache.has(cacheKey)) {
               const oldest = transformCache.keys().next().value;
               if (oldest !== undefined) transformCache.delete(oldest);
             }
