@@ -319,6 +319,8 @@ class Game(BaseModel):
         choices=NationAssignment.NATION_ASSIGNMENT_CHOICES,
         default=NationAssignment.RANDOM,
     )
+    started_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
     paused_at = models.DateTimeField(null=True, blank=True)
     nmr_extensions_allowed = models.PositiveSmallIntegerField(default=0)
     deadline_mode = models.CharField(
@@ -506,6 +508,7 @@ class Game(BaseModel):
             PhaseState.objects.bulk_create(phase_states_to_create)
 
             self.status = GameStatus.ACTIVE
+            self.started_at = timezone.now()
             self.save()
 
     def pause(self):

@@ -22,6 +22,7 @@ class TestUserProfileRetrieveView:
         assert response.data["name"] == primary_user.profile.name
         assert response.data["picture"] == primary_user.profile.picture
         assert response.data["email"] == primary_user.email
+        assert response.data["email_notifications_enabled"] is False
 
     @pytest.mark.django_db
     def test_retrieve_user_profile_unauthenticated(self, unauthenticated_client):
@@ -103,6 +104,33 @@ class TestUserProfileUpdateView:
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["name"] == "Trimmed Name"
+
+    @pytest.mark.django_db
+    def test_enable_email_notifications(self, authenticated_client, primary_user):
+        url = reverse("user-profile-update")
+        response = authenticated_client.patch(
+            url, {"email_notifications_enabled": True}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["email_notifications_enabled"] is True
+        primary_user.profile.refresh_from_db()
+        assert primary_user.profile.email_notifications_enabled is True
+
+    @pytest.mark.django_db
+    def test_disable_email_notifications(self, authenticated_client, primary_user):
+        primary_user.profile.email_notifications_enabled = True
+        primary_user.profile.save()
+
+        url = reverse("user-profile-update")
+        response = authenticated_client.patch(
+            url, {"email_notifications_enabled": False}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["email_notifications_enabled"] is False
+        primary_user.profile.refresh_from_db()
+        assert primary_user.profile.email_notifications_enabled is False
 
 
 class TestUserAccountDelete:

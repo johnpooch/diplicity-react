@@ -6,12 +6,13 @@ from rest_framework.test import APIClient
 from game.models import Game
 from phase.models import Phase
 from user_profile.models import UserProfile
-from common.constants import GameStatus, NationAssignment
+from common.constants import GameStatus, NationAssignment, PhaseStatus
 
 User = get_user_model()
 
 join_viewname = "game-join"
 retrieve_viewname = "game-retrieve"
+recovery_viewname = "civil-disorder-recovery"
 
 
 class TestCivilDisorderSerialization:
@@ -447,3 +448,151 @@ def test_game_start_phase_not_immediately_resolvable(classical_variant, primary_
     assert phase.status == "active"
     assert phase.phase_states.exists()
     assert phase not in Phase.objects.filter_due_phases()
+
+
+class TestCivilDisorderRecovery:
+
+    @pytest.mark.django_db
+    def test_recover_from_civil_disorder(
+        self,
+        authenticated_client,
+        primary_user,
+        classical_variant,
+        classical_england_nation,
+        classical_france_nation,
+        secondary_user,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
+    ):
+        game = Game.objects.create(
+            name="CD Recovery Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        member = game.members.create(
+            user=primary_user,
+            nation=classical_england_nation,
+            civil_disorder=True,
+        )
+        game.members.create(user=secondary_user, nation=classical_france_nation)
+
+        phase = game.phases.create(
+            variant=classical_variant,
+            season="Spring",
+            year=1901,
+            type="Movement",
+            status=PhaseStatus.ACTIVE,
+            ordinal=1,
+        )
+        phase.phase_states.create(member=member, orders_confirmed=True)
+
+        url = reverse(recovery_viewname, args=[game.id])
+        response = authenticated_client.post(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["civil_disorder"] is False
+
+        member.refresh_from_db()
+        assert member.civil_disorder is False
+
+        phase_state = phase.phase_states.get(member=member)
+        assert phase_state.orders_confirmed is False
+
+        mock_send_notification_to_users.assert_called_once()
+        call_kwargs = mock_send_notification_to_users.call_args[1]
+        assert call_kwargs["notification_type"] == "civil_disorder_recovery"
+        assert secondary_user.id in call_kwargs["user_ids"]
+        assert primary_user.id not in call_kwargs["user_ids"]
+        assert "England" in call_kwargs["body"]
+
+    @pytest.mark.django_db
+    def test_recover_fails_if_not_in_civil_disorder(
+        self,
+        authenticated_client,
+        primary_user,
+        classical_variant,
+        classical_england_nation,
+    ):
+        game = Game.objects.create(
+            name="Not CD Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        game.members.create(
+            user=primary_user,
+            nation=classical_england_nation,
+            civil_disorder=False,
+        )
+
+        url = reverse(recovery_viewname, args=[game.id])
+        response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_recover_fails_if_not_game_member(
+        self,
+        authenticated_client,
+        classical_variant,
+        secondary_user,
+        classical_england_nation,
+    ):
+        game = Game.objects.create(
+            name="No Member Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        game.members.create(
+            user=secondary_user,
+            nation=classical_england_nation,
+            civil_disorder=True,
+        )
+
+        url = reverse(recovery_viewname, args=[game.id])
+        response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_recover_fails_if_game_not_active(
+        self,
+        authenticated_client,
+        primary_user,
+        classical_variant,
+        classical_england_nation,
+    ):
+        game = Game.objects.create(
+            name="Completed Game",
+            variant=classical_variant,
+            status=GameStatus.COMPLETED,
+        )
+        game.members.create(
+            user=primary_user,
+            nation=classical_england_nation,
+            civil_disorder=True,
+        )
+
+        url = reverse(recovery_viewname, args=[game.id])
+        response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_recover_fails_if_unauthenticated(
+        self,
+        unauthenticated_client,
+        classical_variant,
+        classical_england_nation,
+        primary_user,
+    ):
+        game = Game.objects.create(
+            name="Unauth Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        game.members.create(
+            user=primary_user,
+            nation=classical_england_nation,
+            civil_disorder=True,
+        )
+
+        url = reverse(recovery_viewname, args=[game.id])
+        response = unauthenticated_client.post(url)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED

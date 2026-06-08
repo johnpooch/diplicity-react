@@ -65,6 +65,10 @@ def _notification_jobs(connector, notification_type=None):
     return jobs
 
 
+def _email_jobs(connector):
+    return [j for j in connector.jobs.values() if j["task_name"] == "email_service.send_email_notification"]
+
+
 @pytest.mark.django_db
 def test_channel_message_notification_uses_display_name(active_game, in_memory_procrastinate):
     sender_member = active_game.members.first()
@@ -241,3 +245,24 @@ class TestGameEndNotifications:
         assert secondary_user.id in args["user_ids"]
         assert italy.name in args["body"]
         assert "Better luck" in args["body"]
+
+
+class TestGameStartEmailNotification:
+
+    @pytest.mark.django_db
+    def test_game_start_defers_email_notification(
+        self, make_end_game_notification_game, in_memory_procrastinate
+    ):
+        game, phase, italy, germany = make_end_game_notification_game()
+        game.status = GameStatus.PENDING
+        game.save()
+
+        game.status = GameStatus.ACTIVE
+        game.save()
+
+        jobs = _email_jobs(in_memory_procrastinate)
+        assert len(jobs) == 1
+        args = jobs[0]["args"]
+        assert "Game Started" in args["subject"]
+        assert game.name in args["subject"]
+        assert game.name in args["html"]
