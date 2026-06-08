@@ -73,7 +73,7 @@ def start(phase) -> Dict[str, Any]:
         }
 
 
-def _should_skip(options, units, cd_nations, nation_name_by_id):
+def _should_skip(options, units, supply_centers, cd_nations, nation_name_by_id, variant):
     if not options:
         return True
     if not cd_nations:
@@ -82,11 +82,20 @@ def _should_skip(options, units, cd_nations, nation_name_by_id):
         u.location: nation_name_by_id.get(u.nation, u.nation)
         for u in units
     }
-    option_nations = {
-        location_to_nation[opt.source]
-        for opt in options
-        if opt.source is not None and opt.source in location_to_nation
+    province_to_nation = {
+        sc.province: nation_name_by_id.get(sc.nation, sc.nation)
+        for sc in supply_centers
     }
+    option_nations = set()
+    for opt in options:
+        if opt.source is None:
+            continue
+        if opt.source in location_to_nation:
+            option_nations.add(location_to_nation[opt.source])
+        else:
+            province = variant.parent_of(opt.source)
+            if province in province_to_nation:
+                option_nations.add(province_to_nation[province])
     return bool(option_nations) and option_nations.issubset(cd_nations)
 
 
@@ -119,7 +128,7 @@ def resolve(phase) -> Dict[str, Any]:
         next_options = get_options(next_state) if len(states) > 1 else []
         _skip_count = 0
         _MAX_SKIP = 10
-        while len(states) > 1 and _should_skip(next_options, next_state.units, cd_nations, nation_name_by_id):
+        while len(states) > 1 and _should_skip(next_options, next_state.units, next_state.supply_centers, cd_nations, nation_name_by_id, next_state.variant):
             _skip_count += 1
             if _skip_count >= _MAX_SKIP:
                 logger.warning(

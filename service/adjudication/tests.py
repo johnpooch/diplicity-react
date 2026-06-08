@@ -944,6 +944,38 @@ class TestAdjudicationService:
         germany_units = [u for u in data["units"] if u["nation"] == "Germany"]
         assert germany_units == []
 
+    @pytest.mark.django_db
+    def test_adjustment_not_skipped_when_cd_nation_disbands_and_other_nation_builds(
+        self,
+        phase_fall_1901_movement,
+        member_italy,
+        member_germany,
+    ):
+        member_germany.civil_disorder = True
+        member_germany.save()
+
+        phase_state_italy = phase_fall_1901_movement.phase_states.create(member=member_italy)
+        phase_state_germany = phase_fall_1901_movement.phase_states.create(member=member_germany)
+
+        # Italy: 1 unit at ven, owns ven + rom (both Italy home SCs). rom is empty.
+        create_supply_center(phase_state_italy, "ven")
+        create_supply_center(phase_state_italy, "rom")
+        create_unit(phase_state_italy, "ven", "Army")
+
+        # Germany: 2 units (kie home SC + ruh non-SC), 1 SC (kie). Surplus = 1 disband.
+        create_supply_center(phase_state_germany, "kie")
+        create_unit(phase_state_germany, "kie", "Army")
+        create_unit(phase_state_germany, "ruh", "Army")
+
+        data = adjudication_service.resolve(phase_fall_1901_movement)
+
+        assert data["year"] == 1901
+        assert data["season"] == "Fall"
+        assert data["type"] == "Adjustment"
+
+        italy_options = data["options"].get("Italy", {})
+        assert italy_options != {}
+
 
 class TestUserUploadedVariant:
     """Regression: prior to dropping the godip HTTP adjudicator, creating a
