@@ -281,7 +281,7 @@ class GameCreateSerializer(serializers.Serializer):
         choices=PressType.PRESS_TYPE_CHOICES,
         default=PressType.FULL_PRESS,
     )
-    confirmation_required = serializers.BooleanField(default=True)
+    confirmation_required = serializers.BooleanField(default=False)
 
     def validate_variant_id(self, value):
         try:

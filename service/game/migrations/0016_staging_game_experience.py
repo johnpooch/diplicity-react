@@ -4,14 +4,14 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('game', '0013_delete_empty_pending_games'),
+        ('game', '0015_backfill_game_timestamps'),
     ]
 
     operations = [
         migrations.AddField(
             model_name='game',
             name='confirmation_required',
-            field=models.BooleanField(default=True),
+            field=models.BooleanField(default=False),
         ),
         migrations.AddField(
             model_name='game',

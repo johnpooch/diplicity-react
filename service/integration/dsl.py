@@ -31,7 +31,6 @@ class GameSession:
                 "nation_assignment": NationAssignment.ORDERED,
                 "private": False,
                 "deadline_mode": DeadlineMode.DURATION,
-                "confirmation_required": False,
             },
             format="json",
         )
@@ -40,7 +39,7 @@ class GameSession:
 
         join_url = reverse("game-join", args=[game_id])
         for client in joiners:
-            join_response = client.post(join_url, {"message": "Hello!"}, format="json")
+            join_response = client.post(join_url)
             assert join_response.status_code == status.HTTP_201_CREATED, join_response.data
 
         game = Game.objects.get(id=game_id)

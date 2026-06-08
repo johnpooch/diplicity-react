@@ -20,13 +20,12 @@ from adjudication import service as adjudication_service
 class TestIntroMessageOnJoin:
 
     @pytest.mark.django_db
-    def test_full_press_join_requires_message(
+    def test_full_press_join_without_message_succeeds(
         self, authenticated_client, pending_game_created_by_secondary_user
     ):
         url = reverse("game-join", args=[pending_game_created_by_secondary_user.id])
         response = authenticated_client.post(url, {}, format="json")
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "message" in response.data
+        assert response.status_code == status.HTTP_201_CREATED
 
     @pytest.mark.django_db
     def test_full_press_join_with_message_succeeds(
@@ -295,7 +294,7 @@ class TestConfirmationSweep:
 class TestGameCreateConfirmationRequired:
 
     @pytest.mark.django_db
-    def test_create_game_default_confirmation_required(
+    def test_create_game_default_confirmation_not_required(
         self, authenticated_client, classical_variant
     ):
         url = reverse("game-create")
@@ -308,24 +307,24 @@ class TestGameCreateConfirmationRequired:
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
-        assert response.data["confirmation_required"] is True
+        assert response.data["confirmation_required"] is False
 
     @pytest.mark.django_db
-    def test_create_game_opt_out_confirmation(
+    def test_create_game_opt_in_confirmation(
         self, authenticated_client, classical_variant
     ):
         url = reverse("game-create")
         payload = {
-            "name": "No Confirm Game",
+            "name": "Confirm Game",
             "variant_id": classical_variant.id,
             "nation_assignment": NationAssignment.RANDOM,
             "private": False,
             "deadline_mode": DeadlineMode.DURATION,
-            "confirmation_required": False,
+            "confirmation_required": True,
         }
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
-        assert response.data["confirmation_required"] is False
+        assert response.data["confirmation_required"] is True
 
 
 # --- Fixtures ---

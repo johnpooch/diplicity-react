@@ -34,12 +34,11 @@ def create_active_game(authenticated_client, authenticated_client_for_secondary_
         "nation_assignment": NationAssignment.ORDERED,
         "private": False,
         "deadline_mode": DeadlineMode.DURATION,
-        "confirmation_required": False,
     }
     create_response = authenticated_client.post(create_url, create_payload, format="json")
     game_id = create_response.data["id"]
     join_url = reverse("game-join", args=[game_id])
-    authenticated_client_for_secondary_user.post(join_url, {"message": "Hello!"}, format="json")
+    authenticated_client_for_secondary_user.post(join_url)
     return Game.objects.get(id=game_id)
 
 
@@ -66,7 +65,6 @@ def test_create_game_with_classical_variant_one_user_joins(
         "nation_assignment": NationAssignment.RANDOM,
         "private": False,
         "deadline_mode": DeadlineMode.DURATION,
-        "confirmation_required": False,
     }
     create_response = authenticated_client.post(create_url, create_payload, format="json")
     assert create_response.status_code == status.HTTP_201_CREATED
@@ -93,7 +91,7 @@ def test_create_game_with_classical_variant_one_user_joins(
 
     # Second user joins
     join_url = reverse("game-join", args=[game_id])
-    join_response = authenticated_client_for_secondary_user.post(join_url, {"message": "Hello!"}, format="json")
+    join_response = authenticated_client_for_secondary_user.post(join_url)
     assert join_response.status_code == status.HTTP_201_CREATED
 
     # Refresh game state
@@ -141,7 +139,6 @@ def test_create_game_with_italy_vs_germany_variant_one_user_joins(
         "nation_assignment": NationAssignment.RANDOM,
         "private": False,
         "deadline_mode": DeadlineMode.DURATION,
-        "confirmation_required": False,
     }
     create_response = authenticated_client.post(create_url, create_payload, format="json")
     assert create_response.status_code == status.HTTP_201_CREATED
@@ -150,7 +147,7 @@ def test_create_game_with_italy_vs_germany_variant_one_user_joins(
 
     # Second user joins
     join_url = reverse("game-join", args=[game_id])
-    join_response = authenticated_client_for_secondary_user.post(join_url, {"message": "Hello!"}, format="json")
+    join_response = authenticated_client_for_secondary_user.post(join_url)
     assert join_response.status_code == status.HTTP_201_CREATED
 
     # Game should now be full and started
@@ -187,13 +184,12 @@ def test_create_game_with_classical_variant_one_user_leaves_and_rejoins(
         "nation_assignment": NationAssignment.RANDOM,
         "private": False,
         "deadline_mode": DeadlineMode.DURATION,
-        "confirmation_required": False,
     }
     create_response = authenticated_client.post(create_url, create_payload, format="json")
     game_id = create_response.data["id"]
 
     join_url = reverse("game-join", args=[game_id])
-    authenticated_client_for_secondary_user.post(join_url, {"message": "Hello!"}, format="json")
+    authenticated_client_for_secondary_user.post(join_url)
 
     game = Game.objects.get(id=game_id)
     assert game.members.count() == 2
@@ -207,7 +203,7 @@ def test_create_game_with_classical_variant_one_user_leaves_and_rejoins(
     assert game.members.count() == 1
 
     # Second user can rejoin
-    rejoin_response = authenticated_client_for_secondary_user.post(join_url, {"message": "I'm back!"}, format="json")
+    rejoin_response = authenticated_client_for_secondary_user.post(join_url)
     assert rejoin_response.status_code == status.HTTP_201_CREATED
 
     game.refresh_from_db()
@@ -848,15 +844,14 @@ def create_active_hundred_game(
         "nation_assignment": NationAssignment.ORDERED,
         "private": False,
         "deadline_mode": DeadlineMode.DURATION,
-        "confirmation_required": False,
     }
     create_response = authenticated_client.post(create_url, create_payload, format="json")
     game_id = create_response.data["id"]
 
     # Second and third users join
     join_url = reverse("game-join", args=[game_id])
-    authenticated_client_for_secondary_user.post(join_url, {"message": "Hello!"}, format="json")
-    authenticated_client_for_tertiary_user.post(join_url, {"message": "Hello!"}, format="json")
+    authenticated_client_for_secondary_user.post(join_url)
+    authenticated_client_for_tertiary_user.post(join_url)
 
     return Game.objects.get(id=game_id)
 

@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.apps import apps
 from drf_spectacular.utils import extend_schema_field
 
-from common.constants import GameStatus, PressType
+from common.constants import GameStatus
 
 ChannelMember = apps.get_model("channel", "ChannelMember")
 ChannelMessage = apps.get_model("channel", "ChannelMessage")
@@ -89,11 +89,6 @@ class MemberSerializer(BaseMemberSerializer):
         return value.strip() if value else value
 
     def validate(self, attrs):
-        game = self.context["game"]
-        if game.press_type == PressType.FULL_PRESS and not attrs.get("message"):
-            raise serializers.ValidationError(
-                {"message": "An intro message is required when joining a full press game."}
-            )
         return attrs
 
     def create(self, validated_data):
