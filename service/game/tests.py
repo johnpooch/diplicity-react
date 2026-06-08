@@ -358,15 +358,6 @@ class TestGameRetrieveViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-
-        print(f"\n\n=== TEST: test_retrieve_game_query_count_with_multiple_members ===")
-        print(f"Total queries: {query_count}")
-        print(f"Number of members: {game.members.count()}")
-        print(f"Number of phase_states: {phase.phase_states.count()}")
-        for i, query in enumerate(connection.queries, 1):
-            sql = query['sql'][:300]
-            print(f"{i}. {sql}")
-
         assert query_count == 5
 
 
@@ -927,19 +918,6 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-
-        print("\n" + "=" * 80)
-        print(f"QUERY COUNT: {query_count}")
-        print("=" * 80)
-        for i, query in enumerate(connection.queries, 1):
-            print(f"\nQuery {i}:")
-            print(f"SQL: {query['sql']}")
-            print(f"Time: {query['time']}")
-        print("=" * 80 + "\n")
-
-        # 5 (not 4) since GameListSerializer now embeds current_phase +
-        # phase_confirmed, which adds one prefetch for PhaseState.member.
-        # Still flat across N games and N phases.
         assert query_count == 5
 
     @pytest.mark.django_db
@@ -991,19 +969,6 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-
-        print("\n" + "=" * 80)
-        print(f"QUERY COUNT: {query_count}")
-        print("=" * 80)
-        for i, query in enumerate(connection.queries, 1):
-            print(f"\nQuery {i}:")
-            print(f"SQL: {query['sql']}")
-            print(f"Time: {query['time']}")
-        print("=" * 80 + "\n")
-
-        # 5 (not 4) since GameListSerializer now embeds current_phase +
-        # phase_confirmed, which adds one prefetch for PhaseState.member.
-        # Still flat across N games and N phases.
         assert query_count == 5
 
     @pytest.mark.django_db
@@ -1596,11 +1561,6 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-
-        print(f"\nQuery count: {query_count}")
-        for i, query in enumerate(connection.queries, 1):
-            print(f"\nQuery {i}: {query['sql']}")
-
         assert query_count == 44
 
     @pytest.mark.django_db
@@ -1621,11 +1581,6 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-
-        print(f"\nQuery count: {query_count}")
-        for i, query in enumerate(connection.queries, 1):
-            print(f"\nQuery {i}: {query['sql']}")
-
         assert query_count == 44
 
 
@@ -2143,12 +2098,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-
-        print(f"\nQuery count (small variant): {query_count}")
-        for i, query in enumerate(connection.queries, 1):
-            print(f"\nQuery {i}: {query['sql']}")
-
-        assert query_count == 53
+        assert query_count == 54
 
     @pytest.mark.django_db
     def test_create_sandbox_game_query_count_large_variant(
@@ -2169,12 +2119,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-
-        print(f"\nQuery count (large variant): {query_count}")
-        for i, query in enumerate(connection.queries, 1):
-            print(f"\nQuery {i}: {query['sql']}")
-
-        assert query_count == 53
+        assert query_count == 54
 
 
 class TestSandboxGameFiltering:

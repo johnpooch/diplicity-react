@@ -137,4 +137,5 @@ class TestNotificationEmailTemplate:
         from email_service.templates import notification_email
 
         html = notification_email(title="Test", body="Test body")
-        assert "btn-a" not in html
+        assert 'href="None"' not in html
+        assert "View Game" not in html
