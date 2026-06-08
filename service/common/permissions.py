@@ -89,7 +89,7 @@ class IsSpaceAvailable(BasePermission):
 
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
-        return game.members.count() < game.variant.nations.filter(non_playable=False).count()
+        return game.members.count() < game.variant.nations.count()
 
 
 class IsCurrentPhaseActive(BasePermission):
