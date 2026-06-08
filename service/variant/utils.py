@@ -211,7 +211,7 @@ def variant_to_canonical_dict(variant):
         "adjudicationModifiers": variant.adjudication_modifiers,
         "phaseProgression": variant.phase_progression,
         "nations": [
-            {"id": nation.nation_id, "name": nation.name, "color": nation.color, "non_playable": nation.non_playable}
+            {"id": nation.nation_id, "name": nation.name, "color": nation.color}
             for nation in nations
         ],
         "provinces": canonical_provinces,
@@ -983,7 +983,6 @@ def apply_safe_replacement(variant, dvar, dsvg_text):
         nation = nation_by_id[payload["id"]]
         nation.name = payload["name"]
         nation.color = payload["color"]
-        nation.non_playable = payload.get("non_playable", False)
         nation.save()
     nation_by_id = {nation.nation_id: nation for nation in variant.nations.all()}
 
@@ -1068,7 +1067,6 @@ def _build_variant_children(variant, dvar):
             nation_id=nation["id"],
             name=nation["name"],
             color=nation["color"],
-            non_playable=nation.get("non_playable", False),
         )
         for nation in dvar["nations"]
     ]
