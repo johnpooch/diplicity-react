@@ -20,6 +20,8 @@ from supply_center.models import SupplyCenter
 from unit.models import Unit
 from victory.utils import check_for_solo_winner
 from victory.models import Victory
+from email_service.tasks import send_email_notification
+from email_service.templates import notification_email
 from notification import utils as notification_utils
 from notification.tasks import send_notification
 
@@ -353,12 +355,24 @@ class PhaseManager(models.Manager):
                     if ps.member.user_id is None:
                         continue
 
+                    link = f"{settings.FRONTEND_URL}/game/{phase.game.id}"
+
                     notification_utils.send_notification_to_users(
                         user_ids=[ps.member.user_id],
                         title=phase.game.name,
                         body=body,
                         notification_type="deadline_warning",
-                        data={"game_id": str(phase.game.id), "link": f"{settings.FRONTEND_URL}/game/{phase.game.id}"},
+                        data={"game_id": str(phase.game.id), "link": link},
+                    )
+                    send_email_notification.defer(
+                        user_ids=[ps.member.user_id],
+                        subject=f"{phase.game.name} — Deadline Approaching",
+                        html=notification_email(
+                            title=phase.game.name,
+                            body=body,
+                            link=link,
+                            link_text="Submit Orders",
+                        ),
                     )
                     ps.deadline_warning_sent_for = phase.scheduled_resolution
                     warned_states.append(ps)
@@ -450,12 +464,24 @@ class PhaseManager(models.Manager):
 
         def send_notifications():
             if user_ids:
+                link = f"{settings.FRONTEND_URL}/game/{phase.game.id}"
+                body = f"{nation_names} entered civil disorder."
+
                 notification_utils.send_notification_to_users(
                     user_ids=user_ids,
                     title="Civil Disorder",
-                    body=f"{nation_names} entered civil disorder.",
+                    body=body,
                     notification_type="civil_disorder",
                     data={"game_id": str(phase.game.id)},
+                )
+                send_email_notification.defer(
+                    user_ids=user_ids,
+                    subject=f"{phase.game.name} — Civil Disorder",
+                    html=notification_email(
+                        title="Civil Disorder",
+                        body=body,
+                        link=link,
+                    ),
                 )
 
         transaction.on_commit(send_notifications)
