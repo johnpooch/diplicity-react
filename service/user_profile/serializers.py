@@ -8,6 +8,7 @@ class UserProfileSerializer(serializers.Serializer):
     name = serializers.CharField(min_length=2, max_length=255)
     picture = serializers.CharField(read_only=True, allow_null=True)
     email = serializers.CharField(source="user.email", read_only=True)
+    email_notifications_enabled = serializers.BooleanField(required=False)
 
     def validate_name(self, value):
         value = value.strip()
@@ -19,6 +20,9 @@ class UserProfileSerializer(serializers.Serializer):
 
     def update(self, instance, validated_data):
         instance.name = validated_data.get("name", instance.name)
+        instance.email_notifications_enabled = validated_data.get(
+            "email_notifications_enabled", instance.email_notifications_enabled
+        )
         instance.save()
         return instance
 
