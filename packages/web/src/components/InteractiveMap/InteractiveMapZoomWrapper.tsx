@@ -2,6 +2,7 @@ import {
   TransformWrapper,
   TransformComponent,
   ReactZoomPanPinchContentRef,
+  ReactZoomPanPinchRef,
 } from "react-zoom-pan-pinch";
 import { useRef, useState, useEffect, useMemo } from "react";
 import { Maximize, Minimize } from "lucide-react";
@@ -13,6 +14,7 @@ import { parseDsvg } from "./dsvgParser";
 import { DiplicityMap } from "./mapRenderer";
 import type { Variant } from "../../api/generated/endpoints";
 
+const TRANSFORM_CACHE_MAX = 50;
 const transformCache = new Map<string, { x: number; y: number; scale: number }>();
 
 type VariantForMap = Pick<Variant, "id" | "nations" | "svgUrl">;
@@ -155,6 +157,10 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
   }, [parsedDsvg]);
 
   useEffect(() => {
+    hasInitializedRef.current = false;
+  }, [cacheKey]);
+
+  useEffect(() => {
     if (!transformRef.current || !containerDimensions || !svgViewBox) return;
     if (hasInitializedRef.current) return;
     hasInitializedRef.current = true;
@@ -196,8 +202,12 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
         disablePadding={true}
         panning={{ velocityDisabled: true }}
         velocityAnimation={{ disabled: true }}
-        onTransformChange={(_, state) => {
+        onTransformed={(_ref: ReactZoomPanPinchRef, state) => {
           if (cacheKey) {
+            if (transformCache.size >= TRANSFORM_CACHE_MAX) {
+              const oldest = transformCache.keys().next().value;
+              if (oldest !== undefined) transformCache.delete(oldest);
+            }
             transformCache.set(cacheKey, { x: state.positionX, y: state.positionY, scale: state.scale });
           }
         }}

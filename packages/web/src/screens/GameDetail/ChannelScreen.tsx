@@ -81,6 +81,7 @@ const buildMessageItems = (
   });
 };
 
+const FOCUS_CACHE_MAX = 100;
 const channelFocusCache = new Map<string, boolean>();
 
 const BUBBLE_ALPHA_HEX = "26"; // 15% opacity (0x26/0xFF)
@@ -120,6 +121,12 @@ const ChannelScreen: React.FC = () => {
       inputRef.current?.focus();
     }
     return () => {
+      if (channelFocusCache.size >= FOCUS_CACHE_MAX && !channelFocusCache.has(key)) {
+        const oldest = channelFocusCache.keys().next().value;
+        if (oldest !== undefined) channelFocusCache.delete(oldest);
+      }
+      // isFocusedRef.current is only true when onFocus fired, so no-press games
+      // (which never render the Input) will naturally store false here.
       channelFocusCache.set(key, isFocusedRef.current);
     };
   }, [gameId, channelId]);

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useRequiredParams } from "@/hooks";
 import { ArrowLeft, Map, Gavel, MessageCircle } from "lucide-react";
@@ -45,12 +45,12 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
     },
   });
 
-  const lastChatPathRef = useRef<string | null>(null);
+  const [lastChatPath, setLastChatPath] = useState<string | null>(null);
 
   useEffect(() => {
     const chatPrefix = `/game/${gameId}/phase/${phaseId}/chat`;
     if (location.pathname.startsWith(chatPrefix)) {
-      lastChatPathRef.current = location.pathname;
+      setLastChatPath(location.pathname);
     }
   }, [location.pathname, gameId, phaseId]);
 
@@ -69,9 +69,13 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
           ? "•"
           : undefined;
       const isChat = item.label === "Chat";
-      const clickPath = isChat && lastChatPathRef.current ? lastChatPathRef.current : basePath;
+      // Only use lastChatPath if it still belongs to the current phase — guards against
+      // stale paths surviving a phase advance.
+      const chatPrefix = `/game/${gameId}/phase/${phaseId}/chat`;
+      const validChatPath = lastChatPath?.startsWith(chatPrefix) ? lastChatPath : null;
+      const clickPath = isChat && validChatPath ? validChatPath : basePath;
       const isActive = isChat
-        ? location.pathname.startsWith(basePath)
+        ? location.pathname === basePath || location.pathname.startsWith(basePath + "/")
         : location.pathname === basePath;
       return {
         ...item,
@@ -80,7 +84,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
         badge,
       };
     });
-  }, [gameId, phaseId, location.pathname, game?.totalUnreadMessageCount, game?.sandbox]);
+  }, [gameId, phaseId, location.pathname, game?.totalUnreadMessageCount, game?.sandbox, lastChatPath]);
 
   // Filter out Map for desktop sidebar since map is already visible in right panel
   const sidebarNavItems = useMemo(
