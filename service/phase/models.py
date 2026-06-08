@@ -455,6 +455,9 @@ class PhaseManager(models.Manager):
             m.civil_disorder = True
         Member.objects.bulk_update(newly_cd_members, ["civil_disorder"])
 
+        cd_user_ids = [m.user_id for m in newly_cd_members if m.user_id is not None]
+        self._remove_from_staging_games(cd_user_ids)
+
         user_ids = [
             m.user_id for m in phase.game.members.all() if m.user_id is not None
         ]
@@ -487,6 +490,42 @@ class PhaseManager(models.Manager):
         transaction.on_commit(send_notifications)
 
         return newly_cd_members
+
+    def _remove_from_staging_games(self, user_ids):
+        if not user_ids:
+            return
+
+        staging_members = list(
+            Member.objects.filter(
+                user_id__in=user_ids,
+                game__status=GameStatus.PENDING,
+                is_game_master=False,
+            ).select_related("game")
+        )
+
+        if not staging_members:
+            return
+
+        games_by_user = {}
+        game_ids = set()
+        for m in staging_members:
+            games_by_user.setdefault(m.user_id, []).append(m.game)
+            game_ids.add(m.game_id)
+
+        Member.objects.filter(id__in=[m.id for m in staging_members]).delete()
+
+        for user_id, games in games_by_user.items():
+            game_names = ", ".join(g.name for g in games)
+            send_notification.defer(
+                user_ids=[user_id],
+                title="Removed from staging games",
+                body=f"You were removed from {game_names} because you entered civil disorder in an active game.",
+                notification_type="removed_from_staging",
+            )
+
+        from game.models import Game
+        for game in Game.objects.filter(id__in=game_ids, status=GameStatus.PENDING):
+            game.delete_if_empty_pending()
 
     def _check_eliminations(self, previous_phase, new_phase):
         units_by_nation = {}
