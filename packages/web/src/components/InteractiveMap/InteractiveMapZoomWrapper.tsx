@@ -14,7 +14,7 @@ import { parseDsvg } from "./dsvgParser";
 import { DiplicityMap } from "./mapRenderer";
 import type { Variant } from "../../api/generated/endpoints";
 
-const TRANSFORM_CACHE_MAX = 50;
+const TRANSFORM_CACHE_MAX = 5;
 const transformCache = new Map<string, { x: number; y: number; scale: number }>();
 
 type VariantForMap = Pick<Variant, "id" | "nations" | "svgUrl">;
