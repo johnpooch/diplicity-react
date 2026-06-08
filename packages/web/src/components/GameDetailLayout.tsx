@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useRequiredParams } from "@/hooks";
 import { ArrowLeft, Map, Gavel, MessageCircle } from "lucide-react";
@@ -45,12 +45,21 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
     },
   });
 
+  const lastChatPathRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const chatPrefix = `/game/${gameId}/phase/${phaseId}/chat`;
+    if (location.pathname.startsWith(chatPrefix)) {
+      lastChatPathRef.current = location.pathname;
+    }
+  }, [location.pathname, gameId, phaseId]);
+
   const navItems = useMemo(() => {
     const items = game?.sandbox
       ? navigationItems.filter(item => item.label !== "Chat")
       : navigationItems;
     return items.map(item => {
-      const path = item.path
+      const basePath = item.path
         .replace(":gameId", gameId)
         .replace(":phaseId", phaseId);
       const badge =
@@ -59,10 +68,15 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
         game.totalUnreadMessageCount > 0
           ? "•"
           : undefined;
+      const isChat = item.label === "Chat";
+      const clickPath = isChat && lastChatPathRef.current ? lastChatPathRef.current : basePath;
+      const isActive = isChat
+        ? location.pathname.startsWith(basePath)
+        : location.pathname === basePath;
       return {
         ...item,
-        path,
-        isActive: location.pathname === path,
+        path: clickPath,
+        isActive,
         badge,
       };
     });

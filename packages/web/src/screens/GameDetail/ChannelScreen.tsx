@@ -1,4 +1,4 @@
-import React, { Suspense, useRef, useEffect, useState, useMemo } from "react";
+import React, { Suspense, useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Send, MessageCircle, MessageSquareOff } from "lucide-react";
@@ -81,6 +81,8 @@ const buildMessageItems = (
   });
 };
 
+const channelFocusCache = new Map<string, boolean>();
+
 const BUBBLE_ALPHA_HEX = "26"; // 15% opacity (0x26/0xFF)
 
 const NewMessagesDivider: React.FC = () => (
@@ -109,6 +111,21 @@ const ChannelScreen: React.FC = () => {
   const markReadMutation = useGamesChannelsMarkReadCreate();
 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const isFocusedRef = useRef(false);
+
+  useEffect(() => {
+    const key = `${gameId}-${channelId}`;
+    if (channelFocusCache.get(key)) {
+      inputRef.current?.focus();
+    }
+    return () => {
+      channelFocusCache.set(key, isFocusedRef.current);
+    };
+  }, [gameId, channelId]);
+
+  const handleInputFocus = useCallback(() => { isFocusedRef.current = true; }, []);
+  const handleInputBlur = useCallback(() => { isFocusedRef.current = false; }, []);
 
   const channel = channels.find(c => c.id === parseInt(channelId));
   if (!channel) throw new Error("Channel not found");
@@ -310,10 +327,13 @@ const ChannelScreen: React.FC = () => {
           <Panel.Footer>
             <div className="flex gap-2 w-full">
               <Input
+                ref={inputRef}
                 placeholder="Type a message"
                 value={message}
                 onChange={e => setMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
                 disabled={createMessageMutation.isPending}
                 className="flex-1"
               />
