@@ -951,24 +951,6 @@ class TestAdjudicationService:
         member_italy,
         member_germany,
     ):
-        """
-        Regression: when a CD nation needs to disband and a non-CD nation needs
-        to build, the Adjustment phase must not be skipped.
-
-        Build options have source = empty SC province (not a unit location), so
-        they were invisible to _should_skip's location_to_nation lookup. Only
-        Germany's disband option was detected; since Germany is the only nation
-        in option_nations and is in cd_nations, the phase was incorrectly
-        skipped, cheating Italy out of a build.
-
-        Setup:
-        - Italy holds at ven (home SC); also owns rom (empty home SC).
-          1 unit, 2 SCs → needs to build 1 at rom.
-        - Germany (Civil Disorder) holds at kie (home SC) and ruh (non-SC).
-          2 units, 1 SC → needs to disband 1 (auto-handled by CD).
-        No dislodgements → empty Fall Retreat is skipped automatically.
-        The Adjustment phase must still be created for Italy's build.
-        """
         member_germany.civil_disorder = True
         member_germany.save()
 
@@ -992,7 +974,7 @@ class TestAdjudicationService:
         assert data["type"] == "Adjustment"
 
         italy_options = data["options"].get("Italy", {})
-        assert italy_options != {}, "Italy must have build options in the Adjustment phase"
+        assert italy_options != {}
 
 
 class TestUserUploadedVariant:

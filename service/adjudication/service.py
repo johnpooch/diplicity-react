@@ -73,12 +73,7 @@ def start(phase) -> Dict[str, Any]:
         }
 
 
-def _should_skip(options, units, supply_centers, cd_nations, nation_name_by_id):
-    """Return True if the phase can be skipped — no human input is needed.
-
-    A phase is skippable when it has no options at all, or when every nation
-    with options is in `cd_nations` (civil disorder or non-playable).
-    """
+def _should_skip(options, units, supply_centers, cd_nations, nation_name_by_id, variant):
     if not options:
         return True
     if not cd_nations:
@@ -87,8 +82,6 @@ def _should_skip(options, units, supply_centers, cd_nations, nation_name_by_id):
         u.location: nation_name_by_id.get(u.nation, u.nation)
         for u in units
     }
-    # Build options have source = empty SC province (not a unit location).
-    # Include SC ownership so build options are attributed to the right nation.
     province_to_nation = {
         sc.province: nation_name_by_id.get(sc.nation, sc.nation)
         for sc in supply_centers
@@ -99,8 +92,10 @@ def _should_skip(options, units, supply_centers, cd_nations, nation_name_by_id):
             continue
         if opt.source in location_to_nation:
             option_nations.add(location_to_nation[opt.source])
-        elif opt.source in province_to_nation:
-            option_nations.add(province_to_nation[opt.source])
+        else:
+            province = variant.parent_of(opt.source)
+            if province in province_to_nation:
+                option_nations.add(province_to_nation[province])
     return bool(option_nations) and option_nations.issubset(cd_nations)
 
 
@@ -133,7 +128,7 @@ def resolve(phase) -> Dict[str, Any]:
         next_options = get_options(next_state) if len(states) > 1 else []
         _skip_count = 0
         _MAX_SKIP = 10
-        while len(states) > 1 and _should_skip(next_options, next_state.units, next_state.supply_centers, cd_nations, nation_name_by_id):
+        while len(states) > 1 and _should_skip(next_options, next_state.units, next_state.supply_centers, cd_nations, nation_name_by_id, next_state.variant):
             _skip_count += 1
             if _skip_count >= _MAX_SKIP:
                 logger.warning(
