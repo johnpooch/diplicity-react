@@ -7,4 +7,5 @@ urlpatterns = [
     path("game/<str:game_id>/leave/", views.MemberDeleteView.as_view(), name="game-leave"),
     path("game/<str:game_id>/kick/<int:member_id>/", views.MemberKickView.as_view(), name="game-kick"),
     path("game/<str:game_id>/recover-from-civil-disorder/", views.CivilDisorderRecoveryView.as_view(), name="civil-disorder-recovery"),
+    path("game/<str:game_id>/confirm/", views.MemberConfirmView.as_view(), name="game-confirm"),
 ]

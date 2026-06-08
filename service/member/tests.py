@@ -108,7 +108,7 @@ def test_join_game_success(authenticated_client, pending_game_created_by_seconda
     Test that an authenticated user can successfully join a game.
     """
     url = reverse(join_viewname, args=[pending_game_created_by_secondary_user.id])
-    response = authenticated_client.post(url)
+    response = authenticated_client.post(url, {"message": "Hello!"}, format="json")
     assert response.status_code == status.HTTP_201_CREATED
     assert response.data["name"] == primary_user.profile.name
     assert response.data["is_current_user"] is True
@@ -276,7 +276,7 @@ def test_join_game_member_is_not_game_master(
     Only the creator should be the game master.
     """
     url = reverse(join_viewname, args=[pending_game_created_by_secondary_user.id])
-    response = authenticated_client.post(url)
+    response = authenticated_client.post(url, {"message": "Hello!"}, format="json")
     assert response.status_code == status.HTTP_201_CREATED
 
     assert response.data["is_game_master"] is False
@@ -293,7 +293,7 @@ def test_game_has_exactly_one_game_master(
     Test that a game can only have one game master (the creator).
     """
     url = reverse(join_viewname, args=[pending_game_created_by_secondary_user.id])
-    response = authenticated_client.post(url)
+    response = authenticated_client.post(url, {"message": "Hello!"}, format="json")
     assert response.status_code == status.HTTP_201_CREATED
 
     game = pending_game_created_by_secondary_user

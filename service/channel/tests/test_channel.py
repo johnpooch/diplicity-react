@@ -650,7 +650,7 @@ class TestChannelMemberAutoCreation:
         public_channel = Channel.objects.create(game=game, name="Public Press", private=False)
 
         url = reverse("game-join", args=[game.id])
-        response = authenticated_client.post(url, format="json")
+        response = authenticated_client.post(url, {"message": "Hello!"}, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
 

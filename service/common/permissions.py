@@ -143,6 +143,24 @@ class IsNotNoPressActiveGame(BasePermission):
         return game.status in (GameStatus.COMPLETED, GameStatus.ABANDONED)
 
 
+class IsPendingPublicChannelOrActiveGame(BasePermission):
+    message = "Channel access is not available for this game."
+
+    def has_permission(self, request, view):
+        game = resolve_game(request, view.kwargs.get("game_id"))
+        if game.status in (GameStatus.ACTIVE, GameStatus.COMPLETED, GameStatus.ABANDONED):
+            return True
+        if game.status == GameStatus.PENDING:
+            channel_id = view.kwargs.get("channel_id")
+            if channel_id is None:
+                return True
+            channel = Channel.objects.filter(id=channel_id).first()
+            if channel is None:
+                return True
+            return not channel.private
+        return False
+
+
 class IsGameMaster(BasePermission):
     message = "Only the Game Master can perform this action."
 

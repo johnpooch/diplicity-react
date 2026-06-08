@@ -83,6 +83,8 @@ class GameListSerializer(serializers.Serializer):
     movement_frequency = serializers.CharField(read_only=True, allow_null=True)
     retreat_frequency = serializers.CharField(read_only=True, allow_null=True)
     press_type = serializers.CharField(read_only=True)
+    confirmation_required = serializers.BooleanField(read_only=True)
+    confirmation_deadline = serializers.DateTimeField(read_only=True, allow_null=True)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):
@@ -163,6 +165,8 @@ class GameRetrieveSerializer(serializers.Serializer):
     movement_frequency = serializers.CharField(read_only=True, allow_null=True)
     retreat_frequency = serializers.CharField(read_only=True, allow_null=True)
     press_type = serializers.CharField(read_only=True)
+    confirmation_required = serializers.BooleanField(read_only=True)
+    confirmation_deadline = serializers.DateTimeField(read_only=True, allow_null=True)
     total_unread_message_count = serializers.SerializerMethodField()
 
     @extend_schema_field(serializers.IntegerField)
@@ -277,6 +281,7 @@ class GameCreateSerializer(serializers.Serializer):
         choices=PressType.PRESS_TYPE_CHOICES,
         default=PressType.FULL_PRESS,
     )
+    confirmation_required = serializers.BooleanField(default=True)
 
     def validate_variant_id(self, value):
         try:
@@ -354,6 +359,7 @@ class GameCreateSerializer(serializers.Serializer):
                 retreat_frequency=validated_data.get("retreat_frequency"),
                 nmr_extensions_allowed=validated_data["nmr_extensions_allowed"],
                 press_type=validated_data["press_type"],
+                confirmation_required=validated_data["confirmation_required"],
             )
 
             creator_member = game.members.create(user=request.user, is_game_master=True)

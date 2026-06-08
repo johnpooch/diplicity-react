@@ -342,6 +342,8 @@ class Game(BaseModel):
         null=True,
         blank=True,
     )
+    confirmation_required = models.BooleanField(default=True)
+    confirmation_deadline = models.DateTimeField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
         if not self.id:
