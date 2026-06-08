@@ -958,12 +958,14 @@ class TestAdjudicationService:
         Build options have source = empty SC province (not a unit location), so
         they were invisible to _should_skip's location_to_nation lookup. Only
         Germany's disband option was detected; since Germany is the only nation
-        in option_nations and is in skip_nations, the phase was incorrectly
+        in option_nations and is in cd_nations, the phase was incorrectly
         skipped, cheating Italy out of a build.
 
-        Setup: Italy holds at ber with SCs at ber+mun (1 unit, 2 SCs → build 1).
-        Germany holds at kie+den with only kie as SC (2 units, 1 SC → disband 1,
-        but Germany is in Civil Disorder so disbands are auto-handled).
+        Setup:
+        - Italy holds at ven (home SC); also owns rom (empty home SC).
+          1 unit, 2 SCs → needs to build 1 at rom.
+        - Germany (Civil Disorder) holds at kie (home SC) and ruh (non-SC).
+          2 units, 1 SC → needs to disband 1 (auto-handled by CD).
         No dislodgements → empty Fall Retreat is skipped automatically.
         The Adjustment phase must still be created for Italy's build.
         """
@@ -973,13 +975,15 @@ class TestAdjudicationService:
         phase_state_italy = phase_fall_1901_movement.phase_states.create(member=member_italy)
         phase_state_germany = phase_fall_1901_movement.phase_states.create(member=member_germany)
 
-        create_supply_center(phase_state_italy, "ber")
-        create_supply_center(phase_state_italy, "mun")
-        create_supply_center(phase_state_germany, "kie")
+        # Italy: 1 unit at ven, owns ven + rom (both Italy home SCs). rom is empty.
+        create_supply_center(phase_state_italy, "ven")
+        create_supply_center(phase_state_italy, "rom")
+        create_unit(phase_state_italy, "ven", "Army")
 
-        create_unit(phase_state_italy, "ber", "Army")
+        # Germany: 2 units (kie home SC + ruh non-SC), 1 SC (kie). Surplus = 1 disband.
+        create_supply_center(phase_state_germany, "kie")
         create_unit(phase_state_germany, "kie", "Army")
-        create_unit(phase_state_germany, "den", "Fleet")
+        create_unit(phase_state_germany, "ruh", "Army")
 
         data = adjudication_service.resolve(phase_fall_1901_movement)
 
