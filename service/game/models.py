@@ -224,7 +224,7 @@ class GameManager(models.Manager):
         with transaction.atomic():
             game = self.create_from_template(variant, name=name, **kwargs)
 
-            nations_list = list(variant.nations.filter(non_playable=False))
+            nations_list = list(variant.nations.all())
             members_to_create = [Member(game=game, user=user) for _ in nations_list]
             created_members = Member.objects.bulk_create(members_to_create)
 
@@ -319,6 +319,8 @@ class Game(BaseModel):
         choices=NationAssignment.NATION_ASSIGNMENT_CHOICES,
         default=NationAssignment.RANDOM,
     )
+    started_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
     paused_at = models.DateTimeField(null=True, blank=True)
     nmr_extensions_allowed = models.PositiveSmallIntegerField(default=0)
     deadline_mode = models.CharField(
@@ -476,7 +478,7 @@ class Game(BaseModel):
             # Use prefetched nations if available, otherwise fetch
             # variant.nations.all() is already prefetched via with_game_creation_data()
             # Accessing .all() on a prefetched queryset doesn't trigger a new query
-            nations = list(self.variant.nations.filter(non_playable=False))
+            nations = list(self.variant.nations.all())
 
             if self.nation_assignment == NationAssignment.RANDOM:
                 import random
@@ -506,6 +508,7 @@ class Game(BaseModel):
             PhaseState.objects.bulk_create(phase_states_to_create)
 
             self.status = GameStatus.ACTIVE
+            self.started_at = timezone.now()
             self.save()
 
     def pause(self):

@@ -198,6 +198,14 @@ def _fleet_target_is_bare_multi_coast(view: StateView, order: MoveOrder) -> bool
     return bool(variant.coasts_of(order.target))
 
 
+def _reachable_provinces(variant, source_loc: str, unit_type: str) -> set:
+    result = set()
+    for adj in variant.adjacencies_of(source_loc):
+        if adj.allows(unit_type):
+            result.add(variant.parent_of(adj.to))
+    return result
+
+
 def _support_options(
     view: StateView,
     supporter: Unit,
@@ -229,14 +237,12 @@ def _support_options(
                     named_coast=None,
                 )
             )
+    supporter_targets = _reachable_provinces(variant, source_loc, supporter.type)
+    supporter_targets.discard(source_parent)
     for mover_loc, mover in standing_items:
         if variant.parent_of(mover_loc) == source_parent:
             continue
-        # A support is given to a province, never a named coast — enumerate
-        # bare provinces only so a multi-coast target yields a single option.
-        for target in variant.provinces:
-            if target == source_parent:
-                continue
+        for target in supporter_targets:
             order = SupportMoveOrder(
                 nation=supporter.nation,
                 source=source_loc,

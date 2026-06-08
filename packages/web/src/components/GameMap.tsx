@@ -1,5 +1,6 @@
 import { useRequiredParams } from "../hooks";
 import { useRef, useMemo, useEffect, useState, useCallback } from "react";
+import { useIsDesktopWeb } from "@/hooks/use-platform";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { determineRenderableProvinces } from "../utils/provinces";
@@ -48,6 +49,18 @@ function useBanner(duration = 3000) {
   return { message, show };
 }
 
+const ORDER_TYPE_KEYS: Record<string, string> = {
+  Hold: "H",
+  Move: "M",
+  Support: "S",
+  Convoy: "C",
+  MoveViaConvoy: "V",
+  Army: "A",
+  Fleet: "F",
+  Disband: "D",
+  Build: "B",
+};
+
 const GameMap: React.FC = () => {
   const { gameId, phaseId } = useRequiredParams<{
     gameId: string;
@@ -63,6 +76,7 @@ const GameMap: React.FC = () => {
   const { data: orders } = useGameOrdersList(gameId, selectedPhase);
   const { data: optionsData } = useGameOptionsRetrieve(gameId);
 
+  const isDesktopWeb = useIsDesktopWeb();
   const containerRef = useRef<HTMLDivElement>(null);
   const [menuPosition, setMenuPosition] = useState<{
     x: number;
@@ -213,6 +227,26 @@ const GameMap: React.FC = () => {
       wizard.nextField === "namedCoast") &&
     menuPosition !== null;
 
+  useEffect(() => {
+    if (!showMenu || !isDesktopWeb) return;
+
+    const keyToOrderType = Object.fromEntries(
+      Object.entries(ORDER_TYPE_KEYS).map(([id, key]) => [key, id])
+    );
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const orderTypeId = keyToOrderType[event.key.toUpperCase()];
+      if (!orderTypeId) return;
+      const match = wizard.choices.find((c) => c.id === orderTypeId);
+      if (match) {
+        wizard.select(match.id);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showMenu, isDesktopWeb, wizard]);
+
   const displayOrders = pendingOrder
     ? [
         ...(orders ?? []).filter(
@@ -263,6 +297,11 @@ const GameMap: React.FC = () => {
                 key={c.id}
                 onClick={() => handleSelectOrderOption(c.id)}
               >
+                {isDesktopWeb && ORDER_TYPE_KEYS[c.id] && (
+                  <kbd className="inline-flex items-center justify-center size-5 rounded border border-border bg-muted text-muted-foreground font-mono text-xs shrink-0 pl-px pt-0.5">
+                    {ORDER_TYPE_KEYS[c.id]}
+                  </kbd>
+                )}
                 {c.label}
               </FloatingMenuItem>
             ))}

@@ -4,13 +4,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("nation", "0011_backfill_bundled_flags"),
+        ('user_profile', '0002_alter_userprofile_picture'),
     ]
 
     operations = [
         migrations.AddField(
-            model_name="nation",
-            name="non_playable",
+            model_name='userprofile',
+            name='email_notifications_enabled',
             field=models.BooleanField(default=False),
         ),
     ]

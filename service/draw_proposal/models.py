@@ -1,4 +1,5 @@
 from django.db import models, transaction
+from django.utils import timezone
 from common.models import BaseModel
 from common.constants import GameStatus
 from draw_proposal.constants import DrawProposalStatus
@@ -137,6 +138,7 @@ class DrawProposal(BaseModel):
                 member.save()
 
             self.game.status = GameStatus.COMPLETED
+            self.game.finished_at = timezone.now()
             self.game.save()
 
             return victory

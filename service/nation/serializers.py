@@ -10,7 +10,6 @@ class NationSerializer(serializers.Serializer):
     nation_id = serializers.CharField()
     name = serializers.CharField()
     color = serializers.CharField()
-    non_playable = serializers.BooleanField()
     flag_url = serializers.SerializerMethodField()
 
     def get_flag_url(self, nation) -> Optional[str]:

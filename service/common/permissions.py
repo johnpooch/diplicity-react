@@ -89,7 +89,7 @@ class IsSpaceAvailable(BasePermission):
 
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
-        return game.members.count() < game.variant.nations.filter(non_playable=False).count()
+        return game.members.count() < game.variant.nations.count()
 
 
 class IsCurrentPhaseActive(BasePermission):
@@ -156,3 +156,15 @@ class IsGameMaster(BasePermission):
             self.message = "Only the Game Master can perform this action."
             return False
         return True
+
+
+class IsInCivilDisorder(BasePermission):
+    message = "Player is not in civil disorder."
+
+    def has_permission(self, request, view):
+        game = resolve_game(request, view.kwargs.get("game_id"))
+        member = game.members.filter(user=request.user).first()
+        if not member:
+            self.message = "User is not a member of the game."
+            return False
+        return member.civil_disorder
