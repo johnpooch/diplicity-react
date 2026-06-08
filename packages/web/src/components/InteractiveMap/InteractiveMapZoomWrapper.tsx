@@ -43,7 +43,7 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
   const svgRef = useRef<SVGSVGElement>(null);
   const transformRef = useRef<ReactZoomPanPinchContentRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const hasInitializedRef = useRef(false);
+  const initializedCacheKeyRef = useRef<string | undefined | null>(null);
 
   const { data: dsvg, isLoading } = useDsvg(interactiveMapProps.variant.svgUrl);
 
@@ -157,13 +157,9 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
   }, [parsedDsvg]);
 
   useEffect(() => {
-    hasInitializedRef.current = false;
-  }, [cacheKey]);
-
-  useEffect(() => {
     if (!transformRef.current || !containerDimensions || !svgViewBox) return;
-    if (hasInitializedRef.current) return;
-    hasInitializedRef.current = true;
+    if (initializedCacheKeyRef.current === cacheKey) return;
+    initializedCacheKeyRef.current = cacheKey;
 
     const cached = cacheKey ? transformCache.get(cacheKey) : null;
     if (cached) {
