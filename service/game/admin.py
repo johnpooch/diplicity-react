@@ -11,9 +11,9 @@ class GameAdmin(admin.ModelAdmin):
     list_display = (
         "id", "name", "variant", "status", "current_phase", "view_phases",
         "private", "deadline_mode", "movement_phase_duration", "retreat_phase_duration",
-        "fixed_deadline_time", "movement_frequency"
+        "fixed_deadline_time", "movement_frequency", "confirmation_required"
     )
-    list_filter = ("status", "private", "variant", "deadline_mode")
+    list_filter = ("status", "private", "variant", "deadline_mode", "confirmation_required")
     search_fields = ("name", "id")
     actions = ["start_game", "resolve_game"]
 

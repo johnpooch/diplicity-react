@@ -1,5 +1,17 @@
 # Diplicity React - Release Notes
 
+## Staging Game Experience (June 8, 2026)
+
+**Release Date:** June 8, 2026
+
+### Feature: Pre-game chat and intro messages
+
+Public Press is now open from the moment a game is created. Players joining a full press game must write an intro message, which is posted to Public Press for all members to see.
+
+### Feature: Confirmation before first phase
+
+Games now require all players to confirm they're ready before the first phase begins. Players who don't confirm in time are automatically removed. Game creators can opt out of this requirement when creating a game.
+
 ## Civil Disorder Retreat Fix (June 5, 2026)
 
 **Release Date:** June 5, 2026
