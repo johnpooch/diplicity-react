@@ -944,6 +944,52 @@ class TestAdjudicationService:
         germany_units = [u for u in data["units"] if u["nation"] == "Germany"]
         assert germany_units == []
 
+    @pytest.mark.django_db
+    def test_adjustment_not_skipped_when_cd_nation_disbands_and_other_nation_builds(
+        self,
+        phase_fall_1901_movement,
+        member_italy,
+        member_germany,
+    ):
+        """
+        Regression: when a CD nation needs to disband and a non-CD nation needs
+        to build, the Adjustment phase must not be skipped.
+
+        Build options have source = empty SC province (not a unit location), so
+        they were invisible to _should_skip's location_to_nation lookup. Only
+        Germany's disband option was detected; since Germany is the only nation
+        in option_nations and is in skip_nations, the phase was incorrectly
+        skipped, cheating Italy out of a build.
+
+        Setup: Italy holds at ber with SCs at ber+mun (1 unit, 2 SCs → build 1).
+        Germany holds at kie+den with only kie as SC (2 units, 1 SC → disband 1,
+        but Germany is in Civil Disorder so disbands are auto-handled).
+        No dislodgements → empty Fall Retreat is skipped automatically.
+        The Adjustment phase must still be created for Italy's build.
+        """
+        member_germany.civil_disorder = True
+        member_germany.save()
+
+        phase_state_italy = phase_fall_1901_movement.phase_states.create(member=member_italy)
+        phase_state_germany = phase_fall_1901_movement.phase_states.create(member=member_germany)
+
+        create_supply_center(phase_state_italy, "ber")
+        create_supply_center(phase_state_italy, "mun")
+        create_supply_center(phase_state_germany, "kie")
+
+        create_unit(phase_state_italy, "ber", "Army")
+        create_unit(phase_state_germany, "kie", "Army")
+        create_unit(phase_state_germany, "den", "Fleet")
+
+        data = adjudication_service.resolve(phase_fall_1901_movement)
+
+        assert data["year"] == 1901
+        assert data["season"] == "Fall"
+        assert data["type"] == "Adjustment"
+
+        italy_options = data["options"].get("Italy", {})
+        assert italy_options != {}, "Italy must have build options in the Adjustment phase"
+
 
 class TestUserUploadedVariant:
     """Regression: prior to dropping the godip HTTP adjudicator, creating a
