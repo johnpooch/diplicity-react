@@ -3385,6 +3385,40 @@ class TestCivilDisorderStagingRemoval:
         assert staging_removal_jobs[0]["args"]["user_ids"] == [primary_user.id]
 
 
+    @pytest.mark.django_db
+    def test_cd_does_not_remove_game_master_from_staging(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        primary_user,
+        secondary_user,
+        in_memory_procrastinate,
+    ):
+        game, italy, germany, phase2 = self._setup_cd_scenario(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            italy_vs_germany_venice_province,
+            primary_user,
+            secondary_user,
+        )
+
+        staging_game = Game.objects.create(
+            variant=italy_vs_germany_variant,
+            name="GM Staging Game",
+            status=GameStatus.PENDING,
+        )
+        staging_game.members.create(user=primary_user, is_game_master=True)
+        staging_game.members.create(user=secondary_user)
+
+        Phase.objects._check_civil_disorder(phase2)
+
+        assert staging_game.members.filter(user=primary_user).exists()
+        assert staging_game.members.filter(user=secondary_user).exists()
+
+
 class TestSetOrdersOutcome:
 
     def _setup_phase(self, variant, italy_nation, germany_nation, primary_user, secondary_user):

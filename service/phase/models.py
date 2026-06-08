@@ -473,6 +473,7 @@ class PhaseManager(models.Manager):
             Member.objects.filter(
                 user_id__in=user_ids,
                 game__status=GameStatus.PENDING,
+                is_game_master=False,
             ).select_related("game")
         )
 
