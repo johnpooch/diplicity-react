@@ -119,7 +119,12 @@ const ChannelScreen: React.FC = () => {
   useEffect(() => {
     const key = `${gameId}-${channelId}`;
     if (channelFocusCache.get(key)) {
-      inputRef.current?.focus();
+      const el = inputRef.current;
+      if (el) {
+        el.focus();
+        const len = el.value.length;
+        el.setSelectionRange(len, len);
+      }
     }
     return () => {
       if (channelFocusCache.size >= FOCUS_CACHE_MAX && !channelFocusCache.has(key)) {
