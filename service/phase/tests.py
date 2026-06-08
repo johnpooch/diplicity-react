@@ -3210,6 +3210,7 @@ class TestCivilDisorderStagingRemoval:
         variant,
         italy_nation,
         germany_nation,
+        venice_province,
         primary_user,
         secondary_user,
     ):
@@ -3235,7 +3236,8 @@ class TestCivilDisorderStagingRemoval:
             ordinal=1, status=PhaseStatus.COMPLETED,
         )
         phase1.phase_states.create(member=italy, has_possible_orders=True)
-        phase1.phase_states.create(member=germany, has_possible_orders=True)
+        phase1_germany = phase1.phase_states.create(member=germany, has_possible_orders=True)
+        phase1_germany.orders.create(source=venice_province, order_type=OrderType.HOLD)
 
         phase2 = Phase.objects.create(
             game=game, variant=variant,
@@ -3243,7 +3245,8 @@ class TestCivilDisorderStagingRemoval:
             ordinal=2, status=PhaseStatus.ACTIVE,
         )
         phase2.phase_states.create(member=italy, has_possible_orders=True)
-        phase2.phase_states.create(member=germany, has_possible_orders=True)
+        phase2_germany = phase2.phase_states.create(member=germany, has_possible_orders=True)
+        phase2_germany.orders.create(source=venice_province, order_type=OrderType.HOLD)
 
         return game, italy, germany, phase2
 
@@ -3253,6 +3256,7 @@ class TestCivilDisorderStagingRemoval:
         italy_vs_germany_variant,
         italy_vs_germany_italy_nation,
         italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
         primary_user,
         secondary_user,
         in_memory_procrastinate,
@@ -3261,6 +3265,7 @@ class TestCivilDisorderStagingRemoval:
             italy_vs_germany_variant,
             italy_vs_germany_italy_nation,
             italy_vs_germany_germany_nation,
+            italy_vs_germany_venice_province,
             primary_user,
             secondary_user,
         )
@@ -3284,6 +3289,7 @@ class TestCivilDisorderStagingRemoval:
         italy_vs_germany_variant,
         italy_vs_germany_italy_nation,
         italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
         primary_user,
         secondary_user,
         in_memory_procrastinate,
@@ -3292,6 +3298,7 @@ class TestCivilDisorderStagingRemoval:
             italy_vs_germany_variant,
             italy_vs_germany_italy_nation,
             italy_vs_germany_germany_nation,
+            italy_vs_germany_venice_province,
             primary_user,
             secondary_user,
         )
@@ -3313,6 +3320,7 @@ class TestCivilDisorderStagingRemoval:
         italy_vs_germany_variant,
         italy_vs_germany_italy_nation,
         italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
         primary_user,
         secondary_user,
         in_memory_procrastinate,
@@ -3321,6 +3329,7 @@ class TestCivilDisorderStagingRemoval:
             italy_vs_germany_variant,
             italy_vs_germany_italy_nation,
             italy_vs_germany_germany_nation,
+            italy_vs_germany_venice_province,
             primary_user,
             secondary_user,
         )
@@ -3343,6 +3352,7 @@ class TestCivilDisorderStagingRemoval:
         italy_vs_germany_variant,
         italy_vs_germany_italy_nation,
         italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
         primary_user,
         secondary_user,
         in_memory_procrastinate,
@@ -3351,6 +3361,7 @@ class TestCivilDisorderStagingRemoval:
             italy_vs_germany_variant,
             italy_vs_germany_italy_nation,
             italy_vs_germany_germany_nation,
+            italy_vs_germany_venice_province,
             primary_user,
             secondary_user,
         )
@@ -3365,14 +3376,13 @@ class TestCivilDisorderStagingRemoval:
 
         Phase.objects._check_civil_disorder(phase2)
 
-        jobs = in_memory_procrastinate.jobs
         staging_removal_jobs = [
-            j for j in jobs
-            if j.get("task_name") == "notification.send_notification"
-            and j.get("task_kwargs", {}).get("notification_type") == "removed_from_staging"
+            j for j in in_memory_procrastinate.jobs.values()
+            if j["task_name"] == "notification.send_notification"
+            and j["args"].get("notification_type") == "removed_from_staging"
         ]
         assert len(staging_removal_jobs) == 1
-        assert staging_removal_jobs[0]["task_kwargs"]["user_ids"] == [primary_user.id]
+        assert staging_removal_jobs[0]["args"]["user_ids"] == [primary_user.id]
 
 
 class TestSetOrdersOutcome:
