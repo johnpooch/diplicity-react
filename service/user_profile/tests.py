@@ -279,6 +279,7 @@ class TestPublicUserProfileRetrieveView:
         url = reverse("public-user-profile", kwargs={"user_id": primary_user.id})
         response = authenticated_client.get(url)
 
+        primary_user.profile.refresh_from_db()
         assert response.status_code == status.HTTP_200_OK
         assert response.data["id"] == primary_user.id
         assert response.data["name"] == primary_user.profile.name
