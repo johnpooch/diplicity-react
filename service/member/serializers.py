@@ -9,6 +9,7 @@ ChannelMember = apps.get_model("channel", "ChannelMember")
 
 class BaseMemberSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
+    user_id = serializers.SerializerMethodField()
     name = serializers.SerializerMethodField()
     picture = serializers.SerializerMethodField()
     is_current_user = serializers.SerializerMethodField()
@@ -33,6 +34,14 @@ class BaseMemberSerializer(serializers.Serializer):
         if "game" in self.context:
             return self.context["game"]
         return obj.game
+
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
+    def get_user_id(self, obj):
+        if self._is_masked(obj):
+            return None
+        if obj.user is None:
+            return None
+        return obj.user_id
 
     @extend_schema_field(serializers.CharField)
     def get_name(self, obj):

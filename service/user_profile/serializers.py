@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from .utils import get_player_stats
+
 
 class UserProfileSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
@@ -23,3 +25,23 @@ class UserProfileSerializer(serializers.Serializer):
         )
         instance.save()
         return instance
+
+
+class PublicUserProfileSerializer(serializers.Serializer):
+    id = serializers.IntegerField(source="user.id", read_only=True)
+    name = serializers.CharField(read_only=True)
+    picture = serializers.CharField(read_only=True, allow_null=True)
+    created_at = serializers.DateTimeField(read_only=True)
+    total_games = serializers.IntegerField(read_only=True)
+    solo_wins = serializers.IntegerField(read_only=True)
+    draws = serializers.IntegerField(read_only=True)
+    losses = serializers.IntegerField(read_only=True)
+    nmr_rate = serializers.FloatField(read_only=True)
+    cd_rate = serializers.FloatField(read_only=True)
+    reliability_tier = serializers.CharField(read_only=True, allow_null=True)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        stats = get_player_stats(instance.user)
+        data.update(stats)
+        return data
