@@ -101,10 +101,10 @@ class Variant(BaseModel):
     description = models.TextField()
     author = models.CharField(max_length=200, blank=True)
     victory_conditions = models.JSONField(default=default_victory_conditions)
-    adjudication_modifiers = models.JSONField(default=list)
+    adjudication_modifiers = models.JSONField(default=list, blank=True)
     phase_progression = models.JSONField(default=default_phase_progression)
     rules = models.TextField(blank=True, default="")
-    dominance_rules = models.JSONField(default=list)
+    dominance_rules = models.JSONField(default=list, blank=True)
     status = models.CharField(
         max_length=20,
         choices=VariantStatus.STATUS_CHOICES,

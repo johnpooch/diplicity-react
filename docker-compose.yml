@@ -107,6 +107,7 @@ services:
       - diplicity-network
     depends_on:
       - db
+      - service
 
   worker:
     container_name: diplicity-worker

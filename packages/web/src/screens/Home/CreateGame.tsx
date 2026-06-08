@@ -66,6 +66,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
+import { CREATE_GAME_PARAM } from "@/utils/routes";
 
 const standardGameSchema = z.object({
   name: z
@@ -245,21 +246,25 @@ interface CreateStandardGameFormProps {
   onSubmit: (data: StandardGameFormValues) => Promise<void>;
   isSubmitting: boolean;
   variants: Variant[];
+  initialVariantId?: string;
+  initialPrivate?: boolean;
 }
 
 const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
   onSubmit,
   isSubmitting,
   variants,
+  initialVariantId,
+  initialPrivate,
 }) => {
   const form = useForm<StandardGameFormValues>({
     resolver: zodResolver(standardGameSchema),
     defaultValues: {
       name: randomGameName(),
-      variantId: variants[0].id,
+      variantId: initialVariantId ?? variants[0]?.id ?? "",
       mode: "standard",
       nationAssignment: "random" as NationAssignmentEnum,
-      private: false,
+      private: initialPrivate ?? false,
       deadlineMode: "fixed_time",
       movementPhaseDuration: "24 hours",
       retreatPhaseDuration: null,
@@ -273,6 +278,9 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
 
   const selectedVariant = variants?.find(v => v.id === form.watch("variantId"));
   const deadlineMode = form.watch("deadlineMode");
+  const isInitialVariantDraft =
+    initialVariantId !== undefined &&
+    variants.find(v => v.id === initialVariantId)?.status === "draft";
 
   return (
     <Form {...form}>
@@ -334,7 +342,7 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
                   <Checkbox
                     checked={field.value}
                     onCheckedChange={field.onChange}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isInitialVariantDraft}
                   />
                 </FormControl>
                 <div className="space-y-1 leading-none">
@@ -599,7 +607,7 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
           <VariantSelector
             control={form.control}
             name="variantId"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isInitialVariantDraft}
             variants={variants}
             selectedVariant={selectedVariant}
           />
@@ -667,7 +675,7 @@ const CreateSandboxGameForm: React.FC<CreateSandboxGameFormProps> = ({
     defaultValues: {
       sandboxGame: {
         name: randomGameName(),
-        variantId: variants[0].id,
+        variantId: variants[0]?.id ?? "",
       },
     },
   });
@@ -729,10 +737,24 @@ const CreateGame: React.FC = () => {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { data: allVariants } = useVariantsListSuspense();
-  const variants = React.useMemo(
+  const publishedVariants = React.useMemo(
     () => allVariants.filter(v => v.status === "published"),
     [allVariants]
   );
+
+  const initialVariantId = searchParams.get(CREATE_GAME_PARAM.variantId) ?? undefined;
+  const initialPrivate = searchParams.get(CREATE_GAME_PARAM.private) === "true";
+
+  const initialVariant = React.useMemo(
+    () => (initialVariantId ? allVariants.find(v => v.id === initialVariantId) : undefined),
+    [allVariants, initialVariantId]
+  );
+  const variants = React.useMemo(() => {
+    if (initialVariant && !publishedVariants.some(v => v.id === initialVariant.id)) {
+      return [initialVariant, ...publishedVariants];
+    }
+    return publishedVariants;
+  }, [publishedVariants, initialVariant]);
   const createGameMutation = useGameCreate();
   const createSandboxGameMutation = useSandboxGameCreate();
   const checkNotificationPermission = useCheckNotificationPermission();
@@ -890,6 +912,8 @@ const CreateGame: React.FC = () => {
                 onSubmit={handleStandardGameSubmit}
                 isSubmitting={createGameMutation.isPending}
                 variants={variants}
+                initialVariantId={initialVariantId}
+                initialPrivate={initialPrivate}
               />
             </ScreenCardContent>
           </ScreenCard>

@@ -117,7 +117,16 @@ def resolve(phase) -> Dict[str, Any]:
         # here. Skipped phases are never persisted -- only the final
         # interactive phase is written by create_from_adjudication_data.
         next_options = get_options(next_state) if len(states) > 1 else []
+        _skip_count = 0
+        _MAX_SKIP = 10
         while len(states) > 1 and _should_skip(next_options, next_state.units, cd_nations, nation_name_by_id):
+            _skip_count += 1
+            if _skip_count >= _MAX_SKIP:
+                logger.warning(
+                    f"Phase skip limit reached for phase {phase.id} "
+                    f"(game {phase.game.id}) — all nations likely in civil disorder"
+                )
+                break
             states = Engine().adjudicate(next_state)
             next_state = states[1] if len(states) > 1 else states[0]
             next_options = get_options(next_state) if len(states) > 1 else []
