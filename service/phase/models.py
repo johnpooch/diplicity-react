@@ -22,11 +22,8 @@ from victory.utils import check_for_solo_winner
 from victory.models import Victory
 from email_service.tasks import send_email_notification
 from email_service.templates import notification_email
-from django.apps import apps
 from notification import utils as notification_utils
 from notification.tasks import send_notification
-
-Game = apps.get_model("game", "Game")
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
@@ -526,6 +523,7 @@ class PhaseManager(models.Manager):
                 notification_type="removed_from_staging",
             )
 
+        from game.models import Game
         for game in Game.objects.filter(id__in=game_ids, status=GameStatus.PENDING):
             game.delete_if_empty_pending()
 
