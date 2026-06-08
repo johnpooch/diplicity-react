@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from adjudication import service as adjudication_service
 from common.constants import GameStatus, PhaseStatus, PhaseType
@@ -357,6 +358,7 @@ class TestPublicUserProfileRetrieveView:
                 name=f"Completed Game {i}",
                 variant=classical_variant,
                 status=GameStatus.COMPLETED,
+                finished_at=timezone.now(),
             )
             member = game.members.create(
                 user=user,
@@ -406,6 +408,7 @@ class TestPublicUserProfileRetrieveView:
                 name=f"NMR Game {i}",
                 variant=classical_variant,
                 status=GameStatus.COMPLETED,
+                finished_at=timezone.now(),
             )
             member = game.members.create(user=user, nation=classical_england_nation)
             phase = game.phases.create(
@@ -449,6 +452,7 @@ class TestPublicUserProfileRetrieveView:
                 name=f"CD Game {i}",
                 variant=classical_variant,
                 status=GameStatus.COMPLETED,
+                finished_at=timezone.now(),
             )
             member = game.members.create(
                 user=user,
@@ -491,6 +495,7 @@ class TestPublicUserProfileRetrieveView:
             name="Sandbox Game",
             variant=classical_variant,
             status=GameStatus.COMPLETED,
+            finished_at=timezone.now(),
             sandbox=True,
         )
         game.members.create(user=user, nation=classical_england_nation, won=True)
@@ -517,6 +522,7 @@ class TestPublicUserProfileRetrieveView:
             name="Kicked Game",
             variant=classical_variant,
             status=GameStatus.COMPLETED,
+            finished_at=timezone.now(),
         )
         game.members.create(
             user=user, nation=classical_england_nation, kicked=True
@@ -528,7 +534,7 @@ class TestPublicUserProfileRetrieveView:
         assert response.data["total_games"] == 0
 
     @pytest.mark.django_db
-    def test_only_movement_phases_count_for_nmr_rate(
+    def test_retreat_phase_nmrs_count_toward_nmr_rate(
         self,
         authenticated_client,
         classical_variant,
@@ -544,6 +550,7 @@ class TestPublicUserProfileRetrieveView:
                 name=f"Movement Game {i}",
                 variant=classical_variant,
                 status=GameStatus.COMPLETED,
+                finished_at=timezone.now(),
             )
             member = game.members.create(user=user, nation=classical_england_nation)
             movement_phase = game.phases.create(
@@ -576,8 +583,8 @@ class TestPublicUserProfileRetrieveView:
         url = reverse("public-user-profile", kwargs={"user_id": user.id})
         response = authenticated_client.get(url)
 
-        assert response.data["nmr_rate"] == 0.0
-        assert response.data["reliability_tier"] == "reliable"
+        assert response.data["nmr_rate"] == 0.5
+        assert response.data["reliability_tier"] is None
 
     @pytest.mark.django_db
     def test_can_view_other_users_profile(

@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 
-from common.constants import GameStatus, PhaseType
+from common.constants import GameStatus
 from member.models import Member
 from phase.models import PhaseState
 
@@ -20,7 +20,7 @@ def get_player_stats(user):
             kicked=False,
         )
         .select_related("game")
-        .order_by("-game__updated_at")
+        .order_by("-game__finished_at")
     )
 
     total_games = completed_members.count()
@@ -31,14 +31,13 @@ def get_player_stats(user):
     last_n_members = list(completed_members[:RELIABILITY_GAME_WINDOW])
     last_n_member_ids = [m.id for m in last_n_members]
 
-    movement_phase_states = PhaseState.objects.filter(
+    phase_states_with_orders = PhaseState.objects.filter(
         member_id__in=last_n_member_ids,
         has_possible_orders=True,
-        phase__type=PhaseType.MOVEMENT,
         phase__status="completed",
     )
-    total_phases = movement_phase_states.count()
-    nmr_phases = movement_phase_states.filter(
+    total_phases = phase_states_with_orders.count()
+    nmr_phases = phase_states_with_orders.filter(
         orders_outcome=PhaseState.OrdersOutcome.NMR
     ).count()
     nmr_rate = nmr_phases / total_phases if total_phases > 0 else 0.0
