@@ -60,7 +60,7 @@ const DeleteAccount: React.FC = () => {
         <div className="flex gap-2">
           <Button
             variant="outline"
-            onClick={() => navigate("/profile")}
+            onClick={() => navigate("/account")}
             className="flex-1"
           >
             Cancel

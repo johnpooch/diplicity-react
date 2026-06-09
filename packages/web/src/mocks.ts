@@ -25,6 +25,7 @@ export const mockNations: Nation[] = [
 export const mockMembers: Member[] = [
   {
     id: 1,
+    userId: 101,
     name: "Alice",
     picture: null,
     nation: "Austria",
@@ -37,6 +38,7 @@ export const mockMembers: Member[] = [
   },
   {
     id: 2,
+    userId: 102,
     name: "Bob",
     picture: null,
     nation: "England",
@@ -49,6 +51,7 @@ export const mockMembers: Member[] = [
   },
   {
     id: 3,
+    userId: 103,
     name: "Charlie",
     picture: null,
     nation: "France",
@@ -61,6 +64,7 @@ export const mockMembers: Member[] = [
   },
   {
     id: 4,
+    userId: 104,
     name: "Diana",
     picture: null,
     nation: "Germany",
@@ -73,6 +77,7 @@ export const mockMembers: Member[] = [
   },
   {
     id: 5,
+    userId: 105,
     name: "Eve",
     picture: null,
     nation: "Italy",
@@ -85,6 +90,7 @@ export const mockMembers: Member[] = [
   },
   {
     id: 6,
+    userId: 106,
     name: "Frank",
     picture: null,
     nation: "Russia",
@@ -97,6 +103,7 @@ export const mockMembers: Member[] = [
   },
   {
     id: 7,
+    userId: 107,
     name: "You",
     picture: null,
     nation: "Turkey",
@@ -235,7 +242,7 @@ export const mockPhaseMovement: PhaseRetrieve = {
     province,
     nation: mockNations[index],
   })),
-  provinceNations: {},
+  provinceNations: "",
 };
 
 export const mockPhaseRetreat: PhaseRetrieve = {
@@ -263,7 +270,7 @@ export const mockPhaseRetreat: PhaseRetrieve = {
     province,
     nation: mockNations[index],
   })),
-  provinceNations: {},
+  provinceNations: "",
 };
 
 export const mockPhaseAdjustment: PhaseRetrieve = {
@@ -283,7 +290,7 @@ export const mockPhaseAdjustment: PhaseRetrieve = {
     province,
     nation: mockNations[index % mockNations.length],
   })),
-  provinceNations: {},
+  provinceNations: "",
 };
 
 export const mockGames: GameList[] = [
@@ -618,6 +625,7 @@ export const mockVariants: Variant[] = [
 
 export const mockUserProfile: UserProfile = {
   id: 1,
+  userId: 1,
   name: "John Doe",
   picture: null,
   email: "john.doe@example.com",

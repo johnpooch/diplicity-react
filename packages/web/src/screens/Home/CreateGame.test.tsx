@@ -126,6 +126,7 @@ const matchedGame: GameList = {
   members: [
     {
       id: 99,
+      userId: 199,
       name: "Game Master Bob",
       picture: null,
       isCurrentUser: false,
@@ -138,6 +139,7 @@ const matchedGame: GameList = {
     },
     {
       id: 100,
+      userId: 200,
       name: "Other Player",
       picture: null,
       isCurrentUser: false,

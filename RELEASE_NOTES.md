@@ -1,5 +1,15 @@
 # Diplicity React - Release Notes
 
+## Player Profiles (June 2026)
+
+### Feature: Public player profiles with reliability stats
+
+Every player now has a public profile showing their name, avatar, reliability badge, NMR
+rate, CD rate, solo wins, draws, losses, and total games played. Player names in the player
+roster are tappable — tap any name to see that player's profile and stats. Players with
+strong reliability earn a "Reliable" badge; new players with fewer than 10 games show a
+"New" badge.
+
 ## Civil Disorder Retreat Fix (June 5, 2026)
 
 **Release Date:** June 5, 2026
