@@ -5,6 +5,7 @@ from .utils import get_player_stats
 
 class UserProfileSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
+    user_id = serializers.IntegerField(source="user.id", read_only=True)
     name = serializers.CharField(min_length=2, max_length=255)
     picture = serializers.CharField(read_only=True, allow_null=True)
     email = serializers.CharField(source="user.email", read_only=True)

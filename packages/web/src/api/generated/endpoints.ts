@@ -605,6 +605,7 @@ export interface PatchedPhaseState {
 
 export interface PatchedUserProfile {
   readonly id?: number;
+  readonly userId?: number;
   /**
    * @minLength 2
    * @maxLength 255
@@ -722,6 +723,7 @@ export interface TokenRefresh {
 
 export interface UserProfile {
   readonly id: number;
+  readonly userId: number;
   /**
    * @minLength 2
    * @maxLength 255

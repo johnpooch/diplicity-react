@@ -1,8 +1,13 @@
 import React from "react";
-import { ShieldCheck, Sprout } from "lucide-react";
+import { Info, ShieldCheck, Sprout } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
 import { useUsersRetrieveSuspense } from "@/api/generated/endpoints";
 
@@ -12,12 +17,31 @@ interface PlayerProfileContentProps {
 
 const formatPercent = (rate: number) => `${Math.round(rate * 100)}%`;
 
-const StatRow: React.FC<{ label: string; value: string | number }> = ({
-  label,
-  value,
-}) => (
+interface StatRowProps {
+  label: string;
+  value: string | number;
+  info?: string;
+}
+
+const StatRow: React.FC<StatRowProps> = ({ label, value, info }) => (
   <div className="flex items-center justify-between py-2">
-    <span className="text-sm text-muted-foreground">{label}</span>
+    <span className="text-sm text-muted-foreground flex items-center gap-1">
+      {label}
+      {info && (
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="text-muted-foreground/60 hover:text-muted-foreground"
+              aria-label={`What is ${label}?`}
+            >
+              <Info className="size-3.5" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="text-sm">{info}</PopoverContent>
+        </Popover>
+      )}
+    </span>
     <span className="text-sm font-medium">{value}</span>
   </div>
 );
@@ -70,8 +94,16 @@ export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
         <ScreenCardContent>
           <h3 className="text-sm font-semibold mb-2">Reliability</h3>
           <div className="divide-y">
-            <StatRow label="NMR Rate" value={formatPercent(profile.nmrRate)} />
-            <StatRow label="CD Rate" value={formatPercent(profile.cdRate)} />
+            <StatRow
+              label="NMR Rate"
+              value={formatPercent(profile.nmrRate)}
+              info="The percentage of movement phases where this player submitted no orders, based on their last 10 games."
+            />
+            <StatRow
+              label="CD Rate"
+              value={formatPercent(profile.cdRate)}
+              info="The percentage of games where this player entered civil disorder (abandoned the game), based on their last 10 games."
+            />
           </div>
         </ScreenCardContent>
       </ScreenCard>

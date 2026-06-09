@@ -625,6 +625,7 @@ export const mockVariants: Variant[] = [
 
 export const mockUserProfile: UserProfile = {
   id: 1,
+  userId: 1,
   name: "John Doe",
   picture: null,
   email: "john.doe@example.com",

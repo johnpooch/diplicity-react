@@ -173,12 +173,11 @@ const Account: React.FC = () => {
             </div>
           </div>
 
-          <Link
-            to={`/player/${userProfile.id}`}
-            className="flex items-center justify-between py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <span>View my profile</span>
-            <ChevronRight className="size-4" />
+          <Link to={`/player/${userProfile.userId}`}>
+            <Button variant="outline" className="w-full gap-2">
+              View my profile
+              <ChevronRight className="size-4" />
+            </Button>
           </Link>
 
           <Button variant="outline" onClick={logout} className="sm:hidden">

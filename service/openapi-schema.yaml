@@ -2771,6 +2771,9 @@ components:
         id:
           type: integer
           readOnly: true
+        userId:
+          type: integer
+          readOnly: true
         name:
           type: string
           maxLength: 255
@@ -3114,6 +3117,9 @@ components:
         id:
           type: integer
           readOnly: true
+        userId:
+          type: integer
+          readOnly: true
         name:
           type: string
           maxLength: 255
@@ -3132,6 +3138,7 @@ components:
       - id
       - name
       - picture
+      - userId
     Variant:
       type: object
       properties:
