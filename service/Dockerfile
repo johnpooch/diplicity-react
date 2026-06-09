@@ -1,5 +1,5 @@
 # Base stage: Install dependencies and set up the app
-FROM python:3.12-slim AS base
+FROM python:3.14-slim AS base
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -12,6 +12,8 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     libpq-dev \
+    libxml2-dev \
+    libxslt1-dev \
     curl \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
