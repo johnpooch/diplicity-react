@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { Profile } from "./Profile";
+import { Account } from "./Account";
 import { themeStorage } from "@/theme/themeStorage";
 
 const mockUserProfile = {
@@ -57,20 +57,20 @@ const createMatchMediaMock = (prefersDark = false) =>
       }) as unknown as MediaQueryList
   );
 
-const renderProfile = () => {
+const renderAccount = () => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter>
-        <Profile />
+        <Account />
       </MemoryRouter>
     </QueryClientProvider>
   );
 };
 
-describe("Profile - Appearance section", () => {
+describe("Account - Appearance section", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
@@ -84,27 +84,27 @@ describe("Profile - Appearance section", () => {
   });
 
   it("renders the Appearance section heading", async () => {
-    renderProfile();
+    renderAccount();
     expect(await screen.findByText("Appearance")).toBeInTheDocument();
   });
 
   it("renders the theme selector with System as default", async () => {
-    renderProfile();
+    renderAccount();
     expect(await screen.findByText("System")).toBeInTheDocument();
   });
 
   it("renders the Theme label", async () => {
-    renderProfile();
+    renderAccount();
     expect(await screen.findByText("Theme")).toBeInTheDocument();
   });
 
   it("renders the theme select trigger", async () => {
-    renderProfile();
+    renderAccount();
     expect(await screen.findByRole("combobox")).toBeInTheDocument();
   });
 
   it("Appearance section appears before Notifications section", async () => {
-    renderProfile();
+    renderAccount();
     const headings = await screen.findAllByRole("heading", { level: 2 });
     const headingTexts = headings.map(h => h.textContent);
     const appearanceIndex = headingTexts.indexOf("Appearance");

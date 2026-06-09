@@ -119,10 +119,10 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
                       ),
                     },
                     {
-                      path: "profile",
+                      path: "account",
                       element: (
                         <Suspense fallback={<RouteFallback />}>
-                          <Home.Profile />
+                          <Home.Account />
                         </Suspense>
                       ),
                     },

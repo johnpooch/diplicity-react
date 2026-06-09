@@ -8,7 +8,9 @@ export const Home = {
   CreateGame: lazy(() =>
     import("./CreateGame").then((m) => ({ default: m.CreateGame }))
   ),
-  Profile: lazy(() => import("./Profile").then((m) => ({ default: m.Profile }))),
+  Account: lazy(() =>
+    import("./Account").then((m) => ({ default: m.Account }))
+  ),
   GameInfoScreen: lazy(() =>
     import("./GameInfo").then((m) => ({ default: m.GameInfoScreen }))
   ),
