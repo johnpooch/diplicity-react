@@ -2,8 +2,6 @@ import {
   TransformWrapper,
   TransformComponent,
   ReactZoomPanPinchContentRef,
-  ReactZoomPanPinchRef,
-  ReactZoomPanPinchState,
 } from "react-zoom-pan-pinch";
 import { useRef, useState, useEffect, useMemo } from "react";
 import { Maximize, Minimize } from "lucide-react";
@@ -198,7 +196,7 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
         disablePadding={true}
         panning={{ velocityDisabled: true }}
         velocityAnimation={{ disabled: true }}
-        onTransformed={(_ref: ReactZoomPanPinchRef, state: ReactZoomPanPinchState) => {
+        onTransformed={(_ref, state) => {
           if (cacheKey) {
             transformCache.set(cacheKey, { x: state.positionX, y: state.positionY, scale: state.scale });
           }
