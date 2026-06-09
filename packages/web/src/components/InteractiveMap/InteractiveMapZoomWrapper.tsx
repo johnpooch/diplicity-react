@@ -2,7 +2,6 @@ import {
   TransformWrapper,
   TransformComponent,
   ReactZoomPanPinchContentRef,
-  ReactZoomPanPinchRef,
 } from "react-zoom-pan-pinch";
 import { useRef, useState, useEffect, useMemo } from "react";
 import { Maximize, Minimize } from "lucide-react";
@@ -14,7 +13,6 @@ import { parseDsvg } from "./dsvgParser";
 import { DiplicityMap } from "./mapRenderer";
 import type { Variant } from "../../api/generated/endpoints";
 
-const TRANSFORM_CACHE_MAX = 5;
 const transformCache = new Map<string, { x: number; y: number; scale: number }>();
 
 type VariantForMap = Pick<Variant, "id" | "nations" | "svgUrl">;
@@ -43,7 +41,7 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
   const svgRef = useRef<SVGSVGElement>(null);
   const transformRef = useRef<ReactZoomPanPinchContentRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const initializedCacheKeyRef = useRef<string | undefined | null>(null);
+  const hasInitializedRef = useRef(false);
 
   const { data: dsvg, isLoading } = useDsvg(interactiveMapProps.variant.svgUrl);
 
@@ -158,8 +156,8 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
 
   useEffect(() => {
     if (!transformRef.current || !containerDimensions || !svgViewBox) return;
-    if (initializedCacheKeyRef.current === cacheKey) return;
-    initializedCacheKeyRef.current = cacheKey;
+    if (hasInitializedRef.current) return;
+    hasInitializedRef.current = true;
 
     const cached = cacheKey ? transformCache.get(cacheKey) : null;
     if (cached) {
@@ -198,12 +196,8 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
         disablePadding={true}
         panning={{ velocityDisabled: true }}
         velocityAnimation={{ disabled: true }}
-        onTransformed={(_ref: ReactZoomPanPinchRef, state) => {
+        onTransformChange={(_, state) => {
           if (cacheKey) {
-            if (transformCache.size >= TRANSFORM_CACHE_MAX && !transformCache.has(cacheKey)) {
-              const oldest = transformCache.keys().next().value;
-              if (oldest !== undefined) transformCache.delete(oldest);
-            }
             transformCache.set(cacheKey, { x: state.positionX, y: state.positionY, scale: state.scale });
           }
         }}

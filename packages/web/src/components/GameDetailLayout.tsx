@@ -1,5 +1,5 @@
-import React, { useMemo, useRef, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router";
+import React, { useMemo } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { useRequiredParams } from "@/hooks";
 import { ArrowLeft, Map, Gavel, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -45,14 +45,13 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
     },
   });
 
-  const lastChatPathRef = useRef<string | null>(null);
+  const [searchParams] = useSearchParams();
   const chatPrefix = `/game/${gameId}/phase/${phaseId}/chat`;
 
-  useEffect(() => {
-    if (location.pathname.startsWith(chatPrefix)) {
-      lastChatPathRef.current = location.pathname;
-    }
-  }, [location.pathname, chatPrefix]);
+  const lastChatChannelId =
+    location.pathname.startsWith(chatPrefix + "/")
+      ? location.pathname.slice(chatPrefix.length + 1)
+      : searchParams.get("chatChannel");
 
   const navItems = useMemo(() => {
     const items = game?.sandbox
@@ -69,9 +68,9 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
           ? "•"
           : undefined;
       const isChat = item.label === "Chat";
-      const lastChatPath = lastChatPathRef.current;
-      const validChatPath = lastChatPath?.startsWith(chatPrefix) ? lastChatPath : null;
-      const clickPath = isChat && validChatPath ? validChatPath : basePath;
+      const clickPath = isChat
+        ? lastChatChannelId ? `${chatPrefix}/${lastChatChannelId}` : basePath
+        : lastChatChannelId ? `${basePath}?chatChannel=${lastChatChannelId}` : basePath;
       const isActive = isChat
         ? location.pathname === basePath || location.pathname.startsWith(basePath + "/")
         : location.pathname === basePath;
@@ -82,7 +81,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
         badge,
       };
     });
-  }, [gameId, phaseId, chatPrefix, location.pathname, game?.totalUnreadMessageCount, game?.sandbox]);
+  }, [gameId, phaseId, chatPrefix, lastChatChannelId, location.pathname, game?.totalUnreadMessageCount, game?.sandbox]);
 
   // Filter out Map for desktop sidebar since map is already visible in right panel
   const sidebarNavItems = useMemo(
