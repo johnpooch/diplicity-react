@@ -230,7 +230,7 @@ describe("CreateGame — find-similar intervention", () => {
   });
 
   const switchToDurationMode = async (user: ReturnType<typeof userEvent.setup>) => {
-    await user.click(screen.getByRole("tab", { name: /duration/i }));
+    await user.click(screen.getByRole("button", { name: /^duration$/i }));
   };
 
   const submit = async (user: ReturnType<typeof userEvent.setup>) => {
