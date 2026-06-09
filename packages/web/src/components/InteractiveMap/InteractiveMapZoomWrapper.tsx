@@ -196,7 +196,7 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
         disablePadding={true}
         panning={{ velocityDisabled: true }}
         velocityAnimation={{ disabled: true }}
-        onTransformChange={(_, state) => {
+        onTransformed={(_ref, state) => {
           if (cacheKey) {
             transformCache.set(cacheKey, { x: state.positionX, y: state.positionY, scale: state.scale });
           }
