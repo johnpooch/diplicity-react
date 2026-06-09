@@ -421,6 +421,20 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
         <hr className="border-t" />
 
         <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Variant</h2>
+
+          <VariantSelector
+            control={form.control}
+            name="variantId"
+            disabled={isSubmitting || isInitialVariantDraft}
+            variants={variants}
+            selectedVariant={selectedVariant}
+          />
+        </div>
+
+        <hr className="border-t" />
+
+        <div className="space-y-4">
           <h2 className="text-lg font-semibold">Deadlines</h2>
 
           <FormField
@@ -671,48 +685,28 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
           </Alert>
         </div>
 
-        <hr className="border-t" />
-
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold">Variant</h2>
-
-          <VariantSelector
-            control={form.control}
-            name="variantId"
-            disabled={isSubmitting || isInitialVariantDraft}
-            variants={variants}
-            selectedVariant={selectedVariant}
-          />
-        </div>
-
-        <hr className="border-t" />
-
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold">Advanced</h2>
-
-          <FormField
-            control={form.control}
-            name="nmrExtensionsAllowed"
-            render={({ field }) => (
-              <FormItem className="space-y-3">
-                <FormLabel>Automatic extensions</FormLabel>
-                <RadioCardGroup
-                  options={NMR_EXTENSION_OPTIONS.map(option => ({
-                    value: option.value,
-                    label: option.label,
-                  }))}
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={isSubmitting}
-                />
-                <FormDescription>
-                  If a player does not submit orders, an extension resets the deadline and gives them extra time to respond before they are marked as having left the game.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="nmrExtensionsAllowed"
+          render={({ field }) => (
+            <FormItem className="space-y-3">
+              <FormLabel>Automatic extensions</FormLabel>
+              <RadioCardGroup
+                options={NMR_EXTENSION_OPTIONS.map(option => ({
+                  value: option.value,
+                  label: option.label,
+                }))}
+                value={field.value}
+                onChange={field.onChange}
+                disabled={isSubmitting}
+              />
+              <FormDescription>
+                If a player does not submit orders, an extension resets the deadline and gives them extra time to respond before they are marked as having left the game.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting ? "Creating..." : "Create Game"}
