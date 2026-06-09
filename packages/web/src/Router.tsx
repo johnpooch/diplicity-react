@@ -167,6 +167,14 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
                       ),
                     },
                     {
+                      path: "player/:userId",
+                      element: (
+                        <Suspense fallback={<RouteFallback />}>
+                          <Home.PlayerProfileScreen />
+                        </Suspense>
+                      ),
+                    },
+                    {
                       path: "variants",
                       element: (
                         <Suspense fallback={<RouteFallback />}>
@@ -263,6 +271,14 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
                           element: (
                             <Suspense fallback={<RouteFallback />}>
                               <GameDetail.DrawProposalsScreen />
+                            </Suspense>
+                          ),
+                        },
+                        {
+                          path: "player/:userId",
+                          element: (
+                            <Suspense fallback={<RouteFallback />}>
+                              <GameDetail.PlayerProfileScreen />
                             </Suspense>
                           ),
                         },

@@ -65,6 +65,7 @@ paths:
           - hi
           - hr
           - hsb
+          - ht
           - hu
           - hy
           - ia
@@ -116,6 +117,7 @@ paths:
           - tr
           - tt
           - udm
+          - ug
           - uk
           - ur
           - uz
@@ -147,17 +149,6 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
-  /api/test-sentry/:
-    get:
-      operationId: apiTestSentryRetrieve
-      tags:
-      - api
-      security:
-      - jwtAuth: []
-      - {}
-      responses:
-        '200':
-          description: No response body
   /api/token/refresh/:
     post:
       operationId: apiTokenRefreshCreate
@@ -607,6 +598,30 @@ paths:
               schema:
                 $ref: '#/components/schemas/Member'
           description: ''
+  /game/{gameId}/kick/{memberId}/:
+    delete:
+      operationId: gameKickDestroy
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: memberId
+        schema:
+          type: integer
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
   /game/{gameId}/leave/:
     delete:
       operationId: gameLeaveDestroy
@@ -842,6 +857,29 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/PhaseList'
+          description: ''
+  /game/{gameId}/recover-from-civil-disorder/:
+    post:
+      operationId: gameRecoverFromCivilDisorderCreate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
           description: ''
   /game/{gameId}/resolve-phase/:
     post:
@@ -1366,6 +1404,26 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserProfile'
           description: ''
+  /users/{userId}/:
+    get:
+      operationId: usersRetrieve
+      parameters:
+      - in: path
+        name: userId
+        schema:
+          type: integer
+        required: true
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicUserProfile'
+          description: ''
   /variants/:
     get:
       operationId: variantsList
@@ -1673,6 +1731,10 @@ components:
         id:
           type: integer
           readOnly: true
+        userId:
+          type: integer
+          nullable: true
+          readOnly: true
         name:
           type: string
           readOnly: true
@@ -1691,6 +1753,7 @@ components:
       - name
       - nation
       - picture
+      - userId
     ChannelMessage:
       type: object
       properties:
@@ -1781,6 +1844,10 @@ components:
         id:
           type: integer
           readOnly: true
+        userId:
+          type: integer
+          nullable: true
+          readOnly: true
         name:
           type: string
           readOnly: true
@@ -1800,6 +1867,7 @@ components:
       - name
       - nation
       - picture
+      - userId
     DrawVoteUpdate:
       type: object
       properties:
@@ -2366,6 +2434,10 @@ components:
         id:
           type: integer
           readOnly: true
+        userId:
+          type: integer
+          nullable: true
+          readOnly: true
         name:
           type: string
           readOnly: true
@@ -2406,6 +2478,7 @@ components:
       - nation
       - nmrExtensionsRemaining
       - picture
+      - userId
     MovementFrequencyEnum:
       enum:
       - hourly
@@ -2709,6 +2782,8 @@ components:
         email:
           type: string
           readOnly: true
+        emailNotificationsEnabled:
+          type: boolean
     PatchedVariantWrite:
       type: object
       properties:
@@ -2782,9 +2857,8 @@ components:
           type: integer
           nullable: true
         provinceNations:
-          type: object
-          additionalProperties:
-            type: string
+          type: string
+          readOnly: true
       required:
       - id
       - name
@@ -2861,6 +2935,59 @@ components:
       - parentId
       - supplyCenter
       - type
+    PublicUserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        picture:
+          type: string
+          readOnly: true
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+        totalGames:
+          type: integer
+          readOnly: true
+        soloWins:
+          type: integer
+          readOnly: true
+        draws:
+          type: integer
+          readOnly: true
+        losses:
+          type: integer
+          readOnly: true
+        nmrRate:
+          type: number
+          format: double
+          readOnly: true
+        cdRate:
+          type: number
+          format: double
+          readOnly: true
+        reliabilityTier:
+          type: string
+          readOnly: true
+          nullable: true
+      required:
+      - cdRate
+      - createdAt
+      - draws
+      - id
+      - losses
+      - name
+      - nmrRate
+      - picture
+      - reliabilityTier
+      - soloWins
+      - totalGames
     Register:
       type: object
       properties:
@@ -2998,6 +3125,8 @@ components:
         email:
           type: string
           readOnly: true
+        emailNotificationsEnabled:
+          type: boolean
       required:
       - email
       - id

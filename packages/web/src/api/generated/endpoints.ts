@@ -81,6 +81,8 @@ export interface Nation {
 
 export interface ChannelMember {
   readonly id: number;
+  /** @nullable */
+  readonly userId: number | null;
   readonly name: string;
   /** @nullable */
   readonly picture: string | null;
@@ -119,6 +121,8 @@ export const DeadlineModeEnum = {
 
 export interface DrawVoteMember {
   readonly id: number;
+  /** @nullable */
+  readonly userId: number | null;
   readonly name: string;
   /** @nullable */
   readonly picture: string | null;
@@ -352,6 +356,8 @@ export interface GameListCurrentPhase {
 
 export interface Member {
   readonly id: number;
+  /** @nullable */
+  readonly userId: number | null;
   readonly name: string;
   /** @nullable */
   readonly picture: string | null;
@@ -607,6 +613,7 @@ export interface PatchedUserProfile {
   /** @nullable */
   readonly picture?: string | null;
   readonly email?: string;
+  emailNotificationsEnabled?: boolean;
 }
 
 export interface PatchedVariantWrite {
@@ -670,11 +677,11 @@ export interface PhaseRetrieve {
   status: StatusEnum;
   units: Unit[];
   supplyCenters: SupplyCenter[];
-  provinceNations: Record<string, string>;
   /** @nullable */
   previousPhaseId: number | null;
   /** @nullable */
   nextPhaseId: number | null;
+  readonly provinceNations: string;
 }
 
 export interface PhaseState {
@@ -683,6 +690,22 @@ export interface PhaseState {
   readonly eliminated: boolean;
   readonly orderableProvinces: readonly Province[];
   readonly member: Member;
+}
+
+export interface PublicUserProfile {
+  readonly id: number;
+  readonly name: string;
+  /** @nullable */
+  readonly picture: string | null;
+  readonly createdAt: string;
+  readonly totalGames: number;
+  readonly soloWins: number;
+  readonly draws: number;
+  readonly losses: number;
+  readonly nmrRate: number;
+  readonly cdRate: number;
+  /** @nullable */
+  readonly reliabilityTier: string | null;
 }
 
 export interface Register {
@@ -707,6 +730,7 @@ export interface UserProfile {
   /** @nullable */
   readonly picture: string | null;
   readonly email: string;
+  emailNotificationsEnabled?: boolean;
 }
 
 export interface VictoryConditions {
@@ -843,6 +867,7 @@ export const ApiSchemaRetrieveLang = {
   hi: "hi",
   hr: "hr",
   hsb: "hsb",
+  ht: "ht",
   hu: "hu",
   hy: "hy",
   ia: "ia",
@@ -894,6 +919,7 @@ export const ApiSchemaRetrieveLang = {
   tr: "tr",
   tt: "tt",
   udm: "udm",
+  ug: "ug",
   uk: "uk",
   ur: "ur",
   uz: "uz",
@@ -1237,258 +1263,6 @@ export function useApiSchemaRetrieveSuspense<
     params,
     options
   );
-
-  const query = useSuspenseQuery(
-    queryOptions,
-    queryClient
-  ) as UseSuspenseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-export const apiTestSentryRetrieve = (signal?: AbortSignal) => {
-  return customInstance<void>({
-    url: `/api/test-sentry/`,
-    method: "GET",
-    signal,
-  });
-};
-
-export const getApiTestSentryRetrieveQueryKey = () => {
-  return [`/api/test-sentry/`] as const;
-};
-
-export const getApiTestSentryRetrieveQueryOptions = <
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(options?: {
-  query?: Partial<
-    UseQueryOptions<
-      Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-      TError,
-      TData
-    >
-  >;
-}) => {
-  const { query: queryOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getApiTestSentryRetrieveQueryKey();
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof apiTestSentryRetrieve>>
-  > = ({ signal }) => apiTestSentryRetrieve(signal);
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type ApiTestSentryRetrieveQueryResult = NonNullable<
-  Awaited<ReturnType<typeof apiTestSentryRetrieve>>
->;
-export type ApiTestSentryRetrieveQueryError = unknown;
-
-export function useApiTestSentryRetrieve<
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(
-  options: {
-    query: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-          TError,
-          Awaited<ReturnType<typeof apiTestSentryRetrieve>>
-        >,
-        "initialData"
-      >;
-  },
-  queryClient?: QueryClient
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useApiTestSentryRetrieve<
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-          TError,
-          Awaited<ReturnType<typeof apiTestSentryRetrieve>>
-        >,
-        "initialData"
-      >;
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useApiTestSentryRetrieve<
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-
-export function useApiTestSentryRetrieve<
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getApiTestSentryRetrieveQueryOptions(options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-export const getApiTestSentryRetrieveSuspenseQueryOptions = <
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(options?: {
-  query?: Partial<
-    UseSuspenseQueryOptions<
-      Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-      TError,
-      TData
-    >
-  >;
-}) => {
-  const { query: queryOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getApiTestSentryRetrieveQueryKey();
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof apiTestSentryRetrieve>>
-  > = ({ signal }) => apiTestSentryRetrieve(signal);
-
-  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
-    Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type ApiTestSentryRetrieveSuspenseQueryResult = NonNullable<
-  Awaited<ReturnType<typeof apiTestSentryRetrieve>>
->;
-export type ApiTestSentryRetrieveSuspenseQueryError = unknown;
-
-export function useApiTestSentryRetrieveSuspense<
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(
-  options: {
-    query: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useApiTestSentryRetrieveSuspense<
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(
-  options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useApiTestSentryRetrieveSuspense<
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(
-  options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-
-export function useApiTestSentryRetrieveSuspense<
-  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-  TError = unknown,
->(
-  options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
-        TError,
-        TData
-      >
-    >;
-  },
-  queryClient?: QueryClient
-): UseSuspenseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getApiTestSentryRetrieveSuspenseQueryOptions(options);
 
   const query = useSuspenseQuery(
     queryOptions,
@@ -3427,6 +3201,84 @@ export const useGameJoinCreate = <TError = unknown, TContext = unknown>(
  * Used by views that have a game parameter in the URL. Provides a get_game
 method that returns the game object. Also adds game to the serializer context.
  */
+export const gameKickDestroy = (
+  gameId: string,
+  memberId: number,
+  signal?: AbortSignal
+) => {
+  return customInstance<void>({
+    url: `/game/${gameId}/kick/${memberId}/`,
+    method: "DELETE",
+    signal,
+  });
+};
+
+export const getGameKickDestroyMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gameKickDestroy>>,
+    TError,
+    { gameId: string; memberId: number },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gameKickDestroy>>,
+  TError,
+  { gameId: string; memberId: number },
+  TContext
+> => {
+  const mutationKey = ["gameKickDestroy"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gameKickDestroy>>,
+    { gameId: string; memberId: number }
+  > = props => {
+    const { gameId, memberId } = props ?? {};
+
+    return gameKickDestroy(gameId, memberId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GameKickDestroyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gameKickDestroy>>
+>;
+
+export type GameKickDestroyMutationError = unknown;
+
+export const useGameKickDestroy = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gameKickDestroy>>,
+      TError,
+      { gameId: string; memberId: number },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gameKickDestroy>>,
+  TError,
+  { gameId: string; memberId: number },
+  TContext
+> => {
+  return useMutation(getGameKickDestroyMutationOptions(options), queryClient);
+};
+
+/**
+ * Used by views that have a game parameter in the URL. Provides a get_game
+method that returns the game object. Also adds game to the serializer context.
+ */
 export const gameLeaveDestroy = (gameId: string, signal?: AbortSignal) => {
   return customInstance<void>({
     url: `/game/${gameId}/leave/`,
@@ -5202,6 +5054,89 @@ export function useGamePhasesListSuspense<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * Used by views that have a game parameter in the URL. Provides a get_game
+method that returns the game object. Also adds game to the serializer context.
+ */
+export const gameRecoverFromCivilDisorderCreate = (
+  gameId: string,
+  signal?: AbortSignal
+) => {
+  return customInstance<Member>({
+    url: `/game/${gameId}/recover-from-civil-disorder/`,
+    method: "POST",
+    signal,
+  });
+};
+
+export const getGameRecoverFromCivilDisorderCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gameRecoverFromCivilDisorderCreate>>,
+    TError,
+    { gameId: string },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gameRecoverFromCivilDisorderCreate>>,
+  TError,
+  { gameId: string },
+  TContext
+> => {
+  const mutationKey = ["gameRecoverFromCivilDisorderCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gameRecoverFromCivilDisorderCreate>>,
+    { gameId: string }
+  > = props => {
+    const { gameId } = props ?? {};
+
+    return gameRecoverFromCivilDisorderCreate(gameId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GameRecoverFromCivilDisorderCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gameRecoverFromCivilDisorderCreate>>
+>;
+
+export type GameRecoverFromCivilDisorderCreateMutationError = unknown;
+
+export const useGameRecoverFromCivilDisorderCreate = <
+  TError = unknown,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gameRecoverFromCivilDisorderCreate>>,
+      TError,
+      { gameId: string },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gameRecoverFromCivilDisorderCreate>>,
+  TError,
+  { gameId: string },
+  TContext
+> => {
+  return useMutation(
+    getGameRecoverFromCivilDisorderCreateMutationOptions(options),
+    queryClient
+  );
+};
 
 /**
  * Used by views that have a game parameter in the URL. Provides a get_game
@@ -7803,6 +7738,257 @@ export const useUserUpdatePartialUpdate = <
     queryClient
   );
 };
+
+export const usersRetrieve = (userId: number, signal?: AbortSignal) => {
+  return customInstance<PublicUserProfile>({
+    url: `/users/${userId}/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getUsersRetrieveQueryKey = (userId: number) => {
+  return [`/users/${userId}/`] as const;
+};
+
+export const getUsersRetrieveQueryOptions = <
+  TData = Awaited<ReturnType<typeof usersRetrieve>>,
+  TError = unknown,
+>(
+  userId: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof usersRetrieve>>, TError, TData>
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getUsersRetrieveQueryKey(userId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof usersRetrieve>>> = ({
+    signal,
+  }) => usersRetrieve(userId, signal);
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!userId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof usersRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type UsersRetrieveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof usersRetrieve>>
+>;
+export type UsersRetrieveQueryError = unknown;
+
+export function useUsersRetrieve<
+  TData = Awaited<ReturnType<typeof usersRetrieve>>,
+  TError = unknown,
+>(
+  userId: number,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof usersRetrieve>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof usersRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof usersRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useUsersRetrieve<
+  TData = Awaited<ReturnType<typeof usersRetrieve>>,
+  TError = unknown,
+>(
+  userId: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof usersRetrieve>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof usersRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof usersRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useUsersRetrieve<
+  TData = Awaited<ReturnType<typeof usersRetrieve>>,
+  TError = unknown,
+>(
+  userId: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof usersRetrieve>>, TError, TData>
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useUsersRetrieve<
+  TData = Awaited<ReturnType<typeof usersRetrieve>>,
+  TError = unknown,
+>(
+  userId: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof usersRetrieve>>, TError, TData>
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getUsersRetrieveQueryOptions(userId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getUsersRetrieveSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof usersRetrieve>>,
+  TError = unknown,
+>(
+  userId: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof usersRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getUsersRetrieveQueryKey(userId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof usersRetrieve>>> = ({
+    signal,
+  }) => usersRetrieve(userId, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof usersRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type UsersRetrieveSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof usersRetrieve>>
+>;
+export type UsersRetrieveSuspenseQueryError = unknown;
+
+export function useUsersRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof usersRetrieve>>,
+  TError = unknown,
+>(
+  userId: number,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof usersRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useUsersRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof usersRetrieve>>,
+  TError = unknown,
+>(
+  userId: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof usersRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useUsersRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof usersRetrieve>>,
+  TError = unknown,
+>(
+  userId: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof usersRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useUsersRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof usersRetrieve>>,
+  TError = unknown,
+>(
+  userId: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof usersRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getUsersRetrieveSuspenseQueryOptions(userId, options);
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 export const variantsList = (signal?: AbortSignal) => {
   return customInstance<Variant[]>({

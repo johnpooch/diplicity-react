@@ -24,4 +24,9 @@ export const Home = {
   LearnToPlay: lazy(() =>
     import("./LearnToPlay").then((m) => ({ default: m.LearnToPlay }))
   ),
+  PlayerProfileScreen: lazy(() =>
+    import("./PlayerProfile").then((m) => ({
+      default: m.PlayerProfileScreen,
+    }))
+  ),
 };

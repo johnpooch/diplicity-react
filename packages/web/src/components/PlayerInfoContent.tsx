@@ -1,5 +1,6 @@
 import React from "react";
 import { Shield, Star, Trophy } from "lucide-react";
+import { Link, useParams } from "react-router";
 
 import { CivilDisorderBadge } from "@/components/CivilDisorderBadge";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
@@ -18,6 +19,7 @@ import { useRequiredParams } from "@/hooks";
 
 export const PlayerInfoContent: React.FC = () => {
   const { gameId } = useRequiredParams<{ gameId: string }>();
+  const { phaseId } = useParams<{ phaseId: string }>();
 
   const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: variants } = useVariantsListSuspense();
@@ -67,7 +69,20 @@ export const PlayerInfoContent: React.FC = () => {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium">{member.name}</span>
+                    {member.userId ? (
+                      <Link
+                        to={
+                          phaseId
+                            ? `/game/${gameId}/phase/${phaseId}/player/${member.userId}`
+                            : `/player/${member.userId}`
+                        }
+                        className="font-medium text-primary underline-offset-4 hover:underline"
+                      >
+                        {member.name}
+                      </Link>
+                    ) : (
+                      <span className="font-medium">{member.name}</span>
+                    )}
                     {member.isGameMaster && (
                       <Badge variant="secondary" className="gap-1">
                         <Shield className="size-3" />
