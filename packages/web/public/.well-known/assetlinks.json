@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.diplicityreact.app",
+      "sha256_cert_fingerprints": [
+        "72:86:DC:A5:6F:C9:E1:5E:CF:E1:38:8A:AD:D9:C5:FC:B6:0D:2F:5B:CC:05:4D:B1:E5:E9:27:BD:05:EA:32:F8",
+        "E3:FF:4D:0C:59:2A:C0:57:12:01:9C:BC:20:D2:7C:52:F9:51:B0:2F:85:55:66:78:57:6D:8C:17:5D:B4:11:3C"
+      ]
+    }
+  }
+]
