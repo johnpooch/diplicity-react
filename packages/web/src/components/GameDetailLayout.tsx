@@ -46,17 +46,12 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
   });
 
   const [searchParams] = useSearchParams();
-  const chatPrefix = `/game/${gameId}/phase/${phaseId}/chat`;
-
-  const lastChatChannelId =
-    location.pathname.startsWith(chatPrefix + "/")
-      ? location.pathname.slice(chatPrefix.length + 1)
-      : searchParams.get("chatChannel");
 
   const navItems = useMemo(() => {
     const items = game?.sandbox
       ? navigationItems.filter(item => item.label !== "Chat")
       : navigationItems;
+    const searchParamsStr = searchParams.toString();
     return items.map(item => {
       const basePath = item.path
         .replace(":gameId", gameId)
@@ -67,21 +62,19 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
         game.totalUnreadMessageCount > 0
           ? "•"
           : undefined;
-      const isChat = item.label === "Chat";
-      const clickPath = isChat
-        ? lastChatChannelId ? `${chatPrefix}/${lastChatChannelId}` : basePath
-        : lastChatChannelId ? `${basePath}?chatChannel=${lastChatChannelId}` : basePath;
-      const isActive = isChat
-        ? location.pathname === basePath || location.pathname.startsWith(basePath + "/")
+      const path = searchParamsStr ? `${basePath}?${searchParamsStr}` : basePath;
+      const chatBasePath = `/game/${gameId}/phase/${phaseId}/chat`;
+      const isActive = item.label === "Chat"
+        ? location.pathname === chatBasePath || location.pathname.startsWith(chatBasePath + "/")
         : location.pathname === basePath;
       return {
         ...item,
-        path: clickPath,
+        path,
         isActive,
         badge,
       };
     });
-  }, [gameId, phaseId, chatPrefix, lastChatChannelId, location.pathname, game?.totalUnreadMessageCount, game?.sandbox]);
+  }, [gameId, phaseId, searchParams, location.pathname, game?.totalUnreadMessageCount, game?.sandbox]);
 
   // Filter out Map for desktop sidebar since map is already visible in right panel
   const sidebarNavItems = useMemo(

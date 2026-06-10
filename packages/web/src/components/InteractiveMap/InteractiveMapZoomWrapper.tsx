@@ -13,8 +13,6 @@ import { parseDsvg } from "./dsvgParser";
 import { DiplicityMap } from "./mapRenderer";
 import type { Variant } from "../../api/generated/endpoints";
 
-const transformCache = new Map<string, { x: number; y: number; scale: number }>();
-
 type VariantForMap = Pick<Variant, "id" | "nations" | "svgUrl">;
 
 type InteractiveMapProps = Omit<
@@ -31,17 +29,14 @@ type Dimensions = {
 
 type InteractiveMapZoomWrapperProps = {
   interactiveMapProps: InteractiveMapProps;
-  cacheKey?: string;
 };
 
 const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
   interactiveMapProps,
-  cacheKey,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const transformRef = useRef<ReactZoomPanPinchContentRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const hasInitializedRef = useRef(false);
 
   const { data: dsvg, isLoading } = useDsvg(interactiveMapProps.variant.svgUrl);
 
@@ -155,21 +150,14 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
   }, [parsedDsvg]);
 
   useEffect(() => {
-    if (!transformRef.current || !containerDimensions || !svgViewBox) return;
-    if (hasInitializedRef.current) return;
-    hasInitializedRef.current = true;
-
-    const cached = cacheKey ? transformCache.get(cacheKey) : null;
-    if (cached) {
-      transformRef.current.setTransform(cached.x, cached.y, cached.scale, 0);
-    } else {
+    if (transformRef.current && containerDimensions && svgViewBox) {
       const scaledWidth = svgViewBox.width * minScale;
       const scaledHeight = svgViewBox.height * minScale;
       const centerX = (containerDimensions.width - scaledWidth) / 2;
       const centerY = (containerDimensions.height - scaledHeight) / 2;
       transformRef.current.setTransform(centerX, centerY, minScale, 0);
     }
-  }, [minScale, containerDimensions, svgViewBox, cacheKey]);
+  }, [minScale, containerDimensions, svgViewBox]);
 
   if (isLoading || !parsedDsvg || !renderer) {
     return (
@@ -196,11 +184,6 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
         disablePadding={true}
         panning={{ velocityDisabled: true }}
         velocityAnimation={{ disabled: true }}
-        onTransformed={(_ref, state) => {
-          if (cacheKey) {
-            transformCache.set(cacheKey, { x: state.positionX, y: state.positionY, scale: state.scale });
-          }
-        }}
       >
         <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
           <InteractiveMap

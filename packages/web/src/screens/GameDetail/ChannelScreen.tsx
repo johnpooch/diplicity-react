@@ -1,5 +1,5 @@
-import React, { Suspense, useRef, useEffect, useState, useMemo, useCallback } from "react";
-import { useNavigate } from "react-router";
+import React, { Suspense, useRef, useEffect, useState, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Send, MessageCircle, MessageSquareOff } from "lucide-react";
 import { useDraft, useRequiredParams } from "@/hooks";
@@ -81,8 +81,6 @@ const buildMessageItems = (
   });
 };
 
-const channelFocusCache = new Map<string, boolean>();
-
 const BUBBLE_ALPHA_HEX = "26"; // 15% opacity (0x26/0xFF)
 
 const NewMessagesDivider: React.FC = () => (
@@ -103,6 +101,7 @@ const ChannelScreen: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [message, setMessage] = useDraft(gameId, channelId);
+  const [, setSearchParams] = useSearchParams();
 
   const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: channels } = useGamesChannelsListSuspense(gameId);
@@ -111,21 +110,14 @@ const ChannelScreen: React.FC = () => {
   const markReadMutation = useGamesChannelsMarkReadCreate();
 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  const isFocusedRef = useRef(false);
 
   useEffect(() => {
-    const key = `${gameId}-${channelId}`;
-    if (channelFocusCache.get(key)) {
-      inputRef.current?.focus();
-    }
-    return () => {
-      channelFocusCache.set(key, isFocusedRef.current);
-    };
-  }, [gameId, channelId]);
-
-  const handleInputFocus = useCallback(() => { isFocusedRef.current = true; }, []);
-  const handleInputBlur = useCallback(() => { isFocusedRef.current = false; }, []);
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set("channelId", channelId);
+      return next;
+    }, { replace: true });
+  }, [channelId, setSearchParams]);
 
   const channel = channels.find(c => c.id === parseInt(channelId));
   if (!channel) throw new Error("Channel not found");
@@ -327,14 +319,11 @@ const ChannelScreen: React.FC = () => {
           <Panel.Footer>
             <div className="flex gap-2 w-full">
               <Textarea
-                ref={inputRef}
                 placeholder="Type a message"
                 value={message}
                 rows={1}
                 onChange={e => setMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
                 disabled={createMessageMutation.isPending}
                 className="flex-1 min-h-0 max-h-32 resize-none py-2"
               />
