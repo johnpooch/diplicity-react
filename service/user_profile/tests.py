@@ -10,6 +10,7 @@ from game.models import Game
 from phase.models import PhaseState
 from user_profile.models import UserProfile
 from member.models import Member
+from victory.models import Victory
 
 User = get_user_model()
 
@@ -363,7 +364,6 @@ class TestPublicUserProfileRetrieveView:
             member = game.members.create(
                 user=user,
                 nation=classical_england_nation,
-                won=(i == 0),
                 drew=(i in [1, 2]),
             )
             phase = game.phases.create(
@@ -379,6 +379,9 @@ class TestPublicUserProfileRetrieveView:
                 has_possible_orders=True,
                 orders_outcome=PhaseState.OrdersOutcome.RECEIVED,
             )
+            if i == 0:
+                victory = Victory.objects.create(game=game, winning_phase=phase)
+                victory.members.add(member)
 
         url = reverse("public-user-profile", kwargs={"user_id": user.id})
         response = authenticated_client.get(url)
@@ -498,13 +501,65 @@ class TestPublicUserProfileRetrieveView:
             finished_at=timezone.now(),
             sandbox=True,
         )
-        game.members.create(user=user, nation=classical_england_nation, won=True)
+        member = game.members.create(user=user, nation=classical_england_nation)
+        phase = game.phases.create(
+            variant=classical_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            status=PhaseStatus.COMPLETED,
+            ordinal=1,
+        )
+        victory = Victory.objects.create(game=game, winning_phase=phase)
+        victory.members.add(member)
 
         url = reverse("public-user-profile", kwargs={"user_id": user.id})
         response = authenticated_client.get(url)
 
         assert response.data["total_games"] == 0
         assert response.data["solo_wins"] == 0
+
+    @pytest.mark.django_db
+    def test_draw_with_solo_victory_counted_as_draw_not_solo_win(
+        self,
+        authenticated_client,
+        classical_variant,
+        classical_england_nation,
+    ):
+        user = User.objects.create_user(
+            username="drawsolouser", email="drawsolo@example.com", password="testpass123"
+        )
+        UserProfile.objects.create(user=user, name="Draw Solo User")
+
+        game = Game.objects.create(
+            name="Draw With Solo Victory",
+            variant=classical_variant,
+            status=GameStatus.COMPLETED,
+            finished_at=timezone.now(),
+        )
+        member = game.members.create(
+            user=user,
+            nation=classical_england_nation,
+            drew=True,
+        )
+        phase = game.phases.create(
+            variant=classical_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            status=PhaseStatus.COMPLETED,
+            ordinal=1,
+        )
+        victory = Victory.objects.create(game=game, winning_phase=phase)
+        victory.members.add(member)
+
+        url = reverse("public-user-profile", kwargs={"user_id": user.id})
+        response = authenticated_client.get(url)
+
+        assert response.data["total_games"] == 1
+        assert response.data["solo_wins"] == 0
+        assert response.data["draws"] == 1
+        assert response.data["losses"] == 0
 
     @pytest.mark.django_db
     def test_kicked_members_excluded_from_stats(

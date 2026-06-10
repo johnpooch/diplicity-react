@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from common.constants import GameStatus
 from member.models import Member
 from phase.models import PhaseState
+from victory.models import Victory
 
 User = get_user_model()
 
@@ -24,7 +25,11 @@ def get_player_stats(user):
     )
 
     total_games = completed_members.count()
-    solo_wins = completed_members.filter(won=True).count()
+    solo_wins = (
+        Victory.objects.solo_victories()
+        .filter(members__in=completed_members.filter(drew=False))
+        .count()
+    )
     draws = completed_members.filter(drew=True).count()
     losses = total_games - solo_wins - draws
 
