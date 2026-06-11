@@ -243,7 +243,7 @@ def draw_proposal_factory(db, member_factory):
             cancelled=cancelled,
         )
 
-        all_active_members = list(game.members.filter(eliminated=False, kicked=False))
+        all_active_members = list(game.members.filter(eliminated=False, kicked=False, nation__isnull=False))
 
         if included_member_ids is None:
             included_member_ids = [created_by.id]

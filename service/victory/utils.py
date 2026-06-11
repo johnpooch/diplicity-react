@@ -12,7 +12,7 @@ def check_for_solo_winner(game, phase):
     highest_count = 0
     leader = None
 
-    for member in game.members.all():
+    for member in game.members.filter(nation__isnull=False):
         count = counts_by_nation.get(member.nation_id, 0)
         if count > highest_count:
             leader = member

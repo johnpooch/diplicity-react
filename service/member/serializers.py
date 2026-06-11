@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.apps import apps
+from django.templatetags.static import static
 from drf_spectacular.utils import extend_schema_field
 
 from common.constants import GameStatus
@@ -37,6 +38,8 @@ class BaseMemberSerializer(serializers.Serializer):
 
     @extend_schema_field(serializers.IntegerField(allow_null=True))
     def get_user_id(self, obj):
+        if obj.is_game_master and self._get_game(obj).non_playing_gm:
+            return None
         if self._is_masked(obj):
             return None
         if obj.user is None:
@@ -55,6 +58,10 @@ class BaseMemberSerializer(serializers.Serializer):
 
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_picture(self, obj):
+        if obj.is_game_master and self._get_game(obj).non_playing_gm:
+            path = static("member/game-master.svg")
+            request = self.context.get("request")
+            return request.build_absolute_uri(path) if request else path
         if self._is_masked(obj):
             return None
         if obj.user is None:

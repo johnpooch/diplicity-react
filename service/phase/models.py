@@ -574,7 +574,9 @@ class PhaseManager(models.Manager):
 
         active_members = list(game.members.filter(eliminated=False, kicked=False, nation__isnull=False))
         if not active_members:
-            return False
+            # In a non_playing_gm game the GM is excluded from active_members; reaching
+            # empty here means all playing members were simultaneously eliminated.
+            return game.non_playing_gm
 
         return all(m.civil_disorder for m in active_members)
 
