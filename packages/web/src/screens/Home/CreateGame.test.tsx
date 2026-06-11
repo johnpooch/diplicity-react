@@ -161,6 +161,7 @@ const matchedGame: GameList = {
   fixedDeadlineTimezone: null,
   movementFrequency: null,
   retreatFrequency: null,
+  nonPlayingGm: false,
   pressType: "full_press",
 };
 
