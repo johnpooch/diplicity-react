@@ -1,6 +1,7 @@
 import pytest
 from adjudication import service as adjudication_service
 from unittest.mock import patch
+from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.test.utils import override_settings
 from django.db import connection
@@ -15,6 +16,8 @@ from nation.models import Nation
 from province.models import Province
 from user_profile.models import UserProfile
 from .models import Game
+
+User = get_user_model()
 
 retrieve_viewname = "game-retrieve"
 list_viewname = "game-list"
@@ -1880,6 +1883,10 @@ class TestGameInfinitePhaseDuration:
             status=GameStatus.PENDING,
         )
         game.members.create(user=primary_user)
+        for i in range(classical_variant.nations.count() - 1):
+            u = User.objects.create_user(f"inf_player{i}@test.com", password="testpass")
+            UserProfile.objects.create(user=u, name=f"Inf Player {i}")
+            game.members.create(user=u)
 
         phase = game.phases.create(
             game=game,
