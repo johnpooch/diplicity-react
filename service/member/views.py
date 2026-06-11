@@ -43,9 +43,20 @@ class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):
 
     def perform_destroy(self, instance):
         game = instance.game
+        is_gm_leaving = game.non_playing_gm and instance.is_game_master
+        first_player = (
+            game.members.filter(is_game_master=False).order_by("id").first()
+            if is_gm_leaving else None
+        )
         with transaction.atomic():
             super().perform_destroy(instance)
-            game.delete_if_empty_pending()
+            if first_player:
+                first_player.is_game_master = True
+                first_player.save(update_fields=["is_game_master"])
+                game.non_playing_gm = False
+                game.save(update_fields=["non_playing_gm"])
+            else:
+                game.delete_if_empty_pending()
 
 
 class MemberKickView(SelectedGameMixin, generics.DestroyAPIView):

@@ -2668,7 +2668,7 @@ class TestAbandonmentDetection:
         assert Phase.objects._check_abandonment(game) is False
 
     @pytest.mark.django_db
-    def test_no_abandonment_when_no_active_members(
+    def test_abandonment_when_no_active_members(
         self,
         italy_vs_germany_variant,
         italy_vs_germany_italy_nation,
@@ -2684,7 +2684,7 @@ class TestAbandonmentDetection:
             italy_eliminated=True,
             germany_kicked=True,
         )
-        assert Phase.objects._check_abandonment(game) is False
+        assert Phase.objects._check_abandonment(game) is True
 
     @pytest.mark.django_db
     def test_abandonment_ignores_eliminated_and_kicked_members(

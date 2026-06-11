@@ -56,26 +56,19 @@ class IsActiveGameMember(BasePermission):
         return True
 
 
-class IsPlayingMember(BasePermission):
+class IsPlayingMember(IsActiveGameMember):
     message = "Only playing members can perform this action."
 
     def has_permission(self, request, view):
+        if not super().has_permission(request, view):
+            return False
+
         game = resolve_game(request, view.kwargs.get("game_id"))
+        if not game.non_playing_gm:
+            return True
 
         member = game.members.filter(user=request.user).first()
-        if not member:
-            self.message = "User is not a member of the game."
-            return False
-
-        if member.eliminated:
-            self.message = "Cannot perform action for eliminated players."
-            return False
-
-        if member.kicked:
-            self.message = "Cannot perform action for kicked players."
-            return False
-
-        if game.non_playing_gm and member.is_game_master:
+        if member.is_game_master:
             self.message = "Non-playing game masters cannot perform this action."
             return False
 

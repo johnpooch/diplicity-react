@@ -574,9 +574,7 @@ class PhaseManager(models.Manager):
 
         active_members = list(game.members.filter(eliminated=False, kicked=False, nation__isnull=False))
         if not active_members:
-            # In a non_playing_gm game the GM is excluded from active_members; reaching
-            # empty here means all playing members were simultaneously eliminated.
-            return game.non_playing_gm
+            return True
 
         return all(m.civil_disorder for m in active_members)
 
@@ -889,7 +887,7 @@ class Phase(BaseModel):
     def phase_states_with_possible_orders(self):
         nations = self.nations_with_possible_orders
         logger.info(f"Nations with possible orders: {nations}")
-        return [phase_state for phase_state in self.phase_states.all() if phase_state.member.nation.name in nations]
+        return [phase_state for phase_state in self.phase_states.all() if phase_state.member.nation and phase_state.member.nation.name in nations]
 
     @property
     def should_resolve_immediately(self):

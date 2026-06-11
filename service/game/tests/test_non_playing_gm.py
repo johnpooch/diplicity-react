@@ -167,3 +167,51 @@ class TestNonPlayingGMMemberName:
         assert response.status_code == 200
         gm_member = next(m for m in response.data["members"] if m["is_game_master"])
         assert gm_member["name"] == primary_user.profile.name
+
+
+class TestNonPlayingGMLeave:
+    def test_gm_leaving_promotes_first_player_as_playing_gm(self, db, primary_user, classical_variant, api_client):
+        second_user = User.objects.create_user("second@test.com", password="testpass")
+        UserProfile.objects.create(user=second_user, name="Second Player")
+        third_user = User.objects.create_user("third@test.com", password="testpass")
+        UserProfile.objects.create(user=third_user, name="Third Player")
+
+        game = models.Game.objects.create_from_template(
+            classical_variant,
+            name="GM Leave Test",
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            deadline_mode=DeadlineMode.DURATION,
+            non_playing_gm=True,
+            private=True,
+        )
+        game.members.create(user=primary_user, is_game_master=True)
+        second_member = game.members.create(user=second_user)
+        game.members.create(user=third_user)
+
+        api_client.force_authenticate(user=primary_user)
+        response = api_client.delete(f"/game/{game.id}/leave/")
+        assert response.status_code == 204
+
+        game.refresh_from_db()
+        assert game.non_playing_gm is False
+        second_member.refresh_from_db()
+        assert second_member.is_game_master is True
+        assert not game.members.filter(user=primary_user).exists()
+
+    def test_gm_leaving_with_no_other_players_deletes_game(self, db, primary_user, classical_variant, api_client):
+        game = models.Game.objects.create_from_template(
+            classical_variant,
+            name="GM Leave Solo Test",
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            deadline_mode=DeadlineMode.DURATION,
+            non_playing_gm=True,
+            private=True,
+        )
+        game.members.create(user=primary_user, is_game_master=True)
+
+        api_client.force_authenticate(user=primary_user)
+        response = api_client.delete(f"/game/{game.id}/leave/")
+        assert response.status_code == 204
+
+        from game.models import Game
+        assert not Game.objects.filter(id=game.id).exists()
