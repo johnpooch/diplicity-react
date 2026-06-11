@@ -45,10 +45,10 @@ class BaseMemberSerializer(serializers.Serializer):
 
     @extend_schema_field(serializers.CharField)
     def get_name(self, obj):
-        if self._is_masked(obj):
-            return "Anonymous"
         if obj.is_game_master and self._get_game(obj).non_playing_gm:
             return "Game Master"
+        if self._is_masked(obj):
+            return "Anonymous"
         if obj.user is None:
             return "Deleted User"
         return obj.user.profile.name
@@ -76,6 +76,8 @@ class MemberSerializer(BaseMemberSerializer):
 
     @extend_schema_field(serializers.BooleanField)
     def get_is_game_master(self, obj):
+        if obj.is_game_master and self._get_game(obj).non_playing_gm:
+            return True
         if self._is_masked(obj):
             return False
         return obj.is_game_master

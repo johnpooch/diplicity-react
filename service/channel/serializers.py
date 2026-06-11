@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.apps import apps
 from django.utils import timezone
 
-from .models import Channel, ChannelMessage, ChannelMember
+from .models import Channel, ChannelMessage, ChannelMember, channel_name_for_members
 from nation.serializers import NationSerializer
 from member.serializers import BaseMemberSerializer
 
@@ -45,13 +45,12 @@ class ChannelSerializer(serializers.Serializer):
         current_member = self.context["current_game_member"]
 
         member_ids = value + [current_member.id]
-        channel_members = game.members.filter(id__in=member_ids)
+        channel_members = list(game.members.select_related("nation").filter(id__in=member_ids))
 
-        if channel_members.count() != len(member_ids):
+        if len(channel_members) != len(member_ids):
             raise serializers.ValidationError("One or more members are not part of the game.")
 
-        nations = sorted([m.nation.name if m.nation else "Game Master" for m in channel_members])
-        channel_name = ", ".join(nations)
+        channel_name = channel_name_for_members(channel_members)
 
         if game.channels.filter(name=channel_name).exists():
             raise serializers.ValidationError("A channel with the same members already exists.")

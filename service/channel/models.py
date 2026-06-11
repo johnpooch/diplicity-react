@@ -43,15 +43,19 @@ class ChannelQuerySet(models.QuerySet):
         )
 
 
+def channel_name_for_members(members):
+    nations = sorted([m.nation.name if m.nation else "Game Master" for m in members])
+    return ", ".join(nations)
+
+
 class ChannelManager(models.Manager):
     def get_queryset(self):
         return ChannelQuerySet(self.model, using=self._db)
 
     def create_from_member_ids(self, user, member_ids, game):
         member_ids = member_ids + [game.members.get(user=user).id]
-        channel_members = game.members.filter(id__in=member_ids)
-        nations = sorted([m.nation.name if m.nation else "Game Master" for m in channel_members])
-        channel_name = ", ".join(nations)
+        channel_members = list(game.members.select_related("nation").filter(id__in=member_ids))
+        channel_name = channel_name_for_members(channel_members)
         channel = self.create(name=channel_name, private=True, game=game)
         channel.members.set(channel_members)
         return channel
