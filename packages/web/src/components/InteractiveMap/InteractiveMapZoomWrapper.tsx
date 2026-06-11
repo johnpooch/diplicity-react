@@ -130,6 +130,18 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
     });
   };
 
+  const handleGestureStart = () => {
+    if (svgRef.current) {
+      svgRef.current.style.pointerEvents = "none";
+    }
+  };
+
+  const handleGestureStop = () => {
+    if (svgRef.current) {
+      svgRef.current.style.pointerEvents = "";
+    }
+  };
+
   const handleTransformed = () => {
     const now = performance.now();
     if (lastTransformTimeRef.current !== null) {
@@ -229,8 +241,17 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
         panning={{ velocityDisabled: true }}
         velocityAnimation={{ disabled: true }}
         onTransformed={handleTransformed}
+        onPanningStart={handleGestureStart}
+        onPanningStop={handleGestureStop}
+        onPinchingStart={handleGestureStart}
+        onPinchingStop={handleGestureStop}
+        onZoomStart={handleGestureStart}
+        onZoomStop={handleGestureStop}
       >
-        <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
+        <TransformComponent
+          wrapperStyle={{ width: "100%", height: "100%" }}
+          contentStyle={{ willChange: "transform" }}
+        >
           <InteractiveMap
             ref={svgRef}
             {...interactiveMapProps}
