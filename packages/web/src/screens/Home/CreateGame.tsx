@@ -361,6 +361,34 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
               </FormItem>
             )}
           />
+
+          <FormField
+            control={form.control}
+            name="gameMaster"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={checked => {
+                      field.onChange(checked);
+                    }}
+                    disabled={isSubmitting || !isPrivate}
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel className={!isPrivate ? "text-muted-foreground" : undefined}>
+                    Game Master
+                  </FormLabel>
+                  <FormDescription>
+                    Manage the game without playing. You will not be assigned a
+                    nation or orders, but can chat and pause/resume the game.
+                    {!isPrivate && " Only available for private games."}
+                  </FormDescription>
+                </div>
+              </FormItem>
+            )}
+          />
         </div>
 
         <hr className="border-t" />
@@ -656,33 +684,6 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="gameMaster"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={checked => {
-                      field.onChange(checked);
-                    }}
-                    disabled={isSubmitting || !isPrivate}
-                  />
-                </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel className={!isPrivate ? "text-muted-foreground" : undefined}>
-                    Game Master
-                  </FormLabel>
-                  <FormDescription>
-                    Manage the game without playing. You will not be assigned a
-                    nation or orders, but can chat and pause/resume the game.
-                    {!isPrivate && " Only available for private games."}
-                  </FormDescription>
-                </div>
-              </FormItem>
-            )}
-          />
         </div>
 
         <Button type="submit" className="w-full" disabled={isSubmitting}>
