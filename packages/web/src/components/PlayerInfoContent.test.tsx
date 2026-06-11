@@ -45,7 +45,7 @@ const baseMember = {
 describe("PlayerInfoContent", () => {
   beforeEach(() => {
     mockVariantsData.mockReturnValue([
-      { id: "classical", name: "Classical" },
+      { id: "classical", name: "Classical", nations: [] },
     ]);
     mockCurrentPhaseData.mockReturnValue({ supplyCenters: [] });
   });

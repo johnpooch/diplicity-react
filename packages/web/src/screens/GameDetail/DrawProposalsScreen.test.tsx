@@ -96,7 +96,7 @@ describe("DrawProposalsScreen (secret voting)", () => {
     mockVoteMutation.mockResolvedValue({});
     mockCancelMutation.mockReset();
     mockCancelMutation.mockResolvedValue({});
-    mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);
+    mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical", nations: [] }]);
     mockGameData.mockReturnValue({
       variantId: "classical",
       sandbox: false,

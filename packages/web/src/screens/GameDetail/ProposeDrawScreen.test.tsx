@@ -71,7 +71,7 @@ describe("ProposeDrawScreen (DIAS)", () => {
   beforeEach(() => {
     mockCreateMutation.mockReset();
     mockCreateMutation.mockResolvedValue({});
-    mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);
+    mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical", nations: [] }]);
   });
 
   it("lists all active non-CD members as included", () => {
