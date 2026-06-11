@@ -76,7 +76,7 @@ const ProposalItem: React.FC<ProposalItemProps> = ({
     .map(id => game.members.find(m => m.id === id))
     .filter((m): m is Member => Boolean(m));
 
-  const isGm = game.nonPlayingGm && proposal.createdBy.nation === null;
+  const isGm = game.nonPlayingGm && proposal.createdBy.nation == null;
   const flagUrl = isGm
     ? (hasNationFlags ? (proposal.createdBy.picture ?? null) : null)
     : (variant ? findNationFlagUrl(variant.nations, proposal.createdBy.nation) : null);

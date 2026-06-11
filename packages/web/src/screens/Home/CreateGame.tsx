@@ -92,6 +92,14 @@ const standardGameSchema = z.object({
     .nullable(),
   nmrExtensionsAllowed: z.enum(["0", "1", "2"] as const),
   gameMaster: z.boolean(),
+}).superRefine((data, ctx) => {
+  if (data.gameMaster && !data.private) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Game Master mode is only available for private games.",
+      path: ["gameMaster"],
+    });
+  }
 });
 
 const sandboxGameSchema = z.object({

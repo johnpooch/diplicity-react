@@ -100,11 +100,20 @@ const ChannelAvatar: React.FC<ChannelAvatarProps> = ({ nations }) => {
         }}
       >
         {isSingle ? (
-          singleUrl && (
+          singleUrl ? (
             <img
               src={singleUrl}
               alt=""
               style={{ width: SIZE, height: SIZE, objectFit: "cover", display: "block" }}
+            />
+          ) : (
+            <div
+              style={{
+                width: SIZE,
+                height: SIZE,
+                borderRadius: "50%",
+                backgroundColor: items[0].color,
+              }}
             />
           )
         ) : (

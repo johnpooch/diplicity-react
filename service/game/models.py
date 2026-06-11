@@ -486,6 +486,12 @@ class Game(BaseModel):
                 if not (self.non_playing_gm and m.is_game_master)
             ]
 
+            if len(playing_members) != len(nations):
+                raise ValueError(
+                    f"Playing member count ({len(playing_members)}) does not match "
+                    f"nation count ({len(nations)}) — game cannot start."
+                )
+
             if self.nation_assignment == NationAssignment.RANDOM:
                 import random
 
