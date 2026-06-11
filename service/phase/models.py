@@ -572,7 +572,7 @@ class PhaseManager(models.Manager):
         if game.sandbox:
             return False
 
-        active_members = list(game.members.filter(eliminated=False, kicked=False))
+        active_members = list(game.members.filter(eliminated=False, kicked=False, nation__isnull=False))
         if not active_members:
             return False
 
@@ -788,8 +788,8 @@ class PhaseManager(models.Manager):
                 with tracer.start_as_current_span("phase.create_phase_states") as ps_span:
                     nations_with_orders = new_phase.nations_with_possible_orders
 
-                    # Prefetch member nations to avoid N+1
-                    members = list(new_phase.game.members.select_related("nation").all())
+                    # Prefetch member nations to avoid N+1; exclude non-playing GMs (nation=None)
+                    members = list(new_phase.game.members.select_related("nation").filter(nation__isnull=False))
 
                     phase_states_to_create = []
                     for member in members:

@@ -50,7 +50,7 @@ class ChannelSerializer(serializers.Serializer):
         if channel_members.count() != len(member_ids):
             raise serializers.ValidationError("One or more members are not part of the game.")
 
-        nations = sorted([m.nation.name for m in channel_members])
+        nations = sorted([m.nation.name if m.nation else "Game Master" for m in channel_members])
         channel_name = ", ".join(nations)
 
         if game.channels.filter(name=channel_name).exists():

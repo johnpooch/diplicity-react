@@ -47,6 +47,8 @@ class BaseMemberSerializer(serializers.Serializer):
     def get_name(self, obj):
         if self._is_masked(obj):
             return "Anonymous"
+        if obj.is_game_master and self._get_game(obj).non_playing_gm:
+            return "Game Master"
         if obj.user is None:
             return "Deleted User"
         return obj.user.profile.name

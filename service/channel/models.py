@@ -50,7 +50,7 @@ class ChannelManager(models.Manager):
     def create_from_member_ids(self, user, member_ids, game):
         member_ids = member_ids + [game.members.get(user=user).id]
         channel_members = game.members.filter(id__in=member_ids)
-        nations = sorted([m.nation.name for m in channel_members])
+        nations = sorted([m.nation.name if m.nation else "Game Master" for m in channel_members])
         channel_name = ", ".join(nations)
         channel = self.create(name=channel_name, private=True, game=game)
         channel.members.set(channel_members)

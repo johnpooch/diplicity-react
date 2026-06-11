@@ -83,6 +83,7 @@ class GameListSerializer(serializers.Serializer):
     movement_frequency = serializers.CharField(read_only=True, allow_null=True)
     retreat_frequency = serializers.CharField(read_only=True, allow_null=True)
     press_type = serializers.CharField(read_only=True)
+    non_playing_gm = serializers.BooleanField(read_only=True)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):
@@ -163,6 +164,7 @@ class GameRetrieveSerializer(serializers.Serializer):
     movement_frequency = serializers.CharField(read_only=True, allow_null=True)
     retreat_frequency = serializers.CharField(read_only=True, allow_null=True)
     press_type = serializers.CharField(read_only=True)
+    non_playing_gm = serializers.BooleanField(read_only=True)
     total_unread_message_count = serializers.SerializerMethodField()
 
     @extend_schema_field(serializers.IntegerField)
@@ -277,6 +279,7 @@ class GameCreateSerializer(serializers.Serializer):
         choices=PressType.PRESS_TYPE_CHOICES,
         default=PressType.FULL_PRESS,
     )
+    non_playing_gm = serializers.BooleanField(default=False)
 
     def validate_variant_id(self, value):
         try:
@@ -297,6 +300,11 @@ class GameCreateSerializer(serializers.Serializer):
         return value
 
     def validate(self, attrs):
+        if attrs.get("non_playing_gm") and not attrs.get("private"):
+            raise serializers.ValidationError(
+                {"non_playing_gm": "Non-playing game master is only available for private games."}
+            )
+
         variant = self._validated_variant
         if variant.status == VariantStatus.DRAFT:
             request = self.context["request"]
@@ -354,6 +362,7 @@ class GameCreateSerializer(serializers.Serializer):
                 retreat_frequency=validated_data.get("retreat_frequency"),
                 nmr_extensions_allowed=validated_data["nmr_extensions_allowed"],
                 press_type=validated_data["press_type"],
+                non_playing_gm=validated_data["non_playing_gm"],
             )
 
             creator_member = game.members.create(user=request.user, is_game_master=True)

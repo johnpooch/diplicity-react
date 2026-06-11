@@ -34,12 +34,12 @@ class GameQuerySet(models.QuerySet):
     def with_list_data(self):
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.select_related("nation__flag", "user__profile"),
+            queryset=Member.objects.select_related("game", "nation__flag", "user__profile"),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile", "nation__flag")
+            queryset=Member.objects.select_related("game", "user__profile", "nation__flag")
         )
 
         # The list view's current_phase + phase_confirmed read the latest
@@ -63,12 +63,12 @@ class GameQuerySet(models.QuerySet):
     def with_retrieve_data(self):
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.select_related("nation__flag", "user__profile"),
+            queryset=Member.objects.select_related("game", "nation__flag", "user__profile"),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile", "nation__flag")
+            queryset=Member.objects.select_related("game", "user__profile", "nation__flag")
         )
 
         phase_states_prefetch = Prefetch(
@@ -135,12 +135,12 @@ class GameQuerySet(models.QuerySet):
 
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.select_related("nation__flag", "user__profile"),
+            queryset=Member.objects.select_related("game", "nation__flag", "user__profile"),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile", "nation__flag")
+            queryset=Member.objects.select_related("game", "user__profile", "nation__flag")
         )
 
         return self.select_related("victory").prefetch_related(
@@ -342,6 +342,7 @@ class Game(BaseModel):
         null=True,
         blank=True,
     )
+    non_playing_gm = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         if not self.id:
@@ -480,21 +481,26 @@ class Game(BaseModel):
             # Accessing .all() on a prefetched queryset doesn't trigger a new query
             nations = list(self.variant.nations.all())
 
+            playing_members = [
+                m for m in members
+                if not (self.non_playing_gm and m.is_game_master)
+            ]
+
             if self.nation_assignment == NationAssignment.RANDOM:
                 import random
 
-                random.shuffle(members)
+                random.shuffle(playing_members)
             elif self.nation_assignment == NationAssignment.ORDERED:
-                members.sort(key=lambda m: m.id)
+                playing_members.sort(key=lambda m: m.id)
 
             now = timezone.now()
-            for member, nation in zip(members, nations):
+            for member, nation in zip(playing_members, nations):
                 member.nation = nation
                 member.nmr_extensions_remaining = self.nmr_extensions_allowed
                 member.updated_at = now
 
             # Use bulk_update to avoid n+1 queries
-            Member.objects.bulk_update(members, ["nation", "nmr_extensions_remaining", "updated_at"])
+            Member.objects.bulk_update(playing_members, ["nation", "nmr_extensions_remaining", "updated_at"])
 
             nations_with_orders = current_phase.nations_with_possible_orders
             phase_states_to_create = [
@@ -503,7 +509,7 @@ class Game(BaseModel):
                     member=member,
                     has_possible_orders=member.nation.name in nations_with_orders,
                 )
-                for member in members
+                for member in playing_members
             ]
             PhaseState.objects.bulk_create(phase_states_to_create)
 

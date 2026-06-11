@@ -329,6 +329,7 @@ export interface GameCreate {
    */
   nmrExtensionsAllowed?: number;
   pressType?: PressTypeEnum;
+  nonPlayingGm?: boolean;
 }
 
 export interface GameCreateSandbox {
@@ -416,6 +417,7 @@ export interface GameList {
   /** @nullable */
   readonly retreatFrequency: string | null;
   readonly pressType: string;
+  readonly nonPlayingGm: boolean;
 }
 
 export interface GameFindSimilar {
@@ -459,6 +461,7 @@ export interface GameRetrieve {
   /** @nullable */
   readonly retreatFrequency: string | null;
   readonly pressType: string;
+  readonly nonPlayingGm: boolean;
   readonly totalUnreadMessageCount: number;
 }
 
