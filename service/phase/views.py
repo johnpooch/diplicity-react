@@ -5,6 +5,7 @@ from common.permissions import (
     IsActiveGame,
     IsActiveOrCompletedGame,
     IsActiveGameMember,
+    IsPlayingMember,
     IsCurrentPhaseActive,
     IsUserPhaseStateExists,
     IsNotSandboxGame,
@@ -24,7 +25,7 @@ class PhaseStateUpdateView(SelectedGameMixin, CurrentGameMemberMixin, generics.U
     permission_classes = [
         permissions.IsAuthenticated,
         IsActiveGame,
-        IsActiveGameMember,
+        IsPlayingMember,
         IsCurrentPhaseActive,
         IsUserPhaseStateExists,
         IsNotSandboxGame,

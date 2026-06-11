@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from .models import Order
 from .serializers import OrderSerializer, OrderOptionsResponseSerializer
 from .utils import flatten_options, FIELD_ORDER
-from common.permissions import IsActiveGame, IsActiveGameMember, IsPlayingMember
+from common.permissions import IsActiveGame, IsPlayingMember
 from common.views import SelectedPhaseMixin, CurrentPhaseMixin
 from common.serializers import EmptySerializer
 
@@ -46,7 +46,7 @@ class OrderOptionsView(CurrentPhaseMixin, generics.RetrieveAPIView):
 
 
 class OrderDeleteView(CurrentPhaseMixin, generics.DestroyAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsActiveGameMember]
+    permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsPlayingMember]
     serializer_class = EmptySerializer
 
     def get_object(self):

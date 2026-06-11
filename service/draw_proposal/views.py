@@ -30,7 +30,7 @@ class DrawProposalCreateView(SelectedGameMixin, CurrentGameMemberMixin, generics
     permission_classes = [
         permissions.IsAuthenticated,
         IsActiveGame,
-        IsPlayingMember,
+        IsActiveGameMember,
         IsNotSandboxGame,
     ]
     serializer_class = DrawProposalSerializer
@@ -69,7 +69,7 @@ class DrawProposalCancelView(SelectedGameMixin, CurrentGameMemberMixin, generics
     permission_classes = [
         permissions.IsAuthenticated,
         IsActiveGame,
-        IsPlayingMember,
+        IsActiveGameMember,
         IsNotSandboxGame,
     ]
     serializer_class = DrawProposalSerializer

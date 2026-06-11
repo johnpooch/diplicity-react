@@ -5,6 +5,7 @@ from rest_framework.test import APIClient
 
 from adjudication import service as adjudication_service
 from common.constants import DeadlineMode, MovementPhaseDuration
+from draw_proposal.models import DrawProposal
 from game import models
 from user_profile.models import UserProfile
 
@@ -167,6 +168,45 @@ class TestNonPlayingGMMemberName:
         assert response.status_code == 200
         gm_member = next(m for m in response.data["members"] if m["is_game_master"])
         assert gm_member["name"] == primary_user.profile.name
+
+
+class TestNonPlayingGMDrawProposals:
+    def test_gm_can_create_draw_proposal(self, game_with_non_playing_gm, primary_user, api_client):
+        game = game_with_non_playing_gm()
+        api_client.force_authenticate(user=primary_user)
+        response = api_client.post(f"/games/{game.id}/draw-proposals/create/")
+        assert response.status_code == 201
+        assert DrawProposal.objects.filter(game=game).count() == 1
+        proposal = DrawProposal.objects.get(game=game)
+        gm_member = game.members.get(user=primary_user)
+        assert proposal.created_by == gm_member
+        assert not proposal.votes.filter(member=gm_member).exists()
+
+    def test_gm_cannot_vote_on_draw_proposal(self, game_with_non_playing_gm, primary_user, api_client):
+        game = game_with_non_playing_gm()
+        proposer = game.members.exclude(user=primary_user).first()
+        proposal = DrawProposal.objects.create_proposal(game=game, created_by=proposer)
+        api_client.force_authenticate(user=primary_user)
+        response = api_client.patch(
+            f"/games/{game.id}/draw-proposals/{proposal.id}/vote/",
+            {"accepted": True},
+            format="json",
+        )
+        assert response.status_code == 403
+
+
+class TestNonPlayingGMOrderAndPhasePermissions:
+    def test_gm_cannot_delete_order(self, game_with_non_playing_gm, primary_user, api_client):
+        game = game_with_non_playing_gm()
+        api_client.force_authenticate(user=primary_user)
+        response = api_client.delete(f"/game/{game.id}/orders/delete/some-province")
+        assert response.status_code == 403
+
+    def test_gm_cannot_confirm_phase(self, game_with_non_playing_gm, primary_user, api_client):
+        game = game_with_non_playing_gm()
+        api_client.force_authenticate(user=primary_user)
+        response = api_client.patch(f"/game/{game.id}/confirm-phase/", {}, format="json")
+        assert response.status_code == 403
 
 
 class TestNonPlayingGMLeave:
