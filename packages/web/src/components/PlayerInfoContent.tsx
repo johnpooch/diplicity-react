@@ -32,6 +32,7 @@ export const PlayerInfoContent: React.FC = () => {
   );
 
   const variant = variants.find(v => v.id === game.variantId);
+  const hasNationFlags = variant?.nations.some(n => n.flagUrl != null) ?? false;
 
   const getSupplyCenterCount = (member: Member) => {
     if (!currentPhase) return undefined;
@@ -65,13 +66,12 @@ export const PlayerInfoContent: React.FC = () => {
                     className="size-8"
                     color={findNationColor(variant.nations, member.nation)}
                   />
-                ) : member.isGameMaster ? (
+                ) : member.isGameMaster && hasNationFlags ? (
                   <NationFlag
                     flagUrl={member.picture}
                     alt="Game Master"
                     size="lg"
-                    className="size-8"
-                    color="#808080"
+                    className="size-8 ring-1 ring-[#281A1A] dark:ring-[#FBDFB0]"
                   />
                 ) : null}
 
@@ -106,7 +106,7 @@ export const PlayerInfoContent: React.FC = () => {
                     {member.civilDisorder && <CivilDisorderBadge />}
                   </div>
 
-                  {member.nation && (
+                  {member.nation ? (
                     <div className="text-sm text-muted-foreground mt-1">
                       <span className="inline-flex items-center gap-2">
                         <span>{member.nation}</span>
@@ -127,7 +127,9 @@ export const PlayerInfoContent: React.FC = () => {
                         )}
                       </span>
                     </div>
-                  )}
+                  ) : member.isGameMaster ? (
+                    <div className="text-sm text-muted-foreground mt-1">Game Master</div>
+                  ) : null}
                 </div>
               </div>
             );

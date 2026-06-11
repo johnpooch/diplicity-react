@@ -23,13 +23,19 @@ export const brightnessByColor = (hex: string): number => {
 // Private channel names are formatted by the backend as "Nation1, Nation2, ..."
 export const getChannelDisplayName = (
   channel: Channel,
-  currentNationName: string | undefined
+  currentNationName: string | undefined,
+  currentIsGm = false
 ): string => {
-  if (!channel.private || !currentNationName) return channel.name;
+  if (!channel.private) return channel.name;
+  if (!currentNationName && !currentIsGm) return channel.name;
   const others = channel.name
     .split(",")
     .map(s => s.trim())
-    .filter(n => n !== currentNationName);
+    .filter(n => {
+      if (n === currentNationName) return false;
+      if (currentIsGm && n === "Game Master") return false;
+      return true;
+    });
   return others.length > 0 ? others.join(", ") : channel.name;
 };
 
@@ -39,8 +45,13 @@ export const getChannelFlagUrls = (
   currentNationName: string | undefined,
   variantNations: ReadonlyArray<{ name: string; flagUrl: string | null; color: string }>
 ): ChannelNation[] => {
+  const currentIsGm = members.some(m => m.isCurrentUser && m.isGameMaster && !m.nation);
   const nationNames = channel.private
-    ? channel.name.split(",").map(s => s.trim()).filter(n => n !== currentNationName)
+    ? channel.name.split(",").map(s => s.trim()).filter(n => {
+        if (n === currentNationName) return false;
+        if (currentIsGm && n === "Game Master") return false;
+        return true;
+      })
     : members
         .map(m => m.nation)
         .filter((n): n is string => n !== null);

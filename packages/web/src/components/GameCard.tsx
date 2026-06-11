@@ -164,7 +164,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
                   key={member.id}
                   className="h-8 w-8 border-2 border-background"
                 >
-                  <AvatarImage src={member.picture ?? undefined} />
+                  <AvatarImage src={member.isGameMaster && !member.nation ? undefined : (member.picture ?? undefined)} />
                   <AvatarFallback>
                     {member.name?.[0]?.toUpperCase() ?? "?"}
                   </AvatarFallback>

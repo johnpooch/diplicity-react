@@ -34,7 +34,7 @@ const getLatestMessagePreview = (
   const latestMessage = messages[messages.length - 1];
   const senderLabel = latestMessage.sender.isCurrentUser
     ? "You"
-    : latestMessage.sender.nation.name;
+    : (latestMessage.sender.nation?.name ?? "Game Master");
   return `${senderLabel}: ${latestMessage.body}`;
 };
 
@@ -47,8 +47,9 @@ const ChannelListScreen: React.FC = () => {
   const { data: channels } = useGamesChannelsListSuspense(gameId);
   const { data: variants } = useVariantsListSuspense();
 
-  const currentNationName =
-    game.members.find(m => m.isCurrentUser)?.nation ?? undefined;
+  const currentMember = game.members.find(m => m.isCurrentUser);
+  const currentNationName = currentMember?.nation ?? undefined;
+  const currentIsGm = !!(currentMember?.isGameMaster && !currentMember.nation);
   const variantNations = variants.find(v => v.id === game.variantId)?.nations ?? [];
   const isSandboxGame = game.sandbox;
   const isNoPressActiveGame =
@@ -99,7 +100,7 @@ const ChannelListScreen: React.FC = () => {
                         />
                         <ItemContent className="gap-0.5">
                           <ItemTitle>
-                            {getChannelDisplayName(channel, currentNationName)}
+                            {getChannelDisplayName(channel, currentNationName, currentIsGm)}
                             {!channel.private && (
                               <Badge variant="outline">Public</Badge>
                             )}

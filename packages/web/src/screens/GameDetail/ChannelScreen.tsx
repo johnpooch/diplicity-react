@@ -123,9 +123,10 @@ const ChannelScreen: React.FC = () => {
 
   const currentMember = game.members.find(m => m.isCurrentUser);
   const currentNationName = currentMember?.nation ?? undefined;
+  const currentIsGm = !!(currentMember?.isGameMaster && !currentMember.nation);
   const variant = variants.find(v => v.id === game.variantId);
   const hasNationFlags = variant?.nations.some(n => n.flagUrl != null) ?? false;
-  const channelDisplayName = getChannelDisplayName(channel, currentNationName);
+  const channelDisplayName = getChannelDisplayName(channel, currentNationName, currentIsGm);
   const channelFlagUrls = getChannelFlagUrls(
     channel,
     game.members,
@@ -262,12 +263,13 @@ const ChannelScreen: React.FC = () => {
                             <NationFlag
                               flagUrl={
                                 item.sender.nationName === null
-                                  ? (hasNationFlags ? (item.sender.picture ?? null) : null)
-                                  : (variant ? findNationFlagUrl(variant.nations, item.sender.nationName) : null)
+                                  ? (item.sender.picture ?? null)
+                                  : (hasNationFlags && variant ? findNationFlagUrl(variant.nations, item.sender.nationName) : null)
                               }
                               alt={item.sender.nationName ?? "Game Master"}
                               size="lg"
                               color={item.sender.nationColor}
+                              className={item.sender.nationName === null ? "ring-1 ring-[#281A1A] dark:ring-[#FBDFB0]" : undefined}
                             />
                           </div>
                         ) : (
@@ -291,7 +293,7 @@ const ChannelScreen: React.FC = () => {
                                 className="text-xs font-medium"
                                 style={{ color: item.sender.nationColor ?? undefined }}
                               >
-                                {item.sender.nationName}
+                                {item.sender.nationName ?? "Game Master"}
                               </span>
                               <span className="text-xs text-muted-foreground">
                                 {item.formattedTime}
