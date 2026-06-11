@@ -90,7 +90,7 @@ const ChannelCreateScreen: React.FC = () => {
               {game.members
                 .filter(m => !m.isCurrentUser)
                 .map(member => (
-                  <React.Fragment key={member.nation}>
+                  <React.Fragment key={member.id}>
                     <Item
                       className="cursor-pointer hover:bg-accent/50"
                       onClick={() => handleToggle(member.id)}
@@ -98,11 +98,11 @@ const ChannelCreateScreen: React.FC = () => {
                       <ItemMedia>
                         <Avatar>
                           <AvatarImage src={member.picture ?? undefined} />
-                          <AvatarFallback>{member.nation?.[0]}</AvatarFallback>
+                          <AvatarFallback>{(member.nation ?? member.name)?.[0]}</AvatarFallback>
                         </Avatar>
                       </ItemMedia>
                       <ItemContent>
-                        <ItemTitle>{member.nation}</ItemTitle>
+                        <ItemTitle>{member.nation ?? "Game Master"}</ItemTitle>
                         <ItemDescription>{member.name}</ItemDescription>
                       </ItemContent>
                       <ItemActions>

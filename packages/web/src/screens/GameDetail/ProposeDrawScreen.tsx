@@ -26,6 +26,7 @@ import {
   useGamesDrawProposalsCreateCreate,
   getGamesDrawProposalsListQueryKey,
   useVariantsListSuspense,
+  Member,
 } from "@/api/generated/endpoints";
 
 const ProposeDrawScreen: React.FC = () => {
@@ -44,6 +45,20 @@ const ProposeDrawScreen: React.FC = () => {
   const activeMembers = game.members.filter(m => !m.eliminated && !m.kicked);
   const includedMembers = activeMembers.filter(m => !m.civilDisorder);
   const cdMembers = activeMembers.filter(m => m.civilDisorder);
+
+  const hasNationFlags = variant?.nations.some(n => n.flagUrl != null) ?? false;
+
+  const getMemberFlagUrl = (member: Member) => {
+    if (game.nonPlayingGm && member.isGameMaster) {
+      return hasNationFlags ? (member.picture ?? null) : null;
+    }
+    return variant ? findNationFlagUrl(variant.nations, member.nation) : null;
+  };
+
+  const getMemberFlagColor = (member: Member) => {
+    if (game.nonPlayingGm && member.isGameMaster) return null;
+    return variant ? findNationColor(variant.nations, member.nation) : null;
+  };
 
   const handleSubmit = async () => {
     try {
@@ -91,11 +106,11 @@ const ProposeDrawScreen: React.FC = () => {
                   <Item>
                     <ItemMedia>
                       <NationFlag
-                        flagUrl={variant ? findNationFlagUrl(variant.nations, member.nation) : null}
-                        alt={member.nation ?? ""}
+                        flagUrl={getMemberFlagUrl(member)}
+                        alt={member.nation ?? member.name}
                         size="md"
                         className="size-10"
-                        color={variant ? findNationColor(variant.nations, member.nation) : null}
+                        color={getMemberFlagColor(member)}
                       />
                     </ItemMedia>
                     <ItemContent>
@@ -111,11 +126,11 @@ const ProposeDrawScreen: React.FC = () => {
                   <Item className="opacity-60">
                     <ItemMedia>
                       <NationFlag
-                        flagUrl={variant ? findNationFlagUrl(variant.nations, member.nation) : null}
-                        alt={member.nation ?? ""}
+                        flagUrl={getMemberFlagUrl(member)}
+                        alt={member.nation ?? member.name}
                         size="md"
                         className="size-10"
-                        color={variant ? findNationColor(variant.nations, member.nation) : null}
+                        color={getMemberFlagColor(member)}
                       />
                     </ItemMedia>
                     <ItemContent>

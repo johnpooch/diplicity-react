@@ -57,7 +57,7 @@ export const PlayerInfoContent: React.FC = () => {
                 key={member.id}
                 className="flex items-center gap-4 py-4 first:pt-0 last:pb-0"
               >
-                {member.nation && variant && (
+                {member.nation && variant ? (
                   <NationFlag
                     flagUrl={findNationFlagUrl(variant.nations, member.nation)}
                     alt={member.nation}
@@ -65,7 +65,15 @@ export const PlayerInfoContent: React.FC = () => {
                     className="size-8"
                     color={findNationColor(variant.nations, member.nation)}
                   />
-                )}
+                ) : member.isGameMaster ? (
+                  <NationFlag
+                    flagUrl={member.picture}
+                    alt="Game Master"
+                    size="lg"
+                    className="size-8"
+                    color="#808080"
+                  />
+                ) : null}
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">

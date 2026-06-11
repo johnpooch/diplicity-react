@@ -49,6 +49,7 @@ interface ProposalItemProps {
   game: GameRetrieve;
   currentMember: Member | undefined;
   variant: Variant | undefined;
+  hasNationFlags: boolean;
   onVote: (proposalId: number, accepted: boolean) => void;
   onCancel: (proposalId: number) => void;
   isVoting: boolean;
@@ -60,6 +61,7 @@ const ProposalItem: React.FC<ProposalItemProps> = ({
   game,
   currentMember,
   variant,
+  hasNationFlags,
   onVote,
   onCancel,
   isVoting,
@@ -74,15 +76,19 @@ const ProposalItem: React.FC<ProposalItemProps> = ({
     .map(id => game.members.find(m => m.id === id))
     .filter((m): m is Member => Boolean(m));
 
-  const nationColor = variant
-    ? findNationColor(variant.nations, proposal.createdBy.nation)
-    : null;
+  const isGm = game.nonPlayingGm && proposal.createdBy.nation === null;
+  const flagUrl = isGm
+    ? (hasNationFlags ? (proposal.createdBy.picture ?? null) : null)
+    : (variant ? findNationFlagUrl(variant.nations, proposal.createdBy.nation) : null);
+  const nationColor = isGm
+    ? null
+    : (variant ? findNationColor(variant.nations, proposal.createdBy.nation) : null);
 
   return (
     <Item className="border-b border-b-border">
       <NationFlag
-        flagUrl={variant ? findNationFlagUrl(variant.nations, proposal.createdBy.nation) : null}
-        alt={proposal.createdBy.nation ?? ""}
+        flagUrl={flagUrl}
+        alt={proposal.createdBy.nation ?? proposal.createdBy.name}
         size="md"
         className="size-8 self-start"
         color={nationColor}
@@ -90,7 +96,7 @@ const ProposalItem: React.FC<ProposalItemProps> = ({
       <ItemContent>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <ItemTitle>Proposed by {proposal.createdBy.nation}</ItemTitle>
+            <ItemTitle>Proposed by {proposal.createdBy.nation ?? proposal.createdBy.name}</ItemTitle>
             {proposal.status === "accepted" && (
               <Badge variant="default" className="bg-green-600">
                 <Check className="mr-1 h-3 w-3" />
@@ -186,6 +192,7 @@ const DrawProposalsScreen: React.FC = () => {
   const cancelMutation = useGamesDrawProposalsCancelDestroy();
 
   const variant = variants.find(v => v.id === game.variantId);
+  const hasNationFlags = variant?.nations.some(n => n.flagUrl != null) ?? false;
   const currentMember = game.members.find(m => m.isCurrentUser);
 
   const handleVote = async (proposalId: number, accepted: boolean) => {
@@ -284,6 +291,7 @@ const DrawProposalsScreen: React.FC = () => {
                         game={game}
                         currentMember={currentMember}
                         variant={variant}
+                        hasNationFlags={hasNationFlags}
                         onVote={handleVote}
                         onCancel={handleCancel}
                         isVoting={voteMutation.isPending}
@@ -309,6 +317,7 @@ const DrawProposalsScreen: React.FC = () => {
                         game={game}
                         currentMember={currentMember}
                         variant={variant}
+                        hasNationFlags={hasNationFlags}
                         onVote={handleVote}
                         onCancel={handleCancel}
                         isVoting={voteMutation.isPending}

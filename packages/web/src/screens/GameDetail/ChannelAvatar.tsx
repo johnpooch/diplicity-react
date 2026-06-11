@@ -22,13 +22,13 @@ const imgY = (d: number, ya: YAlign, yb: number): number => {
   return yb - d / 2;
 };
 
-interface FlagImg { url: string; x: number; y: number; d: number }
+interface FlagImg { url: string | null; color: string; x: number; y: number; d: number }
 
-const buildImgs = (count: number, flag: (i: number) => string | null): FlagImg[] => {
+const buildImgs = (count: number, item: (i: number) => ChannelNation | undefined): FlagImg[] => {
   const imgs: FlagImg[] = [];
   const add = (fi: number, d: number, xa: XAlign, xb: number, ya: YAlign, yb: number) => {
-    const url = flag(fi);
-    if (url) imgs.push({ url, x: imgX(d, xa, xb), y: imgY(d, ya, yb), d });
+    const n = item(fi);
+    imgs.push({ url: n?.flagUrl ?? null, color: n?.color ?? "#808080", x: imgX(d, xa, xb), y: imgY(d, ya, yb), d });
   };
 
   const d2 = HALF * SCALE;
@@ -75,9 +75,8 @@ const ChannelAvatar: React.FC<ChannelAvatarProps> = ({ nations }) => {
 
   if (count === 0) return null;
 
-  const flag = (i: number): string | null => items[i]?.flagUrl ?? null;
   const isSingle = count === 1;
-  const singleUrl = isSingle ? flag(0) : null;
+  const singleUrl = isSingle ? (items[0]?.flagUrl ?? null) : null;
 
   return (
     <div
@@ -109,23 +108,38 @@ const ChannelAvatar: React.FC<ChannelAvatarProps> = ({ nations }) => {
             />
           )
         ) : (
-          buildImgs(count, flag).map((img, i) => (
-            <img
-              key={`grid-${i}`}
-              src={img.url}
-              alt=""
-              style={{
-                position: "absolute",
-                left: img.x,
-                top: img.y,
-                width: img.d,
-                height: img.d,
-                objectFit: "cover",
-                display: "block",
-                borderRadius: "50%",
-              }}
-            />
-          ))
+          buildImgs(count, (i) => items[i]).map((img, i) =>
+            img.url ? (
+              <img
+                key={`grid-${i}`}
+                src={img.url}
+                alt=""
+                style={{
+                  position: "absolute",
+                  left: img.x,
+                  top: img.y,
+                  width: img.d,
+                  height: img.d,
+                  objectFit: "cover",
+                  display: "block",
+                  borderRadius: "50%",
+                }}
+              />
+            ) : (
+              <div
+                key={`grid-${i}`}
+                style={{
+                  position: "absolute",
+                  left: img.x,
+                  top: img.y,
+                  width: img.d,
+                  height: img.d,
+                  borderRadius: "50%",
+                  backgroundColor: img.color,
+                }}
+              />
+            )
+          )
         )}
       </div>
     </div>

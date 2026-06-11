@@ -36,8 +36,8 @@ type MessageDisplayItem = {
   body: string;
   createdAt: string;
   sender: {
-    nationName: string;
-    nationColor: string;
+    nationName: string | null;
+    nationColor: string | null;
     picture: string | null;
   };
   isCurrentUser: boolean;
@@ -61,17 +61,18 @@ const buildMessageItems = (
   messages: readonly ChannelMessageType[]
 ): MessageDisplayItem[] => {
   return messages.map((msg, index) => {
+    const nationName = msg.sender.nation?.name ?? null;
     const showAvatar =
       index === 0 ||
-      messages[index - 1].sender.nation.name !== msg.sender.nation.name;
+      (messages[index - 1].sender.nation?.name ?? null) !== nationName;
 
     return {
       id: msg.id,
       body: msg.body,
       createdAt: msg.createdAt,
       sender: {
-        nationName: msg.sender.nation.name,
-        nationColor: msg.sender.nation.color,
+        nationName,
+        nationColor: msg.sender.nation?.color ?? null,
         picture: msg.sender.picture,
       },
       isCurrentUser: msg.sender.isCurrentUser,
@@ -123,6 +124,7 @@ const ChannelScreen: React.FC = () => {
   const currentMember = game.members.find(m => m.isCurrentUser);
   const currentNationName = currentMember?.nation ?? undefined;
   const variant = variants.find(v => v.id === game.variantId);
+  const hasNationFlags = variant?.nations.some(n => n.flagUrl != null) ?? false;
   const channelDisplayName = getChannelDisplayName(channel, currentNationName);
   const channelFlagUrls = getChannelFlagUrls(
     channel,
@@ -259,11 +261,11 @@ const ChannelScreen: React.FC = () => {
                           <div className="w-8 flex-shrink-0 flex justify-center">
                             <NationFlag
                               flagUrl={
-                                variant
-                                  ? findNationFlagUrl(variant.nations, item.sender.nationName)
-                                  : null
+                                item.sender.nationName === null
+                                  ? (hasNationFlags ? (item.sender.picture ?? null) : null)
+                                  : (variant ? findNationFlagUrl(variant.nations, item.sender.nationName) : null)
                               }
-                              alt={item.sender.nationName}
+                              alt={item.sender.nationName ?? "Game Master"}
                               size="lg"
                               color={item.sender.nationColor}
                             />
@@ -274,8 +276,10 @@ const ChannelScreen: React.FC = () => {
                         <MessageContent
                           className={`py-1.5 px-2 ${item.isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"}`}
                           style={{
-                            backgroundColor: toHex6(item.sender.nationColor) + BUBBLE_ALPHA_HEX,
-                            border: brightnessByColor(item.sender.nationColor) > 128
+                            backgroundColor: item.sender.nationColor
+                              ? toHex6(item.sender.nationColor) + BUBBLE_ALPHA_HEX
+                              : undefined,
+                            border: item.sender.nationColor && brightnessByColor(item.sender.nationColor) > 128
                               ? `1px solid ${item.sender.nationColor}`
                               : undefined,
                           }}
@@ -285,7 +289,7 @@ const ChannelScreen: React.FC = () => {
                             <div className="flex items-center justify-between gap-2 mt-0.5">
                               <span
                                 className="text-xs font-medium"
-                                style={{ color: item.sender.nationColor }}
+                                style={{ color: item.sender.nationColor ?? undefined }}
                               >
                                 {item.sender.nationName}
                               </span>
