@@ -709,8 +709,22 @@ Two separate environment variables control Railway access in cloud sessions:
 
 | Variable | Scope | Used for |
 |---|---|---|
-| `RAILWAY_API_TOKEN` | Account-scoped | `railway status`, `railway logs` — auth and observability |
+| `RAILWAY_API_TOKEN` | Account-scoped | `railway whoami`, `railway status`, `railway logs` — auth and observability |
 | `RAILWAY_TOKEN` | Project-scoped | `railway run` — inject production env vars to run management commands locally |
+
+**IMPORTANT — token conflict**: When both variables are set, the Railway CLI v5 gives `RAILWAY_TOKEN` priority and uses it for all commands, including account-scoped ones like `whoami`/`status`/`logs`. This causes those commands to fail with an "Unauthorized" error because `RAILWAY_TOKEN` is project-scoped, not account-scoped.
+
+**Always unset the irrelevant token per command using `env -u`:**
+
+```bash
+# Account-scoped commands — unset RAILWAY_TOKEN
+env -u RAILWAY_TOKEN railway whoami
+env -u RAILWAY_TOKEN railway status
+env -u RAILWAY_TOKEN railway logs --lines 50
+
+# Project-scoped commands — unset RAILWAY_API_TOKEN
+env -u RAILWAY_API_TOKEN railway run --service diplicity-react python manage.py shell
+```
 
 The session-start hook checks both at startup and reports their availability. The service's Python dependencies needed by `railway run ... manage.py shell` are already installed in `service/.venv` (which the hook puts on `PATH`), so `railway run` picks them up automatically — no separate install step is required.
 
@@ -743,17 +757,17 @@ If the user asks to modify production data, refuse and explain that production d
 ### Common Commands
 
 ```bash
-railway status                          # Deployment health and status
-railway logs --lines 50                 # Recent log output (default: 100 lines)
-railway logs --lines 200 | grep ERROR   # Filter for errors
-railway logs --lines 200 | grep "GET /api"  # Filter by endpoint
+env -u RAILWAY_TOKEN railway status                          # Deployment health and status
+env -u RAILWAY_TOKEN railway logs --lines 50                 # Recent log output (default: 100 lines)
+env -u RAILWAY_TOKEN railway logs --lines 200 | grep ERROR   # Filter for errors
+env -u RAILWAY_TOKEN railway logs --lines 200 | grep "GET /api"  # Filter by endpoint
 ```
 
 ### Checking Postgres Health
 
 ```bash
-cd "$(git rev-parse --show-toplevel)/service" && railway run --service diplicity-react python3 manage.py dbshell -c "SELECT 1"    # Quick connectivity check
-cd "$(git rev-parse --show-toplevel)/service" && railway run --service diplicity-react python3 manage.py showmigrations --list     # Verify DB is reachable
+cd "$(git rev-parse --show-toplevel)/service" && env -u RAILWAY_API_TOKEN railway run --service diplicity-react python3 manage.py dbshell -c "SELECT 1"    # Quick connectivity check
+cd "$(git rev-parse --show-toplevel)/service" && env -u RAILWAY_API_TOKEN railway run --service diplicity-react python3 manage.py showmigrations --list     # Verify DB is reachable
 ```
 
 ### Django ORM Queries
