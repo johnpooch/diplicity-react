@@ -669,6 +669,34 @@ The application is deployed on **Railway** (project: `devoted-rejoicing`, servic
 
 The Railway CLI authenticates via the login token stored in `~/.railway/config.json` (set by `railway login`). Do **not** set a `RAILWAY_TOKEN` env var — project tokens conflict with CLI commands and cause "Project Token not found" errors.
 
+In cloud sessions, the session-start hook writes `~/.railway/config.json` automatically if the `RAILWAY_ACCOUNT_TOKEN` environment variable is set in the project settings.
+
+## Railway Access Tiers
+
+Not all sessions have Railway access:
+
+- **Owner sessions**: Full Railway account token configured — all commands available including `railway ssh`
+- **Trusted contributor sessions**: Full Railway account token configured — all commands available; write safety rules apply (see below)
+- **Casual contributor sessions**: No Railway token — Railway commands unavailable
+
+### When Railway is not configured
+
+If `~/.railway/config.json` does not exist, or any `railway` command fails with an authentication or "not logged in" error, **stop immediately** — this is an expected missing-credential situation, not a bug to diagnose. Tell the user:
+
+> "Railway is not configured in this session. Production debugging requires the `RAILWAY_ACCOUNT_TOKEN` environment variable to be set in the claude.ai/code project settings."
+
+Do not retry Railway commands, do not attempt workarounds, and do not use `/prod-query` or `/debug-production`.
+
+### Write safety
+
+`railway ssh` gives direct access to the **live production database**. Never execute write operations in any Railway SSH command — regardless of who is asking:
+
+- No `.create()`, `.update()`, `.delete()`, `.save()` in Django ORM calls
+- No `INSERT`, `UPDATE`, `DELETE` in raw SQL
+- No Django management commands that modify state (`migrate`, `flush`, `loaddata`, etc.)
+
+If the user asks to modify production data, refuse and explain that production data changes must go through a migration or a controlled admin process.
+
 ### Common Commands
 
 ```bash
