@@ -18,19 +18,12 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
-from fcm_django.api.rest_framework import FCMDeviceAuthorizedViewSet
 from rest_framework_simplejwt.views import TokenRefreshView
-from rest_framework.routers import DefaultRouter
 from project.views import test_sentry
 from project import settings
 
 
 urlpatterns = [
-    path(
-        "devices/",
-        FCMDeviceAuthorizedViewSet.as_view({"get": "list", "post": "create", "put": "update"}),
-        name="devices",
-    ),
     path("admin/", admin.site.urls),
     path("api-auth/", include("rest_framework.urls")),
     path("", include("game.urls")),
@@ -52,6 +45,17 @@ urlpatterns = [
     ),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token-refresh"),
 ]
+
+if settings._FIREBASE_PROJECT_ID:
+    from fcm_django.api.rest_framework import FCMDeviceAuthorizedViewSet
+
+    urlpatterns += [
+        path(
+            "devices/",
+            FCMDeviceAuthorizedViewSet.as_view({"get": "list", "post": "create", "put": "update"}),
+            name="devices",
+        ),
+    ]
 
 # Only enable in development
 if settings.DEBUG:

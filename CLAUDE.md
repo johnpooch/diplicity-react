@@ -105,6 +105,25 @@ This starts all services:
 - Django API at http://localhost:8000
 - PostgreSQL database at http://localhost:5432
 
+### Minimal Backend Environment (Cloud / CI sessions)
+
+The Django service can start with only database credentials and `DJANGO_DEBUG`. Firebase (push notifications) and Google OAuth will be disabled but will not prevent the service from starting:
+
+```bash
+DATABASE_NAME=diplicity   # default: diplicity
+DATABASE_USER=postgres    # default: postgres
+DATABASE_PASSWORD=postgres # default: postgres
+DATABASE_HOST=localhost   # default: db
+DATABASE_PORT=5432        # default: 5432
+DJANGO_DEBUG=True
+```
+
+All database vars have defaults matching the local Docker Compose setup, so in practice `DJANGO_DEBUG=True` alone is sufficient when running against the default local database.
+
+Features that are disabled when credentials are absent:
+- **Firebase / push notifications**: requires `FIREBASE_PROJECT_ID` (and other `FIREBASE_*` vars). `fcm_django` is removed from `INSTALLED_APPS` and the `/devices/` endpoint is not registered.
+- **Google OAuth login**: requires `GOOGLE_CLIENT_ID`. Login attempts will fail with an authentication error but the service continues to run.
+
 ## Key Commands
 
 ### Frontend (React/TypeScript)

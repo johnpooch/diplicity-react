@@ -1,6 +1,5 @@
 import logging
-from fcm_django.models import FCMDevice
-from firebase_admin.messaging import Message, Notification
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -8,6 +7,12 @@ logger = logging.getLogger(__name__)
 def send_notification_to_users(user_ids, title, body, notification_type, data=None):
     if not user_ids:
         return
+
+    if not getattr(settings, "FIREBASE_APP", None):
+        return
+
+    from fcm_django.models import FCMDevice
+    from firebase_admin.messaging import Message, Notification
 
     devices = FCMDevice.objects.filter(user_id__in=user_ids, active=True)
     if not devices.exists():
