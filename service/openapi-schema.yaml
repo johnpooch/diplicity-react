@@ -149,6 +149,17 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
+  /api/test-sentry/:
+    get:
+      operationId: apiTestSentryRetrieve
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
   /api/token/refresh/:
     post:
       operationId: apiTokenRefreshCreate
@@ -2458,7 +2469,7 @@ components:
         kicked:
           type: boolean
           readOnly: true
-        isGameMaster:
+        isGameCreator:
           type: boolean
           readOnly: true
         nmrExtensionsRemaining:
@@ -2472,7 +2483,7 @@ components:
       - eliminated
       - id
       - isCurrentUser
-      - isGameMaster
+      - isGameCreator
       - kicked
       - name
       - nation

@@ -143,17 +143,16 @@ class IsNotNoPressActiveGame(BasePermission):
         return game.status in (GameStatus.COMPLETED, GameStatus.ABANDONED)
 
 
-class IsGameMaster(BasePermission):
-    message = "Only the Game Master can perform this action."
+class IsGameCreator(BasePermission):
+    message = "Only the game creator can perform this action."
 
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
-        member = game.members.filter(user=request.user).first()
-        if not member:
+        if not game.members.filter(user=request.user).exists():
             self.message = "User is not a member of the game."
             return False
-        if not member.is_game_master:
-            self.message = "Only the Game Master can perform this action."
+        if game.created_by_id is None or game.created_by_id != request.user.id:
+            self.message = "Only the game creator can perform this action."
             return False
         return True
 

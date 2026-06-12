@@ -18,33 +18,35 @@ def api_client():
 
 
 @pytest.fixture
-def pending_game_with_gm(db, primary_user, classical_variant, base_pending_phase):
-    def _create(gm_user=None):
-        if gm_user is None:
-            gm_user = primary_user
+def pending_game_with_creator(db, primary_user, classical_variant, base_pending_phase):
+    def _create(creator=None):
+        if creator is None:
+            creator = primary_user
         game = models.Game.objects.create_from_template(
             classical_variant,
-            name="Test Game with GM",
+            name="Test Game with Creator",
             movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            created_by=creator,
         )
-        game.members.create(user=gm_user, is_game_master=True)
+        game.members.create(user=creator)
         return game
     return _create
 
 
 @pytest.fixture
-def active_game_with_gm(db, primary_user, classical_variant, adjudication_data_classical):
-    def _create(gm_user=None, nmr_extensions_allowed=0):
-        if gm_user is None:
-            gm_user = primary_user
+def active_game_with_creator(db, primary_user, classical_variant, adjudication_data_classical):
+    def _create(creator=None, nmr_extensions_allowed=0):
+        if creator is None:
+            creator = primary_user
         game = models.Game.objects.create_from_template(
             classical_variant,
-            name="Test Active Game with GM",
+            name="Test Active Game with Creator",
             movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
             nmr_extensions_allowed=nmr_extensions_allowed,
             deadline_mode=DeadlineMode.DURATION,
+            created_by=creator,
         )
-        game.members.create(user=gm_user, is_game_master=True)
+        game.members.create(user=creator)
 
         for i in range(game.variant.nations.count() - 1):
             other_user = User.objects.create_user(f"player{i}@test.com", password="testpass")
@@ -80,9 +82,9 @@ def sandbox_game(db, primary_user, classical_variant, base_active_phase, sample_
 
 @pytest.fixture
 def active_game_with_fixed_time(db, primary_user, classical_variant, adjudication_data_classical):
-    def _create(gm_user=None, target_time=None, timezone_name=None, movement_frequency=None, retreat_frequency=None):
-        if gm_user is None:
-            gm_user = primary_user
+    def _create(creator=None, target_time=None, timezone_name=None, movement_frequency=None, retreat_frequency=None):
+        if creator is None:
+            creator = primary_user
         if target_time is None:
             target_time = time(21, 0)
         if timezone_name is None:
@@ -100,8 +102,9 @@ def active_game_with_fixed_time(db, primary_user, classical_variant, adjudicatio
             fixed_deadline_timezone=timezone_name,
             movement_frequency=movement_frequency,
             retreat_frequency=retreat_frequency,
+            created_by=creator,
         )
-        game.members.create(user=gm_user, is_game_master=True)
+        game.members.create(user=creator)
 
         for i in range(game.variant.nations.count() - 1):
             other_user = User.objects.create_user(f"fixed_player{i}@test.com", password="testpass")

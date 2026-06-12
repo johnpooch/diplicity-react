@@ -25,11 +25,11 @@ ChannelMessage = apps.get_model("channel", "ChannelMessage")
 tracer = trace.get_tracer(__name__)
 
 
-def send_gm_action_notification(game, title, body, notification_type):
+def send_game_management_notification(game, title, body, notification_type, exclude_user_id):
     def _send():
         user_ids = [
             m.user_id for m in game.members.select_related('user').all()
-            if not m.is_game_master and m.user_id is not None
+            if m.user_id is not None and m.user_id != exclude_user_id
         ]
         notification_utils.send_notification_to_users(
             user_ids=user_ids,
@@ -342,6 +342,7 @@ class GameCreateSerializer(serializers.Serializer):
             game = Game.objects.create_from_template(
                 variant,
                 name=validated_data["name"],
+                created_by=request.user,
                 nation_assignment=validated_data["nation_assignment"],
                 movement_phase_duration=validated_data["movement_phase_duration"],
                 retreat_phase_duration=validated_data.get("retreat_phase_duration"),
@@ -356,7 +357,7 @@ class GameCreateSerializer(serializers.Serializer):
                 press_type=validated_data["press_type"],
             )
 
-            creator_member = game.members.create(user=request.user, is_game_master=True)
+            creator_member = game.members.create(user=request.user)
             public_channel = game.channels.create(name="Public Press", private=False)
             public_channel.member_channels.create(member=creator_member)
 
@@ -438,13 +439,14 @@ class GamePauseSerializer(serializers.Serializer):
         return attrs
 
     def update(self, instance, validated_data):
-        gm_username = self.context["request"].user.username
+        actor = self.context["request"].user
         instance.pause()
-        send_gm_action_notification(
+        send_game_management_notification(
             instance,
             title=instance.name,
-            body=f"Game paused by Game Master ({gm_username})",
+            body=f"Game paused by the game creator ({actor.username})",
             notification_type="game_paused",
+            exclude_user_id=actor.id,
         )
         return instance
 
@@ -459,15 +461,16 @@ class GameUnpauseSerializer(serializers.Serializer):
         return attrs
 
     def update(self, instance, validated_data):
-        gm_username = self.context["request"].user.username
+        actor = self.context["request"].user
         instance.unpause()
         new_deadline = instance.current_phase.scheduled_resolution if instance.current_phase else None
         deadline_str = format_deadline(new_deadline, instance.fixed_deadline_timezone) if new_deadline else "N/A"
-        send_gm_action_notification(
+        send_game_management_notification(
             instance,
             title=instance.name,
-            body=f"Game resumed by Game Master ({gm_username}). New deadline: {deadline_str}",
+            body=f"Game resumed by the game creator ({actor.username}). New deadline: {deadline_str}",
             notification_type="game_resumed",
+            exclude_user_id=actor.id,
         )
         return instance
 
@@ -491,15 +494,16 @@ class GameExtendDeadlineSerializer(serializers.Serializer):
         return attrs
 
     def update(self, instance, validated_data):
-        gm_username = self.context["request"].user.username
+        actor = self.context["request"].user
         instance.extend_deadline(validated_data["duration"])
         new_deadline = instance.current_phase.scheduled_resolution if instance.current_phase else None
         deadline_str = format_deadline(new_deadline, instance.fixed_deadline_timezone) if new_deadline else "N/A"
-        send_gm_action_notification(
+        send_game_management_notification(
             instance,
             title=instance.name,
-            body=f"Deadline extended by Game Master ({gm_username}). New deadline: {deadline_str}",
+            body=f"Deadline extended by the game creator ({actor.username}). New deadline: {deadline_str}",
             notification_type="game_deadline_extended",
+            exclude_user_id=actor.id,
         )
         return instance
 

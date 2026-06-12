@@ -5,7 +5,7 @@ from functools import cached_property
 import sentry_sdk
 from django.conf import settings
 from django.db import models, transaction
-from django.db.models import Q, Exists, OuterRef, Count, Prefetch
+from django.db.models import F, Q, Exists, OuterRef, Count, Prefetch
 from django.utils import timezone
 from opentelemetry import trace
 from common.models import BaseModel
@@ -499,8 +499,9 @@ class PhaseManager(models.Manager):
             Member.objects.filter(
                 user_id__in=user_ids,
                 game__status=GameStatus.PENDING,
-                is_game_master=False,
-            ).select_related("game")
+            )
+            .exclude(game__created_by_id=F("user_id"))
+            .select_related("game")
         )
 
         if not staging_members:

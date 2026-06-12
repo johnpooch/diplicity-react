@@ -73,7 +73,7 @@ class TestPressTypeRetrieve:
             press_type=PressType.NO_PRESS,
         )
         base_pending_phase(game)
-        game.members.create(user=primary_user, is_game_master=True)
+        game.members.create(user=primary_user)
 
         url = reverse(retrieve_viewname, args=[game.id])
         response = authenticated_client.get(url)
@@ -105,7 +105,7 @@ class TestPressTypeList:
             press_type=PressType.NO_PRESS,
         )
         base_pending_phase(game)
-        game.members.create(user=primary_user, is_game_master=True)
+        game.members.create(user=primary_user)
 
         url = reverse(list_viewname)
         response = authenticated_client.get(url)
