@@ -667,19 +667,22 @@ The application is deployed on **Railway** (project: `devoted-rejoicing`, servic
 
 ## Railway CLI
 
-The Railway CLI authenticates via the `RAILWAY_API_TOKEN` environment variable. This is an **account-scoped** token, not a project token.
+Two separate environment variables control Railway access in cloud sessions:
 
-Do **not** use `RAILWAY_TOKEN` — that is project-scoped, conflicts with CLI commands, and causes "Project Token not found" errors. `RAILWAY_API_TOKEN` is the correct variable for account-level actions (`railway ssh`, `railway logs`, `railway status`, etc.).
+| Variable | Scope | Used for |
+|---|---|---|
+| `RAILWAY_API_TOKEN` | Account-scoped | `railway status`, `railway logs` — auth and observability |
+| `RAILWAY_TOKEN` | Project-scoped | `railway run` — inject production env vars to run management commands locally |
 
-In cloud sessions, the session-start hook checks for `RAILWAY_API_TOKEN` at startup and logs whether Railway is available. The Railway CLI reads this env var directly — no config file write is needed.
+The session-start hook checks both at startup. When `RAILWAY_TOKEN` is present it also installs the service's Python dependencies so that `manage.py shell` works with injected production env vars.
 
 ## Railway Access Tiers
 
 Not all sessions have Railway access:
 
-- **Owner sessions**: Full Railway account token configured — all commands available including `railway ssh`
-- **Trusted contributor sessions**: Full Railway account token configured — all commands available; write safety rules apply (see below)
-- **Casual contributor sessions**: No Railway token — Railway commands unavailable
+- **Owner sessions**: Both tokens configured — all commands available including `railway run`
+- **Trusted contributor sessions**: Both tokens configured — all commands available; write safety rules apply (see below)
+- **Casual contributor sessions**: No Railway tokens — Railway commands unavailable
 
 ### When Railway is not configured
 
@@ -691,7 +694,7 @@ Do not retry Railway commands, do not attempt workarounds, and do not use `/prod
 
 ### Write safety
 
-`railway ssh` gives direct access to the **live production database**. Never execute write operations in any Railway SSH command — regardless of who is asking:
+`railway run` injects production env vars and runs management commands locally against the live production database. Never execute write operations — regardless of who is asking:
 
 - No `.create()`, `.update()`, `.delete()`, `.save()` in Django ORM calls
 - No `INSERT`, `UPDATE`, `DELETE` in raw SQL
@@ -706,14 +709,13 @@ railway status                          # Deployment health and status
 railway logs --lines 50                 # Recent log output (default: 100 lines)
 railway logs --lines 200 | grep ERROR   # Filter for errors
 railway logs --lines 200 | grep "GET /api"  # Filter by endpoint
-railway ssh 'command'                   # Run command in production container
 ```
 
 ### Checking Postgres Health
 
 ```bash
-railway ssh 'python3 manage.py dbshell -c "SELECT 1"'    # Quick connectivity check
-railway ssh 'python3 manage.py showmigrations --list'     # Verify DB is reachable
+cd /home/user/diplicity-react/service && railway run --service diplicity-react python3 manage.py dbshell -c "SELECT 1"    # Quick connectivity check
+cd /home/user/diplicity-react/service && railway run --service diplicity-react python3 manage.py showmigrations --list     # Verify DB is reachable
 ```
 
 ### Django ORM Queries
