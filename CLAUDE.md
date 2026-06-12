@@ -124,6 +124,44 @@ Features that are disabled when credentials are absent:
 - **Firebase / push notifications**: requires `FIREBASE_PROJECT_ID` (and other `FIREBASE_*` vars). `fcm_django` is removed from `INSTALLED_APPS` and the `/devices/` endpoint is not registered.
 - **Google OAuth login**: requires `GOOGLE_CLIENT_ID`. Login attempts will fail with an authentication error but the service continues to run.
 
+### Native (non-Docker) Workflow — Claude Code on the web
+
+Cloud sessions run without Docker. The `.claude/hooks/session-start.sh` SessionStart hook provisions everything natively so tests, linters, build, and codegen work out of the box. It is idempotent and re-runs cheaply on resume. What it sets up:
+
+- **Backend venv**: a Python 3.12 virtualenv at `service/.venv` with `requirements.txt` + `dev_requirements.txt` installed. Django 6 requires Python 3.12+, but the system default `python3` is 3.11 — **always use `service/.venv/bin/python`** (the hook also prepends it to `PATH` via `$CLAUDE_ENV_FILE`, so a plain `python`/`pytest`/`pip` resolves to the venv).
+- **PostgreSQL**: the native cluster is started and a `diplicity` database (role `postgres`/`postgres`) is created and migrated. The hook exports `DATABASE_HOST=127.0.0.1` and the other `DATABASE_*` vars for the session, so `manage.py` and `pytest` connect automatically.
+- **Frontend**: `npm install` in `packages/web`.
+- **Railway CLI**: installed via npm when `RAILWAY_API_TOKEN` is set.
+
+Manual equivalents (if running outside the hook):
+```bash
+# Backend env (already exported by the hook in cloud sessions)
+export PATH="$PWD/service/.venv/bin:$PATH"
+export DATABASE_HOST=127.0.0.1 DATABASE_PORT=5432 \
+       DATABASE_NAME=diplicity DATABASE_USER=postgres DATABASE_PASSWORD=postgres
+
+cd service
+python manage.py check
+python -m pytest -q --create-db        # pytest-django builds test_diplicity
+```
+
+**SQLite is not viable.** Some migrations contain Postgres-only raw SQL (e.g. `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`), which SQLite rejects with a syntax error during the test-DB build. Use the native PostgreSQL cluster, not a SQLite `DATABASE_URL`.
+
+**Railway production access requires network allowlisting.** Installing the CLI is not enough: every `railway` command (and `/prod-query`, `/debug-production`) reaches production through Railway's hosts, which are not in the **Trusted** default allowlist. To enable them, edit the Claude Code on the web **environment** (cloud icon → environment selector → gear icon), set **Network access** to **Custom**, and add to **Allowed domains**:
+
+```
+*.railway.com
+*.railway.app
+```
+
+`backboard.railway.com` is the GraphQL API behind `whoami`/`status`/`logs`; `railway run` (used by `/prod-query`) routes through additional Railway hosts, so the wildcards cover both. **Also tick "Also include default list of common package managers"** — otherwise the allowlist becomes only those two lines and the SessionStart hook's `npm install`/`pip install` break. Without this, commands fail with `Host not in allowlist` / "error decoding response body". (**Full** network access also works but allows any domain.)
+
+**Codegen reproducibility.** `manage.py spectacular` + `orval` regenerate `service/openapi-schema.yaml` and `packages/web/src/api/generated/endpoints.ts`. To reproduce the committed output byte-for-byte the generating environment must match production config, because two switches change the schema:
+- `DJANGO_DEBUG` must be **off** — when on, the DEBUG-gated `/api/test-sentry/` endpoint is added to the schema.
+- `FIREBASE_PROJECT_ID` must be **set** — when absent, `fcm_django` is dropped from `INSTALLED_APPS`, removing `/devices/` and the `FCMDevice` schema.
+
+A clean `git diff` after codegen in a cloud session (no Firebase, DEBUG off) shows only the `/devices/` + `FCMDevice` removal; that is environmental, not a stale-checkout signal.
+
 ## Key Commands
 
 ### Frontend (React/TypeScript)
@@ -674,7 +712,7 @@ Two separate environment variables control Railway access in cloud sessions:
 | `RAILWAY_API_TOKEN` | Account-scoped | `railway status`, `railway logs` — auth and observability |
 | `RAILWAY_TOKEN` | Project-scoped | `railway run` — inject production env vars to run management commands locally |
 
-The session-start hook checks both at startup. When `RAILWAY_TOKEN` is present it also installs the service's Python dependencies so that `manage.py shell` works with injected production env vars.
+The session-start hook checks both at startup and reports their availability. The service's Python dependencies needed by `railway run ... manage.py shell` are already installed in `service/.venv` (which the hook puts on `PATH`), so `railway run` picks them up automatically — no separate install step is required.
 
 ## Railway Access Tiers
 
@@ -688,7 +726,7 @@ Not all sessions have Railway access:
 
 If any `railway` command fails with an authentication or "not logged in" error, **stop immediately** — this is an expected missing-credential situation, not a bug to diagnose. Tell the user:
 
-> "Railway is not configured in this session. Production debugging requires the `RAILWAY_API_TOKEN` environment variable to be set in the claude.ai/code project settings."
+> "Railway is not configured in this session. Production debugging requires the `RAILWAY_API_TOKEN` environment variable to be set in the Claude Code on the web environment configuration (and Railway's hosts allowlisted via Custom network access)."
 
 Do not retry Railway commands, do not attempt workarounds, and do not use `/prod-query` or `/debug-production`.
 
