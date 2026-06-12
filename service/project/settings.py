@@ -15,7 +15,6 @@ import os
 
 import dj_database_url
 from datetime import timedelta
-from firebase_admin import credentials, initialize_app
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
 
@@ -67,6 +66,8 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Application definition
 
+_FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID")
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -76,7 +77,6 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.postgres",
     "corsheaders",
-    "fcm_django",
     "rest_framework",
     "rest_framework_simplejwt",
     "rest_framework.authtoken",
@@ -103,6 +103,9 @@ INSTALLED_APPS = [
     "email_service",
     "drf_spectacular",
 ]
+
+if _FIREBASE_PROJECT_ID:
+    INSTALLED_APPS.append("fcm_django")
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -269,20 +272,21 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=90),
 }
 
-firebase_credentials = {
-    "type": os.getenv("FIREBASE_TYPE"),
-    "project_id": os.getenv("FIREBASE_PROJECT_ID"),
-    "private_key_id": os.getenv("FIREBASE_PRIVATE_KEY_ID"),
-    "private_key": os.getenv("FIREBASE_PRIVATE_KEY", "").replace("\\n", "\n"),
-    "client_email": os.getenv("FIREBASE_CLIENT_EMAIL"),
-    "client_id": os.getenv("FIREBASE_CLIENT_ID"),
-    "auth_uri": os.getenv("FIREBASE_AUTH_URI"),
-    "token_uri": os.getenv("FIREBASE_TOKEN_URI"),
-    "auth_provider_x509_cert_url": os.getenv("FIREBASE_AUTH_PROVIDER_X509_CERT_URL"),
-    "client_x509_cert_url": os.getenv("FIREBASE_CLIENT_X509_CERT_URL"),
-}
+if _FIREBASE_PROJECT_ID:
+    from firebase_admin import credentials, initialize_app
 
-if os.getenv("FIREBASE_PROJECT_ID"):
+    firebase_credentials = {
+        "type": os.getenv("FIREBASE_TYPE"),
+        "project_id": _FIREBASE_PROJECT_ID,
+        "private_key_id": os.getenv("FIREBASE_PRIVATE_KEY_ID"),
+        "private_key": os.getenv("FIREBASE_PRIVATE_KEY", "").replace("\\n", "\n"),
+        "client_email": os.getenv("FIREBASE_CLIENT_EMAIL"),
+        "client_id": os.getenv("FIREBASE_CLIENT_ID"),
+        "auth_uri": os.getenv("FIREBASE_AUTH_URI"),
+        "token_uri": os.getenv("FIREBASE_TOKEN_URI"),
+        "auth_provider_x509_cert_url": os.getenv("FIREBASE_AUTH_PROVIDER_X509_CERT_URL"),
+        "client_x509_cert_url": os.getenv("FIREBASE_CLIENT_X509_CERT_URL"),
+    }
     FIREBASE_APP = initialize_app(credentials.Certificate(firebase_credentials))
 
 SPECTACULAR_SETTINGS = {
