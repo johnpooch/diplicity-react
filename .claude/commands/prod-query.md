@@ -11,6 +11,8 @@ Query: $ARGUMENTS
 
 ## Instructions
 
+0. **Check Railway authentication** before proceeding. Run `railway status` and check the output. If it fails with an authentication error or "not logged in" message, stop immediately and tell the user: "Railway is not configured in this session — production database queries are not available. The `RAILWAY_ACCOUNT_TOKEN` environment variable must be set in the claude.ai/code project settings."
+
 1. **Understand the request** and determine which Django models and fields are needed. If unsure about the schema, read the relevant model files under `service/` first. Available apps: `game`, `member`, `phase`, `order`, `unit`, `channel`, `draw_proposal`, `nation`, `province`, `supply_center`, `user_profile`, `variant`, `victory`.
 
 2. **Write a Python script** to the scratchpad directory that:
