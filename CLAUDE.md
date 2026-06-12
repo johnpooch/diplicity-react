@@ -667,9 +667,11 @@ The application is deployed on **Railway** (project: `devoted-rejoicing`, servic
 
 ## Railway CLI
 
-The Railway CLI authenticates via the login token stored in `~/.railway/config.json` (set by `railway login`). Do **not** set a `RAILWAY_TOKEN` env var — project tokens conflict with CLI commands and cause "Project Token not found" errors.
+The Railway CLI authenticates via the `RAILWAY_API_TOKEN` environment variable. This is an **account-scoped** token, not a project token.
 
-In cloud sessions, the session-start hook writes `~/.railway/config.json` automatically if the `RAILWAY_ACCOUNT_TOKEN` environment variable is set in the project settings.
+Do **not** use `RAILWAY_TOKEN` — that is project-scoped, conflicts with CLI commands, and causes "Project Token not found" errors. `RAILWAY_API_TOKEN` is the correct variable for account-level actions (`railway ssh`, `railway logs`, `railway status`, etc.).
+
+In cloud sessions, the session-start hook checks for `RAILWAY_API_TOKEN` at startup and logs whether Railway is available. The Railway CLI reads this env var directly — no config file write is needed.
 
 ## Railway Access Tiers
 
@@ -681,9 +683,9 @@ Not all sessions have Railway access:
 
 ### When Railway is not configured
 
-If `~/.railway/config.json` does not exist, or any `railway` command fails with an authentication or "not logged in" error, **stop immediately** — this is an expected missing-credential situation, not a bug to diagnose. Tell the user:
+If any `railway` command fails with an authentication or "not logged in" error, **stop immediately** — this is an expected missing-credential situation, not a bug to diagnose. Tell the user:
 
-> "Railway is not configured in this session. Production debugging requires the `RAILWAY_ACCOUNT_TOKEN` environment variable to be set in the claude.ai/code project settings."
+> "Railway is not configured in this session. Production debugging requires the `RAILWAY_API_TOKEN` environment variable to be set in the claude.ai/code project settings."
 
 Do not retry Railway commands, do not attempt workarounds, and do not use `/prod-query` or `/debug-production`.
 
