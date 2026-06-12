@@ -4,36 +4,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
-# @claude GitHub Action
-
-The `.github/workflows/claude.yml` workflow enables Claude Code to respond to mentions in issues and PR comments. Only trusted users can trigger it.
-
-## Allowed Users
-
-- `johnpooch` (owner)
-- `JorenC` (collaborator)
-
-## Trigger Methods
-
-### @claude mention
-
-Mention `@claude` in any issue comment or PR review comment. Claude will read the context and respond — implementing code changes if requested, or answering questions.
-
-### Labels
-
-Apply a label to an issue to trigger a specific workflow without writing a prompt:
-
-| Label | Behaviour |
-|---|---|
-| `claude-investigate` | Claude reads the codebase and posts a comment explaining the root cause and which files are involved |
-| `claude-fix` | Claude implements a fix and opens a pull request |
-
-## Required Secret
-
-`ANTHROPIC_API_KEY` must be set in repository secrets (Settings → Secrets and variables → Actions).
-
----
-
 # Metabase Analytics
 
 ## Creating native SQL questions
