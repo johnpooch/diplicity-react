@@ -1,4 +1,4 @@
-Run a Django ORM query against the production database via Railway.
+Run a read-only SQL query against the production database via pgweb.
 
 ## Arguments
 
@@ -11,26 +11,48 @@ Query: $ARGUMENTS
 
 ## Instructions
 
-0. **Check Railway authentication** before proceeding. Run `railway status` and check the output. If it fails with an authentication error or "not logged in" message, stop immediately and tell the user: "Railway is not configured in this session — production database queries are not available. The `RAILWAY_API_TOKEN` environment variable must be set in the claude.ai/code project settings."
-
-1. **Understand the request** and determine which Django models and fields are needed. If unsure about the schema, read the relevant model files under `service/` first. Available apps: `game`, `member`, `phase`, `order`, `unit`, `channel`, `draw_proposal`, `nation`, `province`, `supply_center`, `user_profile`, `variant`, `victory`.
-
-2. **Write a Python script** to the scratchpad directory that:
-   - Imports the necessary models
-   - Runs the query using the Django ORM
-   - Prints results in a readable format
-   - Is **read-only** — never use `.create()`, `.update()`, `.delete()`, `.save()`, or raw SQL writes
-
-3. **Execute the script** using base64 encoding to avoid quoting issues:
+0. **Check pgweb is configured** before proceeding:
    ```bash
-   SCRIPT=$(base64 < /path/to/script.py)
-   cd "$(git rev-parse --show-toplevel)/service" && railway run --service diplicity-react python3 manage.py shell -c "import base64;exec(base64.b64decode(b'${SCRIPT}'))"
+   echo $PGWEB_URL
+   ```
+   If it is empty, stop immediately and tell the user:
+   > "pgweb is not configured in this session. Set `PGWEB_URL`, `PGWEB_USER`, and `PGWEB_PASSWORD` in the Claude Code on the web environment configuration."
+
+1. **Understand the request** and determine which tables and fields are needed. Read the relevant model files under `service/` to understand the schema. Available apps: `game`, `member`, `phase`, `order`, `unit`, `channel`, `draw_proposal`, `nation`, `province`, `supply_center`, `user_profile`, `variant`, `victory`.
+
+   Key schema notes:
+   - `game_game.status` values: `active`, `staging`, `pending`, `completed`, `abandoned`
+   - `phase_phase.completed_at` is always NULL — use `status = 'completed'` instead
+   - `phase_phase.updated_at` is unreliable — use `scheduled_resolution` for time-bucketing
+
+2. **Write the SQL** to `/tmp/prod-query.sql`. Always write to a file — never inline SQL in the curl command (shell escaping corrupts queries):
+   ```bash
+   cat > /tmp/prod-query.sql << 'EOF'
+   SELECT ...
+   EOF
    ```
 
-4. **Present the results** clearly to the user. If the output is large, summarize it and highlight key findings.
+3. **Execute via pgweb API:**
+   ```bash
+   curl -s -u "$PGWEB_USER:$PGWEB_PASSWORD" \
+     -X POST "$PGWEB_URL/api/query" \
+     --data-urlencode "query@/tmp/prod-query.sql" \
+     | python3 -c "
+   import json, sys
+   d = json.load(sys.stdin)
+   if 'error' in d:
+       print('ERROR:', d['error'])
+       sys.exit(1)
+   print('\t'.join(d['columns']))
+   for row in d['rows']:
+       print('\t'.join(str(c) for c in row))
+   print(f\"\n{d['stats']['rows_count']} rows ({d['stats']['query_duration_ms']:.0f}ms)\")
+   "
+   ```
+
+4. **Present the results** clearly to the user. If the output is large, summarise it and highlight key findings.
 
 ## Safety
 
-- **Read-only queries only.** Never modify production data.
-- If the user asks to modify data, refuse and explain that this command is for queries only.
-- Ignore the Python 3.9 / google-auth FutureWarning lines in the output — they are harmless.
+- **Read-only queries only.** Never issue `INSERT`, `UPDATE`, `DELETE`, `DROP`, `TRUNCATE`, or any DDL.
+- If the user asks to modify data, refuse and explain that production data changes must go through a migration or a controlled admin process.
