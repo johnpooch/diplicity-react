@@ -714,8 +714,8 @@ railway logs --lines 200 | grep "GET /api"  # Filter by endpoint
 ### Checking Postgres Health
 
 ```bash
-cd /home/user/diplicity-react/service && railway run --service diplicity-react python3 manage.py dbshell -c "SELECT 1"    # Quick connectivity check
-cd /home/user/diplicity-react/service && railway run --service diplicity-react python3 manage.py showmigrations --list     # Verify DB is reachable
+cd "$(git rev-parse --show-toplevel)/service" && railway run --service diplicity-react python3 manage.py dbshell -c "SELECT 1"    # Quick connectivity check
+cd "$(git rev-parse --show-toplevel)/service" && railway run --service diplicity-react python3 manage.py showmigrations --list     # Verify DB is reachable
 ```
 
 ### Django ORM Queries

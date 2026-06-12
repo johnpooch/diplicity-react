@@ -22,6 +22,6 @@ Run a production health check by gathering data from multiple sources.
 
 ## Tips
 
-- If you see database connection errors, check Postgres health with: `cd /home/user/diplicity-react/service && railway run --service diplicity-react python3 manage.py dbshell -c "SELECT 1"`
+- If you see database connection errors, check Postgres health with: `cd "$(git rev-parse --show-toplevel)/service" && railway run --service diplicity-react python3 manage.py dbshell -c "SELECT 1"`
 - If you see Gunicorn worker crashes, check for memory issues or unhandled exceptions in the log context
 - Use `/prod-query` for follow-up Django ORM queries against the production database
