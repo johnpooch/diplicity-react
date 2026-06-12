@@ -763,16 +763,43 @@ env -u RAILWAY_TOKEN railway logs --lines 200 | grep ERROR   # Filter for errors
 env -u RAILWAY_TOKEN railway logs --lines 200 | grep "GET /api"  # Filter by endpoint
 ```
 
-### Checking Postgres Health
+### Production Database Queries (pgweb)
+
+The cloud environment's network policy blocks non-standard ports, so `railway run python manage.py shell` cannot reach the production database (Railway's internal hostname `postgres.railway.internal` is not resolvable externally, and the TCP proxy uses a high port that is blocked).
+
+Instead, production queries run via **pgweb** — a web-based PostgreSQL client deployed as a Railway service and accessible over HTTPS on port 443.
+
+| Env var | Purpose |
+|---|---|
+| `PGWEB_URL` | pgweb base URL, e.g. `https://pgweb-production-124e.up.railway.app` |
+| `PGWEB_USER` | pgweb basic-auth username |
+| `PGWEB_PASSWORD` | pgweb basic-auth password |
+
+These must be set in the cloud environment configuration. The session-start hook checks and exports them automatically.
+
+**Running a query:**
 
 ```bash
-cd "$(git rev-parse --show-toplevel)/service" && env -u RAILWAY_API_TOKEN railway run --service diplicity-react python3 manage.py dbshell -c "SELECT 1"    # Quick connectivity check
-cd "$(git rev-parse --show-toplevel)/service" && env -u RAILWAY_API_TOKEN railway run --service diplicity-react python3 manage.py showmigrations --list     # Verify DB is reachable
+# Write SQL to a file first (avoids shell escaping issues)
+cat > /tmp/query.sql << 'EOF'
+SELECT status, COUNT(*) FROM game_game GROUP BY status ORDER BY count DESC
+EOF
+
+curl -s -u "$PGWEB_USER:$PGWEB_PASSWORD" \
+  -X POST "$PGWEB_URL/api/query" \
+  --data-urlencode "query@/tmp/query.sql" \
+  | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print('\t'.join(d['columns']))
+for row in d['rows']:
+    print('\t'.join(str(c) for c in row))
+"
 ```
 
-### Django ORM Queries
+Use the `/prod-query` command for guided read-only queries. See `.claude/commands/prod-query.md`.
 
-Use the `/prod-query` command for read-only Django ORM queries against production. See `.claude/commands/prod-query.md`.
+**Safety:** pgweb is read-only by configuration. Never issue `INSERT`, `UPDATE`, `DELETE`, or DDL statements.
 
 ### Railway Status Page
 

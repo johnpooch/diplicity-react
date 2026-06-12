@@ -130,7 +130,20 @@ else
 fi
 
 ###############################################################################
-# 6. Persist session environment: venv on PATH + local DB config, so that
+# 6. pgweb: production database query access over HTTPS.
+#    The cloud environment's network policy blocks non-standard ports (22, 59667),
+#    so `railway ssh` and `railway run` cannot reach the production database.
+#    pgweb is deployed as a Railway service and exposes a REST API over port 443.
+#    Set PGWEB_URL, PGWEB_USER, PGWEB_PASSWORD in the cloud environment config.
+###############################################################################
+if [ -n "${PGWEB_URL:-}" ]; then
+  log "pgweb configured — production queries available via /prod-query."
+else
+  log "PGWEB_URL not set — /prod-query unavailable (set PGWEB_URL, PGWEB_USER, PGWEB_PASSWORD in environment config)."
+fi
+
+###############################################################################
+# 7. Persist session environment: venv on PATH + local DB config, so that
 #    `python`, `pytest`, and `manage.py` work without per-command env setup.
 ###############################################################################
 if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
@@ -141,6 +154,10 @@ if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
     echo "export DATABASE_NAME=diplicity"
     echo "export DATABASE_USER=postgres"
     echo "export DATABASE_PASSWORD=postgres"
+    # pgweb credentials — exported if set in the environment config
+    [ -n "${PGWEB_URL:-}" ]      && echo "export PGWEB_URL=\"${PGWEB_URL}\""
+    [ -n "${PGWEB_USER:-}" ]     && echo "export PGWEB_USER=\"${PGWEB_USER}\""
+    [ -n "${PGWEB_PASSWORD:-}" ] && echo "export PGWEB_PASSWORD=\"${PGWEB_PASSWORD}\""
   } >> "$CLAUDE_ENV_FILE"
 fi
 
