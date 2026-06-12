@@ -699,6 +699,27 @@ Follow this testing pattern:
 
 ---
 
+# MCP Servers
+
+The following MCP servers are configured in `.mcp.json` and available in cloud Claude Code sessions:
+
+| Server | Package | Purpose | Required env var |
+|--------|---------|---------|-----------------|
+| `sentry` | `@sentry/mcp-server` | Query Sentry issues, errors, N+1 query reports, and performance data | `SENTRY_AUTH_TOKEN` |
+| `XcodeBuildMCP` | `xcodebuildmcp` | Build and run iOS apps, manage simulators | — |
+| `mobile-mcp` | `@mobilenext/mobile-mcp` | UI automation on connected iOS/Android devices | — |
+
+## Sentry MCP setup
+
+The `sentry` server requires a `SENTRY_AUTH_TOKEN` environment variable. To configure it for a cloud session:
+
+1. Go to your Sentry account settings → API tokens → create a token with `org:read`, `project:read`, and `event:read` scopes.
+2. In the claude.ai/code environment settings, add `SENTRY_AUTH_TOKEN` as an environment variable.
+
+Once configured, use the `mcp__sentry__*` tools to investigate errors, performance issues, and N+1 query reports.
+
+---
+
 # Production Debugging
 
 The application is deployed on **Railway** (project: `devoted-rejoicing`, service: `diplicity-react`).
