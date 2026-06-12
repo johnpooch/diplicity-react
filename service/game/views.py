@@ -20,8 +20,9 @@ from .serializers import (
 )
 from common.views import SelectedGameMixin
 from common.serializers import EmptySerializer
-from common.permissions import IsActiveGame, IsGameMember, IsGameCreator, IsSandboxGame
+from common.permissions import IsActiveGame, IsGameMember, IsGameManager, CanDeleteGame
 from common.pagination import StandardPageNumberPagination
+from notification.tasks import send_notification
 from .filters import GameFilter
 
 tracer = trace.get_tracer(__name__)
@@ -114,7 +115,7 @@ class GameCloneToSandboxView(SelectedGameMixin, generics.CreateAPIView):
 
 
 class GamePauseView(SelectedGameMixin, generics.UpdateAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsGameCreator]
+    permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsGameManager]
     serializer_class = GamePauseSerializer
 
     def get_object(self):
@@ -122,7 +123,7 @@ class GamePauseView(SelectedGameMixin, generics.UpdateAPIView):
 
 
 class GameUnpauseView(SelectedGameMixin, generics.UpdateAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsGameCreator]
+    permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsGameManager]
     serializer_class = GameUnpauseSerializer
 
     def get_object(self):
@@ -131,14 +132,31 @@ class GameUnpauseView(SelectedGameMixin, generics.UpdateAPIView):
 
 class GameDeleteView(SelectedGameMixin, generics.DestroyAPIView):
     serializer_class = EmptySerializer
-    permission_classes = [permissions.IsAuthenticated, IsSandboxGame, IsGameMember]
+    permission_classes = [permissions.IsAuthenticated, CanDeleteGame]
 
     def get_object(self):
         return self.get_game()
 
+    def perform_destroy(self, instance):
+        is_game_master_delete = (
+            not instance.sandbox
+            and instance.game_master_id is not None
+            and instance.game_master_id == self.request.user.id
+        )
+        user_ids = instance.notification_user_ids(exclude_user_id=self.request.user.id)
+        game_name = instance.name
+        instance.delete()
+        if is_game_master_delete and user_ids:
+            send_notification.defer(
+                user_ids=user_ids,
+                title=game_name,
+                body="The game was deleted by the Game Master.",
+                notification_type="game_deleted",
+            )
+
 
 class GameExtendDeadlineView(SelectedGameMixin, generics.UpdateAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsGameCreator]
+    permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsGameManager]
     serializer_class = GameExtendDeadlineSerializer
 
     def get_object(self):

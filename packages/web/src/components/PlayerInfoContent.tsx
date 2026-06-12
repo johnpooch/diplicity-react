@@ -5,6 +5,7 @@ import { Link, useParams } from "react-router";
 import { CivilDisorderBadge } from "@/components/CivilDisorderBadge";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
 import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
@@ -48,6 +49,28 @@ export const PlayerInfoContent: React.FC = () => {
 
       <ScreenCard>
         <ScreenCardContent className="divide-y">
+          {game.gameMaster && (
+            <div className="flex items-center gap-4 py-4 first:pt-0 last:pb-0">
+              <Avatar className="size-8">
+                <AvatarImage src={game.gameMaster.picture ?? undefined} />
+                <AvatarFallback>
+                  {game.gameMaster.name[0]?.toUpperCase() ?? "?"}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Link
+                  to={`/player/${game.gameMaster.userId}`}
+                  className="font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  {game.gameMaster.name}
+                </Link>
+                <Badge variant="secondary" className="gap-1">
+                  <Shield className="size-3" />
+                  Game Master
+                </Badge>
+              </div>
+            </div>
+          )}
           {game.members.map(member => {
             const supplyCenterCount = getSupplyCenterCount(member);
             const isWinner = winnerIds.includes(member.id);

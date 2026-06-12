@@ -1,5 +1,5 @@
 import django_filters
-from django.db.models import Count, F
+from django.db.models import Count, F, Q
 
 from common.constants import GameStatus, MovementPhaseDuration
 
@@ -25,7 +25,9 @@ class GameFilter(django_filters.FilterSet):
         if value:
             if not self.request.user.is_authenticated:
                 return queryset.none()
-            return queryset.filter(members__user=self.request.user).distinct()
+            return queryset.filter(
+                Q(members__user=self.request.user) | Q(game_master=self.request.user)
+            ).distinct()
         return queryset
 
     def filter_can_join(self, queryset, name, value):

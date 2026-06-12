@@ -61,6 +61,52 @@ def active_game_with_creator(db, primary_user, classical_variant, adjudication_d
 
 
 @pytest.fixture
+def pending_game_with_game_master(db, primary_user, classical_variant, base_pending_phase):
+    def _create(game_master=None):
+        if game_master is None:
+            game_master = primary_user
+        game = models.Game.objects.create_from_template(
+            classical_variant,
+            name="Test Game with Game Master",
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            private=True,
+            created_by=game_master,
+            game_master=game_master,
+        )
+        game.channels.create(name="Public Press", private=False)
+        return game
+    return _create
+
+
+@pytest.fixture
+def active_game_with_game_master(db, primary_user, classical_variant, adjudication_data_classical):
+    def _create(game_master=None):
+        if game_master is None:
+            game_master = primary_user
+        game = models.Game.objects.create_from_template(
+            classical_variant,
+            name="Test Active Game with Game Master",
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+            deadline_mode=DeadlineMode.DURATION,
+            private=True,
+            created_by=game_master,
+            game_master=game_master,
+        )
+        game.channels.create(name="Public Press", private=False)
+
+        for i in range(game.variant.nations.count()):
+            other_user = User.objects.create_user(f"gm_player{i}@test.com", password="testpass")
+            UserProfile.objects.create(user=other_user, name=f"GM Player {i}")
+            game.members.create(user=other_user)
+
+        with patch.object(adjudication_service, "start", return_value=adjudication_data_classical):
+            game.start()
+
+        return game
+    return _create
+
+
+@pytest.fixture
 def sandbox_game(db, primary_user, classical_variant, base_active_phase, sample_options):
     def _create(user=None):
         if user is None:
