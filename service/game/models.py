@@ -2,6 +2,7 @@ from datetime import timedelta
 import re
 import uuid
 
+from django.conf import settings
 from django.db import models, transaction
 from django.utils import timezone
 from django.db.models import Prefetch
@@ -290,6 +291,13 @@ class Game(BaseModel):
     objects = GameManager()
 
     id = models.CharField(max_length=150, primary_key=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_games",
+    )
     variant = models.ForeignKey("variant.Variant", on_delete=models.CASCADE, related_name="games")
     name = models.CharField(max_length=100)
     status = models.CharField(max_length=20, choices=GameStatus.STATUS_CHOICES, default=GameStatus.PENDING)

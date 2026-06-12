@@ -87,13 +87,13 @@ export function GameDropdownMenu({
 
   const currentMember = game.members?.find(m => m.isCurrentUser);
   const isActiveGame = game.status === "active";
-  const isCurrentUserGameMaster = currentMember?.isGameMaster ?? false;
+  const isCurrentUserGameCreator = currentMember?.isGameCreator ?? false;
   const canExtendDeadline =
-    isCurrentUserGameMaster && isActiveGame && !game.isPaused;
+    isCurrentUserGameCreator && isActiveGame && !game.isPaused;
   const canPauseGame =
-    isCurrentUserGameMaster && isActiveGame && !game.isPaused;
+    isCurrentUserGameCreator && isActiveGame && !game.isPaused;
   const canUnpauseGame =
-    isCurrentUserGameMaster && isActiveGame && game.isPaused;
+    isCurrentUserGameCreator && isActiveGame && game.isPaused;
   const handleLeaveGame = async () => {
     try {
       await leaveGameMutation.mutateAsync({ gameId: game.id });

@@ -366,7 +366,7 @@ export interface Member {
   readonly nation: string | null;
   readonly eliminated: boolean;
   readonly kicked: boolean;
-  readonly isGameMaster: boolean;
+  readonly isGameCreator: boolean;
   readonly nmrExtensionsRemaining: number;
   readonly civilDisorder: boolean;
 }
@@ -1265,6 +1265,258 @@ export function useApiSchemaRetrieveSuspense<
     params,
     options
   );
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const apiTestSentryRetrieve = (signal?: AbortSignal) => {
+  return customInstance<void>({
+    url: `/api/test-sentry/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getApiTestSentryRetrieveQueryKey = () => {
+  return [`/api/test-sentry/`] as const;
+};
+
+export const getApiTestSentryRetrieveQueryOptions = <
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<
+      Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+      TError,
+      TData
+    >
+  >;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getApiTestSentryRetrieveQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+  > = ({ signal }) => apiTestSentryRetrieve(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ApiTestSentryRetrieveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+>;
+export type ApiTestSentryRetrieveQueryError = unknown;
+
+export function useApiTestSentryRetrieve<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useApiTestSentryRetrieve<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useApiTestSentryRetrieve<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useApiTestSentryRetrieve<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getApiTestSentryRetrieveQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getApiTestSentryRetrieveSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<
+    UseSuspenseQueryOptions<
+      Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+      TError,
+      TData
+    >
+  >;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getApiTestSentryRetrieveQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+  > = ({ signal }) => apiTestSentryRetrieve(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ApiTestSentryRetrieveSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+>;
+export type ApiTestSentryRetrieveSuspenseQueryError = unknown;
+
+export function useApiTestSentryRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useApiTestSentryRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useApiTestSentryRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useApiTestSentryRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getApiTestSentryRetrieveSuspenseQueryOptions(options);
 
   const query = useSuspenseQuery(
     queryOptions,

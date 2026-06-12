@@ -1,5 +1,14 @@
 # Diplicity React - Release Notes
 
+## Game Creator Rename (June 2026)
+
+### Change: "Game Master" badge is now "Game Creator"
+
+The player who created a game is now labelled "Game Creator" instead of "Game Master" in
+the player roster. Their powers are unchanged (pause/resume the game, extend deadlines,
+remove players from a game that hasn't started). This prepares for an upcoming non-playing
+Game Master role for private games.
+
 ## Player Profiles (June 2026)
 
 ### Feature: Public player profiles with reliability stats

@@ -183,7 +183,7 @@ class TestUserAccountDelete:
         assert member.user is None
 
     @pytest.mark.django_db
-    def test_game_master_of_active_game_preserved(
+    def test_creator_of_active_game_cleared_on_delete(
         self, delete_user, delete_client, classical_variant
     ):
         from game.models import Game
@@ -192,15 +192,16 @@ class TestUserAccountDelete:
         user = delete_user()
         client = delete_client(user)
         game = Game.objects.create(
-            name="GM Delete Test", variant=classical_variant, status=GS.ACTIVE
+            name="GM Delete Test", variant=classical_variant, status=GS.ACTIVE, created_by=user
         )
-        member = game.members.create(user=user, is_game_master=True)
+        member = game.members.create(user=user)
 
         url = reverse("user-delete")
         client.delete(url)
 
         member.refresh_from_db()
-        assert member.is_game_master is True
+        game.refresh_from_db()
+        assert game.created_by is None
         assert member.kicked is True
         assert member.user is None
 

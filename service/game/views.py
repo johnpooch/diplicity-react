@@ -20,7 +20,7 @@ from .serializers import (
 )
 from common.views import SelectedGameMixin
 from common.serializers import EmptySerializer
-from common.permissions import IsActiveGame, IsGameMember, IsGameMaster, IsSandboxGame
+from common.permissions import IsActiveGame, IsGameMember, IsGameCreator, IsSandboxGame
 from common.pagination import StandardPageNumberPagination
 from .filters import GameFilter
 
@@ -114,7 +114,7 @@ class GameCloneToSandboxView(SelectedGameMixin, generics.CreateAPIView):
 
 
 class GamePauseView(SelectedGameMixin, generics.UpdateAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsGameMaster]
+    permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsGameCreator]
     serializer_class = GamePauseSerializer
 
     def get_object(self):
@@ -122,7 +122,7 @@ class GamePauseView(SelectedGameMixin, generics.UpdateAPIView):
 
 
 class GameUnpauseView(SelectedGameMixin, generics.UpdateAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsGameMaster]
+    permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsGameCreator]
     serializer_class = GameUnpauseSerializer
 
     def get_object(self):
@@ -138,7 +138,7 @@ class GameDeleteView(SelectedGameMixin, generics.DestroyAPIView):
 
 
 class GameExtendDeadlineView(SelectedGameMixin, generics.UpdateAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsGameMaster]
+    permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsGameCreator]
     serializer_class = GameExtendDeadlineSerializer
 
     def get_object(self):

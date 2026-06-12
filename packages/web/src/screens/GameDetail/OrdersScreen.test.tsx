@@ -59,7 +59,7 @@ const baseMember = (overrides = {}) => ({
   nation: "England",
   eliminated: false,
   kicked: false,
-  isGameMaster: false,
+  isGameCreator: false,
   nmrExtensionsRemaining: 0,
   civilDisorder: false,
   ...overrides,

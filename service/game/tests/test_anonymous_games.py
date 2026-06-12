@@ -25,6 +25,7 @@ def create_anonymous_game(classical_variant, classical_england_nation, classical
         variant=classical_variant,
         status=game_status,
         anonymous=anonymous,
+        created_by=primary_user,
     )
     phase = game.phases.create(
         variant=classical_variant,
@@ -36,9 +37,7 @@ def create_anonymous_game(classical_variant, classical_england_nation, classical
     )
     phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_edinburgh_province)
 
-    game.members.create(
-        user=primary_user, nation=classical_england_nation, is_game_master=True
-    )
+    game.members.create(user=primary_user, nation=classical_england_nation)
     game.members.create(user=secondary_user, nation=classical_france_nation)
     return game
 
@@ -69,7 +68,7 @@ class TestAnonymousGames:
         members_by_nation = {m["nation"]: m for m in response.data["members"]}
         england = members_by_nation["England"]
         assert england["name"] == "Primary User"
-        assert england["is_game_master"] is True
+        assert england["is_game_creator"] is True
 
     @pytest.mark.django_db
     def test_anonymous_active_game_masks_other_players(
@@ -95,7 +94,7 @@ class TestAnonymousGames:
         england = members_by_nation["England"]
         assert england["name"] == "Anonymous"
         assert england["picture"] is None
-        assert england["is_game_master"] is False
+        assert england["is_game_creator"] is False
 
     @pytest.mark.django_db
     def test_anonymous_active_game_shows_self_real_identity(
@@ -123,7 +122,7 @@ class TestAnonymousGames:
         england = members_by_nation["England"]
         assert england["name"] == "Primary User"
         assert england["is_current_user"] is True
-        assert england["is_game_master"] is True
+        assert england["is_game_creator"] is True
 
         # Other player: masked
         france = members_by_nation["France"]
@@ -155,7 +154,7 @@ class TestAnonymousGames:
         members_by_nation = {m["nation"]: m for m in response.data["members"]}
         england = members_by_nation["England"]
         assert england["name"] == "Primary User"
-        assert england["is_game_master"] is True
+        assert england["is_game_creator"] is True
 
     @pytest.mark.django_db
     def test_anonymous_abandoned_game_stays_masked(
@@ -182,7 +181,7 @@ class TestAnonymousGames:
         england = members_by_nation["England"]
         assert england["name"] == "Anonymous"
         assert england["picture"] is None
-        assert england["is_game_master"] is False
+        assert england["is_game_creator"] is False
 
     @pytest.mark.django_db
     def test_anonymous_pending_game_is_masked(
@@ -209,7 +208,7 @@ class TestAnonymousGames:
         england = members_by_nation["England"]
         assert england["name"] == "Anonymous"
         assert england["picture"] is None
-        assert england["is_game_master"] is False
+        assert england["is_game_creator"] is False
 
     @pytest.mark.django_db
     def test_anonymous_game_masks_channel_message_senders(
@@ -320,7 +319,7 @@ class TestAnonymousGames:
         england = members_by_nation["England"]
         assert england["name"] == "Anonymous"
         assert england["picture"] is None
-        assert england["is_game_master"] is False
+        assert england["is_game_creator"] is False
 
     @pytest.mark.django_db
     def test_anonymous_game_phase_state_shows_own_identity(

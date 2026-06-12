@@ -68,15 +68,16 @@ class MemberSerializer(BaseMemberSerializer):
     nation = serializers.CharField(allow_null=True, read_only=True, source="nation.name")
     eliminated = serializers.BooleanField(read_only=True)
     kicked = serializers.BooleanField(read_only=True)
-    is_game_master = serializers.SerializerMethodField()
+    is_game_creator = serializers.SerializerMethodField()
     nmr_extensions_remaining = serializers.IntegerField(read_only=True)
     civil_disorder = serializers.BooleanField(read_only=True)
 
     @extend_schema_field(serializers.BooleanField)
-    def get_is_game_master(self, obj):
+    def get_is_game_creator(self, obj):
         if self._is_masked(obj):
             return False
-        return obj.is_game_master
+        game = self._get_game(obj)
+        return obj.user_id is not None and obj.user_id == game.created_by_id
 
     def create(self, validated_data):
         game = self.context["game"]

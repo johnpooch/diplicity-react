@@ -268,38 +268,28 @@ def test_leave_pending_game_with_other_members_preserves_game(
 
 
 @pytest.mark.django_db
-def test_join_game_member_is_not_game_master(
+def test_join_game_member_is_not_game_creator(
     authenticated_client, pending_game_created_by_secondary_user, primary_user
 ):
-    """
-    Test that a user who joins an existing game is NOT set as game master.
-    Only the creator should be the game master.
-    """
     url = reverse(join_viewname, args=[pending_game_created_by_secondary_user.id])
     response = authenticated_client.post(url)
     assert response.status_code == status.HTTP_201_CREATED
 
-    assert response.data["is_game_master"] is False
-
-    member = pending_game_created_by_secondary_user.members.get(user=primary_user)
-    assert member.is_game_master is False
+    assert response.data["is_game_creator"] is False
+    assert pending_game_created_by_secondary_user.created_by != primary_user
 
 
 @pytest.mark.django_db
-def test_game_has_exactly_one_game_master(
+def test_game_creator_unchanged_after_join(
     authenticated_client, pending_game_created_by_secondary_user, primary_user, secondary_user
 ):
-    """
-    Test that a game can only have one game master (the creator).
-    """
     url = reverse(join_viewname, args=[pending_game_created_by_secondary_user.id])
     response = authenticated_client.post(url)
     assert response.status_code == status.HTTP_201_CREATED
 
     game = pending_game_created_by_secondary_user
-    game_masters = game.members.filter(is_game_master=True)
-    assert game_masters.count() == 1
-    assert game_masters.first().user == secondary_user
+    game.refresh_from_db()
+    assert game.created_by == secondary_user
 
 
 kick_viewname = "game-kick"

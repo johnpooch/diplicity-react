@@ -8,7 +8,7 @@ from drf_spectacular.utils import extend_schema
 from .models import Member
 from .serializers import MemberSerializer
 from common.serializers import EmptySerializer
-from common.permissions import IsActiveGame, IsGameMember, IsGameMaster, IsInCivilDisorder, IsPendingGame, IsNotGameMember, IsSpaceAvailable
+from common.permissions import IsActiveGame, IsGameMember, IsGameCreator, IsInCivilDisorder, IsPendingGame, IsNotGameMember, IsSpaceAvailable
 from common.views import SelectedGameMixin
 import notification.utils as notification_utils
 from notification.tasks import send_notification
@@ -45,7 +45,7 @@ class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):
 
 class MemberKickView(SelectedGameMixin, generics.DestroyAPIView):
     serializer_class = EmptySerializer
-    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsGameMaster]
+    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsGameCreator]
 
     def get_object(self):
         game = self.get_game()

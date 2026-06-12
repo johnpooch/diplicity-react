@@ -84,7 +84,9 @@ def active_game_created_by_primary_user(db, primary_user, base_active_game_for_p
     Creates an active game created by the primary user.
     """
     base_active_phase(base_active_game_for_primary_user)
-    base_active_game_for_primary_user.members.create(user=primary_user, is_game_master=True)
+    base_active_game_for_primary_user.created_by = primary_user
+    base_active_game_for_primary_user.save()
+    base_active_game_for_primary_user.members.create(user=primary_user)
     return base_active_game_for_primary_user
 
 
@@ -120,7 +122,9 @@ def base_active_game_for_secondary_user(db, classical_variant):
 @pytest.fixture
 def active_game_created_by_secondary_user(db, secondary_user, base_active_game_for_secondary_user, base_active_phase):
     base_active_phase(base_active_game_for_secondary_user)
-    base_active_game_for_secondary_user.members.create(user=secondary_user, is_game_master=True)
+    base_active_game_for_secondary_user.created_by = secondary_user
+    base_active_game_for_secondary_user.save()
+    base_active_game_for_secondary_user.members.create(user=secondary_user)
     return base_active_game_for_secondary_user
 
 
@@ -207,7 +211,9 @@ def pending_game_created_by_secondary_user(
     db, secondary_user, base_pending_game_for_secondary_user, base_pending_phase
 ):
     base_pending_phase(base_pending_game_for_secondary_user)
-    base_pending_game_for_secondary_user.members.create(user=secondary_user, is_game_master=True)
+    base_pending_game_for_secondary_user.created_by = secondary_user
+    base_pending_game_for_secondary_user.save()
+    base_pending_game_for_secondary_user.members.create(user=secondary_user)
     return base_pending_game_for_secondary_user
 
 
@@ -220,7 +226,9 @@ def pending_game_created_by_secondary_user_joined_by_primary(db, primary_user, p
 @pytest.fixture
 def pending_game_created_by_primary_user(db, primary_user, base_pending_game_for_primary_user, base_pending_phase):
     base_pending_phase(base_pending_game_for_primary_user)
-    base_pending_game_for_primary_user.members.create(user=primary_user, is_game_master=True)
+    base_pending_game_for_primary_user.created_by = primary_user
+    base_pending_game_for_primary_user.save()
+    base_pending_game_for_primary_user.members.create(user=primary_user)
     return base_pending_game_for_primary_user
 
 
@@ -511,6 +519,7 @@ def active_game(
         name="Test Active Game",
         variant=classical_variant,
         status=GameStatus.ACTIVE,
+        created_by=primary_user,
     )
 
     phase = game.phases.create(
@@ -527,7 +536,7 @@ def active_game(
     phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
 
     # Create members and phase states
-    primary_member = game.members.create(user=primary_user, nation=classical_england_nation, is_game_master=True)
+    primary_member = game.members.create(user=primary_user, nation=classical_england_nation)
     secondary_member = game.members.create(user=secondary_user, nation=classical_france_nation)
     phase.phase_states.create(member=primary_member)
     phase.phase_states.create(member=secondary_member)

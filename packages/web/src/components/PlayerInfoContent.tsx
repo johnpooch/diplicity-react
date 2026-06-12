@@ -83,10 +83,10 @@ export const PlayerInfoContent: React.FC = () => {
                     ) : (
                       <span className="font-medium">{member.name}</span>
                     )}
-                    {member.isGameMaster && (
+                    {member.isGameCreator && (
                       <Badge variant="secondary" className="gap-1">
                         <Shield className="size-3" />
-                        Game Master
+                        Game Creator
                       </Badge>
                     )}
                     {isWinner && (

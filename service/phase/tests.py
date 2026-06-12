@@ -3274,9 +3274,10 @@ class TestCivilDisorderStagingRemoval:
             variant=italy_vs_germany_variant,
             name="Staging Game",
             status=GameStatus.PENDING,
+            created_by=secondary_user,
         )
         staging_game.members.create(user=primary_user)
-        staging_game.members.create(user=secondary_user, is_game_master=True)
+        staging_game.members.create(user=secondary_user)
 
         Phase.objects._check_civil_disorder(phase2)
 
@@ -3370,9 +3371,10 @@ class TestCivilDisorderStagingRemoval:
             variant=italy_vs_germany_variant,
             name="Staging Game",
             status=GameStatus.PENDING,
+            created_by=secondary_user,
         )
         staging_game.members.create(user=primary_user)
-        staging_game.members.create(user=secondary_user, is_game_master=True)
+        staging_game.members.create(user=secondary_user)
 
         Phase.objects._check_civil_disorder(phase2)
 
@@ -3386,7 +3388,7 @@ class TestCivilDisorderStagingRemoval:
 
 
     @pytest.mark.django_db
-    def test_cd_does_not_remove_game_master_from_staging(
+    def test_cd_does_not_remove_game_creator_from_staging(
         self,
         italy_vs_germany_variant,
         italy_vs_germany_italy_nation,
@@ -3409,8 +3411,9 @@ class TestCivilDisorderStagingRemoval:
             variant=italy_vs_germany_variant,
             name="GM Staging Game",
             status=GameStatus.PENDING,
+            created_by=primary_user,
         )
-        staging_game.members.create(user=primary_user, is_game_master=True)
+        staging_game.members.create(user=primary_user)
         staging_game.members.create(user=secondary_user)
 
         Phase.objects._check_civil_disorder(phase2)
