@@ -10,4 +10,5 @@ if [ -z "${RAILWAY_API_TOKEN:-}" ]; then
   exit 0
 fi
 
-echo "Railway CLI authenticated."
+railway link --environment production --service diplicity-react 39039c2c-4f5d-4a37-8c0d-f8e4279fce61
+echo "Railway CLI authenticated and project linked."

@@ -652,7 +652,7 @@ The Railway CLI authenticates via the `RAILWAY_API_TOKEN` environment variable. 
 
 Do **not** use `RAILWAY_TOKEN` — that is project-scoped, conflicts with CLI commands, and causes "Project Token not found" errors. `RAILWAY_API_TOKEN` is the correct variable for account-level actions (`railway ssh`, `railway logs`, `railway status`, etc.).
 
-In cloud sessions, the session-start hook checks for `RAILWAY_API_TOKEN` at startup and logs whether Railway is available. The Railway CLI reads this env var directly — no config file write is needed.
+In cloud sessions, the session-start hook checks for `RAILWAY_API_TOKEN` at startup, logs whether Railway is available, and links the project automatically. The Railway CLI reads this env var directly — no config file write is needed. Commands like `railway status` and `railway logs` require a linked project, which the hook handles.
 
 ## Railway Access Tiers
 
