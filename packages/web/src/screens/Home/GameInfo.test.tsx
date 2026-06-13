@@ -5,7 +5,7 @@ import { MemoryRouter, Routes, Route } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GameInfoScreen } from "./GameInfo";
-import { mockPendingGames, mockActiveGames } from "@/mocks";
+import { mockPendingGames, mockActiveGames } from "@/mocks/legacy";
 
 const mockJoinMutateAsync = vi.fn();
 const mockLeaveMutateAsync = vi.fn();

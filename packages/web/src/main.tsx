@@ -14,8 +14,16 @@ themeStorage.initialize();
 initializeObservability();
 initializeSentry();
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>
-);
+const enableMocking = async () => {
+  if (import.meta.env.VITE_MOCKS !== "true") return;
+  const { startMocks } = await import("./mocks/browser");
+  await startMocks();
+};
+
+enableMocking().then(() => {
+  createRoot(document.getElementById("root")!).render(
+    <StrictMode>
+      <App />
+    </StrictMode>
+  );
+});

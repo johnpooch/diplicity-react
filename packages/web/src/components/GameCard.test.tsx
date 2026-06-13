@@ -10,7 +10,7 @@ import {
   mockPhaseMovement,
   mockPendingGames,
   mockActiveGames,
-} from "@/mocks";
+} from "@/mocks/legacy";
 
 const mockNavigate = vi.fn();
 const mockUseIsMobile = vi.fn();
