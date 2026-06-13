@@ -140,9 +140,9 @@ class TestUserProfileUpdateView:
 class TestUserAccountDelete:
 
     @pytest.mark.django_db
-    def test_delete_account_with_confirmation(self, delete_user, delete_client):
-        user = delete_user()
-        client = delete_client(user)
+    def test_delete_account_with_confirmation(self, user_factory, authenticated_client_factory):
+        user = user_factory()
+        client = authenticated_client_factory(user)
         user_id = user.id
 
         url = reverse("user-delete")
@@ -154,10 +154,10 @@ class TestUserAccountDelete:
 
     @pytest.mark.django_db
     def test_pending_game_member_fully_removed(
-        self, delete_user, delete_client, base_pending_game_for_primary_user
+        self, user_factory, authenticated_client_factory, base_pending_game_for_primary_user
     ):
-        user = delete_user()
-        client = delete_client(user)
+        user = user_factory()
+        client = authenticated_client_factory(user)
         game = base_pending_game_for_primary_user
         member = game.members.create(user=user)
 
@@ -168,10 +168,10 @@ class TestUserAccountDelete:
 
     @pytest.mark.django_db
     def test_active_game_member_preserved_with_kicked_and_null_user(
-        self, delete_user, delete_client, base_active_game_for_primary_user
+        self, user_factory, authenticated_client_factory, base_active_game_for_primary_user
     ):
-        user = delete_user()
-        client = delete_client(user)
+        user = user_factory()
+        client = authenticated_client_factory(user)
         game = base_active_game_for_primary_user
         member = game.members.create(user=user)
 
@@ -184,13 +184,13 @@ class TestUserAccountDelete:
 
     @pytest.mark.django_db
     def test_creator_of_active_game_cleared_on_delete(
-        self, delete_user, delete_client, classical_variant
+        self, user_factory, authenticated_client_factory, classical_variant
     ):
         from game.models import Game
         from common.constants import GameStatus as GS
 
-        user = delete_user()
-        client = delete_client(user)
+        user = user_factory()
+        client = authenticated_client_factory(user)
         game = Game.objects.create(
             name="GM Delete Test", variant=classical_variant, status=GS.ACTIVE, created_by=user
         )
@@ -207,10 +207,10 @@ class TestUserAccountDelete:
 
     @pytest.mark.django_db
     def test_pending_game_with_sole_user_is_deleted(
-        self, delete_user, delete_client, base_pending_game_for_primary_user
+        self, user_factory, authenticated_client_factory, base_pending_game_for_primary_user
     ):
-        user = delete_user()
-        client = delete_client(user)
+        user = user_factory()
+        client = authenticated_client_factory(user)
         game = base_pending_game_for_primary_user
         game.members.create(user=user)
         game_id = game.id
@@ -222,11 +222,11 @@ class TestUserAccountDelete:
 
     @pytest.mark.django_db
     def test_pending_game_with_other_members_is_preserved(
-        self, delete_user, delete_client, base_pending_game_for_primary_user, secondary_user
+        self, user_factory, authenticated_client_factory, base_pending_game_for_primary_user, secondary_user
     ):
-        user = delete_user()
+        user = user_factory()
         user_id = user.id
-        client = delete_client(user)
+        client = authenticated_client_factory(user)
         game = base_pending_game_for_primary_user
         game.members.create(user=user)
         other_member = game.members.create(user=secondary_user)

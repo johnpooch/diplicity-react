@@ -83,8 +83,9 @@ class TestChannelCreateView:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.django_db
-    def test_create_channel_sandbox_game_forbidden(self, authenticated_client, sandbox_game):
-        url = reverse("channel-create", args=[sandbox_game.id])
+    def test_create_channel_sandbox_game_forbidden(self, authenticated_client, sandbox_game_factory):
+        game = sandbox_game_factory()
+        url = reverse("channel-create", args=[game.id])
         payload = {"member_ids": []}
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_403_FORBIDDEN
