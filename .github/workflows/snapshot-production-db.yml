@@ -9,7 +9,7 @@ jobs:
   snapshot:
     runs-on: ubuntu-latest
     permissions:
-      actions: write
+      actions: read
     steps:
       - name: Set snapshot date
         id: date
@@ -29,7 +29,7 @@ jobs:
           echo "Using pg_dump version: $($PG_BIN/pg_dump --version)"
           echo "Dumping production database..."
           $PG_BIN/pg_dump "$PRODUCTION_DATABASE_URL" \
-            --no-owner --no-acl --format=custom --compress=9 \
+            --no-owner --no-acl --format=custom \
             -f snapshot.pgdata
           echo "Dump complete. Size: $(du -sh snapshot.pgdata | cut -f1)"
           date -u +%Y-%m-%dT%H:%M:%SZ > snapshot_timestamp.txt
@@ -44,21 +44,3 @@ jobs:
             snapshot_timestamp.txt
           retention-days: 7
           overwrite: true
-
-      - name: Delete expired snapshot artifacts
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          curl -s \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100" \
-          | jq -r '.artifacts[] | select(.name | startswith("db-snapshot-")) | select(.expired == true) | .id' \
-          | while read -r ARTIFACT_ID; do
-              echo "Deleting expired artifact $ARTIFACT_ID..."
-              curl -s -X DELETE \
-                -H "Authorization: Bearer $GH_TOKEN" \
-                -H "Accept: application/vnd.github+json" \
-                "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID"
-            done
-          echo "Cleanup complete."
