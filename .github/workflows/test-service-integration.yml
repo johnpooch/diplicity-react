@@ -1,4 +1,4 @@
-name: Test Service
+name: Test Service (Integration)
 
 on:
   push:
@@ -31,9 +31,9 @@ jobs:
         # Wait for services to be ready
         sleep 10
 
-    - name: Run service tests
+    - name: Run integration tests
       run: |
-        docker compose run --rm service python3 -m pytest -v --timeout=60 --ignore=integration/
+        docker compose run --rm service python3 -m pytest integration/tests.py -v --timeout=60
       env:
         DATABASE_NAME: diplicity
         DATABASE_USER: postgres
