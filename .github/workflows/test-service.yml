@@ -33,7 +33,7 @@ jobs:
 
     - name: Run service tests
       run: |
-        docker compose run --rm service python3 -m pytest -v --timeout=60
+        docker compose run --rm service python3 -m pytest -v --timeout=60 -n auto
       env:
         DATABASE_NAME: diplicity
         DATABASE_USER: postgres
