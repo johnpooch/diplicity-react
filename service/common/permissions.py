@@ -34,6 +34,16 @@ class IsGameMember(BasePermission):
         return game.members.filter(user=request.user).exists()
 
 
+class IsGameMemberOrGameMaster(BasePermission):
+    message = "User is not a member of the game."
+
+    def has_permission(self, request, view):
+        game = resolve_game(request, view.kwargs.get("game_id"))
+        if game.game_master_id is not None and game.game_master_id == request.user.id:
+            return True
+        return game.members.filter(user=request.user).exists()
+
+
 class IsActiveGameMember(BasePermission):
     message = "User cannot perform this action."
 

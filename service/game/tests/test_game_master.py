@@ -23,6 +23,7 @@ unpause_viewname = "game-unpause"
 extend_deadline_viewname = "game-extend-deadline"
 join_viewname = "game-join"
 kick_viewname = "game-kick"
+phase_state_list_viewname = "phase-state-list"
 
 
 def game_master_payload(variant_id, **overrides):
@@ -147,6 +148,26 @@ class TestGameMasterNotAPlayer:
         assert game.members.count() == game.variant.nations.count()
         assert all(m.nation is not None for m in game.members.all())
         assert not game.current_phase.phase_states.filter(member__user=primary_user).exists()
+
+
+class TestGameMasterInGameAccess:
+
+    @pytest.mark.django_db
+    def test_game_master_can_list_phase_states(self, authenticated_client, active_game_with_game_master_factory):
+        game = active_game_with_game_master_factory()
+        url = reverse(phase_state_list_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == []
+
+    @pytest.mark.django_db
+    def test_non_member_cannot_list_phase_states(
+        self, authenticated_client_for_secondary_user, active_game_with_game_master_factory
+    ):
+        game = active_game_with_game_master_factory()
+        url = reverse(phase_state_list_viewname, args=[game.id])
+        response = authenticated_client_for_secondary_user.get(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 class TestGameMasterPowers:
