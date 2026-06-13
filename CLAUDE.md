@@ -687,10 +687,30 @@ docker compose run --rm service python3 -m pytest game/tests/test_game_create.py
 
 ## Backend Testing Patterns
 
-Test fixtures should exist in the app's `conftest.py` file rather than in the test file itself.
+Shared test fixtures live in the **root `service/conftest.py`** — this is the single place to look for (and add) fixtures. Per-app `conftest.py` files exist only for fixtures that are genuinely app-local:
+
+- `login/conftest.py` — Google/Apple auth and token mocks (patch login internals)
+- `integration/conftest.py` — autouse procrastinate mock + extra users/clients for 7-player games
+- `nation/conftest.py` — draft variants and flag SVG data for nation flag tests
+- `variant/conftest.py` — SVG map builders (`make_dsvg`, `make_godip_svg`, etc.)
+
+Before adding a fixture to a per-app conftest, check whether it belongs in the root conftest instead.
+
+### Fixture Naming Convention
+
+- **`*_factory`** — fixtures that return a callable which creates objects on demand (`game_factory`, `phase_factory`, `member_factory`, `sandbox_game_factory`, `user_factory`, `authenticated_client_factory`). Always use this suffix for callable-returning fixtures; do not use `make_*` or bare names.
+- **Session-scoped reference data** — read-only lookups named `<variant_id>_variant`, `<variant_id>_<name>_nation`, `<variant_id>_<name>_province` (e.g. `classical_england_nation`, `italy_vs_germany_kiel_province`). These are created once per session via `django_db_blocker` — never mutate them in tests.
+- **Session-scoped users/clients** — `primary_user`, `secondary_user`, `tertiary_user` and `authenticated_client`, `authenticated_client_for_secondary_user`, `unauthenticated_client`. These persist across the whole session — never mutate or delete them; use `user_factory` for disposable users.
+- **Scenario fixtures** — descriptive nouns returning ready-made objects (`active_game_with_phase_state`, `game_with_two_members`, `order_active_game`).
+- **`mock_*`** — fixtures that patch external behavior (`mock_send_notification_to_users`, `mock_immediate_on_commit`).
+
+### Performance
+
+- The root conftest forces `MD5PasswordHasher` for tests (session autouse `override_test_settings`), so `create_user` is cheap. Do not create users with the production hasher in tests.
+- Prefer the session-scoped users/clients and variant lookups over creating new ones per test.
 
 Follow this testing pattern:
-- Create pytest fixtures in `conftest.py` that return callable factory functions
+- Create pytest fixtures in the root `conftest.py` that return callable factory functions
 - Focus on API endpoint testing rather than unit testing individual methods
 - Use fixtures like `@pytest.fixture def factory_function(db, other_fixtures): def _create(...): return Model.objects.create(...); return _create`
 - Test comprehensive endpoint behavior including permissions, validation, and data transformations
