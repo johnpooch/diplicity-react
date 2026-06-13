@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MyGames } from "./MyGames";
-import { mockActiveGames, mockPhaseMovement, mockVariants } from "@/mocks";
+import { mockActiveGames, mockPhaseMovement, mockVariants } from "@/mocks/legacy";
 
 const mockUseGamesListInfinite = vi.fn();
 const mockUseGamePhaseRetrieve = vi.fn();

@@ -526,6 +526,83 @@ const { gameId, channelId } = useRequiredParams<{ gameId: string; channelId: str
 
 This eliminates the need for runtime null checks when the route guarantees the param exists.
 
+## Mock Data (MSW + Fixture Registry)
+
+The frontend has an MSW (Mock Service Worker) layer that serves canonical fixture data for every API endpoint, so the full app can run with no backend at all:
+
+```bash
+cd packages/web
+npm run dev:mocks   # Vite dev server at http://localhost:5173 with all API calls mocked
+```
+
+In mock mode the app auto-seeds auth tokens (logged in as "Mock Player"). To see logged-out screens, set `localStorage.setItem("mock:loggedOut", "true")` and clear tokens (the screenshot script's `--logged-out` flag does this).
+
+### Fixture registry — check before creating mocks
+
+**`src/mocks/fixtures/index.ts` is the canonical fixture registry and the single source of truth for mock scenarios. Always check it before creating new mock data — only add a fixture when no existing one covers the scenario.** Fixture explosion is the failure mode this registry exists to prevent.
+
+Registered game fixtures (the fixture's game `id` doubles as the URL slug, e.g. `/game/active-movement/phase/101/orders`):
+
+| Fixture | Game ID | Scenario |
+|---|---|---|
+| `pendingGameNoPlayers` | `pending-no-players` | Pending, 0 members, joinable |
+| `pendingGameSomePlayers` | `pending-some-players` | Pending, 3/7 players incl. current user (creator) |
+| `pendingGameAlmostFull` | `pending-almost-full` | Pending, 6/7 players incl. current user |
+| `activeGameMovement` | `active-movement` | Spring 1901 movement; current user (England) has 2/3 orders in; chat channels with unread |
+| `activeGameRetreat` | `active-retreat` | Fall 1901 retreat; England army dislodged from Norway |
+| `activeGameBuild` | `active-build` | Fall 1901 adjustment; England can build 1 unit |
+| `activeGameDrawProposal` | `active-draw-proposal` | Active game with an open draw proposal, current user hasn't voted |
+| `finishedGameSolo` | `finished-solo` | Completed; current user won a solo victory |
+| `finishedGameDraw` | `finished-draw` | Completed; 3-way draw incl. current user |
+| `gameNotJoined` | `not-joined` | Active game the current user is not a member of |
+
+Structure of `src/mocks/`:
+
+- `fixtures/index.ts` — the registry (`gameFixtures`, `fixtureByGameId`)
+- `fixtures/games.ts` — the game scenarios; `fixtures/builders.ts` — helpers (`makeGame`, `makePhase`, `makeOrder`, …)
+- `fixtures/classical.ts` + `fixtures/data/` — the real classical variant (dumped from the actual API: variant JSON, 2MB map SVG, nation flags), so maps render exactly like production
+- `handlers.ts` — MSW request handlers serving the registry; `browser.ts` — worker startup + auth seeding
+- `legacy.ts` — older standalone mock objects still used by some unit tests/stories; prefer the fixture registry for new work
+
+Known limitation: `GET /game/:id/options/` returns an empty `OrderOptionsResponse`, so the interactive order-creation wizard has no options under mocks. Read-only rendering of orders, phases, maps, chat, and draw proposals is fully supported.
+
+MSW is dev-only: `main.tsx` dynamically imports the worker only when `VITE_MOCKS=true`, and the chunk is dead-code-eliminated from production builds. Vitest does not use MSW (unit tests mock the generated hooks directly).
+
+## UI Verification & PR Screenshots (Playwright)
+
+Playwright is installed in `packages/web/` for ad-hoc UI verification and PR screenshots — there is **no** Playwright test suite, no assertions, no CI step. It is a tool for producing visual evidence of UI changes.
+
+```bash
+cd packages/web
+npm run dev:mocks &   # 1. start the dev server with mock data
+
+# 2. screenshot any route (script auto-picks a working Chromium)
+npm run screenshot -- / /tmp/shots/my-games.png
+npm run screenshot -- /game/active-movement/phase/101/orders /tmp/shots/orders.png
+npm run screenshot -- /game/active-build/phase/303/orders /tmp/shots/mobile.png --viewport 390x844
+```
+
+Options: `--viewport WxH` (default 1280x800), `--full-page`, `--logged-out`, `--wait MS`, `--base URL`. The script prints page errors to the console — treat any `[pageerror]`/`[console.error]` about the app itself as a signal the fixture or the change is broken.
+
+**Cloud-environment browser caveat:** `npx playwright install chromium` fails in Claude Code on the web because `cdn.playwright.dev` is not in the network allowlist. The screenshot script handles this automatically by falling back to the `@sparticuz/chromium` binary (shipped via npm, extracted to `/tmp/chromium`). Do not burn time trying to make `playwright install` work; the fallback is the supported path in cloud sessions.
+
+### Attaching screenshots to a PR description
+
+GitHub PR bodies can embed images by URL. Since the API cannot upload attachments, commit the screenshots to a dedicated **screenshots branch** (never merged) and reference them by commit-pinned raw URL:
+
+```bash
+git checkout --orphan screenshots/<feature-name>
+git rm -rf . && mkdir -p shots && cp /tmp/shots/*.png shots/
+git add shots && git commit -m "Screenshots for <feature>" && git push -u origin screenshots/<feature-name>
+git checkout <your-feature-branch>
+```
+
+Then embed in the PR body with the commit SHA (stable even if the branch is later deleted):
+
+```markdown
+![orders screen](https://raw.githubusercontent.com/johnpooch/diplicity-react/<commit-sha>/shots/orders.png)
+```
+
 ## Frontend Best Practices Summary
 
 1. **Component Design**:
