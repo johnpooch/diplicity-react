@@ -46,6 +46,8 @@ export const makeMember = (
   isGameCreator: false,
   nmrExtensionsRemaining: 2,
   civilDisorder: false,
+  seekingReplacement: false,
+  replaceable: false,
   ...overrides,
 });
 
