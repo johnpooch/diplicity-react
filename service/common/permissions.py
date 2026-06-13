@@ -155,15 +155,3 @@ class IsGameCreator(BasePermission):
             self.message = "Only the game creator can perform this action."
             return False
         return True
-
-
-class IsInCivilDisorder(BasePermission):
-    message = "Player is not in civil disorder."
-
-    def has_permission(self, request, view):
-        game = resolve_game(request, view.kwargs.get("game_id"))
-        member = game.members.filter(user=request.user).first()
-        if not member:
-            self.message = "User is not a member of the game."
-            return False
-        return member.civil_disorder

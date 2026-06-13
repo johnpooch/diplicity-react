@@ -15,7 +15,7 @@ from common.serializers import EmptySerializer
 from common.views import SelectedGameMixin, CurrentGameMemberMixin
 from rest_framework.response import Response
 from .models import Phase
-from .serializers import PhaseStateSerializer, PhaseResolveResponseSerializer, PhaseRetrieveSerializer, PhaseListSerializer
+from .serializers import PhaseStateSerializer, PhaseRetrieveSerializer, PhaseListSerializer
 
 tracer = trace.get_tracer(__name__)
 
@@ -73,21 +73,6 @@ class DeadlineWarningsView(views.APIView):
             result = Phase.objects.send_deadline_warnings()
             span.set_attribute("notifications.sent", result["notifications_sent"])
             return Response(result, status=status.HTTP_200_OK)
-
-
-class PhaseListView(SelectedGameMixin, generics.ListAPIView):
-    permission_classes = [
-        permissions.IsAuthenticated,
-        IsActiveOrCompletedGame,
-        IsGameMember,
-    ]
-    serializer_class = PhaseListSerializer
-
-    def get_queryset(self):
-        game = self.get_game()
-        return Phase.objects.filter(game=game).only(
-            'id', 'ordinal', 'season', 'year', 'type', 'status', 'game_id', 'variant_id'
-        ).order_by('ordinal')
 
 
 class PhaseRetrieveView(generics.RetrieveAPIView):

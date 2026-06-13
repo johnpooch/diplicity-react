@@ -51,7 +51,6 @@ import {
   GameList,
   GameRetrieve,
   DurationEnum,
-  getGamePhasesListQueryKey,
   getGamePhaseRetrieveQueryKey,
 } from "@/api/generated/endpoints";
 import { EXTEND_DURATION_OPTIONS } from "@/constants";
@@ -150,9 +149,6 @@ export function GameDropdownMenu({
         queryKey: getGameRetrieveQueryKey(game.id),
       });
       queryClient.invalidateQueries({ queryKey: getGamesListQueryKey() });
-      queryClient.invalidateQueries({
-        queryKey: getGamePhasesListQueryKey(game.id),
-      });
       if (phaseId !== undefined) {
         queryClient.invalidateQueries({
           queryKey: getGamePhaseRetrieveQueryKey(game.id, Number(phaseId)),
