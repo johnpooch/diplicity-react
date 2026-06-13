@@ -193,6 +193,40 @@ export interface EmailLogin {
   readonly refreshToken: string;
 }
 
+/**
+ * * `ios` - ios
+ * `android` - android
+ * `web` - web
+ */
+export type TypeEnum = (typeof TypeEnum)[keyof typeof TypeEnum];
+
+export const TypeEnum = {
+  ios: "ios",
+  android: "android",
+  web: "web",
+} as const;
+
+export interface FCMDevice {
+  readonly id: number;
+  /**
+   * @maxLength 255
+   * @nullable
+   */
+  name?: string | null;
+  registrationId: string;
+  /**
+   * Unique device identifier
+   * @maxLength 255
+   * @nullable
+   */
+  deviceId?: string | null;
+  /** Inactive devices will not be sent notifications */
+  active?: boolean;
+  /** @nullable */
+  readonly dateCreated: string | null;
+  type: TypeEnum;
+}
+
 export interface FieldValue {
   id: string;
   label: string;
@@ -1244,6 +1278,258 @@ export function useApiSchemaRetrieveSuspense<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
+export const apiTestSentryRetrieve = (signal?: AbortSignal) => {
+  return customInstance<void>({
+    url: `/api/test-sentry/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getApiTestSentryRetrieveQueryKey = () => {
+  return [`/api/test-sentry/`] as const;
+};
+
+export const getApiTestSentryRetrieveQueryOptions = <
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<
+      Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+      TError,
+      TData
+    >
+  >;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getApiTestSentryRetrieveQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+  > = ({ signal }) => apiTestSentryRetrieve(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ApiTestSentryRetrieveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+>;
+export type ApiTestSentryRetrieveQueryError = unknown;
+
+export function useApiTestSentryRetrieve<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useApiTestSentryRetrieve<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useApiTestSentryRetrieve<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useApiTestSentryRetrieve<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getApiTestSentryRetrieveQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getApiTestSentryRetrieveSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<
+    UseSuspenseQueryOptions<
+      Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+      TError,
+      TData
+    >
+  >;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getApiTestSentryRetrieveQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+  > = ({ signal }) => apiTestSentryRetrieve(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ApiTestSentryRetrieveSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof apiTestSentryRetrieve>>
+>;
+export type ApiTestSentryRetrieveSuspenseQueryError = unknown;
+
+export function useApiTestSentryRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useApiTestSentryRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useApiTestSentryRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useApiTestSentryRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof apiTestSentryRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getApiTestSentryRetrieveSuspenseQueryOptions(options);
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
 /**
  * Takes a refresh type JSON web token and returns an access type JSON web
 token if the refresh token is valid.
@@ -1873,6 +2159,388 @@ export const useAuthVerifyEmailCreate = <TError = unknown, TContext = unknown>(
     getAuthVerifyEmailCreateMutationOptions(options),
     queryClient
   );
+};
+
+export const devicesList = (signal?: AbortSignal) => {
+  return customInstance<FCMDevice[]>({
+    url: `/devices/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getDevicesListQueryKey = () => {
+  return [`/devices/`] as const;
+};
+
+export const getDevicesListQueryOptions = <
+  TData = Awaited<ReturnType<typeof devicesList>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof devicesList>>, TError, TData>
+  >;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getDevicesListQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof devicesList>>> = ({
+    signal,
+  }) => devicesList(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof devicesList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type DevicesListQueryResult = NonNullable<
+  Awaited<ReturnType<typeof devicesList>>
+>;
+export type DevicesListQueryError = unknown;
+
+export function useDevicesList<
+  TData = Awaited<ReturnType<typeof devicesList>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof devicesList>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof devicesList>>,
+          TError,
+          Awaited<ReturnType<typeof devicesList>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useDevicesList<
+  TData = Awaited<ReturnType<typeof devicesList>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof devicesList>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof devicesList>>,
+          TError,
+          Awaited<ReturnType<typeof devicesList>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useDevicesList<
+  TData = Awaited<ReturnType<typeof devicesList>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof devicesList>>, TError, TData>
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useDevicesList<
+  TData = Awaited<ReturnType<typeof devicesList>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof devicesList>>, TError, TData>
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getDevicesListQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getDevicesListSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof devicesList>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<
+    UseSuspenseQueryOptions<
+      Awaited<ReturnType<typeof devicesList>>,
+      TError,
+      TData
+    >
+  >;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getDevicesListQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof devicesList>>> = ({
+    signal,
+  }) => devicesList(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof devicesList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type DevicesListSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof devicesList>>
+>;
+export type DevicesListSuspenseQueryError = unknown;
+
+export function useDevicesListSuspense<
+  TData = Awaited<ReturnType<typeof devicesList>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof devicesList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useDevicesListSuspense<
+  TData = Awaited<ReturnType<typeof devicesList>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof devicesList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useDevicesListSuspense<
+  TData = Awaited<ReturnType<typeof devicesList>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof devicesList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useDevicesListSuspense<
+  TData = Awaited<ReturnType<typeof devicesList>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof devicesList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getDevicesListSuspenseQueryOptions(options);
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const devicesCreate = (
+  fCMDevice: NonReadonly<FCMDevice>,
+  signal?: AbortSignal
+) => {
+  return customInstance<FCMDevice>({
+    url: `/devices/`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: fCMDevice,
+    signal,
+  });
+};
+
+export const getDevicesCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof devicesCreate>>,
+    TError,
+    { data: NonReadonly<FCMDevice> },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof devicesCreate>>,
+  TError,
+  { data: NonReadonly<FCMDevice> },
+  TContext
+> => {
+  const mutationKey = ["devicesCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof devicesCreate>>,
+    { data: NonReadonly<FCMDevice> }
+  > = props => {
+    const { data } = props ?? {};
+
+    return devicesCreate(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DevicesCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof devicesCreate>>
+>;
+export type DevicesCreateMutationBody = NonReadonly<FCMDevice>;
+export type DevicesCreateMutationError = unknown;
+
+export const useDevicesCreate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof devicesCreate>>,
+      TError,
+      { data: NonReadonly<FCMDevice> },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof devicesCreate>>,
+  TError,
+  { data: NonReadonly<FCMDevice> },
+  TContext
+> => {
+  return useMutation(getDevicesCreateMutationOptions(options), queryClient);
+};
+
+export const devicesUpdate = (
+  fCMDevice: NonReadonly<FCMDevice>,
+  signal?: AbortSignal
+) => {
+  return customInstance<FCMDevice>({
+    url: `/devices/`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: fCMDevice,
+    signal,
+  });
+};
+
+export const getDevicesUpdateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof devicesUpdate>>,
+    TError,
+    { data: NonReadonly<FCMDevice> },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof devicesUpdate>>,
+  TError,
+  { data: NonReadonly<FCMDevice> },
+  TContext
+> => {
+  const mutationKey = ["devicesUpdate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof devicesUpdate>>,
+    { data: NonReadonly<FCMDevice> }
+  > = props => {
+    const { data } = props ?? {};
+
+    return devicesUpdate(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DevicesUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof devicesUpdate>>
+>;
+export type DevicesUpdateMutationBody = NonReadonly<FCMDevice>;
+export type DevicesUpdateMutationError = unknown;
+
+export const useDevicesUpdate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof devicesUpdate>>,
+      TError,
+      { data: NonReadonly<FCMDevice> },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof devicesUpdate>>,
+  TError,
+  { data: NonReadonly<FCMDevice> },
+  TContext
+> => {
+  return useMutation(getDevicesUpdateMutationOptions(options), queryClient);
 };
 
 export const gameCreate = (

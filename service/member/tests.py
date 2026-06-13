@@ -687,115 +687,84 @@ class TestCivilDisorderRecovery:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-class TestReplaceableProperty:
-    """Truth table for Member.replaceable property."""
+class TestReplaceableSerialization:
 
-    def _make_member(self, game, user, nation, **flags):
-        from member.models import Member
+    @pytest.mark.django_db
+    def test_replaceable_when_civil_disorder(
+        self, authenticated_client, classical_variant, classical_england_nation, primary_user
+    ):
+        game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
+        game.members.create(user=primary_user, nation=classical_england_nation, civil_disorder=True)
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["members"][0]["replaceable"] is True
 
-        return Member(
-            game=game,
-            user=user,
-            nation=nation,
-            civil_disorder=flags.get("civil_disorder", False),
-            seeking_replacement=flags.get("seeking_replacement", False),
-            eliminated=flags.get("eliminated", False),
-            kicked=flags.get("kicked", False),
-            replaced_by=flags.get("replaced_by", None),
+    @pytest.mark.django_db
+    def test_replaceable_when_seeking_replacement(
+        self, authenticated_client, classical_variant, classical_england_nation, primary_user
+    ):
+        game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
+        game.members.create(
+            user=primary_user, nation=classical_england_nation, seeking_replacement=True
         )
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        member = response.data["members"][0]
+        assert member["seeking_replacement"] is True
+        assert member["replaceable"] is True
 
     @pytest.mark.django_db
-    def test_civil_disorder_only_is_replaceable(
-        self, classical_variant, classical_england_nation, primary_user
+    def test_not_replaceable_by_default(
+        self, authenticated_client, classical_variant, classical_england_nation, primary_user
     ):
         game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
-        m = self._make_member(game, primary_user, classical_england_nation, civil_disorder=True)
-        assert m.replaceable is True
+        game.members.create(user=primary_user, nation=classical_england_nation)
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        member = response.data["members"][0]
+        assert member["seeking_replacement"] is False
+        assert member["replaceable"] is False
 
     @pytest.mark.django_db
-    def test_seeking_replacement_only_is_replaceable(
-        self, classical_variant, classical_england_nation, primary_user
+    def test_not_replaceable_when_eliminated(
+        self, authenticated_client, classical_variant, classical_england_nation, primary_user
     ):
         game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
-        m = self._make_member(game, primary_user, classical_england_nation, seeking_replacement=True)
-        assert m.replaceable is True
-
-    @pytest.mark.django_db
-    def test_both_flags_is_replaceable(
-        self, classical_variant, classical_england_nation, primary_user
-    ):
-        game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
-        m = self._make_member(
-            game, primary_user, classical_england_nation, civil_disorder=True, seeking_replacement=True
+        game.members.create(
+            user=primary_user, nation=classical_england_nation, civil_disorder=True, eliminated=True
         )
-        assert m.replaceable is True
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["members"][0]["replaceable"] is False
 
     @pytest.mark.django_db
-    def test_no_flags_is_not_replaceable(
-        self, classical_variant, classical_england_nation, primary_user
+    def test_not_replaceable_when_kicked(
+        self, authenticated_client, classical_variant, classical_england_nation, primary_user
     ):
         game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
-        m = self._make_member(game, primary_user, classical_england_nation)
-        assert m.replaceable is False
-
-    @pytest.mark.django_db
-    def test_civil_disorder_and_eliminated_is_not_replaceable(
-        self, classical_variant, classical_england_nation, primary_user
-    ):
-        game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
-        m = self._make_member(
-            game, primary_user, classical_england_nation, civil_disorder=True, eliminated=True
+        game.members.create(
+            user=primary_user, nation=classical_england_nation, seeking_replacement=True, kicked=True
         )
-        assert m.replaceable is False
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["members"][0]["replaceable"] is False
 
     @pytest.mark.django_db
-    def test_civil_disorder_and_kicked_is_not_replaceable(
-        self, classical_variant, classical_england_nation, primary_user
-    ):
-        game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
-        m = self._make_member(
-            game, primary_user, classical_england_nation, civil_disorder=True, kicked=True
-        )
-        assert m.replaceable is False
-
-    @pytest.mark.django_db
-    def test_seeking_replacement_and_eliminated_is_not_replaceable(
-        self, classical_variant, classical_england_nation, primary_user
-    ):
-        game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
-        m = self._make_member(
-            game, primary_user, classical_england_nation, seeking_replacement=True, eliminated=True
-        )
-        assert m.replaceable is False
-
-    @pytest.mark.django_db
-    def test_seeking_replacement_and_kicked_is_not_replaceable(
-        self, classical_variant, classical_england_nation, primary_user
-    ):
-        game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
-        m = self._make_member(
-            game, primary_user, classical_england_nation, seeking_replacement=True, kicked=True
-        )
-        assert m.replaceable is False
-
-    @pytest.mark.django_db
-    def test_civil_disorder_with_replaced_by_is_not_replaceable(
-        self, classical_variant, classical_england_nation, primary_user, secondary_user
+    def test_not_replaceable_when_replaced(
+        self, authenticated_client, classical_variant, classical_england_nation, primary_user, secondary_user
     ):
         game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
         replacement = game.members.create(user=secondary_user, nation=classical_england_nation)
-        m = self._make_member(
-            game, primary_user, classical_england_nation, civil_disorder=True, replaced_by=replacement
+        game.members.create(
+            user=primary_user, nation=classical_england_nation, civil_disorder=True, replaced_by=replacement
         )
-        assert m.replaceable is False
-
-    @pytest.mark.django_db
-    def test_seeking_replacement_with_replaced_by_is_not_replaceable(
-        self, classical_variant, classical_england_nation, primary_user, secondary_user
-    ):
-        game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
-        replacement = game.members.create(user=secondary_user, nation=classical_england_nation)
-        m = self._make_member(
-            game, primary_user, classical_england_nation, seeking_replacement=True, replaced_by=replacement
-        )
-        assert m.replaceable is False
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        primary_member = next(m for m in response.data["members"] if m["is_current_user"])
+        assert primary_member["replaceable"] is False
