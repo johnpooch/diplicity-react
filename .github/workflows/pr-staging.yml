@@ -535,12 +535,25 @@ jobs:
       - name: Comment on PR with staging URL
         env:
           STAGING_DOMAIN: ${{ steps.domain.outputs.domain }}
+          USE_SNAPSHOT: ${{ steps.find_snapshot.outputs.use_snapshot }}
+          SNAPSHOT_TIMESTAMP: ${{ steps.find_snapshot.outputs.snapshot_timestamp }}
         uses: actions/github-script@v9
         with:
           script: |
             const stagingDomain = process.env.STAGING_DOMAIN;
             const stagingUrl = `https://${stagingDomain}`;
             const previewUrl = `https://deploy-preview-${context.payload.pull_request.number}--diplicity-react.netlify.app`;
+
+            const useSnapshot = process.env.USE_SNAPSHOT === 'true';
+            const snapshotTimestamp = process.env.SNAPSHOT_TIMESTAMP;
+            let dataLine;
+            if (useSnapshot) {
+              const snapshotDate = new Date(snapshotTimestamp);
+              const formatted = snapshotDate.toUTCString();
+              dataLine = `The staging backend has a copy of the production database from the daily snapshot taken at **${formatted}**.`;
+            } else {
+              dataLine = 'The staging backend has a live copy of the production database (no pre-built snapshot was available).';
+            }
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
@@ -552,7 +565,7 @@ jobs:
                 `**Frontend preview:** ${previewUrl}`,
                 `**Staging backend:** ${stagingUrl}`,
                 '',
-                'The staging backend has a copy of the production database with migrations from this PR applied.',
+                dataLine,
                 'Use email/password login to test (Google OAuth is not configured for staging).',
                 '',
                 'The frontend preview derives its backend URL from the PR number at build time.',
