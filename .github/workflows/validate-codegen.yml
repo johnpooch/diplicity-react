@@ -63,6 +63,10 @@ jobs:
           DATABASE_PORT: 5432
           DJANGO_DEBUG: 'False'
           FIREBASE_PROJECT_ID: 'dummy'
+          # FIREBASE_TYPE is intentionally absent — settings.py only calls initialize_app
+          # when both FIREBASE_PROJECT_ID and FIREBASE_TYPE are set, so fcm_django is
+          # included in INSTALLED_APPS (keeping /devices/ in the schema) without
+          # attempting a real Firebase connection.
 
       - name: Regenerate OpenAPI schema
         run: python manage.py spectacular --file openapi-schema.yaml
