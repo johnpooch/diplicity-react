@@ -24,13 +24,15 @@ def get_player_stats(user):
         .order_by("-game__finished_at")
     )
 
-    total_games = completed_members.count()
+    tally_members = completed_members.filter(replaced_by__isnull=True)
+
+    total_games = tally_members.count()
     solo_wins = (
         Victory.objects.solo_victories()
-        .filter(members__in=completed_members.filter(drew=False))
+        .filter(members__in=tally_members.filter(drew=False))
         .count()
     )
-    draws = completed_members.filter(drew=True).count()
+    draws = tally_members.filter(drew=True).count()
     losses = total_games - solo_wins - draws
 
     last_n_members = list(completed_members[:RELIABILITY_GAME_WINDOW])
@@ -50,7 +52,7 @@ def get_player_stats(user):
     cd_count = sum(1 for m in last_n_members if m.civil_disorder)
     cd_rate = cd_count / len(last_n_members) if last_n_members else 0.0
 
-    if total_games < RELIABILITY_GAME_WINDOW:
+    if len(last_n_members) < RELIABILITY_GAME_WINDOW:
         reliability_tier = "new"
     elif nmr_rate <= RELIABLE_NMR_THRESHOLD and cd_rate <= RELIABLE_CD_THRESHOLD:
         reliability_tier = "reliable"

@@ -33,7 +33,7 @@ def send_draw_proposal_notification(sender, instance, created, **kwargs):
         return
 
     other_members = instance.game.members.filter(
-        eliminated=False, kicked=False, civil_disorder=False
+        eliminated=False, kicked=False, civil_disorder=False, replaced_by__isnull=True
     ).exclude(id=instance.created_by.id)
     user_ids = [member.user_id for member in other_members if member.user_id is not None]
     if not user_ids:

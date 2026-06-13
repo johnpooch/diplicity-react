@@ -180,6 +180,23 @@ class TestDrawProposalNotification:
         jobs = _notification_jobs(in_memory_procrastinate, "draw_proposal")
         assert tertiary_user.id not in jobs[0]["args"]["user_ids"]
 
+    @pytest.mark.django_db
+    def test_replaced_member_not_notified(
+        self,
+        draw_notification_game_factory,
+        tertiary_user,
+        user_factory,
+        in_memory_procrastinate,
+    ):
+        game, italy, germany = draw_notification_game_factory()
+        successor = game.members.create(user=user_factory())
+        game.members.create(user=tertiary_user, replaced_by=successor)
+
+        DrawProposal.objects.create_proposal(game=game, created_by=italy)
+
+        jobs = _notification_jobs(in_memory_procrastinate, "draw_proposal")
+        assert tertiary_user.id not in jobs[0]["args"]["user_ids"]
+
 
 class TestGameEndNotifications:
 
