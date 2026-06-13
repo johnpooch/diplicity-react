@@ -24,18 +24,18 @@ class Member(BaseModel):
         related_name="replaces",
     )
 
-    @property
-    def replaceable(self):
-        return (self.civil_disorder or self.seeking_replacement) and not (
-            self.eliminated or self.kicked or self.replaced_by_id is not None
-        )
-
     class Meta:
         indexes = [
             models.Index(fields=["game", "user"]),
             models.Index(fields=["user"]),
             models.Index(fields=["game"]),
         ]
+
+    @property
+    def replaceable(self):
+        return (self.civil_disorder or self.seeking_replacement) and not (
+            self.eliminated or self.kicked or self.replaced_by_id is not None
+        )
 
     @property
     def name(self):
