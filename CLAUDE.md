@@ -847,6 +847,62 @@ Use email/password login. Google OAuth is not configured for staging environment
 
 ---
 
+# Database Backups (Disaster Recovery)
+
+The `.github/workflows/db-backup.yml` workflow runs daily at 02:00 UTC and stores a production database backup in S3-compatible storage outside Railway.
+
+## Retention policy
+
+| Tier | Cadence | Kept for |
+|------|---------|----------|
+| Daily | Every day at 02:00 UTC | 7 days |
+| Weekly | Every Sunday (promoted from daily) | 4 weeks |
+
+Files are stored under `daily/backup-YYYY-MM-DD.pgdata` and `weekly/backup-YYYY-MM-DD.pgdata`.
+
+## Required GitHub secrets and variables
+
+| Name | Kind | Description |
+|------|------|-------------|
+| `PRODUCTION_DATABASE_URL` | Secret | Production Postgres connection string (already used by staging workflow) |
+| `BACKUP_AWS_ACCESS_KEY_ID` | Secret | AWS IAM access key with `s3:PutObject`, `s3:GetObject`, `s3:DeleteObject`, `s3:ListBucket` on the bucket |
+| `BACKUP_AWS_SECRET_ACCESS_KEY` | Secret | Corresponding AWS IAM secret key |
+| `BACKUP_AWS_REGION` | Variable | AWS region where the bucket lives (e.g. `eu-west-1`) |
+| `BACKUP_S3_BUCKET` | Variable | S3 bucket name (e.g. `diplicity-db-backups`) |
+
+The IAM user needs a minimal policy — it should only have access to the backup bucket, not the whole AWS account.
+
+## Restore procedure
+
+1. **Download the backup file** from S3:
+   ```bash
+   aws s3 cp s3://<BACKUP_S3_BUCKET>/daily/backup-YYYY-MM-DD.pgdata ./backup.pgdata
+   # or a weekly backup:
+   aws s3 cp s3://<BACKUP_S3_BUCKET>/weekly/backup-YYYY-MM-DD.pgdata ./backup.pgdata
+   ```
+
+2. **Provision a fresh database** (or use an existing empty one). If restoring over an existing database, drop and recreate the public schema first:
+   ```bash
+   psql "$TARGET_DATABASE_URL" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+   ```
+
+3. **Restore the dump:**
+   ```bash
+   pg_restore --no-owner --no-acl --clean --if-exists \
+     -d "$TARGET_DATABASE_URL" backup.pgdata
+   ```
+
+4. **Verify** by checking a few key row counts:
+   ```bash
+   psql "$TARGET_DATABASE_URL" -c "SELECT relname, n_live_tup FROM pg_stat_user_tables ORDER BY n_live_tup DESC LIMIT 10;"
+   ```
+
+5. **Point the application at the restored database** by updating `DATABASE_URL` in the Railway environment.
+
+> **Note:** The backup uses `pg_dump --format=custom`, which requires `pg_restore` for restoration — you cannot pipe it directly to `psql`. Use PostgreSQL 17 client tools to match the server version.
+
+---
+
 # API Development
 
 The API schema is auto-generated using DRF Spectacular:

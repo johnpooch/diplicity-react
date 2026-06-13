@@ -1,0 +1,86 @@
+name: Database Backup
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Daily at 02:00 UTC
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    if: vars.MAINTENANCE_MODE != 'true'
+    steps:
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
+          sudo apt-get update && sudo apt-get install -y postgresql-client-17
+
+      - name: Dump production database
+        env:
+          PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          FILENAME="backup-${DATE}.pgdata"
+          echo "Dumping production database..."
+          /usr/lib/postgresql/17/bin/pg_dump "$PRODUCTION_DATABASE_URL" \
+            --no-owner --no-acl --format=custom -f "$FILENAME"
+          echo "filename=$FILENAME" >> "$GITHUB_ENV"
+          echo "date=$DATE" >> "$GITHUB_ENV"
+          echo "Dump complete: $(du -sh $FILENAME)"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.BACKUP_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.BACKUP_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.BACKUP_AWS_REGION }}
+
+      - name: Upload daily backup to S3
+        run: |
+          aws s3 cp "${{ env.filename }}" \
+            "s3://${{ vars.BACKUP_S3_BUCKET }}/daily/${{ env.filename }}"
+          echo "Uploaded: daily/${{ env.filename }}"
+
+      - name: Promote to weekly backup if today is Sunday
+        run: |
+          DOW=$(date -u +%u)  # 1=Monday … 7=Sunday
+          if [ "$DOW" = "7" ]; then
+            echo "Today is Sunday — promoting to weekly backup."
+            aws s3 cp \
+              "s3://${{ vars.BACKUP_S3_BUCKET }}/daily/${{ env.filename }}" \
+              "s3://${{ vars.BACKUP_S3_BUCKET }}/weekly/${{ env.filename }}"
+            echo "Uploaded: weekly/${{ env.filename }}"
+          fi
+
+      - name: Apply retention policy
+        run: |
+          BUCKET="${{ vars.BACKUP_S3_BUCKET }}"
+
+          # Keep daily backups for 7 days
+          CUTOFF_DAILY=$(date -u -d '7 days ago' +%Y-%m-%d)
+          echo "Pruning daily backups older than $CUTOFF_DAILY..."
+          aws s3 ls "s3://${BUCKET}/daily/" | awk '{print $4}' | while read -r KEY; do
+            FILE_DATE=$(echo "$KEY" | grep -oP '\d{4}-\d{2}-\d{2}' | head -1)
+            if [ -n "$FILE_DATE" ] && [[ "$FILE_DATE" < "$CUTOFF_DAILY" ]]; then
+              aws s3 rm "s3://${BUCKET}/daily/${KEY}"
+              echo "Deleted: daily/${KEY}"
+            fi
+          done
+
+          # Keep weekly backups for 4 weeks (28 days)
+          CUTOFF_WEEKLY=$(date -u -d '28 days ago' +%Y-%m-%d)
+          echo "Pruning weekly backups older than $CUTOFF_WEEKLY..."
+          aws s3 ls "s3://${BUCKET}/weekly/" | awk '{print $4}' | while read -r KEY; do
+            FILE_DATE=$(echo "$KEY" | grep -oP '\d{4}-\d{2}-\d{2}' | head -1)
+            if [ -n "$FILE_DATE" ] && [[ "$FILE_DATE" < "$CUTOFF_WEEKLY" ]]; then
+              aws s3 rm "s3://${BUCKET}/weekly/${KEY}"
+              echo "Deleted: weekly/${KEY}"
+            fi
+          done
+
+          echo "Retention policy applied."
+
+      - name: Clean up local dump file
+        if: always()
+        run: rm -f "${{ env.filename }}"
