@@ -570,6 +570,19 @@ MSW is dev-only: `main.tsx` dynamically imports the worker only when `VITE_MOCKS
 
 ## UI Verification & PR Screenshots (Playwright)
 
+### !!! ALWAYS INCLUDE SCREENSHOTS IN PRs WITH VISUAL CHANGES !!!
+
+**If a PR changes anything a user can see in the web app — new screens, layout changes, styling tweaks, new components, changed copy, empty states, error states — you MUST take screenshots of the affected screens and embed them in the PR description.** This is not optional polish; it is part of completing the PR. The reviewer should be able to see what changed without pulling the branch.
+
+The workflow (each step detailed below):
+
+1. Start the dev server with mock data (`npm run dev:mocks`)
+2. Pick the fixture(s) from the registry that exercise the changed UI (see "Mock Data" above) — add a fixture only if none covers the scenario
+3. Screenshot the affected route(s) with `npm run screenshot` — before/after pairs when modifying existing UI, mobile viewport (`--viewport 390x844`) when the change affects mobile layout
+4. Push the screenshots to a dedicated `screenshots/*` branch and embed commit-pinned raw URLs in the PR description
+
+Only skip this when the change is genuinely invisible (pure refactor, backend-only, build tooling) — and if you skip it, say so explicitly in the PR description ("No visual changes").
+
 Playwright is installed in `packages/web/` for ad-hoc UI verification and PR screenshots — there is **no** Playwright test suite, no assertions, no CI step. It is a tool for producing visual evidence of UI changes.
 
 ```bash
