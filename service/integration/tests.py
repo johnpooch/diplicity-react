@@ -1473,3 +1473,104 @@ def test_cd_member_auto_accepts_dias_draw_and_is_excluded_from_victory(
     assert italy_member in victory.members.all()
     assert germany_member not in victory.members.all()
     assert victory.members.count() == 1
+
+
+@pytest.mark.django_db
+def test_eliminated_nation_is_flagged_and_excluded_from_dias_draw(
+    classical_variant,
+    classical_england_nation,
+    classical_france_nation,
+    classical_germany_nation,
+    primary_user,
+    secondary_user,
+    tertiary_user,
+    in_memory_procrastinate,
+):
+    """
+    A nation reduced to 0 units and 0 supply centers is flagged eliminated when
+    the phase resolves, is excluded from a subsequent DIAS draw, and the remaining
+    survivors' draw resolves to a Victory that completes the game.
+    """
+    from phase.models import Phase
+    from draw_proposal.models import DrawProposal
+    from draw_proposal.constants import DrawProposalStatus
+
+    game = Game.objects.create(
+        variant=classical_variant,
+        name="Elimination Integration",
+        status=GameStatus.ACTIVE,
+        deadline_mode=DeadlineMode.DURATION,
+    )
+    england = Member.objects.create(game=game, user=primary_user, nation=classical_england_nation)
+    france = Member.objects.create(game=game, user=secondary_user, nation=classical_france_nation)
+    germany = Member.objects.create(game=game, user=tertiary_user, nation=classical_germany_nation)
+
+    phase1 = game.phases.create(
+        variant=classical_variant,
+        season="Spring", year=1901, type="Movement",
+        ordinal=1, status=PhaseStatus.ACTIVE,
+    )
+    phase1.phase_states.create(member=england, has_possible_orders=False)
+    phase1.phase_states.create(member=france, has_possible_orders=False)
+    phase1.phase_states.create(member=germany, has_possible_orders=False)
+
+    # Resolved state: Germany holds no units and no supply centers, so it is
+    # eliminated. England and France survive without reaching a solo majority.
+    adjudication_data = {
+        "season": "Spring", "year": 1901, "type": "Retreat",
+        "options": {},
+        "supply_centers": [
+            {"province": "lon", "nation": "England"},
+            {"province": "par", "nation": "France"},
+        ],
+        "units": [
+            {"type": "Fleet", "nation": "England", "province": "lon", "dislodged": False, "dislodged_by": None},
+            {"type": "Army", "nation": "France", "province": "par", "dislodged": False, "dislodged_by": None},
+        ],
+        "resolutions": [],
+    }
+
+    with patch("phase.models.resolve") as mock_resolve:
+        mock_resolve.return_value = adjudication_data
+        Phase.objects.resolve(phase1)
+
+    germany.refresh_from_db()
+    england.refresh_from_db()
+    france.refresh_from_db()
+    assert germany.eliminated is True
+    assert england.eliminated is False
+    assert france.eliminated is False
+
+    game.refresh_from_db()
+    assert game.status == GameStatus.ACTIVE
+
+    elim_jobs = [
+        j for j in in_memory_procrastinate.jobs.values()
+        if j["task_name"] == "notification.send_notification"
+        and j["args"].get("notification_type") == "elimination"
+    ]
+    assert len(elim_jobs) == 1
+    assert elim_jobs[0]["args"]["user_ids"] == [tertiary_user.id]
+
+    # A new draw proposal excludes the eliminated nation.
+    proposal = DrawProposal.objects.create_proposal(game=game, created_by=england)
+    assert not proposal.votes.filter(member=germany).exists()
+    assert set(proposal.included_members) == {england, france}
+
+    # France accepts; England (proposer) already accepted, so the draw resolves.
+    france_vote = proposal.votes.get(member=france)
+    france_vote.accepted = True
+    france_vote.save()
+    assert proposal.status == DrawProposalStatus.ACCEPTED
+
+    victory = proposal.process_acceptance()
+    assert victory is not None
+    assert set(victory.members.all()) == {england, france}
+    assert germany not in victory.members.all()
+
+    game.refresh_from_db()
+    assert game.status == GameStatus.COMPLETED
+    england.refresh_from_db()
+    france.refresh_from_db()
+    assert england.drew is True
+    assert france.drew is True

@@ -529,6 +529,9 @@ class PhaseManager(models.Manager):
             game.delete_if_empty_pending()
 
     def _check_eliminations(self, previous_phase, new_phase):
+        if new_phase.game.sandbox:
+            return
+
         units_by_nation = {}
         for unit in new_phase.units.all():
             units_by_nation[unit.nation_id] = units_by_nation.get(unit.nation_id, 0) + 1

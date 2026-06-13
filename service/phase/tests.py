@@ -4716,3 +4716,106 @@ class TestCheckEliminations:
         Phase.objects._check_eliminations(previous_phase, new_phase)
 
         assert _elimination_jobs(in_memory_procrastinate) == []
+
+    @pytest.mark.django_db
+    def test_kicked_member_not_eliminated(
+        self,
+        make_elimination_game,
+        italy_vs_germany_variant,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_kiel_province,
+        in_memory_procrastinate,
+    ):
+        game, italy, germany = make_elimination_game()
+        germany.kicked = True
+        germany.save()
+        previous_phase = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Spring", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=1, status=PhaseStatus.COMPLETED,
+        )
+        new_phase = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Fall", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=2, status=PhaseStatus.ACTIVE,
+        )
+        new_phase.units.create(province=italy_vs_germany_kiel_province, type=UnitType.ARMY, nation=italy_vs_germany_germany_nation)
+
+        Phase.objects._check_eliminations(previous_phase, new_phase)
+
+        germany.refresh_from_db()
+        assert germany.eliminated is False
+
+    @pytest.mark.django_db
+    def test_unassigned_member_not_eliminated(
+        self,
+        db,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+        primary_user,
+        secondary_user,
+        in_memory_procrastinate,
+    ):
+        game = Game.objects.create(
+            name="Elimination Test",
+            variant=italy_vs_germany_variant,
+            status=GameStatus.ACTIVE,
+        )
+        game.members.create(user=primary_user, nation=italy_vs_germany_italy_nation)
+        unassigned = game.members.create(user=secondary_user, nation=None)
+        previous_phase = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Spring", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=1, status=PhaseStatus.COMPLETED,
+        )
+        new_phase = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Fall", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=2, status=PhaseStatus.ACTIVE,
+        )
+        new_phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
+        new_phase.supply_centers.create(province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation)
+
+        Phase.objects._check_eliminations(previous_phase, new_phase)
+
+        unassigned.refresh_from_db()
+        assert unassigned.eliminated is False
+
+    @pytest.mark.django_db
+    def test_sandbox_game_skipped(
+        self,
+        db,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        primary_user,
+        secondary_user,
+        in_memory_procrastinate,
+    ):
+        game = Game.objects.create(
+            name="Sandbox Elimination Test",
+            variant=italy_vs_germany_variant,
+            status=GameStatus.ACTIVE,
+            sandbox=True,
+        )
+        game.members.create(user=primary_user, nation=italy_vs_germany_italy_nation)
+        germany = game.members.create(user=secondary_user, nation=italy_vs_germany_germany_nation)
+        previous_phase = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Spring", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=1, status=PhaseStatus.COMPLETED,
+        )
+        new_phase = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Fall", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=2, status=PhaseStatus.ACTIVE,
+        )
+        new_phase.units.create(province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation)
+        new_phase.supply_centers.create(province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation)
+
+        Phase.objects._check_eliminations(previous_phase, new_phase)
+
+        germany.refresh_from_db()
+        assert germany.eliminated is False

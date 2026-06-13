@@ -105,6 +105,21 @@ describe("ProposeDrawScreen (DIAS)", () => {
     expect(screen.getByText(/excluded from draw victory/i)).toBeInTheDocument();
   });
 
+  it("shows eliminated members marked as eliminated and not as included", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      members: [
+        baseMember({ id: 1, nation: "England", civilDisorder: false }),
+        baseMember({ id: 2, nation: "France", eliminated: true }),
+      ],
+    });
+
+    renderScreen();
+
+    expect(screen.getByText("Eliminated")).toBeInTheDocument();
+    expect(screen.getByText(/\(eliminated\)/i)).toBeInTheDocument();
+  });
+
   it("does not render any SC threshold UI", () => {
     mockGameData.mockReturnValue({
       variantId: "classical",

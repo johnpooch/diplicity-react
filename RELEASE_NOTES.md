@@ -66,6 +66,13 @@ sent in the background, so posting a message or starting a game responds immedia
 
 The Android app now supports push notifications via Firebase Cloud Messaging. After granting notification permission, the app registers your device with the backend and you'll receive game alerts (phase changes, chat messages, etc.) just like on iOS. Notifications received while the app is open also refresh the game data automatically.
 
+## Player Elimination (May 24, 2026)
+
+**Release Date:** May 24, 2026
+
+### Bug Fix: Eliminated nations now block draws correctly
+
+A nation wiped off the board (no units, no supply centers) was never marked as eliminated, so its phantom draw vote could never be cast — leaving draw proposals stuck pending until they silently expired. Nations reduced to zero units and zero supply centers are now flagged as eliminated when the phase resolves, with a notification to the table. Eliminated nations are excluded from draw proposals, so draws among the surviving players resolve as expected. Existing in-progress games have had their dead nations backfilled. Eliminated players now show an "Eliminated" badge in player info and on the propose-draw screen, matching the existing civil-disorder treatment.
 ## Per-Nation Flag Uploads for Variants (May 26, 2026)
 
 **Release Date:** May 26, 2026

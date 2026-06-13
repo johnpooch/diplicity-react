@@ -110,9 +110,10 @@ class DrawProposal(BaseModel):
         if self.phase != self.game.current_phase:
             return DrawProposalStatus.EXPIRED
         votes = list(self.votes.all())
-        if any(v.accepted is False for v in votes):
+        included_votes = [v for v in votes if v.included]
+        if any(v.accepted is False for v in included_votes):
             return DrawProposalStatus.REJECTED
-        if all(v.accepted is True for v in votes):
+        if included_votes and all(v.accepted is True for v in included_votes):
             return DrawProposalStatus.ACCEPTED
         return DrawProposalStatus.PENDING
 
