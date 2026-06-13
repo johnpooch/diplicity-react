@@ -162,6 +162,10 @@ python -m pytest -q --create-db        # pytest-django builds test_diplicity
 
 A clean `git diff` after codegen in a cloud session (no Firebase, DEBUG off) shows only the `/devices/` + `FCMDevice` removal; that is environmental, not a stale-checkout signal.
 
+**After running codegen, always run `npx tsc -b --noEmit` in `packages/web`** to verify no downstream type errors were introduced. Adding required fields to a generated type will silently break any file that constructs an inline object of that type — the TypeScript build check catches these before CI does.
+
+**When codegen adds required fields to an existing type**, grep `src/` for inline objects of that type (especially in `src/mocks/` and test files) and add the new fields. Focus on files that construct the type directly rather than via a factory — factory functions only need updating in one place, but inline literals each need a manual fix.
+
 ## Key Commands
 
 ### Frontend (React/TypeScript)
@@ -199,8 +203,9 @@ The Team ID is `G76UP8FNMS` (stored in `.env` as `CAPACITOR_IOS_TEAM_ID`).
 
 1. **Follow existing code patterns and conventions** - Consistency is key
 2. **Use TypeScript for type safety** - Never use `any` types
-3. **Run linting before submitting changes** - Fix all violations properly
-   - Frontend: `npm run lint` (only on changed files when possible)
+3. **Run linting and the TypeScript build before submitting changes** - Fix all violations properly
+   - Frontend lint: `npm run lint` in `packages/web` (only on changed files when possible)
+   - Frontend build check: `npx tsc -b --noEmit` in `packages/web` — required after any codegen or type changes
    - Backend: Use appropriate Python linters
 4. **Run tests to validate changes** - Do not run full test suite
    - Always run single test files at a time for faster feedback
