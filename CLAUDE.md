@@ -708,6 +708,9 @@ Before adding a fixture to a per-app conftest, check whether it belongs in the r
 
 - The root conftest forces `MD5PasswordHasher` for tests (session autouse `override_test_settings`), so `create_user` is cheap. Do not create users with the production hasher in tests.
 - Prefer the session-scoped users/clients and variant lookups over creating new ones per test.
+- **Full suite runs: use `pytest -n auto`** (pytest-xdist, in `dev_requirements.txt`). The suite is parallel-safe: each worker gets its own database (`test_diplicity_gwN`), there are no live-server/port-binding tests, no FileField/media writes, and all external I/O (Resend email, Google/Apple auth, Firebase notifications) is mocked. CI runs with `-n auto`. It is deliberately not in `addopts` so that single-file runs (the preferred local feedback loop) skip the worker startup cost.
+- **Use `pytest --reuse-db` locally** to skip recreating the test database (and rerunning migrations, ~6s) between runs. Pass `--create-db` again after pulling new migrations. Works with `-n auto` too.
+- No test uses `django_db(transaction=True)` — keep it that way unless a test genuinely needs real transaction semantics (`on_commit`, concurrency); use the `mock_immediate_on_commit` fixture instead of transactional tests.
 
 Follow this testing pattern:
 - Create pytest fixtures in the root `conftest.py` that return callable factory functions

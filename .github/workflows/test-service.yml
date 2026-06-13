@@ -47,7 +47,7 @@ jobs:
       working-directory: service
 
     - name: Run service tests
-      run: python -m pytest -v --timeout=60 --ignore=integration/
+      run: python -m pytest -v --timeout=60 -n auto --ignore=integration/
       working-directory: service
       env:
         DATABASE_NAME: diplicity
