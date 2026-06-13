@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { useRequiredParams } from "@/hooks";
 import { ArrowLeft, Map, Gavel, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -45,12 +45,15 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
     },
   });
 
+  const [searchParams] = useSearchParams();
+
   const navItems = useMemo(() => {
     const items = game?.sandbox
       ? navigationItems.filter(item => item.label !== "Chat")
       : navigationItems;
+    const searchParamsStr = searchParams.toString();
     return items.map(item => {
-      const path = item.path
+      const basePath = item.path
         .replace(":gameId", gameId)
         .replace(":phaseId", phaseId);
       const badge =
@@ -59,14 +62,19 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
         game.totalUnreadMessageCount > 0
           ? "•"
           : undefined;
+      const path = searchParamsStr ? `${basePath}?${searchParamsStr}` : basePath;
+      const chatBasePath = `/game/${gameId}/phase/${phaseId}/chat`;
+      const isActive = item.label === "Chat"
+        ? location.pathname === chatBasePath || location.pathname.startsWith(chatBasePath + "/")
+        : location.pathname === basePath;
       return {
         ...item,
         path,
-        isActive: location.pathname === path,
+        isActive,
         badge,
       };
     });
-  }, [gameId, phaseId, location.pathname, game?.totalUnreadMessageCount, game?.sandbox]);
+  }, [gameId, phaseId, searchParams, location.pathname, game?.totalUnreadMessageCount, game?.sandbox]);
 
   // Filter out Map for desktop sidebar since map is already visible in right panel
   const sidebarNavItems = useMemo(
