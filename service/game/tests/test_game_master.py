@@ -298,7 +298,7 @@ class TestGameMasterDelete:
 
     @pytest.mark.django_db
     def test_delete_pending_game_notifies_members(
-        self, authenticated_client, pending_game_with_game_master_factory, secondary_user, in_memory_procrastinate
+        self, authenticated_client, pending_game_with_game_master_factory, secondary_user, in_memory_procrastinate, mock_immediate_on_commit
     ):
         game = pending_game_with_game_master_factory()
         game.members.create(user=secondary_user)

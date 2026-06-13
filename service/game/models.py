@@ -399,6 +399,10 @@ class Game(BaseModel):
     def is_paused(self):
         return self.paused_at is not None
 
+    @property
+    def manager_label(self):
+        return "the Game Master" if self.game_master_id is not None else "the game creator"
+
     def get_phase_duration_seconds(self, phase_type):
         if phase_type == PhaseType.MOVEMENT:
             return self.movement_phase_duration_seconds

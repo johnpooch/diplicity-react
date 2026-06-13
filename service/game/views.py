@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
@@ -147,11 +148,13 @@ class GameDeleteView(SelectedGameMixin, generics.DestroyAPIView):
         game_name = instance.name
         instance.delete()
         if is_game_master_delete and user_ids:
-            send_notification.defer(
-                user_ids=user_ids,
-                title=game_name,
-                body="The game was deleted by the Game Master.",
-                notification_type="game_deleted",
+            transaction.on_commit(
+                lambda: send_notification.defer(
+                    user_ids=user_ids,
+                    title=game_name,
+                    body="The game was deleted by the Game Master.",
+                    notification_type="game_deleted",
+                )
             )
 
 

@@ -38,10 +38,6 @@ def send_game_management_notification(game, title, body, notification_type, excl
     transaction.on_commit(_send)
 
 
-def manager_label(game):
-    return "the Game Master" if game.game_master_id is not None else "the game creator"
-
-
 class GameMasterSerializer(serializers.Serializer):
     user_id = serializers.IntegerField(source="id", read_only=True)
     name = serializers.CharField(source="profile.name", read_only=True)
@@ -69,7 +65,7 @@ class GameListSerializer(serializers.Serializer):
     can_leave = serializers.SerializerMethodField()
     can_delete = serializers.SerializerMethodField()
     can_manage = serializers.SerializerMethodField()
-    game_master = serializers.SerializerMethodField()
+    game_master = GameMasterSerializer(allow_null=True, read_only=True)
     variant_id = serializers.CharField(source="variant.id", read_only=True)
     phases = serializers.SerializerMethodField()
     current_phase_id = serializers.SerializerMethodField()
@@ -123,12 +119,6 @@ class GameListSerializer(serializers.Serializer):
             return False
         return obj.can_manage(user)
 
-    @extend_schema_field(GameMasterSerializer(allow_null=True))
-    def get_game_master(self, obj):
-        if obj.game_master is None:
-            return None
-        return GameMasterSerializer(obj.game_master).data
-
     @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_phases(self, obj):
         return [phase.id for phase in obj.phases.all()]
@@ -165,7 +155,7 @@ class GameRetrieveSerializer(serializers.Serializer):
     can_leave = serializers.SerializerMethodField()
     can_delete = serializers.SerializerMethodField()
     can_manage = serializers.SerializerMethodField()
-    game_master = serializers.SerializerMethodField()
+    game_master = GameMasterSerializer(allow_null=True, read_only=True)
     phases = serializers.SerializerMethodField()
     current_phase_id = serializers.SerializerMethodField()
     members = MemberSerializer(many=True, read_only=True)
@@ -239,12 +229,6 @@ class GameRetrieveSerializer(serializers.Serializer):
         if not user.is_authenticated:
             return False
         return obj.can_manage(user)
-
-    @extend_schema_field(GameMasterSerializer(allow_null=True))
-    def get_game_master(self, obj):
-        if obj.game_master is None:
-            return None
-        return GameMasterSerializer(obj.game_master).data
 
     @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_phases(self, obj):
@@ -491,7 +475,7 @@ class GamePauseSerializer(serializers.Serializer):
         send_game_management_notification(
             instance,
             title=instance.name,
-            body=f"Game paused by {manager_label(instance)} ({actor.username})",
+            body=f"Game paused by {instance.manager_label} ({actor.username})",
             notification_type="game_paused",
             exclude_user_id=actor.id,
         )
@@ -515,7 +499,7 @@ class GameUnpauseSerializer(serializers.Serializer):
         send_game_management_notification(
             instance,
             title=instance.name,
-            body=f"Game resumed by {manager_label(instance)} ({actor.username}). New deadline: {deadline_str}",
+            body=f"Game resumed by {instance.manager_label} ({actor.username}). New deadline: {deadline_str}",
             notification_type="game_resumed",
             exclude_user_id=actor.id,
         )
@@ -548,7 +532,7 @@ class GameExtendDeadlineSerializer(serializers.Serializer):
         send_game_management_notification(
             instance,
             title=instance.name,
-            body=f"Deadline extended by {manager_label(instance)} ({actor.username}). New deadline: {deadline_str}",
+            body=f"Deadline extended by {instance.manager_label} ({actor.username}). New deadline: {deadline_str}",
             notification_type="game_deadline_extended",
             exclude_user_id=actor.id,
         )

@@ -57,14 +57,13 @@ class MemberKickView(SelectedGameMixin, generics.DestroyAPIView):
     def perform_destroy(self, instance):
         game = instance.game
         user_id = instance.user_id
-        kicked_by = "the Game Master" if game.game_master_id is not None else "the game creator"
         with transaction.atomic():
             instance.delete()
             if user_id:
                 send_notification.defer(
                     user_ids=[user_id],
                     title=game.name,
-                    body=f"You were removed from this game by {kicked_by}.",
+                    body=f"You were removed from this game by {game.manager_label}.",
                     notification_type="kicked_from_staging",
                     data={"game_id": str(game.id), "link": f"{settings.FRONTEND_URL}/game/{game.id}"},
                 )
