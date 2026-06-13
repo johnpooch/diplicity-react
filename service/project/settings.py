@@ -272,11 +272,13 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=90),
 }
 
-if _FIREBASE_PROJECT_ID:
+_FIREBASE_TYPE = os.getenv("FIREBASE_TYPE")
+
+if _FIREBASE_PROJECT_ID and _FIREBASE_TYPE:
     from firebase_admin import credentials, initialize_app
 
     firebase_credentials = {
-        "type": os.getenv("FIREBASE_TYPE"),
+        "type": _FIREBASE_TYPE,
         "project_id": _FIREBASE_PROJECT_ID,
         "private_key_id": os.getenv("FIREBASE_PRIVATE_KEY_ID"),
         "private_key": os.getenv("FIREBASE_PRIVATE_KEY", "").replace("\\n", "\n"),

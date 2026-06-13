@@ -1,0 +1,98 @@
+name: Validate Codegen
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: diplicity
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: service/requirements.txt
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+        working-directory: service
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: packages/web/package-lock.json
+
+      - name: Install Node dependencies
+        run: npm ci
+        working-directory: packages/web
+
+      - name: Run migrations
+        run: python manage.py migrate
+        working-directory: service
+        env:
+          DATABASE_NAME: diplicity
+          DATABASE_USER: postgres
+          DATABASE_PASSWORD: postgres
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DJANGO_DEBUG: 'False'
+          FIREBASE_PROJECT_ID: 'dummy'
+          # FIREBASE_TYPE is intentionally absent — settings.py only calls initialize_app
+          # when both FIREBASE_PROJECT_ID and FIREBASE_TYPE are set, so fcm_django is
+          # included in INSTALLED_APPS (keeping /devices/ in the schema) without
+          # attempting a real Firebase connection.
+
+      - name: Regenerate OpenAPI schema
+        run: python manage.py spectacular --file openapi-schema.yaml
+        working-directory: service
+        env:
+          DATABASE_NAME: diplicity
+          DATABASE_USER: postgres
+          DATABASE_PASSWORD: postgres
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DJANGO_DEBUG: 'False'
+          FIREBASE_PROJECT_ID: 'dummy'
+
+      - name: Regenerate TypeScript client
+        run: npx orval --config orval.config.ts
+        working-directory: packages/web
+
+      - name: Check codegen output matches committed files
+        run: |
+          if ! git diff --exit-code service/openapi-schema.yaml packages/web/src/api/generated/; then
+            echo ""
+            echo "Codegen output does not match committed files."
+            echo "Most likely cause: codegen was run in a cloud session without FIREBASE_PROJECT_ID set,"
+            echo "which strips the /devices/ FCM endpoints from the schema."
+            echo ""
+            echo "To fix: run 'docker compose up codegen' locally (with FIREBASE_PROJECT_ID set in .env)"
+            echo "and commit the result."
+            exit 1
+          fi

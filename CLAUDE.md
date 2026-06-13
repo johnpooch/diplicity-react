@@ -160,7 +160,7 @@ python -m pytest -q --create-db        # pytest-django builds test_diplicity
 - `DJANGO_DEBUG` must be **off** — when on, the DEBUG-gated `/api/test-sentry/` endpoint is added to the schema.
 - `FIREBASE_PROJECT_ID` must be **set** — when absent, `fcm_django` is dropped from `INSTALLED_APPS`, removing `/devices/` and the `FCMDevice` schema.
 
-A clean `git diff` after codegen in a cloud session (no Firebase, DEBUG off) shows only the `/devices/` + `FCMDevice` removal; that is environmental, not a stale-checkout signal.
+**Do not run codegen in cloud sessions and commit the result.** Cloud sessions lack `FIREBASE_PROJECT_ID`, so the generated schema will be missing the `/devices/` FCM endpoints. The `validate-codegen` CI job catches this: it re-runs codegen with `FIREBASE_PROJECT_ID=dummy DJANGO_DEBUG=False` and fails the PR if the output differs from what is committed. Always run `docker compose up codegen` locally (with `FIREBASE_PROJECT_ID` set in `.env`) before committing schema or client changes.
 
 ## Key Commands
 
@@ -810,6 +810,14 @@ Follow this testing pattern:
 - Test comprehensive endpoint behavior including permissions, validation, and data transformations
 - Add performance tests to ensure N+1 query issues are avoided
 - For complex logic in utils files, create separate test classes
+
+### Testing serialized model properties
+
+When a model property is exposed via a serializer field, **always test it through the API response** — not by calling the property directly. Testing through the API validates both the property logic and the serialization path in one shot.
+
+The canonical example is `TestCivilDisorderSerialization` in `service/member/tests.py`: it creates a saved member via `game.members.create(civil_disorder=True)`, hits `GET /game/:id/`, and asserts `response.data["members"][0]["civil_disorder"] is True`. New serialized properties should follow the same shape.
+
+**Never create unsaved model instances (`Model(...)`) in tests.** Use `Model.objects.create(...)` or a saved object from an existing fixture. Unsaved instances bypass the database, the serializer, and the full Django stack, so they prove nothing about what the API actually returns.
 
 ---
 
