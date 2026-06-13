@@ -1,0 +1,64 @@
+name: Snapshot Production Database
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Set snapshot date
+        id: date
+        run: echo "snapshot_date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
+          sudo apt-get update && sudo apt-get install -y postgresql-client-17
+
+      - name: Dump production database
+        env:
+          PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        run: |
+          PG_BIN="/usr/lib/postgresql/17/bin"
+          echo "Using pg_dump version: $($PG_BIN/pg_dump --version)"
+          echo "Dumping production database..."
+          $PG_BIN/pg_dump "$PRODUCTION_DATABASE_URL" \
+            --no-owner --no-acl --format=custom --compress=9 \
+            -f snapshot.pgdata
+          echo "Dump complete. Size: $(du -sh snapshot.pgdata | cut -f1)"
+          date -u +%Y-%m-%dT%H:%M:%SZ > snapshot_timestamp.txt
+          cat snapshot_timestamp.txt
+
+      - name: Upload snapshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-snapshot-${{ steps.date.outputs.snapshot_date }}
+          path: |
+            snapshot.pgdata
+            snapshot_timestamp.txt
+          retention-days: 7
+          overwrite: true
+
+      - name: Delete expired snapshot artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl -s \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100" \
+          | jq -r '.artifacts[] | select(.name | startswith("db-snapshot-")) | select(.expired == true) | .id' \
+          | while read -r ARTIFACT_ID; do
+              echo "Deleting expired artifact $ARTIFACT_ID..."
+              curl -s -X DELETE \
+                -H "Authorization: Bearer $GH_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID"
+            done
+          echo "Cleanup complete."
