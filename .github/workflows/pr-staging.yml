@@ -409,27 +409,30 @@ jobs:
           PG_BIN="/usr/lib/postgresql/17/bin"
           echo "Using pg_dump/pg_restore version: $($PG_BIN/pg_dump --version)"
 
-          echo "Terminating leftover connections to staging database..."
-          psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -c \
-            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid();"
-
-          echo "Wiping staging database for clean restore..."
-          psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+          wipe_staging_db() {
+            echo "Terminating leftover connections to staging database..."
+            psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -c \
+              "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid();"
+            echo "Wiping staging database for clean restore..."
+            psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+          }
 
           if [ "$USE_SNAPSHOT" = "true" ]; then
             echo "Downloading snapshot artifact $ARTIFACT_ID..."
-            curl -sL \
+            curl -fsL \
               -H "Authorization: Bearer $GH_TOKEN" \
               -H "Accept: application/vnd.github+json" \
               "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID/zip" \
               -o snapshot.zip
             unzip -q snapshot.zip
+            wipe_staging_db
             echo "Restoring from snapshot..."
             $PG_BIN/pg_restore --no-owner --no-acl --clean --if-exists -d "$STAGING_DB_URL" snapshot.pgdata
             rm snapshot.zip snapshot.pgdata snapshot_timestamp.txt 2>/dev/null || true
           else
             echo "WARNING: No snapshot available; falling back to live pg_dump (slower)."
             $PG_BIN/pg_dump "$PRODUCTION_DATABASE_URL" --no-owner --no-acl --format=custom -f dump.pgdata
+            wipe_staging_db
             $PG_BIN/pg_restore --no-owner --no-acl --clean --if-exists -d "$STAGING_DB_URL" dump.pgdata
             rm dump.pgdata
           fi
@@ -550,9 +553,9 @@ jobs:
             if (useSnapshot) {
               const snapshotDate = new Date(snapshotTimestamp);
               const formatted = snapshotDate.toUTCString();
-              dataLine = `The staging backend has a copy of the production database from the daily snapshot taken at **${formatted}**.`;
+              dataLine = `The staging backend has a copy of the production database from the daily snapshot taken at **${formatted}**, with migrations from this PR applied.`;
             } else {
-              dataLine = 'The staging backend has a live copy of the production database (no pre-built snapshot was available).';
+              dataLine = 'The staging backend has a live copy of the production database (no pre-built snapshot was available), with migrations from this PR applied.';
             }
 
             await github.rest.issues.createComment({
