@@ -14,29 +14,45 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: diplicity
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
     steps:
     - uses: actions/checkout@v6
       with:
         persist-credentials: false
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+        cache-dependency-path: |
+          service/requirements.txt
+          service/dev_requirements.txt
 
-    - name: Create empty .env file for docker-compose
-      run: touch .env
-
-    - name: Set up Docker Compose
-      run: |
-        docker compose up -d db
-        # Wait for services to be ready
-        sleep 10
+    - name: Install dependencies
+      run: pip install -r requirements.txt -r dev_requirements.txt
+      working-directory: service
 
     - name: Run integration tests
-      run: |
-        docker compose run --rm service python3 -m pytest integration/tests.py -v --timeout=60
+      run: python -m pytest integration/tests.py -v --timeout=60
+      working-directory: service
       env:
         DATABASE_NAME: diplicity
         DATABASE_USER: postgres
         DATABASE_PASSWORD: postgres
-        DATABASE_HOST: db
+        DATABASE_HOST: localhost
         DATABASE_PORT: 5432
+        DJANGO_DEBUG: 'True'
