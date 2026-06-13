@@ -8,7 +8,7 @@ import {
   mockNations,
   mockPhaseMovement,
   mockOrders,
-} from "../../mocks";
+} from "../../mocks/legacy";
 
 const variant = {
   id: "Classical",

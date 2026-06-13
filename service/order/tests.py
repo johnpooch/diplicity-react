@@ -1061,17 +1061,17 @@ class TestOrderDeleteViewQueryPerformance:
 class TestGetOptionsForOrder:
 
     @pytest.mark.django_db
-    def test_no_source_returns_nation_provinces(self, sample_options, test_phase_state):
-        order = Order(phase_state=test_phase_state, source=None, order_type=None, target=None, aux=None)
+    def test_no_source_returns_nation_provinces(self, sample_options, primary_phase_state):
+        order = Order(phase_state=primary_phase_state, source=None, order_type=None, target=None, aux=None)
         options = get_options_for_order(transform_options(sample_options), order)
         assert "bud" in options
         assert "tri" in options
         assert len(options) == 2
 
     @pytest.mark.django_db
-    def test_with_source_only_returns_order_types(self, sample_options, test_phase_state, classical_budapest_province):
+    def test_with_source_only_returns_order_types(self, sample_options, primary_phase_state, classical_budapest_province):
         order = Order(
-            phase_state=test_phase_state, source=classical_budapest_province, order_type=None, target=None, aux=None
+            phase_state=primary_phase_state, source=classical_budapest_province, order_type=None, target=None, aux=None
         )
         options = get_options_for_order(transform_options(sample_options), order)
         assert "Hold" in options
@@ -1081,10 +1081,10 @@ class TestGetOptionsForOrder:
 
     @pytest.mark.django_db
     def test_with_source_and_move_order_type_returns_targets(
-        self, sample_options, test_phase_state, classical_budapest_province
+        self, sample_options, primary_phase_state, classical_budapest_province
     ):
         order = Order(
-            phase_state=test_phase_state, source=classical_budapest_province, order_type="Move", target=None, aux=None
+            phase_state=primary_phase_state, source=classical_budapest_province, order_type="Move", target=None, aux=None
         )
         options = get_options_for_order(transform_options(sample_options), order)
         assert "gal" in options
@@ -1096,20 +1096,20 @@ class TestGetOptionsForOrder:
 
     @pytest.mark.django_db
     def test_hold_order_with_all_fields_returns_empty_list(
-        self, sample_options, test_phase_state, classical_budapest_province
+        self, sample_options, primary_phase_state, classical_budapest_province
     ):
         order = Order(
-            phase_state=test_phase_state, source=classical_budapest_province, order_type="Hold", target=None, aux=None
+            phase_state=primary_phase_state, source=classical_budapest_province, order_type="Hold", target=None, aux=None
         )
         options = get_options_for_order(transform_options(sample_options), order)
         assert options == []
 
     @pytest.mark.django_db
     def test_move_order_with_all_fields_returns_empty_list(
-        self, sample_options, test_phase_state, classical_budapest_province, classical_trieste_province
+        self, sample_options, primary_phase_state, classical_budapest_province, classical_trieste_province
     ):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_budapest_province,
             order_type="Move",
             target=classical_trieste_province,
@@ -1120,10 +1120,10 @@ class TestGetOptionsForOrder:
 
     @pytest.mark.django_db
     def test_support_order_with_all_fields_returns_empty_list(
-        self, sample_options, test_phase_state, classical_budapest_province, classical_trieste_province
+        self, sample_options, primary_phase_state, classical_budapest_province, classical_trieste_province
     ):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_budapest_province,
             order_type="Support",
             target=classical_trieste_province,
@@ -1133,17 +1133,17 @@ class TestGetOptionsForOrder:
         assert options == []
 
     @pytest.mark.django_db
-    def test_invalid_source_raises_error(self, sample_options, test_phase_state, classical_london_province):
+    def test_invalid_source_raises_error(self, sample_options, primary_phase_state, classical_london_province):
         order = Order(
-            phase_state=test_phase_state, source=classical_london_province, order_type=None, target=None, aux=None
+            phase_state=primary_phase_state, source=classical_london_province, order_type=None, target=None, aux=None
         )
         with pytest.raises(ValueError, match="Source province lon not found in options"):
             get_options_for_order(transform_options(sample_options), order)
 
     @pytest.mark.django_db
-    def test_invalid_order_type_raises_error(self, sample_options, test_phase_state, classical_budapest_province):
+    def test_invalid_order_type_raises_error(self, sample_options, primary_phase_state, classical_budapest_province):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_budapest_province,
             order_type="InvalidType",
             target=None,
@@ -1154,10 +1154,10 @@ class TestGetOptionsForOrder:
 
     @pytest.mark.django_db
     def test_invalid_target_raises_error(
-        self, sample_options, test_phase_state, classical_budapest_province, classical_london_province
+        self, sample_options, primary_phase_state, classical_budapest_province, classical_london_province
     ):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_budapest_province,
             order_type="Move",
             target=classical_london_province,
@@ -1170,13 +1170,13 @@ class TestGetOptionsForOrder:
     def test_invalid_aux_raises_error(
         self,
         sample_options,
-        test_phase_state,
+        primary_phase_state,
         classical_budapest_province,
         classical_trieste_province,
         classical_london_province,
     ):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_budapest_province,
             order_type="Support",
             target=classical_trieste_province,
@@ -1186,9 +1186,9 @@ class TestGetOptionsForOrder:
             get_options_for_order(transform_options(sample_options), order)
 
     @pytest.mark.django_db
-    def test_nested_support_order_options(self, sample_options, test_phase_state, classical_budapest_province):
+    def test_nested_support_order_options(self, sample_options, primary_phase_state, classical_budapest_province):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_budapest_province,
             order_type=OrderType.SUPPORT,
             target=None,
@@ -1202,10 +1202,10 @@ class TestGetOptionsForOrder:
 
     @pytest.mark.django_db
     def test_support_order_target_selection_after_aux(
-        self, sample_options, test_phase_state, classical_budapest_province, classical_vienna_province
+        self, sample_options, primary_phase_state, classical_budapest_province, classical_vienna_province
     ):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_budapest_province,
             order_type=OrderType.SUPPORT,
             target=None,
@@ -1218,15 +1218,15 @@ class TestGetOptionsForOrder:
         assert len(options) == 3
 
     @pytest.mark.django_db
-    def test_empty_options_structure(self, test_phase_state, classical_budapest_province):
+    def test_empty_options_structure(self, primary_phase_state, classical_budapest_province):
         empty_options = {}
-        order = Order(phase_state=test_phase_state, source=None, order_type=None, target=None, aux=None)
+        order = Order(phase_state=primary_phase_state, source=None, order_type=None, target=None, aux=None)
 
         with pytest.raises(KeyError):
             get_options_for_order(transform_options(empty_options), order)
 
     @pytest.mark.django_db
-    def test_convoy_order_structure(self, sample_options, test_phase_state, classical_budapest_province):
+    def test_convoy_order_structure(self, sample_options, primary_phase_state, classical_budapest_province):
         sample_options["England"]["bud"]["Next"]["Convoy"] = {
             "Next": {
                 "bud": {
@@ -1237,7 +1237,7 @@ class TestGetOptionsForOrder:
             "Type": "OrderType",
         }
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_budapest_province,
             order_type=OrderType.CONVOY,
             target=None,
@@ -1248,7 +1248,7 @@ class TestGetOptionsForOrder:
         assert len(options) == 1
 
     @pytest.mark.django_db
-    def test_build_order_structure(self, sample_options, test_phase_state, classical_budapest_province):
+    def test_build_order_structure(self, sample_options, primary_phase_state, classical_budapest_province):
         sample_options["England"]["bud"]["Next"]["Build"] = {
             "Next": {
                 "bud": {
@@ -1259,7 +1259,7 @@ class TestGetOptionsForOrder:
             "Type": "OrderType",
         }
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_budapest_province,
             order_type=OrderType.BUILD,
             target=None,
@@ -1271,13 +1271,13 @@ class TestGetOptionsForOrder:
         assert len(options) == 2
 
     @pytest.mark.django_db
-    def test_disband_order_structure(self, sample_options, test_phase_state, classical_budapest_province):
+    def test_disband_order_structure(self, sample_options, primary_phase_state, classical_budapest_province):
         sample_options["England"]["bud"]["Next"]["Disband"] = {
             "Next": {"bud": {"Next": {}, "Type": "SrcProvince"}},
             "Type": "OrderType",
         }
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_budapest_province,
             order_type=OrderType.DISBAND,
             target=None,
@@ -1291,37 +1291,37 @@ class TestOrderManagerMethods:
 
     @pytest.mark.django_db
     def test_for_source_in_phase_returns_correct_orders(
-        self, test_phase_state, classical_budapest_province, classical_trieste_province
+        self, primary_phase_state, classical_budapest_province, classical_trieste_province
     ):
         order1 = Order.objects.create(
-            phase_state=test_phase_state, source=classical_budapest_province, order_type="Hold"
+            phase_state=primary_phase_state, source=classical_budapest_province, order_type="Hold"
         )
         order2 = Order.objects.create(
-            phase_state=test_phase_state, source=classical_trieste_province, order_type="Hold"
+            phase_state=primary_phase_state, source=classical_trieste_province, order_type="Hold"
         )
 
-        budapest_orders = Order.objects.for_source_in_phase(test_phase_state, classical_budapest_province)
+        budapest_orders = Order.objects.for_source_in_phase(primary_phase_state, classical_budapest_province)
         assert budapest_orders.count() == 1
         assert budapest_orders.first() == order1
 
-        trieste_orders = Order.objects.for_source_in_phase(test_phase_state, classical_trieste_province)
+        trieste_orders = Order.objects.for_source_in_phase(primary_phase_state, classical_trieste_province)
         assert trieste_orders.count() == 1
         assert trieste_orders.first() == order2
 
     @pytest.mark.django_db
     def test_delete_existing_for_source_removes_correct_orders(
-        self, test_phase_state, classical_budapest_province, classical_trieste_province
+        self, primary_phase_state, classical_budapest_province, classical_trieste_province
     ):
         order1 = Order.objects.create(
-            phase_state=test_phase_state, source=classical_budapest_province, order_type="Hold"
+            phase_state=primary_phase_state, source=classical_budapest_province, order_type="Hold"
         )
         order2 = Order.objects.create(
-            phase_state=test_phase_state, source=classical_trieste_province, order_type="Hold"
+            phase_state=primary_phase_state, source=classical_trieste_province, order_type="Hold"
         )
 
         assert Order.objects.count() == 2
 
-        Order.objects.delete_existing_for_source(test_phase_state, classical_budapest_province)
+        Order.objects.delete_existing_for_source(primary_phase_state, classical_budapest_province)
 
         assert Order.objects.count() == 1
         remaining_order = Order.objects.first()
@@ -1332,21 +1332,21 @@ class TestOrderManagerMethods:
 class TestOrderComplete:
 
     @pytest.mark.django_db
-    def test_hold_order_is_always_complete(self, test_phase_state, classical_london_province):
-        order = Order(phase_state=test_phase_state, order_type=OrderType.HOLD, source=classical_london_province)
+    def test_hold_order_is_always_complete(self, primary_phase_state, classical_london_province):
+        order = Order(phase_state=primary_phase_state, order_type=OrderType.HOLD, source=classical_london_province)
         assert order.complete is True
 
     @pytest.mark.django_db
-    def test_disband_order_is_always_complete(self, test_phase_state, classical_london_province):
-        order = Order(phase_state=test_phase_state, order_type=OrderType.DISBAND, source=classical_london_province)
+    def test_disband_order_is_always_complete(self, primary_phase_state, classical_london_province):
+        order = Order(phase_state=primary_phase_state, order_type=OrderType.DISBAND, source=classical_london_province)
         assert order.complete is True
 
     @pytest.mark.django_db
     def test_move_order_complete_when_target_set(
-        self, test_phase_state, classical_london_province, classical_english_channel_province
+        self, primary_phase_state, classical_london_province, classical_english_channel_province
     ):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             order_type=OrderType.MOVE,
             source=classical_london_province,
             target=classical_english_channel_province,
@@ -1356,14 +1356,14 @@ class TestOrderComplete:
     @pytest.mark.django_db
     def test_move_fleet_order_complete_when_named_coast_set(
         self,
-        test_phase_state,
+        primary_phase_state,
         classical_london_province,
         classical_spain_province,
         classical_spain_nc_province,
         classical_england_nation,
     ):
         """Test that MOVE Fleet orders are complete when named coast is selected."""
-        phase = test_phase_state.phase
+        phase = primary_phase_state.phase
         # Create a fleet unit at the source
         phase.units.create(
             type=UnitType.FLEET,
@@ -1372,7 +1372,7 @@ class TestOrderComplete:
         )
 
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             order_type=OrderType.MOVE,
             source=classical_london_province,
             target=classical_spain_province,
@@ -1382,10 +1382,10 @@ class TestOrderComplete:
 
     @pytest.mark.django_db
     def test_move_fleet_order_incomplete_when_named_coast_missing(
-        self, test_phase_state, classical_london_province, classical_spain_province, classical_england_nation
+        self, primary_phase_state, classical_london_province, classical_spain_province, classical_england_nation
     ):
         """Test that MOVE Fleet orders are incomplete when named coast is missing."""
-        phase = test_phase_state.phase
+        phase = primary_phase_state.phase
         # Create a fleet unit at the source
         phase.units.create(
             type=UnitType.FLEET,
@@ -1394,7 +1394,7 @@ class TestOrderComplete:
         )
 
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             order_type=OrderType.MOVE,
             source=classical_london_province,
             target=classical_spain_province,
@@ -1402,16 +1402,16 @@ class TestOrderComplete:
         assert order.complete is False
 
     @pytest.mark.django_db
-    def test_move_order_incomplete_when_target_none(self, test_phase_state, classical_london_province):
+    def test_move_order_incomplete_when_target_none(self, primary_phase_state, classical_london_province):
         order = Order(
-            phase_state=test_phase_state, order_type=OrderType.MOVE, source=classical_london_province, target=None
+            phase_state=primary_phase_state, order_type=OrderType.MOVE, source=classical_london_province, target=None
         )
         assert order.complete is False
 
     @pytest.mark.django_db
-    def test_build_order_complete_when_unit_type_set(self, test_phase_state, classical_london_province):
+    def test_build_order_complete_when_unit_type_set(self, primary_phase_state, classical_london_province):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             order_type=OrderType.BUILD,
             source=classical_london_province,
             unit_type=UnitType.FLEET,
@@ -1419,7 +1419,7 @@ class TestOrderComplete:
         assert order.complete is True
 
         order_army = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             order_type=OrderType.BUILD,
             source=classical_london_province,
             unit_type=UnitType.ARMY,
@@ -1428,11 +1428,11 @@ class TestOrderComplete:
 
     @pytest.mark.django_db
     def test_build_fleet_order_complete_when_named_coast_set(
-        self, test_phase_state, classical_spain_province, classical_spain_nc_province
+        self, primary_phase_state, classical_spain_province, classical_spain_nc_province
     ):
         """Test that BUILD Fleet orders are complete when named coast is selected."""
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             order_type=OrderType.BUILD,
             source=classical_spain_province,
             unit_type=UnitType.FLEET,
@@ -1441,10 +1441,10 @@ class TestOrderComplete:
         assert order.complete is True
 
     @pytest.mark.django_db
-    def test_build_fleet_order_incomplete_when_named_coast_missing(self, test_phase_state, classical_spain_province):
+    def test_build_fleet_order_incomplete_when_named_coast_missing(self, primary_phase_state, classical_spain_province):
         """Test that BUILD Fleet orders are incomplete when named coast is missing."""
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             order_type=OrderType.BUILD,
             source=classical_spain_province,
             unit_type=UnitType.FLEET,
@@ -1452,18 +1452,18 @@ class TestOrderComplete:
         assert order.complete is False
 
     @pytest.mark.django_db
-    def test_build_order_incomplete_when_unit_type_none(self, test_phase_state, classical_london_province):
+    def test_build_order_incomplete_when_unit_type_none(self, primary_phase_state, classical_london_province):
         order = Order(
-            phase_state=test_phase_state, order_type=OrderType.BUILD, source=classical_london_province, unit_type=None
+            phase_state=primary_phase_state, order_type=OrderType.BUILD, source=classical_london_province, unit_type=None
         )
         assert order.complete is False
 
     @pytest.mark.django_db
     def test_support_order_complete_when_target_and_aux_set(
-        self, test_phase_state, classical_london_province, classical_english_channel_province, classical_spain_province
+        self, primary_phase_state, classical_london_province, classical_english_channel_province, classical_spain_province
     ):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             order_type=OrderType.SUPPORT,
             source=classical_london_province,
             target=classical_english_channel_province,
@@ -1473,10 +1473,10 @@ class TestOrderComplete:
 
     @pytest.mark.django_db
     def test_support_order_incomplete_when_target_none(
-        self, test_phase_state, classical_london_province, classical_spain_province
+        self, primary_phase_state, classical_london_province, classical_spain_province
     ):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             order_type=OrderType.SUPPORT,
             source=classical_london_province,
             target=None,
@@ -1486,10 +1486,10 @@ class TestOrderComplete:
 
     @pytest.mark.django_db
     def test_support_order_incomplete_when_aux_none(
-        self, test_phase_state, classical_london_province, classical_english_channel_province
+        self, primary_phase_state, classical_london_province, classical_english_channel_province
     ):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             order_type=OrderType.SUPPORT,
             source=classical_london_province,
             target=classical_english_channel_province,
@@ -1498,9 +1498,9 @@ class TestOrderComplete:
         assert order.complete is False
 
     @pytest.mark.django_db
-    def test_support_order_incomplete_when_both_target_and_aux_none(self, test_phase_state, classical_london_province):
+    def test_support_order_incomplete_when_both_target_and_aux_none(self, primary_phase_state, classical_london_province):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             order_type=OrderType.SUPPORT,
             source=classical_london_province,
             target=None,
@@ -1510,10 +1510,10 @@ class TestOrderComplete:
 
     @pytest.mark.django_db
     def test_convoy_order_complete_when_target_and_aux_set(
-        self, test_phase_state, classical_english_channel_province, classical_london_province, classical_spain_province
+        self, primary_phase_state, classical_english_channel_province, classical_london_province, classical_spain_province
     ):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             order_type=OrderType.CONVOY,
             source=classical_english_channel_province,
             target=classical_london_province,
@@ -1523,10 +1523,10 @@ class TestOrderComplete:
 
     @pytest.mark.django_db
     def test_convoy_order_incomplete_when_target_none(
-        self, test_phase_state, classical_english_channel_province, classical_spain_province
+        self, primary_phase_state, classical_english_channel_province, classical_spain_province
     ):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             order_type=OrderType.CONVOY,
             source=classical_english_channel_province,
             target=None,
@@ -1536,10 +1536,10 @@ class TestOrderComplete:
 
     @pytest.mark.django_db
     def test_convoy_order_incomplete_when_aux_none(
-        self, test_phase_state, classical_english_channel_province, classical_london_province
+        self, primary_phase_state, classical_english_channel_province, classical_london_province
     ):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             order_type=OrderType.CONVOY,
             source=classical_english_channel_province,
             target=classical_london_province,
@@ -1549,10 +1549,10 @@ class TestOrderComplete:
 
     @pytest.mark.django_db
     def test_move_via_convoy_order_complete_when_target_set(
-        self, test_phase_state, classical_london_province, classical_english_channel_province
+        self, primary_phase_state, classical_london_province, classical_english_channel_province
     ):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             order_type=OrderType.MOVE_VIA_CONVOY,
             source=classical_london_province,
             target=classical_english_channel_province,
@@ -1560,9 +1560,9 @@ class TestOrderComplete:
         assert order.complete is True
 
     @pytest.mark.django_db
-    def test_move_via_convoy_order_incomplete_when_target_none(self, test_phase_state, classical_london_province):
+    def test_move_via_convoy_order_incomplete_when_target_none(self, primary_phase_state, classical_london_province):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             order_type=OrderType.MOVE_VIA_CONVOY,
             source=classical_london_province,
             target=None,
@@ -1571,10 +1571,10 @@ class TestOrderComplete:
 
     @pytest.mark.django_db
     def test_convoy_order_incomplete_when_both_target_and_aux_none(
-        self, test_phase_state, classical_english_channel_province
+        self, primary_phase_state, classical_english_channel_province
     ):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             order_type=OrderType.CONVOY,
             source=classical_english_channel_province,
             target=None,
@@ -1583,8 +1583,8 @@ class TestOrderComplete:
         assert order.complete is False
 
     @pytest.mark.django_db
-    def test_order_complete_with_none_order_type(self, test_phase_state, classical_london_province):
-        order = Order(phase_state=test_phase_state, order_type=None, source=classical_london_province)
+    def test_order_complete_with_none_order_type(self, primary_phase_state, classical_london_province):
+        order = Order(phase_state=primary_phase_state, order_type=None, source=classical_london_province)
         assert order.complete is False
 
 
@@ -2105,11 +2105,11 @@ class TestOrderNamedCoastStep:
 
     @pytest.mark.django_db
     def test_build_fleet_step_selects_named_coast_when_source_has_named_coasts(
-        self, test_phase_state, classical_spain_province
+        self, primary_phase_state, classical_spain_province
     ):
         """Test that BUILD Fleet orders require named coast selection when source has named coasts."""
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_spain_province,
             order_type=OrderType.BUILD,
             unit_type=UnitType.FLEET,
@@ -2118,10 +2118,10 @@ class TestOrderNamedCoastStep:
         assert order.step == OrderCreationStep.SELECT_NAMED_COAST
 
     @pytest.mark.django_db
-    def test_build_army_step_does_not_select_named_coast(self, test_phase_state, classical_spain_province):
+    def test_build_army_step_does_not_select_named_coast(self, primary_phase_state, classical_spain_province):
         """Test that BUILD Army orders do not require named coast selection."""
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_spain_province,
             order_type=OrderType.BUILD,
             unit_type=UnitType.ARMY,
@@ -2131,11 +2131,11 @@ class TestOrderNamedCoastStep:
 
     @pytest.mark.django_db
     def test_build_fleet_step_completed_when_named_coast_selected(
-        self, test_phase_state, classical_spain_province, classical_spain_nc_province
+        self, primary_phase_state, classical_spain_province, classical_spain_nc_province
     ):
         """Test that BUILD Fleet orders are completed when named coast is selected."""
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_spain_province,
             order_type=OrderType.BUILD,
             unit_type=UnitType.FLEET,
@@ -2146,11 +2146,11 @@ class TestOrderNamedCoastStep:
 
     @pytest.mark.django_db
     def test_build_fleet_step_does_not_select_named_coast_when_source_has_no_named_coasts(
-        self, test_phase_state, classical_london_province
+        self, primary_phase_state, classical_london_province
     ):
         """Test that BUILD Fleet orders do not require named coast selection when source has no named coasts."""
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_london_province,
             order_type=OrderType.BUILD,
             unit_type=UnitType.FLEET,
@@ -2160,10 +2160,10 @@ class TestOrderNamedCoastStep:
 
     @pytest.mark.django_db
     def test_move_fleet_step_selects_named_coast_when_target_has_named_coasts(
-        self, test_phase_state, classical_london_province, classical_spain_province, classical_england_nation
+        self, primary_phase_state, classical_london_province, classical_spain_province, classical_england_nation
     ):
         """Test that MOVE Fleet orders require named coast selection when target has named coasts."""
-        phase = test_phase_state.phase
+        phase = primary_phase_state.phase
         # Create a fleet unit at the source
         phase.units.create(
             type=UnitType.FLEET,
@@ -2172,7 +2172,7 @@ class TestOrderNamedCoastStep:
         )
 
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_london_province,
             order_type=OrderType.MOVE,
             target=classical_spain_province,
@@ -2182,10 +2182,10 @@ class TestOrderNamedCoastStep:
 
     @pytest.mark.django_db
     def test_move_army_step_does_not_select_named_coast(
-        self, test_phase_state, classical_london_province, classical_spain_province, classical_england_nation
+        self, primary_phase_state, classical_london_province, classical_spain_province, classical_england_nation
     ):
         """Test that MOVE Army orders do not require named coast selection."""
-        phase = test_phase_state.phase
+        phase = primary_phase_state.phase
         # Create an army unit at the source
         phase.units.create(
             type=UnitType.ARMY,
@@ -2194,7 +2194,7 @@ class TestOrderNamedCoastStep:
         )
 
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_london_province,
             order_type=OrderType.MOVE,
             target=classical_spain_province,
@@ -2205,14 +2205,14 @@ class TestOrderNamedCoastStep:
     @pytest.mark.django_db
     def test_move_fleet_step_completed_when_named_coast_selected(
         self,
-        test_phase_state,
+        primary_phase_state,
         classical_london_province,
         classical_spain_province,
         classical_spain_nc_province,
         classical_england_nation,
     ):
         """Test that MOVE Fleet orders are completed when named coast is selected."""
-        phase = test_phase_state.phase
+        phase = primary_phase_state.phase
         # Create a fleet unit at the source
         phase.units.create(
             type=UnitType.FLEET,
@@ -2221,7 +2221,7 @@ class TestOrderNamedCoastStep:
         )
 
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_london_province,
             order_type=OrderType.MOVE,
             target=classical_spain_province,
@@ -2232,10 +2232,10 @@ class TestOrderNamedCoastStep:
 
     @pytest.mark.django_db
     def test_move_fleet_step_does_not_select_named_coast_when_target_has_no_named_coasts(
-        self, test_phase_state, classical_london_province, classical_paris_province, classical_england_nation
+        self, primary_phase_state, classical_london_province, classical_paris_province, classical_england_nation
     ):
         """Test that MOVE Fleet orders do not require named coast selection when target has no named coasts."""
-        phase = test_phase_state.phase
+        phase = primary_phase_state.phase
         # Create a fleet unit at the source
         phase.units.create(
             type=UnitType.FLEET,
@@ -2244,7 +2244,7 @@ class TestOrderNamedCoastStep:
         )
 
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_london_province,
             order_type=OrderType.MOVE,
             target=classical_paris_province,
@@ -2255,7 +2255,7 @@ class TestOrderNamedCoastStep:
     @pytest.mark.django_db
     def test_move_fleet_step_selects_named_coast_when_fleet_on_named_coast(
         self,
-        test_phase_state,
+        primary_phase_state,
         classical_spain_province,
         classical_spain_sc_province,
         classical_stp_province,
@@ -2264,7 +2264,7 @@ class TestOrderNamedCoastStep:
         """A fleet on a named coast must still be found when its order source is the
         parent province. Regression for DIPLICITY-API-6W where source_unit returned
         None and step raised AttributeError on source_unit.type."""
-        phase = test_phase_state.phase
+        phase = primary_phase_state.phase
         # Unit lives on the named coast child; the order source is the parent province.
         phase.units.create(
             type=UnitType.FLEET,
@@ -2273,7 +2273,7 @@ class TestOrderNamedCoastStep:
         )
 
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_spain_province,
             order_type=OrderType.MOVE,
             target=classical_stp_province,
@@ -2285,10 +2285,10 @@ class TestOrderNamedCoastStep:
 class TestOrderNamedCoastTitles:
 
     @pytest.mark.django_db
-    def test_build_named_coast_title(self, test_phase_state, classical_spain_province):
+    def test_build_named_coast_title(self, primary_phase_state, classical_spain_province):
         """Test title generation for BUILD named coast selection."""
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_spain_province,
             order_type=OrderType.BUILD,
             unit_type=UnitType.FLEET,
@@ -2298,10 +2298,10 @@ class TestOrderNamedCoastTitles:
 
     @pytest.mark.django_db
     def test_move_named_coast_title(
-        self, test_phase_state, classical_london_province, classical_spain_province, classical_england_nation
+        self, primary_phase_state, classical_london_province, classical_spain_province, classical_england_nation
     ):
         """Test title generation for MOVE named coast selection."""
-        phase = test_phase_state.phase
+        phase = primary_phase_state.phase
         # Create a fleet unit at the source
         phase.units.create(
             type=UnitType.FLEET,
@@ -2310,7 +2310,7 @@ class TestOrderNamedCoastTitles:
         )
 
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_london_province,
             order_type=OrderType.MOVE,
             target=classical_spain_province,
@@ -2323,11 +2323,11 @@ class TestOrderNamedCoastSelectedProperty:
 
     @pytest.mark.django_db
     def test_selected_includes_named_coast_for_build_order(
-        self, test_phase_state, classical_spain_province, classical_spain_nc_province
+        self, primary_phase_state, classical_spain_province, classical_spain_nc_province
     ):
         """Test that selected property includes named_coast for BUILD orders."""
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_spain_province,
             order_type=OrderType.BUILD,
             unit_type=UnitType.FLEET,
@@ -2339,11 +2339,11 @@ class TestOrderNamedCoastSelectedProperty:
 
     @pytest.mark.django_db
     def test_selected_includes_named_coast_for_move_order(
-        self, test_phase_state, classical_london_province, classical_spain_province, classical_spain_nc_province
+        self, primary_phase_state, classical_london_province, classical_spain_province, classical_spain_nc_province
     ):
         """Test that selected property includes named_coast for MOVE orders."""
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_london_province,
             order_type=OrderType.MOVE,
             target=classical_spain_province,
@@ -2355,11 +2355,11 @@ class TestOrderNamedCoastSelectedProperty:
 
     @pytest.mark.django_db
     def test_selected_does_not_include_named_coast_when_none(
-        self, test_phase_state, classical_london_province, classical_paris_province
+        self, primary_phase_state, classical_london_province, classical_paris_province
     ):
         """Test that selected property does not include named_coast when it's None."""
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_london_province,
             order_type=OrderType.MOVE,
             target=classical_paris_province,
@@ -2552,27 +2552,27 @@ class TestOrderNamedCoastCreation:
 class TestOrderSummary:
 
     @pytest.mark.django_db
-    def test_hold_order_summary(self, test_phase_state, classical_london_province):
+    def test_hold_order_summary(self, primary_phase_state, classical_london_province):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_london_province,
             order_type=OrderType.HOLD,
         )
         assert order.summary == "Hold"
 
     @pytest.mark.django_db
-    def test_disband_order_summary(self, test_phase_state, classical_london_province):
+    def test_disband_order_summary(self, primary_phase_state, classical_london_province):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_london_province,
             order_type=OrderType.DISBAND,
         )
         assert order.summary == "Disband"
 
     @pytest.mark.django_db
-    def test_build_army_order_summary(self, test_phase_state, classical_london_province):
+    def test_build_army_order_summary(self, primary_phase_state, classical_london_province):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_london_province,
             order_type=OrderType.BUILD,
             unit_type=UnitType.ARMY,
@@ -2580,9 +2580,9 @@ class TestOrderSummary:
         assert order.summary == "Build army"
 
     @pytest.mark.django_db
-    def test_build_fleet_order_summary(self, test_phase_state, classical_london_province):
+    def test_build_fleet_order_summary(self, primary_phase_state, classical_london_province):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_london_province,
             order_type=OrderType.BUILD,
             unit_type=UnitType.FLEET,
@@ -2591,10 +2591,10 @@ class TestOrderSummary:
 
     @pytest.mark.django_db
     def test_build_fleet_with_named_coast_summary(
-        self, test_phase_state, classical_spain_province, classical_spain_nc_province
+        self, primary_phase_state, classical_spain_province, classical_spain_nc_province
     ):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_spain_province,
             order_type=OrderType.BUILD,
             unit_type=UnitType.FLEET,
@@ -2603,9 +2603,9 @@ class TestOrderSummary:
         assert order.summary == "Build fleet"
 
     @pytest.mark.django_db
-    def test_move_order_summary(self, test_phase_state, classical_london_province, classical_english_channel_province):
+    def test_move_order_summary(self, primary_phase_state, classical_london_province, classical_english_channel_province):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_london_province,
             order_type=OrderType.MOVE,
             target=classical_english_channel_province,
@@ -2613,9 +2613,9 @@ class TestOrderSummary:
         assert order.summary == "Move to English Channel"
 
     @pytest.mark.django_db
-    def test_move_via_convoy_order_summary(self, test_phase_state, classical_london_province, classical_paris_province):
+    def test_move_via_convoy_order_summary(self, primary_phase_state, classical_london_province, classical_paris_province):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_london_province,
             order_type=OrderType.MOVE_VIA_CONVOY,
             target=classical_paris_province,
@@ -2624,10 +2624,10 @@ class TestOrderSummary:
 
     @pytest.mark.django_db
     def test_support_hold_order_summary(
-        self, test_phase_state, classical_london_province, classical_english_channel_province
+        self, primary_phase_state, classical_london_province, classical_english_channel_province
     ):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_london_province,
             order_type=OrderType.SUPPORT,
             aux=classical_english_channel_province,
@@ -2638,13 +2638,13 @@ class TestOrderSummary:
     @pytest.mark.django_db
     def test_support_move_order_summary(
         self,
-        test_phase_state,
+        primary_phase_state,
         classical_london_province,
         classical_english_channel_province,
         classical_paris_province,
     ):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_london_province,
             order_type=OrderType.SUPPORT,
             aux=classical_english_channel_province,
@@ -2655,13 +2655,13 @@ class TestOrderSummary:
     @pytest.mark.django_db
     def test_convoy_order_summary(
         self,
-        test_phase_state,
+        primary_phase_state,
         classical_english_channel_province,
         classical_london_province,
         classical_paris_province,
     ):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_english_channel_province,
             order_type=OrderType.CONVOY,
             aux=classical_london_province,
@@ -2670,9 +2670,9 @@ class TestOrderSummary:
         assert order.summary == "Convoy London to Paris"
 
     @pytest.mark.django_db
-    def test_incomplete_order_summary_is_none(self, test_phase_state, classical_london_province):
+    def test_incomplete_order_summary_is_none(self, primary_phase_state, classical_london_province):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_london_province,
             order_type=OrderType.MOVE,
             target=None,
@@ -2680,9 +2680,9 @@ class TestOrderSummary:
         assert order.summary is None
 
     @pytest.mark.django_db
-    def test_no_order_type_summary_is_none(self, test_phase_state, classical_london_province):
+    def test_no_order_type_summary_is_none(self, primary_phase_state, classical_london_province):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_london_province,
             order_type=None,
         )
@@ -2694,11 +2694,11 @@ class TestOrderSourceUnit:
     @pytest.mark.django_db
     def test_source_unit_returns_unit_at_source_province(
         self,
-        test_phase_state,
+        primary_phase_state,
         classical_london_province,
         classical_england_nation,
     ):
-        phase = test_phase_state.phase
+        phase = primary_phase_state.phase
         unit = phase.units.create(
             type=UnitType.FLEET,
             nation=classical_england_nation,
@@ -2706,7 +2706,7 @@ class TestOrderSourceUnit:
         )
 
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_london_province,
             order_type=OrderType.HOLD,
         )
@@ -2718,11 +2718,11 @@ class TestOrderSourceUnit:
     @pytest.mark.django_db
     def test_source_unit_returns_none_when_no_unit_at_source(
         self,
-        test_phase_state,
+        primary_phase_state,
         classical_london_province,
     ):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_london_province,
             order_type=OrderType.BUILD,
         )
@@ -2732,10 +2732,10 @@ class TestOrderSourceUnit:
     @pytest.mark.django_db
     def test_source_unit_returns_none_when_source_is_none(
         self,
-        test_phase_state,
+        primary_phase_state,
     ):
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=None,
             order_type=None,
         )
@@ -2745,12 +2745,12 @@ class TestOrderSourceUnit:
     @pytest.mark.django_db
     def test_source_unit_with_multiple_units_in_movement_phase_returns_first(
         self,
-        test_phase_state,
+        primary_phase_state,
         classical_london_province,
         classical_england_nation,
         classical_france_nation,
     ):
-        phase = test_phase_state.phase
+        phase = primary_phase_state.phase
         assert phase.type == PhaseType.MOVEMENT
 
         fleet_unit = phase.units.create(
@@ -2766,7 +2766,7 @@ class TestOrderSourceUnit:
         )
 
         order = Order(
-            phase_state=test_phase_state,
+            phase_state=primary_phase_state,
             source=classical_london_province,
             order_type=OrderType.HOLD,
         )

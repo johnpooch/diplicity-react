@@ -377,6 +377,8 @@ export interface Member {
   readonly isGameCreator: boolean;
   readonly nmrExtensionsRemaining: number;
   readonly civilDisorder: boolean;
+  readonly seekingReplacement: boolean;
+  readonly replaceable: boolean;
 }
 
 export interface Victory {

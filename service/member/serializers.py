@@ -71,6 +71,8 @@ class MemberSerializer(BaseMemberSerializer):
     is_game_creator = serializers.SerializerMethodField()
     nmr_extensions_remaining = serializers.IntegerField(read_only=True)
     civil_disorder = serializers.BooleanField(read_only=True)
+    seeking_replacement = serializers.BooleanField(read_only=True)
+    replaceable = serializers.BooleanField(read_only=True)
 
     @extend_schema_field(serializers.BooleanField)
     def get_is_game_creator(self, obj):

@@ -685,3 +685,86 @@ class TestCivilDisorderRecovery:
         url = reverse(recovery_viewname, args=[game.id])
         response = unauthenticated_client.post(url)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+class TestReplaceableSerialization:
+
+    @pytest.mark.django_db
+    def test_replaceable_when_civil_disorder(
+        self, authenticated_client, classical_variant, classical_england_nation, primary_user
+    ):
+        game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
+        game.members.create(user=primary_user, nation=classical_england_nation, civil_disorder=True)
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["members"][0]["replaceable"] is True
+
+    @pytest.mark.django_db
+    def test_replaceable_when_seeking_replacement(
+        self, authenticated_client, classical_variant, classical_england_nation, primary_user
+    ):
+        game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
+        game.members.create(
+            user=primary_user, nation=classical_england_nation, seeking_replacement=True
+        )
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        member = response.data["members"][0]
+        assert member["seeking_replacement"] is True
+        assert member["replaceable"] is True
+
+    @pytest.mark.django_db
+    def test_not_replaceable_by_default(
+        self, authenticated_client, classical_variant, classical_england_nation, primary_user
+    ):
+        game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
+        game.members.create(user=primary_user, nation=classical_england_nation)
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        member = response.data["members"][0]
+        assert member["seeking_replacement"] is False
+        assert member["replaceable"] is False
+
+    @pytest.mark.django_db
+    def test_not_replaceable_when_eliminated(
+        self, authenticated_client, classical_variant, classical_england_nation, primary_user
+    ):
+        game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
+        game.members.create(
+            user=primary_user, nation=classical_england_nation, civil_disorder=True, eliminated=True
+        )
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["members"][0]["replaceable"] is False
+
+    @pytest.mark.django_db
+    def test_not_replaceable_when_kicked(
+        self, authenticated_client, classical_variant, classical_england_nation, primary_user
+    ):
+        game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
+        game.members.create(
+            user=primary_user, nation=classical_england_nation, seeking_replacement=True, kicked=True
+        )
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["members"][0]["replaceable"] is False
+
+    @pytest.mark.django_db
+    def test_not_replaceable_when_replaced(
+        self, authenticated_client, classical_variant, classical_england_nation, primary_user, secondary_user
+    ):
+        game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
+        replacement = game.members.create(user=secondary_user, nation=classical_england_nation)
+        game.members.create(
+            user=primary_user, nation=classical_england_nation, civil_disorder=True, replaced_by=replacement
+        )
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        primary_member = next(m for m in response.data["members"] if m["is_current_user"])
+        assert primary_member["replaceable"] is False

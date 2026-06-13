@@ -105,6 +105,67 @@ This starts all services:
 - Django API at http://localhost:8000
 - PostgreSQL database at http://localhost:5432
 
+### Minimal Backend Environment (Cloud / CI sessions)
+
+The Django service can start with only database credentials and `DJANGO_DEBUG`. Firebase (push notifications) and Google OAuth will be disabled but will not prevent the service from starting:
+
+```bash
+DATABASE_NAME=diplicity   # default: diplicity
+DATABASE_USER=postgres    # default: postgres
+DATABASE_PASSWORD=postgres # default: postgres
+DATABASE_HOST=localhost   # default: db
+DATABASE_PORT=5432        # default: 5432
+DJANGO_DEBUG=True
+```
+
+All database vars have defaults matching the local Docker Compose setup, so in practice `DJANGO_DEBUG=True` alone is sufficient when running against the default local database.
+
+Features that are disabled when credentials are absent:
+- **Firebase / push notifications**: requires `FIREBASE_PROJECT_ID` (and other `FIREBASE_*` vars). `fcm_django` is removed from `INSTALLED_APPS` and the `/devices/` endpoint is not registered.
+- **Google OAuth login**: requires `GOOGLE_CLIENT_ID`. Login attempts will fail with an authentication error but the service continues to run.
+
+### Native (non-Docker) Workflow — Claude Code on the web
+
+Cloud sessions run without Docker. The `.claude/hooks/session-start.sh` SessionStart hook provisions everything natively so tests, linters, build, and codegen work out of the box. It is idempotent and re-runs cheaply on resume. What it sets up:
+
+- **Backend venv**: a Python 3.12 virtualenv at `service/.venv` with `requirements.txt` + `dev_requirements.txt` installed. Django 6 requires Python 3.12+, but the system default `python3` is 3.11 — **always use `service/.venv/bin/python`** (the hook also prepends it to `PATH` via `$CLAUDE_ENV_FILE`, so a plain `python`/`pytest`/`pip` resolves to the venv).
+- **PostgreSQL**: the native cluster is started and a `diplicity` database (role `postgres`/`postgres`) is created and migrated. The hook exports `DATABASE_HOST=127.0.0.1` and the other `DATABASE_*` vars for the session, so `manage.py` and `pytest` connect automatically.
+- **Frontend**: `npm install` in `packages/web`.
+- **Railway CLI**: installed via npm when `RAILWAY_API_TOKEN` is set.
+
+Manual equivalents (if running outside the hook):
+```bash
+# Backend env (already exported by the hook in cloud sessions)
+export PATH="$PWD/service/.venv/bin:$PATH"
+export DATABASE_HOST=127.0.0.1 DATABASE_PORT=5432 \
+       DATABASE_NAME=diplicity DATABASE_USER=postgres DATABASE_PASSWORD=postgres
+
+cd service
+python manage.py check
+python -m pytest -q --create-db        # pytest-django builds test_diplicity
+```
+
+**SQLite is not viable.** Some migrations contain Postgres-only raw SQL (e.g. `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`), which SQLite rejects with a syntax error during the test-DB build. Use the native PostgreSQL cluster, not a SQLite `DATABASE_URL`.
+
+**Railway production access requires network allowlisting.** Installing the CLI is not enough: every `railway` command (and `/prod-query`, `/debug-production`) reaches production through Railway's hosts, which are not in the **Trusted** default allowlist. To enable them, edit the Claude Code on the web **environment** (cloud icon → environment selector → gear icon), set **Network access** to **Custom**, and add to **Allowed domains**:
+
+```
+*.railway.com
+*.railway.app
+```
+
+`backboard.railway.com` is the GraphQL API behind `whoami`/`status`/`logs`; `railway run` (used by `/prod-query`) routes through additional Railway hosts, so the wildcards cover both. **Also tick "Also include default list of common package managers"** — otherwise the allowlist becomes only those two lines and the SessionStart hook's `npm install`/`pip install` break. Without this, commands fail with `Host not in allowlist` / "error decoding response body". (**Full** network access also works but allows any domain.)
+
+**Codegen reproducibility.** `manage.py spectacular` + `orval` regenerate `service/openapi-schema.yaml` and `packages/web/src/api/generated/endpoints.ts`. To reproduce the committed output byte-for-byte the generating environment must match production config, because two switches change the schema:
+- `DJANGO_DEBUG` must be **off** — when on, the DEBUG-gated `/api/test-sentry/` endpoint is added to the schema.
+- `FIREBASE_PROJECT_ID` must be **set** — when absent, `fcm_django` is dropped from `INSTALLED_APPS`, removing `/devices/` and the `FCMDevice` schema.
+
+A clean `git diff` after codegen in a cloud session (no Firebase, DEBUG off) shows only the `/devices/` + `FCMDevice` removal; that is environmental, not a stale-checkout signal.
+
+**After running codegen, always run `npx tsc -b --noEmit` in `packages/web`** to verify no downstream type errors were introduced. Adding required fields to a generated type will silently break any file that constructs an inline object of that type — the TypeScript build check catches these before CI does.
+
+**When codegen adds required fields to an existing type**, grep `src/` for inline objects of that type (especially in `src/mocks/` and test files) and add the new fields. Focus on files that construct the type directly rather than via a factory — factory functions only need updating in one place, but inline literals each need a manual fix.
+
 ## Key Commands
 
 ### Frontend (React/TypeScript)
@@ -142,8 +203,9 @@ The Team ID is `G76UP8FNMS` (stored in `.env` as `CAPACITOR_IOS_TEAM_ID`).
 
 1. **Follow existing code patterns and conventions** - Consistency is key
 2. **Use TypeScript for type safety** - Never use `any` types
-3. **Run linting before submitting changes** - Fix all violations properly
-   - Frontend: `npm run lint` (only on changed files when possible)
+3. **Run linting and the TypeScript build before submitting changes** - Fix all violations properly
+   - Frontend lint: `npm run lint` in `packages/web` (only on changed files when possible)
+   - Frontend build check: `npx tsc -b --noEmit` in `packages/web` — required after any codegen or type changes
    - Backend: Use appropriate Python linters
 4. **Run tests to validate changes** - Do not run full test suite
    - Always run single test files at a time for faster feedback
@@ -157,6 +219,8 @@ The Team ID is `G76UP8FNMS` (stored in `.env` as `CAPACITOR_IOS_TEAM_ID`).
 7. **Use proper error handling** - Catch and handle errors appropriately
 8. **Write tests alongside features** - Not as an afterthought
 9. **Update RELEASE_NOTES.md for user-facing changes** - When implementing features, improvements, or bug fixes that players would notice or care about, add an entry to RELEASE_NOTES.md. Internal refactors, code cleanup, or developer-only changes do not need release notes.
+10. **Self-review non-trivial PRs with `/review-pr`** - Convention: whenever a pull request is of any significant complexity, the author runs the `/review-pr` command against it before requesting human review, and addresses (or explicitly responds to) its findings. This applies to PRs authored by Claude sessions too. Trivial PRs (typo fixes, dependency bumps, doc-only changes) are exempt.
+11. **PR description must match the diff** - Before writing or finalising a PR description, run `git diff main` and confirm every change claimed in the description is visible in that output. Do not describe work that happened in a prior PR or session — describe only what is in this diff.
 
 ---
 
@@ -469,6 +533,96 @@ const { gameId, channelId } = useRequiredParams<{ gameId: string; channelId: str
 
 This eliminates the need for runtime null checks when the route guarantees the param exists.
 
+## Mock Data (MSW + Fixture Registry)
+
+The frontend has an MSW (Mock Service Worker) layer that serves canonical fixture data for every API endpoint, so the full app can run with no backend at all:
+
+```bash
+cd packages/web
+npm run dev:mocks   # Vite dev server at http://localhost:5173 with all API calls mocked
+```
+
+In mock mode the app auto-seeds auth tokens (logged in as "Mock Player"). To see logged-out screens, set `localStorage.setItem("mock:loggedOut", "true")` and clear tokens (the screenshot script's `--logged-out` flag does this).
+
+### Fixture registry — check before creating mocks
+
+**`src/mocks/fixtures/index.ts` is the canonical fixture registry and the single source of truth for mock scenarios. Always check it before creating new mock data — only add a fixture when no existing one covers the scenario.** Fixture explosion is the failure mode this registry exists to prevent.
+
+Registered game fixtures (the fixture's game `id` doubles as the URL slug, e.g. `/game/active-movement/phase/101/orders`):
+
+| Fixture | Game ID | Scenario |
+|---|---|---|
+| `pendingGameNoPlayers` | `pending-no-players` | Pending, 0 members, joinable |
+| `pendingGameSomePlayers` | `pending-some-players` | Pending, 3/7 players incl. current user (creator) |
+| `pendingGameAlmostFull` | `pending-almost-full` | Pending, 6/7 players incl. current user |
+| `activeGameMovement` | `active-movement` | Spring 1901 movement; current user (England) has 2/3 orders in; chat channels with unread |
+| `activeGameRetreat` | `active-retreat` | Fall 1901 retreat; England army dislodged from Norway |
+| `activeGameBuild` | `active-build` | Fall 1901 adjustment; England can build 1 unit |
+| `activeGameDrawProposal` | `active-draw-proposal` | Active game with an open draw proposal, current user hasn't voted |
+| `finishedGameSolo` | `finished-solo` | Completed; current user won a solo victory |
+| `finishedGameDraw` | `finished-draw` | Completed; 3-way draw incl. current user |
+| `gameNotJoined` | `not-joined` | Active game the current user is not a member of |
+
+Structure of `src/mocks/`:
+
+- `fixtures/index.ts` — the registry (`gameFixtures`, `fixtureByGameId`)
+- `fixtures/games.ts` — the game scenarios; `fixtures/builders.ts` — helpers (`makeGame`, `makePhase`, `makeOrder`, …)
+- `fixtures/classical.ts` + `fixtures/data/` — the real classical variant (dumped from the actual API: variant JSON, 2MB map SVG, nation flags), so maps render exactly like production
+- `handlers.ts` — MSW request handlers serving the registry; `browser.ts` — worker startup + auth seeding
+- `legacy.ts` — older standalone mock objects still used by some unit tests/stories; prefer the fixture registry for new work
+
+Known limitation: `GET /game/:id/options/` returns an empty `OrderOptionsResponse`, so the interactive order-creation wizard has no options under mocks. Read-only rendering of orders, phases, maps, chat, and draw proposals is fully supported.
+
+MSW is dev-only: `main.tsx` dynamically imports the worker only when `VITE_MOCKS=true`, and the chunk is dead-code-eliminated from production builds. Vitest does not use MSW (unit tests mock the generated hooks directly).
+
+## UI Verification & PR Screenshots (Playwright)
+
+### !!! ALWAYS INCLUDE SCREENSHOTS IN PRs WITH VISUAL CHANGES !!!
+
+**If a PR changes anything a user can see in the web app — new screens, layout changes, styling tweaks, new components, changed copy, empty states, error states — you MUST take screenshots of the affected screens and embed them in the PR description.** This is not optional polish; it is part of completing the PR. The reviewer should be able to see what changed without pulling the branch.
+
+The workflow (each step detailed below):
+
+1. Start the dev server with mock data (`npm run dev:mocks`)
+2. Pick the fixture(s) from the registry that exercise the changed UI (see "Mock Data" above) — add a fixture only if none covers the scenario
+3. Screenshot the affected route(s) with `npm run screenshot` — before/after pairs when modifying existing UI, mobile viewport (`--viewport 390x844`) when the change affects mobile layout
+4. Push the screenshots to a dedicated `screenshots/*` branch and embed commit-pinned raw URLs in the PR description
+
+Only skip this when the change is genuinely invisible (pure refactor, backend-only, build tooling) — and if you skip it, say so explicitly in the PR description ("No visual changes").
+
+Playwright is installed in `packages/web/` for ad-hoc UI verification and PR screenshots — there is **no** Playwright test suite, no assertions, no CI step. It is a tool for producing visual evidence of UI changes.
+
+```bash
+cd packages/web
+npm run dev:mocks &   # 1. start the dev server with mock data
+
+# 2. screenshot any route (script auto-picks a working Chromium)
+npm run screenshot -- / /tmp/shots/my-games.png
+npm run screenshot -- /game/active-movement/phase/101/orders /tmp/shots/orders.png
+npm run screenshot -- /game/active-build/phase/303/orders /tmp/shots/mobile.png --viewport 390x844
+```
+
+Options: `--viewport WxH` (default 1280x800), `--full-page`, `--logged-out`, `--wait MS`, `--base URL`. The script prints page errors to the console — treat any `[pageerror]`/`[console.error]` about the app itself as a signal the fixture or the change is broken.
+
+**Cloud-environment browser caveat:** `npx playwright install chromium` fails in Claude Code on the web because `cdn.playwright.dev` is not in the network allowlist. The screenshot script handles this automatically by falling back to the `@sparticuz/chromium` binary (shipped via npm, extracted to `/tmp/chromium`). Do not burn time trying to make `playwright install` work; the fallback is the supported path in cloud sessions.
+
+### Attaching screenshots to a PR description
+
+GitHub PR bodies can embed images by URL. Since the API cannot upload attachments, commit the screenshots to a dedicated **screenshots branch** (never merged) and reference them by commit-pinned raw URL:
+
+```bash
+git checkout --orphan screenshots/<feature-name>
+git rm -rf . && mkdir -p shots && cp /tmp/shots/*.png shots/
+git add shots && git commit -m "Screenshots for <feature>" && git push -u origin screenshots/<feature-name>
+git checkout <your-feature-branch>
+```
+
+Then embed in the PR body with the commit SHA (stable even if the branch is later deleted):
+
+```markdown
+![orders screen](https://raw.githubusercontent.com/johnpooch/diplicity-react/<commit-sha>/shots/orders.png)
+```
+
 ## Frontend Best Practices Summary
 
 1. **Component Design**:
@@ -562,6 +716,8 @@ Follow this pattern:
 
 Models have two responsibilities: (1) defining the fields of the data structure; (2) defining properties for conveniently accessing related entities and deriving data.
 
+**Model body order:** Always declare in this sequence: fields → `class Meta` → `@property` methods → other methods (`__str__`, etc.). Never place a property or method above `class Meta`.
+
 Query optimization code should be defined on a custom QuerySet class. Follow this pattern:
 
 ```python
@@ -630,10 +786,33 @@ docker compose run --rm service python3 -m pytest game/tests/test_game_create.py
 
 ## Backend Testing Patterns
 
-Test fixtures should exist in the app's `conftest.py` file rather than in the test file itself.
+Shared test fixtures live in the **root `service/conftest.py`** — this is the single place to look for (and add) fixtures. Per-app `conftest.py` files exist only for fixtures that are genuinely app-local:
+
+- `login/conftest.py` — Google/Apple auth and token mocks (patch login internals)
+- `integration/conftest.py` — autouse procrastinate mock + extra users/clients for 7-player games
+- `nation/conftest.py` — draft variants and flag SVG data for nation flag tests
+- `variant/conftest.py` — SVG map builders (`make_dsvg`, `make_godip_svg`, etc.)
+
+Before adding a fixture to a per-app conftest, check whether it belongs in the root conftest instead.
+
+### Fixture Naming Convention
+
+- **`*_factory`** — fixtures that return a callable which creates objects on demand (`game_factory`, `phase_factory`, `member_factory`, `sandbox_game_factory`, `user_factory`, `authenticated_client_factory`). Always use this suffix for callable-returning fixtures; do not use `make_*` or bare names.
+- **Session-scoped reference data** — read-only lookups named `<variant_id>_variant`, `<variant_id>_<name>_nation`, `<variant_id>_<name>_province` (e.g. `classical_england_nation`, `italy_vs_germany_kiel_province`). These are created once per session via `django_db_blocker` — never mutate them in tests.
+- **Session-scoped users/clients** — `primary_user`, `secondary_user`, `tertiary_user` and `authenticated_client`, `authenticated_client_for_secondary_user`, `unauthenticated_client`. These persist across the whole session — never mutate or delete them; use `user_factory` for disposable users.
+- **Scenario fixtures** — descriptive nouns returning ready-made objects (`active_game_with_phase_state`, `game_with_two_members`, `order_active_game`).
+- **`mock_*`** — fixtures that patch external behavior (`mock_send_notification_to_users`, `mock_immediate_on_commit`).
+
+### Performance
+
+- The root conftest forces `MD5PasswordHasher` for tests (session autouse `override_test_settings`), so `create_user` is cheap. Do not create users with the production hasher in tests.
+- Prefer the session-scoped users/clients and variant lookups over creating new ones per test.
+- **Full suite runs: use `pytest -n auto`** (pytest-xdist, in `dev_requirements.txt`). The suite is parallel-safe: each worker gets its own database (`test_diplicity_gwN`), there are no live-server/port-binding tests, no FileField/media writes, and all external I/O (Resend email, Google/Apple auth, Firebase notifications) is mocked. CI runs with `-n auto`. It is deliberately not in `addopts` so that single-file runs (the preferred local feedback loop) skip the worker startup cost.
+- **Use `pytest --reuse-db` locally** to skip recreating the test database (and rerunning migrations, ~6s) between runs. Pass `--create-db` again after pulling new migrations. Works with `-n auto` too.
+- No test uses `django_db(transaction=True)` — keep it that way unless a test genuinely needs real transaction semantics (`on_commit`, concurrency); use the `mock_immediate_on_commit` fixture instead of transactional tests.
 
 Follow this testing pattern:
-- Create pytest fixtures in `conftest.py` that return callable factory functions
+- Create pytest fixtures in the root `conftest.py` that return callable factory functions
 - Focus on API endpoint testing rather than unit testing individual methods
 - Use fixtures like `@pytest.fixture def factory_function(db, other_fixtures): def _create(...): return Model.objects.create(...); return _create`
 - Test comprehensive endpoint behavior including permissions, validation, and data transformations
@@ -648,28 +827,101 @@ The application is deployed on **Railway** (project: `devoted-rejoicing`, servic
 
 ## Railway CLI
 
-The Railway CLI authenticates via the login token stored in `~/.railway/config.json` (set by `railway login`). Do **not** set a `RAILWAY_TOKEN` env var — project tokens conflict with CLI commands and cause "Project Token not found" errors.
+Two separate environment variables control Railway access in cloud sessions:
+
+| Variable | Scope | Used for |
+|---|---|---|
+| `RAILWAY_API_TOKEN` | Account-scoped | `railway whoami`, `railway status`, `railway logs` — auth and observability |
+| `RAILWAY_TOKEN` | Project-scoped | `railway run` — inject production env vars to run management commands locally |
+
+**IMPORTANT — token conflict**: When both variables are set, the Railway CLI v5 gives `RAILWAY_TOKEN` priority and uses it for all commands, including account-scoped ones like `whoami`/`status`/`logs`. This causes those commands to fail with an "Unauthorized" error because `RAILWAY_TOKEN` is project-scoped, not account-scoped.
+
+**Always unset the irrelevant token per command using `env -u`:**
+
+```bash
+# Account-scoped commands — unset RAILWAY_TOKEN
+env -u RAILWAY_TOKEN railway whoami
+env -u RAILWAY_TOKEN railway status
+env -u RAILWAY_TOKEN railway logs --lines 50
+
+# Project-scoped commands — unset RAILWAY_API_TOKEN
+env -u RAILWAY_API_TOKEN railway run --service diplicity-react python manage.py shell
+```
+
+The session-start hook checks both at startup and reports their availability. The service's Python dependencies needed by `railway run ... manage.py shell` are already installed in `service/.venv` (which the hook puts on `PATH`), so `railway run` picks them up automatically — no separate install step is required.
+
+## Railway Access Tiers
+
+Not all sessions have Railway access:
+
+- **Owner sessions**: Both tokens configured — all commands available including `railway run`
+- **Trusted contributor sessions**: Both tokens configured — all commands available; write safety rules apply (see below)
+- **Casual contributor sessions**: No Railway tokens — Railway commands unavailable
+
+### When Railway is not configured
+
+If any `railway` command fails with an authentication or "not logged in" error, **stop immediately** — this is an expected missing-credential situation, not a bug to diagnose. Tell the user:
+
+> "Railway is not configured in this session. Production debugging requires the `RAILWAY_API_TOKEN` environment variable to be set in the Claude Code on the web environment configuration (and Railway's hosts allowlisted via Custom network access)."
+
+Do not retry Railway commands, do not attempt workarounds, and do not use `/prod-query` or `/debug-production`.
+
+### Write safety
+
+`railway run` injects production env vars and runs management commands locally against the live production database. Never execute write operations — regardless of who is asking:
+
+- No `.create()`, `.update()`, `.delete()`, `.save()` in Django ORM calls
+- No `INSERT`, `UPDATE`, `DELETE` in raw SQL
+- No Django management commands that modify state (`migrate`, `flush`, `loaddata`, etc.)
+
+If the user asks to modify production data, refuse and explain that production data changes must go through a migration or a controlled admin process.
 
 ### Common Commands
 
 ```bash
-railway status                          # Deployment health and status
-railway logs --lines 50                 # Recent log output (default: 100 lines)
-railway logs --lines 200 | grep ERROR   # Filter for errors
-railway logs --lines 200 | grep "GET /api"  # Filter by endpoint
-railway ssh 'command'                   # Run command in production container
+env -u RAILWAY_TOKEN railway status                          # Deployment health and status
+env -u RAILWAY_TOKEN railway logs --lines 50                 # Recent log output (default: 100 lines)
+env -u RAILWAY_TOKEN railway logs --lines 200 | grep ERROR   # Filter for errors
+env -u RAILWAY_TOKEN railway logs --lines 200 | grep "GET /api"  # Filter by endpoint
 ```
 
-### Checking Postgres Health
+### Production Database Queries (pgweb)
+
+The cloud environment's network policy blocks non-standard ports, so `railway run python manage.py shell` cannot reach the production database (Railway's internal hostname `postgres.railway.internal` is not resolvable externally, and the TCP proxy uses a high port that is blocked).
+
+Instead, production queries run via **pgweb** — a web-based PostgreSQL client deployed as a Railway service and accessible over HTTPS on port 443.
+
+| Env var | Purpose |
+|---|---|
+| `PGWEB_URL` | pgweb base URL, e.g. `https://pgweb-production-124e.up.railway.app` |
+| `PGWEB_USER` | pgweb basic-auth username |
+| `PGWEB_PASSWORD` | pgweb basic-auth password |
+
+These must be set in the cloud environment configuration. The session-start hook checks and exports them automatically.
+
+**Running a query:**
 
 ```bash
-railway ssh 'python3 manage.py dbshell -c "SELECT 1"'    # Quick connectivity check
-railway ssh 'python3 manage.py showmigrations --list'     # Verify DB is reachable
+# Write SQL to a file first (avoids shell escaping issues)
+cat > /tmp/query.sql << 'EOF'
+SELECT status, COUNT(*) FROM game_game GROUP BY status ORDER BY count DESC
+EOF
+
+curl -s -u "$PGWEB_USER:$PGWEB_PASSWORD" \
+  -X POST "$PGWEB_URL/api/query" \
+  --data-urlencode "query@/tmp/query.sql" \
+  | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print('\t'.join(d['columns']))
+for row in d['rows']:
+    print('\t'.join(str(c) for c in row))
+"
 ```
 
-### Django ORM Queries
+Use the `/prod-query` command for guided read-only queries. See `.claude/commands/prod-query.md`.
 
-Use the `/prod-query` command for read-only Django ORM queries against production. See `.claude/commands/prod-query.md`.
+**Safety:** pgweb is read-only by configuration. Never issue `INSERT`, `UPDATE`, `DELETE`, or DDL statements.
 
 ### Railway Status Page
 

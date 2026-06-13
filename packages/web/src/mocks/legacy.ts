@@ -35,6 +35,8 @@ export const mockMembers: Member[] = [
     isGameCreator: true,
     nmrExtensionsRemaining: 2,
     civilDisorder: false,
+    seekingReplacement: false,
+    replaceable: false,
   },
   {
     id: 2,
@@ -48,6 +50,8 @@ export const mockMembers: Member[] = [
     isGameCreator: false,
     nmrExtensionsRemaining: 2,
     civilDisorder: false,
+    seekingReplacement: false,
+    replaceable: false,
   },
   {
     id: 3,
@@ -61,6 +65,8 @@ export const mockMembers: Member[] = [
     isGameCreator: false,
     nmrExtensionsRemaining: 2,
     civilDisorder: false,
+    seekingReplacement: false,
+    replaceable: false,
   },
   {
     id: 4,
@@ -74,6 +80,8 @@ export const mockMembers: Member[] = [
     isGameCreator: false,
     nmrExtensionsRemaining: 2,
     civilDisorder: false,
+    seekingReplacement: false,
+    replaceable: false,
   },
   {
     id: 5,
@@ -87,6 +95,8 @@ export const mockMembers: Member[] = [
     isGameCreator: false,
     nmrExtensionsRemaining: 2,
     civilDisorder: false,
+    seekingReplacement: false,
+    replaceable: false,
   },
   {
     id: 6,
@@ -100,6 +110,8 @@ export const mockMembers: Member[] = [
     isGameCreator: false,
     nmrExtensionsRemaining: 2,
     civilDisorder: false,
+    seekingReplacement: false,
+    replaceable: false,
   },
   {
     id: 7,
@@ -113,6 +125,8 @@ export const mockMembers: Member[] = [
     isGameCreator: false,
     nmrExtensionsRemaining: 2,
     civilDisorder: false,
+    seekingReplacement: false,
+    replaceable: false,
   },
 ];
 

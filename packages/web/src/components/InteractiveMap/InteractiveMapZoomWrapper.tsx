@@ -248,10 +248,7 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
         onZoomStart={handleGestureStart}
         onZoomStop={handleGestureStop}
       >
-        <TransformComponent
-          wrapperStyle={{ width: "100%", height: "100%" }}
-          contentStyle={{ willChange: "transform" }}
-        >
+        <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
           <InteractiveMap
             ref={svgRef}
             {...interactiveMapProps}

@@ -2,6 +2,8 @@ Run a production health check by gathering data from multiple sources.
 
 ## Instructions
 
+0. **Check Railway authentication** before proceeding. Run `railway status` and check the output. If it fails with an authentication error or "not logged in" message, stop immediately and tell the user: "Railway is not configured in this session — production debugging is not available. The `RAILWAY_API_TOKEN` environment variable must be set in the claude.ai/code project settings."
+
 1. **Check deployment status** by running `railway status` to see the current deployment state, uptime, and any recent deployment failures.
 
 2. **Check recent logs** by running `railway logs --lines 50` and scanning for:
@@ -20,6 +22,6 @@ Run a production health check by gathering data from multiple sources.
 
 ## Tips
 
-- If you see database connection errors, check Postgres health with: `railway ssh 'python3 manage.py dbshell -c "SELECT 1"'`
+- If you see database connection errors, check Postgres health with: `cd "$(git rev-parse --show-toplevel)/service" && railway run --service diplicity-react python3 manage.py dbshell -c "SELECT 1"`
 - If you see Gunicorn worker crashes, check for memory issues or unhandled exceptions in the log context
 - Use `/prod-query` for follow-up Django ORM queries against the production database

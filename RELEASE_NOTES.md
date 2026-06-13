@@ -357,7 +357,7 @@ Database queries for variant data have been optimized, reducing load times when 
 Thanks to the Diplomacy community for trying the beta version of the app and sharing their feedback!
 
 **Join the conversation:**
-- [Diplomacy Discord](https://discord.gg/QETtwGR)
+- [Diplomacy Discord](https://discord.gg/2TkZbBRPW)
 - [Play now](https://diplicity.com)
 
 ---

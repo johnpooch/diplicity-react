@@ -7,6 +7,7 @@ on:
 permissions:
   issues: write
   pull-requests: write
+  actions: read
 
 env:
   RAILWAY_API_ENDPOINT: https://backboard.railway.app/graphql/v2
@@ -366,29 +367,77 @@ jobs:
           echo "Waiting 15s for the worker to release its connection..."
           sleep 15
 
-      - name: Clone production database to staging
+      - name: Find latest DB snapshot
+        id: find_snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ARTIFACTS=$(curl -s \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100")
+
+          LATEST=$(echo "$ARTIFACTS" | jq -r '
+            [.artifacts[]
+              | select(.name | startswith("db-snapshot-"))
+              | select(.expired == false)]
+            | sort_by(.created_at)
+            | last
+            | {id: .id, created_at: .created_at}')
+
+          ARTIFACT_ID=$(echo "$LATEST" | jq -r '.id // empty')
+          CREATED_AT=$(echo "$LATEST" | jq -r '.created_at // empty')
+
+          if [ -n "$ARTIFACT_ID" ] && [ "$ARTIFACT_ID" != "null" ]; then
+            echo "Found snapshot artifact $ARTIFACT_ID (created $CREATED_AT)"
+            echo "artifact_id=$ARTIFACT_ID" >> "$GITHUB_OUTPUT"
+            echo "snapshot_timestamp=$CREATED_AT" >> "$GITHUB_OUTPUT"
+            echo "use_snapshot=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No snapshot found; will fall back to live pg_dump."
+            echo "use_snapshot=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Restore database from snapshot
         env:
           PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
           STAGING_DB_URL: ${{ steps.wait_postgres.outputs.staging_db_url }}
+          USE_SNAPSHOT: ${{ steps.find_snapshot.outputs.use_snapshot }}
+          ARTIFACT_ID: ${{ steps.find_snapshot.outputs.artifact_id }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           PG_BIN="/usr/lib/postgresql/17/bin"
-          echo "Using pg_dump version: $($PG_BIN/pg_dump --version)"
+          echo "Using pg_dump/pg_restore version: $($PG_BIN/pg_dump --version)"
 
-          echo "Dumping production database..."
-          $PG_BIN/pg_dump "$PRODUCTION_DATABASE_URL" --no-owner --no-acl --format=custom -f dump.pgdata
+          wipe_staging_db() {
+            echo "Terminating leftover connections to staging database..."
+            psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -c \
+              "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid();"
+            echo "Wiping staging database for clean restore..."
+            psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+          }
 
-          echo "Terminating leftover connections to staging database..."
-          psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -c \
-            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid();"
+          if [ "$USE_SNAPSHOT" = "true" ]; then
+            echo "Downloading snapshot artifact $ARTIFACT_ID..."
+            curl -fsL \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID/zip" \
+              -o snapshot.zip
+            unzip -q snapshot.zip
+            wipe_staging_db
+            echo "Restoring from snapshot..."
+            $PG_BIN/pg_restore --no-owner --no-acl --clean --if-exists --jobs=4 -d "$STAGING_DB_URL" snapshot.pgdata
+            rm snapshot.zip snapshot.pgdata snapshot_timestamp.txt 2>/dev/null || true
+          else
+            echo "WARNING: No snapshot available; falling back to live pg_dump (slower)."
+            $PG_BIN/pg_dump "$PRODUCTION_DATABASE_URL" --no-owner --no-acl --format=custom -f dump.pgdata
+            wipe_staging_db
+            $PG_BIN/pg_restore --no-owner --no-acl --clean --if-exists --jobs=4 -d "$STAGING_DB_URL" dump.pgdata
+            rm dump.pgdata
+          fi
 
-          echo "Wiping staging database for clean restore..."
-          psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-
-          echo "Restoring to staging database..."
-          $PG_BIN/pg_restore --no-owner --no-acl --clean --if-exists -d "$STAGING_DB_URL" dump.pgdata
-
-          rm dump.pgdata
-          echo "Database clone complete."
+          echo "Database restore complete."
 
       - name: Configure staging environment variables
         env:
@@ -489,12 +538,25 @@ jobs:
       - name: Comment on PR with staging URL
         env:
           STAGING_DOMAIN: ${{ steps.domain.outputs.domain }}
+          USE_SNAPSHOT: ${{ steps.find_snapshot.outputs.use_snapshot }}
+          SNAPSHOT_TIMESTAMP: ${{ steps.find_snapshot.outputs.snapshot_timestamp }}
         uses: actions/github-script@v9
         with:
           script: |
             const stagingDomain = process.env.STAGING_DOMAIN;
             const stagingUrl = `https://${stagingDomain}`;
             const previewUrl = `https://deploy-preview-${context.payload.pull_request.number}--diplicity-react.netlify.app`;
+
+            const useSnapshot = process.env.USE_SNAPSHOT === 'true';
+            const snapshotTimestamp = process.env.SNAPSHOT_TIMESTAMP;
+            let dataLine;
+            if (useSnapshot) {
+              const snapshotDate = new Date(snapshotTimestamp);
+              const formatted = snapshotDate.toUTCString();
+              dataLine = `The staging backend has a copy of the production database from the daily snapshot taken at **${formatted}**, with migrations from this PR applied.`;
+            } else {
+              dataLine = 'The staging backend has a live copy of the production database (no pre-built snapshot was available), with migrations from this PR applied.';
+            }
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
@@ -506,7 +568,7 @@ jobs:
                 `**Frontend preview:** ${previewUrl}`,
                 `**Staging backend:** ${stagingUrl}`,
                 '',
-                'The staging backend has a copy of the production database with migrations from this PR applied.',
+                dataLine,
                 'Use email/password login to test (Google OAuth is not configured for staging).',
                 '',
                 'The frontend preview derives its backend URL from the PR number at build time.',

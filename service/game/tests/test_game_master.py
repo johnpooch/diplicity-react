@@ -90,31 +90,31 @@ class TestGameMasterCreate:
 class TestGameMasterJoin:
 
     @pytest.mark.django_db
-    def test_game_master_cannot_join(self, authenticated_client, pending_game_with_game_master):
-        game = pending_game_with_game_master()
+    def test_game_master_cannot_join(self, authenticated_client, pending_game_with_game_master_factory):
+        game = pending_game_with_game_master_factory()
         url = reverse(join_viewname, args=[game.id])
         response = authenticated_client.post(url)
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.django_db
-    def test_other_user_can_join(self, authenticated_client_for_secondary_user, pending_game_with_game_master):
-        game = pending_game_with_game_master()
+    def test_other_user_can_join(self, authenticated_client_for_secondary_user, pending_game_with_game_master_factory):
+        game = pending_game_with_game_master_factory()
         url = reverse(join_viewname, args=[game.id])
         response = authenticated_client_for_secondary_user.post(url)
         assert response.status_code == status.HTTP_201_CREATED
 
     @pytest.mark.django_db
-    def test_can_join_false_for_game_master(self, authenticated_client, pending_game_with_game_master):
-        game = pending_game_with_game_master()
+    def test_can_join_false_for_game_master(self, authenticated_client, pending_game_with_game_master_factory):
+        game = pending_game_with_game_master_factory()
         url = reverse(retrieve_viewname, args=[game.id])
         response = authenticated_client.get(url)
         assert response.data["can_join"] is False
 
     @pytest.mark.django_db
     def test_game_starts_when_all_nations_filled_by_players(
-        self, api_client, pending_game_with_game_master, adjudication_data_classical
+        self, api_client, pending_game_with_game_master_factory, adjudication_data_classical
     ):
-        game = pending_game_with_game_master()
+        game = pending_game_with_game_master_factory()
         nation_count = game.variant.nations.count()
 
         for i in range(nation_count - 1):
@@ -140,9 +140,9 @@ class TestGameMasterNotAPlayer:
 
     @pytest.mark.django_db
     def test_game_master_has_no_member_or_phase_state(
-        self, active_game_with_game_master, primary_user
+        self, active_game_with_game_master_factory, primary_user
     ):
-        game = active_game_with_game_master()
+        game = active_game_with_game_master_factory()
         assert not game.members.filter(user=primary_user).exists()
         assert game.members.count() == game.variant.nations.count()
         assert all(m.nation is not None for m in game.members.all())
@@ -152,16 +152,16 @@ class TestGameMasterNotAPlayer:
 class TestGameMasterPowers:
 
     @pytest.mark.django_db
-    def test_game_master_can_pause(self, authenticated_client, active_game_with_game_master):
-        game = active_game_with_game_master()
+    def test_game_master_can_pause(self, authenticated_client, active_game_with_game_master_factory):
+        game = active_game_with_game_master_factory()
         url = reverse(pause_viewname, args=[game.id])
         response = authenticated_client.patch(url)
         assert response.status_code == status.HTTP_200_OK
         assert response.data["is_paused"] is True
 
     @pytest.mark.django_db
-    def test_game_master_can_unpause(self, authenticated_client, active_game_with_game_master):
-        game = active_game_with_game_master()
+    def test_game_master_can_unpause(self, authenticated_client, active_game_with_game_master_factory):
+        game = active_game_with_game_master_factory()
         game.pause()
         url = reverse(unpause_viewname, args=[game.id])
         response = authenticated_client.patch(url)
@@ -169,8 +169,8 @@ class TestGameMasterPowers:
         assert response.data["is_paused"] is False
 
     @pytest.mark.django_db
-    def test_game_master_can_extend_deadline(self, authenticated_client, active_game_with_game_master):
-        game = active_game_with_game_master()
+    def test_game_master_can_extend_deadline(self, authenticated_client, active_game_with_game_master_factory):
+        game = active_game_with_game_master_factory()
         url = reverse(extend_deadline_viewname, args=[game.id])
         response = authenticated_client.patch(
             url, {"duration": MovementPhaseDuration.ONE_HOUR}, format="json"
@@ -178,8 +178,8 @@ class TestGameMasterPowers:
         assert response.status_code == status.HTTP_200_OK
 
     @pytest.mark.django_db
-    def test_player_cannot_pause_when_game_master_set(self, api_client, active_game_with_game_master):
-        game = active_game_with_game_master()
+    def test_player_cannot_pause_when_game_master_set(self, api_client, active_game_with_game_master_factory):
+        game = active_game_with_game_master_factory()
         member = game.members.exclude(user=None).first()
         api_client.force_authenticate(user=member.user)
         url = reverse(pause_viewname, args=[game.id])
@@ -188,9 +188,9 @@ class TestGameMasterPowers:
 
     @pytest.mark.django_db
     def test_player_cannot_extend_deadline_when_game_master_set(
-        self, api_client, active_game_with_game_master
+        self, api_client, active_game_with_game_master_factory
     ):
-        game = active_game_with_game_master()
+        game = active_game_with_game_master_factory()
         member = game.members.exclude(user=None).first()
         api_client.force_authenticate(user=member.user)
         url = reverse(extend_deadline_viewname, args=[game.id])
@@ -201,9 +201,9 @@ class TestGameMasterPowers:
 
     @pytest.mark.django_db
     def test_game_master_can_kick(
-        self, authenticated_client, pending_game_with_game_master, secondary_user
+        self, authenticated_client, pending_game_with_game_master_factory, secondary_user
     ):
-        game = pending_game_with_game_master()
+        game = pending_game_with_game_master_factory()
         member = game.members.create(user=secondary_user)
         url = reverse(kick_viewname, args=[game.id, member.id])
         response = authenticated_client.delete(url)
@@ -212,9 +212,9 @@ class TestGameMasterPowers:
 
     @pytest.mark.django_db
     def test_player_cannot_kick_when_game_master_set(
-        self, api_client, pending_game_with_game_master, secondary_user, tertiary_user
+        self, api_client, pending_game_with_game_master_factory, secondary_user, tertiary_user
     ):
-        game = pending_game_with_game_master()
+        game = pending_game_with_game_master_factory()
         game.members.create(user=secondary_user)
         member = game.members.create(user=tertiary_user)
         api_client.force_authenticate(user=secondary_user)
@@ -223,8 +223,8 @@ class TestGameMasterPowers:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.django_db
-    def test_can_manage_false_for_players(self, api_client, active_game_with_game_master):
-        game = active_game_with_game_master()
+    def test_can_manage_false_for_players(self, api_client, active_game_with_game_master_factory):
+        game = active_game_with_game_master_factory()
         member = game.members.exclude(user=None).first()
         api_client.force_authenticate(user=member.user)
         url = reverse(retrieve_viewname, args=[game.id])
@@ -232,8 +232,8 @@ class TestGameMasterPowers:
         assert response.data["can_manage"] is False
 
     @pytest.mark.django_db
-    def test_can_manage_false_for_anonymous_user(self, unauthenticated_client, active_game_with_game_master):
-        game = active_game_with_game_master()
+    def test_can_manage_false_for_anonymous_user(self, unauthenticated_client, active_game_with_game_master_factory):
+        game = active_game_with_game_master_factory()
         url = reverse(retrieve_viewname, args=[game.id])
         response = unauthenticated_client.get(url)
         assert response.data["can_manage"] is False
@@ -242,25 +242,25 @@ class TestGameMasterPowers:
 class TestGameMasterDelete:
 
     @pytest.mark.django_db
-    def test_game_master_can_delete_pending_game(self, authenticated_client, pending_game_with_game_master):
-        game = pending_game_with_game_master()
+    def test_game_master_can_delete_pending_game(self, authenticated_client, pending_game_with_game_master_factory):
+        game = pending_game_with_game_master_factory()
         url = reverse(delete_viewname, args=[game.id])
         response = authenticated_client.delete(url)
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert not Game.objects.filter(id=game.id).exists()
 
     @pytest.mark.django_db
-    def test_game_master_cannot_delete_active_game(self, authenticated_client, active_game_with_game_master):
-        game = active_game_with_game_master()
+    def test_game_master_cannot_delete_active_game(self, authenticated_client, active_game_with_game_master_factory):
+        game = active_game_with_game_master_factory()
         url = reverse(delete_viewname, args=[game.id])
         response = authenticated_client.delete(url)
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.django_db
     def test_member_cannot_delete_pending_game_master_game(
-        self, authenticated_client_for_secondary_user, pending_game_with_game_master, secondary_user
+        self, authenticated_client_for_secondary_user, pending_game_with_game_master_factory, secondary_user
     ):
-        game = pending_game_with_game_master()
+        game = pending_game_with_game_master_factory()
         game.members.create(user=secondary_user)
         url = reverse(delete_viewname, args=[game.id])
         response = authenticated_client_for_secondary_user.delete(url)
@@ -268,18 +268,18 @@ class TestGameMasterDelete:
 
     @pytest.mark.django_db
     def test_can_delete_true_for_game_master_on_pending_game(
-        self, authenticated_client, pending_game_with_game_master
+        self, authenticated_client, pending_game_with_game_master_factory
     ):
-        game = pending_game_with_game_master()
+        game = pending_game_with_game_master_factory()
         url = reverse(retrieve_viewname, args=[game.id])
         response = authenticated_client.get(url)
         assert response.data["can_delete"] is True
 
     @pytest.mark.django_db
     def test_delete_pending_game_notifies_members(
-        self, authenticated_client, pending_game_with_game_master, secondary_user, in_memory_procrastinate
+        self, authenticated_client, pending_game_with_game_master_factory, secondary_user, in_memory_procrastinate
     ):
-        game = pending_game_with_game_master()
+        game = pending_game_with_game_master_factory()
         game.members.create(user=secondary_user)
         url = reverse(delete_viewname, args=[game.id])
         response = authenticated_client.delete(url)
@@ -293,8 +293,8 @@ class TestGameMasterDelete:
         assert set(jobs[0]["args"]["user_ids"]) == {secondary_user.id}
 
     @pytest.mark.django_db
-    def test_sandbox_delete_still_works(self, authenticated_client, sandbox_game):
-        game = sandbox_game()
+    def test_sandbox_delete_still_works(self, authenticated_client, sandbox_game_factory):
+        game = sandbox_game_factory()
         url = reverse(delete_viewname, args=[game.id])
         response = authenticated_client.delete(url)
         assert response.status_code == status.HTTP_204_NO_CONTENT
@@ -302,9 +302,9 @@ class TestGameMasterDelete:
 
     @pytest.mark.django_db
     def test_non_member_cannot_delete_sandbox_game(
-        self, authenticated_client_for_secondary_user, sandbox_game
+        self, authenticated_client_for_secondary_user, sandbox_game_factory
     ):
-        game = sandbox_game()
+        game = sandbox_game_factory()
         url = reverse(delete_viewname, args=[game.id])
         response = authenticated_client_for_secondary_user.delete(url)
         assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -313,8 +313,8 @@ class TestGameMasterDelete:
 class TestGameMasterListFilter:
 
     @pytest.mark.django_db
-    def test_mine_includes_game_master_games(self, authenticated_client, pending_game_with_game_master):
-        game = pending_game_with_game_master()
+    def test_mine_includes_game_master_games(self, authenticated_client, pending_game_with_game_master_factory):
+        game = pending_game_with_game_master_factory()
         url = reverse(list_viewname) + "?mine=true"
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
@@ -323,9 +323,9 @@ class TestGameMasterListFilter:
 
     @pytest.mark.django_db
     def test_mine_excludes_other_users_game_master_games(
-        self, authenticated_client_for_secondary_user, pending_game_with_game_master
+        self, authenticated_client_for_secondary_user, pending_game_with_game_master_factory
     ):
-        game = pending_game_with_game_master()
+        game = pending_game_with_game_master_factory()
         url = reverse(list_viewname) + "?mine=true"
         response = authenticated_client_for_secondary_user.get(url)
         assert response.status_code == status.HTTP_200_OK
@@ -333,8 +333,8 @@ class TestGameMasterListFilter:
         assert game.id not in game_ids
 
     @pytest.mark.django_db
-    def test_list_serializes_game_master(self, authenticated_client, primary_user, pending_game_with_game_master):
-        game = pending_game_with_game_master()
+    def test_list_serializes_game_master(self, authenticated_client, primary_user, pending_game_with_game_master_factory):
+        game = pending_game_with_game_master_factory()
         url = reverse(list_viewname) + "?mine=true"
         response = authenticated_client.get(url)
         game_data = next(g for g in response.data["results"] if g["id"] == game.id)
@@ -348,12 +348,12 @@ class TestGameMasterNotifications:
     def test_pause_notification_targets_players_and_says_game_master(
         self,
         authenticated_client,
-        active_game_with_game_master,
+        active_game_with_game_master_factory,
         primary_user,
         mock_send_notification_to_users,
         mock_immediate_on_commit,
     ):
-        game = active_game_with_game_master()
+        game = active_game_with_game_master_factory()
         mock_send_notification_to_users.reset_mock()
 
         url = reverse(pause_viewname, args=[game.id])
@@ -369,9 +369,9 @@ class TestGameMasterNotifications:
 
     @pytest.mark.django_db
     def test_game_start_notification_includes_game_master(
-        self, pending_game_with_game_master, primary_user, adjudication_data_classical, in_memory_procrastinate
+        self, pending_game_with_game_master_factory, primary_user, adjudication_data_classical, in_memory_procrastinate
     ):
-        game = pending_game_with_game_master()
+        game = pending_game_with_game_master_factory()
         for i in range(game.variant.nations.count()):
             user = User.objects.create_user(f"gm_start_player{i}@test.com", password="testpass")
             UserProfile.objects.create(user=user, name=f"GM Start Player {i}")
@@ -391,13 +391,13 @@ class TestGameMasterNotifications:
     @pytest.mark.django_db
     def test_phase_resolved_notification_includes_game_master(
         self,
-        active_game_with_game_master,
+        active_game_with_game_master_factory,
         primary_user,
         mock_send_notification_to_users,
         mock_immediate_on_commit,
         in_memory_procrastinate,
     ):
-        game = active_game_with_game_master()
+        game = active_game_with_game_master_factory()
         mock_send_notification_to_users.reset_mock()
 
         phase = game.current_phase
@@ -416,10 +416,10 @@ class TestGameMasterQueryCounts:
 
     @pytest.mark.django_db
     def test_retrieve_query_count_unchanged_by_game_master(
-        self, authenticated_client, pending_game_with_creator, pending_game_with_game_master
+        self, authenticated_client, pending_game_factory, pending_game_with_game_master_factory
     ):
-        game_without = pending_game_with_creator()
-        game_with = pending_game_with_game_master()
+        game_without = pending_game_factory()
+        game_with = pending_game_with_game_master_factory()
 
         url_without = reverse(retrieve_viewname, args=[game_without.id])
         url_with = reverse(retrieve_viewname, args=[game_with.id])
