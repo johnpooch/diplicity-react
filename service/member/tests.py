@@ -685,3 +685,117 @@ class TestCivilDisorderRecovery:
         url = reverse(recovery_viewname, args=[game.id])
         response = unauthenticated_client.post(url)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+class TestReplaceableProperty:
+    """Truth table for Member.replaceable property."""
+
+    def _make_member(self, game, user, nation, **flags):
+        from member.models import Member
+
+        return Member(
+            game=game,
+            user=user,
+            nation=nation,
+            civil_disorder=flags.get("civil_disorder", False),
+            seeking_replacement=flags.get("seeking_replacement", False),
+            eliminated=flags.get("eliminated", False),
+            kicked=flags.get("kicked", False),
+            replaced_by=flags.get("replaced_by", None),
+        )
+
+    @pytest.mark.django_db
+    def test_civil_disorder_only_is_replaceable(
+        self, classical_variant, classical_england_nation, primary_user
+    ):
+        game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
+        m = self._make_member(game, primary_user, classical_england_nation, civil_disorder=True)
+        assert m.replaceable is True
+
+    @pytest.mark.django_db
+    def test_seeking_replacement_only_is_replaceable(
+        self, classical_variant, classical_england_nation, primary_user
+    ):
+        game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
+        m = self._make_member(game, primary_user, classical_england_nation, seeking_replacement=True)
+        assert m.replaceable is True
+
+    @pytest.mark.django_db
+    def test_both_flags_is_replaceable(
+        self, classical_variant, classical_england_nation, primary_user
+    ):
+        game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
+        m = self._make_member(
+            game, primary_user, classical_england_nation, civil_disorder=True, seeking_replacement=True
+        )
+        assert m.replaceable is True
+
+    @pytest.mark.django_db
+    def test_no_flags_is_not_replaceable(
+        self, classical_variant, classical_england_nation, primary_user
+    ):
+        game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
+        m = self._make_member(game, primary_user, classical_england_nation)
+        assert m.replaceable is False
+
+    @pytest.mark.django_db
+    def test_civil_disorder_and_eliminated_is_not_replaceable(
+        self, classical_variant, classical_england_nation, primary_user
+    ):
+        game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
+        m = self._make_member(
+            game, primary_user, classical_england_nation, civil_disorder=True, eliminated=True
+        )
+        assert m.replaceable is False
+
+    @pytest.mark.django_db
+    def test_civil_disorder_and_kicked_is_not_replaceable(
+        self, classical_variant, classical_england_nation, primary_user
+    ):
+        game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
+        m = self._make_member(
+            game, primary_user, classical_england_nation, civil_disorder=True, kicked=True
+        )
+        assert m.replaceable is False
+
+    @pytest.mark.django_db
+    def test_seeking_replacement_and_eliminated_is_not_replaceable(
+        self, classical_variant, classical_england_nation, primary_user
+    ):
+        game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
+        m = self._make_member(
+            game, primary_user, classical_england_nation, seeking_replacement=True, eliminated=True
+        )
+        assert m.replaceable is False
+
+    @pytest.mark.django_db
+    def test_seeking_replacement_and_kicked_is_not_replaceable(
+        self, classical_variant, classical_england_nation, primary_user
+    ):
+        game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
+        m = self._make_member(
+            game, primary_user, classical_england_nation, seeking_replacement=True, kicked=True
+        )
+        assert m.replaceable is False
+
+    @pytest.mark.django_db
+    def test_civil_disorder_with_replaced_by_is_not_replaceable(
+        self, classical_variant, classical_england_nation, primary_user, secondary_user
+    ):
+        game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
+        replacement = game.members.create(user=secondary_user, nation=classical_england_nation)
+        m = self._make_member(
+            game, primary_user, classical_england_nation, civil_disorder=True, replaced_by=replacement
+        )
+        assert m.replaceable is False
+
+    @pytest.mark.django_db
+    def test_seeking_replacement_with_replaced_by_is_not_replaceable(
+        self, classical_variant, classical_england_nation, primary_user, secondary_user
+    ):
+        game = Game.objects.create(name="T", variant=classical_variant, status=GameStatus.ACTIVE)
+        replacement = game.members.create(user=secondary_user, nation=classical_england_nation)
+        m = self._make_member(
+            game, primary_user, classical_england_nation, seeking_replacement=True, replaced_by=replacement
+        )
+        assert m.replaceable is False
