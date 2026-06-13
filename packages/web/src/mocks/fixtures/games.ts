@@ -81,6 +81,24 @@ export const pendingGameAlmostFull = makeFixture({
   ),
 });
 
+export const gameMasterGame = makeFixture({
+  description:
+    "Pending private game run by a non-playing Game Master (the current user). The GM holds the management powers, takes no nation, and appears at the top of the player roster.",
+  game: makeGame(
+    "game-master",
+    "Master of Ceremonies",
+    players.slice(1, 4).map(player => makeMember(player, null)),
+    [],
+    {
+      status: "pending",
+      private: true,
+      canManage: true,
+      canDelete: true,
+      gameMaster: { userId: 1, name: "Mock Player", picture: null },
+    }
+  ),
+});
+
 const buildActiveMovement = () => {
   const members = makeActiveMembers();
   const phase = makePhase(101, 1, { remainingTime: 22 * 60 * 60 });
