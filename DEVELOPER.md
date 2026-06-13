@@ -9,7 +9,7 @@ The repo is built to be developed with an AI coding agent. A detailed [`CLAUDE.m
 1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/).
 2. Install [Claude Code](https://docs.anthropic.com/en/docs/claude-code/getting-started) (or another AI agent — point it at `CLAUDE.md`).
 3. Clone the repo.
-4. DM **Johnpooch** on the [Diplicity Hub Discord](https://discord.gg/QETtwGR) for the dev `.env` file. Drop it in the repo root. Keep the keys to yourself — they're shared on trust.
+4. DM **Johnpooch** on the [Diplicity Hub Discord](https://discord.gg/2TkZbBRPW) for the dev `.env` file. Drop it in the repo root. Keep the keys to yourself — they're shared on trust.
 5. Start the app:
    ```bash
    docker compose up service web db phase-resolver
@@ -46,4 +46,4 @@ Google OAuth is not configured for staging — use email/password login. The env
 
 ---
 
-Stuck or unsure how to approach a problem? Ask in the [Diplicity Hub Discord](https://discord.gg/QETtwGR). Don't wait until you're frustrated.
+Stuck or unsure how to approach a problem? Ask in the [Diplicity Hub Discord](https://discord.gg/2TkZbBRPW). Don't wait until you're frustrated.
