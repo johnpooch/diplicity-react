@@ -160,7 +160,7 @@ python -m pytest -q --create-db        # pytest-django builds test_diplicity
 - `DJANGO_DEBUG` must be **off** — when on, the DEBUG-gated `/api/test-sentry/` endpoint is added to the schema.
 - `FIREBASE_PROJECT_ID` must be **set** — when absent, `fcm_django` is dropped from `INSTALLED_APPS`, removing `/devices/` and the `FCMDevice` schema.
 
-A clean `git diff` after codegen in a cloud session (no Firebase, DEBUG off) shows only the `/devices/` + `FCMDevice` removal; that is environmental, not a stale-checkout signal.
+**Do not run codegen in cloud sessions and commit the result.** Cloud sessions lack `FIREBASE_PROJECT_ID`, so the generated schema will be missing the `/devices/` FCM endpoints. The `validate-codegen` CI job catches this: it re-runs codegen with `FIREBASE_PROJECT_ID=dummy DJANGO_DEBUG=False` and fails the PR if the output differs from what is committed. Always run `docker compose up codegen` locally (with `FIREBASE_PROJECT_ID` set in `.env`) before committing schema or client changes.
 
 ## Key Commands
 
