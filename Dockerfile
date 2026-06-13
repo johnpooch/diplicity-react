@@ -1,26 +1,35 @@
 # This Dockerfile is specifically for the codegen service.
 # It includes both frontend (Node.js) and backend (Python) dependencies.
+#
+# The backend requires Django 6, which needs Python >=3.12, so the image is
+# based on python:3.12 and the Node.js runtime is copied in from the official
+# Node image. Both images are Debian bookworm based, so the copied Node binary
+# is ABI-compatible.
 
-# Base image with Node.js and Python
-FROM node:24.16.0-bookworm-slim
+# Node.js runtime source
+FROM node:24.16.0-bookworm-slim AS node
+
+# Python 3.12 base
+FROM python:3.12-slim-bookworm
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-# Install system dependencies
+# Install system dependencies (build-essential also provides libstdc++6, which
+# the copied Node binary depends on)
 RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
-    python3-venv \
     build-essential \
     libpq-dev \
     git \
     bash \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install global npm packages
-RUN npm install -g npm@latest
+# Bring in the Node.js runtime and npm/npx from the official Node image
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
+COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 
 # Set working directory
 WORKDIR /app
@@ -28,12 +37,8 @@ WORKDIR /app
 # Copy Python configuration files
 COPY ./service/requirements.txt ./service/dev_requirements.txt ./service/pyproject.toml /app/
 
-# Install Python dependencies.
-# `node:24.15.0-bookworm-slim` ships a PEP 668 "externally-managed" Python, so
-# system pip refuses installs without an explicit override. This is a single-purpose
-# ephemeral container that runs spectacular + orval and exits, so installing into
-# the system Python is fine — no venv required.
-RUN pip install --no-cache-dir --break-system-packages -r requirements.txt -r dev_requirements.txt
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt -r dev_requirements.txt
 
 # Install Node.js dependencies
 COPY ./packages/web/package.json ./packages/web/package-lock.json /app/packages/web/
@@ -46,4 +51,4 @@ WORKDIR /app
 EXPOSE 5173 8000
 
 # Default command
-CMD ["bash"] 
+CMD ["bash"]
