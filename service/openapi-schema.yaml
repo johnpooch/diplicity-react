@@ -2478,6 +2478,12 @@ components:
         civilDisorder:
           type: boolean
           readOnly: true
+        seekingReplacement:
+          type: boolean
+          readOnly: true
+        replaceable:
+          type: boolean
+          readOnly: true
       required:
       - civilDisorder
       - eliminated
@@ -2489,6 +2495,8 @@ components:
       - nation
       - nmrExtensionsRemaining
       - picture
+      - replaceable
+      - seekingReplacement
       - userId
     MovementFrequencyEnum:
       enum:

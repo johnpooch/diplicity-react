@@ -136,6 +136,8 @@ const matchedGame: GameList = {
       isGameCreator: true,
       nmrExtensionsRemaining: 0,
       civilDisorder: false,
+      seekingReplacement: false,
+      replaceable: false,
     },
     {
       id: 100,
@@ -149,6 +151,8 @@ const matchedGame: GameList = {
       isGameCreator: false,
       nmrExtensionsRemaining: 0,
       civilDisorder: false,
+      seekingReplacement: false,
+      replaceable: false,
     },
   ],
   victory: null,
