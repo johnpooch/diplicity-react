@@ -83,4 +83,37 @@ describe("PlayerInfoContent", () => {
 
     expect(screen.queryByText("Civil Disorder")).not.toBeInTheDocument();
   });
+
+  it("shows the game master above the players when one is set", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      gameMaster: { userId: 42, name: "Carol", picture: null },
+      members: [{ ...baseMember }],
+    });
+
+    renderPlayerInfo();
+
+    expect(screen.getByText("Carol")).toBeInTheDocument();
+    expect(screen.getByText("Game Master")).toBeInTheDocument();
+  });
+
+  it("does not show a game master row when none is set", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      gameMaster: null,
+      members: [{ ...baseMember }],
+    });
+
+    renderPlayerInfo();
+
+    expect(screen.queryByText("Game Master")).not.toBeInTheDocument();
+  });
 });

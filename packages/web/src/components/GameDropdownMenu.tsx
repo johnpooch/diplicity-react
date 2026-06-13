@@ -57,8 +57,11 @@ import {
 import { EXTEND_DURATION_OPTIONS } from "@/constants";
 
 interface GameDropdownMenuProps {
-  game: Pick<GameList, "id" | "sandbox" | "canLeave" | "canDelete" | "isPaused"> &
-    Partial<Pick<GameRetrieve, "status" | "members">>;
+  game: Pick<
+    GameList,
+    "id" | "sandbox" | "canLeave" | "canDelete" | "canManage" | "isPaused"
+  > &
+    Partial<Pick<GameRetrieve, "status">>;
   onNavigateToGameInfo: () => void;
   onNavigateToPlayerInfo: () => void;
 }
@@ -85,15 +88,10 @@ export function GameDropdownMenu({
   const pauseGameMutation = useGamePauseUpdate();
   const unpauseGameMutation = useGameUnpausePartialUpdate();
 
-  const currentMember = game.members?.find(m => m.isCurrentUser);
   const isActiveGame = game.status === "active";
-  const isCurrentUserGameCreator = currentMember?.isGameCreator ?? false;
-  const canExtendDeadline =
-    isCurrentUserGameCreator && isActiveGame && !game.isPaused;
-  const canPauseGame =
-    isCurrentUserGameCreator && isActiveGame && !game.isPaused;
-  const canUnpauseGame =
-    isCurrentUserGameCreator && isActiveGame && game.isPaused;
+  const canExtendDeadline = game.canManage && isActiveGame && !game.isPaused;
+  const canPauseGame = game.canManage && isActiveGame && !game.isPaused;
+  const canUnpauseGame = game.canManage && isActiveGame && game.isPaused;
   const handleLeaveGame = async () => {
     try {
       await leaveGameMutation.mutateAsync({ gameId: game.id });
@@ -281,10 +279,13 @@ export function GameDropdownMenu({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete sandbox game</AlertDialogTitle>
+            <AlertDialogTitle>
+              {game.sandbox ? "Delete sandbox game" : "Delete game"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this sandbox game and all its data.
-              This action cannot be undone.
+              {game.sandbox
+                ? "This will permanently delete this sandbox game and all its data. This action cannot be undone."
+                : "This will permanently delete this game. Players who have joined will be notified. This action cannot be undone."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

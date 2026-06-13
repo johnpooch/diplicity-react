@@ -2054,6 +2054,9 @@ components:
         anonymous:
           type: boolean
           default: false
+        gameMaster:
+          type: boolean
+          default: false
         deadlineMode:
           allOf:
           - $ref: '#/components/schemas/DeadlineModeEnum'
@@ -2146,6 +2149,14 @@ components:
         canDelete:
           type: boolean
           readOnly: true
+        canManage:
+          type: boolean
+          readOnly: true
+        gameMaster:
+          allOf:
+          - $ref: '#/components/schemas/GameMaster'
+          nullable: true
+          readOnly: true
         variantId:
           type: string
           readOnly: true
@@ -2235,12 +2246,14 @@ components:
       - canDelete
       - canJoin
       - canLeave
+      - canManage
       - createdAt
       - currentPhase
       - currentPhaseId
       - deadlineMode
       - fixedDeadlineTime
       - fixedDeadlineTimezone
+      - gameMaster
       - id
       - isPaused
       - members
@@ -2302,6 +2315,23 @@ components:
       - status
       - type
       - year
+    GameMaster:
+      type: object
+      properties:
+        userId:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        picture:
+          type: string
+          readOnly: true
+          nullable: true
+      required:
+      - name
+      - picture
+      - userId
     GameRetrieve:
       type: object
       properties:
@@ -2326,6 +2356,14 @@ components:
           readOnly: true
         canDelete:
           type: boolean
+          readOnly: true
+        canManage:
+          type: boolean
+          readOnly: true
+        gameMaster:
+          allOf:
+          - $ref: '#/components/schemas/GameMaster'
+          nullable: true
           readOnly: true
         phases:
           type: array
@@ -2414,11 +2452,13 @@ components:
       - canDelete
       - canJoin
       - canLeave
+      - canManage
       - createdAt
       - currentPhaseId
       - deadlineMode
       - fixedDeadlineTime
       - fixedDeadlineTimezone
+      - gameMaster
       - id
       - isPaused
       - members

@@ -1,5 +1,18 @@
 # Diplicity React - Release Notes
 
+## Game Master for Private Games (June 2026)
+
+### Feature: Run a private game as a non-playing Game Master
+
+When creating a private game, you can now choose to act as its Game Master. As Game
+Master you don't take a nation — all player slots go to other players — but you can
+pause and resume the game, extend deadlines, remove players before the game starts,
+and delete the game while it's still gathering players. You receive game notifications
+(game start, phase resolutions, civil disorder, and more) so you can keep an eye on
+things. When a game has a Game Master, the players — including the game's creator —
+do not have these management powers. The Game Master appears at the top of the player
+roster with a "Game Master" badge.
+
 ## Game Creator Rename (June 2026)
 
 ### Change: "Game Master" badge is now "Game Creator"
