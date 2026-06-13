@@ -811,6 +811,14 @@ Follow this testing pattern:
 - Add performance tests to ensure N+1 query issues are avoided
 - For complex logic in utils files, create separate test classes
 
+### Testing serialized model properties
+
+When a model property is exposed via a serializer field, **always test it through the API response** — not by calling the property directly. Testing through the API validates both the property logic and the serialization path in one shot.
+
+The canonical example is `TestCivilDisorderSerialization` in `service/member/tests.py`: it creates a saved member via `game.members.create(civil_disorder=True)`, hits `GET /game/:id/`, and asserts `response.data["members"][0]["civil_disorder"] is True`. New serialized properties should follow the same shape.
+
+**Never create unsaved model instances (`Model(...)`) in tests.** Use `Model.objects.create(...)` or a saved object from an existing fixture. Unsaved instances bypass the database, the serializer, and the full Django stack, so they prove nothing about what the API actually returns.
+
 ---
 
 # Production Debugging
