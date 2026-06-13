@@ -102,24 +102,6 @@ export function randomGameName() {
   );
 }
 
-/**
- * Formats an order object into a human-readable string.
- */
-const formatOrderText = (order: {
-  source: string;
-  orderType: string;
-  target?: string;
-  aux?: string;
-}) => {
-  if (order.orderType === "Hold") {
-    return `${order.source} Hold`;
-  }
-  if (order.orderType === "Support") {
-    return `${order.source} Support ${order.target} ${order.aux}`;
-  }
-  return `${order.source} ${order.orderType} to ${order.target}`;
-};
-
 function formatRemainingTime(seconds: number): string {
   if (seconds <= 0) return "Deadline passed";
   if (seconds < 60) return "< 1m remaining";
@@ -191,4 +173,4 @@ function formatTimeAgo(djangoDatetime: string): string {
   return rtf.format(-diffYears, "year");
 }
 
-export { formatOrderText, formatDateTime, formatRemainingTime, formatTimeAgo, getCurrentPhaseId, getGameLandingPath };
+export { formatDateTime, formatRemainingTime, formatTimeAgo, getCurrentPhaseId, getGameLandingPath };
