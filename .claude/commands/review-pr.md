@@ -31,6 +31,7 @@ Read the PR description (and any linked issue) to understand the problem being s
 - **Correctness**: Is the change logically correct? Are there edge cases, off-by-one errors, or null/undefined hazards? Trace the execution and confirm the changeset makes sense.
 - **Completeness**: If code is added, removed, or renamed — are all references updated? Check call sites, URL routes, serializer fields, generated API client usage, tests, and config. If the change is user-facing, was `RELEASE_NOTES.md` updated?
 - **Verify root cause**: If the PR claims to fix a bug, does the fix address the root cause, or does it mask the symptom?
+- **Single purpose**: Does the PR do one thing? A PR that bundles multiple unrelated pieces of work — a feature plus an unrelated bug fix, a refactor plus a behavior change, drive-by cleanups in files the stated change doesn't require touching — is harder to review, harder to revert, and hides regressions. When you find unrelated work, name each distinct piece and which files belong to it, and recommend splitting it into separate PRs. Mechanical changes directly caused by the main change (regenerated API client code, updated tests, a `RELEASE_NOTES.md` entry) do not count as scope creep.
 
 ## Criterion 2: Does it meet the project's bar?
 
@@ -54,7 +55,7 @@ Project-specific checks that frequently matter:
 End with one of three verdicts:
 
 - **Looks good** — you would approve this without asking the author anything. Reserve this for PRs where you are confident on both criteria.
-- **Needs changes** — you found concrete problems. Every blocking finding must cite a file/line and explain the consequence, not just the rule violated.
+- **Needs changes** — you found concrete problems. Every blocking finding must cite a file/line and explain the consequence, not just the rule violated. A PR that bundles multiple unrelated pieces of work gets this verdict even if each piece is individually fine — the requested change is to split it.
 - **Needs discussion** — the code may be fine, but the intent is unclear, the approach is architecturally significant, or you would want to ask the author a clarifying question before merging.
 
 When in doubt, prefer **Needs discussion** over **Looks good** — it is better to flag uncertainty than to wave through a risky change. But do not manufacture findings: if the PR is solid, say so plainly rather than padding the review with nitpicks.
