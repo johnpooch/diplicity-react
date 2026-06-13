@@ -867,6 +867,83 @@ Use email/password login. Google OAuth is not configured for staging environment
 
 ---
 
+# Database Backup & Restore
+
+Production database backups run daily via `.github/workflows/backup-production-db.yml` and are stored in S3-compatible storage outside of Railway.
+
+> **This is distinct from the staging snapshot** (`snapshot-production-db.yml`). The staging snapshot is a GitHub Actions artifact (7-day retention) used to seed staging environments quickly. The backup described here is for disaster recovery and lives in S3 with a longer, tiered retention policy.
+
+## Retention Policy
+
+| Tier | Frequency | Kept for |
+|------|-----------|----------|
+| Daily | Every day at 03:00 UTC | 7 days |
+| Weekly | Every Sunday at 03:00 UTC | 4 weeks (28 days) |
+
+Files are stored under `s3://<BACKUP_S3_BUCKET>/daily/backup-YYYY-MM-DD.pgdata` and `s3://<BACKUP_S3_BUCKET>/weekly/backup-YYYY-MM-DD.pgdata`. The workflow applies the retention policy on each run by listing and deleting objects whose embedded date is older than the threshold.
+
+## Required GitHub Secrets
+
+| Secret | Description |
+|--------|-------------|
+| `BACKUP_AWS_ACCESS_KEY_ID` | IAM key with read/write access to the backup bucket |
+| `BACKUP_AWS_SECRET_ACCESS_KEY` | Corresponding IAM secret key |
+| `BACKUP_AWS_REGION` | AWS region of the bucket (e.g. `us-east-1`) |
+| `BACKUP_S3_BUCKET` | S3 bucket name |
+| `PRODUCTION_DATABASE_URL` | Production PostgreSQL connection string (shared with staging workflow) |
+
+The IAM user/role needs `s3:PutObject`, `s3:GetObject`, `s3:ListBucket`, and `s3:DeleteObject` on the backup bucket.
+
+## Restore Procedure
+
+**Before you start:** this wipes the target database. Do not run against production unless you are performing a deliberate disaster recovery.
+
+```bash
+# 1. Install the PostgreSQL 17 client if not already present
+sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
+sudo apt-get update && sudo apt-get install -y postgresql-client-17
+PG_BIN="/usr/lib/postgresql/17/bin"
+
+# 2. Configure AWS credentials
+export AWS_ACCESS_KEY_ID=<key>
+export AWS_SECRET_ACCESS_KEY=<secret>
+export AWS_DEFAULT_REGION=<region>
+
+# 3. List available backups
+aws s3 ls s3://<BUCKET>/daily/
+aws s3 ls s3://<BUCKET>/weekly/
+
+# 4. Download the chosen backup
+aws s3 cp s3://<BUCKET>/daily/backup-YYYY-MM-DD.pgdata backup.pgdata
+
+# 5. Verify the backup before restoring
+$PG_BIN/pg_restore --list backup.pgdata | head -20
+
+# 6. Wipe the target database (IRREVERSIBLE)
+export TARGET_DB_URL=<connection-string>
+psql "$TARGET_DB_URL" -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid();"
+psql "$TARGET_DB_URL" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+
+# 7. Restore
+$PG_BIN/pg_restore --no-owner --no-acl --clean --if-exists -d "$TARGET_DB_URL" backup.pgdata
+
+# 8. Run migrations to apply any schema changes made after the backup
+python manage.py migrate
+```
+
+## Testing a Restore
+
+To verify a backup is restorable without touching production:
+
+1. Download any recent backup from S3 (step 4 above).
+2. Spin up a temporary PostgreSQL instance (local Docker, Railway staging environment, or a test RDS instance).
+3. Run steps 6–7 against the temporary instance.
+4. Spot-check key tables: `SELECT COUNT(*) FROM game_game; SELECT COUNT(*) FROM auth_user;`
+5. Tear down the temporary instance.
+
+---
+
 # API Development
 
 The API schema is auto-generated using DRF Spectacular:

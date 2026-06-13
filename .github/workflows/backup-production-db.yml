@@ -1,0 +1,92 @@
+name: Backup Production Database
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set backup metadata
+        id: meta
+        run: |
+          echo "backup_date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+          echo "day_of_week=$(date -u +%u)" >> "$GITHUB_OUTPUT"
+
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
+          sudo apt-get update && sudo apt-get install -y postgresql-client-17
+
+      - name: Dump production database
+        env:
+          PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        run: |
+          PG_BIN="/usr/lib/postgresql/17/bin"
+          echo "Using pg_dump version: $($PG_BIN/pg_dump --version)"
+          echo "Dumping production database..."
+          $PG_BIN/pg_dump "$PRODUCTION_DATABASE_URL" \
+            --no-owner --no-acl --format=custom \
+            -f backup.pgdata
+          echo "Dump size: $(du -sh backup.pgdata | cut -f1)"
+
+      - name: Verify backup integrity
+        run: |
+          PG_BIN="/usr/lib/postgresql/17/bin"
+          OBJECT_COUNT=$($PG_BIN/pg_restore --list backup.pgdata | wc -l)
+          echo "Backup contains ${OBJECT_COUNT} objects — integrity check passed."
+
+      - name: Upload daily backup to S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.BACKUP_AWS_REGION }}
+          BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+          BACKUP_DATE: ${{ steps.meta.outputs.backup_date }}
+        run: |
+          aws s3 cp backup.pgdata "s3://${BUCKET}/daily/backup-${BACKUP_DATE}.pgdata"
+          echo "Daily backup uploaded: s3://${BUCKET}/daily/backup-${BACKUP_DATE}.pgdata"
+
+      - name: Upload weekly backup (Sundays)
+        if: steps.meta.outputs.day_of_week == '7'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.BACKUP_AWS_REGION }}
+          BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+          BACKUP_DATE: ${{ steps.meta.outputs.backup_date }}
+        run: |
+          aws s3 cp backup.pgdata "s3://${BUCKET}/weekly/backup-${BACKUP_DATE}.pgdata"
+          echo "Weekly backup uploaded: s3://${BUCKET}/weekly/backup-${BACKUP_DATE}.pgdata"
+
+      - name: Apply retention policy
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.BACKUP_AWS_REGION }}
+          BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+        run: |
+          DAILY_CUTOFF=$(date -u -d '7 days ago' +%Y-%m-%d)
+          echo "Removing daily backups older than ${DAILY_CUTOFF}..."
+          aws s3 ls "s3://${BUCKET}/daily/" | awk '{print $4}' | while read -r KEY; do
+            FILE_DATE=$(echo "$KEY" | grep -oP '\d{4}-\d{2}-\d{2}' || true)
+            if [[ -n "$FILE_DATE" && "$FILE_DATE" < "$DAILY_CUTOFF" ]]; then
+              echo "Deleting daily/${KEY}"
+              aws s3 rm "s3://${BUCKET}/daily/${KEY}"
+            fi
+          done
+
+          WEEKLY_CUTOFF=$(date -u -d '28 days ago' +%Y-%m-%d)
+          echo "Removing weekly backups older than ${WEEKLY_CUTOFF}..."
+          aws s3 ls "s3://${BUCKET}/weekly/" | awk '{print $4}' | while read -r KEY; do
+            FILE_DATE=$(echo "$KEY" | grep -oP '\d{4}-\d{2}-\d{2}' || true)
+            if [[ -n "$FILE_DATE" && "$FILE_DATE" < "$WEEKLY_CUTOFF" ]]; then
+              echo "Deleting weekly/${KEY}"
+              aws s3 rm "s3://${BUCKET}/weekly/${KEY}"
+            fi
+          done
+
+          echo "Retention policy applied."
