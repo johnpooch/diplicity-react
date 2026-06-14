@@ -1,5 +1,14 @@
 # Diplicity React - Release Notes
 
+## Unread Message Indicator on Game Cards (June 2026)
+
+### Feature: See unread message counts without opening a game
+
+Each game card in your games list now shows a badge with the total number of unread chat
+messages for that game, summed across all of its channels. The badge appears next to the
+game name and disappears once you've read everything. This makes it easy to spot which
+games have new messages waiting without having to open each one.
+
 ## Chat Channels Sorted by Activity (June 2026)
 
 ### Change: Chat channels are ordered by most recent activity

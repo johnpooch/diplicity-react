@@ -5,7 +5,15 @@ import uuid
 from django.conf import settings
 from django.db import models, transaction
 from django.utils import timezone
-from django.db.models import Prefetch
+from django.db.models import (
+    Count,
+    IntegerField,
+    OuterRef,
+    Prefetch,
+    Subquery,
+    Value,
+)
+from django.db.models.functions import Coalesce
 from opentelemetry import trace
 from common.constants import (
     DeadlineMode,
@@ -25,12 +33,43 @@ from member.models import Member
 from unit.models import Unit
 from supply_center.models import SupplyCenter
 from victory.models import Victory
+from channel.models import ChannelMember, ChannelMessage
 from adjudication import service as adjudication_service
 
 tracer = trace.get_tracer(__name__)
 
 
 class GameQuerySet(models.QuerySet):
+
+    def with_total_unread_counts(self, user):
+        if not user.is_authenticated:
+            return self.annotate(
+                total_unread_message_count=Value(0, output_field=IntegerField())
+            )
+        last_read_subquery = Subquery(
+            ChannelMember.objects.filter(
+                channel=OuterRef("channel"),
+                member__user=user,
+            ).values("last_read_at")[:1]
+        )
+        unread_count_subquery = (
+            ChannelMessage.objects.filter(
+                channel__game=OuterRef("pk"),
+                channel__member_channels__member__user=user,
+                created_at__gt=last_read_subquery,
+            )
+            .exclude(sender__user=user)
+            .order_by()
+            .values("channel__game")
+            .annotate(count=Count("id", distinct=True))
+            .values("count")
+        )
+        return self.annotate(
+            total_unread_message_count=Coalesce(
+                Subquery(unread_count_subquery, output_field=IntegerField()),
+                Value(0),
+            )
+        )
 
     def with_list_data(self):
         members_prefetch = Prefetch(
@@ -162,6 +201,9 @@ class GameQuerySet(models.QuerySet):
 class GameManager(models.Manager):
     def get_queryset(self):
         return GameQuerySet(self.model, using=self._db)
+
+    def with_total_unread_counts(self, user):
+        return self.get_queryset().with_total_unread_counts(user)
 
     def with_list_data(self):
         return self.get_queryset().with_list_data()

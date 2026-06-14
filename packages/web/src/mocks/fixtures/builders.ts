@@ -121,6 +121,7 @@ export const makeGame = (
     movementFrequency: null,
     retreatFrequency: null,
     pressType: "full_press",
+    totalUnreadMessageCount: 0,
     ...overrides,
   };
 };
