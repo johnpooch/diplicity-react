@@ -12,6 +12,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { GameDropdownMenu } from "./GameDropdownMenu";
+import { NationBadge } from "./NationBadge";
 import { UserPlus, Lock, MessageSquareOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -29,7 +30,7 @@ import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPerm
 
 export interface GameCardProps {
   game: GameList;
-  variant: Pick<Variant, "name" | "id">;
+  variant: Pick<Variant, "name" | "id" | "nations">;
   map: React.ReactNode;
   className?: string;
 }
@@ -39,6 +40,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const phase = game.currentPhase;
+  const playerNation = game.members.find(m => m.isCurrentUser)?.nation ?? null;
   const joinGameMutation = useGameJoinCreate();
   const checkNotificationPermission = useCheckNotificationPermission();
 
@@ -106,6 +108,9 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
                   {game.pressType === "no_press" && <MessageSquareOff className="h-3 w-3" aria-label="Gunboat" />}
                   {game.sandbox && (
                     <Badge variant="secondary">Sandbox</Badge>
+                  )}
+                  {!game.sandbox && (
+                    <NationBadge nations={variant.nations} nation={playerNation} />
                   )}
                 </CardTitle>
               </button>

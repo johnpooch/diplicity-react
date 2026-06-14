@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/item";
 import { Notice } from "@/components/Notice";
 import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
+import { NationBadge } from "@/components/NationBadge";
 import { GameDropdownMenu } from "@/components/GameDropdownMenu";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
@@ -341,7 +342,7 @@ const OrdersScreen: React.FC = () => {
                   nationGroups.find(g => g.member.isCurrentUser)?.nation ?? "",
                 ]}
               >
-                {nationGroups.map(({ nation, items }) => {
+                {nationGroups.map(({ nation, member, items }) => {
                   const nationColor = findNationColor(variant.nations, nation);
                   return (
                     <AccordionItem key={nation} value={nation}>
@@ -355,6 +356,14 @@ const OrdersScreen: React.FC = () => {
                           />
                           <span>{nation}</span>
                           <span className="text-muted-foreground">•</span>
+                          {member.isCurrentUser && nation && (
+                            <>
+                              <NationBadge nations={variant.nations} nation={nation}>
+                                you
+                              </NationBadge>
+                              <span className="text-muted-foreground">•</span>
+                            </>
+                          )}
                           <span className="inline-flex items-center gap-1 text-muted-foreground">
                             <Star className="size-3" />
                             <span>{getSupplyCenterCount(nation)}</span>

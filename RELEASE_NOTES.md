@@ -1,5 +1,14 @@
 # Diplicity React - Release Notes
 
+## Nation Badge (June 2026)
+
+### Feature: Your nation is shown at a glance
+
+Your assigned nation now appears as a colour-coded badge next to the game name on each game
+card, so you can immediately see which power you are playing across your list of games. The
+same badge marks your own row ("you") on the orders screen. The badge is hidden for sandbox
+games and for games that haven't assigned nations yet.
+
 ## Game Creator Rename (June 2026)
 
 ### Change: "Game Master" badge is now "Game Creator"
