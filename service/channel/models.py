@@ -1,5 +1,5 @@
 from django.db import models
-from django.db.models import Q, Count, Subquery, OuterRef, IntegerField, Value
+from django.db.models import Q, Count, Subquery, OuterRef, IntegerField, Value, Max, F
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from common.models import BaseModel
@@ -22,6 +22,13 @@ class ChannelQuerySet(models.QuerySet):
     def with_related_data(self):
         return self.prefetch_related(
             "messages", "messages__sender", "messages__sender__user", "members", "members__user"
+        )
+
+    def order_for_list(self):
+        return self.annotate(last_activity=Max("messages__created_at")).order_by(
+            "private",
+            F("last_activity").desc(nulls_last=True),
+            "-created_at",
         )
 
     def with_unread_counts(self, user):
@@ -67,6 +74,9 @@ class ChannelManager(models.Manager):
 
     def with_unread_counts(self, user):
         return self.get_queryset().with_unread_counts(user)
+
+    def order_for_list(self):
+        return self.get_queryset().order_for_list()
 
 
 class Channel(BaseModel):

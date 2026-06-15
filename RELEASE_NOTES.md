@@ -1,5 +1,13 @@
 # Diplicity React - Release Notes
 
+## Chat Channels Sorted by Activity (June 2026)
+
+### Change: Chat channels are ordered by most recent activity
+
+In a game's chat, your channels are now ordered by how recently each one had activity, with
+the most recently active channel near the top. The public "Public Press" channel is always
+pinned to the top, and channels with no messages yet sort to the bottom.
+
 ## Nation Badge (June 2026)
 
 ### Feature: Your nation is shown at a glance

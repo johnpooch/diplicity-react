@@ -37,4 +37,5 @@ class ChannelListView(SelectedGameMixin, generics.ListAPIView):
             Channel.objects.accessible_to_user(self.request.user, self.get_game())
             .with_unread_counts(self.request.user)
             .with_related_data()
+            .order_for_list()
         )
