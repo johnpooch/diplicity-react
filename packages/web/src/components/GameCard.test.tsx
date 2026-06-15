@@ -55,7 +55,7 @@ const renderGameCard = (props: React.ComponentProps<typeof GameCard>) => {
 };
 
 const defaultProps = {
-  variant: { name: "Classical Diplomacy", id: "Classical" },
+  variant: { name: "Classical Diplomacy", id: "Classical", nations: [] },
   phaseId: 1,
   map: <div data-testid="map" />,
 };
@@ -96,7 +96,7 @@ describe("GameCard", () => {
       mockUseIsMobile.mockReturnValue(true);
       const game = mockActiveGames[0];
       renderGameCard({ game, ...defaultProps });
-      await userEvent.click(screen.getByRole("button", { name: game.name }));
+      await userEvent.click(screen.getByRole("button", { name: (accessibleName: string) => accessibleName.includes(game.name) }));
       expect(mockNavigate).toHaveBeenCalledWith(
         `/game/${game.id}/phase/${game.currentPhaseId}`
       );
@@ -106,7 +106,7 @@ describe("GameCard", () => {
       mockUseIsMobile.mockReturnValue(false);
       const game = mockActiveGames[0];
       renderGameCard({ game, ...defaultProps });
-      await userEvent.click(screen.getByRole("button", { name: game.name }));
+      await userEvent.click(screen.getByRole("button", { name: (accessibleName: string) => accessibleName.includes(game.name) }));
       expect(mockNavigate).toHaveBeenCalledWith(
         `/game/${game.id}/phase/${game.currentPhaseId}/orders`
       );
