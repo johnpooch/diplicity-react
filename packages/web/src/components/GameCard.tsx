@@ -112,7 +112,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
                   {!game.sandbox && (
                     <NationBadge nations={variant.nations} nation={playerNation} />
                   )}
-                  {!game.sandbox && game.totalUnreadMessageCount > 0 && (
+                  {game.totalUnreadMessageCount > 0 && (
                     <Badge variant="default" className="gap-1">
                       <Mail className="size-3" />
                       <span className="relative top-px">
