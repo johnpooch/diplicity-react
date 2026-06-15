@@ -77,6 +77,7 @@ const standardGameSchema = z.object({
   mode: z.enum(["standard", "gunboat"] as const),
   nationAssignment: z.enum(["random", "ordered"] as const),
   private: z.boolean(),
+  gameMaster: z.boolean(),
   deadlineMode: z.enum(["duration", "fixed_time"] as const),
   movementPhaseDuration: z.enum(DURATION_ENUM_VALUES).optional(),
   retreatPhaseDuration: z.enum(DURATION_ENUM_VALUES).optional().nullable(),
@@ -265,6 +266,7 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
       mode: "standard",
       nationAssignment: "random" as NationAssignmentEnum,
       private: initialPrivate ?? false,
+      gameMaster: false,
       deadlineMode: "fixed_time",
       movementPhaseDuration: "24 hours",
       retreatPhaseDuration: null,
@@ -278,6 +280,7 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
 
   const selectedVariant = variants?.find(v => v.id === form.watch("variantId"));
   const deadlineMode = form.watch("deadlineMode");
+  const isPrivate = form.watch("private");
   const isInitialVariantDraft =
     initialVariantId !== undefined &&
     variants.find(v => v.id === initialVariantId)?.status === "draft";
@@ -341,7 +344,12 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
                 <FormControl>
                   <Checkbox
                     checked={field.value}
-                    onCheckedChange={field.onChange}
+                    onCheckedChange={checked => {
+                      field.onChange(checked);
+                      if (!checked) {
+                        form.setValue("gameMaster", false);
+                      }
+                    }}
                     disabled={isSubmitting || isInitialVariantDraft}
                   />
                 </FormControl>
@@ -350,6 +358,30 @@ const CreateStandardGameForm: React.FC<CreateStandardGameFormProps> = ({
                   <FormDescription>
                     Make this game private (only accessible via direct link, not
                     shown in public listings)
+                  </FormDescription>
+                </div>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="gameMaster"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    disabled={isSubmitting || !isPrivate}
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>Game Master</FormLabel>
+                  <FormDescription>
+                    Run this game as a non-playing Game Master. You won't take a
+                    nation, but you can pause the game, extend deadlines, and
+                    remove players. Only available in private games.
                   </FormDescription>
                 </div>
               </FormItem>
@@ -802,6 +834,7 @@ const CreateGame: React.FC = () => {
           variantId: data.variantId,
           nationAssignment: data.nationAssignment,
           private: data.private,
+          gameMaster: data.gameMaster,
           ...modeToBackendFields(data.mode),
           deadlineMode: data.deadlineMode,
           movementPhaseDuration:

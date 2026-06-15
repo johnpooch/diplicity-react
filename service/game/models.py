@@ -94,7 +94,7 @@ class GameQuerySet(models.QuerySet):
             queryset=Phase.objects.prefetch_related(phase_states_prefetch),
         )
 
-        return self.select_related("variant", "victory").prefetch_related(
+        return self.select_related("variant", "victory", "game_master__profile").prefetch_related(
             members_prefetch,
             victory_members_prefetch,
             phases_prefetch,
@@ -121,7 +121,7 @@ class GameQuerySet(models.QuerySet):
             queryset=Phase.objects.prefetch_related(phase_states_prefetch)
         )
 
-        return self.select_related("variant", "victory").prefetch_related(
+        return self.select_related("variant", "victory", "game_master__profile").prefetch_related(
             members_prefetch,
             victory_members_prefetch,
             phases_prefetch,
@@ -183,7 +183,7 @@ class GameQuerySet(models.QuerySet):
             queryset=Member.objects.select_related("user__profile", "nation__flag")
         )
 
-        return self.select_related("victory").prefetch_related(
+        return self.select_related("victory", "game_master__profile").prefetch_related(
             # Variant data with optimized template phase
             "variant__provinces__parent",
             "variant__provinces__named_coasts",
@@ -340,6 +340,13 @@ class Game(BaseModel):
         blank=True,
         related_name="created_games",
     )
+    game_master = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="game_master_games",
+    )
     variant = models.ForeignKey("variant.Variant", on_delete=models.CASCADE, related_name="games")
     name = models.CharField(max_length=100)
     status = models.CharField(max_length=20, choices=GameStatus.STATUS_CHOICES, default=GameStatus.PENDING)
@@ -434,6 +441,10 @@ class Game(BaseModel):
     def is_paused(self):
         return self.paused_at is not None
 
+    @property
+    def manager_label(self):
+        return "the Game Master" if self.game_master_id is not None else "the game creator"
+
     def get_phase_duration_seconds(self, phase_type):
         if phase_type == PhaseType.MOVEMENT:
             return self.movement_phase_duration_seconds
@@ -472,6 +483,8 @@ class Game(BaseModel):
 
     def can_join(self, user):
         with tracer.start_as_current_span("game.models.can_join"):
+            if self.game_master_id is not None and self.game_master_id == user.id:
+                return False
             user_is_member = any(
                 member.user_id is not None and member.user_id == user.id
                 for member in self.members.all()
@@ -490,12 +503,40 @@ class Game(BaseModel):
 
     def can_delete(self, user):
         with tracer.start_as_current_span("game.models.can_delete"):
+            if (
+                self.status == GameStatus.PENDING
+                and self.game_master_id is not None
+                and self.game_master_id == user.id
+            ):
+                return True
             if not self.sandbox:
                 return False
             return any(
                 member.user_id is not None and member.user_id == user.id
                 for member in self.members.all()
             )
+
+    def can_manage(self, user):
+        with tracer.start_as_current_span("game.models.can_manage"):
+            if self.game_master_id is not None:
+                return self.game_master_id == user.id
+            if self.created_by_id is None or self.created_by_id != user.id:
+                return False
+            return any(
+                member.user_id is not None and member.user_id == user.id
+                for member in self.members.all()
+            )
+
+    def notification_user_ids(self, exclude_user_id=None):
+        user_ids = {
+            member.user_id for member in self.members.all()
+            if member.user_id is not None
+        }
+        if self.game_master_id is not None:
+            user_ids.add(self.game_master_id)
+        if exclude_user_id is not None:
+            user_ids.discard(exclude_user_id)
+        return list(user_ids)
 
     def phase_confirmed(self, user):
         with tracer.start_as_current_span("game.models.phase_confirmed"):

@@ -99,6 +99,8 @@ export const makeGame = (
     canJoin: false,
     canLeave: false,
     canDelete: false,
+    canManage: false,
+    gameMaster: null,
     variantId: "classical",
     phases: phases.map(p => p.id),
     currentPhaseId: currentPhase?.id ?? null,

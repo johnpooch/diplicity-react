@@ -6,6 +6,7 @@ import {
   activeGameRetreat,
   finishedGameDraw,
   finishedGameSolo,
+  gameMasterGame,
   gameNotJoined,
   pendingGameAlmostFull,
   pendingGameNoPlayers,
@@ -26,6 +27,7 @@ export const gameFixtures = {
   activeGameDrawProposal,
   finishedGameSolo,
   finishedGameDraw,
+  gameMasterGame,
   gameNotJoined,
 } satisfies Record<string, GameFixture>;
 

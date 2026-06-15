@@ -34,6 +34,16 @@ class IsGameMember(BasePermission):
         return game.members.filter(user=request.user).exists()
 
 
+class IsGameMemberOrGameMaster(BasePermission):
+    message = "User is not a member of the game."
+
+    def has_permission(self, request, view):
+        game = resolve_game(request, view.kwargs.get("game_id"))
+        if game.game_master_id is not None and game.game_master_id == request.user.id:
+            return True
+        return game.members.filter(user=request.user).exists()
+
+
 class IsActiveGameMember(BasePermission):
     message = "User cannot perform this action."
 
@@ -143,11 +153,14 @@ class IsNotNoPressActiveGame(BasePermission):
         return game.status in (GameStatus.COMPLETED, GameStatus.ABANDONED)
 
 
-class IsGameCreator(BasePermission):
+class IsGameManager(BasePermission):
     message = "Only the game creator can perform this action."
 
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
+        if game.game_master_id is not None:
+            self.message = "Only the game master can perform this action."
+            return game.game_master_id == request.user.id
         if not game.members.filter(user=request.user).exists():
             self.message = "User is not a member of the game."
             return False
@@ -155,6 +168,22 @@ class IsGameCreator(BasePermission):
             self.message = "Only the game creator can perform this action."
             return False
         return True
+
+
+class IsNotGameMaster(BasePermission):
+    message = "The game master cannot join the game as a player."
+
+    def has_permission(self, request, view):
+        game = resolve_game(request, view.kwargs.get("game_id"))
+        return game.game_master_id is None or game.game_master_id != request.user.id
+
+
+class CanDeleteGame(BasePermission):
+    message = "You cannot delete this game."
+
+    def has_permission(self, request, view):
+        game = resolve_game(request, view.kwargs.get("game_id"))
+        return game.can_delete(request.user)
 
 
 class IsInCivilDisorder(BasePermission):
