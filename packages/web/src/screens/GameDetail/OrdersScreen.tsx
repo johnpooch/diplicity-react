@@ -76,6 +76,18 @@ type NationGroup = {
   }>;
 };
 
+// A fleet on a named coast (e.g. "spa/nc") sits on the coast province, but the
+// order source / orderable province is always the parent ("spa"). Match on
+// either so the unit (and its type + coast name) is found.
+const findUnitForProvince = (
+  units: readonly Unit[],
+  provinceId: string
+): Unit | undefined => {
+  const matches = (u: Unit) =>
+    u.province.id === provinceId || u.province.parentId === provinceId;
+  return units.find(u => matches(u) && u.dislodged) ?? units.find(matches);
+};
+
 const buildNationGroups = (
   isActivePhase: boolean,
   phaseStates: readonly PhaseState[],
@@ -92,8 +104,7 @@ const buildNationGroups = (
         items: (ps.orderableProvinces as Province[]).map(province => ({
           province,
           order: orders.find(o => o.source.id === province.id),
-          unit: phase.units.find(u => u.province.id === province.id && u.dislodged)
-            ?? phase.units.find(u => u.province.id === province.id),
+          unit: findUnitForProvince(phase.units, province.id),
         })),
       }));
   }
@@ -118,8 +129,7 @@ const buildNationGroups = (
       items: nationOrders.map(order => ({
         province: order.source,
         order,
-        unit: phase.units.find(u => u.province.id === order.source.id && u.dislodged)
-          ?? phase.units.find(u => u.province.id === order.source.id),
+        unit: findUnitForProvince(phase.units, order.source.id),
       })),
     };
   });
@@ -378,7 +388,8 @@ const OrdersScreen: React.FC = () => {
                               <Item size="sm">
                                 <ItemContent>
                                   <ItemTitle>
-                                    {item.unit?.type} {item.province.name}
+                                    {item.unit?.type}{" "}
+                                    {item.unit?.province.name ?? item.province.name}
                                   </ItemTitle>
                                   <ItemDescription>
                                     {item.order

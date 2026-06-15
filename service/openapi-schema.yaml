@@ -2577,6 +2577,11 @@ components:
           allOf:
           - $ref: '#/components/schemas/Province'
           readOnly: true
+        targetCoast:
+          allOf:
+          - $ref: '#/components/schemas/Province'
+          readOnly: true
+          nullable: true
         aux:
           allOf:
           - $ref: '#/components/schemas/Province'
@@ -2641,6 +2646,7 @@ components:
       - step
       - summary
       - target
+      - targetCoast
       - title
       - unitType
     OrderOption:

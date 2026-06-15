@@ -1,5 +1,16 @@
 # Diplicity React - Release Notes
 
+## Named Coasts in Orders (June 2026)
+
+### Fix: Orders show the correct named coast
+
+Orders involving multi-coast provinces (Spain, St. Petersburg, Bulgaria) now display the
+specific coast instead of the parent province. A fleet sitting on a named coast shows its
+unit type and coast (e.g. "Fleet Spain (NC)") in the orders list, and support orders read
+"Support St. Petersburg to Spain (SC)" when the supported move's coast is known. The map
+draws support arrows from and to the correct coast. Where the coast is genuinely ambiguous
+or not visible to you, the order falls back to the parent province as before.
+
 ## Chat Channels Sorted by Activity (June 2026)
 
 ### Change: Chat channels are ordered by most recent activity

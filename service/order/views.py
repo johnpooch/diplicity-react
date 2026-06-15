@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from .models import Order
 from .serializers import OrderSerializer, OrderOptionsResponseSerializer
-from .utils import flatten_options, FIELD_ORDER
+from .utils import flatten_options, build_move_coast_lookup, FIELD_ORDER
 from common.permissions import IsActiveGame, IsActiveGameMember
 from common.views import SelectedPhaseMixin, CurrentPhaseMixin
 from common.serializers import EmptySerializer
@@ -16,6 +16,13 @@ class OrderListView(SelectedPhaseMixin, generics.ListAPIView):
 
     def get_queryset(self):
         return Order.objects.visible_to_user_in_phase(self.request.user, self.get_phase()).with_related_data()
+
+    def list(self, request, *args, **kwargs):
+        orders = list(self.get_queryset())
+        context = self.get_serializer_context()
+        context["move_coast_lookup"] = build_move_coast_lookup(orders)
+        serializer = self.get_serializer(orders, many=True, context=context)
+        return Response(serializer.data)
 
 
 class OrderCreateView(CurrentPhaseMixin, generics.CreateAPIView):

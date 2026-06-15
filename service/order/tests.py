@@ -3136,3 +3136,173 @@ class TestSourceCoast:
         assert response.status_code == status.HTTP_200_OK
         order_data = next(o for o in response.data if o["source"]["id"] == "lon")
         assert order_data["source_coast"] is None
+
+
+class TestOrderNamedCoastDisplay:
+
+    @pytest.mark.django_db
+    def test_support_source_on_named_coast_exposes_source_coast(
+        self,
+        authenticated_client,
+        order_active_game,
+        primary_user,
+        classical_england_nation,
+        classical_stp_province,
+        classical_stp_nc_province,
+        classical_wales_province,
+    ):
+        game = order_active_game
+        phase = game.current_phase
+        primary_phase_state = phase.phase_states.get(member__user=primary_user)
+
+        phase.units.create(
+            type=UnitType.FLEET, nation=classical_england_nation, province=classical_stp_nc_province
+        )
+        Order.objects.create(
+            phase_state=primary_phase_state,
+            order_type=OrderType.SUPPORT,
+            source=classical_stp_province,
+            aux=classical_wales_province,
+            target=classical_wales_province,
+        )
+
+        url = reverse("order-list", args=[game.id, phase.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        order_data = response.data[0]
+        assert order_data["source_coast"]["id"] == "stp/nc"
+
+    @pytest.mark.django_db
+    def test_support_into_named_coast_shows_coast_when_known(
+        self,
+        authenticated_client,
+        order_active_game,
+        primary_user,
+        classical_england_nation,
+        classical_spain_province,
+        classical_spain_sc_province,
+        classical_stp_province,
+        classical_stp_nc_province,
+        classical_wales_province,
+    ):
+        game = order_active_game
+        phase = game.current_phase
+        primary_phase_state = phase.phase_states.get(member__user=primary_user)
+
+        phase.units.create(
+            type=UnitType.FLEET, nation=classical_england_nation, province=classical_stp_nc_province
+        )
+        phase.units.create(
+            type=UnitType.FLEET, nation=classical_england_nation, province=classical_wales_province
+        )
+        Order.objects.create(
+            phase_state=primary_phase_state,
+            order_type=OrderType.MOVE,
+            source=classical_stp_province,
+            target=classical_spain_province,
+            named_coast=classical_spain_sc_province,
+        )
+        support = Order.objects.create(
+            phase_state=primary_phase_state,
+            order_type=OrderType.SUPPORT,
+            source=classical_wales_province,
+            aux=classical_stp_province,
+            target=classical_spain_province,
+        )
+
+        phase.status = PhaseStatus.COMPLETED
+        phase.save()
+
+        url = reverse("order-list", args=[game.id, phase.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        support_data = next(o for o in response.data if o["source"]["id"] == support.source.province_id)
+        assert support_data["target_coast"]["id"] == "spa/sc"
+        assert support_data["summary"] == "Support St. Petersburg (NC) to Spain (SC)"
+
+    @pytest.mark.django_db
+    def test_support_into_named_coast_falls_back_to_parent_when_unknown(
+        self,
+        authenticated_client,
+        order_active_game,
+        primary_user,
+        secondary_user,
+        classical_england_nation,
+        classical_france_nation,
+        classical_spain_province,
+        classical_spain_sc_province,
+        classical_stp_province,
+        classical_wales_province,
+    ):
+        game = order_active_game
+        phase = game.current_phase
+        primary_phase_state = phase.phase_states.get(member__user=primary_user)
+        secondary_phase_state = phase.phase_states.get(member__user=secondary_user)
+
+        phase.units.create(
+            type=UnitType.FLEET, nation=classical_france_nation, province=classical_stp_province
+        )
+        phase.units.create(
+            type=UnitType.FLEET, nation=classical_england_nation, province=classical_wales_province
+        )
+        Order.objects.create(
+            phase_state=secondary_phase_state,
+            order_type=OrderType.MOVE,
+            source=classical_stp_province,
+            target=classical_spain_province,
+            named_coast=classical_spain_sc_province,
+        )
+        Order.objects.create(
+            phase_state=primary_phase_state,
+            order_type=OrderType.SUPPORT,
+            source=classical_wales_province,
+            aux=classical_stp_province,
+            target=classical_spain_province,
+        )
+
+        url = reverse("order-list", args=[game.id, phase.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 1
+        support_data = response.data[0]
+        assert support_data["target_coast"] is None
+        assert support_data["summary"] == "Support St. Petersburg to Spain"
+
+    @pytest.mark.django_db
+    def test_support_hold_shows_aux_current_coast(
+        self,
+        authenticated_client,
+        order_active_game,
+        primary_user,
+        classical_england_nation,
+        classical_spain_province,
+        classical_spain_sc_province,
+        classical_wales_province,
+    ):
+        game = order_active_game
+        phase = game.current_phase
+        primary_phase_state = phase.phase_states.get(member__user=primary_user)
+
+        phase.units.create(
+            type=UnitType.FLEET, nation=classical_england_nation, province=classical_spain_sc_province
+        )
+        phase.units.create(
+            type=UnitType.FLEET, nation=classical_england_nation, province=classical_wales_province
+        )
+        Order.objects.create(
+            phase_state=primary_phase_state,
+            order_type=OrderType.SUPPORT,
+            source=classical_wales_province,
+            aux=classical_spain_province,
+            target=classical_spain_province,
+        )
+
+        url = reverse("order-list", args=[game.id, phase.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        support_data = response.data[0]
+        assert support_data["summary"] == "Support Spain (SC) to hold"

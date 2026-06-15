@@ -154,6 +154,10 @@ interface OrderSpec {
   source: string;
   target?: string;
   aux?: string;
+  sourceCoast?: string;
+  targetCoast?: string;
+  namedCoast?: string;
+  summary?: string;
   succeeded?: boolean;
   failedBy?: string;
 }
@@ -186,12 +190,15 @@ export const makeOrder = (spec: OrderSpec): Order => {
   const title = orderTitle(spec, source);
   return {
     source,
-    sourceCoast: null,
+    sourceCoast: spec.sourceCoast ? province(spec.sourceCoast) : null,
+    targetCoast: spec.targetCoast ? province(spec.targetCoast) : null,
     // The generated Order type marks target/aux/namedCoast as non-nullable,
     // but the real API returns null for orders where they do not apply.
     target: target as Order["target"],
     aux: aux as Order["aux"],
-    namedCoast: null as unknown as Order["namedCoast"],
+    namedCoast: (spec.namedCoast
+      ? province(spec.namedCoast)
+      : null) as unknown as Order["namedCoast"],
     resolution:
       spec.succeeded === false
         ? {
@@ -206,7 +213,7 @@ export const makeOrder = (spec: OrderSpec): Order => {
     complete: true,
     step: "completed",
     title,
-    summary: title,
+    summary: spec.summary ?? title,
   };
 };
 

@@ -187,6 +187,30 @@ class Order(BaseModel):
         return None
 
     @property
+    def aux_coast(self):
+        if not self.aux:
+            return None
+        for unit in self.phase.units.all():
+            if unit.province.parent_id == self.aux_id:
+                return unit.province
+        return None
+
+    @property
+    def _resolved_target_coast(self):
+        lookup = getattr(self, "_move_coast_lookup", {})
+        if not self.aux or not self.target:
+            return None
+        return lookup.get((self.aux.province_id, self.target.province_id))
+
+    @property
+    def target_coast(self):
+        if self.order_type != OrderType.SUPPORT:
+            return None
+        if self.aux_id == self.target_id:
+            return self.aux_coast
+        return self._resolved_target_coast
+
+    @property
     def source_unit(self):
         if not self.source:
             return None
@@ -294,6 +318,22 @@ class Order(BaseModel):
         return self.target.name
 
     @property
+    def _aux_display_name(self):
+        aux_coast = self.aux_coast
+        if aux_coast and aux_coast != self.aux:
+            return aux_coast.name
+        return self.aux.name
+
+    @property
+    def _support_target_display_name(self):
+        if self.aux_id == self.target_id:
+            return self._aux_display_name
+        coast = self._resolved_target_coast
+        if coast:
+            return coast.name
+        return self.target.name
+
+    @property
     def title(self):
         step = self.step
         source_name = self._source_display_name if self.source else None
@@ -328,7 +368,7 @@ class Order(BaseModel):
             action = "move via convoy to" if self.order_type == OrderType.MOVE_VIA_CONVOY else "move to"
             return f"{source_name} will {action} {self._target_display_name}"
         elif step == OrderCreationStep.COMPLETED and self.order_type == OrderType.SUPPORT:
-            return f"{source_name} will support {self.aux.name} to {self.target.name}"
+            return f"{source_name} will support {self._aux_display_name} to {self._support_target_display_name}"
         elif step == OrderCreationStep.COMPLETED and self.order_type == OrderType.CONVOY:
             return f"{source_name} will convoy {self.aux.name} to {self.target.name}"
 
@@ -352,8 +392,8 @@ class Order(BaseModel):
             return f"Move via convoy to {self._target_display_name}"
         elif self.order_type == OrderType.SUPPORT:
             if self.aux == self.target:
-                return f"Support {self.aux.name} to hold"
-            return f"Support {self.aux.name} to {self.target.name}"
+                return f"Support {self._aux_display_name} to hold"
+            return f"Support {self._aux_display_name} to {self._support_target_display_name}"
         elif self.order_type == OrderType.CONVOY:
             return f"Convoy {self.aux.name} to {self.target.name}"
 
