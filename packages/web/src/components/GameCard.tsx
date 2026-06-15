@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import { GameDropdownMenu } from "./GameDropdownMenu";
 import { NationBadge } from "./NationBadge";
-import { UserPlus, Lock, MessageSquareOff } from "lucide-react";
+import { UserPlus, Lock, MessageSquareOff, Mail } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { RemainingTimeDisplay } from "./RemainingTimeDisplay";
@@ -111,6 +111,14 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
                   )}
                   {!game.sandbox && (
                     <NationBadge nations={variant.nations} nation={playerNation} />
+                  )}
+                  {game.totalUnreadMessageCount > 0 && (
+                    <Badge variant="default" className="gap-1">
+                      <Mail className="size-3" />
+                      <span className="relative top-px">
+                        {game.totalUnreadMessageCount}
+                      </span>
+                    </Badge>
                   )}
                 </CardTitle>
               </button>
