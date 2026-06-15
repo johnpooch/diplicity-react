@@ -9,6 +9,14 @@ card, so you can immediately see which power you are playing across your list of
 same badge marks your own row ("you") on the orders screen. The badge is hidden for sandbox
 games and for games that haven't assigned nations yet.
 
+## Started Games Sorted by Deadline (June 2026)
+
+### Change: "Started" games are ordered by next deadline
+
+In My Games, your started games are now ordered by how soon their next deadline is, with
+the most urgent game at the top. Games set to resolve manually ("resolve when ready") and
+sandbox games sort to the bottom, so the games actually waiting on you are easiest to find.
+
 ## Game Creator Rename (June 2026)
 
 ### Change: "Game Master" badge is now "Game Creator"

@@ -14,12 +14,13 @@ import { useGamesListInfinite } from "@/hooks/useGamesListInfinite";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 
 const statuses = [
-  { value: "pending", label: "Staging", statusFilter: "pending" },
-  { value: "active", label: "Started", statusFilter: "active" },
+  { value: "pending", label: "Staging", statusFilter: "pending", ordering: undefined },
+  { value: "active", label: "Started", statusFilter: "active", ordering: "deadline" },
   {
     value: "completed",
     label: "Finished",
     statusFilter: "completed,abandoned",
+    ordering: undefined,
   },
 ] as const;
 
@@ -81,15 +82,17 @@ interface GameTabContentProps {
   statusFilter: string;
   emptyTitle: string;
   status: StatusValue;
+  ordering?: string;
 }
 
 const GameTabContent: React.FC<GameTabContentProps> = ({
   statusFilter,
   emptyTitle,
   status,
+  ordering,
 }) => {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useGamesListInfinite({ mine: true, status: statusFilter });
+    useGamesListInfinite({ mine: true, status: statusFilter, ordering });
   const { data: variants } = useVariantsListSuspense();
 
   const games = data.pages.flatMap(page => page.results);
@@ -160,6 +163,7 @@ const MyGames: React.FC = () => {
                   statusFilter={s.statusFilter}
                   emptyTitle={`No ${s.label.toLowerCase()} games`}
                   status={s.value}
+                  ordering={s.ordering}
                 />
               </Suspense>
             </QueryErrorBoundary>
