@@ -1,5 +1,30 @@
 # Diplicity React - Release Notes
 
+## Chat Channels Sorted by Activity (June 2026)
+
+### Change: Chat channels are ordered by most recent activity
+
+In a game's chat, your channels are now ordered by how recently each one had activity, with
+the most recently active channel near the top. The public "Public Press" channel is always
+pinned to the top, and channels with no messages yet sort to the bottom.
+
+## Nation Badge (June 2026)
+
+### Feature: Your nation is shown at a glance
+
+Your assigned nation now appears as a colour-coded badge next to the game name on each game
+card, so you can immediately see which power you are playing across your list of games. The
+same badge marks your own row ("you") on the orders screen. The badge is hidden for sandbox
+games and for games that haven't assigned nations yet.
+
+## Started Games Sorted by Deadline (June 2026)
+
+### Change: "Started" games are ordered by next deadline
+
+In My Games, your started games are now ordered by how soon their next deadline is, with
+the most urgent game at the top. Games set to resolve manually ("resolve when ready") and
+sandbox games sort to the bottom, so the games actually waiting on you are easiest to find.
+
 ## Game Master for Private Games (June 2026)
 
 ### Feature: Run a private game as a non-playing Game Master

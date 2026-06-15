@@ -1,7 +1,9 @@
 import pytest
+from datetime import timedelta
 from unittest.mock import patch
 from django.apps import apps
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from channel.models import Channel, ChannelMessage
 
@@ -169,6 +171,79 @@ class TestChannelListView:
         assert "Other Game Channel" not in channel_names
         assert "Private Member" in channel_names
         assert "Public Channel" in channel_names
+
+
+class TestChannelListOrdering:
+
+    @pytest.mark.django_db
+    def test_public_channel_first_even_with_older_activity(
+        self, authenticated_client, active_game_with_phase_state
+    ):
+        game = active_game_with_phase_state
+        member = game.members.first()
+
+        public_channel = Channel.objects.create(game=game, name="Public Press", private=False)
+        private_channel = Channel.objects.create(game=game, name="Private", private=True)
+        private_channel.members.add(member)
+
+        public_message = ChannelMessage.objects.create(channel=public_channel, sender=member, body="old")
+        private_message = ChannelMessage.objects.create(channel=private_channel, sender=member, body="new")
+        ChannelMessage.objects.filter(id=public_message.id).update(created_at=timezone.now() - timedelta(days=2))
+        ChannelMessage.objects.filter(id=private_message.id).update(created_at=timezone.now())
+
+        url = reverse("channel-list", args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        names = [ch["name"] for ch in response.data]
+        assert names == ["Public Press", "Private"]
+
+    @pytest.mark.django_db
+    def test_private_channels_sorted_by_most_recent_activity(
+        self, authenticated_client, active_game_with_phase_state
+    ):
+        game = active_game_with_phase_state
+        member = game.members.first()
+
+        Channel.objects.create(game=game, name="Public Press", private=False)
+        older = Channel.objects.create(game=game, name="Older", private=True)
+        newer = Channel.objects.create(game=game, name="Newer", private=True)
+        older.members.add(member)
+        newer.members.add(member)
+
+        older_message = ChannelMessage.objects.create(channel=older, sender=member, body="older")
+        newer_message = ChannelMessage.objects.create(channel=newer, sender=member, body="newer")
+        ChannelMessage.objects.filter(id=older_message.id).update(created_at=timezone.now() - timedelta(hours=1))
+        ChannelMessage.objects.filter(id=newer_message.id).update(created_at=timezone.now())
+
+        url = reverse("channel-list", args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        names = [ch["name"] for ch in response.data]
+        assert names == ["Public Press", "Newer", "Older"]
+
+    @pytest.mark.django_db
+    def test_channels_without_messages_sorted_last(
+        self, authenticated_client, active_game_with_phase_state
+    ):
+        game = active_game_with_phase_state
+        member = game.members.first()
+
+        Channel.objects.create(game=game, name="Public Press", private=False)
+        with_message = Channel.objects.create(game=game, name="With Message", private=True)
+        without_message = Channel.objects.create(game=game, name="Without Message", private=True)
+        with_message.members.add(member)
+        without_message.members.add(member)
+
+        ChannelMessage.objects.create(channel=with_message, sender=member, body="hello")
+
+        url = reverse("channel-list", args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        names = [ch["name"] for ch in response.data]
+        assert names == ["Public Press", "With Message", "Without Message"]
 
 
 class TestChannelMessageCreateView:
