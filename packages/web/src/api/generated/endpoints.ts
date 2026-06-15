@@ -313,6 +313,7 @@ export interface GameCreate {
   retreatPhaseDuration?: DurationEnum | NullEnum | null;
   private: boolean;
   anonymous?: boolean;
+  gameMaster?: boolean;
   deadlineMode?: DeadlineModeEnum;
   /** @nullable */
   fixedDeadlineTime?: string | null;
@@ -339,6 +340,13 @@ export interface GameCreateSandbox {
 
 export interface GameExtendDeadline {
   duration: DurationEnum;
+}
+
+export interface GameMaster {
+  readonly userId: number;
+  readonly name: string;
+  /** @nullable */
+  readonly picture: string | null;
 }
 
 export interface GameListCurrentPhase {
@@ -388,6 +396,8 @@ export interface GameList {
   readonly canJoin: boolean;
   readonly canLeave: boolean;
   readonly canDelete: boolean;
+  readonly canManage: boolean;
+  readonly gameMaster: GameMaster | null;
   readonly variantId: string;
   readonly phases: readonly number[];
   /** @nullable */
@@ -418,6 +428,7 @@ export interface GameList {
   /** @nullable */
   readonly retreatFrequency: string | null;
   readonly pressType: string;
+  readonly totalUnreadMessageCount: number;
 }
 
 export interface GameFindSimilar {
@@ -432,6 +443,8 @@ export interface GameRetrieve {
   readonly canJoin: boolean;
   readonly canLeave: boolean;
   readonly canDelete: boolean;
+  readonly canManage: boolean;
+  readonly gameMaster: GameMaster | null;
   readonly phases: readonly number[];
   /** @nullable */
   readonly currentPhaseId: number | null;

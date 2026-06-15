@@ -95,7 +95,10 @@ export const handlers = [
 
   http.get("*/games/", ({ request }) => {
     const url = new URL(request.url);
-    let games = Object.values(fixtureByGameId).map(f => f.game);
+    let games = Object.values(fixtureByGameId).map(f => ({
+      ...f.game,
+      totalUnreadMessageCount: f.totalUnreadMessageCount,
+    }));
     const mine = url.searchParams.get("mine");
     if (mine !== null) {
       games = games.filter(

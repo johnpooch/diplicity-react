@@ -113,6 +113,8 @@ const matchedGame: GameList = {
   canJoin: true,
   canLeave: false,
   canDelete: false,
+  canManage: false,
+  gameMaster: null,
   variantId: "classical",
   phases: [],
   currentPhaseId: null,
@@ -166,6 +168,7 @@ const matchedGame: GameList = {
   movementFrequency: null,
   retreatFrequency: null,
   pressType: "full_press",
+  totalUnreadMessageCount: 0,
 };
 
 const renderCreateGame = () => {
@@ -323,5 +326,84 @@ describe("CreateGame — find-similar intervention", () => {
 
     expect(createGameMutateAsync).not.toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith("/game-info/matched-game");
+  });
+});
+
+describe("CreateGame — game master option", () => {
+  let createGameMutateAsync: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    createGameMutateAsync = vi.fn().mockResolvedValue({ id: "created-game" });
+
+    mockedUseVariantsListSuspense.mockReturnValue({
+      data: variantsFixture,
+    } as unknown as ReturnType<typeof useVariantsListSuspense>);
+
+    mockedUseGameCreate.mockReturnValue({
+      mutateAsync: createGameMutateAsync,
+      isPending: false,
+    } as unknown as ReturnType<typeof useGameCreate>);
+
+    mockedUseSandboxGameCreate.mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    } as unknown as ReturnType<typeof useSandboxGameCreate>);
+  });
+
+  const submit = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.click(screen.getByRole("button", { name: /create game/i }));
+  };
+
+  it("disables the game master checkbox when the game is not private", () => {
+    renderCreateGame();
+    expect(screen.getByRole("checkbox", { name: /game master/i })).toBeDisabled();
+  });
+
+  it("enables the game master checkbox when the game is private", async () => {
+    const user = userEvent.setup();
+    renderCreateGame();
+    await user.click(screen.getByRole("checkbox", { name: /private/i }));
+    expect(screen.getByRole("checkbox", { name: /game master/i })).toBeEnabled();
+  });
+
+  it("submits gameMaster false by default", async () => {
+    const user = userEvent.setup();
+    renderCreateGame();
+    await submit(user);
+
+    await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
+    expect(createGameMutateAsync.mock.calls[0][0].data.gameMaster).toBe(false);
+  });
+
+  it("submits gameMaster true when checked on a private game", async () => {
+    const user = userEvent.setup();
+    renderCreateGame();
+    await user.click(screen.getByRole("checkbox", { name: /private/i }));
+    await user.click(screen.getByRole("checkbox", { name: /game master/i }));
+    await submit(user);
+
+    await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
+    const payload = createGameMutateAsync.mock.calls[0][0].data;
+    expect(payload.gameMaster).toBe(true);
+    expect(payload.private).toBe(true);
+  });
+
+  it("resets the game master checkbox when private is unchecked", async () => {
+    const user = userEvent.setup();
+    renderCreateGame();
+    await user.click(screen.getByRole("checkbox", { name: /private/i }));
+    await user.click(screen.getByRole("checkbox", { name: /game master/i }));
+    await user.click(screen.getByRole("checkbox", { name: /private/i }));
+
+    const gameMasterCheckbox = screen.getByRole("checkbox", {
+      name: /game master/i,
+    });
+    expect(gameMasterCheckbox).toBeDisabled();
+    expect(gameMasterCheckbox).not.toBeChecked();
+
+    await submit(user);
+    await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
+    expect(createGameMutateAsync.mock.calls[0][0].data.gameMaster).toBe(false);
   });
 });

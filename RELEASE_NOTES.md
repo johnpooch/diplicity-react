@@ -1,15 +1,13 @@
 # Diplicity React - Release Notes
 
-## Named Coasts in Orders (June 2026)
+## Unread Message Indicator on Game Cards (June 2026)
 
-### Fix: Orders show the correct named coast
+### Feature: See unread message counts without opening a game
 
-Orders involving multi-coast provinces (Spain, St. Petersburg, Bulgaria) now display the
-specific coast instead of the parent province. A fleet sitting on a named coast shows its
-unit type and coast (e.g. "Fleet Spain (NC)") in the orders list, and support orders read
-"Support St. Petersburg to Spain (SC)" when the supported move's coast is known. The map
-draws support arrows from and to the correct coast. Where the coast is genuinely ambiguous
-or not visible to you, the order falls back to the parent province as before.
+Each game card in your games list now shows a badge with the total number of unread chat
+messages for that game, summed across all of its channels. The badge appears next to the
+game name and disappears once you've read everything. This makes it easy to spot which
+games have new messages waiting without having to open each one.
 
 ## Chat Channels Sorted by Activity (June 2026)
 
@@ -35,6 +33,19 @@ games and for games that haven't assigned nations yet.
 In My Games, your started games are now ordered by how soon their next deadline is, with
 the most urgent game at the top. Games set to resolve manually ("resolve when ready") and
 sandbox games sort to the bottom, so the games actually waiting on you are easiest to find.
+
+## Game Master for Private Games (June 2026)
+
+### Feature: Run a private game as a non-playing Game Master
+
+When creating a private game, you can now choose to act as its Game Master. As Game
+Master you don't take a nation — all player slots go to other players — but you can
+pause and resume the game, extend deadlines, remove players before the game starts,
+and delete the game while it's still gathering players. You receive game notifications
+(game start, phase resolutions, civil disorder, and more) so you can keep an eye on
+things. When a game has a Game Master, the players — including the game's creator —
+do not have these management powers. The Game Master appears at the top of the player
+roster with a "Game Master" badge.
 
 ## Game Creator Rename (June 2026)
 
