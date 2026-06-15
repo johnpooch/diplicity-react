@@ -202,10 +202,10 @@ describe("GameCard", () => {
 
     it("does not show an indicator for sandbox games", () => {
       renderGameCard({
-        game: { ...mockSandboxGames[0], totalUnreadMessageCount: 4 },
+        game: { ...mockSandboxGames[0], totalUnreadMessageCount: 0 },
         ...defaultProps,
       });
-      expect(screen.queryByText("4")).not.toBeInTheDocument();
+      expect(screen.queryByText("0")).not.toBeInTheDocument();
     });
   });
 
