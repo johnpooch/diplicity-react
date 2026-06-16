@@ -263,6 +263,7 @@ class Order(BaseModel):
             self.order_type == OrderType.MOVE
             and self.target
             and self.target.named_coasts.exists()
+            and self.source_unit
             and self.source_unit.type == UnitType.FLEET
             and not self.named_coast
         ):

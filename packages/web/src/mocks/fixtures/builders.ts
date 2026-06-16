@@ -99,6 +99,8 @@ export const makeGame = (
     canJoin: false,
     canLeave: false,
     canDelete: false,
+    canManage: false,
+    gameMaster: null,
     variantId: "classical",
     phases: phases.map(p => p.id),
     currentPhaseId: currentPhase?.id ?? null,
@@ -121,6 +123,7 @@ export const makeGame = (
     movementFrequency: null,
     retreatFrequency: null,
     pressType: "full_press",
+    totalUnreadMessageCount: 0,
     ...overrides,
   };
 };

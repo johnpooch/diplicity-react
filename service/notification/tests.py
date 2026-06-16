@@ -103,6 +103,22 @@ def test_channel_message_notification_deleted_user(active_game, in_memory_procra
     assert jobs[0]["args"]["body"].startswith("Deleted User: ")
 
 
+@pytest.mark.django_db
+def test_channel_message_notification_masks_sender_in_anonymous_game(active_game, in_memory_procrastinate):
+    active_game.anonymous = True
+    active_game.save()
+    sender_member = active_game.members.first()
+    channel = Channel.objects.create(game=active_game, name="Global Press", private=False)
+
+    ChannelMessage.objects.create(channel=channel, sender=sender_member, body="Hello everyone")
+
+    jobs = _notification_jobs(in_memory_procrastinate, "channel_message")
+    assert len(jobs) == 1
+    body = jobs[0]["args"]["body"]
+    assert body.startswith("Anonymous: ")
+    assert sender_member.name not in body
+
+
 class TestDrawProposalNotification:
 
     @pytest.mark.django_db
@@ -121,6 +137,24 @@ class TestDrawProposalNotification:
         assert set(args["user_ids"]) == {secondary_user.id}
         assert italy.name in args["body"]
         assert args["title"] == game.name
+
+    @pytest.mark.django_db
+    def test_proposer_masked_in_anonymous_game(
+        self,
+        draw_notification_game_factory,
+        secondary_user,
+        in_memory_procrastinate,
+    ):
+        game, italy, germany = draw_notification_game_factory()
+        game.anonymous = True
+        game.save()
+        DrawProposal.objects.create_proposal(game=game, created_by=italy)
+
+        jobs = _notification_jobs(in_memory_procrastinate, "draw_proposal")
+        assert len(jobs) == 1
+        body = jobs[0]["args"]["body"]
+        assert body == "Anonymous has proposed a draw. Respond to it now."
+        assert italy.name not in body
 
     @pytest.mark.django_db
     def test_proposer_excluded_from_notification(

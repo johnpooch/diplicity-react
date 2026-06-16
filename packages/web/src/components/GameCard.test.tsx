@@ -183,6 +183,32 @@ describe("GameCard", () => {
     });
   });
 
+  describe("unread message indicator", () => {
+    it("shows the total unread count when greater than zero", () => {
+      renderGameCard({
+        game: { ...mockGames[0], totalUnreadMessageCount: 4 },
+        ...defaultProps,
+      });
+      expect(screen.getByText("4")).toBeInTheDocument();
+    });
+
+    it("does not show an indicator when there are no unread messages", () => {
+      renderGameCard({
+        game: { ...mockGames[0], totalUnreadMessageCount: 0 },
+        ...defaultProps,
+      });
+      expect(screen.queryByText("0")).not.toBeInTheDocument();
+    });
+
+    it("does not show an indicator for sandbox games", () => {
+      renderGameCard({
+        game: { ...mockSandboxGames[0], totalUnreadMessageCount: 0 },
+        ...defaultProps,
+      });
+      expect(screen.queryByText("0")).not.toBeInTheDocument();
+    });
+  });
+
   describe("sandbox visual treatment", () => {
     it("displays a Sandbox badge when game.sandbox is true", () => {
       renderGameCard({

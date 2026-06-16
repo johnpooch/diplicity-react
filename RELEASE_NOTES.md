@@ -11,6 +11,45 @@ units and retreats, and the build/disband adjustment phase. You give orders by t
 just like in a real game, and a coach panel explains what is happening at each step. When you
 finish you can jump straight to finding a game or replay the tutorial.
 
+## Expandable, Zoomable Map Preview (June 2026)
+
+### Feature: Inspect a variant's map before committing to a game
+
+The map previews shown when creating a game and when viewing a game's info are now
+expandable. Tap a preview to open it full-screen, where you can pinch, scroll, or drag to
+zoom and pan around the map. This makes it easy to study a variant's board in detail before
+deciding to create or join a game.
+
+## Notifications Respect Anonymous Games (June 2026)
+
+### Fix: Push notifications no longer reveal player identities in anonymous games
+
+In anonymous games, push notifications previously leaked who performed certain actions. Draw
+proposal and chat notifications now show "Anonymous" instead of the real name, and pause,
+resume, and deadline-extension notifications no longer append the acting player's username.
+Identities are still revealed once a game finishes, matching the rest of the app. Non-anonymous
+games are unaffected.
+
+## Multi-Step Create Game Form (June 2026)
+
+### Improvement: Creating a game is split into clear steps
+
+The create game form is now organised into three steps with a progress indicator at the
+top: "General" (game name, mode, privacy options and variant selection with the map
+preview), "Deadlines" (phase timing), and "Advanced" (automatic extensions). This makes the
+form feel less dense — particularly the deadline options — and leaves room for more settings
+in the future. Sandbox is now a choice in the Mode dropdown (rather than a separate tab);
+selecting it turns the General step into a single-step "Create Game" flow.
+
+## Unread Message Indicator on Game Cards (June 2026)
+
+### Feature: See unread message counts without opening a game
+
+Each game card in your games list now shows a badge with the total number of unread chat
+messages for that game, summed across all of its channels. The badge appears next to the
+game name and disappears once you've read everything. This makes it easy to spot which
+games have new messages waiting without having to open each one.
+
 ## Chat Channels Sorted by Activity (June 2026)
 
 ### Change: Chat channels are ordered by most recent activity
@@ -35,6 +74,19 @@ games and for games that haven't assigned nations yet.
 In My Games, your started games are now ordered by how soon their next deadline is, with
 the most urgent game at the top. Games set to resolve manually ("resolve when ready") and
 sandbox games sort to the bottom, so the games actually waiting on you are easiest to find.
+
+## Game Master for Private Games (June 2026)
+
+### Feature: Run a private game as a non-playing Game Master
+
+When creating a private game, you can now choose to act as its Game Master. As Game
+Master you don't take a nation — all player slots go to other players — but you can
+pause and resume the game, extend deadlines, remove players before the game starts,
+and delete the game while it's still gathering players. You receive game notifications
+(game start, phase resolutions, civil disorder, and more) so you can keep an eye on
+things. When a game has a Game Master, the players — including the game's creator —
+do not have these management powers. The Game Master appears at the top of the player
+roster with a "Game Master" badge.
 
 ## Game Creator Rename (June 2026)
 

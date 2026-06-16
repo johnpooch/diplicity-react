@@ -250,8 +250,8 @@ class PhaseManager(models.Manager):
 
             extension_ids = {m.user_id for m in members_with_extensions if m.user_id is not None}
             other_ids = [
-                m.user_id for m in phase.game.members.all()
-                if m.user_id is not None and m.user_id not in extension_ids
+                user_id for user_id in phase.game.notification_user_ids()
+                if user_id not in extension_ids
             ]
             if other_ids:
                 notification_utils.send_notification_to_users(
@@ -458,9 +458,7 @@ class PhaseManager(models.Manager):
         cd_user_ids = [m.user_id for m in newly_cd_members if m.user_id is not None]
         self._remove_from_staging_games(cd_user_ids)
 
-        user_ids = [
-            m.user_id for m in phase.game.members.all() if m.user_id is not None
-        ]
+        user_ids = phase.game.notification_user_ids()
         nation_names = ", ".join(
             m.nation.name for m in newly_cd_members if m.nation is not None
         )
