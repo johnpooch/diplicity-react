@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/form";
 
 import { randomGameName } from "@/util";
-import { MapPreview } from "@/components/MapPreview";
+import { ExpandableMapPreview } from "@/components/ExpandableMapPreview";
 import { DeadlineSummary } from "@/components/DeadlineSummary";
 import {
   DURATION_OPTIONS,
@@ -197,9 +197,10 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
       />
 
       {selectedVariant?.templatePhase ? (
-        <MapPreview
+        <ExpandableMapPreview
           variant={selectedVariant}
           phase={selectedVariant.templatePhase}
+          variantName={selectedVariant.name}
           style={{ width: "100%", height: "100%" }}
         />
       ) : null}

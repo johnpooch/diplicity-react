@@ -1,5 +1,14 @@
 # Diplicity React - Release Notes
 
+## Expandable, Zoomable Map Preview (June 2026)
+
+### Feature: Inspect a variant's map before committing to a game
+
+The map previews shown when creating a game and when viewing a game's info are now
+expandable. Tap a preview to open it full-screen, where you can pinch, scroll, or use the
+on-screen controls to zoom and pan around the map. This makes it easy to study a variant's
+board in detail before deciding to create or join a game.
+
 ## Unread Message Indicator on Game Cards (June 2026)
 
 ### Feature: See unread message counts without opening a game
