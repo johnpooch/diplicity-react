@@ -167,7 +167,8 @@ class TestGameMasterInGameAccess:
         game = active_game_with_game_master_factory()
         url = reverse(phase_state_list_viewname, args=[game.id])
         response = authenticated_client_for_secondary_user.get(url)
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == []
 
 
 class TestGameMasterPowers:
