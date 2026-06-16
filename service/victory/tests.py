@@ -49,6 +49,25 @@ class TestCheckForSoloWinner:
         else:
             assert result == members[winner_index]
 
+    def test_returns_none_when_variant_has_no_solo_victory_condition(
+        self,
+        game_factory,
+        phase_factory,
+        member_factory,
+        supply_center_factory,
+    ):
+        game = game_factory()
+        game.variant.victory_conditions = [{"type": "timed-resolution", "year": 1910, "resolution": "shared-draw"}]
+        game.variant.save()
+
+        phase = phase_factory(game=game, type=PhaseType.ADJUSTMENT, season="Fall")
+
+        member = member_factory(game=game)
+        for _ in range(30):
+            supply_center_factory(phase=phase, nation=member.nation)
+
+        assert check_for_solo_winner(game, phase) is None
+
 
 class TestVictoryManager:
 

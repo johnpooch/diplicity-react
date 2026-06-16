@@ -3,6 +3,8 @@ from django.db.models import Count
 
 def check_for_solo_winner(game, phase):
     required_sc_count = game.variant.solo_victory_supply_centers
+    if required_sc_count is None:
+        return None
 
     counts_by_nation = {
         row["nation"]: row["count"]
