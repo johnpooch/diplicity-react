@@ -224,6 +224,26 @@ The Team ID is `G76UP8FNMS` (stored in `.env` as `CAPACITOR_IOS_TEAM_ID`).
 
 ---
 
+## GitHub Workflow
+
+See `CONTRIBUTING.md` for the full contributor guidelines. Key points for Claude sessions:
+
+### WIP limits
+
+The project enforces soft limits: **5 open PRs** and **10 open issues**. A GitHub Actions bot warns (via comment) when these are exceeded — treat the warning as a prompt to close something before continuing. Before opening a new PR, check the current count.
+
+### GitHub Discussions for ambiguous work
+
+Before creating an issue for work where the right approach is not yet obvious, open a [GitHub Discussion](https://github.com/johnpooch/diplicity-react/discussions). Once the approach is agreed, create a focused issue that captures it in the `## Approach` section.
+
+Skip the Discussion if both the goal and the approach are already clear.
+
+### Issue format
+
+Issues follow the three-section format enforced by the `create-issue` skill: **Goal** (always), **Context** (when useful), **Approach** (when discussed). Do not add acceptance criteria, implementation checklists, or sub-issues. If work is too large for one PR, split into two separate issues.
+
+---
+
 # Frontend Development (`/packages/web/`)
 
 ## Architecture Overview
