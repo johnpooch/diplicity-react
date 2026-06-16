@@ -473,10 +473,11 @@ class GamePauseSerializer(serializers.Serializer):
     def update(self, instance, validated_data):
         actor = self.context["request"].user
         instance.pause()
+        actor_suffix = "" if instance.anonymity_active else f" ({actor.username})"
         send_game_management_notification(
             instance,
             title=instance.name,
-            body=f"Game paused by {instance.manager_label} ({actor.username})",
+            body=f"Game paused by {instance.manager_label}{actor_suffix}",
             notification_type="game_paused",
             exclude_user_id=actor.id,
         )
@@ -497,10 +498,11 @@ class GameUnpauseSerializer(serializers.Serializer):
         instance.unpause()
         new_deadline = instance.current_phase.scheduled_resolution if instance.current_phase else None
         deadline_str = format_deadline(new_deadline, instance.fixed_deadline_timezone) if new_deadline else "N/A"
+        actor_suffix = "" if instance.anonymity_active else f" ({actor.username})"
         send_game_management_notification(
             instance,
             title=instance.name,
-            body=f"Game resumed by {instance.manager_label} ({actor.username}). New deadline: {deadline_str}",
+            body=f"Game resumed by {instance.manager_label}{actor_suffix}. New deadline: {deadline_str}",
             notification_type="game_resumed",
             exclude_user_id=actor.id,
         )
@@ -530,10 +532,11 @@ class GameExtendDeadlineSerializer(serializers.Serializer):
         instance.extend_deadline(validated_data["duration"])
         new_deadline = instance.current_phase.scheduled_resolution if instance.current_phase else None
         deadline_str = format_deadline(new_deadline, instance.fixed_deadline_timezone) if new_deadline else "N/A"
+        actor_suffix = "" if instance.anonymity_active else f" ({actor.username})"
         send_game_management_notification(
             instance,
             title=instance.name,
-            body=f"Deadline extended by {instance.manager_label} ({actor.username}). New deadline: {deadline_str}",
+            body=f"Deadline extended by {instance.manager_label}{actor_suffix}. New deadline: {deadline_str}",
             notification_type="game_deadline_extended",
             exclude_user_id=actor.id,
         )
