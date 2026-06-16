@@ -41,8 +41,8 @@ def send_draw_proposal_notification(sender, instance, created, **kwargs):
     if not user_ids:
         return
 
-    proposer_name = instance.created_by.name
     game = instance.game
+    proposer_name = "Anonymous" if game.anonymity_active else instance.created_by.name
     phase = instance.phase
     link = (
         f"{settings.FRONTEND_URL}/game/{game.id}/phase/{phase.id}/draw-proposals"
@@ -75,8 +75,8 @@ def send_channel_message_notification(sender, instance, created, **kwargs):
     if not user_ids:
         return
 
-    sender_name = instance.sender.name
     game = instance.channel.game
+    sender_name = "Anonymous" if game.anonymity_active else instance.sender.name
     current_phase = game.phases.last()
     link = (
         f"{settings.FRONTEND_URL}/game/{game.id}/phase/{current_phase.id}/chat/channel/{instance.channel.id}"

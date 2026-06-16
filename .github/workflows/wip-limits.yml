@@ -1,0 +1,64 @@
+name: WIP limits
+
+on:
+  pull_request:
+    types: [opened, reopened]
+  issues:
+    types: [opened, reopened]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  check-pr-limit:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const { data } = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${context.repo.owner}/${context.repo.repo} is:pr is:open`
+            });
+            const count = data.total_count;
+
+            if (count > 5) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: [
+                  '> [!WARNING]',
+                  `> **WIP limit exceeded.** There are now **${count} open pull requests** — the project target is 5 or fewer.`,
+                  '>',
+                  '> Please close or merge an existing PR before continuing with this one.'
+                ].join('\n')
+              });
+            }
+
+  check-issue-limit:
+    if: github.event_name == 'issues'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const { data } = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${context.repo.owner}/${context.repo.repo} is:issue is:open`
+            });
+            const count = data.total_count;
+
+            if (count > 10) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.issue.number,
+                body: [
+                  '> [!WARNING]',
+                  `> **WIP limit exceeded.** There are now **${count} open issues** — the project target is 10 or fewer.`,
+                  '>',
+                  '> Please close or resolve an existing issue before opening new ones.'
+                ].join('\n')
+              });
+            }

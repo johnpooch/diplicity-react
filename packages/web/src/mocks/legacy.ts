@@ -342,6 +342,8 @@ export const mockGames: GameList[] = [
     pressType: "full_press",
     minReliability: "open",
     totalUnreadMessageCount: 0,
+    orderStatus: null,
+    memberStatus: [],
   },
   {
     id: "game-2",
@@ -377,6 +379,8 @@ export const mockGames: GameList[] = [
     pressType: "full_press",
     minReliability: "open",
     totalUnreadMessageCount: 0,
+    orderStatus: null,
+    memberStatus: [],
   },
   {
     id: "game-3",
@@ -412,6 +416,8 @@ export const mockGames: GameList[] = [
     pressType: "full_press",
     minReliability: "open",
     totalUnreadMessageCount: 0,
+    orderStatus: null,
+    memberStatus: [],
   },
   {
     id: "game-4",
@@ -447,6 +453,8 @@ export const mockGames: GameList[] = [
     pressType: "full_press",
     minReliability: "open",
     totalUnreadMessageCount: 0,
+    orderStatus: null,
+    memberStatus: [],
   },
   {
     id: "game-5",
@@ -487,6 +495,8 @@ export const mockGames: GameList[] = [
     pressType: "full_press",
     minReliability: "open",
     totalUnreadMessageCount: 0,
+    orderStatus: null,
+    memberStatus: [],
   },
   {
     id: "game-6",
@@ -527,6 +537,8 @@ export const mockGames: GameList[] = [
     pressType: "full_press",
     minReliability: "open",
     totalUnreadMessageCount: 0,
+    orderStatus: null,
+    memberStatus: [],
   },
 ];
 
@@ -580,6 +592,8 @@ export const mockSandboxGames: GameList[] = [
     pressType: "full_press",
     minReliability: "open",
     totalUnreadMessageCount: 0,
+    orderStatus: null,
+    memberStatus: [],
   },
   {
     id: "sandbox-2",
@@ -615,6 +629,8 @@ export const mockSandboxGames: GameList[] = [
     pressType: "full_press",
     minReliability: "open",
     totalUnreadMessageCount: 0,
+    orderStatus: null,
+    memberStatus: [],
   },
 ];
 

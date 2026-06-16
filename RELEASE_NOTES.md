@@ -8,6 +8,24 @@ When creating a game you can now set a "Player Reliability" requirement: **Open*
 join), **Reliable + New Players** (excludes players with a history of abandoning games), or
 **Reliable only**. On Find Games, games you can't join are hidden by default, with a "Show
 games I can't join" toggle in the filters if you want to see the wider lobby.
+## Expandable, Zoomable Map Preview (June 2026)
+
+### Feature: Inspect a variant's map before committing to a game
+
+The map previews shown when creating a game and when viewing a game's info are now
+expandable. Tap a preview to open it full-screen, where you can pinch, scroll, or drag to
+zoom and pan around the map. This makes it easy to study a variant's board in detail before
+deciding to create or join a game.
+
+## Notifications Respect Anonymous Games (June 2026)
+
+### Fix: Push notifications no longer reveal player identities in anonymous games
+
+In anonymous games, push notifications previously leaked who performed certain actions. Draw
+proposal and chat notifications now show "Anonymous" instead of the real name, and pause,
+resume, and deadline-extension notifications no longer append the acting player's username.
+Identities are still revealed once a game finishes, matching the rest of the app. Non-anonymous
+games are unaffected.
 
 ## Multi-Step Create Game Form (June 2026)
 

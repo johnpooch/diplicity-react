@@ -125,6 +125,8 @@ export const makeGame = (
     pressType: "full_press",
     minReliability: "open",
     totalUnreadMessageCount: 0,
+    orderStatus: null,
+    memberStatus: [],
     ...overrides,
   };
 };

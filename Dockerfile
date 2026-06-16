@@ -10,7 +10,7 @@
 FROM node:24.16.0-bookworm-slim AS node
 
 # Python 3.12 base
-FROM python:3.12-slim-bookworm
+FROM python:3.14-slim-bookworm
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1

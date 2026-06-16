@@ -170,6 +170,8 @@ const matchedGame: GameList = {
   pressType: "full_press",
   minReliability: "open",
   totalUnreadMessageCount: 0,
+  orderStatus: null,
+  memberStatus: [],
 };
 
 const renderCreateGame = () => {
