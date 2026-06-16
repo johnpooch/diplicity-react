@@ -26,6 +26,15 @@ const mockPhaseData = vi.fn();
 const mockOrdersData = vi.fn();
 const mockVariantsData = vi.fn();
 const mockPhaseStatesData = vi.fn();
+const mockUseAuth = vi.fn();
+
+vi.mock("@/auth", () => ({
+  useAuth: () => mockUseAuth(),
+}));
+
+vi.mock("@/components/LogInToPlayBanner", () => ({
+  LogInToPlayBanner: () => <div>Register to play</div>,
+}));
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({ data: mockGameData() }),
@@ -33,6 +42,7 @@ vi.mock("@/api/generated/endpoints", () => ({
   useGameOrdersListSuspense: () => ({ data: mockOrdersData() }),
   useVariantsListSuspense: () => ({ data: mockVariantsData() }),
   useGamePhaseStatesListSuspense: () => ({ data: mockPhaseStatesData() }),
+  useGamesChannelsListSuspense: () => ({ data: [] }),
   useGameOrdersDeleteDestroy: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useGameConfirmPhasePartialUpdate: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useGameResolvePhaseCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
@@ -40,6 +50,7 @@ vi.mock("@/api/generated/endpoints", () => ({
   getGameRetrieveQueryKey: () => ["game"],
   getGameOrdersListQueryKey: () => ["orders"],
   getGameOptionsRetrieveQueryKey: () => ["options"],
+  getGamePhaseStatesListQueryKey: () => ["phase-states"],
 }));
 
 vi.mock("@/components/NationFlag", () => ({
@@ -59,7 +70,7 @@ const baseMember = (overrides = {}) => ({
   nation: "England",
   eliminated: false,
   kicked: false,
-  isGameCreator: false,
+  isGameMaster: false,
   nmrExtensionsRemaining: 0,
   civilDisorder: false,
   ...overrides,
@@ -83,7 +94,8 @@ const renderOrdersScreen = () => {
 
 describe("OrdersScreen civil disorder handling", () => {
   beforeEach(() => {
-    mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);
+    mockUseAuth.mockReturnValue({ loggedIn: true });
+    mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical", nations: [] }]);
     mockPhaseData.mockReturnValue({
       id: 1, status: "active", supplyCenters: [], units: [],
     });
@@ -181,5 +193,69 @@ describe("OrdersScreen named coast display", () => {
     renderOrdersScreen();
 
     expect(screen.getByText(/Fleet Spain \(NC\)/)).toBeInTheDocument();
+  });
+});
+
+describe("GuestOrdersScreen", () => {
+  beforeEach(() => {
+    mockUseAuth.mockReturnValue({ loggedIn: false });
+    mockPhaseStatesData.mockReturnValue([]);
+    mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical", nations: [] }]);
+  });
+
+  it("shows the login banner", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: [],
+    });
+    mockPhaseData.mockReturnValue({ id: 1, status: "active", supplyCenters: [], units: [] });
+    mockOrdersData.mockReturnValue([]);
+
+    renderOrdersScreen();
+
+    expect(screen.getByText("Register to play")).toBeInTheDocument();
+  });
+
+  it("shows past-phase orders for all nations", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: [],
+    });
+    mockPhaseData.mockReturnValue({ id: 2, status: "completed", supplyCenters: [], units: [] });
+    mockOrdersData.mockReturnValue([
+      { nation: { name: "France" }, source: { id: "par", name: "Paris" }, summary: "Hold Paris", resolution: null },
+    ]);
+
+    renderOrdersScreen();
+
+    expect(screen.getByText("France")).toBeInTheDocument();
+    expect(screen.getByText("Hold Paris")).toBeInTheDocument();
+  });
+
+  it("does not show orders accordion for active phase", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: [],
+    });
+    mockPhaseData.mockReturnValue({ id: 1, status: "active", supplyCenters: [], units: [] });
+    mockOrdersData.mockReturnValue([
+      { nation: { name: "France" }, source: { id: "par", name: "Paris" }, summary: "Hold Paris", resolution: null },
+    ]);
+
+    renderOrdersScreen();
+
+    expect(screen.queryByText("France")).not.toBeInTheDocument();
   });
 });

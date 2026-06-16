@@ -18,6 +18,10 @@ const {
   mockInteractiveMapZoomWrapper: vi.fn(),
 }));
 
+vi.mock("@/auth", () => ({
+  useAuth: () => ({ loggedIn: true }),
+}));
+
 vi.mock("sonner", () => ({
   toast: { success: mockToastSuccess, error: mockToastError },
 }));

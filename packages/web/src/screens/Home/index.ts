@@ -11,6 +11,7 @@ export const Home = {
   Account: lazy(() =>
     import("./Account").then((m) => ({ default: m.Account }))
   ),
+  Profile: lazy(() => import("./Profile").then((m) => ({ default: m.Profile }))),
   GameInfoScreen: lazy(() =>
     import("./GameInfo").then((m) => ({ default: m.GameInfoScreen }))
   ),
