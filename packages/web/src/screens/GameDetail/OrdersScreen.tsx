@@ -254,6 +254,8 @@ const OrdersScreen: React.FC = () => {
     game
   );
   const hasContent = nationGroups.length > 0;
+  const currentUserGroup = nationGroups.find(g => g.member.isCurrentUser);
+  const otherGroups = nationGroups.filter(g => !g.member.isCurrentUser);
 
   const isStartedGame =
     game.status === "active" ||
@@ -345,6 +347,84 @@ const OrdersScreen: React.FC = () => {
                 message={emptyState.message}
                 className="h-full"
               />
+            ) : isActivePhase ? (
+              <div>
+                {(game.sandbox ? nationGroups : currentUserGroup ? [currentUserGroup] : []).map(
+                  ({ nation, member, items }) => {
+                    const nationColor = findNationColor(variant.nations, nation);
+                    return (
+                      <div key={nation}>
+                        <div className="flex items-center gap-2 p-2">
+                          <NationFlag
+                            flagUrl={findNationFlagUrl(variant.nations, nation)}
+                            alt={nation}
+                            size="md"
+                            color={nationColor}
+                          />
+                          <span>{nation}</span>
+                          {member.isCurrentUser && (
+                            <>
+                              <span className="text-muted-foreground">•</span>
+                              <NationBadge nations={variant.nations} nation={nation}>
+                                you
+                              </NationBadge>
+                            </>
+                          )}
+                          <span className="text-muted-foreground">•</span>
+                          <span className="inline-flex items-center gap-1 text-muted-foreground">
+                            <Star className="size-3" />
+                            <span>{getSupplyCenterCount(nation)}</span>
+                          </span>
+                        </div>
+                        <ItemGroup>
+                          {items.map((item, index) => (
+                            <React.Fragment key={item.province.id}>
+                              {index === 0 && <Separator />}
+                              <Item size="sm">
+                                <ItemContent>
+                                  <ItemTitle>
+                                    {item.unit?.type} {item.province.name}
+                                  </ItemTitle>
+                                  <ItemDescription>
+                                    {item.order ? item.order.summary : "Order not provided"}
+                                  </ItemDescription>
+                                </ItemContent>
+                                {canModifyOrders && item.order && (
+                                  <ItemActions>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleDeleteOrder(item.province.id)}
+                                      disabled={deleteOrderMutation.isPending}
+                                    >
+                                      <Trash2 className="size-4" />
+                                    </Button>
+                                  </ItemActions>
+                                )}
+                              </Item>
+                              {index < items.length - 1 && <ItemSeparator />}
+                            </React.Fragment>
+                          ))}
+                        </ItemGroup>
+                      </div>
+                    );
+                  }
+                )}
+                {!game.sandbox && otherGroups.map(({ nation }) => {
+                  const nationColor = findNationColor(variant.nations, nation);
+                  return (
+                    <div key={nation} className="flex items-center gap-2 p-2 text-muted-foreground">
+                      <NationFlag
+                        flagUrl={findNationFlagUrl(variant.nations, nation)}
+                        alt={nation}
+                        size="md"
+                        color={nationColor}
+                      />
+                      <span>{nation}</span>
+                    </div>
+                  );
+                })}
+              </div>
             ) : (
               <Accordion
                 type="multiple"

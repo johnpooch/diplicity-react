@@ -1,5 +1,5 @@
 import React from "react";
-import { Shield, Star, Trophy } from "lucide-react";
+import { Shield, Star, Trophy, HardHat, Gavel } from "lucide-react";
 import { Link, useParams } from "react-router";
 
 import { CivilDisorderBadge } from "@/components/CivilDisorderBadge";
@@ -9,9 +9,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import {
   useGameRetrieveSuspense,
   useGamePhaseRetrieve,
+  useGamePhaseStatesList,
+  useGameOrdersList,
   useVariantsListSuspense,
   Member,
 } from "@/api/generated/endpoints";
@@ -31,6 +34,12 @@ export const PlayerInfoContent: React.FC = () => {
     currentPhaseId ?? 0,
     { query: { enabled: !!currentPhaseId } }
   );
+  const { data: phaseStates } = useGamePhaseStatesList(gameId, {
+    query: { enabled: !!currentPhaseId && game.status === "active" },
+  });
+  const { data: currentOrders } = useGameOrdersList(gameId, currentPhaseId ?? 0, {
+    query: { enabled: !!currentPhaseId && game.status === "active" },
+  });
 
   const variant = variants.find(v => v.id === game.variantId);
 
@@ -39,6 +48,19 @@ export const PlayerInfoContent: React.FC = () => {
     return currentPhase.supplyCenters.filter(
       sc => sc.nation.name === member.nation
     ).length;
+  };
+
+  const getUnitCount = (member: Member) => {
+    if (!currentPhase) return undefined;
+    return currentPhase.units.filter(u => u.nation.name === member.nation).length;
+  };
+
+  const getRemainingOrders = (member: Member) => {
+    if (!phaseStates || !currentOrders || !member.nation) return undefined;
+    const ps = phaseStates.find(p => p.member.nation === member.nation);
+    if (!ps) return undefined;
+    const placed = currentOrders.filter(o => o.nation.name === member.nation).length;
+    return ps.orderableProvinces.length - placed;
   };
 
   const winnerIds = game.victory?.members?.map(m => m.id) || [];
@@ -73,6 +95,8 @@ export const PlayerInfoContent: React.FC = () => {
           )}
           {game.members.map(member => {
             const supplyCenterCount = getSupplyCenterCount(member);
+            const unitCount = getUnitCount(member);
+            const remainingOrders = getRemainingOrders(member);
             const isWinner = winnerIds.includes(member.id);
 
             return (
@@ -126,14 +150,51 @@ export const PlayerInfoContent: React.FC = () => {
                       <span className="inline-flex items-center gap-2">
                         <span>{member.nation}</span>
                         <span>•</span>
-                        <span className="inline-flex items-center gap-1">
-                          <Star className="size-3" />
-                          {supplyCenterCount !== undefined ? (
-                            <span>{supplyCenterCount}</span>
-                          ) : (
-                            <Skeleton className="h-3 w-4" />
-                          )}
-                        </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex items-center gap-1">
+                              <Star className="size-3" />
+                              {supplyCenterCount !== undefined ? (
+                                <span>{supplyCenterCount}</span>
+                              ) : (
+                                <Skeleton className="h-3 w-4" />
+                              )}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Supply centres</TooltipContent>
+                        </Tooltip>
+                        <span>•</span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex items-center gap-1">
+                              <HardHat className="size-3" />
+                              {unitCount !== undefined ? (
+                                <span>{unitCount}</span>
+                              ) : (
+                                <Skeleton className="h-3 w-4" />
+                              )}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Units</TooltipContent>
+                        </Tooltip>
+                        {game.status === "active" && (
+                          <>
+                            <span>•</span>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex items-center gap-1">
+                                  <Gavel className="size-3" />
+                                  {remainingOrders !== undefined ? (
+                                    <span>{remainingOrders}</span>
+                                  ) : (
+                                    <Skeleton className="h-3 w-4" />
+                                  )}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>Orders remaining</TooltipContent>
+                            </Tooltip>
+                          </>
+                        )}
                         {game.nmrExtensionsAllowed > 0 && (
                           <>
                             <span>•</span>
