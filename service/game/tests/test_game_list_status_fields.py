@@ -246,3 +246,73 @@ def test_member_status_empty_when_no_flags(
     data = _get_game_data(response, game.id)
     assert data is not None
     assert data["member_status"] == []
+
+
+@pytest.mark.django_db
+def test_order_status_null_for_sandbox_game(
+    authenticated_client,
+    db,
+    primary_user,
+    classical_variant,
+    classical_england_nation,
+):
+    game = Game.objects.create(
+        name="Sandbox Order Status Test Game",
+        variant=classical_variant,
+        status=GameStatus.ACTIVE,
+        sandbox=True,
+        private=True,
+    )
+    member = game.members.create(user=primary_user, nation=classical_england_nation)
+    phase = game.phases.create(
+        variant=classical_variant,
+        season="Spring",
+        year=1901,
+        type="Movement",
+        status=PhaseStatus.ACTIVE,
+        ordinal=1,
+    )
+    phase.phase_states.create(member=member, has_possible_orders=True, orders_confirmed=False)
+
+    response = authenticated_client.get(LIST_URL + "?mine=1")
+    assert response.status_code == status.HTTP_200_OK
+    data = _get_game_data(response, game.id)
+    assert data is not None
+    assert data["order_status"] is None
+
+
+@pytest.mark.django_db
+def test_member_status_null_for_sandbox_game(
+    authenticated_client,
+    db,
+    primary_user,
+    classical_variant,
+    classical_england_nation,
+):
+    game = Game.objects.create(
+        name="Sandbox Member Status Test Game",
+        variant=classical_variant,
+        status=GameStatus.ACTIVE,
+        sandbox=True,
+        private=True,
+    )
+    member = game.members.create(
+        user=primary_user,
+        nation=classical_england_nation,
+        civil_disorder=True,
+    )
+    phase = game.phases.create(
+        variant=classical_variant,
+        season="Spring",
+        year=1901,
+        type="Movement",
+        status=PhaseStatus.ACTIVE,
+        ordinal=1,
+    )
+    phase.phase_states.create(member=member, has_possible_orders=True)
+
+    response = authenticated_client.get(LIST_URL + "?mine=1")
+    assert response.status_code == status.HTTP_200_OK
+    data = _get_game_data(response, game.id)
+    assert data is not None
+    assert data["member_status"] is None
