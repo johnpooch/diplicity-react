@@ -5,6 +5,7 @@ import {
   useVariantsListSuspense,
   type Variant,
 } from "@/api/generated/endpoints";
+import { useIsDesktopWeb } from "@/hooks/use-platform";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/Notice";
 import { Navigation } from "@/components/Navigation";
@@ -21,7 +22,14 @@ interface TutorialProps {
 
 const Tutorial: React.FC<TutorialProps> = ({ variant }) => {
   const navigate = useNavigate();
-  const lessons = useMemo(() => buildLessons(variant), [variant]);
+  const isDesktopWeb = useIsDesktopWeb();
+  const panHint = isDesktopWeb
+    ? "Mousewheel (or pinch) to zoom and drag to move the map"
+    : "Pinch to zoom and drag to move the map";
+  const lessons = useMemo(
+    () => buildLessons(variant, panHint),
+    [variant, panHint]
+  );
   const engine = useTutorialEngine(lessons);
 
   const { step, primaryAction } = engine;

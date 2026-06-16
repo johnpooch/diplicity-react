@@ -7,17 +7,25 @@ interface CoachCardProps {
   engine: TutorialEngine;
 }
 
-// Render coach copy with inline **bold** emphasis, preserving newlines.
+// Render coach copy with inline **bold** and _italic_ emphasis, preserving newlines.
 function renderCoach(text: string): React.ReactNode[] {
-  return text.split(/(\*\*[^*]+\*\*)/).map((part, i) =>
-    part.startsWith("**") && part.endsWith("**") ? (
-      <strong key={i} className="font-semibold text-foreground">
-        {part.slice(2, -2)}
-      </strong>
-    ) : (
-      part
-    )
-  );
+  return text.split(/(\*\*[^*]+\*\*|_[^_]+_)/).map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong key={i} className="font-semibold text-foreground">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (part.startsWith("_") && part.endsWith("_")) {
+      return (
+        <em key={i} className="italic">
+          {part.slice(1, -1)}
+        </em>
+      );
+    }
+    return part;
+  });
 }
 
 const CoachCard: React.FC<CoachCardProps> = ({ engine }) => {
@@ -33,7 +41,7 @@ const CoachCard: React.FC<CoachCardProps> = ({ engine }) => {
         "md:inset-x-auto md:bottom-auto md:top-4 md:right-4 md:w-[360px] md:rounded-2xl"
       )}
     >
-      <div className="p-3 space-y-2 md:p-5 md:space-y-3">
+      <div className="p-5 space-y-3 short:p-3 short:space-y-2">
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
             {progress.lessonTitle}
@@ -53,10 +61,10 @@ const CoachCard: React.FC<CoachCardProps> = ({ engine }) => {
         </div>
 
         {step.title && (
-          <h2 className="text-base font-semibold leading-tight md:text-lg">{step.title}</h2>
+          <h2 className="text-lg font-semibold leading-tight short:text-base">{step.title}</h2>
         )}
 
-        <p className="whitespace-pre-line text-[13px] leading-snug text-muted-foreground md:text-[15px] md:leading-relaxed">
+        <p className="whitespace-pre-line text-[15px] leading-relaxed text-muted-foreground short:text-[13px] short:leading-snug">
           {renderCoach(step.coach)}
         </p>
 
@@ -64,23 +72,30 @@ const CoachCard: React.FC<CoachCardProps> = ({ engine }) => {
           <button
             type="button"
             onClick={() => setView("chat")}
-            className="flex w-full items-center gap-2 rounded-lg bg-muted/60 px-3 py-1.5 text-left text-xs text-muted-foreground transition-colors hover:bg-muted md:py-2 md:text-sm"
+            className="flex w-full items-center gap-2 rounded-lg bg-muted/60 px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-muted short:py-1.5 short:text-xs"
           >
             <MessageCircle className="size-4 shrink-0" />
             <span>Tap Chat in the menu to continue.</span>
           </button>
         ) : primaryAction === null ? (
-          <div className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-1.5 text-xs text-muted-foreground md:py-2 md:text-sm">
+          <div className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2 text-sm text-muted-foreground short:py-1.5 short:text-xs">
             <Hand className="size-4 shrink-0" />
             <span>Tap the highlighted area on the map to continue.</span>
           </div>
         ) : (
           <div className="flex items-center gap-3">
-            <Button size="sm" onClick={primaryAction.run} className="flex-1 md:size-auto">
+            <Button
+              onClick={primaryAction.run}
+              className="flex-1 short:h-8 short:px-3"
+            >
               {primaryAction.label}
             </Button>
             {isFirstStep && (
-              <Button size="sm" variant="ghost" onClick={skip} className="md:size-auto">
+              <Button
+                variant="ghost"
+                onClick={skip}
+                className="short:h-8 short:px-3"
+              >
                 I already know how
               </Button>
             )}

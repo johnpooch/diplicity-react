@@ -160,7 +160,7 @@ function phase(
   };
 }
 
-export function buildLessons(variant: Variant): Lesson[] {
+export function buildLessons(variant: Variant, panHint: string): Lesson[] {
   // --- supply-center ownership ---
   // Movement turns: France's home centres, plus England/Germany for context.
   // Belgium and Holland stay neutral until the year-end adjustment.
@@ -379,7 +379,8 @@ export function buildLessons(variant: Variant): Lesson[] {
       steps: [
         {
           coach:
-            "Diplomacy is a game about talking to other players, making plans together and figuring out who you can trust.\n\nIn this tutorial, you'll learn the basic moves, playing as France.",
+            "Diplomacy is a game about talking to other players, making plans together and figuring out who you can trust.\n\nIn this tutorial, you'll learn the basic moves, playing as France.\n" +
+            `_${panHint}_`,
           title: "A game about people",
           goal: { kind: "continue" },
           primaryLabel: "Start tutorial",

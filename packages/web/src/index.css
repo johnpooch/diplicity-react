@@ -3,6 +3,9 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Short viewports (e.g. iPhone SE, < 700px tall) — used to compact cards. */
+@custom-variant short (@media (max-height: 699px));
+
 :root {
   font-family: 'Cabin', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
