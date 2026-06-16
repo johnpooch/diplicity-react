@@ -21,7 +21,7 @@
     {
       "endpoint": "GET game/<str:game_id>/",
       "approach": "cache Game.current_phase with cached_property to eliminate 2× redundant phases.all() evaluations per retrieve serialization",
-      "pr_number": null,
+      "pr_number": 743,
       "outcome": "open"
     }
   ]
