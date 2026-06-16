@@ -134,34 +134,11 @@ describe("FindGames", () => {
     );
   });
 
-  it("passes eligible_only: true by default", () => {
+  it("passes eligible_only: true to the games list query", () => {
     renderFindGames();
 
     expect(mockUseGamesListInfinite).toHaveBeenCalledWith(
       expect.objectContaining({ eligible_only: true })
-    );
-  });
-
-  it("passes eligible_only: false when show_all is set in the URL", () => {
-    renderFindGames(["/?show_all=true"]);
-
-    expect(mockUseGamesListInfinite).toHaveBeenCalledWith(
-      expect.objectContaining({ eligible_only: false })
-    );
-  });
-
-  it("toggles eligible_only off when the 'show games I can't join' checkbox is clicked", async () => {
-    renderFindGames();
-
-    await userEvent.click(
-      screen.getByRole("button", { name: /toggle filters/i })
-    );
-    await userEvent.click(
-      screen.getByRole("checkbox", { name: /show games i can't join/i })
-    );
-
-    expect(mockUseGamesListInfinite).toHaveBeenLastCalledWith(
-      expect.objectContaining({ eligible_only: false })
     );
   });
 

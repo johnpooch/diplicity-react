@@ -6,8 +6,9 @@
 
 When creating a game you can now set a "Player Reliability" requirement: **Open** (anyone can
 join), **Reliable + New Players** (excludes players with a history of abandoning games), or
-**Reliable only**. On Find Games, games you can't join are hidden by default, with a "Show
-games I can't join" toggle in the filters if you want to see the wider lobby.
+**Reliable only**. On Find Games, games you can't join are hidden so the lobby only shows
+games you're eligible for.
+
 ## Expandable, Zoomable Map Preview (June 2026)
 
 ### Feature: Inspect a variant's map before committing to a game
