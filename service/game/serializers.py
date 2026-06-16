@@ -149,6 +149,8 @@ class GameListSerializer(serializers.Serializer):
         allow_null=True,
     ))
     def get_order_status(self, obj):
+        if obj.sandbox:
+            return None
         user = self.context["request"].user
         if not user.is_authenticated or obj.status != "active":
             return None
@@ -166,8 +168,11 @@ class GameListSerializer(serializers.Serializer):
 
     @extend_schema_field(serializers.ListField(
         child=serializers.ChoiceField(choices=["nmr", "civil_disorder"]),
+        allow_null=True,
     ))
     def get_member_status(self, obj):
+        if obj.sandbox:
+            return None
         user = self.context["request"].user
         if not user.is_authenticated:
             return []
@@ -303,6 +308,8 @@ class GameRetrieveSerializer(serializers.Serializer):
         allow_null=True,
     ))
     def get_order_status(self, obj):
+        if obj.sandbox:
+            return None
         user = self.context["request"].user
         if not user.is_authenticated or obj.status != "active":
             return None
@@ -320,8 +327,11 @@ class GameRetrieveSerializer(serializers.Serializer):
 
     @extend_schema_field(serializers.ListField(
         child=serializers.ChoiceField(choices=["nmr", "civil_disorder"]),
+        allow_null=True,
     ))
     def get_member_status(self, obj):
+        if obj.sandbox:
+            return None
         user = self.context["request"].user
         if not user.is_authenticated:
             return []
