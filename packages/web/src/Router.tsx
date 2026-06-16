@@ -13,7 +13,7 @@ import { CheckEmail } from "./screens/CheckEmail";
 import { ForgotPassword } from "./screens/ForgotPassword";
 import { VerifyEmail } from "./screens/VerifyEmail";
 import { ResetPassword } from "./screens/ResetPassword";
-import { GameDetail, Home, Variants } from "./screens";
+import { GameDetail, Home, Tutorial, Variants } from "./screens";
 import { ErrorFallbackUI } from "./components/ErrorBoundary";
 import { HomeLayout } from "./components/HomeLayout";
 import { GameDetailLayout } from "./components/GameDetailLayout";
@@ -199,6 +199,14 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
                       ),
                     },
                   ],
+                },
+                {
+                  path: "learn-to-play/tutorial",
+                  element: (
+                    <Suspense fallback={<RouteFallback />}>
+                      <Tutorial.TutorialScreen />
+                    </Suspense>
+                  ),
                 },
                 {
                   path: "game/:gameId",
