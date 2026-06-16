@@ -1,0 +1,26 @@
+name: Task / Feature
+description: A new feature, improvement, or task
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What are we doing? (1–2 sentences)
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Why / background. Leave blank if the goal is self-explanatory.
+    validations:
+      required: false
+
+  - type: textarea
+    id: approach
+    attributes:
+      label: Approach
+      description: How we will do it. Leave blank unless an approach has been discussed.
+    validations:
+      required: false
