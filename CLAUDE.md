@@ -436,6 +436,42 @@ Only add classes that actually do something. Question every class:
 
 Trust component defaults - shadcn/ui components have sensible defaults; only override when necessary.
 
+### UX Principles
+
+Ground all UX decisions in **Material Design 3 (m3.material.io)** as the primary reference. When MD3 covers a pattern, follow its guidance; when it doesn't, look to comparable well-established systems (iOS HIG, etc.) rather than inventing custom patterns.
+
+These principles are a starting point and should be updated as new patterns are established.
+
+#### Selection controls
+
+Follow the MD3 decision tree when choosing how to present a set of options:
+
+| Scenario | Preferred control |
+|---|---|
+| Binary on/off, takes immediate effect | Switch |
+| Binary choice in a form (requires Save/Submit) | Checkbox |
+| 2–5 options, single-select, comparison between options matters | Radio buttons |
+| 2–5 options, single-select, compact inline toggle (e.g. view switch, sort order) | Segmented button |
+| Dynamic / unknown number of options (could exceed 5) | Exposed dropdown (select) |
+| > 5 options, single-select | Exposed dropdown (select) |
+| > 5 options, multi-select | Filter chips |
+| Value along a continuous range | Slider |
+
+**Never use a dropdown when 2–5 fixed options are available and space allows** — hiding choices behind an extra interaction increases cognitive load without saving meaningful space. If the option count is dynamic and could exceed 5, a dropdown is appropriate from the start.
+
+#### Progressive disclosure
+
+Show options **inline (always visible)** when:
+- The option is part of the user's primary task flow
+- Comparing options side-by-side improves the quality of the decision
+- The current selection state should be readable without an extra interaction
+
+Hide options **behind an interaction** (overflow menu, collapsible section) when:
+- The option is used only in advanced or edge-case scenarios
+- The user's primary goal can be completed without ever touching it
+
+**The right-split rule:** if users routinely open a secondary/collapsed level to complete a common task, the split is wrong — promote that content to the primary level.
+
 ## Forms
 
 Use React Hook Form with Zod for all forms:
