@@ -304,6 +304,20 @@ export const PressTypeEnum = {
   no_press: "no_press",
 } as const;
 
+/**
+ * * `open` - Open
+ * `reliable_and_new` - Reliable + New Players
+ * `reliable_only` - Reliable only
+ */
+export type MinReliabilityEnum =
+  (typeof MinReliabilityEnum)[keyof typeof MinReliabilityEnum];
+
+export const MinReliabilityEnum = {
+  open: "open",
+  reliable_and_new: "reliable_and_new",
+  reliable_only: "reliable_only",
+} as const;
+
 export interface GameCreate {
   readonly id: string;
   name: string;
@@ -330,6 +344,7 @@ export interface GameCreate {
    */
   nmrExtensionsAllowed?: number;
   pressType?: PressTypeEnum;
+  minReliability?: MinReliabilityEnum;
 }
 
 export interface GameCreateSandbox {
@@ -428,6 +443,7 @@ export interface GameList {
   /** @nullable */
   readonly retreatFrequency: string | null;
   readonly pressType: string;
+  readonly minReliability: string;
   readonly totalUnreadMessageCount: number;
 }
 
@@ -474,6 +490,7 @@ export interface GameRetrieve {
   /** @nullable */
   readonly retreatFrequency: string | null;
   readonly pressType: string;
+  readonly minReliability: string;
   readonly totalUnreadMessageCount: number;
 }
 
@@ -955,6 +972,7 @@ export type ApiSchemaRetrieve200Four = { [key: string]: unknown };
 
 export type GamesListParams = {
   can_join?: boolean;
+  eligible_only?: boolean;
   mine?: boolean;
   /**
    * * `1 hour` - 1 hour

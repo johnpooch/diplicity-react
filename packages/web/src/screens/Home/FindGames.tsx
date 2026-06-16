@@ -7,6 +7,8 @@ import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { GameCard } from "@/components/GameCard";
 import { Notice } from "@/components/Notice";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -23,6 +25,7 @@ import { DURATION_OPTIONS } from "@/constants";
 
 const VARIANT_PARAM = "variant";
 const DURATION_PARAM = "movement_phase_duration";
+const SHOW_ALL_PARAM = "show_all";
 const ALL_VARIANTS_VALUE = "__all__";
 const ANY_DURATION_VALUE = "__any__";
 const EXPRESS_MIN_MEMBERS = 3;
@@ -38,10 +41,12 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
   const durationParam =
     (searchParams.get(DURATION_PARAM) as GamesListMovementPhaseDuration) ??
     undefined;
+  const showAll = searchParams.get(SHOW_ALL_PARAM) === "true";
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useGamesListInfinite({
       can_join: true,
+      eligible_only: !showAll,
       variant: variantParam,
       movement_phase_duration: durationParam,
       ordering: "slots_remaining",
@@ -78,6 +83,18 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
         next.delete(DURATION_PARAM);
       } else {
         next.set(DURATION_PARAM, value);
+      }
+      return next;
+    });
+  };
+
+  const handleShowAllChange = (checked: boolean) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (checked) {
+        next.set(SHOW_ALL_PARAM, "true");
+      } else {
+        next.delete(SHOW_ALL_PARAM);
       }
       return next;
     });
@@ -120,6 +137,17 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
               ))}
             </SelectContent>
           </Select>
+
+          <div className="col-span-2 flex items-center gap-2">
+            <Checkbox
+              id="show-all"
+              checked={showAll}
+              onCheckedChange={checked => handleShowAllChange(checked === true)}
+            />
+            <Label htmlFor="show-all" className="font-normal">
+              Show games I can't join
+            </Label>
+          </div>
         </div>
       )}
 

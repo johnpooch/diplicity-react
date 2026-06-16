@@ -961,6 +961,10 @@ paths:
         schema:
           type: boolean
       - in: query
+        name: eligible_only
+        schema:
+          type: boolean
+      - in: query
         name: mine
         schema:
           type: boolean
@@ -2088,6 +2092,10 @@ components:
           allOf:
           - $ref: '#/components/schemas/PressTypeEnum'
           default: full_press
+        minReliability:
+          allOf:
+          - $ref: '#/components/schemas/MinReliabilityEnum'
+          default: open
       required:
       - id
       - name
@@ -2241,6 +2249,9 @@ components:
         pressType:
           type: string
           readOnly: true
+        minReliability:
+          type: string
+          readOnly: true
         totalUnreadMessageCount:
           type: integer
           readOnly: true
@@ -2261,6 +2272,7 @@ components:
       - id
       - isPaused
       - members
+      - minReliability
       - movementFrequency
       - movementPhaseDuration
       - name
@@ -2449,6 +2461,9 @@ components:
         pressType:
           type: string
           readOnly: true
+        minReliability:
+          type: string
+          readOnly: true
         totalUnreadMessageCount:
           type: integer
           readOnly: true
@@ -2467,6 +2482,7 @@ components:
       - id
       - isPaused
       - members
+      - minReliability
       - movementFrequency
       - movementPhaseDuration
       - name
@@ -2543,6 +2559,16 @@ components:
       - replaceable
       - seekingReplacement
       - userId
+    MinReliabilityEnum:
+      enum:
+      - open
+      - reliable_and_new
+      - reliable_only
+      type: string
+      description: |-
+        * `open` - Open
+        * `reliable_and_new` - Reliable + New Players
+        * `reliable_only` - Reliable only
     MovementFrequencyEnum:
       enum:
       - hourly

@@ -1,8 +1,9 @@
 import django_filters
 from django.db.models import Count, F, OuterRef, Q, Subquery
 
-from common.constants import GameStatus, MovementPhaseDuration, PhaseStatus
+from common.constants import GameStatus, MinReliability, MovementPhaseDuration, PhaseStatus
 from phase.models import Phase
+from user_profile.utils import get_player_stats
 
 from .models import Game
 
@@ -10,6 +11,7 @@ from .models import Game
 class GameFilter(django_filters.FilterSet):
     mine = django_filters.BooleanFilter(method="filter_mine")
     can_join = django_filters.BooleanFilter(method="filter_can_join")
+    eligible_only = django_filters.BooleanFilter(method="filter_eligible_only")
     sandbox = django_filters.BooleanFilter(method="filter_sandbox")
     status = django_filters.CharFilter(method="filter_status")
     variant = django_filters.CharFilter(field_name="variant_id")
@@ -38,6 +40,16 @@ class GameFilter(django_filters.FilterSet):
                 queryset = queryset.exclude(members__user=self.request.user)
             return queryset
         return queryset
+
+    def filter_eligible_only(self, queryset, name, value):
+        if not value or not self.request.user.is_authenticated:
+            return queryset
+        tier = get_player_stats(self.request.user)["reliability_tier"]
+        if tier == "reliable":
+            return queryset
+        if tier == "new":
+            return queryset.exclude(min_reliability=MinReliability.RELIABLE_ONLY)
+        return queryset.filter(min_reliability=MinReliability.OPEN)
 
     def filter_sandbox(self, queryset, name, value):
         return queryset.filter(sandbox=value)

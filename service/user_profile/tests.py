@@ -653,3 +653,30 @@ class TestPublicUserProfileRetrieveView:
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["name"] == secondary_user.profile.name
+
+
+class TestTierAllowsMinReliability:
+
+    @pytest.mark.parametrize(
+        "tier,min_reliability,expected",
+        [
+            ("reliable", "open", True),
+            ("reliable", "reliable_and_new", True),
+            ("reliable", "reliable_only", True),
+            ("new", "open", True),
+            ("new", "reliable_and_new", True),
+            ("new", "reliable_only", False),
+            (None, "open", True),
+            (None, "reliable_and_new", False),
+            (None, "reliable_only", False),
+        ],
+    )
+    def test_tier_allows_min_reliability(self, tier, min_reliability, expected):
+        from user_profile.utils import tier_allows_min_reliability
+
+        assert tier_allows_min_reliability(tier, min_reliability) is expected
+
+    def test_unknown_min_reliability_fails_open(self):
+        from user_profile.utils import tier_allows_min_reliability
+
+        assert tier_allows_min_reliability(None, "something_else") is True

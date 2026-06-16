@@ -340,6 +340,7 @@ export const mockGames: GameList[] = [
     movementFrequency: null,
     retreatFrequency: null,
     pressType: "full_press",
+    minReliability: "open",
     totalUnreadMessageCount: 0,
   },
   {
@@ -374,6 +375,7 @@ export const mockGames: GameList[] = [
     movementFrequency: null,
     retreatFrequency: null,
     pressType: "full_press",
+    minReliability: "open",
     totalUnreadMessageCount: 0,
   },
   {
@@ -408,6 +410,7 @@ export const mockGames: GameList[] = [
     movementFrequency: null,
     retreatFrequency: null,
     pressType: "full_press",
+    minReliability: "open",
     totalUnreadMessageCount: 0,
   },
   {
@@ -442,6 +445,7 @@ export const mockGames: GameList[] = [
     movementFrequency: null,
     retreatFrequency: null,
     pressType: "full_press",
+    minReliability: "open",
     totalUnreadMessageCount: 0,
   },
   {
@@ -481,6 +485,7 @@ export const mockGames: GameList[] = [
     movementFrequency: null,
     retreatFrequency: null,
     pressType: "full_press",
+    minReliability: "open",
     totalUnreadMessageCount: 0,
   },
   {
@@ -520,6 +525,7 @@ export const mockGames: GameList[] = [
     movementFrequency: null,
     retreatFrequency: null,
     pressType: "full_press",
+    minReliability: "open",
     totalUnreadMessageCount: 0,
   },
 ];
@@ -572,6 +578,7 @@ export const mockSandboxGames: GameList[] = [
     movementFrequency: null,
     retreatFrequency: null,
     pressType: "full_press",
+    minReliability: "open",
     totalUnreadMessageCount: 0,
   },
   {
@@ -606,6 +613,7 @@ export const mockSandboxGames: GameList[] = [
     movementFrequency: null,
     retreatFrequency: null,
     pressType: "full_press",
+    minReliability: "open",
     totalUnreadMessageCount: 0,
   },
 ];

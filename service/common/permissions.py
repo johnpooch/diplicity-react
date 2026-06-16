@@ -1,7 +1,7 @@
 from rest_framework.permissions import BasePermission
 from django.shortcuts import get_object_or_404
 from django.apps import apps
-from common.constants import GameStatus, PressType
+from common.constants import GameStatus, MinReliability, PressType
 from common.views import resolve_game
 
 Game = apps.get_model("game", "Game")
@@ -100,6 +100,21 @@ class IsSpaceAvailable(BasePermission):
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
         return game.members.count() < game.variant.nations.count()
+
+
+class MeetsReliabilityRequirement(BasePermission):
+    message = "Your reliability rating does not meet this game's requirement."
+
+    def has_permission(self, request, view):
+        game = resolve_game(request, view.kwargs.get("game_id"))
+        if game.min_reliability == MinReliability.OPEN:
+            return True
+        if not request.user.is_authenticated:
+            return False
+        from user_profile.utils import get_player_stats, tier_allows_min_reliability
+
+        tier = get_player_stats(request.user)["reliability_tier"]
+        return tier_allows_min_reliability(tier, game.min_reliability)
 
 
 class IsCurrentPhaseActive(BasePermission):

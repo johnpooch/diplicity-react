@@ -123,6 +123,7 @@ export const makeGame = (
     movementFrequency: null,
     retreatFrequency: null,
     pressType: "full_press",
+    minReliability: "open",
     totalUnreadMessageCount: 0,
     ...overrides,
   };
