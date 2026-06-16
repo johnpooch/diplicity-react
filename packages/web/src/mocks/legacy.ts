@@ -341,6 +341,8 @@ export const mockGames: GameList[] = [
     retreatFrequency: null,
     pressType: "full_press",
     totalUnreadMessageCount: 0,
+    orderStatus: null,
+    memberStatus: [],
   },
   {
     id: "game-2",
@@ -375,6 +377,8 @@ export const mockGames: GameList[] = [
     retreatFrequency: null,
     pressType: "full_press",
     totalUnreadMessageCount: 0,
+    orderStatus: null,
+    memberStatus: [],
   },
   {
     id: "game-3",
@@ -409,6 +413,8 @@ export const mockGames: GameList[] = [
     retreatFrequency: null,
     pressType: "full_press",
     totalUnreadMessageCount: 0,
+    orderStatus: null,
+    memberStatus: [],
   },
   {
     id: "game-4",
@@ -443,6 +449,8 @@ export const mockGames: GameList[] = [
     retreatFrequency: null,
     pressType: "full_press",
     totalUnreadMessageCount: 0,
+    orderStatus: null,
+    memberStatus: [],
   },
   {
     id: "game-5",
@@ -482,6 +490,8 @@ export const mockGames: GameList[] = [
     retreatFrequency: null,
     pressType: "full_press",
     totalUnreadMessageCount: 0,
+    orderStatus: null,
+    memberStatus: [],
   },
   {
     id: "game-6",
@@ -521,6 +531,8 @@ export const mockGames: GameList[] = [
     retreatFrequency: null,
     pressType: "full_press",
     totalUnreadMessageCount: 0,
+    orderStatus: null,
+    memberStatus: [],
   },
 ];
 
@@ -573,6 +585,8 @@ export const mockSandboxGames: GameList[] = [
     retreatFrequency: null,
     pressType: "full_press",
     totalUnreadMessageCount: 0,
+    orderStatus: null,
+    memberStatus: [],
   },
   {
     id: "sandbox-2",
@@ -607,6 +621,8 @@ export const mockSandboxGames: GameList[] = [
     retreatFrequency: null,
     pressType: "full_press",
     totalUnreadMessageCount: 0,
+    orderStatus: null,
+    memberStatus: [],
   },
 ];
 

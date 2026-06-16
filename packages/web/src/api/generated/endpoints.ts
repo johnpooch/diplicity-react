@@ -362,6 +362,27 @@ export interface GameListCurrentPhase {
   readonly remainingTime: number;
 }
 
+export type OrderStatusEnum =
+  (typeof OrderStatusEnum)[keyof typeof OrderStatusEnum];
+
+export const OrderStatusEnum = {
+  orders_required: "orders_required",
+  orders_submitted: "orders_submitted",
+  no_orders_required: "no_orders_required",
+} as const;
+
+/**
+ * * `nmr` - nmr
+ * `civil_disorder` - civil_disorder
+ */
+export type MemberStatusEnum =
+  (typeof MemberStatusEnum)[keyof typeof MemberStatusEnum];
+
+export const MemberStatusEnum = {
+  nmr: "nmr",
+  civil_disorder: "civil_disorder",
+} as const;
+
 export interface Member {
   readonly id: number;
   /** @nullable */
@@ -429,6 +450,9 @@ export interface GameList {
   readonly retreatFrequency: string | null;
   readonly pressType: string;
   readonly totalUnreadMessageCount: number;
+  /** @nullable */
+  readonly orderStatus: OrderStatusEnum | null;
+  readonly memberStatus: readonly MemberStatusEnum[];
 }
 
 export interface GameFindSimilar {
@@ -475,6 +499,9 @@ export interface GameRetrieve {
   readonly retreatFrequency: string | null;
   readonly pressType: string;
   readonly totalUnreadMessageCount: number;
+  /** @nullable */
+  readonly orderStatus: OrderStatusEnum | null;
+  readonly memberStatus: readonly MemberStatusEnum[];
 }
 
 export interface NationFlagUpload {

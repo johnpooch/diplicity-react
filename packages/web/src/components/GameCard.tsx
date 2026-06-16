@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import { GameDropdownMenu } from "./GameDropdownMenu";
 import { NationBadge } from "./NationBadge";
-import { UserPlus, Lock, MessageSquareOff, Mail } from "lucide-react";
+import { UserPlus, Lock, MessageSquareOff, Mail, Clock, Check, AlertTriangle, UserX } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { RemainingTimeDisplay } from "./RemainingTimeDisplay";
@@ -111,6 +111,61 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
                   )}
                   {!game.sandbox && (
                     <NationBadge nations={variant.nations} nation={playerNation} />
+                  )}
+                  {game.orderStatus === "orders_required" && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge className="gap-1 bg-amber-500 text-white hover:bg-amber-500">
+                          <Clock className="size-3" />
+                          Required
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>You have orders to submit this phase</TooltipContent>
+                    </Tooltip>
+                  )}
+                  {game.orderStatus === "orders_submitted" && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge className="gap-1 bg-green-600 text-white hover:bg-green-600">
+                          <Check className="size-3" />
+                          Submitted
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>Your orders are submitted for this phase</TooltipContent>
+                    </Tooltip>
+                  )}
+                  {game.orderStatus === "no_orders_required" && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge className="gap-1 bg-green-600 text-white hover:bg-green-600">
+                          <Check className="size-3" />
+                          Not required
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>No orders are needed from you this phase</TooltipContent>
+                    </Tooltip>
+                  )}
+                  {game.memberStatus.includes("nmr") && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge variant="destructive" className="gap-1">
+                          <AlertTriangle className="size-3" />
+                          NMR
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>No Move Received — you did not submit orders in the previous phase</TooltipContent>
+                    </Tooltip>
+                  )}
+                  {game.memberStatus.includes("civil_disorder") && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge variant="destructive" className="gap-1">
+                          <UserX className="size-3" />
+                          CD
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>Civil Disorder — your units are acting without orders</TooltipContent>
+                    </Tooltip>
                   )}
                   {game.totalUnreadMessageCount > 0 && (
                     <Badge variant="default" className="gap-1">

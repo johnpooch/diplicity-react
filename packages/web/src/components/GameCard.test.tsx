@@ -209,6 +209,46 @@ describe("GameCard", () => {
     });
   });
 
+  describe("order and member status badges", () => {
+    it("shows 'Required' badge when orderStatus is orders_required", () => {
+      renderGameCard({ game: { ...mockGames[0], orderStatus: "orders_required", memberStatus: [] }, ...defaultProps });
+      expect(screen.getByText("Required")).toBeInTheDocument();
+    });
+
+    it("shows 'Submitted' badge when orderStatus is orders_submitted", () => {
+      renderGameCard({ game: { ...mockGames[0], orderStatus: "orders_submitted", memberStatus: [] }, ...defaultProps });
+      expect(screen.getByText("Submitted")).toBeInTheDocument();
+    });
+
+    it("shows 'Not required' badge when orderStatus is no_orders_required", () => {
+      renderGameCard({ game: { ...mockGames[0], orderStatus: "no_orders_required", memberStatus: [] }, ...defaultProps });
+      expect(screen.getByText("Not required")).toBeInTheDocument();
+    });
+
+    it("shows no order status badge when orderStatus is null", () => {
+      renderGameCard({ game: { ...mockGames[0], orderStatus: null, memberStatus: [] }, ...defaultProps });
+      expect(screen.queryByText("Required")).not.toBeInTheDocument();
+      expect(screen.queryByText("Submitted")).not.toBeInTheDocument();
+      expect(screen.queryByText("Not required")).not.toBeInTheDocument();
+    });
+
+    it("shows 'NMR' badge when memberStatus includes nmr", () => {
+      renderGameCard({ game: { ...mockGames[0], orderStatus: null, memberStatus: ["nmr"] }, ...defaultProps });
+      expect(screen.getByText("NMR")).toBeInTheDocument();
+    });
+
+    it("shows 'CD' badge when memberStatus includes civil_disorder", () => {
+      renderGameCard({ game: { ...mockGames[0], orderStatus: null, memberStatus: ["civil_disorder"] }, ...defaultProps });
+      expect(screen.getByText("CD")).toBeInTheDocument();
+    });
+
+    it("shows no member status badges when memberStatus is empty", () => {
+      renderGameCard({ game: { ...mockGames[0], orderStatus: null, memberStatus: [] }, ...defaultProps });
+      expect(screen.queryByText("NMR")).not.toBeInTheDocument();
+      expect(screen.queryByText("CD")).not.toBeInTheDocument();
+    });
+  });
+
   describe("sandbox visual treatment", () => {
     it("displays a Sandbox badge when game.sandbox is true", () => {
       renderGameCard({
