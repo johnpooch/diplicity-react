@@ -363,6 +363,11 @@ export interface GameListCurrentPhase {
   readonly remainingTime: number;
 }
 
+/**
+ * * `orders_required` - orders_required
+ * `orders_submitted` - orders_submitted
+ * `no_orders_required` - no_orders_required
+ */
 export type OrderStatusEnum =
   (typeof OrderStatusEnum)[keyof typeof OrderStatusEnum];
 
@@ -429,6 +434,8 @@ export interface GameList {
   readonly currentPhaseId: number | null;
   readonly currentPhase: GameListCurrentPhase | null;
   readonly phaseConfirmed: boolean;
+  readonly orderStatus: OrderStatusEnum | NullEnum | null;
+  readonly memberStatus: readonly MemberStatusEnum[];
   readonly private: boolean;
   readonly anonymous: boolean;
   /** @nullable */
@@ -457,9 +464,6 @@ export interface GameList {
   /** @nullable */
   readonly confirmationDeadline: string | null;
   readonly totalUnreadMessageCount: number;
-  /** @nullable */
-  readonly orderStatus: OrderStatusEnum | null;
-  readonly memberStatus: readonly MemberStatusEnum[];
 }
 
 export interface GameFindSimilar {
@@ -485,6 +489,8 @@ export interface GameRetrieve {
   readonly variantId: string;
   readonly nationAssignment: string;
   readonly phaseConfirmed: boolean;
+  readonly orderStatus: OrderStatusEnum | NullEnum | null;
+  readonly memberStatus: readonly MemberStatusEnum[];
   /** @nullable */
   readonly movementPhaseDuration: string | null;
   /** @nullable */
@@ -509,9 +515,6 @@ export interface GameRetrieve {
   /** @nullable */
   readonly confirmationDeadline: string | null;
   readonly totalUnreadMessageCount: number;
-  /** @nullable */
-  readonly orderStatus: OrderStatusEnum | null;
-  readonly memberStatus: readonly MemberStatusEnum[];
 }
 
 export interface NationFlagUpload {
@@ -3004,6 +3007,80 @@ export const useGameCloneToSandboxCreate = <
     getGameCloneToSandboxCreateMutationOptions(options),
     queryClient
   );
+};
+
+/**
+ * Used by views that have a game parameter in the URL. Provides a get_game
+method that returns the game object. Also adds game to the serializer context.
+ */
+export const gameConfirmCreate = (gameId: string, signal?: AbortSignal) => {
+  return customInstance<void>({
+    url: `/game/${gameId}/confirm/`,
+    method: "POST",
+    signal,
+  });
+};
+
+export const getGameConfirmCreateMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof gameConfirmCreate>>,
+    TError,
+    { gameId: string },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof gameConfirmCreate>>,
+  TError,
+  { gameId: string },
+  TContext
+> => {
+  const mutationKey = ["gameConfirmCreate"];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof gameConfirmCreate>>,
+    { gameId: string }
+  > = props => {
+    const { gameId } = props ?? {};
+
+    return gameConfirmCreate(gameId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GameConfirmCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof gameConfirmCreate>>
+>;
+
+export type GameConfirmCreateMutationError = unknown;
+
+export const useGameConfirmCreate = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof gameConfirmCreate>>,
+      TError,
+      { gameId: string },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof gameConfirmCreate>>,
+  TError,
+  { gameId: string },
+  TContext
+> => {
+  return useMutation(getGameConfirmCreateMutationOptions(options), queryClient);
 };
 
 /**
