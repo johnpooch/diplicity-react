@@ -1,5 +1,8 @@
+from datetime import timedelta
+
 from rest_framework import serializers
 from django.apps import apps
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 
 from common.constants import GameStatus
@@ -91,9 +94,6 @@ class MemberSerializer(BaseMemberSerializer):
             raise serializers.ValidationError("Intro message cannot be blank.")
         return value.strip() if value else value
 
-    def validate(self, attrs):
-        return attrs
-
     def create(self, validated_data):
         game = self.context["game"]
         user = self.context["request"].user
@@ -111,5 +111,14 @@ class MemberSerializer(BaseMemberSerializer):
                 ChannelMessage.objects.create(
                     channel=public_press, sender=member, body=message_body,
                 )
+
+        if game.variant.nations.count() == game.members.count():
+            if game.confirmation_required:
+                phase_duration = game.get_phase_duration_seconds(game.current_phase.type) if game.current_phase else None
+                deadline = timezone.now() + timedelta(seconds=phase_duration) if phase_duration else timezone.now() + timedelta(hours=24)
+                game.confirmation_deadline = deadline
+                game.save(update_fields=["confirmation_deadline"])
+            else:
+                game.start()
 
         return member

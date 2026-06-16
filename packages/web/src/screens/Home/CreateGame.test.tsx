@@ -140,6 +140,7 @@ const matchedGame: GameList = {
       civilDisorder: false,
       seekingReplacement: false,
       replaceable: false,
+      confirmed: false,
     },
     {
       id: 100,
@@ -155,6 +156,7 @@ const matchedGame: GameList = {
       civilDisorder: false,
       seekingReplacement: false,
       replaceable: false,
+      confirmed: false,
     },
   ],
   victory: null,
@@ -171,6 +173,8 @@ const matchedGame: GameList = {
   totalUnreadMessageCount: 0,
   orderStatus: null,
   memberStatus: [],
+  confirmationRequired: false,
+  confirmationDeadline: null,
 };
 
 const renderCreateGame = () => {

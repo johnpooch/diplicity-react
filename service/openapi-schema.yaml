@@ -149,17 +149,6 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
-  /api/test-sentry/:
-    get:
-      operationId: apiTestSentryRetrieve
-      tags:
-      - api
-      security:
-      - jwtAuth: []
-      - {}
-      responses:
-        '200':
-          description: No response body
   /api/token/refresh/:
     post:
       operationId: apiTokenRefreshCreate
@@ -328,60 +317,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/VerifyEmail'
           description: ''
-  /devices/:
-    get:
-      operationId: devicesList
-      tags:
-      - devices
-      security:
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/FCMDevice'
-          description: ''
-    post:
-      operationId: devicesCreate
-      tags:
-      - devices
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/FCMDevice'
-        required: true
-      security:
-      - jwtAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FCMDevice'
-          description: ''
-    put:
-      operationId: devicesUpdate
-      tags:
-      - devices
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/FCMDevice'
-        required: true
-      security:
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FCMDevice'
-          description: ''
   /game/:
     post:
       operationId: gameCreate
@@ -451,6 +386,25 @@ paths:
               schema:
                 $ref: '#/components/schemas/GameCloneToSandbox'
           description: ''
+  /game/{gameId}/confirm/:
+    post:
+      operationId: gameConfirmCreate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
   /game/{gameId}/confirm-phase/:
     put:
       operationId: gameConfirmPhaseUpdate
@@ -1940,42 +1894,6 @@ components:
       - name
       - password
       - refreshToken
-    FCMDevice:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        name:
-          type: string
-          nullable: true
-          maxLength: 255
-        registrationId:
-          type: string
-          title: Registration token
-        deviceId:
-          type: string
-          nullable: true
-          description: Unique device identifier
-          maxLength: 255
-        active:
-          type: boolean
-          default: true
-          title: Is active
-          description: Inactive devices will not be sent notifications
-        dateCreated:
-          type: string
-          format: date-time
-          readOnly: true
-          nullable: true
-          title: Creation date
-        type:
-          $ref: '#/components/schemas/TypeEnum'
-      required:
-      - dateCreated
-      - id
-      - registrationId
-      - type
     FieldValue:
       type: object
       properties:
@@ -2088,6 +2006,9 @@ components:
           allOf:
           - $ref: '#/components/schemas/PressTypeEnum'
           default: full_press
+        confirmationRequired:
+          type: boolean
+          default: false
       required:
       - id
       - name
@@ -2155,8 +2076,8 @@ components:
         gameMaster:
           allOf:
           - $ref: '#/components/schemas/GameMaster'
-          nullable: true
           readOnly: true
+          nullable: true
         variantId:
           type: string
           readOnly: true
@@ -2176,6 +2097,17 @@ components:
           readOnly: true
         phaseConfirmed:
           type: boolean
+          readOnly: true
+        orderStatus:
+          nullable: true
+          readOnly: true
+          oneOf:
+          - $ref: '#/components/schemas/OrderStatusEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        memberStatus:
+          type: array
+          items:
+            $ref: '#/components/schemas/MemberStatusEnum'
           readOnly: true
         private:
           type: boolean
@@ -2241,6 +2173,14 @@ components:
         pressType:
           type: string
           readOnly: true
+        confirmationRequired:
+          type: boolean
+          readOnly: true
+        confirmationDeadline:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
         totalUnreadMessageCount:
           type: integer
           readOnly: true
@@ -2251,6 +2191,8 @@ components:
       - canJoin
       - canLeave
       - canManage
+      - confirmationDeadline
+      - confirmationRequired
       - createdAt
       - currentPhase
       - currentPhaseId
@@ -2260,12 +2202,14 @@ components:
       - gameMaster
       - id
       - isPaused
+      - memberStatus
       - members
       - movementFrequency
       - movementPhaseDuration
       - name
       - nationAssignment
       - nmrExtensionsAllowed
+      - orderStatus
       - pausedAt
       - phaseConfirmed
       - phases
@@ -2368,8 +2312,8 @@ components:
         gameMaster:
           allOf:
           - $ref: '#/components/schemas/GameMaster'
-          nullable: true
           readOnly: true
+          nullable: true
         phases:
           type: array
           items:
@@ -2400,6 +2344,17 @@ components:
           readOnly: true
         phaseConfirmed:
           type: boolean
+          readOnly: true
+        orderStatus:
+          nullable: true
+          readOnly: true
+          oneOf:
+          - $ref: '#/components/schemas/OrderStatusEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        memberStatus:
+          type: array
+          items:
+            $ref: '#/components/schemas/MemberStatusEnum'
           readOnly: true
         movementPhaseDuration:
           type: string
@@ -2449,6 +2404,14 @@ components:
         pressType:
           type: string
           readOnly: true
+        confirmationRequired:
+          type: boolean
+          readOnly: true
+        confirmationDeadline:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
         totalUnreadMessageCount:
           type: integer
           readOnly: true
@@ -2458,6 +2421,8 @@ components:
       - canJoin
       - canLeave
       - canManage
+      - confirmationDeadline
+      - confirmationRequired
       - createdAt
       - currentPhaseId
       - deadlineMode
@@ -2466,12 +2431,14 @@ components:
       - gameMaster
       - id
       - isPaused
+      - memberStatus
       - members
       - movementFrequency
       - movementPhaseDuration
       - name
       - nationAssignment
       - nmrExtensionsAllowed
+      - orderStatus
       - pausedAt
       - phaseConfirmed
       - phases
@@ -2523,6 +2490,13 @@ components:
         civilDisorder:
           type: boolean
           readOnly: true
+        confirmed:
+          type: boolean
+          readOnly: true
+        message:
+          type: string
+          writeOnly: true
+          maxLength: 1000
         seekingReplacement:
           type: boolean
           readOnly: true
@@ -2531,6 +2505,7 @@ components:
           readOnly: true
       required:
       - civilDisorder
+      - confirmed
       - eliminated
       - id
       - isCurrentUser
@@ -2543,6 +2518,14 @@ components:
       - replaceable
       - seekingReplacement
       - userId
+    MemberStatusEnum:
+      enum:
+      - nmr
+      - civil_disorder
+      type: string
+      description: |-
+        * `nmr` - nmr
+        * `civil_disorder` - civil_disorder
     MovementFrequencyEnum:
       enum:
       - hourly
@@ -2726,6 +2709,16 @@ components:
       required:
       - by
       - status
+    OrderStatusEnum:
+      enum:
+      - orders_required
+      - orders_submitted
+      - no_orders_required
+      type: string
+      description: |-
+        * `orders_required` - orders_required
+        * `orders_submitted` - orders_submitted
+        * `no_orders_required` - no_orders_required
     OrderTypeEnum:
       enum:
       - Move
@@ -3135,16 +3128,6 @@ components:
       required:
       - access
       - refresh
-    TypeEnum:
-      enum:
-      - ios
-      - android
-      - web
-      type: string
-      description: |-
-        * `ios` - ios
-        * `android` - android
-        * `web` - web
     Unit:
       type: object
       properties:

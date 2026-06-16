@@ -1,11 +1,8 @@
-from datetime import timedelta
-
 from rest_framework import permissions, generics, status
 from rest_framework.response import Response
 from django.conf import settings
 from django.db import transaction
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 
 from .models import Member
@@ -22,18 +19,7 @@ class MemberCreateView(SelectedGameMixin, generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsNotGameMember, IsNotGameMaster, IsSpaceAvailable]
 
     def perform_create(self, serializer):
-        member = serializer.save()
-        game = member.game
-        if game.variant.nations.count() == game.members.count():
-            if game.confirmation_required:
-                phase_duration = game.get_phase_duration_seconds(game.current_phase.type) if game.current_phase else None
-                if phase_duration:
-                    game.confirmation_deadline = timezone.now() + timedelta(seconds=phase_duration)
-                else:
-                    game.confirmation_deadline = timezone.now() + timedelta(hours=24)
-                game.save(update_fields=["confirmation_deadline"])
-            else:
-                game.start()
+        serializer.save()
 
 
 class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):
@@ -125,7 +111,6 @@ class MemberConfirmView(SelectedGameMixin, generics.GenericAPIView):
 
     def post(self, request, *args, **kwargs):
         game = self.get_game()
-        member = get_object_or_404(Member, game=game, user=request.user)
 
         if not game.confirmation_required:
             return Response(
@@ -133,19 +118,24 @@ class MemberConfirmView(SelectedGameMixin, generics.GenericAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if member.confirmed:
-            return Response(
-                {"detail": "Already confirmed."},
-                status=status.HTTP_400_BAD_REQUEST,
+        with transaction.atomic():
+            member = get_object_or_404(
+                Member.objects.select_for_update(), game=game, user=request.user
             )
 
-        member.confirmed = True
-        member.save(update_fields=["confirmed"])
+            if member.confirmed:
+                return Response(
+                    {"detail": "Already confirmed."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-        all_slots_filled = game.members.count() == game.variant.nations.count()
-        all_confirmed = not game.members.filter(confirmed=False).exists()
+            member.confirmed = True
+            member.save(update_fields=["confirmed"])
 
-        if all_slots_filled and all_confirmed:
-            game.start()
+            all_slots_filled = game.members.count() == game.variant.nations.count()
+            all_confirmed = not game.members.filter(confirmed=False).exists()
+
+            if all_slots_filled and all_confirmed:
+                game.start()
 
         return Response(status=status.HTTP_204_NO_CONTENT)

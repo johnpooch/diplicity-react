@@ -1,5 +1,6 @@
 import logging
 
+from django.apps import apps
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
@@ -10,13 +11,13 @@ from notification import utils as notification_utils
 
 logger = logging.getLogger(__name__)
 
+Game = apps.get_model("game", "Game")
+
 
 @app.periodic(cron="* * * * *")
 @app.task(name="game.sweep_confirmation_deadlines")
 def sweep_confirmation_deadlines(timestamp: int):
-    from game.models import Game
-
-    logger.info(f"Running sweep_confirmation_deadlines task (scheduled for {timestamp})")
+    logger.info("Running sweep_confirmation_deadlines task (scheduled for %s)", timestamp)
 
     games = Game.objects.filter(
         status=GameStatus.PENDING,
@@ -57,5 +58,5 @@ def sweep_confirmation_deadlines(timestamp: int):
 
             transaction.on_commit(send_notifications)
 
-    logger.info(f"Confirmation sweep complete: removed {removed_count} unconfirmed members")
+    logger.info("Confirmation sweep complete: removed %s unconfirmed members", removed_count)
     return {"removed": removed_count}

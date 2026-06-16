@@ -126,6 +126,8 @@ export const makeGame = (
     totalUnreadMessageCount: 0,
     orderStatus: null,
     memberStatus: [],
+    confirmationRequired: false,
+    confirmationDeadline: null,
     ...overrides,
   };
 };

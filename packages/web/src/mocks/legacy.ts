@@ -37,6 +37,7 @@ export const mockMembers: Member[] = [
     civilDisorder: false,
     seekingReplacement: false,
     replaceable: false,
+    confirmed: false,
   },
   {
     id: 2,
@@ -52,6 +53,7 @@ export const mockMembers: Member[] = [
     civilDisorder: false,
     seekingReplacement: false,
     replaceable: false,
+    confirmed: false,
   },
   {
     id: 3,
@@ -67,6 +69,7 @@ export const mockMembers: Member[] = [
     civilDisorder: false,
     seekingReplacement: false,
     replaceable: false,
+    confirmed: false,
   },
   {
     id: 4,
@@ -82,6 +85,7 @@ export const mockMembers: Member[] = [
     civilDisorder: false,
     seekingReplacement: false,
     replaceable: false,
+    confirmed: false,
   },
   {
     id: 5,
@@ -97,6 +101,7 @@ export const mockMembers: Member[] = [
     civilDisorder: false,
     seekingReplacement: false,
     replaceable: false,
+    confirmed: false,
   },
   {
     id: 6,
@@ -112,6 +117,7 @@ export const mockMembers: Member[] = [
     civilDisorder: false,
     seekingReplacement: false,
     replaceable: false,
+    confirmed: false,
   },
   {
     id: 7,
@@ -127,6 +133,7 @@ export const mockMembers: Member[] = [
     civilDisorder: false,
     seekingReplacement: false,
     replaceable: false,
+    confirmed: false,
   },
 ];
 
@@ -343,6 +350,8 @@ export const mockGames: GameList[] = [
     totalUnreadMessageCount: 0,
     orderStatus: null,
     memberStatus: [],
+    confirmationRequired: false,
+    confirmationDeadline: null,
   },
   {
     id: "game-2",
@@ -379,6 +388,8 @@ export const mockGames: GameList[] = [
     totalUnreadMessageCount: 0,
     orderStatus: null,
     memberStatus: [],
+    confirmationRequired: false,
+    confirmationDeadline: null,
   },
   {
     id: "game-3",
@@ -415,6 +426,8 @@ export const mockGames: GameList[] = [
     totalUnreadMessageCount: 0,
     orderStatus: null,
     memberStatus: [],
+    confirmationRequired: false,
+    confirmationDeadline: null,
   },
   {
     id: "game-4",
@@ -451,6 +464,8 @@ export const mockGames: GameList[] = [
     totalUnreadMessageCount: 0,
     orderStatus: null,
     memberStatus: [],
+    confirmationRequired: false,
+    confirmationDeadline: null,
   },
   {
     id: "game-5",
@@ -492,6 +507,8 @@ export const mockGames: GameList[] = [
     totalUnreadMessageCount: 0,
     orderStatus: null,
     memberStatus: [],
+    confirmationRequired: false,
+    confirmationDeadline: null,
   },
   {
     id: "game-6",
@@ -533,6 +550,8 @@ export const mockGames: GameList[] = [
     totalUnreadMessageCount: 0,
     orderStatus: null,
     memberStatus: [],
+    confirmationRequired: false,
+    confirmationDeadline: null,
   },
 ];
 
@@ -587,6 +606,8 @@ export const mockSandboxGames: GameList[] = [
     totalUnreadMessageCount: 0,
     orderStatus: null,
     memberStatus: [],
+    confirmationRequired: false,
+    confirmationDeadline: null,
   },
   {
     id: "sandbox-2",
@@ -623,6 +644,8 @@ export const mockSandboxGames: GameList[] = [
     totalUnreadMessageCount: 0,
     orderStatus: null,
     memberStatus: [],
+    confirmationRequired: false,
+    confirmationDeadline: null,
   },
 ];
 

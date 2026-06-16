@@ -48,6 +48,7 @@ export const makeMember = (
   civilDisorder: false,
   seekingReplacement: false,
   replaceable: false,
+  confirmed: false,
   ...overrides,
 });
 
