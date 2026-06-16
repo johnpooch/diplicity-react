@@ -252,6 +252,7 @@ describe("CreateGame — find-similar intervention", () => {
   };
 
   const submit = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.click(screen.getByRole("button", { name: /next/i }));
     await user.click(screen.getByRole("button", { name: /create game/i }));
   };
 
@@ -363,6 +364,7 @@ describe("CreateGame — game master option", () => {
 
   const submit = async (user: ReturnType<typeof userEvent.setup>) => {
     await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.click(screen.getByRole("button", { name: /next/i }));
     await user.click(screen.getByRole("button", { name: /create game/i }));
   };
 
@@ -454,7 +456,7 @@ describe("CreateGame — multi-step navigation", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("advances to the Deadlines step and back", async () => {
+  it("advances General → Deadlines → Advanced, then back", async () => {
     const user = userEvent.setup();
     renderCreateGame();
 
@@ -462,19 +464,109 @@ describe("CreateGame — multi-step navigation", () => {
 
     expect(screen.getByRole("tab", { name: /duration/i })).toBeInTheDocument();
     expect(
+      screen.queryByRole("checkbox", { name: /private/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /create game/i })
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /next/i }));
+
+    expect(screen.getByText("Automatic Extensions")).toBeInTheDocument();
+    expect(
       screen.getByRole("button", { name: /create game/i })
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("checkbox", { name: /private/i })
+      screen.queryByRole("tab", { name: /duration/i })
     ).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /back/i }));
 
-    expect(
-      screen.getByRole("checkbox", { name: /private/i })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /duration/i })).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /create game/i })
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("CreateGame — sandbox mode", () => {
+  let sandboxMutateAsync: ReturnType<typeof vi.fn>;
+  let createGameMutateAsync: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sandboxMutateAsync = vi.fn().mockResolvedValue({ id: "sandbox-game" });
+    createGameMutateAsync = vi.fn().mockResolvedValue({ id: "created-game" });
+
+    mockedUseVariantsListSuspense.mockReturnValue({
+      data: variantsFixture,
+    } as unknown as ReturnType<typeof useVariantsListSuspense>);
+
+    mockedUseGameCreate.mockReturnValue({
+      mutateAsync: createGameMutateAsync,
+      isPending: false,
+    } as unknown as ReturnType<typeof useGameCreate>);
+
+    mockedUseSandboxGameCreate.mockReturnValue({
+      mutateAsync: sandboxMutateAsync,
+      isPending: false,
+    } as unknown as ReturnType<typeof useSandboxGameCreate>);
+  });
+
+  const selectSandboxMode = async (
+    user: ReturnType<typeof userEvent.setup>
+  ) => {
+    await user.click(screen.getByRole("combobox", { name: /mode/i }));
+    await user.click(screen.getByRole("option", { name: /sandbox/i }));
+  };
+
+  it("disables and unchecks private and game master when sandbox is selected", async () => {
+    const user = userEvent.setup();
+    renderCreateGame();
+
+    await user.click(screen.getByRole("checkbox", { name: /private/i }));
+    expect(screen.getByRole("checkbox", { name: /private/i })).toBeChecked();
+
+    await selectSandboxMode(user);
+
+    const privateCheckbox = screen.getByRole("checkbox", { name: /private/i });
+    const gameMasterCheckbox = screen.getByRole("checkbox", {
+      name: /game master/i,
+    });
+    expect(privateCheckbox).toBeDisabled();
+    expect(privateCheckbox).not.toBeChecked();
+    expect(gameMasterCheckbox).toBeDisabled();
+    expect(gameMasterCheckbox).not.toBeChecked();
+  });
+
+  it("shows a Create Game button on the General step (no Next) in sandbox mode", async () => {
+    const user = userEvent.setup();
+    renderCreateGame();
+
+    await selectSandboxMode(user);
+
+    expect(
+      screen.getByRole("button", { name: /create game/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /next/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it("creates a sandbox game and navigates to it", async () => {
+    const user = userEvent.setup();
+    renderCreateGame();
+
+    await selectSandboxMode(user);
+    await user.click(screen.getByRole("button", { name: /create game/i }));
+
+    await waitFor(() => expect(sandboxMutateAsync).toHaveBeenCalled());
+    const payload = sandboxMutateAsync.mock.calls[0][0].data;
+    expect(payload).toEqual({
+      name: expect.any(String),
+      variantId: "classical",
+    });
+    expect(createGameMutateAsync).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith("/game/sandbox-game");
   });
 });

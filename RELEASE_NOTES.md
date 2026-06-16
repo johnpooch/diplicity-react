@@ -4,11 +4,12 @@
 
 ### Improvement: Creating a game is split into clear steps
 
-The create game form is now organised into steps with a progress indicator at the top.
-The first "General" step covers the game name, mode, privacy options and variant selection
-(with the map preview), while the "Deadlines" step gathers the phase timing and advanced
-settings. This makes the form feel less dense — particularly the deadline options — and
-leaves room for more settings in the future. Sandbox games remain a single step.
+The create game form is now organised into three steps with a progress indicator at the
+top: "General" (game name, mode, privacy options and variant selection with the map
+preview), "Deadlines" (phase timing), and "Advanced" (automatic extensions). This makes the
+form feel less dense — particularly the deadline options — and leaves room for more settings
+in the future. Sandbox is now a choice in the Mode dropdown (rather than a separate tab);
+selecting it turns the General step into a single-step "Create Game" flow.
 
 ## Unread Message Indicator on Game Cards (June 2026)
 
