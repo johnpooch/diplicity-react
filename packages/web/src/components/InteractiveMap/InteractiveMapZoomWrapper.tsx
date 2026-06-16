@@ -195,7 +195,6 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
       const scaledHeight = svgViewBox.height * minScale;
       const centerX = (containerDimensions.width - scaledWidth) / 2;
       const centerY = (containerDimensions.height - scaledHeight) / 2;
-
       transformRef.current.setTransform(centerX, centerY, minScale, 0);
     }
   }, [minScale, containerDimensions, svgViewBox]);

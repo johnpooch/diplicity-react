@@ -45,7 +45,7 @@ const MessageContent = ({
 }: MessageContentProps) => (
   <div
     className={cn(
-      "rounded-lg p-2 text-foreground bg-secondary break-words whitespace-normal",
+      "rounded-lg p-2 text-foreground bg-secondary break-words whitespace-pre-wrap",
       className
     )}
     {...props}
