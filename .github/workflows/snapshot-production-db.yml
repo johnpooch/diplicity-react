@@ -36,7 +36,7 @@ jobs:
           cat snapshot_timestamp.txt
 
       - name: Upload snapshot artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: db-snapshot-${{ steps.date.outputs.snapshot_date }}
           path: |
