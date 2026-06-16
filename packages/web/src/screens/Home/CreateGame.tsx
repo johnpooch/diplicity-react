@@ -200,7 +200,6 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
         <ExpandableMapPreview
           variant={selectedVariant}
           phase={selectedVariant.templatePhase}
-          variantName={selectedVariant.name}
           style={{ width: "100%", height: "100%" }}
         />
       ) : null}

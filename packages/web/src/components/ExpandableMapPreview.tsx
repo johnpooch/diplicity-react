@@ -23,12 +23,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-type VariantForPreview = Pick<Variant, "nations" | "svgUrl">;
+type VariantForPreview = Pick<Variant, "name" | "nations" | "svgUrl">;
 
 type ExpandableMapPreviewProps = {
   variant: VariantForPreview;
   phase: PhaseRetrieve | VariantTemplatePhase;
-  variantName?: string;
   style?: React.CSSProperties;
   className?: string;
 };
@@ -74,7 +73,6 @@ const ZoomableMap: React.FC<{
 const ExpandableMapPreview: React.FC<ExpandableMapPreviewProps> = ({
   variant,
   phase,
-  variantName,
   style,
   className,
 }) => {
@@ -105,9 +103,7 @@ const ExpandableMapPreview: React.FC<ExpandableMapPreviewProps> = ({
           aria-describedby={undefined}
           className="h-[100dvh] w-screen max-w-none gap-0 overflow-hidden rounded-none border-0 bg-black/95 p-0"
         >
-          <DialogTitle className="sr-only">
-            {variantName ? `${variantName} map` : "Map preview"}
-          </DialogTitle>
+          <DialogTitle className="sr-only">{`${variant.name} map`}</DialogTitle>
           <DialogClose asChild>
             <Button
               size="icon"

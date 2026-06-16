@@ -33,9 +33,10 @@ vi.mock("./InteractiveMap/toRenderState", () => ({
 }));
 
 const variant = {
+  name: "Classical",
   nations: [],
   svgUrl: "https://example.com/map.svg",
-} as Pick<Variant, "nations" | "svgUrl">;
+} as Pick<Variant, "name" | "nations" | "svgUrl">;
 
 const phase = {} as VariantTemplatePhase;
 
@@ -57,9 +58,7 @@ describe("ExpandableMapPreview", () => {
   });
 
   it("renders the preview with an expand control and no dialog initially", () => {
-    render(
-      <ExpandableMapPreview variant={variant} phase={phase} variantName="Classical" />
-    );
+    render(<ExpandableMapPreview variant={variant} phase={phase} />);
 
     expect(screen.getByTestId("map-preview")).toBeInTheDocument();
     expect(
@@ -69,9 +68,7 @@ describe("ExpandableMapPreview", () => {
   });
 
   it("opens a zoomable dialog with only a close button when clicked", () => {
-    render(
-      <ExpandableMapPreview variant={variant} phase={phase} variantName="Classical" />
-    );
+    render(<ExpandableMapPreview variant={variant} phase={phase} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Expand map preview" }));
 

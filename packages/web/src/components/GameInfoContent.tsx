@@ -222,7 +222,6 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
               <ExpandableMapPreview
                 variant={variant}
                 phase={currentPhase}
-                variantName={variant.name}
                 style={{ width: "100%" }}
               />
             </div>
