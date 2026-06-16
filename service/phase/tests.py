@@ -2809,6 +2809,7 @@ class TestCivilDisorderDetection:
         phase1_germany.orders.create(
             source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
         )
+        Phase.objects._set_orders_outcome(phase1)
 
         phase2 = Phase.objects.create(
             game=game, variant=italy_vs_germany_variant,
@@ -2820,6 +2821,7 @@ class TestCivilDisorderDetection:
         phase2_germany.orders.create(
             source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
         )
+        Phase.objects._set_orders_outcome(phase2)
 
         result = Phase.objects._check_civil_disorder(phase2)
 
@@ -2944,6 +2946,7 @@ class TestCivilDisorderDetection:
         )
         phase1.phase_states.create(member=italy, has_possible_orders=True)
         phase1.phase_states.create(member=germany, has_possible_orders=True)
+        Phase.objects._set_orders_outcome(phase1)
 
         phase_retreat = Phase.objects.create(
             game=game, variant=italy_vs_germany_variant,
@@ -2960,6 +2963,7 @@ class TestCivilDisorderDetection:
         )
         phase2.phase_states.create(member=italy, has_possible_orders=True)
         phase2.phase_states.create(member=germany, has_possible_orders=True)
+        Phase.objects._set_orders_outcome(phase2)
 
         result = Phase.objects._check_civil_disorder(phase2)
 
@@ -3139,6 +3143,7 @@ class TestCivilDisorderDetection:
         )
         phase1.phase_states.create(member=italy, has_possible_orders=True)
         phase1.phase_states.create(member=germany, has_possible_orders=True)
+        Phase.objects._set_orders_outcome(phase1)
 
         phase2 = Phase.objects.create(
             game=game, variant=italy_vs_germany_variant,
@@ -3147,6 +3152,7 @@ class TestCivilDisorderDetection:
         )
         phase2.phase_states.create(member=italy, has_possible_orders=True)
         phase2.phase_states.create(member=germany, has_possible_orders=True)
+        Phase.objects._set_orders_outcome(phase2)
 
         Phase.objects._check_civil_disorder(phase2)
 
@@ -3247,6 +3253,9 @@ class TestCivilDisorderStagingRemoval:
         phase2.phase_states.create(member=italy, has_possible_orders=True)
         phase2_germany = phase2.phase_states.create(member=germany, has_possible_orders=True)
         phase2_germany.orders.create(source=venice_province, order_type=OrderType.HOLD)
+
+        Phase.objects._set_orders_outcome(phase1)
+        Phase.objects._set_orders_outcome(phase2)
 
         return game, italy, germany, phase2
 

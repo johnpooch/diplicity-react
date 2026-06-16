@@ -411,10 +411,8 @@ class PhaseManager(models.Manager):
             return []
 
         current_nmr_members = []
-        for phase_state in phase.phase_states.all():
-            if not phase_state.has_possible_orders:
-                continue
-            if len(phase_state.orders.all()) > 0:
+        for phase_state in phase.phase_states.select_related("member").all():
+            if phase_state.orders_outcome != PhaseState.OrdersOutcome.NMR:
                 continue
             member = phase_state.member
             if member.civil_disorder or member.eliminated or member.kicked:
@@ -433,7 +431,6 @@ class PhaseManager(models.Manager):
                 phase__ordinal__lt=phase.ordinal,
                 has_possible_orders=True,
             )
-            .annotate(order_count=Count("orders"))
             .order_by("member_id", "-phase__ordinal")
         )
 
@@ -445,7 +442,7 @@ class PhaseManager(models.Manager):
         newly_cd_members = [
             m for m in current_nmr_members
             if m.id in latest_prev_by_member
-            and latest_prev_by_member[m.id].order_count == 0
+            and latest_prev_by_member[m.id].orders_outcome == PhaseState.OrdersOutcome.NMR
         ]
 
         if not newly_cd_members:
@@ -592,6 +589,7 @@ class PhaseManager(models.Manager):
             with tracer.start_as_current_span("phase.transaction_atomic"):
                 with transaction.atomic():
                     self._set_orders_outcome(phase)
+                    self._check_civil_disorder(phase)
                     new_phase = self.create_from_adjudication_data(phase, adjudication_data)
                     self._check_eliminations(phase, new_phase)
 
