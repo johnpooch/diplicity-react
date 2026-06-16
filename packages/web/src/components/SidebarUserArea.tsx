@@ -24,7 +24,7 @@ const SidebarUserArea: React.FC = () => {
   const { data: userProfile } = useUserRetrieveSuspense();
 
   const handleClick = () => {
-    navigate("/profile");
+    navigate("/account");
   };
 
   const handleLogout = () => {
@@ -34,7 +34,7 @@ const SidebarUserArea: React.FC = () => {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <SidebarMenuButton size="lg" onClick={handleClick} tooltip="Profile">
+        <SidebarMenuButton size="lg" onClick={handleClick} tooltip="Account">
           <Avatar className="size-8">
             <AvatarImage src={userProfile?.picture ?? undefined} />
             <AvatarFallback>

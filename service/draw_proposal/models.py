@@ -1,7 +1,7 @@
 from django.db import models, transaction
 from django.utils import timezone
 from common.models import BaseModel
-from common.constants import GameStatus
+from common.constants import GameStatus, PhaseStatus
 from draw_proposal.constants import DrawProposalStatus
 from victory.models import Victory
 
@@ -140,6 +140,10 @@ class DrawProposal(BaseModel):
             self.game.status = GameStatus.COMPLETED
             self.game.finished_at = timezone.now()
             self.game.save()
+
+            self.phase.status = PhaseStatus.COMPLETED
+            self.phase.scheduled_resolution = None
+            self.phase.save()
 
             return victory
 

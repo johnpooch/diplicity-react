@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import type {
   Order,
   PhaseRetrieve,
@@ -72,6 +72,10 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
   const isNative = isNativePlatform();
   const [hoveredProvince, setHoveredProvince] = useState<string | null>(null);
 
+  // --- Diagnostic ---
+  const renderCountRef = useRef(0);
+  const prevPropsRef = useRef<InteractiveMapProps | null>(null);
+
   const orders = useMemo(() => props.orders ?? [], [props.orders]);
   const highlighted = useMemo(
     () => props.highlighted ?? [],
@@ -96,10 +100,16 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
   );
 
   const renderedSplit = useMemo(
-    () =>
-      splitAfterProvinceFills(
+    () => {
+      const t0 = performance.now();
+      const result = splitAfterProvinceFills(
         stripSvgWrapper(props.renderer.render(renderState))
-      ),
+      );
+      console.log(
+        `[InteractiveMap] renderer.render() took ${(performance.now() - t0).toFixed(1)}ms`
+      );
+      return result;
+    },
     [props.renderer, renderState]
   );
 
@@ -162,6 +172,21 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
     : undefined;
   const hoveredIsSelected =
     hoveredProvince !== null && props.selected.includes(hoveredProvince);
+
+  // --- Diagnostic logging ---
+  renderCountRef.current += 1;
+  if (prevPropsRef.current) {
+    const changed = (Object.keys(props) as Array<keyof InteractiveMapProps>).filter(
+      (k) => props[k] !== prevPropsRef.current![k]
+    );
+    console.log(
+      `[InteractiveMap] render #${renderCountRef.current}`,
+      changed.length > 0 ? { changedProps: changed } : "(internal state change)"
+    );
+  } else {
+    console.log(`[InteractiveMap] render #${renderCountRef.current} (initial)`);
+  }
+  prevPropsRef.current = props;
 
   return (
     <svg

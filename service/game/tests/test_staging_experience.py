@@ -338,7 +338,7 @@ def pending_full_press_game_with_channel(db, secondary_user, classical_variant):
         movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
         deadline_mode=DeadlineMode.DURATION,
     )
-    creator = game.members.create(user=secondary_user, is_game_master=True)
+    creator = game.members.create(user=secondary_user)
     channel = game.channels.create(name="Public Press", private=False)
     channel.member_channels.create(member=creator)
     return game
@@ -353,7 +353,7 @@ def no_press_pending_game(db, secondary_user, classical_variant):
         movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
         deadline_mode=DeadlineMode.DURATION,
     )
-    game.members.create(user=secondary_user, is_game_master=True)
+    game.members.create(user=secondary_user)
     game.channels.create(name="Public Press", private=False)
     return game
 
@@ -366,7 +366,7 @@ def pending_game_with_public_press(db, primary_user, classical_variant):
         movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
         deadline_mode=DeadlineMode.DURATION,
     )
-    member = game.members.create(user=primary_user, is_game_master=True)
+    member = game.members.create(user=primary_user)
     channel = game.channels.create(name="Public Press", private=False)
     channel.member_channels.create(member=member)
     return game
@@ -380,7 +380,7 @@ def pending_game_with_private_channel(db, primary_user, classical_variant):
         movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
         deadline_mode=DeadlineMode.DURATION,
     )
-    member = game.members.create(user=primary_user, is_game_master=True)
+    member = game.members.create(user=primary_user)
     channel = game.channels.create(name="Private Channel", private=True)
     channel.member_channels.create(member=member)
     return game
@@ -397,7 +397,7 @@ def pending_game_with_all_members(
         deadline_mode=DeadlineMode.DURATION,
         confirmation_required=True,
     )
-    game.members.create(user=primary_user, is_game_master=True)
+    game.members.create(user=primary_user)
     game.members.create(user=secondary_user)
     game.channels.create(name="Public Press", private=False)
     return game
@@ -414,7 +414,7 @@ def pending_game_with_all_members_ivg(
         deadline_mode=DeadlineMode.DURATION,
         confirmation_required=True,
     )
-    game.members.create(user=primary_user, is_game_master=True)
+    game.members.create(user=primary_user)
     game.members.create(user=secondary_user)
     game.channels.create(name="Public Press", private=False)
     return game
@@ -431,7 +431,7 @@ def pending_game_no_confirmation(
         deadline_mode=DeadlineMode.DURATION,
         confirmation_required=False,
     )
-    game.members.create(user=primary_user, is_game_master=True)
+    game.members.create(user=primary_user)
     game.members.create(user=secondary_user)
     return game
 
@@ -445,7 +445,7 @@ def pending_game_almost_full_ivg(db, secondary_user, italy_vs_germany_variant):
         deadline_mode=DeadlineMode.DURATION,
         confirmation_required=True,
     )
-    game.members.create(user=secondary_user, is_game_master=True)
+    game.members.create(user=secondary_user)
     game.channels.create(name="Public Press", private=False)
     return game
 
@@ -459,7 +459,7 @@ def pending_game_almost_full_ivg_no_confirmation(db, secondary_user, italy_vs_ge
         deadline_mode=DeadlineMode.DURATION,
         confirmation_required=False,
     )
-    game.members.create(user=secondary_user, is_game_master=True)
+    game.members.create(user=secondary_user)
     game.channels.create(name="Public Press", private=False)
     return game
 
@@ -475,7 +475,7 @@ def pending_game_with_expired_confirmation(
         deadline_mode=DeadlineMode.DURATION,
         confirmation_required=True,
     )
-    game.members.create(user=primary_user, is_game_master=True)
+    game.members.create(user=primary_user)
     game.members.create(user=secondary_user)
     game.confirmation_deadline = timezone.now() - timedelta(hours=1)
     game.save()

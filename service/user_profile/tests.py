@@ -10,6 +10,7 @@ from game.models import Game
 from phase.models import PhaseState
 from user_profile.models import UserProfile
 from member.models import Member
+from victory.models import Victory
 
 User = get_user_model()
 
@@ -139,9 +140,9 @@ class TestUserProfileUpdateView:
 class TestUserAccountDelete:
 
     @pytest.mark.django_db
-    def test_delete_account_with_confirmation(self, delete_user, delete_client):
-        user = delete_user()
-        client = delete_client(user)
+    def test_delete_account_with_confirmation(self, user_factory, authenticated_client_factory):
+        user = user_factory()
+        client = authenticated_client_factory(user)
         user_id = user.id
 
         url = reverse("user-delete")
@@ -153,10 +154,10 @@ class TestUserAccountDelete:
 
     @pytest.mark.django_db
     def test_pending_game_member_fully_removed(
-        self, delete_user, delete_client, base_pending_game_for_primary_user
+        self, user_factory, authenticated_client_factory, base_pending_game_for_primary_user
     ):
-        user = delete_user()
-        client = delete_client(user)
+        user = user_factory()
+        client = authenticated_client_factory(user)
         game = base_pending_game_for_primary_user
         member = game.members.create(user=user)
 
@@ -167,10 +168,10 @@ class TestUserAccountDelete:
 
     @pytest.mark.django_db
     def test_active_game_member_preserved_with_kicked_and_null_user(
-        self, delete_user, delete_client, base_active_game_for_primary_user
+        self, user_factory, authenticated_client_factory, base_active_game_for_primary_user
     ):
-        user = delete_user()
-        client = delete_client(user)
+        user = user_factory()
+        client = authenticated_client_factory(user)
         game = base_active_game_for_primary_user
         member = game.members.create(user=user)
 
@@ -182,33 +183,34 @@ class TestUserAccountDelete:
         assert member.user is None
 
     @pytest.mark.django_db
-    def test_game_master_of_active_game_preserved(
-        self, delete_user, delete_client, classical_variant
+    def test_creator_of_active_game_cleared_on_delete(
+        self, user_factory, authenticated_client_factory, classical_variant
     ):
         from game.models import Game
         from common.constants import GameStatus as GS
 
-        user = delete_user()
-        client = delete_client(user)
+        user = user_factory()
+        client = authenticated_client_factory(user)
         game = Game.objects.create(
-            name="GM Delete Test", variant=classical_variant, status=GS.ACTIVE
+            name="GM Delete Test", variant=classical_variant, status=GS.ACTIVE, created_by=user
         )
-        member = game.members.create(user=user, is_game_master=True)
+        member = game.members.create(user=user)
 
         url = reverse("user-delete")
         client.delete(url)
 
         member.refresh_from_db()
-        assert member.is_game_master is True
+        game.refresh_from_db()
+        assert game.created_by is None
         assert member.kicked is True
         assert member.user is None
 
     @pytest.mark.django_db
     def test_pending_game_with_sole_user_is_deleted(
-        self, delete_user, delete_client, base_pending_game_for_primary_user
+        self, user_factory, authenticated_client_factory, base_pending_game_for_primary_user
     ):
-        user = delete_user()
-        client = delete_client(user)
+        user = user_factory()
+        client = authenticated_client_factory(user)
         game = base_pending_game_for_primary_user
         game.members.create(user=user)
         game_id = game.id
@@ -220,11 +222,11 @@ class TestUserAccountDelete:
 
     @pytest.mark.django_db
     def test_pending_game_with_other_members_is_preserved(
-        self, delete_user, delete_client, base_pending_game_for_primary_user, secondary_user
+        self, user_factory, authenticated_client_factory, base_pending_game_for_primary_user, secondary_user
     ):
-        user = delete_user()
+        user = user_factory()
         user_id = user.id
-        client = delete_client(user)
+        client = authenticated_client_factory(user)
         game = base_pending_game_for_primary_user
         game.members.create(user=user)
         other_member = game.members.create(user=secondary_user)
@@ -363,7 +365,6 @@ class TestPublicUserProfileRetrieveView:
             member = game.members.create(
                 user=user,
                 nation=classical_england_nation,
-                won=(i == 0),
                 drew=(i in [1, 2]),
             )
             phase = game.phases.create(
@@ -379,6 +380,9 @@ class TestPublicUserProfileRetrieveView:
                 has_possible_orders=True,
                 orders_outcome=PhaseState.OrdersOutcome.RECEIVED,
             )
+            if i == 0:
+                victory = Victory.objects.create(game=game, winning_phase=phase)
+                victory.members.add(member)
 
         url = reverse("public-user-profile", kwargs={"user_id": user.id})
         response = authenticated_client.get(url)
@@ -498,13 +502,65 @@ class TestPublicUserProfileRetrieveView:
             finished_at=timezone.now(),
             sandbox=True,
         )
-        game.members.create(user=user, nation=classical_england_nation, won=True)
+        member = game.members.create(user=user, nation=classical_england_nation)
+        phase = game.phases.create(
+            variant=classical_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            status=PhaseStatus.COMPLETED,
+            ordinal=1,
+        )
+        victory = Victory.objects.create(game=game, winning_phase=phase)
+        victory.members.add(member)
 
         url = reverse("public-user-profile", kwargs={"user_id": user.id})
         response = authenticated_client.get(url)
 
         assert response.data["total_games"] == 0
         assert response.data["solo_wins"] == 0
+
+    @pytest.mark.django_db
+    def test_draw_with_solo_victory_counted_as_draw_not_solo_win(
+        self,
+        authenticated_client,
+        classical_variant,
+        classical_england_nation,
+    ):
+        user = User.objects.create_user(
+            username="drawsolouser", email="drawsolo@example.com", password="testpass123"
+        )
+        UserProfile.objects.create(user=user, name="Draw Solo User")
+
+        game = Game.objects.create(
+            name="Draw With Solo Victory",
+            variant=classical_variant,
+            status=GameStatus.COMPLETED,
+            finished_at=timezone.now(),
+        )
+        member = game.members.create(
+            user=user,
+            nation=classical_england_nation,
+            drew=True,
+        )
+        phase = game.phases.create(
+            variant=classical_variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            status=PhaseStatus.COMPLETED,
+            ordinal=1,
+        )
+        victory = Victory.objects.create(game=game, winning_phase=phase)
+        victory.members.add(member)
+
+        url = reverse("public-user-profile", kwargs={"user_id": user.id})
+        response = authenticated_client.get(url)
+
+        assert response.data["total_games"] == 1
+        assert response.data["solo_wins"] == 0
+        assert response.data["draws"] == 1
+        assert response.data["losses"] == 0
 
     @pytest.mark.django_db
     def test_kicked_members_excluded_from_stats(

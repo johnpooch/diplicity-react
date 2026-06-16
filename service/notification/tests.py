@@ -103,16 +103,32 @@ def test_channel_message_notification_deleted_user(active_game, in_memory_procra
     assert jobs[0]["args"]["body"].startswith("Deleted User: ")
 
 
+@pytest.mark.django_db
+def test_channel_message_notification_masks_sender_in_anonymous_game(active_game, in_memory_procrastinate):
+    active_game.anonymous = True
+    active_game.save()
+    sender_member = active_game.members.first()
+    channel = Channel.objects.create(game=active_game, name="Global Press", private=False)
+
+    ChannelMessage.objects.create(channel=channel, sender=sender_member, body="Hello everyone")
+
+    jobs = _notification_jobs(in_memory_procrastinate, "channel_message")
+    assert len(jobs) == 1
+    body = jobs[0]["args"]["body"]
+    assert body.startswith("Anonymous: ")
+    assert sender_member.name not in body
+
+
 class TestDrawProposalNotification:
 
     @pytest.mark.django_db
     def test_active_member_notified_with_correct_content(
         self,
-        make_draw_notification_game,
+        draw_notification_game_factory,
         secondary_user,
         in_memory_procrastinate,
     ):
-        game, italy, germany = make_draw_notification_game()
+        game, italy, germany = draw_notification_game_factory()
         DrawProposal.objects.create_proposal(game=game, created_by=italy)
 
         jobs = _notification_jobs(in_memory_procrastinate, "draw_proposal")
@@ -123,13 +139,31 @@ class TestDrawProposalNotification:
         assert args["title"] == game.name
 
     @pytest.mark.django_db
+    def test_proposer_masked_in_anonymous_game(
+        self,
+        draw_notification_game_factory,
+        secondary_user,
+        in_memory_procrastinate,
+    ):
+        game, italy, germany = draw_notification_game_factory()
+        game.anonymous = True
+        game.save()
+        DrawProposal.objects.create_proposal(game=game, created_by=italy)
+
+        jobs = _notification_jobs(in_memory_procrastinate, "draw_proposal")
+        assert len(jobs) == 1
+        body = jobs[0]["args"]["body"]
+        assert body == "Anonymous has proposed a draw. Respond to it now."
+        assert italy.name not in body
+
+    @pytest.mark.django_db
     def test_proposer_excluded_from_notification(
         self,
-        make_draw_notification_game,
+        draw_notification_game_factory,
         primary_user,
         in_memory_procrastinate,
     ):
-        game, italy, germany = make_draw_notification_game()
+        game, italy, germany = draw_notification_game_factory()
         DrawProposal.objects.create_proposal(game=game, created_by=italy)
 
         jobs = _notification_jobs(in_memory_procrastinate, "draw_proposal")
@@ -138,11 +172,11 @@ class TestDrawProposalNotification:
     @pytest.mark.django_db
     def test_eliminated_member_not_notified(
         self,
-        make_draw_notification_game,
+        draw_notification_game_factory,
         tertiary_user,
         in_memory_procrastinate,
     ):
-        game, italy, germany = make_draw_notification_game()
+        game, italy, germany = draw_notification_game_factory()
         game.members.create(user=tertiary_user, eliminated=True)
 
         DrawProposal.objects.create_proposal(game=game, created_by=italy)
@@ -153,11 +187,11 @@ class TestDrawProposalNotification:
     @pytest.mark.django_db
     def test_civil_disorder_member_not_notified(
         self,
-        make_draw_notification_game,
+        draw_notification_game_factory,
         tertiary_user,
         in_memory_procrastinate,
     ):
-        game, italy, germany = make_draw_notification_game()
+        game, italy, germany = draw_notification_game_factory()
         game.members.create(user=tertiary_user, civil_disorder=True)
 
         DrawProposal.objects.create_proposal(game=game, created_by=italy)
@@ -168,11 +202,11 @@ class TestDrawProposalNotification:
     @pytest.mark.django_db
     def test_kicked_member_not_notified(
         self,
-        make_draw_notification_game,
+        draw_notification_game_factory,
         tertiary_user,
         in_memory_procrastinate,
     ):
-        game, italy, germany = make_draw_notification_game()
+        game, italy, germany = draw_notification_game_factory()
         game.members.create(user=tertiary_user, kicked=True)
 
         DrawProposal.objects.create_proposal(game=game, created_by=italy)
@@ -186,12 +220,12 @@ class TestGameEndNotifications:
     @pytest.mark.django_db
     def test_draw_notifies_all_members_with_draw_body(
         self,
-        make_end_game_notification_game,
+        end_game_notification_game_factory,
         primary_user,
         secondary_user,
         in_memory_procrastinate,
     ):
-        game, phase, italy, germany = make_end_game_notification_game()
+        game, phase, italy, germany = end_game_notification_game_factory()
         victory = Victory.objects.create(game=game, winning_phase=phase)
         victory.members.add(italy, germany)
 
@@ -208,11 +242,11 @@ class TestGameEndNotifications:
     @pytest.mark.django_db
     def test_solo_win_sends_congratulations_to_winner(
         self,
-        make_end_game_notification_game,
+        end_game_notification_game_factory,
         primary_user,
         in_memory_procrastinate,
     ):
-        game, phase, italy, germany = make_end_game_notification_game()
+        game, phase, italy, germany = end_game_notification_game_factory()
         victory = Victory.objects.create(game=game, winning_phase=phase)
         victory.members.add(italy)
 
@@ -228,11 +262,11 @@ class TestGameEndNotifications:
     @pytest.mark.django_db
     def test_solo_win_sends_loser_message_to_non_winners(
         self,
-        make_end_game_notification_game,
+        end_game_notification_game_factory,
         secondary_user,
         in_memory_procrastinate,
     ):
-        game, phase, italy, germany = make_end_game_notification_game()
+        game, phase, italy, germany = end_game_notification_game_factory()
         victory = Victory.objects.create(game=game, winning_phase=phase)
         victory.members.add(italy)
 
@@ -251,9 +285,9 @@ class TestGameStartEmailNotification:
 
     @pytest.mark.django_db
     def test_game_start_defers_email_notification(
-        self, make_end_game_notification_game, in_memory_procrastinate
+        self, end_game_notification_game_factory, in_memory_procrastinate
     ):
-        game, phase, italy, germany = make_end_game_notification_game()
+        game, phase, italy, germany = end_game_notification_game_factory()
         game.status = GameStatus.PENDING
         game.save()
 

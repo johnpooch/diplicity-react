@@ -1,6 +1,7 @@
 import pytest
+from django.utils import timezone
 from rest_framework import status
-from common.constants import GameStatus
+from common.constants import GameStatus, PhaseStatus
 from draw_proposal.models import DrawProposal, DrawVote
 from draw_proposal.constants import DrawProposalStatus
 from victory.models import Victory
@@ -201,7 +202,8 @@ class TestDrawProposalProcessAcceptance:
         self, game_factory, phase_factory, member_factory, supply_center_factory, draw_proposal_factory
     ):
         game = game_factory(variant__solo_victory_sc_count=18)
-        phase = phase_factory(game=game)
+        future = timezone.now() + timezone.timedelta(hours=20)
+        phase = phase_factory(game=game, scheduled_resolution=future)
         m1 = member_factory(game=game)
         m2 = member_factory(game=game)
         m3 = member_factory(game=game)
@@ -238,6 +240,10 @@ class TestDrawProposalProcessAcceptance:
 
         game.refresh_from_db()
         assert game.status == GameStatus.COMPLETED
+
+        phase.refresh_from_db()
+        assert phase.status == PhaseStatus.COMPLETED
+        assert phase.scheduled_resolution is None
 
     def test_cd_member_not_in_victory(
         self, game_factory, phase_factory, member_factory

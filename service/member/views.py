@@ -11,7 +11,7 @@ from drf_spectacular.utils import extend_schema
 from .models import Member
 from .serializers import MemberSerializer
 from common.serializers import EmptySerializer
-from common.permissions import IsActiveGame, IsGameMember, IsGameMaster, IsInCivilDisorder, IsPendingGame, IsNotGameMember, IsSpaceAvailable
+from common.permissions import IsActiveGame, IsGameMember, IsGameManager, IsInCivilDisorder, IsPendingGame, IsNotGameMember, IsNotGameMaster, IsSpaceAvailable
 from common.views import SelectedGameMixin
 import notification.utils as notification_utils
 from notification.tasks import send_notification
@@ -19,7 +19,7 @@ from notification.tasks import send_notification
 
 class MemberCreateView(SelectedGameMixin, generics.CreateAPIView):
     serializer_class = MemberSerializer
-    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsNotGameMember, IsSpaceAvailable]
+    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsNotGameMember, IsNotGameMaster, IsSpaceAvailable]
 
     def perform_create(self, serializer):
         member = serializer.save()
@@ -53,7 +53,7 @@ class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):
 
 class MemberKickView(SelectedGameMixin, generics.DestroyAPIView):
     serializer_class = EmptySerializer
-    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsGameMaster]
+    permission_classes = [permissions.IsAuthenticated, IsPendingGame, IsGameManager]
 
     def get_object(self):
         game = self.get_game()
@@ -71,7 +71,7 @@ class MemberKickView(SelectedGameMixin, generics.DestroyAPIView):
                 send_notification.defer(
                     user_ids=[user_id],
                     title=game.name,
-                    body="You were removed from this game by the game creator.",
+                    body=f"You were removed from this game by {game.manager_label}.",
                     notification_type="kicked_from_staging",
                     data={"game_id": str(game.id), "link": f"{settings.FRONTEND_URL}/game/{game.id}"},
                 )
@@ -101,11 +101,7 @@ class CivilDisorderRecoveryView(SelectedGameMixin, generics.GenericAPIView):
                     orders_confirmed=False
                 )
 
-            user_ids = list(
-                game.members.exclude(user=request.user)
-                .filter(user__isnull=False)
-                .values_list("user_id", flat=True)
-            )
+            user_ids = game.notification_user_ids(exclude_user_id=request.user.id)
             nation_name = member.nation.name if member.nation else "A player"
 
             def send_notifications():

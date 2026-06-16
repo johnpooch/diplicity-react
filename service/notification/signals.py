@@ -36,11 +36,13 @@ def send_draw_proposal_notification(sender, instance, created, **kwargs):
         eliminated=False, kicked=False, civil_disorder=False
     ).exclude(id=instance.created_by.id)
     user_ids = [member.user_id for member in other_members if member.user_id is not None]
+    if instance.game.game_master_id is not None:
+        user_ids.append(instance.game.game_master_id)
     if not user_ids:
         return
 
-    proposer_name = instance.created_by.name
     game = instance.game
+    proposer_name = "Anonymous" if game.anonymity_active else instance.created_by.name
     phase = instance.phase
     link = (
         f"{settings.FRONTEND_URL}/game/{game.id}/phase/{phase.id}/draw-proposals"
@@ -73,8 +75,8 @@ def send_channel_message_notification(sender, instance, created, **kwargs):
     if not user_ids:
         return
 
-    sender_name = instance.sender.name
     game = instance.channel.game
+    sender_name = "Anonymous" if game.anonymity_active else instance.sender.name
     current_phase = game.phases.last()
     link = (
         f"{settings.FRONTEND_URL}/game/{game.id}/phase/{current_phase.id}/chat/channel/{instance.channel.id}"
@@ -105,7 +107,7 @@ def cache_game_status(sender, instance, **kwargs):
 
 
 def _send_game_start_notification(instance):
-    user_ids = [member.user_id for member in instance.members.all() if member.user_id is not None]
+    user_ids = instance.notification_user_ids()
     if not user_ids:
         return
 
@@ -180,8 +182,7 @@ def send_game_status_notifications(sender, instance, created, **kwargs):
     if old_status == GameStatus.PENDING and instance.status == GameStatus.ACTIVE:
         _send_game_start_notification(instance)
     elif old_status == GameStatus.ACTIVE and instance.status == GameStatus.COMPLETED:
-        all_member_user_ids = [m.user_id for m in instance.members.all() if m.user_id is not None]
-        _send_game_end_notification(instance.id, instance.name, all_member_user_ids)
+        _send_game_end_notification(instance.id, instance.name, instance.notification_user_ids())
 
 
 _phase_status_cache = {}
@@ -206,7 +207,7 @@ def send_phase_resolved_notification(sender, instance, created, **kwargs):  # no
     if old_status == PhaseStatus.ACTIVE and instance.status == PhaseStatus.COMPLETED:
 
         def _send():
-            user_ids = [member.user_id for member in instance.game.members.all() if member.user_id is not None]
+            user_ids = instance.game.notification_user_ids()
             link = f"{settings.FRONTEND_URL}/game/{instance.game.id}"
             body = f"{instance.name} has been resolved"
 

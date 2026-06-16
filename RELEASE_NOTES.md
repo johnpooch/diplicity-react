@@ -12,6 +12,102 @@ Public Press is now open from the moment a game is created. Players joining a fu
 
 Games now require all players to confirm they're ready before the first phase begins. Players who don't confirm in time are automatically removed. Game creators can opt out of this requirement when creating a game.
 
+## Expandable, Zoomable Map Preview (June 2026)
+
+### Feature: Inspect a variant's map before committing to a game
+
+The map previews shown when creating a game and when viewing a game's info are now
+expandable. Tap a preview to open it full-screen, where you can pinch, scroll, or drag to
+zoom and pan around the map. This makes it easy to study a variant's board in detail before
+deciding to create or join a game.
+
+## Notifications Respect Anonymous Games (June 2026)
+
+### Fix: Push notifications no longer reveal player identities in anonymous games
+
+In anonymous games, push notifications previously leaked who performed certain actions. Draw
+proposal and chat notifications now show "Anonymous" instead of the real name, and pause,
+resume, and deadline-extension notifications no longer append the acting player's username.
+Identities are still revealed once a game finishes, matching the rest of the app. Non-anonymous
+games are unaffected.
+
+## Multi-Step Create Game Form (June 2026)
+
+### Improvement: Creating a game is split into clear steps
+
+The create game form is now organised into three steps with a progress indicator at the
+top: "General" (game name, mode, privacy options and variant selection with the map
+preview), "Deadlines" (phase timing), and "Advanced" (automatic extensions). This makes the
+form feel less dense — particularly the deadline options — and leaves room for more settings
+in the future. Sandbox is now a choice in the Mode dropdown (rather than a separate tab);
+selecting it turns the General step into a single-step "Create Game" flow.
+
+## Unread Message Indicator on Game Cards (June 2026)
+
+### Feature: See unread message counts without opening a game
+
+Each game card in your games list now shows a badge with the total number of unread chat
+messages for that game, summed across all of its channels. The badge appears next to the
+game name and disappears once you've read everything. This makes it easy to spot which
+games have new messages waiting without having to open each one.
+
+## Chat Channels Sorted by Activity (June 2026)
+
+### Change: Chat channels are ordered by most recent activity
+
+In a game's chat, your channels are now ordered by how recently each one had activity, with
+the most recently active channel near the top. The public "Public Press" channel is always
+pinned to the top, and channels with no messages yet sort to the bottom.
+
+## Nation Badge (June 2026)
+
+### Feature: Your nation is shown at a glance
+
+Your assigned nation now appears as a colour-coded badge next to the game name on each game
+card, so you can immediately see which power you are playing across your list of games. The
+same badge marks your own row ("you") on the orders screen. The badge is hidden for sandbox
+games and for games that haven't assigned nations yet.
+
+## Started Games Sorted by Deadline (June 2026)
+
+### Change: "Started" games are ordered by next deadline
+
+In My Games, your started games are now ordered by how soon their next deadline is, with
+the most urgent game at the top. Games set to resolve manually ("resolve when ready") and
+sandbox games sort to the bottom, so the games actually waiting on you are easiest to find.
+
+## Game Master for Private Games (June 2026)
+
+### Feature: Run a private game as a non-playing Game Master
+
+When creating a private game, you can now choose to act as its Game Master. As Game
+Master you don't take a nation — all player slots go to other players — but you can
+pause and resume the game, extend deadlines, remove players before the game starts,
+and delete the game while it's still gathering players. You receive game notifications
+(game start, phase resolutions, civil disorder, and more) so you can keep an eye on
+things. When a game has a Game Master, the players — including the game's creator —
+do not have these management powers. The Game Master appears at the top of the player
+roster with a "Game Master" badge.
+
+## Game Creator Rename (June 2026)
+
+### Change: "Game Master" badge is now "Game Creator"
+
+The player who created a game is now labelled "Game Creator" instead of "Game Master" in
+the player roster. Their powers are unchanged (pause/resume the game, extend deadlines,
+remove players from a game that hasn't started). This prepares for an upcoming non-playing
+Game Master role for private games.
+
+## Player Profiles (June 2026)
+
+### Feature: Public player profiles with reliability stats
+
+Every player now has a public profile showing their name, avatar, reliability badge, NMR
+rate, CD rate, solo wins, draws, losses, and total games played. Player names in the player
+roster are tappable — tap any name to see that player's profile and stats. Players with
+strong reliability earn a "Reliable" badge; new players with fewer than 10 games show a
+"New" badge.
+
 ## Civil Disorder Retreat Fix (June 5, 2026)
 
 **Release Date:** June 5, 2026
@@ -337,7 +433,7 @@ Database queries for variant data have been optimized, reducing load times when 
 Thanks to the Diplomacy community for trying the beta version of the app and sharing their feedback!
 
 **Join the conversation:**
-- [Diplomacy Discord](https://discord.gg/QETtwGR)
+- [Diplomacy Discord](https://discord.gg/2TkZbBRPW)
 - [Play now](https://diplicity.com)
 
 ---

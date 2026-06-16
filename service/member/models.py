@@ -13,10 +13,17 @@ class Member(BaseModel):
     drew = models.BooleanField(default=False)
     eliminated = models.BooleanField(default=False)
     kicked = models.BooleanField(default=False)
-    is_game_master = models.BooleanField(default=False)
     nmr_extensions_remaining = models.PositiveSmallIntegerField(default=0)
     civil_disorder = models.BooleanField(default=False)
     confirmed = models.BooleanField(default=False)
+    seeking_replacement = models.BooleanField(default=False)
+    replaced_by = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="replaces",
+    )
 
     class Meta:
         indexes = [
@@ -24,13 +31,12 @@ class Member(BaseModel):
             models.Index(fields=["user"]),
             models.Index(fields=["game"]),
         ]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["game"],
-                condition=models.Q(is_game_master=True),
-                name="unique_game_master_per_game",
-            )
-        ]
+
+    @property
+    def replaceable(self):
+        return (self.civil_disorder or self.seeking_replacement) and not (
+            self.eliminated or self.kicked or self.replaced_by_id is not None
+        )
 
     @property
     def name(self):

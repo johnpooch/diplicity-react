@@ -9,14 +9,14 @@ const UserAvatarContent: React.FC = () => {
   const { data: userProfile } = useUserRetrieveSuspense();
 
   const handleClick = () => {
-    navigate("/profile");
+    navigate("/account");
   };
 
   return (
     <button
       onClick={handleClick}
       className="md:hidden"
-      aria-label="Go to profile"
+      aria-label="Go to account"
     >
       <Avatar className="size-8">
         <AvatarImage src={userProfile?.picture ?? undefined} />

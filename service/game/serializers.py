@@ -25,12 +25,9 @@ ChannelMessage = apps.get_model("channel", "ChannelMessage")
 tracer = trace.get_tracer(__name__)
 
 
-def send_gm_action_notification(game, title, body, notification_type):
+def send_game_management_notification(game, title, body, notification_type, exclude_user_id):
     def _send():
-        user_ids = [
-            m.user_id for m in game.members.select_related('user').all()
-            if not m.is_game_master and m.user_id is not None
-        ]
+        user_ids = game.notification_user_ids(exclude_user_id=exclude_user_id)
         notification_utils.send_notification_to_users(
             user_ids=user_ids,
             title=title,
@@ -39,6 +36,12 @@ def send_gm_action_notification(game, title, body, notification_type):
             data={"game_id": str(game.id), "link": f"{settings.FRONTEND_URL}/game/{game.id}"},
         )
     transaction.on_commit(_send)
+
+
+class GameMasterSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField(source="id", read_only=True)
+    name = serializers.CharField(source="profile.name", read_only=True)
+    picture = serializers.CharField(source="profile.picture", read_only=True, allow_null=True)
 
 
 class GameListCurrentPhaseSerializer(serializers.Serializer):
@@ -61,11 +64,15 @@ class GameListSerializer(serializers.Serializer):
     can_join = serializers.SerializerMethodField()
     can_leave = serializers.SerializerMethodField()
     can_delete = serializers.SerializerMethodField()
+    can_manage = serializers.SerializerMethodField()
+    game_master = GameMasterSerializer(allow_null=True, read_only=True)
     variant_id = serializers.CharField(source="variant.id", read_only=True)
     phases = serializers.SerializerMethodField()
     current_phase_id = serializers.SerializerMethodField()
     current_phase = serializers.SerializerMethodField()
     phase_confirmed = serializers.SerializerMethodField()
+    order_status = serializers.SerializerMethodField()
+    member_status = serializers.SerializerMethodField()
     private = serializers.BooleanField(read_only=True)
     anonymous = serializers.BooleanField(read_only=True)
     movement_phase_duration = serializers.CharField(read_only=True, allow_null=True)
@@ -85,6 +92,7 @@ class GameListSerializer(serializers.Serializer):
     press_type = serializers.CharField(read_only=True)
     confirmation_required = serializers.BooleanField(read_only=True)
     confirmation_deadline = serializers.DateTimeField(read_only=True, allow_null=True)
+    total_unread_message_count = serializers.IntegerField(read_only=True, default=0)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):
@@ -109,6 +117,13 @@ class GameListSerializer(serializers.Serializer):
             return False
         return obj.can_delete(user)
 
+    @extend_schema_field(serializers.BooleanField)
+    def get_can_manage(self, obj):
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return False
+        return obj.can_manage(user)
+
     @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_phases(self, obj):
         return [phase.id for phase in obj.phases.all()]
@@ -131,6 +146,52 @@ class GameListSerializer(serializers.Serializer):
                 return False
             return obj.phase_confirmed(user)
 
+    @extend_schema_field(serializers.ChoiceField(
+        choices=["orders_required", "orders_submitted", "no_orders_required"],
+        allow_null=True,
+    ))
+    def get_order_status(self, obj):
+        user = self.context["request"].user
+        if not user.is_authenticated or obj.status != "active":
+            return None
+        current_phase = obj.current_phase
+        if current_phase is None:
+            return None
+        for phase_state in current_phase.phase_states.all():
+            if phase_state.member.user_id == user.id:
+                if phase_state.orders_confirmed:
+                    return "orders_submitted"
+                if not phase_state.has_possible_orders:
+                    return "no_orders_required"
+                return "orders_required"
+        return None
+
+    @extend_schema_field(serializers.ListField(
+        child=serializers.ChoiceField(choices=["nmr", "civil_disorder"]),
+    ))
+    def get_member_status(self, obj):
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return []
+        current_member = next(
+            (m for m in obj.members.all() if m.user_id == user.id), None
+        )
+        if current_member is None:
+            return []
+        statuses = []
+        if current_member.civil_disorder:
+            statuses.append("civil_disorder")
+        phases = list(obj.phases.all())
+        completed_phases = [p for p in phases if p.status == "completed"]
+        if completed_phases:
+            prev_phase = max(completed_phases, key=lambda p: p.ordinal)
+            for phase_state in prev_phase.phase_states.all():
+                if phase_state.member.user_id == user.id:
+                    if phase_state.orders_outcome == "nmr":
+                        statuses.append("nmr")
+                    break
+        return statuses
+
 
 class GameFindSimilarSerializer(serializers.Serializer):
     game = GameListSerializer(allow_null=True)
@@ -144,6 +205,8 @@ class GameRetrieveSerializer(serializers.Serializer):
     can_join = serializers.SerializerMethodField()
     can_leave = serializers.SerializerMethodField()
     can_delete = serializers.SerializerMethodField()
+    can_manage = serializers.SerializerMethodField()
+    game_master = GameMasterSerializer(allow_null=True, read_only=True)
     phases = serializers.SerializerMethodField()
     current_phase_id = serializers.SerializerMethodField()
     members = MemberSerializer(many=True, read_only=True)
@@ -152,6 +215,8 @@ class GameRetrieveSerializer(serializers.Serializer):
     variant_id = serializers.CharField(source="variant.id", read_only=True)
     nation_assignment = serializers.CharField(read_only=True)
     phase_confirmed = serializers.SerializerMethodField()
+    order_status = serializers.SerializerMethodField()
+    member_status = serializers.SerializerMethodField()
     movement_phase_duration = serializers.CharField(read_only=True, allow_null=True)
     retreat_phase_duration = serializers.CharField(read_only=True, allow_null=True)
     private = serializers.BooleanField(read_only=True)
@@ -213,6 +278,13 @@ class GameRetrieveSerializer(serializers.Serializer):
             return False
         return obj.can_delete(user)
 
+    @extend_schema_field(serializers.BooleanField)
+    def get_can_manage(self, obj):
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return False
+        return obj.can_manage(user)
+
     @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_phases(self, obj):
         return [phase.id for phase in obj.phases.all()]
@@ -229,6 +301,52 @@ class GameRetrieveSerializer(serializers.Serializer):
             if not user.is_authenticated:
                 return False
             return obj.phase_confirmed(user)
+
+    @extend_schema_field(serializers.ChoiceField(
+        choices=["orders_required", "orders_submitted", "no_orders_required"],
+        allow_null=True,
+    ))
+    def get_order_status(self, obj):
+        user = self.context["request"].user
+        if not user.is_authenticated or obj.status != "active":
+            return None
+        current_phase = obj.current_phase
+        if current_phase is None:
+            return None
+        for phase_state in current_phase.phase_states.all():
+            if phase_state.member.user_id == user.id:
+                if phase_state.orders_confirmed:
+                    return "orders_submitted"
+                if not phase_state.has_possible_orders:
+                    return "no_orders_required"
+                return "orders_required"
+        return None
+
+    @extend_schema_field(serializers.ListField(
+        child=serializers.ChoiceField(choices=["nmr", "civil_disorder"]),
+    ))
+    def get_member_status(self, obj):
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return []
+        current_member = next(
+            (m for m in obj.members.all() if m.user_id == user.id), None
+        )
+        if current_member is None:
+            return []
+        statuses = []
+        if current_member.civil_disorder:
+            statuses.append("civil_disorder")
+        phases = list(obj.phases.all())
+        completed_phases = [p for p in phases if p.status == "completed"]
+        if completed_phases:
+            prev_phase = max(completed_phases, key=lambda p: p.ordinal)
+            for phase_state in prev_phase.phase_states.all():
+                if phase_state.member.user_id == user.id:
+                    if phase_state.orders_outcome == "nmr":
+                        statuses.append("nmr")
+                    break
+        return statuses
 
     def to_representation(self, instance):
         with tracer.start_as_current_span("game.serializers.to_representation") as span:
@@ -253,6 +371,7 @@ class GameCreateSerializer(serializers.Serializer):
     )
     private = serializers.BooleanField()
     anonymous = serializers.BooleanField(default=False)
+    game_master = serializers.BooleanField(default=False)
     deadline_mode = serializers.ChoiceField(
         choices=DeadlineMode.DEADLINE_MODE_CHOICES,
         default=DeadlineMode.FIXED_TIME,
@@ -314,6 +433,11 @@ class GameCreateSerializer(serializers.Serializer):
                     {"variant_id": "You can only create games with your own draft variants."}
                 )
 
+        if attrs.get("game_master") and not attrs.get("private"):
+            raise serializers.ValidationError(
+                {"game_master": "A Game Master is only available in private games."}
+            )
+
         deadline_mode = attrs["deadline_mode"]
 
         if deadline_mode == DeadlineMode.FIXED_TIME:
@@ -343,10 +467,14 @@ class GameCreateSerializer(serializers.Serializer):
         request = self.context["request"]
         variant = Variant.objects.with_game_creation_data().get(id=validated_data["variant_id"])
 
+        with_game_master = validated_data["game_master"]
+
         with transaction.atomic():
             game = Game.objects.create_from_template(
                 variant,
                 name=validated_data["name"],
+                created_by=request.user,
+                game_master=request.user if with_game_master else None,
                 nation_assignment=validated_data["nation_assignment"],
                 movement_phase_duration=validated_data["movement_phase_duration"],
                 retreat_phase_duration=validated_data.get("retreat_phase_duration"),
@@ -362,9 +490,10 @@ class GameCreateSerializer(serializers.Serializer):
                 confirmation_required=validated_data["confirmation_required"],
             )
 
-            creator_member = game.members.create(user=request.user, is_game_master=True)
             public_channel = game.channels.create(name="Public Press", private=False)
-            public_channel.member_channels.create(member=creator_member)
+            if not with_game_master:
+                creator_member = game.members.create(user=request.user)
+                public_channel.member_channels.create(member=creator_member)
 
             if hasattr(game, "_created_phase"):
                 delattr(game, "_created_phase")
@@ -444,13 +573,15 @@ class GamePauseSerializer(serializers.Serializer):
         return attrs
 
     def update(self, instance, validated_data):
-        gm_username = self.context["request"].user.username
+        actor = self.context["request"].user
         instance.pause()
-        send_gm_action_notification(
+        actor_suffix = "" if instance.anonymity_active else f" ({actor.username})"
+        send_game_management_notification(
             instance,
             title=instance.name,
-            body=f"Game paused by Game Master ({gm_username})",
+            body=f"Game paused by {instance.manager_label}{actor_suffix}",
             notification_type="game_paused",
+            exclude_user_id=actor.id,
         )
         return instance
 
@@ -465,15 +596,17 @@ class GameUnpauseSerializer(serializers.Serializer):
         return attrs
 
     def update(self, instance, validated_data):
-        gm_username = self.context["request"].user.username
+        actor = self.context["request"].user
         instance.unpause()
         new_deadline = instance.current_phase.scheduled_resolution if instance.current_phase else None
         deadline_str = format_deadline(new_deadline, instance.fixed_deadline_timezone) if new_deadline else "N/A"
-        send_gm_action_notification(
+        actor_suffix = "" if instance.anonymity_active else f" ({actor.username})"
+        send_game_management_notification(
             instance,
             title=instance.name,
-            body=f"Game resumed by Game Master ({gm_username}). New deadline: {deadline_str}",
+            body=f"Game resumed by {instance.manager_label}{actor_suffix}. New deadline: {deadline_str}",
             notification_type="game_resumed",
+            exclude_user_id=actor.id,
         )
         return instance
 
@@ -497,15 +630,17 @@ class GameExtendDeadlineSerializer(serializers.Serializer):
         return attrs
 
     def update(self, instance, validated_data):
-        gm_username = self.context["request"].user.username
+        actor = self.context["request"].user
         instance.extend_deadline(validated_data["duration"])
         new_deadline = instance.current_phase.scheduled_resolution if instance.current_phase else None
         deadline_str = format_deadline(new_deadline, instance.fixed_deadline_timezone) if new_deadline else "N/A"
-        send_gm_action_notification(
+        actor_suffix = "" if instance.anonymity_active else f" ({actor.username})"
+        send_game_management_notification(
             instance,
             title=instance.name,
-            body=f"Deadline extended by Game Master ({gm_username}). New deadline: {deadline_str}",
+            body=f"Deadline extended by {instance.manager_label}{actor_suffix}. New deadline: {deadline_str}",
             notification_type="game_deadline_extended",
+            exclude_user_id=actor.id,
         )
         return instance
 

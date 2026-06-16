@@ -65,6 +65,7 @@ paths:
           - hi
           - hr
           - hsb
+          - ht
           - hu
           - hy
           - ia
@@ -116,6 +117,7 @@ paths:
           - tr
           - tt
           - udm
+          - ug
           - uk
           - ur
           - uz
@@ -607,6 +609,30 @@ paths:
               schema:
                 $ref: '#/components/schemas/Member'
           description: ''
+  /game/{gameId}/kick/{memberId}/:
+    delete:
+      operationId: gameKickDestroy
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: memberId
+        schema:
+          type: integer
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
   /game/{gameId}/leave/:
     delete:
       operationId: gameLeaveDestroy
@@ -842,6 +868,29 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/PhaseList'
+          description: ''
+  /game/{gameId}/recover-from-civil-disorder/:
+    post:
+      operationId: gameRecoverFromCivilDisorderCreate
+      description: |-
+        Used by views that have a game parameter in the URL. Provides a get_game
+        method that returns the game object. Also adds game to the serializer context.
+      parameters:
+      - in: path
+        name: gameId
+        schema:
+          type: string
+        required: true
+      tags:
+      - game
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
           description: ''
   /game/{gameId}/resolve-phase/:
     post:
@@ -1366,6 +1415,26 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserProfile'
           description: ''
+  /users/{userId}/:
+    get:
+      operationId: usersRetrieve
+      parameters:
+      - in: path
+        name: userId
+        schema:
+          type: integer
+        required: true
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicUserProfile'
+          description: ''
   /variants/:
     get:
       operationId: variantsList
@@ -1673,6 +1742,10 @@ components:
         id:
           type: integer
           readOnly: true
+        userId:
+          type: integer
+          nullable: true
+          readOnly: true
         name:
           type: string
           readOnly: true
@@ -1691,6 +1764,7 @@ components:
       - name
       - nation
       - picture
+      - userId
     ChannelMessage:
       type: object
       properties:
@@ -1781,6 +1855,10 @@ components:
         id:
           type: integer
           readOnly: true
+        userId:
+          type: integer
+          nullable: true
+          readOnly: true
         name:
           type: string
           readOnly: true
@@ -1800,6 +1878,7 @@ components:
       - name
       - nation
       - picture
+      - userId
     DrawVoteUpdate:
       type: object
       properties:
@@ -1975,6 +2054,9 @@ components:
         anonymous:
           type: boolean
           default: false
+        gameMaster:
+          type: boolean
+          default: false
         deadlineMode:
           allOf:
           - $ref: '#/components/schemas/DeadlineModeEnum'
@@ -2067,6 +2149,14 @@ components:
         canDelete:
           type: boolean
           readOnly: true
+        canManage:
+          type: boolean
+          readOnly: true
+        gameMaster:
+          allOf:
+          - $ref: '#/components/schemas/GameMaster'
+          nullable: true
+          readOnly: true
         variantId:
           type: string
           readOnly: true
@@ -2151,17 +2241,23 @@ components:
         pressType:
           type: string
           readOnly: true
+        totalUnreadMessageCount:
+          type: integer
+          readOnly: true
+          default: 0
       required:
       - anonymous
       - canDelete
       - canJoin
       - canLeave
+      - canManage
       - createdAt
       - currentPhase
       - currentPhaseId
       - deadlineMode
       - fixedDeadlineTime
       - fixedDeadlineTimezone
+      - gameMaster
       - id
       - isPaused
       - members
@@ -2179,6 +2275,7 @@ components:
       - retreatPhaseDuration
       - sandbox
       - status
+      - totalUnreadMessageCount
       - variantId
       - victory
     GameListCurrentPhase:
@@ -2223,6 +2320,23 @@ components:
       - status
       - type
       - year
+    GameMaster:
+      type: object
+      properties:
+        userId:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        picture:
+          type: string
+          readOnly: true
+          nullable: true
+      required:
+      - name
+      - picture
+      - userId
     GameRetrieve:
       type: object
       properties:
@@ -2247,6 +2361,14 @@ components:
           readOnly: true
         canDelete:
           type: boolean
+          readOnly: true
+        canManage:
+          type: boolean
+          readOnly: true
+        gameMaster:
+          allOf:
+          - $ref: '#/components/schemas/GameMaster'
+          nullable: true
           readOnly: true
         phases:
           type: array
@@ -2335,11 +2457,13 @@ components:
       - canDelete
       - canJoin
       - canLeave
+      - canManage
       - createdAt
       - currentPhaseId
       - deadlineMode
       - fixedDeadlineTime
       - fixedDeadlineTimezone
+      - gameMaster
       - id
       - isPaused
       - members
@@ -2366,6 +2490,10 @@ components:
         id:
           type: integer
           readOnly: true
+        userId:
+          type: integer
+          nullable: true
+          readOnly: true
         name:
           type: string
           readOnly: true
@@ -2386,7 +2514,7 @@ components:
         kicked:
           type: boolean
           readOnly: true
-        isGameMaster:
+        isGameCreator:
           type: boolean
           readOnly: true
         nmrExtensionsRemaining:
@@ -2395,17 +2523,26 @@ components:
         civilDisorder:
           type: boolean
           readOnly: true
+        seekingReplacement:
+          type: boolean
+          readOnly: true
+        replaceable:
+          type: boolean
+          readOnly: true
       required:
       - civilDisorder
       - eliminated
       - id
       - isCurrentUser
-      - isGameMaster
+      - isGameCreator
       - kicked
       - name
       - nation
       - nmrExtensionsRemaining
       - picture
+      - replaceable
+      - seekingReplacement
+      - userId
     MovementFrequencyEnum:
       enum:
       - hourly
@@ -2698,6 +2835,9 @@ components:
         id:
           type: integer
           readOnly: true
+        userId:
+          type: integer
+          readOnly: true
         name:
           type: string
           maxLength: 255
@@ -2709,6 +2849,8 @@ components:
         email:
           type: string
           readOnly: true
+        emailNotificationsEnabled:
+          type: boolean
     PatchedVariantWrite:
       type: object
       properties:
@@ -2782,9 +2924,8 @@ components:
           type: integer
           nullable: true
         provinceNations:
-          type: object
-          additionalProperties:
-            type: string
+          type: string
+          readOnly: true
       required:
       - id
       - name
@@ -2861,6 +3002,59 @@ components:
       - parentId
       - supplyCenter
       - type
+    PublicUserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        picture:
+          type: string
+          readOnly: true
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+        totalGames:
+          type: integer
+          readOnly: true
+        soloWins:
+          type: integer
+          readOnly: true
+        draws:
+          type: integer
+          readOnly: true
+        losses:
+          type: integer
+          readOnly: true
+        nmrRate:
+          type: number
+          format: double
+          readOnly: true
+        cdRate:
+          type: number
+          format: double
+          readOnly: true
+        reliabilityTier:
+          type: string
+          readOnly: true
+          nullable: true
+      required:
+      - cdRate
+      - createdAt
+      - draws
+      - id
+      - losses
+      - name
+      - nmrRate
+      - picture
+      - reliabilityTier
+      - soloWins
+      - totalGames
     Register:
       type: object
       properties:
@@ -2987,6 +3181,9 @@ components:
         id:
           type: integer
           readOnly: true
+        userId:
+          type: integer
+          readOnly: true
         name:
           type: string
           maxLength: 255
@@ -2998,11 +3195,14 @@ components:
         email:
           type: string
           readOnly: true
+        emailNotificationsEnabled:
+          type: boolean
       required:
       - email
       - id
       - name
       - picture
+      - userId
     Variant:
       type: object
       properties:

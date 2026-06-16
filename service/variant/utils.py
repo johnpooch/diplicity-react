@@ -53,6 +53,7 @@ def validate_dvar(dvar):
 
     errors.extend(_validate_dvar_references(dvar))
     errors.extend(_validate_dvar_adjacencies(dvar))
+    errors.extend(_validate_dvar_phase_progression(dvar))
     return errors
 
 
@@ -165,6 +166,37 @@ def _validate_dvar_adjacencies(dvar):
                     f"adjacencies.{source}",
                 )
             )
+
+    return errors
+
+
+def _validate_dvar_phase_progression(dvar):
+    errors = []
+    pp = dvar.get("phaseProgression")
+    if not pp:
+        return errors
+
+    transitions = pp.get("transitions", [])
+    unconditional_froms = {}
+    for i, t in enumerate(transitions):
+        if "condition" in t and t["condition"]:
+            continue
+        key = (t["from"]["type"], t["from"]["season"])
+        if key in unconditional_froms:
+            prev_i = unconditional_froms[key]
+            errors.append(
+                DvarValidationError(
+                    "AMBIGUOUS_TRANSITION",
+                    f"Transitions {prev_i} and {i} both match "
+                    f"from ({key[0]}, {key[1]}) with no condition — "
+                    f"transition {i} will never fire. "
+                    f"Give the phases distinct season names or add a "
+                    f"yearMod condition to disambiguate.",
+                    f"phaseProgression.transitions.{i}",
+                )
+            )
+        else:
+            unconditional_froms[key] = i
 
     return errors
 

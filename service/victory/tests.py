@@ -10,163 +10,63 @@ from victory.serializers import VictorySerializer
 
 class TestCheckForSoloWinner:
 
-    def test_clear_solo_winner_at_threshold(
-        self, game_factory, phase_factory, member_factory, supply_center_factory
+    @pytest.mark.parametrize(
+        "threshold,sc_counts,winner_index",
+        [
+            pytest.param(18, [18, 16], 0, id="clear_solo_winner_at_threshold"),
+            pytest.param(18, [20, 14], 0, id="solo_winner_above_threshold"),
+            pytest.param(18, [17, 16], None, id="no_winner_below_threshold"),
+            pytest.param(18, [18, 18], None, id="no_winner_when_tied_at_threshold"),
+            pytest.param(18, [19, 19], None, id="no_winner_when_tied_above_threshold"),
+            pytest.param(8, [8, 5], 0, id="variant_specific_threshold"),
+            pytest.param(18, [17, 17, 17], None, id="three_way_tie"),
+            pytest.param(18, [18, 10, 8, 7, 5, 3, 2], 0, id="clear_winner_with_multiple_players"),
+        ],
+    )
+    def test_check_for_solo_winner(
+        self,
+        game_factory,
+        phase_factory,
+        member_factory,
+        supply_center_factory,
+        threshold,
+        sc_counts,
+        winner_index,
     ):
-        game = game_factory(variant__solo_victory_sc_count=18)
+        game = game_factory(variant__solo_victory_sc_count=threshold)
         phase = phase_factory(game=game, type=PhaseType.ADJUSTMENT, season="Fall")
 
-        winner = member_factory(game=game)
-        other_member = member_factory(game=game)
+        members = [member_factory(game=game) for _ in sc_counts]
 
-        for _ in range(18):
-            supply_center_factory(phase=phase, nation=winner.nation)
-
-        for _ in range(16):
-            supply_center_factory(phase=phase, nation=other_member.nation)
-
-        result = check_for_solo_winner(game, phase)
-
-        assert result == winner
-
-    def test_solo_winner_above_threshold(
-        self, game_factory, phase_factory, member_factory, supply_center_factory
-    ):
-        game = game_factory(variant__solo_victory_sc_count=18)
-        phase = phase_factory(game=game, type=PhaseType.ADJUSTMENT, season="Fall")
-
-        winner = member_factory(game=game)
-        other_member = member_factory(game=game)
-
-        for _ in range(20):
-            supply_center_factory(phase=phase, nation=winner.nation)
-
-        for _ in range(14):
-            supply_center_factory(phase=phase, nation=other_member.nation)
-
-        result = check_for_solo_winner(game, phase)
-
-        assert result == winner
-
-    def test_no_winner_below_threshold(
-        self, game_factory, phase_factory, member_factory, supply_center_factory
-    ):
-        game = game_factory(variant__solo_victory_sc_count=18)
-        phase = phase_factory(game=game, type=PhaseType.ADJUSTMENT, season="Fall")
-
-        member1 = member_factory(game=game)
-        member2 = member_factory(game=game)
-
-        for _ in range(17):
-            supply_center_factory(phase=phase, nation=member1.nation)
-
-        for _ in range(16):
-            supply_center_factory(phase=phase, nation=member2.nation)
-
-        result = check_for_solo_winner(game, phase)
-
-        assert result is None
-
-    def test_no_winner_when_tied_at_threshold(
-        self, game_factory, phase_factory, member_factory, supply_center_factory
-    ):
-        game = game_factory(variant__solo_victory_sc_count=18)
-        phase = phase_factory(game=game, type=PhaseType.ADJUSTMENT, season="Fall")
-
-        member1 = member_factory(game=game)
-        member2 = member_factory(game=game)
-
-        for _ in range(18):
-            supply_center_factory(phase=phase, nation=member1.nation)
-
-        for _ in range(18):
-            supply_center_factory(phase=phase, nation=member2.nation)
-
-        result = check_for_solo_winner(game, phase)
-
-        assert result is None
-
-    def test_no_winner_when_tied_above_threshold(
-        self, game_factory, phase_factory, member_factory, supply_center_factory
-    ):
-        game = game_factory(variant__solo_victory_sc_count=18)
-        phase = phase_factory(game=game, type=PhaseType.ADJUSTMENT, season="Fall")
-
-        member1 = member_factory(game=game)
-        member2 = member_factory(game=game)
-
-        for _ in range(19):
-            supply_center_factory(phase=phase, nation=member1.nation)
-
-        for _ in range(19):
-            supply_center_factory(phase=phase, nation=member2.nation)
-
-        result = check_for_solo_winner(game, phase)
-
-        assert result is None
-
-    def test_variant_specific_threshold(
-        self, game_factory, phase_factory, member_factory, supply_center_factory
-    ):
-        game = game_factory(variant__solo_victory_sc_count=8)
-        phase = phase_factory(game=game, type=PhaseType.ADJUSTMENT, season="Fall")
-
-        winner = member_factory(game=game)
-        other_member = member_factory(game=game)
-
-        for _ in range(8):
-            supply_center_factory(phase=phase, nation=winner.nation)
-
-        for _ in range(5):
-            supply_center_factory(phase=phase, nation=other_member.nation)
-
-        result = check_for_solo_winner(game, phase)
-
-        assert result == winner
-
-    def test_three_way_tie(
-        self, game_factory, phase_factory, member_factory, supply_center_factory
-    ):
-        game = game_factory(variant__solo_victory_sc_count=18)
-        phase = phase_factory(game=game, type=PhaseType.ADJUSTMENT, season="Fall")
-
-        member1 = member_factory(game=game)
-        member2 = member_factory(game=game)
-        member3 = member_factory(game=game)
-
-        for _ in range(17):
-            supply_center_factory(phase=phase, nation=member1.nation)
-
-        for _ in range(17):
-            supply_center_factory(phase=phase, nation=member2.nation)
-
-        for _ in range(17):
-            supply_center_factory(phase=phase, nation=member3.nation)
-
-        result = check_for_solo_winner(game, phase)
-
-        assert result is None
-
-    def test_clear_winner_with_multiple_players(
-        self, game_factory, phase_factory, member_factory, supply_center_factory
-    ):
-        game = game_factory(variant__solo_victory_sc_count=18)
-        phase = phase_factory(game=game, type=PhaseType.ADJUSTMENT, season="Fall")
-
-        winner = member_factory(game=game)
-        members = [member_factory(game=game) for _ in range(6)]
-
-        for _ in range(18):
-            supply_center_factory(phase=phase, nation=winner.nation)
-
-        sc_counts = [10, 8, 7, 5, 3, 2]
         for member, count in zip(members, sc_counts):
             for _ in range(count):
                 supply_center_factory(phase=phase, nation=member.nation)
 
         result = check_for_solo_winner(game, phase)
 
-        assert result == winner
+        if winner_index is None:
+            assert result is None
+        else:
+            assert result == members[winner_index]
+
+    def test_returns_none_when_variant_has_no_solo_victory_condition(
+        self,
+        game_factory,
+        phase_factory,
+        member_factory,
+        supply_center_factory,
+    ):
+        game = game_factory()
+        game.variant.victory_conditions = [{"type": "timed-resolution", "year": 1910, "resolution": "shared-draw"}]
+        game.variant.save()
+
+        phase = phase_factory(game=game, type=PhaseType.ADJUSTMENT, season="Fall")
+
+        member = member_factory(game=game)
+        for _ in range(30):
+            supply_center_factory(phase=phase, nation=member.nation)
+
+        assert check_for_solo_winner(game, phase) is None
 
 
 class TestVictoryManager:
@@ -301,7 +201,7 @@ class TestVictoryManager:
         with pytest.raises(IntegrityError):
             victory2 = Victory.objects.try_create_victory(phase)
 
-    def test_solo_victories_queryset(self, victory_factory, member_factory):
+    def test_solo_and_draw_victories_querysets(self, victory_factory, member_factory):
         solo_victory = victory_factory()
         solo_victory.members.add(member_factory())
 
@@ -313,13 +213,6 @@ class TestVictoryManager:
         assert solo_victories.count() == 1
         assert solo_victory in solo_victories
         assert draw_victory not in solo_victories
-
-    def test_draw_victories_queryset(self, victory_factory, member_factory):
-        solo_victory = victory_factory()
-        solo_victory.members.add(member_factory())
-
-        draw_victory = victory_factory()
-        draw_victory.members.add(member_factory(), member_factory())
 
         draw_victories = Victory.objects.draw_victories()
 
@@ -351,23 +244,19 @@ class TestVictoryManager:
 
 class TestVictoryModel:
 
-    def test_type_property_solo(self, victory_factory, member_factory):
+    @pytest.mark.parametrize(
+        "member_count,expected_type",
+        [
+            pytest.param(1, VictoryType.SOLO, id="solo"),
+            pytest.param(2, VictoryType.DRAW, id="draw"),
+            pytest.param(3, VictoryType.DRAW, id="draw_three_members"),
+        ],
+    )
+    def test_type_property(self, victory_factory, member_factory, member_count, expected_type):
         victory = victory_factory()
-        victory.members.add(member_factory())
+        victory.members.add(*[member_factory() for _ in range(member_count)])
 
-        assert victory.type == VictoryType.SOLO
-
-    def test_type_property_draw(self, victory_factory, member_factory):
-        victory = victory_factory()
-        victory.members.add(member_factory(), member_factory())
-
-        assert victory.type == VictoryType.DRAW
-
-    def test_type_property_draw_three_members(self, victory_factory, member_factory):
-        victory = victory_factory()
-        victory.members.add(member_factory(), member_factory(), member_factory())
-
-        assert victory.type == VictoryType.DRAW
+        assert victory.type == expected_type
 
     def test_cascade_delete_when_game_deleted(self, game_factory, victory_factory):
         game = game_factory()
@@ -420,6 +309,11 @@ class TestVictorySerializer:
         assert data['winning_phase_id'] == victory.winning_phase.id
         assert len(data['members']) == 1
         assert data['members'][0]['id'] == member.id
+        assert 'id' in data
+        assert 'type' in data
+        assert 'winning_phase_id' in data
+        assert 'members' in data
+        assert isinstance(data['members'], list)
 
     def test_serializes_draw_victory(self, victory_factory, member_factory, primary_user, secondary_user, tertiary_user):
         victory = victory_factory()
@@ -445,20 +339,3 @@ class TestVictorySerializer:
         assert member2.id in member_ids
         assert member3.id in member_ids
 
-    def test_includes_all_required_fields(self, victory_factory, member_factory, primary_user):
-        victory = victory_factory()
-        member = member_factory(user=primary_user)
-        victory.members.add(member)
-
-        factory = APIRequestFactory()
-        request = factory.get('/')
-        request.user = primary_user
-
-        serializer = VictorySerializer(victory, context={'request': request})
-        data = serializer.data
-
-        assert 'id' in data
-        assert 'type' in data
-        assert 'winning_phase_id' in data
-        assert 'members' in data
-        assert isinstance(data['members'], list)

@@ -5,7 +5,7 @@ from functools import cached_property
 import sentry_sdk
 from django.conf import settings
 from django.db import models, transaction
-from django.db.models import Q, Exists, OuterRef, Count, Prefetch
+from django.db.models import F, Q, Exists, OuterRef, Count, Prefetch
 from django.utils import timezone
 from opentelemetry import trace
 from common.models import BaseModel
@@ -250,8 +250,8 @@ class PhaseManager(models.Manager):
 
             extension_ids = {m.user_id for m in members_with_extensions if m.user_id is not None}
             other_ids = [
-                m.user_id for m in phase.game.members.all()
-                if m.user_id is not None and m.user_id not in extension_ids
+                user_id for user_id in phase.game.notification_user_ids()
+                if user_id not in extension_ids
             ]
             if other_ids:
                 notification_utils.send_notification_to_users(
@@ -458,9 +458,7 @@ class PhaseManager(models.Manager):
         cd_user_ids = [m.user_id for m in newly_cd_members if m.user_id is not None]
         self._remove_from_staging_games(cd_user_ids)
 
-        user_ids = [
-            m.user_id for m in phase.game.members.all() if m.user_id is not None
-        ]
+        user_ids = phase.game.notification_user_ids()
         nation_names = ", ".join(
             m.nation.name for m in newly_cd_members if m.nation is not None
         )
@@ -499,8 +497,9 @@ class PhaseManager(models.Manager):
             Member.objects.filter(
                 user_id__in=user_ids,
                 game__status=GameStatus.PENDING,
-                is_game_master=False,
-            ).select_related("game")
+            )
+            .exclude(game__created_by_id=F("user_id"))
+            .select_related("game")
         )
 
         if not staging_members:

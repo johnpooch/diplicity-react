@@ -1,7 +1,8 @@
 import django_filters
-from django.db.models import Count, F
+from django.db.models import Count, F, OuterRef, Q, Subquery
 
-from common.constants import GameStatus, MovementPhaseDuration
+from common.constants import GameStatus, MovementPhaseDuration, PhaseStatus
+from phase.models import Phase
 
 from .models import Game
 
@@ -25,7 +26,9 @@ class GameFilter(django_filters.FilterSet):
         if value:
             if not self.request.user.is_authenticated:
                 return queryset.none()
-            return queryset.filter(members__user=self.request.user).distinct()
+            return queryset.filter(
+                Q(members__user=self.request.user) | Q(game_master=self.request.user)
+            ).distinct()
         return queryset
 
     def filter_can_join(self, queryset, name, value):
@@ -56,4 +59,15 @@ class GameFilter(django_filters.FilterSet):
                 nation_count=Count("variant__nations", distinct=True),
                 slots_remaining=F("nation_count") - F("member_count"),
             ).order_by("slots_remaining", "-created_at")
+        if value == "deadline":
+            next_deadline = (
+                Phase.objects.filter(game=OuterRef("pk"), status=PhaseStatus.ACTIVE)
+                .order_by("-ordinal")
+                .values("scheduled_resolution")[:1]
+            )
+            return queryset.annotate(next_deadline=Subquery(next_deadline)).order_by(
+                "sandbox",
+                F("next_deadline").asc(nulls_last=True),
+                "-created_at",
+            )
         return queryset

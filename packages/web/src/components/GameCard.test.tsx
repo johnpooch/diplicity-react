@@ -10,7 +10,7 @@ import {
   mockPhaseMovement,
   mockPendingGames,
   mockActiveGames,
-} from "@/mocks";
+} from "@/mocks/legacy";
 
 const mockNavigate = vi.fn();
 const mockUseIsMobile = vi.fn();
@@ -55,7 +55,7 @@ const renderGameCard = (props: React.ComponentProps<typeof GameCard>) => {
 };
 
 const defaultProps = {
-  variant: { name: "Classical Diplomacy", id: "Classical" },
+  variant: { name: "Classical Diplomacy", id: "Classical", nations: [] },
   phaseId: 1,
   map: <div data-testid="map" />,
 };
@@ -96,7 +96,7 @@ describe("GameCard", () => {
       mockUseIsMobile.mockReturnValue(true);
       const game = mockActiveGames[0];
       renderGameCard({ game, ...defaultProps });
-      await userEvent.click(screen.getByRole("button", { name: game.name }));
+      await userEvent.click(screen.getByRole("button", { name: (accessibleName: string) => accessibleName.includes(game.name) }));
       expect(mockNavigate).toHaveBeenCalledWith(
         `/game/${game.id}/phase/${game.currentPhaseId}`
       );
@@ -106,7 +106,7 @@ describe("GameCard", () => {
       mockUseIsMobile.mockReturnValue(false);
       const game = mockActiveGames[0];
       renderGameCard({ game, ...defaultProps });
-      await userEvent.click(screen.getByRole("button", { name: game.name }));
+      await userEvent.click(screen.getByRole("button", { name: (accessibleName: string) => accessibleName.includes(game.name) }));
       expect(mockNavigate).toHaveBeenCalledWith(
         `/game/${game.id}/phase/${game.currentPhaseId}/orders`
       );
@@ -180,6 +180,72 @@ describe("GameCard", () => {
         ...defaultProps,
       });
       expect(screen.queryByLabelText("Gunboat")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("unread message indicator", () => {
+    it("shows the total unread count when greater than zero", () => {
+      renderGameCard({
+        game: { ...mockGames[0], totalUnreadMessageCount: 4 },
+        ...defaultProps,
+      });
+      expect(screen.getByText("4")).toBeInTheDocument();
+    });
+
+    it("does not show an indicator when there are no unread messages", () => {
+      renderGameCard({
+        game: { ...mockGames[0], totalUnreadMessageCount: 0 },
+        ...defaultProps,
+      });
+      expect(screen.queryByText("0")).not.toBeInTheDocument();
+    });
+
+    it("does not show an indicator for sandbox games", () => {
+      renderGameCard({
+        game: { ...mockSandboxGames[0], totalUnreadMessageCount: 0 },
+        ...defaultProps,
+      });
+      expect(screen.queryByText("0")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("order and member status badges", () => {
+    it("shows 'Required' badge when orderStatus is orders_required", () => {
+      renderGameCard({ game: { ...mockGames[0], orderStatus: "orders_required", memberStatus: [] }, ...defaultProps });
+      expect(screen.getByText("Required")).toBeInTheDocument();
+    });
+
+    it("shows 'Submitted' badge when orderStatus is orders_submitted", () => {
+      renderGameCard({ game: { ...mockGames[0], orderStatus: "orders_submitted", memberStatus: [] }, ...defaultProps });
+      expect(screen.getByText("Submitted")).toBeInTheDocument();
+    });
+
+    it("shows 'Not required' badge when orderStatus is no_orders_required", () => {
+      renderGameCard({ game: { ...mockGames[0], orderStatus: "no_orders_required", memberStatus: [] }, ...defaultProps });
+      expect(screen.getByText("Not required")).toBeInTheDocument();
+    });
+
+    it("shows no order status badge when orderStatus is null", () => {
+      renderGameCard({ game: { ...mockGames[0], orderStatus: null, memberStatus: [] }, ...defaultProps });
+      expect(screen.queryByText("Required")).not.toBeInTheDocument();
+      expect(screen.queryByText("Submitted")).not.toBeInTheDocument();
+      expect(screen.queryByText("Not required")).not.toBeInTheDocument();
+    });
+
+    it("shows 'NMR' badge when memberStatus includes nmr", () => {
+      renderGameCard({ game: { ...mockGames[0], orderStatus: null, memberStatus: ["nmr"] }, ...defaultProps });
+      expect(screen.getByText("NMR")).toBeInTheDocument();
+    });
+
+    it("shows 'CD' badge when memberStatus includes civil_disorder", () => {
+      renderGameCard({ game: { ...mockGames[0], orderStatus: null, memberStatus: ["civil_disorder"] }, ...defaultProps });
+      expect(screen.getByText("CD")).toBeInTheDocument();
+    });
+
+    it("shows no member status badges when memberStatus is empty", () => {
+      renderGameCard({ game: { ...mockGames[0], orderStatus: null, memberStatus: [] }, ...defaultProps });
+      expect(screen.queryByText("NMR")).not.toBeInTheDocument();
+      expect(screen.queryByText("CD")).not.toBeInTheDocument();
     });
   });
 
