@@ -3,6 +3,7 @@ from django.shortcuts import get_object_or_404
 from django.apps import apps
 from common.constants import GameStatus, MinReliability, PressType
 from common.views import resolve_game
+from user_profile.utils import get_player_stats, tier_allows_min_reliability
 
 Game = apps.get_model("game", "Game")
 Channel = apps.get_model("channel", "Channel")
@@ -111,8 +112,6 @@ class MeetsReliabilityRequirement(BasePermission):
             return True
         if not request.user.is_authenticated:
             return False
-        from user_profile.utils import get_player_stats, tier_allows_min_reliability
-
         tier = get_player_stats(request.user)["reliability_tier"]
         return tier_allows_min_reliability(tier, game.min_reliability)
 

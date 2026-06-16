@@ -795,7 +795,7 @@ def test_join_game_reliability_requirement(
     url = reverse(join_viewname, args=[game.id])
 
     with patch(
-        "user_profile.utils.get_player_stats",
+        "common.permissions.get_player_stats",
         return_value={"reliability_tier": tier},
     ):
         response = authenticated_client.post(url)
