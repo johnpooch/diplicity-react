@@ -43,6 +43,7 @@ const emptyPhase: PhaseRetrieve = {
 const baseOrder: Order = {
   source: province("lon"),
   sourceCoast: null,
+  targetCoast: null,
   target: province("nth"),
   aux: province("lon"),
   namedCoast: province("lon"),
@@ -264,7 +265,7 @@ describe("toRenderState", () => {
       });
     });
 
-    test("Support ignores sourceCoast and namedCoast", () => {
+    test("Support uses sourceCoast for source and targetCoast for the destination", () => {
       const state = toRenderState(
         variant,
         emptyPhase,
@@ -272,11 +273,11 @@ describe("toRenderState", () => {
           {
             ...baseOrder,
             orderType: "Support",
-            source: province("nth"),
-            sourceCoast: province("nth/x", "nth"),
-            target: province("bel"),
-            aux: province("hol"),
-            namedCoast: province("bel/x", "bel"),
+            source: province("mar"),
+            sourceCoast: province("mar/sc", "mar"),
+            target: province("spa"),
+            targetCoast: province("spa/sc", "spa"),
+            aux: province("gas"),
           },
         ],
         [],
@@ -284,13 +285,39 @@ describe("toRenderState", () => {
       );
       expect(state.orders?.[0]).toMatchObject({
         type: "Support",
-        source: "nth",
-        target: "bel",
-        aux: "hol",
+        source: "mar/sc",
+        target: "spa/sc",
+        aux: "gas",
       });
     });
 
-    test("Convoy ignores sourceCoast and namedCoast", () => {
+    test("Support falls back to the parent target when the coast is unknown", () => {
+      const state = toRenderState(
+        variant,
+        emptyPhase,
+        [
+          {
+            ...baseOrder,
+            orderType: "Support",
+            source: province("mar"),
+            sourceCoast: null,
+            target: province("spa"),
+            targetCoast: null,
+            aux: province("gas"),
+          },
+        ],
+        [],
+        []
+      );
+      expect(state.orders?.[0]).toMatchObject({
+        type: "Support",
+        source: "mar",
+        target: "spa",
+        aux: "gas",
+      });
+    });
+
+    test("Convoy uses sourceCoast for source and the parent target", () => {
       const state = toRenderState(
         variant,
         emptyPhase,
@@ -299,10 +326,9 @@ describe("toRenderState", () => {
             ...baseOrder,
             orderType: "Convoy",
             source: province("eng"),
-            sourceCoast: province("eng/x", "eng"),
+            sourceCoast: null,
             target: province("bre"),
             aux: province("lon"),
-            namedCoast: province("bre/x", "bre"),
           },
         ],
         [],

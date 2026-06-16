@@ -142,3 +142,44 @@ describe("OrdersScreen civil disorder handling", () => {
     expect(screen.queryByRole("button", { name: /confirm orders/i })).not.toBeInTheDocument();
   });
 });
+
+describe("OrdersScreen named coast display", () => {
+  beforeEach(() => {
+    mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);
+    mockOrdersData.mockReturnValue([]);
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: [baseMember({ civilDisorder: false })],
+    });
+  });
+
+  it("shows the unit type and coast name for a fleet on a named coast", () => {
+    mockPhaseData.mockReturnValue({
+      id: 1,
+      status: "active",
+      supplyCenters: [],
+      units: [
+        {
+          type: "Fleet",
+          dislodged: false,
+          nation: { name: "England" },
+          province: { id: "spa/nc", name: "Spain (NC)", parentId: "spa" },
+        },
+      ],
+    });
+    mockPhaseStatesData.mockReturnValue([
+      {
+        member: baseMember({ civilDisorder: false }),
+        orderableProvinces: [{ id: "spa", name: "Spain", parentId: null }],
+      },
+    ]);
+
+    renderOrdersScreen();
+
+    expect(screen.getByText(/Fleet Spain \(NC\)/)).toBeInTheDocument();
+  });
+});

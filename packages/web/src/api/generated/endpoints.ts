@@ -583,6 +583,7 @@ export interface Order {
   readonly source: Province;
   readonly sourceCoast: Province | null;
   readonly target: Province;
+  readonly targetCoast: Province | null;
   readonly aux: Province;
   readonly namedCoast: Province;
   readonly resolution: OrderResolution;

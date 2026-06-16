@@ -40,6 +40,7 @@ class OrderSerializer(serializers.Serializer):
     source = ProvinceSerializer(read_only=True)
     source_coast = ProvinceSerializer(read_only=True, allow_null=True)
     target = ProvinceSerializer(read_only=True)
+    target_coast = ProvinceSerializer(read_only=True, allow_null=True)
     aux = ProvinceSerializer(read_only=True)
     named_coast = ProvinceSerializer(read_only=True)
     resolution = OrderResolutionSerializer(read_only=True)
@@ -59,6 +60,10 @@ class OrderSerializer(serializers.Serializer):
         allow_empty=False,
         required=False,
     )
+
+    def to_representation(self, instance):
+        instance._move_coast_lookup = self.context.get("move_coast_lookup", {})
+        return super().to_representation(instance)
 
     def validate_selected(self, value):
         phase = self.context["phase"]
