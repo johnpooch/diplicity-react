@@ -38,6 +38,13 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
   const transformRef = useRef<ReactZoomPanPinchContentRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // --- Diagnostic ---
+  const renderCountRef = useRef(0);
+  const prevZoomPropsRef = useRef<typeof interactiveMapProps | null>(null);
+  const lastTransformTimeRef = useRef<number | null>(null);
+  const transformFrameTimesRef = useRef<number[]>([]);
+  const fpsFlushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const { data: dsvg, isLoading } = useDsvg(interactiveMapProps.variant.svgUrl);
 
   const parsedDsvg = useMemo(() => (dsvg ? parseDsvg(dsvg) : null), [dsvg]);
@@ -123,6 +130,39 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
     });
   };
 
+  const handleGestureStart = () => {
+    if (svgRef.current) {
+      svgRef.current.style.pointerEvents = "none";
+    }
+  };
+
+  const handleGestureStop = () => {
+    if (svgRef.current) {
+      svgRef.current.style.pointerEvents = "";
+    }
+  };
+
+  const handleTransformed = () => {
+    const now = performance.now();
+    if (lastTransformTimeRef.current !== null) {
+      transformFrameTimesRef.current.push(now - lastTransformTimeRef.current);
+    }
+    lastTransformTimeRef.current = now;
+
+    if (fpsFlushTimerRef.current) clearTimeout(fpsFlushTimerRef.current);
+    fpsFlushTimerRef.current = setTimeout(() => {
+      const times = transformFrameTimesRef.current;
+      if (times.length > 1) {
+        const avg = times.reduce((a, b) => a + b, 0) / times.length;
+        console.log(
+          `[InteractiveMapZoom] gesture: ${times.length} updates, avg ${avg.toFixed(1)}ms between transforms (~${(1000 / avg).toFixed(0)} fps)`
+        );
+      }
+      transformFrameTimesRef.current = [];
+      lastTransformTimeRef.current = null;
+    }, 500);
+  };
+
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -159,6 +199,21 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
     }
   }, [minScale, containerDimensions, svgViewBox]);
 
+  // --- Diagnostic logging ---
+  renderCountRef.current += 1;
+  if (prevZoomPropsRef.current) {
+    const changed = (
+      Object.keys(interactiveMapProps) as Array<keyof typeof interactiveMapProps>
+    ).filter((k) => interactiveMapProps[k] !== prevZoomPropsRef.current![k]);
+    console.log(
+      `[InteractiveMapZoom] render #${renderCountRef.current}`,
+      changed.length > 0 ? { changedProps: changed } : "(internal state change)"
+    );
+  } else {
+    console.log(`[InteractiveMapZoom] render #${renderCountRef.current} (initial)`);
+  }
+  prevZoomPropsRef.current = interactiveMapProps;
+
   if (isLoading || !parsedDsvg || !renderer) {
     return (
       <div
@@ -184,6 +239,13 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
         disablePadding={true}
         panning={{ velocityDisabled: true }}
         velocityAnimation={{ disabled: true }}
+        onTransformed={handleTransformed}
+        onPanningStart={handleGestureStart}
+        onPanningStop={handleGestureStop}
+        onPinchingStart={handleGestureStart}
+        onPinchingStop={handleGestureStop}
+        onZoomStart={handleGestureStart}
+        onZoomStop={handleGestureStop}
       >
         <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
           <InteractiveMap
