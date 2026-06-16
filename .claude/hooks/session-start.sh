@@ -143,7 +143,32 @@ else
 fi
 
 ###############################################################################
-# 7. Persist session environment: venv on PATH + local DB config, so that
+# 7. GitHub CLI (gh). Authenticates automatically from $GH_TOKEN (set in the
+#    cloud environment config). The mcp__github__* tools cover most GitHub
+#    workflows; gh adds shell-driven access (gh api, gh pr, gh issue, gh label).
+#    Without GH_TOKEN it is left uninstalled, since it would be unauthenticated.
+###############################################################################
+if [ -n "${GH_TOKEN:-}" ]; then
+  if ! command -v gh >/dev/null 2>&1; then
+    log "Installing GitHub CLI"
+    apt-get install -y -q gh >/dev/null 2>&1 \
+      || ( apt-get update -qq >/dev/null 2>&1 && apt-get install -y -q gh >/dev/null 2>&1 ) \
+      || log "WARNING: gh install failed"
+  fi
+  if command -v gh >/dev/null 2>&1; then
+    # gh auth status validates GH_TOKEN against api.github.com.
+    if gh auth status >/dev/null 2>&1; then
+      log "GitHub CLI ready (authenticated via GH_TOKEN)."
+    else
+      log "WARNING: gh installed but 'gh auth status' failed — check GH_TOKEN validity/permissions."
+    fi
+  fi
+else
+  log "GH_TOKEN not set — GitHub CLI not installed (use the mcp__github__* tools instead)."
+fi
+
+###############################################################################
+# 8. Persist session environment: venv on PATH + local DB config, so that
 #    `python`, `pytest`, and `manage.py` work without per-command env setup.
 ###############################################################################
 if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
