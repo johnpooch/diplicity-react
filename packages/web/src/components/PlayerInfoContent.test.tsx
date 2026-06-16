@@ -12,6 +12,8 @@ vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({ data: mockGameData() }),
   useVariantsListSuspense: () => ({ data: mockVariantsData() }),
   useGamePhaseRetrieve: () => ({ data: mockCurrentPhaseData() }),
+  useGamePhaseStatesList: () => ({ data: undefined }),
+  useGameOrdersList: () => ({ data: undefined }),
 }));
 
 vi.mock("@/components/NationFlag", () => ({
@@ -47,7 +49,7 @@ describe("PlayerInfoContent", () => {
     mockVariantsData.mockReturnValue([
       { id: "classical", name: "Classical" },
     ]);
-    mockCurrentPhaseData.mockReturnValue({ supplyCenters: [] });
+    mockCurrentPhaseData.mockReturnValue({ supplyCenters: [], units: [] });
   });
 
   it("shows the civil disorder badge for members in civil disorder", () => {
