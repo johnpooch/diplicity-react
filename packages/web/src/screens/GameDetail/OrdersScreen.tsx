@@ -383,7 +383,8 @@ const OrdersScreen: React.FC = () => {
                               <Item size="sm">
                                 <ItemContent>
                                   <ItemTitle>
-                                    {item.unit?.type} {item.province.name}
+                                    {item.unit?.type}{" "}
+                                    {item.unit?.province.name ?? item.province.name}
                                   </ItemTitle>
                                   <ItemDescription>
                                     {item.order ? item.order.summary : "Order not provided"}
