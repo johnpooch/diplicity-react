@@ -54,7 +54,7 @@ const ScriptedChat: React.FC<ScriptedChatProps> = ({
           Press · {ally.name}
         </span>
         <p className="mt-1 text-sm text-muted-foreground">
-          Tap your reply to send it.
+          Tap your message to send it.
         </p>
       </div>
 
@@ -97,12 +97,15 @@ const ScriptedChat: React.FC<ScriptedChatProps> = ({
       <div className="border-t p-4">
         {canSend && (
           <Button
-            className="h-auto w-full justify-start whitespace-normal py-2 text-left"
+            className="h-auto w-full justify-between whitespace-normal py-2 text-left"
             variant="outline"
             onClick={() => setRevealed(r => r + 1)}
           >
-            <Send className="shrink-0" />
-            {next.body}
+            <span>{next.body}</span>
+            <span className="ml-3 flex shrink-0 flex-col items-center gap-0.5">
+              <Send className="size-4" />
+              <span className="text-[10px] leading-none">send</span>
+            </span>
           </Button>
         )}
         {done && (

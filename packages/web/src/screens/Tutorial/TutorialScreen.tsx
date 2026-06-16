@@ -74,13 +74,19 @@ const Tutorial: React.FC<TutorialProps> = ({ variant }) => {
           <div className="absolute inset-0 z-30 flex items-center justify-center bg-background/80 p-6">
             <div className="w-full max-w-sm space-y-4 rounded-2xl border bg-card p-6 text-center shadow-lg">
               <PartyPopper className="mx-auto size-10 text-primary" />
-              <h2 className="text-xl font-semibold">You know the basics</h2>
+              <h2 className="text-xl font-semibold">You know the basics.</h2>
               <p className="text-sm text-muted-foreground">
-                You've moved, taken and held a supply center, broken a standoff,
-                won an ally's support, convoyed across the sea, and seen
-                retreats, builds and disbands. A few small details can still
-                make or break a game — read the detailed rules, or jump into
-                your first game.
+                You can now join a game with real people. However, we{" "}
+                <strong>strongly recommend</strong> to read the full 'How to
+                play' after joining your game.
+                <br />
+                There are some edge cases, and there is nothing more
+                disappointing to have a plan you prepared for 3 days fail
+                because you misunderstood a rule.
+                <br />
+                <br />
+                And, games are slow - so you'll have enough time to read it
+                while discussing your first moves.
               </p>
               <div className="flex flex-col gap-2">
                 <Button onClick={() => navigate("/find-games")}>

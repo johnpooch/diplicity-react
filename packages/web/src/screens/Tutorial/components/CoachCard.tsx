@@ -33,7 +33,7 @@ const CoachCard: React.FC<CoachCardProps> = ({ engine }) => {
         "md:inset-x-auto md:bottom-auto md:top-4 md:right-4 md:w-[360px] md:rounded-2xl"
       )}
     >
-      <div className="p-5 space-y-3">
+      <div className="p-3 space-y-2 md:p-5 md:space-y-3">
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
             {progress.lessonTitle}
@@ -53,10 +53,10 @@ const CoachCard: React.FC<CoachCardProps> = ({ engine }) => {
         </div>
 
         {step.title && (
-          <h2 className="text-lg font-semibold leading-tight">{step.title}</h2>
+          <h2 className="text-base font-semibold leading-tight md:text-lg">{step.title}</h2>
         )}
 
-        <p className="whitespace-pre-line text-[15px] leading-relaxed text-muted-foreground">
+        <p className="whitespace-pre-line text-[13px] leading-snug text-muted-foreground md:text-[15px] md:leading-relaxed">
           {renderCoach(step.coach)}
         </p>
 
@@ -64,23 +64,23 @@ const CoachCard: React.FC<CoachCardProps> = ({ engine }) => {
           <button
             type="button"
             onClick={() => setView("chat")}
-            className="flex w-full items-center gap-2 rounded-lg bg-muted/60 px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-muted"
+            className="flex w-full items-center gap-2 rounded-lg bg-muted/60 px-3 py-1.5 text-left text-xs text-muted-foreground transition-colors hover:bg-muted md:py-2 md:text-sm"
           >
             <MessageCircle className="size-4 shrink-0" />
             <span>Tap Chat in the menu to continue.</span>
           </button>
         ) : primaryAction === null ? (
-          <div className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-1.5 text-xs text-muted-foreground md:py-2 md:text-sm">
             <Hand className="size-4 shrink-0" />
             <span>Tap the highlighted area on the map to continue.</span>
           </div>
         ) : (
-          <div className="flex items-center gap-3 pt-1">
-            <Button onClick={primaryAction.run} className="flex-1">
+          <div className="flex items-center gap-3">
+            <Button size="sm" onClick={primaryAction.run} className="flex-1 md:size-auto">
               {primaryAction.label}
             </Button>
             {isFirstStep && (
-              <Button variant="ghost" onClick={skip}>
+              <Button size="sm" variant="ghost" onClick={skip} className="md:size-auto">
                 I already know how
               </Button>
             )}

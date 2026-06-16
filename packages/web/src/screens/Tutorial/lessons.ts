@@ -265,6 +265,8 @@ export function buildLessons(variant: Variant): Lesson[] {
     order(variant, { nationId: "germany", unitType: "Army", orderType: "Move", source: "hol", target: "bel", failed, failedBy: failed ? "bel" : undefined });
   const englandSupportsBelgium = () =>
     order(variant, { nationId: "england", unitType: "Fleet", orderType: "Support", source: "eng", aux: "pic", target: "bel" });
+  const englandYorToLon = () =>
+    order(variant, { nationId: "england", unitType: "Army", orderType: "Move", source: "yor", target: "lon" });
   const englandConvoyFleet = () =>
     order(variant, { nationId: "england", unitType: "Fleet", orderType: "Convoy", source: "nth", aux: "lon", target: "hol" });
   const englandConvoyArmy = () =>
@@ -273,6 +275,8 @@ export function buildLessons(variant: Variant): Lesson[] {
     order(variant, { nationId: "france", unitType: "Army", orderType: "Support", source: "bel", aux: "lon", target: "hol" });
   const germanyHoldsHolland = (failed = false) =>
     order(variant, { nationId: "germany", unitType: "Army", orderType: "Hold", source: "hol", failed });
+  const germanyRetreatsToRuhr = () =>
+    order(variant, { nationId: "germany", unitType: "Army", orderType: "Move", source: "hol", target: "ruh" });
 
   // --- board states ---
   const startBoard = (): Board => ({ phase: phase(startCast(), baseCenters()), orders: [] });
@@ -281,12 +285,13 @@ export function buildLessons(variant: Variant): Lesson[] {
 
   const fromTurn2Board = (): Board => ({ phase: phase(turn2Cast(), germanHolland()), orders: [] });
 
-  // Turn 2 result: France and Germany bounce at Belgium; England's army reaches London.
+  // Turn 2 result: France and Germany bounce at Belgium; England's army still in Yorkshire, moving to London.
   const bouncedAtBelgium: Board = {
-    phase: phase(turn2Cast(), germanHolland()),
+    phase: phase(turn1Cast(), germanHolland()),
     orders: [
       order(variant, { nationId: "france", unitType: "Army", orderType: "Move", source: "pic", target: "bel", failed: true, failedBy: "bel" }),
       germanyHolToBel(true),
+      englandYorToLon(),
     ],
   };
 
@@ -296,10 +301,10 @@ export function buildLessons(variant: Variant): Lesson[] {
     orders: [francePicToBel(), englandSupportsBelgium(), germanyHolToBel(true)],
   };
 
-  // Convoy planned, shown before the player adds support.
-  const convoyPlanned: Board = {
+  // Units in convoy position, no orders shown (used for steps that explain without arrows).
+  const convoyUnits: Board = {
     phase: phase(belgiumCast(), germanHolland()),
-    orders: [englandConvoyFleet(), englandConvoyArmy(), germanyHoldsHolland()],
+    orders: [],
   };
 
   // Convoy resolves: England lands in Holland; Germany is dislodged (retreating).
@@ -316,22 +321,6 @@ export function buildLessons(variant: Variant): Lesson[] {
       englishHolland()
     ),
     orders: [englandConvoyFleet(), englandConvoyArmy(), franceSupportsHolland(), germanyHoldsHolland(true)],
-  };
-
-  // Germany retreats to Ruhr.
-  const germanyRetreated: Board = {
-    phase: phase(
-      [
-        unit(variant, "Army", "france", "bre"),
-        unit(variant, "Army", "france", "bel"),
-        unit(variant, "Army", "germany", "ruh"),
-        unit(variant, "Army", "england", "hol"),
-        unit(variant, "Fleet", "england", "nth"),
-        unit(variant, "Fleet", "england", "eng"),
-      ],
-      englishHolland()
-    ),
-    orders: [],
   };
 
   // Adjustment: Belgium now counts for France; Germany controls nothing.
@@ -456,7 +445,7 @@ export function buildLessons(variant: Variant): Lesson[] {
       steps: [
         {
           coach:
-            "Some provinces, like Belgium here, have supply centers - these matter. They decide how many units you can have; more centers, more units.\n\nIf you have 18 SCs, you win the game.",
+            "Some provinces, like Belgium here, have supply centers - these matter. They decide how many units you can have; more centers, more units.\n\nIf you have 18 SCs, you win the game (depending on variant).",
           title: "Supply centers",
           goal: { kind: "continue" },
           highlight: ["bel"],
@@ -479,14 +468,14 @@ export function buildLessons(variant: Variant): Lesson[] {
       steps: [
         {
           coach:
-            "Note that Germany is eyeing the province too. We might have a fight on our hands.\n\nConfirm your orders to continue.",
+            "Note that Germany might be eyeing the supply center too. If they enter as well, we might have a fight on our hands.\n\nConfirm your orders to continue.",
           title: "Contested provinces",
           goal: { kind: "confirm" },
           primaryLabel: "Confirm your orders",
         },
         {
           coach:
-            "Germany wanted Belgium too. Because each unit has a base strength of one, these armies are evenly matched.\n\nIn this case, no one moves. We call this a bounce - all units stay where they are.",
+            "Germany wanted Belgium too. Because each unit has a base strength of one, these armies are evenly matched.\n\nIn this case, no one moves. We call this a **bounce** - all units stay where they are.",
           title: "A contested move",
           goal: { kind: "continue" },
           primaryLabel: "Next",
@@ -535,29 +524,30 @@ export function buildLessons(variant: Variant): Lesson[] {
         },
         {
           coach:
-            "England kept their word — their fleet supported you, and each supporting unit adds one strength. Two against Germany's one, so your army marched into Belgium. Armies move across land and coasts; fleets across water and coasts — which is why England's Channel fleet could back a move into coastal Belgium.",
+            "England kept their word! Their fleet supported you. Each supporting unit adds one strength, but supporting units don't move.\n\nTwo against one; your army marched into Belgium and Holland stays where it is.\n**Important: if a supporting unit is attacked, their support order is cancelled**.",
           title: "England followed through",
           goal: { kind: "continue" },
           primaryLabel: "Next",
         },
         {
           coach:
-            "But notice Belgium is still grey — not yours yet. A supply center only becomes yours if you still hold it at the year's end, the adjustment. Keep your army there.",
-          title: "Hold to claim it",
+            "Notice Belgium is not yours yet. An SC only changes owner during the adjustment phase, after every two movement turns.\n\nWe need to keep our army there. Supporting units don't move - so we can still support England.",
+          title: "Adjustment phases",
           goal: { kind: "continue" },
           primaryLabel: "Next",
+          enterBoard: { phase: phase(belgiumCast(), germanHolland()), orders: [] },
         },
       ],
     },
     {
       id: "convoy",
       title: "Cross the water",
-      initialBoard: { phase: phase(belgiumCast(), germanHolland()), orders: [] },
+      initialBoard: convoyUnits,
       focus: convoyFocus,
       steps: [
         {
           coach:
-            "Your plan is coming together — England's army reached London and its fleet is waiting in the North Sea, just where you need them. Open the Chat to make good on your promise and plan the next move.",
+            "Your plan is coming together — England's army reached London and its fleet is waiting in the North Sea, just where you need them.\n\nOpen the Chat to make good on your promise and plan the next move.",
           title: "Keep the alliance",
           goal: { kind: "chat" },
           ally: "england",
@@ -575,22 +565,22 @@ export function buildLessons(variant: Variant): Lesson[] {
         },
         {
           coach:
-            "A fleet can carry an army across water — that's a convoy. England's North Sea fleet will ferry their London army into Holland (the blue line). But Germany is dug in there, holding the province.",
-          title: "What a convoy is",
+            "A (chain of) fleet can carry an army across water. England will order its North Sea fleet to convoy the London army into Holland. However, this will not add strength, just facilitate movement.",
+          title: "Convoying across water",
           goal: { kind: "continue" },
           primaryLabel: "Next",
-          enterBoard: convoyPlanned,
+          enterBoard: convoyUnits,
         },
         {
           coach:
-            "Lend your strength. Your Belgium army can't cross the sea, but it can support the landing. Tap your army in Belgium, then England's army in London, then Holland — your army stays put and adds one strength.",
-          title: "Support the landing",
+            "Germany might **hold** their unit, defending Holland. A unit can also support a convoyed move.\nTap your army in Belgium, then England's army in London, then Holland. Your army now adds their strength.",
+          title: "Convoys don't add strength",
           goal: { kind: "order", source: "bel", aux: "lon", target: "hol" },
           order: franceSupportsHolland(),
         },
         {
           coach:
-            "The landing strikes with two strength; Germany's lone hold has only one. Hold orders can be supported too, to defend — but Germany's wasn't. Confirm your order.",
+            "The army will land with two strength. Even if Germany holds, it is only one. **Hold orders can be supported just like move orders, to defend** — but Germany is alone. Confirm your order.",
           title: "Confirm your order",
           goal: { kind: "confirm" },
           primaryLabel: "Confirm your order",
@@ -598,18 +588,25 @@ export function buildLessons(variant: Variant): Lesson[] {
         },
         {
           coach:
-            "Your support landed England's army in Holland — and dislodged Germany. The little flag marks a unit in retreat. The landing struck with two strength against Germany's lone hold of one.",
+            "Your support helped England's army into Holland. Germany failed to hold. As there can be only one unit on a province, it is **dislodged**. In this case, those nations get an extra turn (24 hours!)",
           title: "The landing",
           goal: { kind: "continue" },
           primaryLabel: "Next",
+          enterBoard: {
+            phase: convoyResolved.phase,
+            orders: [englandConvoyFleet(), germanyHoldsHolland(true)],
+          },
         },
         {
           coach:
-            "A dislodged unit isn't destroyed — it must retreat to an empty neighbouring province. Germany falls back to Ruhr. Hold orders can be supported too, to defend — but Germany's wasn't.",
+            "A dislodged unit isn't destroyed — it must retreat to an empty neighbouring province where there was no bounce. Germany falls back to Ruhr.\n**Important: Hold orders can be supported too, to defend** — but Germany's wasn't.",
           title: "Retreats",
           goal: { kind: "continue" },
           primaryLabel: "Next",
-          enterBoard: germanyRetreated,
+          enterBoard: {
+            phase: convoyResolved.phase,
+            orders: [germanyRetreatsToRuhr()],
+          },
         },
       ],
     },
@@ -621,14 +618,14 @@ export function buildLessons(variant: Variant): Lesson[] {
       steps: [
         {
           coach:
-            "The year ends, and now supply centers are counted. You held Belgium through to the adjustment, so it's finally yours — it's turned blue. You control four centers but have only two armies.",
+            "During adjustment, SCs are counted. Now Belgium is finally yours (blue). You control more centers than you have armies, so you can build.",
           title: "Counting centers",
           goal: { kind: "continue" },
           primaryLabel: "Next",
         },
         {
           coach:
-            "More centers than armies means you build. New units appear in your empty home centers. Tap Paris to build an army there.",
+            "You can only build on an **empty home center** (depending on variant). If you build on a coast, you are asked to build a fleet or army. Tap Paris to build an army there.",
           title: "Build a unit",
           goal: { kind: "select", province: "par" },
           highlight: ["par"],
@@ -636,7 +633,7 @@ export function buildLessons(variant: Variant): Lesson[] {
         },
         {
           coach:
-            "A fresh army for France in Paris — that's a build. Germany, though, was driven out of Holland and lost the race for centers. With fewer centers than armies, it must disband one.",
+            "You built. Germany, however, lost an SC. With less centers than armies, they need to **disband** a unit. They choose which one.",
           title: "France builds",
           goal: { kind: "continue" },
           primaryLabel: "Next",
@@ -644,7 +641,7 @@ export function buildLessons(variant: Variant): Lesson[] {
         },
         {
           coach:
-            "Germany removes an army from the board — a disband. Overreaching cost it everything. You ended the year stronger; Germany ended it weaker.",
+            "Germany removes their army in Ruhr. You became stronger, but are far away from 18 SCs.\nMaybe it's time to betray England's trust in you..",
           title: "Germany disbands",
           goal: { kind: "continue" },
           primaryLabel: "Finish",
