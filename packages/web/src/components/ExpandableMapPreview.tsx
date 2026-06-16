@@ -1,9 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Expand, X } from "lucide-react";
-import {
-  TransformWrapper,
-  TransformComponent,
-} from "react-zoom-pan-pinch";
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 
 import type {
   PhaseRetrieve,
@@ -11,11 +8,11 @@ import type {
   VariantTemplatePhase,
 } from "../api/generated/endpoints";
 import { useDsvg } from "../hooks/useDsvg";
+import { parseDsvg } from "./InteractiveMap/dsvgParser";
 import { DiplicityMap } from "./InteractiveMap/mapRenderer";
 import { toRenderState } from "./InteractiveMap/toRenderState";
 import { MapPreview } from "./MapPreview";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogClose,
@@ -36,37 +33,68 @@ const ZoomableMap: React.FC<{
   variant: VariantForPreview;
   phase: PhaseRetrieve | VariantTemplatePhase;
 }> = ({ variant, phase }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const { data: dsvg } = useDsvg(variant.svgUrl, true);
 
+  const viewBox = useMemo(() => (dsvg ? parseDsvg(dsvg).viewBox : null), [dsvg]);
   const svg = useMemo(() => {
     if (!dsvg) return null;
     const renderState = toRenderState(variant, phase, [], [], []);
     return new DiplicityMap(dsvg)
       .render(renderState)
-      .replace(
-        "<svg ",
-        '<svg preserveAspectRatio="xMidYMid meet" width="100%" height="100%" '
-      );
+      .replace("<svg ", '<svg width="100%" height="100%" ');
   }, [dsvg, variant, phase]);
 
-  if (!svg) {
-    return <Skeleton className="w-full h-full" />;
-  }
+  const [container, setContainer] = useState<{
+    width: number;
+    height: number;
+  }>();
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        setContainer({ width, height });
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const containedScale =
+    container && viewBox
+      ? Math.min(container.width / viewBox.width, container.height / viewBox.height)
+      : 1;
 
   return (
-    <TransformWrapper
-      minScale={1}
-      maxScale={8}
-      centerOnInit
-      doubleClick={{ mode: "zoomIn", step: 0.7 }}
-    >
-      <TransformComponent
-        wrapperStyle={{ width: "100%", height: "100%" }}
-        contentStyle={{ width: "100%", height: "100%" }}
-      >
-        <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: svg }} />
-      </TransformComponent>
-    </TransformWrapper>
+    <div ref={containerRef} className="h-full w-full">
+      {svg && viewBox && container ? (
+        <TransformWrapper
+          key={`${container.width}x${container.height}`}
+          minScale={1}
+          maxScale={8}
+          centerOnInit
+          limitToBounds
+          centerZoomedOut
+          disablePadding
+          doubleClick={{ mode: "zoomIn", step: 0.7 }}
+          panning={{ velocityDisabled: true }}
+          velocityAnimation={{ disabled: true }}
+        >
+          <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
+            <div
+              style={{
+                width: viewBox.width * containedScale,
+                height: viewBox.height * containedScale,
+              }}
+              dangerouslySetInnerHTML={{ __html: svg }}
+            />
+          </TransformComponent>
+        </TransformWrapper>
+      ) : null}
+    </div>
   );
 };
 

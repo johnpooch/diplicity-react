@@ -17,7 +17,7 @@ vi.mock("react-zoom-pan-pinch", () => ({
 }));
 
 vi.mock("../hooks/useDsvg", () => ({
-  useDsvg: () => ({ data: "<svg></svg>" }),
+  useDsvg: () => ({ data: '<svg viewBox="0 0 100 100"></svg>' }),
 }));
 
 vi.mock("./InteractiveMap/mapRenderer", () => ({
@@ -42,6 +42,20 @@ const phase = {} as VariantTemplatePhase;
 
 describe("ExpandableMapPreview", () => {
   beforeAll(() => {
+    globalThis.ResizeObserver = class {
+      callback: ResizeObserverCallback;
+      constructor(callback: ResizeObserverCallback) {
+        this.callback = callback;
+      }
+      observe() {
+        this.callback(
+          [{ contentRect: { width: 800, height: 600 } } as ResizeObserverEntry],
+          this
+        );
+      }
+      unobserve() {}
+      disconnect() {}
+    };
     Object.defineProperty(window, "matchMedia", {
       writable: true,
       value: vi.fn().mockImplementation((query: string) => ({
