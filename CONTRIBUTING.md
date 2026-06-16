@@ -1,6 +1,6 @@
 # Contributing
 
-This is a hobby project maintained by two contributors. Keeping the backlog small is deliberate — a small backlog reduces noise, prevents stale work accumulating, and makes it easier to stay focused on what is actually in flight.
+Keeping the backlog small is deliberate — a small backlog reduces noise, prevents stale work accumulating, and makes it easier to stay focused on what is actually in flight.
 
 ---
 
