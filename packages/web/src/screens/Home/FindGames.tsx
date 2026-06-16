@@ -42,6 +42,7 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useGamesListInfinite({
       can_join: true,
+      eligible_only: true,
       variant: variantParam,
       movement_phase_duration: durationParam,
       ordering: "slots_remaining",

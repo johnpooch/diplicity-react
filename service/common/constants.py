@@ -106,6 +106,18 @@ class NationAssignment:
     )
 
 
+class MinReliability:
+    OPEN = "open"
+    RELIABLE_AND_NEW = "reliable_and_new"
+    RELIABLE_ONLY = "reliable_only"
+
+    MIN_RELIABILITY_CHOICES = (
+        (OPEN, "Open"),
+        (RELIABLE_AND_NEW, "Reliable + New Players"),
+        (RELIABLE_ONLY, "Reliable only"),
+    )
+
+
 class VariantStatus:
     DRAFT = "draft"
     PUBLISHED = "published"

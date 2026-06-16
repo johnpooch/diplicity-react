@@ -168,6 +168,7 @@ const matchedGame: GameList = {
   movementFrequency: null,
   retreatFrequency: null,
   pressType: "full_press",
+  minReliability: "open",
   totalUnreadMessageCount: 0,
   orderStatus: null,
   memberStatus: [],
@@ -570,5 +571,61 @@ describe("CreateGame — sandbox mode", () => {
     });
     expect(createGameMutateAsync).not.toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith("/game/sandbox-game");
+  });
+});
+
+describe("CreateGame — minReliability dropdown", () => {
+  let createGameMutateAsync: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    createGameMutateAsync = vi.fn().mockResolvedValue({ id: "created-game" });
+
+    mockedUseVariantsListSuspense.mockReturnValue({
+      data: variantsFixture,
+    } as unknown as ReturnType<typeof useVariantsListSuspense>);
+
+    mockedUseGameCreate.mockReturnValue({
+      mutateAsync: createGameMutateAsync,
+      isPending: false,
+    } as unknown as ReturnType<typeof useGameCreate>);
+
+    mockedUseSandboxGameCreate.mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    } as unknown as ReturnType<typeof useSandboxGameCreate>);
+
+    stubFindSimilar(null);
+  });
+
+  const goToAdvancedStep = async (
+    user: ReturnType<typeof userEvent.setup>
+  ) => {
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.click(screen.getByRole("button", { name: /next/i }));
+  };
+
+  it("defaults to Open and shows its help text on the Advanced step", async () => {
+    const user = userEvent.setup();
+    renderCreateGame();
+
+    await goToAdvancedStep(user);
+
+    expect(screen.getByText(/Player Reliability/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Anyone can join\. Fills fastest/i)
+    ).toBeInTheDocument();
+  });
+
+  it("includes minReliability in the create payload", async () => {
+    const user = userEvent.setup();
+    renderCreateGame();
+
+    await goToAdvancedStep(user);
+    await user.click(screen.getByRole("button", { name: /create game/i }));
+
+    await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
+    const payload = createGameMutateAsync.mock.calls[0][0].data;
+    expect(payload.minReliability).toBe("open");
   });
 });
