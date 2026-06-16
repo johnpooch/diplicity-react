@@ -2823,6 +2823,7 @@ class TestGamePauseNotification:
         self,
         authenticated_client,
         active_game_factory,
+        primary_user,
         mock_send_notification_to_users,
         mock_immediate_on_commit,
     ):
@@ -2837,7 +2838,31 @@ class TestGamePauseNotification:
         call_kwargs = mock_send_notification_to_users.call_args[1]
         assert call_kwargs["notification_type"] == "game_paused"
         assert "Game paused by the game creator" in call_kwargs["body"]
+        assert f"({primary_user.username})" in call_kwargs["body"]
         assert call_kwargs["data"]["game_id"] == str(game.id)
+
+    @pytest.mark.django_db
+    def test_pause_anonymous_game_omits_actor_identity(
+        self,
+        authenticated_client,
+        active_game_factory,
+        primary_user,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
+    ):
+        game = active_game_factory()
+        game.anonymous = True
+        game.save()
+        mock_send_notification_to_users.reset_mock()
+
+        url = reverse(pause_viewname, args=[game.id])
+        response = authenticated_client.patch(url)
+        assert response.status_code == status.HTTP_200_OK
+
+        mock_send_notification_to_users.assert_called_once()
+        body = mock_send_notification_to_users.call_args[1]["body"]
+        assert body == "Game paused by the game creator"
+        assert primary_user.username not in body
 
 
 class TestGameUnpauseNotification:
@@ -2847,6 +2872,7 @@ class TestGameUnpauseNotification:
         self,
         authenticated_client,
         active_game_factory,
+        primary_user,
         mock_send_notification_to_users,
         mock_immediate_on_commit,
     ):
@@ -2863,7 +2889,32 @@ class TestGameUnpauseNotification:
         call_kwargs = mock_send_notification_to_users.call_args[1]
         assert call_kwargs["notification_type"] == "game_resumed"
         assert "Game resumed by the game creator" in call_kwargs["body"]
+        assert f"({primary_user.username})" in call_kwargs["body"]
         assert "New deadline:" in call_kwargs["body"]
+
+    @pytest.mark.django_db
+    def test_unpause_anonymous_game_omits_actor_identity(
+        self,
+        authenticated_client,
+        active_game_factory,
+        primary_user,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
+    ):
+        game = active_game_factory()
+        game.anonymous = True
+        game.pause()
+        game.save()
+        mock_send_notification_to_users.reset_mock()
+
+        url = reverse(unpause_viewname, args=[game.id])
+        response = authenticated_client.patch(url)
+        assert response.status_code == status.HTTP_200_OK
+
+        mock_send_notification_to_users.assert_called_once()
+        body = mock_send_notification_to_users.call_args[1]["body"]
+        assert body.startswith("Game resumed by the game creator. New deadline:")
+        assert primary_user.username not in body
 
 
 class TestGameExtendDeadlineNotification:
@@ -2873,6 +2924,7 @@ class TestGameExtendDeadlineNotification:
         self,
         authenticated_client,
         active_game_factory,
+        primary_user,
         mock_send_notification_to_users,
         mock_immediate_on_commit,
     ):
@@ -2889,6 +2941,32 @@ class TestGameExtendDeadlineNotification:
         call_kwargs = mock_send_notification_to_users.call_args[1]
         assert call_kwargs["notification_type"] == "game_deadline_extended"
         assert "Deadline extended by the game creator" in call_kwargs["body"]
+        assert f"({primary_user.username})" in call_kwargs["body"]
+
+    @pytest.mark.django_db
+    def test_extend_deadline_anonymous_game_omits_actor_identity(
+        self,
+        authenticated_client,
+        active_game_factory,
+        primary_user,
+        mock_send_notification_to_users,
+        mock_immediate_on_commit,
+    ):
+        game = active_game_factory()
+        game.anonymous = True
+        game.save()
+        mock_send_notification_to_users.reset_mock()
+
+        url = reverse(extend_deadline_viewname, args=[game.id])
+        response = authenticated_client.patch(
+            url, {"duration": MovementPhaseDuration.ONE_HOUR}, format="json"
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        mock_send_notification_to_users.assert_called_once()
+        body = mock_send_notification_to_users.call_args[1]["body"]
+        assert body.startswith("Deadline extended by the game creator. New deadline:")
+        assert primary_user.username not in body
 
 
 class TestGameNmrExtensions:
