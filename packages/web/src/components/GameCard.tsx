@@ -19,6 +19,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { RemainingTimeDisplay } from "./RemainingTimeDisplay";
 import {
   GameList,
+  MemberStatusEnum,
+  OrderStatusEnum,
   useGameJoinCreate,
   getGamesListQueryKey,
 } from "../api/generated/endpoints";
@@ -119,6 +121,21 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
                         {game.totalUnreadMessageCount}
                       </span>
                     </Badge>
+                  )}
+                  {game.orderStatus === OrderStatusEnum.required && (
+                    <Badge className="bg-amber-500 text-white hover:bg-amber-500">Required</Badge>
+                  )}
+                  {game.orderStatus === OrderStatusEnum.submitted && (
+                    <Badge className="bg-green-600 text-white hover:bg-green-600">Submitted</Badge>
+                  )}
+                  {game.orderStatus === OrderStatusEnum.not_required && (
+                    <Badge className="bg-green-600 text-white hover:bg-green-600">No orders</Badge>
+                  )}
+                  {game.memberStatus?.includes(MemberStatusEnum.civil_disorder) && (
+                    <Badge className="bg-red-600 text-white hover:bg-red-600">Civil disorder</Badge>
+                  )}
+                  {game.memberStatus?.includes(MemberStatusEnum.nmr) && (
+                    <Badge className="bg-red-600 text-white hover:bg-red-600">NMR</Badge>
                   )}
                 </CardTitle>
               </button>

@@ -7,7 +7,7 @@ from django.db.models import Count, Q, Subquery, OuterRef
 from django.apps import apps
 from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
-from common.constants import DeadlineMode, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType, VariantStatus
+from common.constants import DeadlineMode, GameStatus, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType, VariantStatus
 from member.serializers import MemberSerializer
 from unit.models import Unit
 from supply_center.models import SupplyCenter
@@ -89,6 +89,17 @@ class GameListSerializer(serializers.Serializer):
     retreat_frequency = serializers.CharField(read_only=True, allow_null=True)
     press_type = serializers.CharField(read_only=True)
     total_unread_message_count = serializers.IntegerField(read_only=True, default=0)
+    order_status = serializers.SerializerMethodField()
+    member_status = serializers.SerializerMethodField()
+
+    def _get_current_member(self, obj):
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return None
+        for m in obj.members.all():
+            if m.user_id == user.id:
+                return m
+        return None
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_join(self, obj):
@@ -141,6 +152,48 @@ class GameListSerializer(serializers.Serializer):
             if not user.is_authenticated:
                 return False
             return obj.phase_confirmed(user)
+
+    @extend_schema_field(serializers.ChoiceField(
+        choices=["required", "submitted", "not_required"], allow_null=True
+    ))
+    def get_order_status(self, obj):
+        if obj.sandbox or obj.status != GameStatus.ACTIVE:
+            return None
+        current_member = self._get_current_member(obj)
+        if not current_member:
+            return None
+        current_phase = obj.current_phase
+        if not current_phase:
+            return None
+        for ps in current_phase.phase_states.all():
+            if ps.member_id == current_member.id:
+                if not ps.has_possible_orders:
+                    return "not_required"
+                return "submitted" if ps.orders_confirmed else "required"
+        return None
+
+    @extend_schema_field(serializers.ListField(
+        child=serializers.ChoiceField(choices=["civil_disorder", "nmr"]),
+        allow_null=True,
+    ))
+    def get_member_status(self, obj):
+        if obj.sandbox:
+            return None
+        current_member = self._get_current_member(obj)
+        if not current_member:
+            return None
+        statuses = []
+        if current_member.civil_disorder:
+            statuses.append("civil_disorder")
+        phases = list(obj.phases.all())
+        if len(phases) >= 2:
+            prev_phase = phases[-2]
+            for ps in prev_phase.phase_states.all():
+                if ps.member_id == current_member.id:
+                    if ps.orders_outcome == "nmr":
+                        statuses.append("nmr")
+                    break
+        return statuses
 
 
 class GameFindSimilarSerializer(serializers.Serializer):
