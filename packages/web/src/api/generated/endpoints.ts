@@ -542,9 +542,9 @@ export const StepEnum = {
 export interface Order {
   readonly source: Province;
   readonly sourceCoast: Province | null;
-  readonly target: Province;
-  readonly aux: Province;
-  readonly namedCoast: Province;
+  readonly target: Province | null;
+  readonly aux: Province | null;
+  readonly namedCoast: Province | null;
   readonly resolution: OrderResolution;
   readonly options: readonly OrderOption[];
   readonly orderType: OrderTypeEnum;

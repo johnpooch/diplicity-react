@@ -65,50 +65,53 @@ const Tutorial: React.FC<TutorialProps> = ({ variant }) => {
           />
 
           {engine.bannerText !== null && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-black/70 text-white px-4 py-2 rounded-full text-sm font-medium pointer-events-none whitespace-nowrap">
-            {engine.bannerText}
-          </div>
-        )}
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-black/70 text-white px-4 py-2 rounded-full text-sm font-medium pointer-events-none whitespace-nowrap">
+              {engine.bannerText}
+            </div>
+          )}
 
-        {engine.finished ? (
-          <div className="absolute inset-0 z-30 flex items-center justify-center bg-background/80 p-6">
-            <div className="w-full max-w-sm space-y-4 rounded-2xl border bg-card p-6 text-center shadow-lg">
-              <PartyPopper className="mx-auto size-10 text-primary" />
-              <h2 className="text-xl font-semibold">You know the basics.</h2>
-              <p className="text-sm text-muted-foreground">
-                You can now join a game with real people. However, we{" "}
-                <strong>strongly recommend</strong> to read the full 'How to
-                play' after joining your game.
-                <br />
-                There are some edge cases, and there is nothing more
-                disappointing to have a plan you prepared for 3 days fail
-                because you misunderstood a rule.
-                <br />
-                <br />
-                And, games are slow - so you'll have enough time to read it
-                while discussing your first moves.
-              </p>
-              <div className="flex flex-col gap-2">
-                <Button onClick={() => navigate("/find-games")}>
-                  Find a game
-                </Button>
-                <Button variant="outline" onClick={() => navigate("/learn-to-play")}>
-                  Read the detailed rules
-                </Button>
-                <Button variant="ghost" onClick={engine.restart}>
-                  Replay the tutorial
-                </Button>
+          {engine.finished ? (
+            <div className="absolute inset-0 z-30 flex items-center justify-center bg-background/80 p-6">
+              <div className="w-full max-w-sm space-y-4 rounded-2xl border bg-card p-6 text-center shadow-lg">
+                <PartyPopper className="mx-auto size-10 text-primary" />
+                <h2 className="text-xl font-semibold">You know the basics.</h2>
+                <p className="text-sm text-muted-foreground">
+                  You can now join a game with real people. However, we{" "}
+                  <strong>strongly recommend</strong> to read the full 'How to
+                  play' after joining your game.
+                  <br />
+                  There are some edge cases, and there is nothing more
+                  disappointing to have a plan you prepared for 3 days fail
+                  because you misunderstood a rule.
+                  <br />
+                  <br />
+                  And, games are slow - so you'll have enough time to read it
+                  while discussing your first moves.
+                </p>
+                <div className="flex flex-col gap-2">
+                  <Button onClick={() => navigate("/find-games")}>
+                    Find a game
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate("/learn-to-play")}
+                  >
+                    Read the detailed rules
+                  </Button>
+                  <Button variant="ghost" onClick={engine.restart}>
+                    Replay the tutorial
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        ) : showChatScreen ? (
-          <ScriptedChat
-            script={step.chat!}
-            you={you!}
-            ally={ally!}
-            continueLabel={primaryAction!.label}
-            onContinue={primaryAction!.run}
-          />
+          ) : showChatScreen ? (
+            <ScriptedChat
+              script={step.chat!}
+              you={you!}
+              ally={ally!}
+              continueLabel={primaryAction!.label}
+              onContinue={primaryAction!.run}
+            />
           ) : (
             <CoachCard engine={engine} />
           )}

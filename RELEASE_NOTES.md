@@ -1,5 +1,16 @@
 # Diplicity React - Release Notes
 
+## Interactive Tutorial (June 2026)
+
+### Feature: Learn the basics by playing through a guided tutorial
+
+The "How to Play" screen now has a "Start interactive tutorial" button that walks you through
+the fundamentals of Diplomacy on a real map, playing as France. Step by step it teaches moves,
+holds, supply centers, the bounce, winning an ally through chat, supports, convoys, dislodged
+units and retreats, and the build/disband adjustment phase. You give orders by tapping the map
+just like in a real game, and a coach panel explains what is happening at each step. When you
+finish you can jump straight to finding a game or replay the tutorial.
+
 ## Chat Channels Sorted by Activity (June 2026)
 
 ### Change: Chat channels are ordered by most recent activity

@@ -39,9 +39,9 @@ class OrderResolutionSerializer(serializers.Serializer):
 class OrderSerializer(serializers.Serializer):
     source = ProvinceSerializer(read_only=True)
     source_coast = ProvinceSerializer(read_only=True, allow_null=True)
-    target = ProvinceSerializer(read_only=True)
-    aux = ProvinceSerializer(read_only=True)
-    named_coast = ProvinceSerializer(read_only=True)
+    target = ProvinceSerializer(read_only=True, allow_null=True)
+    aux = ProvinceSerializer(read_only=True, allow_null=True)
+    named_coast = ProvinceSerializer(read_only=True, allow_null=True)
     resolution = OrderResolutionSerializer(read_only=True)
     options = OrderOptionSerializer(source="options_display", read_only=True, many=True)
     order_type = serializers.ChoiceField(choices=OrderType.ORDER_TYPE_CHOICES, read_only=True)
