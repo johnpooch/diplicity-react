@@ -8,18 +8,8 @@ vi.mock("./MapPreview", () => ({
 }));
 
 vi.mock("react-zoom-pan-pinch", () => ({
-  TransformWrapper: ({
-    children,
-  }: {
-    children: (controls: {
-      zoomIn: () => void;
-      zoomOut: () => void;
-      resetTransform: () => void;
-    }) => React.ReactNode;
-  }) => (
-    <div data-testid="transform-wrapper">
-      {children({ zoomIn: vi.fn(), zoomOut: vi.fn(), resetTransform: vi.fn() })}
-    </div>
+  TransformWrapper: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="transform-wrapper">{children}</div>
   ),
   TransformComponent: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="transform-component">{children}</div>
@@ -78,7 +68,7 @@ describe("ExpandableMapPreview", () => {
     expect(screen.queryByTestId("transform-wrapper")).not.toBeInTheDocument();
   });
 
-  it("opens a zoomable dialog when the preview is clicked", () => {
+  it("opens a zoomable dialog with only a close button when clicked", () => {
     render(
       <ExpandableMapPreview variant={variant} phase={phase} variantName="Classical" />
     );
@@ -86,9 +76,12 @@ describe("ExpandableMapPreview", () => {
     fireEvent.click(screen.getByRole("button", { name: "Expand map preview" }));
 
     expect(screen.getByTestId("transform-wrapper")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Zoom in" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Zoom out" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Reset zoom" })).toBeInTheDocument();
     expect(screen.getByText("Classical map")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Zoom in" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Zoom out" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Reset zoom" })
+    ).not.toBeInTheDocument();
   });
 });

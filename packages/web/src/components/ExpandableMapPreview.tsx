@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Expand, Minus, Plus, RotateCcw } from "lucide-react";
+import { Expand, X } from "lucide-react";
 import {
   TransformWrapper,
   TransformComponent,
@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -60,48 +61,12 @@ const ZoomableMap: React.FC<{
       centerOnInit
       doubleClick={{ mode: "zoomIn", step: 0.7 }}
     >
-      {({ zoomIn, zoomOut, resetTransform }) => (
-        <>
-          <TransformComponent
-            wrapperStyle={{ width: "100%", height: "100%" }}
-            contentStyle={{ width: "100%", height: "100%" }}
-          >
-            <div
-              className="w-full h-full"
-              dangerouslySetInnerHTML={{ __html: svg }}
-            />
-          </TransformComponent>
-          <div className="absolute bottom-4 right-4 flex flex-col gap-2">
-            <Button
-              size="icon"
-              variant="secondary"
-              className="rounded-full shadow-lg"
-              onClick={() => zoomIn()}
-              aria-label="Zoom in"
-            >
-              <Plus />
-            </Button>
-            <Button
-              size="icon"
-              variant="secondary"
-              className="rounded-full shadow-lg"
-              onClick={() => zoomOut()}
-              aria-label="Zoom out"
-            >
-              <Minus />
-            </Button>
-            <Button
-              size="icon"
-              variant="secondary"
-              className="rounded-full shadow-lg"
-              onClick={() => resetTransform()}
-              aria-label="Reset zoom"
-            >
-              <RotateCcw />
-            </Button>
-          </div>
-        </>
-      )}
+      <TransformComponent
+        wrapperStyle={{ width: "100%", height: "100%" }}
+        contentStyle={{ width: "100%", height: "100%" }}
+      >
+        <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: svg }} />
+      </TransformComponent>
     </TransformWrapper>
   );
 };
@@ -136,12 +101,22 @@ const ExpandableMapPreview: React.FC<ExpandableMapPreviewProps> = ({
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
+          showCloseButton={false}
           aria-describedby={undefined}
-          className="h-[90vh] w-[95vw] max-w-5xl gap-0 overflow-hidden p-0"
+          className="h-[100dvh] w-screen max-w-none gap-0 overflow-hidden rounded-none border-0 bg-black/95 p-0"
         >
           <DialogTitle className="sr-only">
             {variantName ? `${variantName} map` : "Map preview"}
           </DialogTitle>
+          <DialogClose asChild>
+            <Button
+              size="icon"
+              aria-label="Close"
+              className="absolute right-4 top-[calc(var(--safe-area-top)+1rem)] z-10 size-10 rounded-full bg-black/60 text-white hover:bg-black/80"
+            >
+              <X className="size-5" />
+            </Button>
+          </DialogClose>
           <div className="relative h-full w-full">
             <ZoomableMap variant={variant} phase={phase} />
           </div>

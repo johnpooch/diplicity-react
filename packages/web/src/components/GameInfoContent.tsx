@@ -218,16 +218,16 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
             />
           )}
           {variant && currentPhase ? (
-            <div className="w-full aspect-square overflow-hidden">
+            <div className="w-full overflow-hidden rounded-lg">
               <ExpandableMapPreview
                 variant={variant}
                 phase={currentPhase}
                 variantName={variant.name}
-                style={{ width: "100%", height: "100%" }}
+                style={{ width: "100%" }}
               />
             </div>
           ) : (
-            <Skeleton className="w-full aspect-square rounded-lg" />
+            <Skeleton className="w-full h-64 rounded-lg" />
           )}
         </ScreenCardContent>
       </ScreenCard>
