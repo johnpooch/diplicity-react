@@ -124,6 +124,8 @@ export const makeGame = (
     retreatFrequency: null,
     pressType: "full_press",
     totalUnreadMessageCount: 0,
+    orderStatus: null,
+    memberStatus: [],
     ...overrides,
   };
 };

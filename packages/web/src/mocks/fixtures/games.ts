@@ -128,7 +128,10 @@ const buildActiveMovement = () => {
   return makeFixture({
     description:
       "Active game in the Spring 1901 movement phase. The current user (England) has entered 2 of 3 orders. Includes public and private chat channels.",
-    game: makeGame("active-movement", "Spring Awakening", members, [phase]),
+    game: makeGame("active-movement", "Spring Awakening", members, [phase], {
+      orderStatus: "orders_required",
+      memberStatus: [],
+    }),
     phases: [phase],
     ordersByPhase: {
       101: [
@@ -205,7 +208,10 @@ const buildActiveRetreat = () => {
       spring,
       fallMove,
       retreat,
-    ]),
+    ], {
+      orderStatus: "orders_required",
+      memberStatus: [],
+    }),
     phases: [spring, fallMove, retreat],
     ordersByPhase: {
       202: [
@@ -286,7 +292,10 @@ const buildActiveBuild = () => {
       spring,
       fallMove,
       adjustment,
-    ]),
+    ], {
+      orderStatus: "orders_required",
+      memberStatus: [],
+    }),
     phases: [spring, fallMove, adjustment],
     ordersByPhase: {
       302: [

@@ -71,6 +71,8 @@ class GameListSerializer(serializers.Serializer):
     current_phase_id = serializers.SerializerMethodField()
     current_phase = serializers.SerializerMethodField()
     phase_confirmed = serializers.SerializerMethodField()
+    order_status = serializers.SerializerMethodField()
+    member_status = serializers.SerializerMethodField()
     private = serializers.BooleanField(read_only=True)
     anonymous = serializers.BooleanField(read_only=True)
     movement_phase_duration = serializers.CharField(read_only=True, allow_null=True)
@@ -142,6 +144,52 @@ class GameListSerializer(serializers.Serializer):
                 return False
             return obj.phase_confirmed(user)
 
+    @extend_schema_field(serializers.ChoiceField(
+        choices=["orders_required", "orders_submitted", "no_orders_required"],
+        allow_null=True,
+    ))
+    def get_order_status(self, obj):
+        user = self.context["request"].user
+        if not user.is_authenticated or obj.status != "active":
+            return None
+        current_phase = obj.current_phase
+        if current_phase is None:
+            return None
+        for phase_state in current_phase.phase_states.all():
+            if phase_state.member.user_id == user.id:
+                if phase_state.orders_confirmed:
+                    return "orders_submitted"
+                if not phase_state.has_possible_orders:
+                    return "no_orders_required"
+                return "orders_required"
+        return None
+
+    @extend_schema_field(serializers.ListField(
+        child=serializers.ChoiceField(choices=["nmr", "civil_disorder"]),
+    ))
+    def get_member_status(self, obj):
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return []
+        current_member = next(
+            (m for m in obj.members.all() if m.user_id == user.id), None
+        )
+        if current_member is None:
+            return []
+        statuses = []
+        if current_member.civil_disorder:
+            statuses.append("civil_disorder")
+        phases = list(obj.phases.all())
+        completed_phases = [p for p in phases if p.status == "completed"]
+        if completed_phases:
+            prev_phase = max(completed_phases, key=lambda p: p.ordinal)
+            for phase_state in prev_phase.phase_states.all():
+                if phase_state.member.user_id == user.id:
+                    if phase_state.orders_outcome == "nmr":
+                        statuses.append("nmr")
+                    break
+        return statuses
+
 
 class GameFindSimilarSerializer(serializers.Serializer):
     game = GameListSerializer(allow_null=True)
@@ -165,6 +213,8 @@ class GameRetrieveSerializer(serializers.Serializer):
     variant_id = serializers.CharField(source="variant.id", read_only=True)
     nation_assignment = serializers.CharField(read_only=True)
     phase_confirmed = serializers.SerializerMethodField()
+    order_status = serializers.SerializerMethodField()
+    member_status = serializers.SerializerMethodField()
     movement_phase_duration = serializers.CharField(read_only=True, allow_null=True)
     retreat_phase_duration = serializers.CharField(read_only=True, allow_null=True)
     private = serializers.BooleanField(read_only=True)
@@ -247,6 +297,52 @@ class GameRetrieveSerializer(serializers.Serializer):
             if not user.is_authenticated:
                 return False
             return obj.phase_confirmed(user)
+
+    @extend_schema_field(serializers.ChoiceField(
+        choices=["orders_required", "orders_submitted", "no_orders_required"],
+        allow_null=True,
+    ))
+    def get_order_status(self, obj):
+        user = self.context["request"].user
+        if not user.is_authenticated or obj.status != "active":
+            return None
+        current_phase = obj.current_phase
+        if current_phase is None:
+            return None
+        for phase_state in current_phase.phase_states.all():
+            if phase_state.member.user_id == user.id:
+                if phase_state.orders_confirmed:
+                    return "orders_submitted"
+                if not phase_state.has_possible_orders:
+                    return "no_orders_required"
+                return "orders_required"
+        return None
+
+    @extend_schema_field(serializers.ListField(
+        child=serializers.ChoiceField(choices=["nmr", "civil_disorder"]),
+    ))
+    def get_member_status(self, obj):
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return []
+        current_member = next(
+            (m for m in obj.members.all() if m.user_id == user.id), None
+        )
+        if current_member is None:
+            return []
+        statuses = []
+        if current_member.civil_disorder:
+            statuses.append("civil_disorder")
+        phases = list(obj.phases.all())
+        completed_phases = [p for p in phases if p.status == "completed"]
+        if completed_phases:
+            prev_phase = max(completed_phases, key=lambda p: p.ordinal)
+            for phase_state in prev_phase.phase_states.all():
+                if phase_state.member.user_id == user.id:
+                    if phase_state.orders_outcome == "nmr":
+                        statuses.append("nmr")
+                    break
+        return statuses
 
     def to_representation(self, instance):
         with tracer.start_as_current_span("game.serializers.to_representation") as span:
