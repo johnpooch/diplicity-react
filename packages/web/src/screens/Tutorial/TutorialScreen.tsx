@@ -85,15 +85,15 @@ const Tutorial: React.FC<TutorialProps> = ({ variant }) => {
                 <h2 className="text-xl font-semibold">You know the basics.</h2>
                 <p className="text-sm text-muted-foreground">
                   You can now join a game with real people. However, we{" "}
-                  <strong>strongly recommend</strong> to read the full 'How to
-                  play' after joining your game.
+                  <strong>strongly recommend</strong> reading the full 'How to
+                  Play' after joining your game.
                   <br />
-                  There are some edge cases, and there is nothing more
-                  disappointing to have a plan you prepared for 3 days fail
-                  because you misunderstood a rule.
+                  There are some edge cases, and there's nothing worse than
+                  watching a plan you spent three days on fall apart because you
+                  misread a rule.
                   <br />
                   <br />
-                  And, games are slow - so you'll have enough time to read it
+                  And games are slow, so you'll have plenty of time to read up
                   while discussing your first moves.
                 </p>
                 <div className="flex flex-col gap-2">

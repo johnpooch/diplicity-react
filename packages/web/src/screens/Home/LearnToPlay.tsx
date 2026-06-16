@@ -27,7 +27,7 @@ const LearnToPlay: React.FC = () => {
           onClick={() => navigate("/learn-to-play/tutorial")}
         >
           <Play />
-          Start interactive tutorial
+          Start the interactive tutorial
         </Button>
       </div>
 

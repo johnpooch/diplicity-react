@@ -395,7 +395,7 @@ export function buildLessons(variant: Variant, panHint: string): Lesson[] {
       steps: [
         {
           coach:
-            "There are two unit types: armies (can move on land and coasts) and fleets (can move on sea and coasts). Only one unit can ever be in a province at one time.\n\nHere we highlighted your army in Burgundy.",
+            "There are two unit types: armies (can move on land and coasts) and fleets (can move on sea and coasts). Only one unit can ever be in a province at one time.\n\nWe've highlighted your army in Burgundy.",
           title: "Your units",
           goal: { kind: "continue" },
           highlight: ["bur"],
@@ -403,7 +403,7 @@ export function buildLessons(variant: Variant, panHint: string): Lesson[] {
         },
         {
           coach:
-            "Each turn you give your units orders - Move, Hold, Support or Convoy.\n\nWe'll start with a move; Tap your army in Burgundy, then tap Picardy to move into the coast province.",
+            "Each turn you give your units orders — Move, Hold, Support or Convoy.\n\nWe'll start with a move — tap your army in Burgundy, then tap Picardy to move into the coastal province.",
           title: "Give an order",
           goal: { kind: "order", source: "bur", target: "pic" },
           order: franceBurToPic(),
@@ -429,7 +429,7 @@ export function buildLessons(variant: Variant, panHint: string): Lesson[] {
         },
         {
           coach:
-            "All orders resolved at the same time; Germany moved into Holland, England brought its fleets in the Channel and North Sea.",
+            "All orders resolve at the same time: Germany moved into Holland, and England brought its fleets into the Channel and the North Sea.",
           title: "On the move",
           goal: { kind: "continue" },
           primaryLabel: "Next",
@@ -444,7 +444,7 @@ export function buildLessons(variant: Variant, panHint: string): Lesson[] {
       steps: [
         {
           coach:
-            "Some provinces, like Belgium here, have supply centers - these matter. They decide how many units you can have; more centers, more units.\n\nIf you have 18 SCs, you win the game (depending on variant).",
+            "Some provinces, like Belgium here, have supply centers (SCs) — these matter. They decide how many units you can have; more centers, more units.\n\nIf you have 18 SCs, you win the game (depending on variant).",
           title: "Supply centers",
           goal: { kind: "continue" },
           highlight: ["bel"],
@@ -467,14 +467,14 @@ export function buildLessons(variant: Variant, panHint: string): Lesson[] {
       steps: [
         {
           coach:
-            "Note that Germany might be eyeing the supply center too. If they enter as well, we might have a fight on our hands.\n\nConfirm your orders to continue.",
+            "Germany may be eyeing that center too. If they move in as well, we've got a fight on our hands.\n\nConfirm your orders to continue.",
           title: "Contested provinces",
           goal: { kind: "confirm" },
           primaryLabel: "Confirm your orders",
         },
         {
           coach:
-            "Germany wanted Belgium too. Because each unit has a base strength of one, these armies are evenly matched.\n\nIn this case, no one moves. We call this a **bounce** - all units stay where they are.",
+            "Germany wanted Belgium too. Because each unit has a base strength of one, these armies are evenly matched.\n\nIn this case, no one moves. We call this a **bounce** — all units stay where they are.",
           title: "A contested move",
           goal: { kind: "continue" },
           primaryLabel: "Next",
@@ -490,7 +490,7 @@ export function buildLessons(variant: Variant, panHint: string): Lesson[] {
       steps: [
         {
           coach:
-            "Because all units are equal strength, you cannot win on your own. You need allies. England has a fleet right besides Belgium - they can help us.\n\nThis is what Diplomacy is about - negotiating with players. We need to send England a message - open the Chat and propose a deal.",
+            "Because all units are equal strength, you cannot win on your own. You need allies. England has a fleet right beside Belgium — they can help us.\n\nThis is what Diplomacy is really about: negotiating with other players. Send England a message — open the Chat and propose a deal.",
           title: "You need allies",
           goal: { kind: "chat" },
           ally: "england",
@@ -508,14 +508,14 @@ export function buildLessons(variant: Variant, panHint: string): Lesson[] {
         },
         {
           coach:
-            "Normally influencing people will likely not be so easy! We can only know if England could be trusted **after** the orders are revealed.\n\nOrder your army from Picardy into Belgium again, and hope they follow through on their promise.",
+            "In a real game, persuading people is rarely this easy! You'll only know whether England can be trusted **after** orders are revealed.\n\nOrder your army from Picardy into Belgium again, and hope they keep their word.",
           title: "Trust the deal",
           goal: { kind: "order", source: "pic", target: "bel" },
           order: francePicToBel(),
         },
         {
           coach:
-            "Nothing in Diplomacy is binding — England could still change their mind. Knowing when and who to trust - and betray - is the key of the game.\n\nConfirm your order to see if England was trustworthy.",
+            "Nothing in Diplomacy is binding — England could still change their mind. Knowing who to trust — and when to betray — is the heart of the game.\n\nConfirm your order and see whether England keeps their word.",
           title: "Confirm your order",
           goal: { kind: "confirm" },
           primaryLabel: "Confirm your order",
@@ -523,14 +523,14 @@ export function buildLessons(variant: Variant, panHint: string): Lesson[] {
         },
         {
           coach:
-            "England kept their word! Their fleet supported you. Each supporting unit adds one strength, but supporting units don't move.\n\nTwo against one; your army marched into Belgium and Holland stays where it is.\n**Important: if a supporting unit is attacked, their support order is cancelled**.",
+            "England kept their word! Their fleet supported you. Each supporting unit adds one strength, but supporting units don't move.\n\nTwo against one — your army marches into Belgium, and Germany's stays put in Holland.\n**Important: if a supporting unit is itself attacked, its support is cut (cancelled).**",
           title: "England followed through",
           goal: { kind: "continue" },
           primaryLabel: "Next",
         },
         {
           coach:
-            "Notice Belgium is not yours yet. An SC only changes owner during the adjustment phase, after every two movement turns.\n\nWe need to keep our army there. Supporting units don't move - so we can still support England.",
+            "Notice Belgium is not yours yet. An SC only changes owner during the adjustment phase, after every two movement turns.\n\nWe need to keep our army there. Supporting units don't move — so ours can stay in Belgium and still support England.",
           title: "Adjustment phases",
           goal: { kind: "continue" },
           primaryLabel: "Next",
@@ -564,7 +564,7 @@ export function buildLessons(variant: Variant, panHint: string): Lesson[] {
         },
         {
           coach:
-            "A (chain of) fleet can carry an army across water. England will order its North Sea fleet to convoy the London army into Holland. However, this will not add strength, just facilitate movement.",
+            "A fleet — or a chain of fleets — can carry an army across water. England will order its North Sea fleet to convoy the London army into Holland. A convoy doesn't add strength; it only carries the army across.",
           title: "Convoying across water",
           goal: { kind: "continue" },
           primaryLabel: "Next",
@@ -572,14 +572,14 @@ export function buildLessons(variant: Variant, panHint: string): Lesson[] {
         },
         {
           coach:
-            "Germany might **hold** their unit, defending Holland. A unit can also support a convoyed move.\nTap your army in Belgium, then England's army in London, then Holland. Your army now adds their strength.",
+            "Germany might **hold** its unit to defend Holland. A unit can also support a convoyed move.\nTap your army in Belgium, then England's army in London, then Holland. Your army adds its strength to the attack.",
           title: "Convoys don't add strength",
           goal: { kind: "order", source: "bel", aux: "lon", target: "hol" },
           order: franceSupportsHolland(),
         },
         {
           coach:
-            "The army will land with two strength. Even if Germany holds, it is only one. **Hold orders can be supported just like move orders, to defend** — but Germany is alone. Confirm your order.",
+            "The army will land with a strength of two. Even if Germany holds, that's only one. **Hold orders can be supported just like move orders, to defend** — but Germany is alone. Confirm your order.",
           title: "Confirm your order",
           goal: { kind: "confirm" },
           primaryLabel: "Confirm your order",
@@ -587,7 +587,7 @@ export function buildLessons(variant: Variant, panHint: string): Lesson[] {
         },
         {
           coach:
-            "Your support helped England's army into Holland. Germany failed to hold. As there can be only one unit on a province, it is **dislodged**. In this case, those nations get an extra turn (24 hours!)",
+            "Your support helped England's army into Holland. Germany failed to hold. Since only one unit can occupy a province, Germany's is **dislodged**. Its owner now gets a brief retreat phase.",
           title: "The landing",
           goal: { kind: "continue" },
           primaryLabel: "Next",
@@ -598,7 +598,7 @@ export function buildLessons(variant: Variant, panHint: string): Lesson[] {
         },
         {
           coach:
-            "A dislodged unit isn't destroyed — it must retreat to an empty neighbouring province where there was no bounce. Germany falls back to Ruhr.\n**Important: Hold orders can be supported too, to defend** — but Germany's wasn't.",
+            "A dislodged unit isn't destroyed — it must retreat to an empty neighboring province where there was no bounce. Germany falls back to Ruhr.\n**A hold can be supported to defend it — but Germany's wasn't, so it fell.**",
           title: "Retreats",
           goal: { kind: "continue" },
           primaryLabel: "Next",
@@ -617,14 +617,14 @@ export function buildLessons(variant: Variant, panHint: string): Lesson[] {
       steps: [
         {
           coach:
-            "During adjustment, SCs are counted. Now Belgium is finally yours (blue). You control more centers than you have armies, so you can build.",
+            "During adjustment, SCs are counted. Belgium is finally yours now (shown in blue). You control more centers than you have units, so you may build one.",
           title: "Counting centers",
           goal: { kind: "continue" },
           primaryLabel: "Next",
         },
         {
           coach:
-            "You can only build on an **empty home center** (depending on variant). If you build on a coast, you are asked to build a fleet or army. Tap Paris to build an army there.",
+            "You can only build on an **empty home center** (depending on variant). On a coastal center you can choose a fleet or an army. Tap Paris to build an army there.",
           title: "Build a unit",
           goal: { kind: "select", province: "par" },
           highlight: ["par"],
@@ -632,7 +632,7 @@ export function buildLessons(variant: Variant, panHint: string): Lesson[] {
         },
         {
           coach:
-            "You built. Germany, however, lost an SC. With less centers than armies, they need to **disband** a unit. They choose which one.",
+            "Done — you've built an army in Paris. Germany, however, lost a center. With fewer centers than units, it must **disband** one — the owner chooses which.",
           title: "France builds",
           goal: { kind: "continue" },
           primaryLabel: "Next",
@@ -640,7 +640,7 @@ export function buildLessons(variant: Variant, panHint: string): Lesson[] {
         },
         {
           coach:
-            "Germany removes their army in Ruhr. You became stronger, but are far away from 18 SCs.\nMaybe it's time to betray England's trust in you..",
+            "Germany removes its army in Ruhr. You're stronger now — but a long way from the 18 SCs you need to win.\nMaybe it's time to betray England's trust…",
           title: "Germany disbands",
           goal: { kind: "continue" },
           primaryLabel: "Finish",
