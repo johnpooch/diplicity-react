@@ -1,0 +1,28 @@
+{
+  "snapshot": [
+    {
+      "window": "7d",
+      "recorded_at": "2026-06-16",
+      "endpoints": [
+        {"span_name": "GET game/<str:game_id>/", "p50": 71.07, "p95": 322.42, "p99": 664.23, "count": 104249},
+        {"span_name": "GET games/", "p50": 145.51, "p95": 1285.62, "p99": 2112.20, "count": 17248},
+        {"span_name": "GET game/<str:game_id>/orders/<int:phase_id>", "p50": 55.02, "p95": 733.08, "p99": 1589.39, "count": 29663},
+        {"span_name": "GET game/<str:game_id>/phase/<int:phase_id>/", "p50": 110.20, "p95": 396.30, "p99": 726.62, "count": 33804},
+        {"span_name": "GET game/<str:game_id>/phase-states/", "p50": 78.43, "p95": 344.25, "p99": 629.11, "count": 31477},
+        {"span_name": "GET game/<str:game_id>/options/", "p50": 69.66, "p95": 494.44, "p99": 822.57, "count": 20417},
+        {"span_name": "GET games/<str:game_id>/channels/", "p50": 121.76, "p95": 399.41, "p99": 660.34, "count": 19612},
+        {"span_name": "GET variants/", "p50": 845.29, "p95": 1765.22, "p99": 2158.54, "count": 4374},
+        {"span_name": "POST game/<str:game_id>/orders/", "p50": 122.96, "p95": 489.94, "p99": 797.64, "count": 15372},
+        {"span_name": "POST phase/deadline-warnings/", "p50": 848.77, "p95": 1980.82, "p99": 2328.24, "count": 3681}
+      ]
+    }
+  ],
+  "attempts": [
+    {
+      "endpoint": "GET game/<str:game_id>/",
+      "approach": "cache Game.current_phase with cached_property to eliminate 2× redundant phases.all() evaluations per retrieve serialization",
+      "pr_number": null,
+      "outcome": "open"
+    }
+  ]
+}

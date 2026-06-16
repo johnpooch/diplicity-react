@@ -1,4 +1,5 @@
 from datetime import timedelta
+from functools import cached_property
 import re
 import uuid
 
@@ -414,7 +415,7 @@ class Game(BaseModel):
 
         return f"{base_id}-{str(uuid.uuid4())[:8]}"
 
-    @property
+    @cached_property
     def current_phase(self):
         with tracer.start_as_current_span("game.models.current_phase"):
             # Use prefetched data if available

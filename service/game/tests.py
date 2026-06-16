@@ -361,6 +361,42 @@ class TestGameRetrieveViewQueryPerformance:
         assert query_count == 5
 
 
+class TestCurrentPhaseQueryCount:
+
+    @pytest.mark.django_db
+    def test_current_phase_query_count_stays_constant_as_access_count_grows(
+        self, db, classical_variant
+    ):
+        game = Game.objects.create(
+            name="Test Current Phase Cache",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        game.phases.create(
+            game=game,
+            variant=classical_variant,
+            season="Spring",
+            year=1901,
+            type="Movement",
+            status=PhaseStatus.ACTIVE,
+            ordinal=1,
+        )
+
+        # Fresh instance with no prefetch cache — the un-prefetched fallback
+        # path inside current_phase.  The serializer accesses current_phase
+        # 3× per game (get_current_phase_id, get_current_phase, phase_confirmed).
+        fresh = Game.objects.get(id=game.id)
+
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            _ = fresh.current_phase
+            _ = fresh.current_phase
+            _ = fresh.current_phase
+
+        query_count = len(connection.queries)
+        assert query_count == 1
+
+
 class TestGameListView:
 
     @pytest.mark.django_db
