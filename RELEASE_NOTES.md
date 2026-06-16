@@ -5,9 +5,20 @@
 ### Feature: Inspect a variant's map before committing to a game
 
 The map previews shown when creating a game and when viewing a game's info are now
-expandable. Tap a preview to open it full-screen, where you can pinch, scroll, or use the
-on-screen controls to zoom and pan around the map. This makes it easy to study a variant's
-board in detail before deciding to create or join a game.
+expandable. Tap a preview to open it full-screen, where you can pinch, scroll, or drag to
+zoom and pan around the map. This makes it easy to study a variant's board in detail before
+deciding to create or join a game.
+
+## Multi-Step Create Game Form (June 2026)
+
+### Improvement: Creating a game is split into clear steps
+
+The create game form is now organised into three steps with a progress indicator at the
+top: "General" (game name, mode, privacy options and variant selection with the map
+preview), "Deadlines" (phase timing), and "Advanced" (automatic extensions). This makes the
+form feel less dense — particularly the deadline options — and leaves room for more settings
+in the future. Sandbox is now a choice in the Mode dropdown (rather than a separate tab);
+selecting it turns the General step into a single-step "Create Game" flow.
 
 ## Unread Message Indicator on Game Cards (June 2026)
 
