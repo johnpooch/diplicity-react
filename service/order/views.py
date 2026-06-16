@@ -32,7 +32,7 @@ class OrderOptionsView(CurrentPhaseMixin, generics.RetrieveAPIView):
         phase = self.get_phase()
         province_lookup = {p.province_id: p for p in phase.variant.provinces.all()}
         transformed = phase.transformed_options or {}
-        members = phase.game.members.filter(user=request.user)
+        members = phase.game.members.select_related("nation").filter(user=request.user)
         nation_names = [m.nation.name for m in members]
 
         all_orders = []
