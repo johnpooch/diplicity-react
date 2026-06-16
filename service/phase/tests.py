@@ -3254,6 +3254,9 @@ class TestCivilDisorderStagingRemoval:
         phase2_germany = phase2.phase_states.create(member=germany, has_possible_orders=True)
         phase2_germany.orders.create(source=venice_province, order_type=OrderType.HOLD)
 
+        Phase.objects._set_orders_outcome(phase1)
+        Phase.objects._set_orders_outcome(phase2)
+
         return game, italy, germany, phase2
 
     @pytest.mark.django_db
