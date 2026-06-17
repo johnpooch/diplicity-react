@@ -234,7 +234,7 @@ def variant_to_canonical_dict(variant):
 
     return {
         "schemaVersion": SCHEMA_VERSION,
-        "id": variant.id,
+        "id": variant.slug,
         "name": variant.name,
         "description": variant.description,
         "author": variant.author,
@@ -799,6 +799,12 @@ def validate_dsvg(svg, variant=None):
     return errors
 
 
+def variant_id_for(owner, slug):
+    if owner is not None:
+        return f"{owner.id}-{slug}"
+    return slug
+
+
 def create_variant_from_dvar(dvar, owner=None, status=None):
     from common.constants import VariantStatus
     from variant.models import Variant
@@ -807,7 +813,7 @@ def create_variant_from_dvar(dvar, owner=None, status=None):
         status = VariantStatus.DRAFT
 
     variant = Variant.objects.create(
-        id=dvar["id"],
+        id=variant_id_for(owner, dvar["id"]),
         name=dvar["name"],
         description=dvar["description"],
         author=dvar.get("author", ""),
@@ -885,11 +891,11 @@ def validate_safe_replacement(variant, dvar):
     if errors:
         return [SafeReplacementError(error.code, error.message) for error in errors]
 
-    if dvar["id"] != variant.id:
+    if dvar["id"] != variant.slug:
         return [
             SafeReplacementError(
                 "VARIANT_ID_MISMATCH",
-                f"DVAR id '{dvar['id']}' does not match variant id '{variant.id}'.",
+                f"DVAR id '{dvar['id']}' does not match variant id '{variant.slug}'.",
             )
         ]
 

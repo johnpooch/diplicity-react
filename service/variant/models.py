@@ -96,7 +96,7 @@ class VariantManager(models.Manager):
 class Variant(BaseModel):
     objects = VariantManager()
 
-    id = models.CharField(primary_key=True, max_length=36)
+    id = models.CharField(primary_key=True, max_length=64)
     name = models.CharField(max_length=100)
     description = models.TextField()
     author = models.CharField(max_length=200, blank=True)
@@ -117,6 +117,14 @@ class Variant(BaseModel):
         on_delete=models.SET_NULL,
         related_name="owned_variants",
     )
+
+    @property
+    def slug(self):
+        if self.owner_id is not None:
+            prefix = f"{self.owner_id}-"
+            if self.id.startswith(prefix):
+                return self.id[len(prefix):]
+        return self.id
 
     @property
     def solo_victory_supply_centers(self):

@@ -66,7 +66,7 @@ def test_list_variants_no_n_plus_one_when_variant_count_grows(
         format="multipart",
     )
     assert upload_response.status_code == status.HTTP_201_CREATED, upload_response.data
-    assert Variant.objects.filter(id="n-plus-one-probe").exists()
+    assert Variant.objects.filter(id=upload_response.data["id"]).exists()
 
     grown_count, grown_response = _list_query_count(authenticated_client)
     assert len(grown_response.data) == baseline_variant_count + 1

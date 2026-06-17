@@ -30,9 +30,12 @@ properties:
     type: string
     pattern: "^[a-z0-9-]+$"
     description: |
-      Stable identifier for the variant. Lowercase kebab-case. Used as a
-      foreign key throughout the system (game records, API URLs, asset
-      directories). Must be unique across all variants.
+      Slug for the variant. Lowercase kebab-case. When uploaded by a user,
+      the server prefixes this with the owner's user id to produce the stored
+      primary key (e.g. slug "europe-1939" uploaded by user 25 becomes
+      "25-europe-1939"). Two different users may therefore upload variants
+      with the same slug without conflict. The slug is returned as-is in
+      downloaded DVAR files, so download → re-upload round-trips correctly.
     examples:
       - "classical"
 
