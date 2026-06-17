@@ -145,7 +145,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
                       <TooltipContent>No orders are needed from you this phase</TooltipContent>
                     </Tooltip>
                   )}
-                  {game.memberStatus.includes("nmr") && (
+                  {game.memberStatus?.includes("nmr") && (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Badge variant="destructive" className="gap-1">
@@ -156,7 +156,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
                       <TooltipContent>No Move Received — you did not submit orders in the previous phase</TooltipContent>
                     </Tooltip>
                   )}
-                  {game.memberStatus.includes("civil_disorder") && (
+                  {game.memberStatus?.includes("civil_disorder") && (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Badge variant="destructive" className="gap-1">

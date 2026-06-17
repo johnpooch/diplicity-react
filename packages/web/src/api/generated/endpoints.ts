@@ -377,6 +377,11 @@ export interface GameListCurrentPhase {
   readonly remainingTime: number;
 }
 
+/**
+ * * `orders_required` - orders_required
+ * `orders_submitted` - orders_submitted
+ * `no_orders_required` - no_orders_required
+ */
 export type OrderStatusEnum =
   (typeof OrderStatusEnum)[keyof typeof OrderStatusEnum];
 
@@ -440,6 +445,9 @@ export interface GameList {
   readonly currentPhaseId: number | null;
   readonly currentPhase: GameListCurrentPhase | null;
   readonly phaseConfirmed: boolean;
+  readonly orderStatus: OrderStatusEnum | NullEnum | null;
+  /** @nullable */
+  readonly memberStatus: readonly MemberStatusEnum[] | null;
   readonly private: boolean;
   readonly anonymous: boolean;
   /** @nullable */
@@ -466,9 +474,6 @@ export interface GameList {
   readonly pressType: string;
   readonly minReliability: string;
   readonly totalUnreadMessageCount: number;
-  /** @nullable */
-  readonly orderStatus: OrderStatusEnum | null;
-  readonly memberStatus: readonly MemberStatusEnum[];
 }
 
 export interface GameFindSimilar {
@@ -494,6 +499,9 @@ export interface GameRetrieve {
   readonly variantId: string;
   readonly nationAssignment: string;
   readonly phaseConfirmed: boolean;
+  readonly orderStatus: OrderStatusEnum | NullEnum | null;
+  /** @nullable */
+  readonly memberStatus: readonly MemberStatusEnum[] | null;
   /** @nullable */
   readonly movementPhaseDuration: string | null;
   /** @nullable */
@@ -516,9 +524,6 @@ export interface GameRetrieve {
   readonly pressType: string;
   readonly minReliability: string;
   readonly totalUnreadMessageCount: number;
-  /** @nullable */
-  readonly orderStatus: OrderStatusEnum | null;
-  readonly memberStatus: readonly MemberStatusEnum[];
 }
 
 export interface NationFlagUpload {
