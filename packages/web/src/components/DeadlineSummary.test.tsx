@@ -16,7 +16,7 @@ describe("DeadlineSummary", () => {
         <DeadlineSummary game={{ movementPhaseDuration: "24 hours" }} />
       );
       expect(
-        screen.getByText(/Phases resolve every 24 hours/)
+        screen.getByText(/Phases are at least 24 hours/)
       ).toBeInTheDocument();
     });
 
@@ -30,7 +30,7 @@ describe("DeadlineSummary", () => {
         />
       );
       expect(
-        screen.getByText(/Phases resolve every 48 hours/)
+        screen.getByText(/Phases are at least 48 hours/)
       ).toBeInTheDocument();
     });
 
@@ -62,7 +62,7 @@ describe("DeadlineSummary", () => {
         <DeadlineSummary game={{ movementPhaseDuration: duration }} />
       );
       expect(
-        screen.getByText(new RegExp(`Phases resolve every ${duration}`))
+        screen.getByText(new RegExp(`Phases are at least ${duration}`))
       ).toBeInTheDocument();
     });
 
@@ -76,7 +76,7 @@ describe("DeadlineSummary", () => {
         />
       );
       expect(
-        screen.getByText(/Phases resolve every 24 hours/)
+        screen.getByText(/Phases are at least 24 hours/)
       ).toBeInTheDocument();
     });
 
@@ -90,7 +90,7 @@ describe("DeadlineSummary", () => {
         />
       );
       expect(
-        screen.getByText(/Phases resolve every 24 hours/)
+        screen.getByText(/Phases are at least 24 hours/)
       ).toBeInTheDocument();
     });
   });

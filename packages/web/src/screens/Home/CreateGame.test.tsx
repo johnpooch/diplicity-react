@@ -250,7 +250,7 @@ describe("CreateGame — find-similar intervention", () => {
     user: ReturnType<typeof userEvent.setup>
   ) => {
     await goToDeadlinesStep(user);
-    await user.click(screen.getByRole("tab", { name: /duration/i }));
+    await user.click(screen.getByRole("radio", { name: /duration/i }));
   };
 
   const submit = async (user: ReturnType<typeof userEvent.setup>) => {
@@ -454,7 +454,7 @@ describe("CreateGame — multi-step navigation", () => {
       screen.queryByRole("button", { name: /create game/i })
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("tab", { name: /duration/i })
+      screen.queryByRole("radio", { name: /duration/i })
     ).not.toBeInTheDocument();
   });
 
@@ -464,7 +464,7 @@ describe("CreateGame — multi-step navigation", () => {
 
     await user.click(screen.getByRole("button", { name: /next/i }));
 
-    expect(screen.getByRole("tab", { name: /duration/i })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /duration/i })).toBeInTheDocument();
     expect(
       screen.queryByRole("checkbox", { name: /private/i })
     ).not.toBeInTheDocument();
@@ -474,17 +474,17 @@ describe("CreateGame — multi-step navigation", () => {
 
     await user.click(screen.getByRole("button", { name: /next/i }));
 
-    expect(screen.getByText("Automatic Extensions")).toBeInTheDocument();
+    expect(screen.getByText("Automatic extensions")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /create game/i })
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("tab", { name: /duration/i })
+      screen.queryByRole("radio", { name: /duration/i })
     ).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /back/i }));
 
-    expect(screen.getByRole("tab", { name: /duration/i })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /duration/i })).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /create game/i })
     ).not.toBeInTheDocument();
@@ -518,8 +518,7 @@ describe("CreateGame — sandbox mode", () => {
   const selectSandboxMode = async (
     user: ReturnType<typeof userEvent.setup>
   ) => {
-    await user.click(screen.getByRole("combobox", { name: /mode/i }));
-    await user.click(screen.getByRole("option", { name: /sandbox/i }));
+    await user.click(screen.getByRole("radio", { name: /sandbox/i }));
   };
 
   it("disables and unchecks private and game master when sandbox is selected", async () => {

@@ -1,5 +1,16 @@
 # Diplicity React - Release Notes
 
+## Clearer Create Game Controls (June 2026)
+
+### Improvement: Game options are easier to understand at a glance
+
+The create game form now shows its choices up front instead of hiding them in dropdowns.
+Mode (Standard, Gunboat, Sandbox), deadline type (Fixed time, Duration) and automatic
+extensions are now selectable cards, each with a short explanation of what it does — so you
+can compare the options without opening a menu. The deadline section in particular now spells
+out the difference between fixed-time and duration phases, and inputs line up consistently
+across the form.
+
 ## Expandable, Zoomable Map Preview (June 2026)
 
 ### Feature: Inspect a variant's map before committing to a game
