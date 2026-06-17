@@ -2185,6 +2185,18 @@ components:
         phaseConfirmed:
           type: boolean
           readOnly: true
+        orderStatus:
+          nullable: true
+          readOnly: true
+          oneOf:
+          - $ref: '#/components/schemas/OrderStatusEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        memberStatus:
+          type: array
+          items:
+            $ref: '#/components/schemas/MemberStatusEnum'
+          nullable: true
+          readOnly: true
         private:
           type: boolean
           readOnly: true
@@ -2271,6 +2283,7 @@ components:
       - gameMaster
       - id
       - isPaused
+      - memberStatus
       - members
       - minReliability
       - movementFrequency
@@ -2278,6 +2291,7 @@ components:
       - name
       - nationAssignment
       - nmrExtensionsAllowed
+      - orderStatus
       - pausedAt
       - phaseConfirmed
       - phases
@@ -2413,6 +2427,18 @@ components:
         phaseConfirmed:
           type: boolean
           readOnly: true
+        orderStatus:
+          nullable: true
+          readOnly: true
+          oneOf:
+          - $ref: '#/components/schemas/OrderStatusEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        memberStatus:
+          type: array
+          items:
+            $ref: '#/components/schemas/MemberStatusEnum'
+          nullable: true
+          readOnly: true
         movementPhaseDuration:
           type: string
           readOnly: true
@@ -2481,6 +2507,7 @@ components:
       - gameMaster
       - id
       - isPaused
+      - memberStatus
       - members
       - minReliability
       - movementFrequency
@@ -2488,6 +2515,7 @@ components:
       - name
       - nationAssignment
       - nmrExtensionsAllowed
+      - orderStatus
       - pausedAt
       - phaseConfirmed
       - phases
@@ -2559,6 +2587,14 @@ components:
       - replaceable
       - seekingReplacement
       - userId
+    MemberStatusEnum:
+      enum:
+      - nmr
+      - civil_disorder
+      type: string
+      description: |-
+        * `nmr` - nmr
+        * `civil_disorder` - civil_disorder
     MinReliabilityEnum:
       enum:
       - open
@@ -2758,6 +2794,16 @@ components:
       required:
       - by
       - status
+    OrderStatusEnum:
+      enum:
+      - orders_required
+      - orders_submitted
+      - no_orders_required
+      type: string
+      description: |-
+        * `orders_required` - orders_required
+        * `orders_submitted` - orders_submitted
+        * `no_orders_required` - no_orders_required
     OrderTypeEnum:
       enum:
       - Move

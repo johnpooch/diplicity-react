@@ -10,6 +10,14 @@ fixed-time game the card shows **Submitted**. In duration games, where confirmin
 step, a card now shows a new amber **Not confirmed** badge when you've entered orders but not yet
 confirmed them — so **Required** is reserved for when you genuinely haven't started.
 
+## My Games No Longer Crashes With Sandbox Games (June 2026)
+
+### Fix: My Games screen could fail to load for players with sandbox games
+
+The My Games screen could show a "Something went wrong" error and fail to load for players
+whose game list included a sandbox game. The game cards now render correctly regardless of a
+game's member status.
+
 ## Player Reliability Requirements on Games (June 2026)
 
 ### Feature: Require a minimum reliability tier to join a game
