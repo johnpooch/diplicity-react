@@ -459,6 +459,10 @@ Follow the MD3 decision tree when choosing how to present a set of options:
 
 **Never use a dropdown when 2–5 fixed options are available and space allows** — hiding choices behind an extra interaction increases cognitive load without saving meaningful space. If the option count is dynamic and could exceed 5, a dropdown is appropriate from the start.
 
+**Tabs are not a selection control.** Tabs (and the shadcn `Tabs` component) are for navigating between peer *views* of content, not for choosing a value the form will submit. A 2-option form choice (e.g. "Fixed time / Duration") belongs in a radio/segmented control, not tabs — even though tabs can look like a toggle, they carry the wrong meaning and accessibility semantics.
+
+> **Segmented buttons caveat:** the classic MD3 segmented button was deprecated in the Material 3 *expressive* update in favour of the "connected button group". Treat "segmented button" in the table above as "a styled single-select button group". In practice, prefer a styled radio control unless you specifically need the compact connected-segment look.
+
 #### Progressive disclosure
 
 Show options **inline (always visible)** when:
@@ -471,6 +475,32 @@ Hide options **behind an interaction** (overflow menu, collapsible section) when
 - The user's primary goal can be completed without ever touching it
 
 **The right-split rule:** if users routinely open a secondary/collapsed level to complete a common task, the split is wrong — promote that content to the primary level.
+
+#### Explain non-obvious options inline
+
+When the *consequence* of an option isn't obvious from its label, pair the control with explanation rather than relying on the label alone:
+
+- Give each choice a one-line description of what it does (e.g. on the Mode and Deadline-type cards in the create-game form).
+- Where the outcome is computable from the current inputs, show a **live preview** of the result (e.g. the deadline summary that updates as the deadline fields change).
+
+This is the lever for comprehension. Splitting a form across steps/screens does **not** itself teach the user anything — the grouping headings and explanatory copy do. Reach for a multi-step flow only when you specifically want to force a pause or reduce per-screen density; note that MD3 has no stepper component, so a single sectioned form is the default.
+
+#### Control width
+
+MD3 text-field guidance: fields may be full-width on compact (mobile) windows, but on larger windows they should be bound by their container, not the raw screen, and a field's width may hint at its expected input length.
+
+Apply one consistent width rule per form:
+
+- Controls that occupy their own row fill the width of their **containing card/column** (not the whole screen).
+- Controls that share a row split it evenly.
+- A control with a naturally short, fixed-format value (e.g. a time input) may stay intrinsic-width.
+
+Avoid the common inconsistency of some dropdowns hugging their content while sibling inputs go full-width — pick the rule and apply it to every control in the form.
+
+#### Implementation in this codebase
+
+- Use the styled shadcn primitives (`RadioGroup`, `ToggleGroup`) for selection controls — they are Radix-based and fully styled, so they render consistently. Avoid native `<input type="radio">`, which falls back to OS styling (notably ugly inside the Capacitor mobile builds).
+- A `RadioGroup` can be rendered as cards (icon + label + description) for a richer, more comparable presentation while keeping correct radio semantics.
 
 ## Forms
 
