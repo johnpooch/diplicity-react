@@ -73,7 +73,13 @@ class VariantAdmin(admin.ModelAdmin):
     list_editable = ("official",)
     search_fields = ("name", "id")
     autocomplete_fields = ("owner",)
-    actions = ("publish_selected", "archive_selected", "revert_to_draft_selected", "mark_official_selected", "unmark_official_selected")
+    actions = (
+        "publish_selected",
+        "archive_selected",
+        "revert_to_draft_selected",
+        "mark_official_selected",
+        "unmark_official_selected",
+    )
     change_form_template = "admin/variant/variant/change_form.html"
 
     @admin.action(description="Publish selected drafts")
