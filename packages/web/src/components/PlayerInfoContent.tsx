@@ -1,11 +1,14 @@
 import React from "react";
 import { Shield, Star, Trophy } from "lucide-react";
 import { Link, useParams } from "react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import { CivilDisorderBadge } from "@/components/CivilDisorderBadge";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
 import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
@@ -13,6 +16,8 @@ import {
   useGameRetrieveSuspense,
   useGamePhaseRetrieve,
   useVariantsListSuspense,
+  useGameRecoverFromCivilDisorderCreate,
+  getGameRetrieveQueryKey,
   Member,
 } from "@/api/generated/endpoints";
 import { getCurrentPhaseId } from "@/util";
@@ -21,9 +26,22 @@ import { useRequiredParams } from "@/hooks";
 export const PlayerInfoContent: React.FC = () => {
   const { gameId } = useRequiredParams<{ gameId: string }>();
   const { phaseId } = useParams<{ phaseId: string }>();
+  const queryClient = useQueryClient();
 
   const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: variants } = useVariantsListSuspense();
+
+  const recoverMutation = useGameRecoverFromCivilDisorderCreate();
+
+  const handleRecoverFromCivilDisorder = async () => {
+    try {
+      await recoverMutation.mutateAsync({ gameId });
+      toast.success("Welcome back!");
+      queryClient.invalidateQueries({ queryKey: getGameRetrieveQueryKey(gameId) });
+    } catch {
+      toast.error("Failed to recover from civil disorder");
+    }
+  };
 
   const currentPhaseId = getCurrentPhaseId(game);
   const { data: currentPhase } = useGamePhaseRetrieve(
@@ -119,6 +137,15 @@ export const PlayerInfoContent: React.FC = () => {
                       </Badge>
                     )}
                     {member.civilDisorder && <CivilDisorderBadge />}
+                    {member.isCurrentUser && member.civilDisorder && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleRecoverFromCivilDisorder}
+                      >
+                        I&apos;m back
+                      </Button>
+                    )}
                   </div>
 
                   {member.nation && (

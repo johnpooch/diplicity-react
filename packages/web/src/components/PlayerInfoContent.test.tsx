@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { describe, it, expect, vi } from "vitest";
 
@@ -7,11 +7,15 @@ import { PlayerInfoContent } from "./PlayerInfoContent";
 const mockGameData = vi.fn();
 const mockVariantsData = vi.fn();
 const mockCurrentPhaseData = vi.fn();
+const mockMutateAsync = vi.fn().mockResolvedValue({});
+const mockInvalidateQueries = vi.fn();
 
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({ data: mockGameData() }),
   useVariantsListSuspense: () => ({ data: mockVariantsData() }),
   useGamePhaseRetrieve: () => ({ data: mockCurrentPhaseData() }),
+  useGameRecoverFromCivilDisorderCreate: () => ({ mutateAsync: mockMutateAsync }),
+  getGameRetrieveQueryKey: (gameId: string) => ["game", gameId],
 }));
 
 vi.mock("@/components/NationFlag", () => ({
@@ -19,6 +23,14 @@ vi.mock("@/components/NationFlag", () => ({
   findNationFlagUrl: () => null,
   findNationColor: () => null,
 }));
+
+vi.mock("@tanstack/react-query", async () => {
+  const actual = await vi.importActual<typeof import("@tanstack/react-query")>("@tanstack/react-query");
+  return {
+    ...actual,
+    useQueryClient: () => ({ invalidateQueries: mockInvalidateQueries }),
+  };
+});
 
 const renderPlayerInfo = () =>
   render(
@@ -48,6 +60,8 @@ describe("PlayerInfoContent", () => {
       { id: "classical", name: "Classical" },
     ]);
     mockCurrentPhaseData.mockReturnValue({ supplyCenters: [] });
+    mockMutateAsync.mockResolvedValue({});
+    mockInvalidateQueries.mockReset();
   });
 
   it("shows the civil disorder badge for members in civil disorder", () => {
@@ -115,5 +129,67 @@ describe("PlayerInfoContent", () => {
     renderPlayerInfo();
 
     expect(screen.queryByText("Game Master")).not.toBeInTheDocument();
+  });
+
+  it("shows I'm back button for current user in civil disorder", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [{ ...baseMember, isCurrentUser: true, civilDisorder: true }],
+    });
+
+    renderPlayerInfo();
+
+    expect(screen.getByRole("button", { name: "I'm back" })).toBeInTheDocument();
+  });
+
+  it("does not show I'm back button for other users in civil disorder", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [{ ...baseMember, isCurrentUser: false, civilDisorder: true }],
+    });
+
+    renderPlayerInfo();
+
+    expect(screen.queryByRole("button", { name: "I'm back" })).not.toBeInTheDocument();
+  });
+
+  it("does not show I'm back button for current user not in civil disorder", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [{ ...baseMember, isCurrentUser: true, civilDisorder: false }],
+    });
+
+    renderPlayerInfo();
+
+    expect(screen.queryByRole("button", { name: "I'm back" })).not.toBeInTheDocument();
+  });
+
+  it("calls the recovery mutation when I'm back button is clicked", async () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      nmrExtensionsAllowed: 0,
+      victory: null,
+      phases: [{ id: 1, status: "active" }],
+      members: [{ ...baseMember, isCurrentUser: true, civilDisorder: true }],
+    });
+
+    renderPlayerInfo();
+
+    fireEvent.click(screen.getByRole("button", { name: "I'm back" }));
+
+    expect(mockMutateAsync).toHaveBeenCalledWith({ gameId: "game-1" });
   });
 });

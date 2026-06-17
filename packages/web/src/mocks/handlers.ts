@@ -202,6 +202,9 @@ export const handlers = [
   ),
   http.delete("*/game/:gameId/leave/", () => new HttpResponse(null, { status: 204 })),
   http.delete("*/game/:gameId/delete/", () => new HttpResponse(null, { status: 204 })),
+  http.post("*/game/:gameId/recover-from-civil-disorder/", () =>
+    HttpResponse.json({})
+  ),
   http.patch("*/game/:gameId/confirm-phase/", () => HttpResponse.json({})),
   http.post("*/game/:gameId/resolve-phase/", () => HttpResponse.json({})),
   http.put("*/game/:gameId/pause/", () => HttpResponse.json({})),
