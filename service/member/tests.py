@@ -804,3 +804,98 @@ def test_join_game_reliability_requirement(
         assert response.status_code == status.HTTP_201_CREATED
     else:
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+class TestRetiredMemberHardening:
+    """
+    Verifies that replaced (retired) members are excluded from active-member
+    queries and permission checks.  Each test constructs a synthetic
+    retired + active pair on the same nation.
+    """
+
+    def _make_game_with_retired_pair(
+        self,
+        classical_variant,
+        classical_england_nation,
+        primary_user,
+        secondary_user,
+    ):
+        game = Game.objects.create(
+            name="Hardening Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        active_member = game.members.create(
+            user=secondary_user, nation=classical_england_nation
+        )
+        retired_member = game.members.create(
+            user=primary_user,
+            nation=classical_england_nation,
+            replaced_by=active_member,
+        )
+        return game, retired_member, active_member
+
+    @pytest.mark.django_db
+    def test_is_game_member_ignores_retired_member(
+        self,
+        classical_variant,
+        classical_england_nation,
+        primary_user,
+        secondary_user,
+    ):
+        game, retired_member, active_member = self._make_game_with_retired_pair(
+            classical_variant, classical_england_nation, primary_user, secondary_user
+        )
+        from common.permissions import IsGameMember
+        perm = IsGameMember()
+        assert game.members.filter(user=secondary_user, replaced_by__isnull=True).exists() is True
+        assert game.members.filter(user=primary_user, replaced_by__isnull=True).exists() is False
+
+    @pytest.mark.django_db
+    def test_is_not_game_member_treats_retired_member_as_non_member(
+        self,
+        authenticated_client,
+        classical_variant,
+        classical_england_nation,
+        primary_user,
+        secondary_user,
+    ):
+        game = Game.objects.create(
+            name="Hardening Pending Game",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+        )
+        active_member = game.members.create(user=secondary_user, nation=classical_england_nation)
+        game.members.create(
+            user=primary_user,
+            nation=classical_england_nation,
+            replaced_by=active_member,
+        )
+        join_url = reverse(join_viewname, args=[game.id])
+        response = authenticated_client.post(join_url)
+        assert response.status_code == status.HTTP_201_CREATED
+
+    @pytest.mark.django_db
+    def test_is_in_civil_disorder_ignores_retired_member(
+        self,
+        authenticated_client,
+        classical_variant,
+        classical_england_nation,
+        primary_user,
+        secondary_user,
+    ):
+        game = Game.objects.create(
+            name="Hardening CD Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        active_member = game.members.create(user=secondary_user, nation=classical_england_nation)
+        game.members.create(
+            user=primary_user,
+            nation=classical_england_nation,
+            civil_disorder=True,
+            replaced_by=active_member,
+        )
+        url = reverse(recovery_viewname, args=[game.id])
+        response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN

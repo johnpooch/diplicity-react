@@ -680,3 +680,54 @@ class TestTierAllowsMinReliability:
         from user_profile.utils import tier_allows_min_reliability
 
         assert tier_allows_min_reliability(None, "something_else") is True
+
+
+class TestRetiredMemberStats:
+
+    @pytest.mark.django_db
+    def test_retired_member_excluded_from_total_games(
+        self,
+        authenticated_client,
+        classical_variant,
+        classical_england_nation,
+        classical_france_nation,
+    ):
+        user = User.objects.create_user(
+            username="retiredstatsuser", email="retiredstats@example.com", password="testpass123"
+        )
+        UserProfile.objects.create(user=user, name="Retired Stats User")
+
+        other_user = User.objects.create_user(
+            username="takeover_user", email="takeover@example.com", password="testpass123"
+        )
+        UserProfile.objects.create(user=other_user, name="Takeover User")
+
+        retired_game = Game.objects.create(
+            name="Retired Game",
+            variant=classical_variant,
+            status=GameStatus.COMPLETED,
+            finished_at=timezone.now(),
+        )
+        active_replacement = retired_game.members.create(
+            user=other_user, nation=classical_england_nation
+        )
+        retired_game.members.create(
+            user=user,
+            nation=classical_england_nation,
+            replaced_by=active_replacement,
+        )
+
+        normal_game = Game.objects.create(
+            name="Normal Game",
+            variant=classical_variant,
+            status=GameStatus.COMPLETED,
+            finished_at=timezone.now(),
+        )
+        normal_game.members.create(user=user, nation=classical_france_nation)
+
+        url = reverse("public-user-profile", kwargs={"user_id": user.id})
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["total_games"] == 1
+        assert response.data["losses"] == 1

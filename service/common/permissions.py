@@ -32,7 +32,7 @@ class IsGameMember(BasePermission):
 
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
-        return game.members.filter(user=request.user).exists()
+        return game.members.filter(user=request.user, replaced_by__isnull=True).exists()
 
 
 class IsGameMemberOrGameMaster(BasePermission):
@@ -42,7 +42,7 @@ class IsGameMemberOrGameMaster(BasePermission):
         game = resolve_game(request, view.kwargs.get("game_id"))
         if game.game_master_id is not None and game.game_master_id == request.user.id:
             return True
-        return game.members.filter(user=request.user).exists()
+        return game.members.filter(user=request.user, replaced_by__isnull=True).exists()
 
 
 class IsActiveGameMember(BasePermission):
@@ -51,7 +51,7 @@ class IsActiveGameMember(BasePermission):
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
 
-        member = game.members.filter(user=request.user).first()
+        member = game.members.filter(user=request.user, replaced_by__isnull=True).first()
         if not member:
             self.message = "User is not a member of the game."
             return False
@@ -92,7 +92,7 @@ class IsNotGameMember(BasePermission):
 
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
-        return not game.members.filter(user=request.user).exists()
+        return not game.members.filter(user=request.user, replaced_by__isnull=True).exists()
 
 
 class IsSpaceAvailable(BasePermission):
@@ -175,7 +175,7 @@ class IsGameManager(BasePermission):
         if game.game_master_id is not None:
             self.message = "Only the game master can perform this action."
             return game.game_master_id == request.user.id
-        if not game.members.filter(user=request.user).exists():
+        if not game.members.filter(user=request.user, replaced_by__isnull=True).exists():
             self.message = "User is not a member of the game."
             return False
         if game.created_by_id is None or game.created_by_id != request.user.id:
@@ -205,7 +205,7 @@ class IsInCivilDisorder(BasePermission):
 
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
-        member = game.members.filter(user=request.user).first()
+        member = game.members.filter(user=request.user, replaced_by__isnull=True).first()
         if not member:
             self.message = "User is not a member of the game."
             return False

@@ -24,13 +24,15 @@ def get_player_stats(user):
         .order_by("-game__finished_at")
     )
 
-    total_games = completed_members.count()
+    active_completed_members = completed_members.filter(replaced_by__isnull=True)
+
+    total_games = active_completed_members.count()
     solo_wins = (
         Victory.objects.solo_victories()
-        .filter(members__in=completed_members.filter(drew=False))
+        .filter(members__in=active_completed_members.filter(drew=False))
         .count()
     )
-    draws = completed_members.filter(drew=True).count()
+    draws = active_completed_members.filter(drew=True).count()
     losses = total_games - solo_wins - draws
 
     last_n_members = list(completed_members[:RELIABILITY_GAME_WINDOW])

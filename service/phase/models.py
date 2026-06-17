@@ -534,7 +534,7 @@ class PhaseManager(models.Manager):
 
         candidates = list(
             previous_phase.game.members.filter(
-                eliminated=False, kicked=False, nation__isnull=False
+                eliminated=False, kicked=False, replaced_by__isnull=True, nation__isnull=False
             ).select_related("user", "nation")
         )
 
@@ -568,7 +568,7 @@ class PhaseManager(models.Manager):
         if game.sandbox:
             return False
 
-        active_members = list(game.members.filter(eliminated=False, kicked=False))
+        active_members = list(game.members.filter(eliminated=False, kicked=False, replaced_by__isnull=True))
         if not active_members:
             return False
 
@@ -786,7 +786,7 @@ class PhaseManager(models.Manager):
                     nations_with_orders = new_phase.nations_with_possible_orders
 
                     # Prefetch member nations to avoid N+1
-                    members = list(new_phase.game.members.select_related("nation").all())
+                    members = list(new_phase.game.members.filter(replaced_by__isnull=True).select_related("nation"))
 
                     phase_states_to_create = []
                     for member in members:

@@ -11,7 +11,7 @@ class ChannelQuerySet(models.QuerySet):
     def accessible_to_user(self, user, game):
         queryset = self.filter(game=game)
         try:
-            member = game.members.get(user=user)
+            member = game.members.get(user=user, replaced_by__isnull=True)
             return queryset.filter(Q(private=False) | Q(members=member)).distinct()
         except:
             return queryset.filter(private=False)
@@ -55,7 +55,7 @@ class ChannelManager(models.Manager):
         return ChannelQuerySet(self.model, using=self._db)
 
     def create_from_member_ids(self, user, member_ids, game):
-        member_ids = member_ids + [game.members.get(user=user).id]
+        member_ids = member_ids + [game.members.get(user=user, replaced_by__isnull=True).id]
         channel_members = game.members.filter(id__in=member_ids)
         nations = sorted([m.nation.name for m in channel_members])
         channel_name = ", ".join(nations)
