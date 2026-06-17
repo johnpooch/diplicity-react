@@ -434,8 +434,7 @@ const OrdersScreen: React.FC = () => {
                   nationGroups.find(g => g.member.isCurrentUser)?.nation ?? "",
                 ]}
               >
-                {nationGroups.map(({ nation, member, items }) => {
-                  const nationColor = findNationColor(variant.nations, nation);
+                {nationGroups.map(({ nation, items }) => {
                   return (
                     <AccordionItem key={nation} value={nation}>
                       <AccordionTrigger className="p-2 items-center">
