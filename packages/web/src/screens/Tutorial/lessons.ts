@@ -115,9 +115,12 @@ function order(variant: Variant, spec: OrderSpec): Order {
   return {
     source: p(spec.source),
     sourceCoast: null,
-    target,
-    aux,
-    namedCoast: null,
+    // Generated Order type marks target/aux/namedCoast non-nullable, but Hold
+    // orders have no target/aux and no named coast.
+    target: target as Order["target"],
+    aux: aux as Order["aux"],
+    targetCoast: null,
+    namedCoast: null as unknown as Order["namedCoast"],
     resolution: spec.failed
       ? { status: "Failed", by: spec.failedBy ? p(spec.failedBy) : null }
       : { status: "Succeeded", by: null },

@@ -58,9 +58,10 @@ const order = (
 ): Order => ({
   source: prov(source),
   sourceCoast: null,
-  target: target ? prov(target) : null,
-  aux: aux ? prov(aux) : null,
-  namedCoast: null,
+  target: (target ? prov(target) : null) as Order["target"],
+  aux: (aux ? prov(aux) : null) as Order["aux"],
+  targetCoast: null,
+  namedCoast: null as unknown as Order["namedCoast"],
   resolution: { status: "Succeeded", by: null },
   options: [],
   orderType: "Move",
