@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from rest_framework import status
@@ -768,3 +769,38 @@ class TestReplaceableSerialization:
         assert response.status_code == status.HTTP_200_OK
         primary_member = next(m for m in response.data["members"] if m["is_current_user"])
         assert primary_member["replaceable"] is False
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "tier,min_reliability,allowed",
+    [
+        ("reliable", "open", True),
+        ("reliable", "reliable_and_new", True),
+        ("reliable", "reliable_only", True),
+        ("new", "open", True),
+        ("new", "reliable_and_new", True),
+        ("new", "reliable_only", False),
+        (None, "open", True),
+        (None, "reliable_and_new", False),
+        (None, "reliable_only", False),
+    ],
+)
+def test_join_game_reliability_requirement(
+    authenticated_client, pending_game_created_by_secondary_user, tier, min_reliability, allowed
+):
+    game = pending_game_created_by_secondary_user
+    game.min_reliability = min_reliability
+    game.save(update_fields=["min_reliability"])
+    url = reverse(join_viewname, args=[game.id])
+
+    with patch(
+        "common.permissions.get_player_stats",
+        return_value={"reliability_tier": tier},
+    ):
+        response = authenticated_client.post(url)
+
+    if allowed:
+        assert response.status_code == status.HTTP_201_CREATED
+    else:
+        assert response.status_code == status.HTTP_403_FORBIDDEN

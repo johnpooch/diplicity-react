@@ -5,11 +5,20 @@
 ### Improvement: Game options are easier to understand at a glance
 
 The create game form now shows its choices up front instead of hiding them in dropdowns.
-Mode (Standard, Gunboat, Sandbox), deadline type (Fixed time, Duration) and automatic
-extensions are now selectable cards, each with a short explanation of what it does — so you
-can compare the options without opening a menu. The deadline section in particular now spells
-out the difference between fixed-time and duration phases, and inputs line up consistently
-across the form.
+Mode (Standard, Gunboat, Sandbox), deadline type (Fixed time, Duration), automatic
+extensions and player reliability are now selectable cards, each with a short explanation of
+what it does — so you can compare the options without opening a menu. The deadline section in
+particular now spells out the difference between fixed-time and duration phases, and inputs
+line up consistently across the form.
+
+## Player Reliability Requirements on Games (June 2026)
+
+### Feature: Require a minimum reliability tier to join a game
+
+When creating a game you can now set a "Player Reliability" requirement: **Open** (anyone can
+join), **Reliable + New Players** (excludes players with a history of abandoning games), or
+**Reliable only**. On Find Games, games you can't join are hidden so the lobby only shows
+games you're eligible for.
 
 ## Expandable, Zoomable Map Preview (June 2026)
 

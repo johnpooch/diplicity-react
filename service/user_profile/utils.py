@@ -66,3 +66,13 @@ def get_player_stats(user):
         "cd_rate": round(cd_rate, 4),
         "reliability_tier": reliability_tier,
     }
+
+
+def tier_allows_min_reliability(reliability_tier, min_reliability):
+    if min_reliability == "open":
+        return True
+    if min_reliability == "reliable_and_new":
+        return reliability_tier in ("reliable", "new")
+    if min_reliability == "reliable_only":
+        return reliability_tier == "reliable"
+    return True
