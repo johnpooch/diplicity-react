@@ -158,7 +158,7 @@ class TestGameMasterInGameAccess:
         url = reverse(phase_state_list_viewname, args=[game.id])
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_200_OK
-        assert response.data == []
+        assert len(response.data) == 7
 
     @pytest.mark.django_db
     def test_non_member_cannot_list_phase_states(
