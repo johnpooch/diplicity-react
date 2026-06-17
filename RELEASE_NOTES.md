@@ -1,5 +1,14 @@
 # Diplicity React - Release Notes
 
+## Variant Uploads No Longer Collide Between Authors (June 2026)
+
+### Fix: Two authors can upload variants with the same id
+
+Uploading a variant whose id matched a variant already uploaded by another author was
+rejected with an "already exists" error. Each author's uploaded variants are now namespaced
+to that author, so two people can upload variants sharing the same id without conflict.
+Downloaded variant files keep their original id, so download then re-upload still works.
+
 ## My Games No Longer Crashes With Sandbox Games (June 2026)
 
 ### Fix: My Games screen could fail to load for players with sandbox games
