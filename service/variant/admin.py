@@ -68,11 +68,18 @@ class ReplaceVariantFilesForm(forms.Form):
 
 @admin.register(Variant)
 class VariantAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "status", "owner")
-    list_filter = ("status",)
+    list_display = ("id", "name", "status", "official", "owner")
+    list_filter = ("status", "official")
+    list_editable = ("official",)
     search_fields = ("name", "id")
     autocomplete_fields = ("owner",)
-    actions = ("publish_selected", "archive_selected", "revert_to_draft_selected")
+    actions = (
+        "publish_selected",
+        "archive_selected",
+        "revert_to_draft_selected",
+        "mark_official_selected",
+        "unmark_official_selected",
+    )
     change_form_template = "admin/variant/variant/change_form.html"
 
     @admin.action(description="Publish selected drafts")
@@ -89,6 +96,16 @@ class VariantAdmin(admin.ModelAdmin):
     def revert_to_draft_selected(self, request, queryset):
         updated = queryset.exclude(status=VariantStatus.DRAFT).update(status=VariantStatus.DRAFT)
         self.message_user(request, f"Reverted {updated} variant(s) to draft.", level=messages.WARNING)
+
+    @admin.action(description="Mark selected as official")
+    def mark_official_selected(self, request, queryset):
+        updated = queryset.update(official=True)
+        self.message_user(request, f"Marked {updated} variant(s) as official.", level=messages.SUCCESS)
+
+    @admin.action(description="Unmark selected as official")
+    def unmark_official_selected(self, request, queryset):
+        updated = queryset.update(official=False)
+        self.message_user(request, f"Unmarked {updated} variant(s).", level=messages.WARNING)
 
     def get_urls(self):
         urls = super().get_urls()
