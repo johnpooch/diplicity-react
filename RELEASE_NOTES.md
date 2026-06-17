@@ -1,5 +1,13 @@
 # Diplicity React - Release Notes
 
+## Map No Longer Renders Twice on Rotation (June 2026)
+
+### Fix: The map is no longer duplicated when rotating to landscape on mobile
+
+When rotating a phone into landscape, the map could briefly appear twice — once in the main
+content area and once in the side panel. The game screen now uses a single, consistent
+breakpoint, so only one map is shown at any size.
+
 ## Chat Channels Sorted by Activity (June 2026)
 
 ### Change: Chat channels are ordered by most recent activity
