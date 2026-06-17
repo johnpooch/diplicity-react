@@ -46,6 +46,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import { randomGameName } from "@/util";
+import { Notice } from "@/components/Notice";
 import { ExpandableMapPreview } from "@/components/ExpandableMapPreview";
 import { DeadlineSummary } from "@/components/DeadlineSummary";
 import {
@@ -158,11 +159,15 @@ const GameMetadataTable: React.FC<GameMetadataTableProps> = ({ rows }) => {
   );
 };
 
+type VariantCategory = "official" | "community";
+
 interface VariantSelectorProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   control: Control<any>;
   name: string;
   disabled?: boolean;
+  category: VariantCategory;
+  onCategoryChange: (category: VariantCategory) => void;
   variants: Variant[];
   selectedVariant?: Variant;
 }
@@ -171,6 +176,8 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
   control,
   name,
   disabled,
+  category,
+  onCategoryChange,
   variants,
   selectedVariant,
 }) => {
@@ -182,24 +189,66 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
         render={({ field }) => (
           <FormItem>
             <FormLabel>Variant</FormLabel>
-            <Select
-              onValueChange={field.onChange}
-              value={field.value}
-              disabled={disabled}
+
+            <Tabs
+              value={category}
+              onValueChange={value =>
+                onCategoryChange(value as VariantCategory)
+              }
+              className="w-full"
             >
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a variant" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {variants?.map(variant => (
-                  <SelectItem key={variant.id} value={variant.id}>
-                    {variant.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <TabsList className="w-full">
+                <TabsTrigger
+                  value="official"
+                  className="flex-1"
+                  disabled={disabled}
+                >
+                  Official
+                </TabsTrigger>
+                <TabsTrigger
+                  value="community"
+                  className="flex-1"
+                  disabled={disabled}
+                >
+                  Community
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            {variants.length === 0 ? (
+              <Notice
+                icon={Map}
+                title={
+                  category === "official"
+                    ? "No official variants yet"
+                    : "No community variants yet"
+                }
+                message={
+                  category === "official"
+                    ? "Official variants will appear here once published."
+                    : "Community variants will appear here once published."
+                }
+              />
+            ) : (
+              <Select
+                onValueChange={field.onChange}
+                value={field.value}
+                disabled={disabled}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a variant" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {variants.map(variant => (
+                    <SelectItem key={variant.id} value={variant.id}>
+                      {variant.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <FormMessage />
           </FormItem>
         )}
@@ -213,43 +262,45 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
         />
       ) : null}
 
-      <GameMetadataTable
-        rows={[
-          {
-            label: "Number of nations",
-            value: selectedVariant?.nations.length.toString(),
-            icon: <Users className="size-4" />,
-          },
-          {
-            label: "Start year",
-            value: selectedVariant?.templatePhase.year.toString(),
-            icon: <Calendar className="size-4" />,
-          },
-          {
-            label: "Original author",
-            value: selectedVariant?.author,
-            icon: <User className="size-4" />,
-          },
-          ...(selectedVariant?.description
-            ? [
-                {
-                  label: "Description",
-                  text: selectedVariant.description,
-                  icon: <Map className="size-4" />,
-                },
-              ]
-            : []),
-          ...(selectedVariant?.rules
-            ? [
-                {
-                  label: "Rules",
-                  text: selectedVariant.rules,
-                  icon: <BookOpen className="size-4" />,
-                },
-              ]
-            : []),
-        ]}
-      />
+      {selectedVariant ? (
+        <GameMetadataTable
+          rows={[
+            {
+              label: "Number of nations",
+              value: selectedVariant?.nations.length.toString(),
+              icon: <Users className="size-4" />,
+            },
+            {
+              label: "Start year",
+              value: selectedVariant?.templatePhase.year.toString(),
+              icon: <Calendar className="size-4" />,
+            },
+            {
+              label: "Original author",
+              value: selectedVariant?.author,
+              icon: <User className="size-4" />,
+            },
+            ...(selectedVariant?.description
+              ? [
+                  {
+                    label: "Description",
+                    text: selectedVariant.description,
+                    icon: <Map className="size-4" />,
+                  },
+                ]
+              : []),
+            ...(selectedVariant?.rules
+              ? [
+                  {
+                    label: "Rules",
+                    text: selectedVariant.rules,
+                    icon: <BookOpen className="size-4" />,
+                  },
+                ]
+              : []),
+          ]}
+        />
+      ) : null}
     </div>
   );
 };
@@ -356,11 +407,20 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
   initialPrivate,
   initialMode,
 }) => {
+  const officialVariants = variants.filter(v => v.official);
+  const communityVariants = variants.filter(v => !v.official);
+
+  const defaultVariantId =
+    initialVariantId ?? officialVariants[0]?.id ?? variants[0]?.id ?? "";
+  const defaultVariant = variants.find(v => v.id === defaultVariantId);
+  const initialCategory: VariantCategory =
+    defaultVariant && !defaultVariant.official ? "community" : "official";
+
   const form = useForm<GameFormValues>({
     resolver: zodResolver(gameSchema),
     defaultValues: {
       name: randomGameName(),
-      variantId: initialVariantId ?? variants[0]?.id ?? "",
+      variantId: defaultVariantId,
       mode: initialMode ?? "standard",
       nationAssignment: "random" as NationAssignmentEnum,
       private: initialPrivate ?? false,
@@ -378,6 +438,16 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
   });
 
   const [step, setStep] = useState(0);
+  const [variantCategory, setVariantCategory] =
+    useState<VariantCategory>(initialCategory);
+
+  const handleVariantCategoryChange = (category: VariantCategory) => {
+    setVariantCategory(category);
+    form.setValue("variantId", "", { shouldValidate: false });
+  };
+
+  const activeVariants =
+    variantCategory === "official" ? officialVariants : communityVariants;
 
   const selectedVariant = variants?.find(v => v.id === form.watch("variantId"));
   const deadlineMode = form.watch("deadlineMode");
@@ -537,7 +607,9 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
               control={form.control}
               name="variantId"
               disabled={isSubmitting || isInitialVariantDraft}
-              variants={variants}
+              category={variantCategory}
+              onCategoryChange={handleVariantCategoryChange}
+              variants={activeVariants}
               selectedVariant={selectedVariant}
             />
           </div>

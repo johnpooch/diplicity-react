@@ -83,6 +83,7 @@ const variantsFixture = [
     description: "",
     rules: "",
     status: "published",
+    official: true,
     ownerId: null,
     ownerUsername: null,
     canEdit: false,
@@ -104,6 +105,15 @@ const variantsFixture = [
     templatePhase: { id: 0, year: 1901, season: "Spring", type: "movement" },
   },
 ];
+
+const communityVariant = {
+  ...variantsFixture[0],
+  id: "homebrew",
+  name: "Homebrew",
+  official: false,
+};
+
+const variantsWithCommunity = [variantsFixture[0], communityVariant];
 
 const matchedGame: GameList = {
   id: "matched-game",
@@ -627,5 +637,93 @@ describe("CreateGame — minReliability dropdown", () => {
     await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
     const payload = createGameMutateAsync.mock.calls[0][0].data;
     expect(payload.minReliability).toBe("open");
+  });
+});
+
+describe("CreateGame — variant category toggle", () => {
+  let createGameMutateAsync: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    createGameMutateAsync = vi.fn().mockResolvedValue({ id: "created-game" });
+
+    mockedUseGameCreate.mockReturnValue({
+      mutateAsync: createGameMutateAsync,
+      isPending: false,
+    } as unknown as ReturnType<typeof useGameCreate>);
+
+    mockedUseSandboxGameCreate.mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    } as unknown as ReturnType<typeof useSandboxGameCreate>);
+
+    stubFindSimilar(null);
+  });
+
+  it("defaults to the Official tab", () => {
+    mockedUseVariantsListSuspense.mockReturnValue({
+      data: variantsWithCommunity,
+    } as unknown as ReturnType<typeof useVariantsListSuspense>);
+    renderCreateGame();
+
+    expect(screen.getByRole("tab", { name: /official/i })).toHaveAttribute(
+      "data-state",
+      "active"
+    );
+    expect(screen.getByRole("tab", { name: /community/i })).toHaveAttribute(
+      "data-state",
+      "inactive"
+    );
+  });
+
+  it("shows an empty state when the Community tab has no variants", async () => {
+    const user = userEvent.setup();
+    mockedUseVariantsListSuspense.mockReturnValue({
+      data: variantsFixture,
+    } as unknown as ReturnType<typeof useVariantsListSuspense>);
+    renderCreateGame();
+
+    await user.click(screen.getByRole("tab", { name: /community/i }));
+
+    expect(screen.getByText(/no community variants yet/i)).toBeInTheDocument();
+  });
+
+  it("requires a variant selection after switching to an empty category", async () => {
+    const user = userEvent.setup();
+    mockedUseVariantsListSuspense.mockReturnValue({
+      data: variantsFixture,
+    } as unknown as ReturnType<typeof useVariantsListSuspense>);
+    renderCreateGame();
+
+    await user.click(screen.getByRole("tab", { name: /community/i }));
+    await user.click(screen.getByRole("button", { name: /next/i }));
+
+    expect(
+      await screen.findByText(/please select a variant/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /create game/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it("creates the game with a community variant selected from the Community tab", async () => {
+    const user = userEvent.setup();
+    mockedUseVariantsListSuspense.mockReturnValue({
+      data: variantsWithCommunity,
+    } as unknown as ReturnType<typeof useVariantsListSuspense>);
+    renderCreateGame();
+
+    await user.click(screen.getByRole("tab", { name: /community/i }));
+    await user.click(screen.getByRole("combobox", { name: /variant/i }));
+    await user.click(screen.getByRole("option", { name: /homebrew/i }));
+
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.click(screen.getByRole("button", { name: /create game/i }));
+
+    await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
+    expect(createGameMutateAsync.mock.calls[0][0].data.variantId).toBe(
+      "homebrew"
+    );
   });
 });

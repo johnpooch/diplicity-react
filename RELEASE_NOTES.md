@@ -1,5 +1,13 @@
 # Diplicity React - Release Notes
 
+## Official and Community Variants on Create Game (June 2026)
+
+### Feature: Browse official and community variants separately when creating a game
+
+The variant picker on the Create Game form now has an **Official** / **Community** toggle.
+Switch between the two to pick from either set of variants in its own dropdown. If a category
+has no variants yet, an empty state is shown in its place.
+
 ## My Games No Longer Crashes With Sandbox Games (June 2026)
 
 ### Fix: My Games screen could fail to load for players with sandbox games
