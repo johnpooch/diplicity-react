@@ -270,90 +270,91 @@ class TestVariantToCanonicalDict:
         assert len(initial_state["supplyCenters"]) == 22
 
 
-class TestVariantVisibility:
+@pytest.mark.django_db
+def test_published_variant_visible_to_any_user(authenticated_client):
+    response = authenticated_client.get(reverse(viewname))
+    assert response.status_code == status.HTTP_200_OK
+    ids = {v["id"] for v in response.data}
+    assert "classical" in ids
 
-    @pytest.fixture
-    def owner(self, user_factory):
-        return user_factory()
 
-    @pytest.fixture
-    def other_user(self, user_factory):
-        return user_factory()
+@pytest.mark.django_db
+def test_own_draft_visible_to_owner(user_factory, authenticated_client_factory):
+    owner = user_factory()
+    owner_client = authenticated_client_factory(owner)
+    draft_variant = Variant.objects.create(
+        id="vis-draft", name="Visibility Draft", description="",
+        status=VariantStatus.DRAFT, owner=owner,
+    )
+    response = owner_client.get(reverse(viewname))
+    ids = {v["id"] for v in response.data}
+    assert draft_variant.id in ids
 
-    @pytest.fixture
-    def owner_client(self, authenticated_client_factory, owner):
-        return authenticated_client_factory(owner)
 
-    @pytest.fixture
-    def other_client(self, authenticated_client_factory, other_user):
-        return authenticated_client_factory(other_user)
+@pytest.mark.django_db
+def test_other_users_draft_hidden_from_list(authenticated_client, user_factory):
+    owner = user_factory()
+    draft_variant = Variant.objects.create(
+        id="vis-draft", name="Visibility Draft", description="",
+        status=VariantStatus.DRAFT, owner=owner,
+    )
+    response = authenticated_client.get(reverse(viewname))
+    ids = {v["id"] for v in response.data}
+    assert draft_variant.id not in ids
 
-    @pytest.fixture
-    def draft_variant(self, owner):
-        return Variant.objects.create(
-            id="vis-draft",
-            name="Visibility Draft",
-            description="",
-            status=VariantStatus.DRAFT,
-            owner=owner,
-        )
 
-    @pytest.fixture
-    def archived_variant(self):
-        return Variant.objects.create(
-            id="vis-archived",
-            name="Visibility Archived",
-            description="",
-            status=VariantStatus.ARCHIVED,
-        )
+@pytest.mark.django_db
+def test_other_users_draft_returns_404_on_detail(authenticated_client, user_factory):
+    owner = user_factory()
+    draft_variant = Variant.objects.create(
+        id="vis-draft", name="Visibility Draft", description="",
+        status=VariantStatus.DRAFT, owner=owner,
+    )
+    response = authenticated_client.get(reverse("variant-detail", kwargs={"pk": draft_variant.id}))
+    assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    @pytest.mark.django_db
-    def test_published_variant_visible_to_any_user(self, other_client):
-        response = other_client.get(reverse(viewname))
-        assert response.status_code == status.HTTP_200_OK
-        ids = {v["id"] for v in response.data}
-        assert "classical" in ids
 
-    @pytest.mark.django_db
-    def test_own_draft_visible_to_owner(self, owner_client, draft_variant):
-        response = owner_client.get(reverse(viewname))
-        ids = {v["id"] for v in response.data}
-        assert draft_variant.id in ids
+@pytest.mark.django_db
+def test_archived_variant_hidden_from_list(authenticated_client):
+    Variant.objects.create(
+        id="vis-archived", name="Visibility Archived", description="",
+        status=VariantStatus.ARCHIVED,
+    )
+    response = authenticated_client.get(reverse(viewname))
+    ids = {v["id"] for v in response.data}
+    assert "vis-archived" not in ids
 
-    @pytest.mark.django_db
-    def test_other_users_draft_hidden_from_list(self, other_client, draft_variant):
-        response = other_client.get(reverse(viewname))
-        ids = {v["id"] for v in response.data}
-        assert draft_variant.id not in ids
 
-    @pytest.mark.django_db
-    def test_other_users_draft_returns_404_on_detail(self, other_client, draft_variant):
-        response = other_client.get(reverse("variant-detail", kwargs={"pk": draft_variant.id}))
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+@pytest.mark.django_db
+def test_member_of_draft_variant_game_can_see_variant(
+    user_factory, authenticated_client_factory, game_factory, member_factory
+):
+    owner = user_factory()
+    other_user = user_factory()
+    other_client = authenticated_client_factory(other_user)
+    draft_variant = Variant.objects.create(
+        id="vis-draft", name="Visibility Draft", description="",
+        status=VariantStatus.DRAFT, owner=owner,
+    )
+    game = game_factory(variant=draft_variant, private=True)
+    member_factory(game=game, user=other_user)
+    response = other_client.get(reverse(viewname))
+    ids = {v["id"] for v in response.data}
+    assert draft_variant.id in ids
 
-    @pytest.mark.django_db
-    def test_archived_variant_hidden_from_list(self, authenticated_client, archived_variant):
-        response = authenticated_client.get(reverse(viewname))
-        ids = {v["id"] for v in response.data}
-        assert archived_variant.id not in ids
 
-    @pytest.mark.django_db
-    def test_member_of_draft_variant_game_can_see_variant(
-        self, other_client, other_user, draft_variant, game_factory, member_factory
-    ):
-        game = game_factory(variant=draft_variant, private=True)
-        member_factory(game=game, user=other_user)
-
-        response = other_client.get(reverse(viewname))
-        ids = {v["id"] for v in response.data}
-        assert draft_variant.id in ids
-
-    @pytest.mark.django_db
-    def test_member_of_draft_variant_game_can_retrieve_variant(
-        self, other_client, other_user, draft_variant, game_factory, member_factory
-    ):
-        game = game_factory(variant=draft_variant, private=True)
-        member_factory(game=game, user=other_user)
-
-        response = other_client.get(reverse("variant-detail", kwargs={"pk": draft_variant.id}))
-        assert response.status_code == status.HTTP_200_OK
+@pytest.mark.django_db
+def test_member_of_draft_variant_game_can_retrieve_variant(
+    user_factory, authenticated_client_factory, game_factory, member_factory
+):
+    owner = user_factory()
+    other_user = user_factory()
+    other_client = authenticated_client_factory(other_user)
+    draft_variant = Variant.objects.create(
+        id="vis-draft", name="Visibility Draft", description="",
+        status=VariantStatus.DRAFT, owner=owner,
+    )
+    game = game_factory(variant=draft_variant, private=True)
+    member_factory(game=game, user=other_user)
+    response = other_client.get(reverse("variant-detail", kwargs={"pk": draft_variant.id}))
+    assert response.status_code == status.HTTP_200_OK

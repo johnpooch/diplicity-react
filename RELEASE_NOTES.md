@@ -1,5 +1,13 @@
 # Diplicity React - Release Notes
 
+## Draft Variants Hidden From Other Users (June 2026)
+
+### Improvement: Variants list now shows only published variants and your own drafts
+
+When browsing variants, you will no longer see draft variants created by other users. Only
+published variants and your own drafts are listed. Games using private draft variants
+continue to work normally for all members — this change only affects the browse screen.
+
 ## My Games No Longer Crashes With Sandbox Games (June 2026)
 
 ### Fix: My Games screen could fail to load for players with sandbox games
