@@ -807,11 +807,6 @@ def test_join_game_reliability_requirement(
 
 
 class TestRetiredMemberHardening:
-    """
-    Verifies that replaced (retired) members are excluded from active-member
-    queries and permission checks.  Each test constructs a synthetic
-    retired + active pair on the same nation.
-    """
 
     def _make_game_with_retired_pair(
         self,
@@ -846,8 +841,6 @@ class TestRetiredMemberHardening:
         game, retired_member, active_member = self._make_game_with_retired_pair(
             classical_variant, classical_england_nation, primary_user, secondary_user
         )
-        from common.permissions import IsGameMember
-        perm = IsGameMember()
         assert game.members.filter(user=secondary_user, replaced_by__isnull=True).exists() is True
         assert game.members.filter(user=primary_user, replaced_by__isnull=True).exists() is False
 
