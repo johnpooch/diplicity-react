@@ -1,5 +1,15 @@
 # Diplicity React - Release Notes
 
+## Accurate Order Status on Game Cards for Fixed-Time Games (June 2026)
+
+### Fix: "Required" no longer shows after you've entered orders in a fixed-time game
+
+Fixed-time games have no separate "confirm orders" step, so a game card kept showing the amber
+**Required** badge even after you'd entered your orders. Now, once you've entered orders in a
+fixed-time game the card shows **Submitted**. In duration games, where confirming is a distinct
+step, a card now shows a new amber **Not confirmed** badge when you've entered orders but not yet
+confirmed them — so **Required** is reserved for when you genuinely haven't started.
+
 ## Player Reliability Requirements on Games (June 2026)
 
 ### Feature: Require a minimum reliability tier to join a game

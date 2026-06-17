@@ -220,6 +220,11 @@ describe("GameCard", () => {
       expect(screen.getByText("Submitted")).toBeInTheDocument();
     });
 
+    it("shows 'Not confirmed' badge when orderStatus is orders_not_confirmed", () => {
+      renderGameCard({ game: { ...mockGames[0], orderStatus: "orders_not_confirmed", memberStatus: [] }, ...defaultProps });
+      expect(screen.getByText("Not confirmed")).toBeInTheDocument();
+    });
+
     it("shows 'Not required' badge when orderStatus is no_orders_required", () => {
       renderGameCard({ game: { ...mockGames[0], orderStatus: "no_orders_required", memberStatus: [] }, ...defaultProps });
       expect(screen.getByText("Not required")).toBeInTheDocument();
@@ -229,6 +234,7 @@ describe("GameCard", () => {
       renderGameCard({ game: { ...mockGames[0], orderStatus: null, memberStatus: [] }, ...defaultProps });
       expect(screen.queryByText("Required")).not.toBeInTheDocument();
       expect(screen.queryByText("Submitted")).not.toBeInTheDocument();
+      expect(screen.queryByText("Not confirmed")).not.toBeInTheDocument();
       expect(screen.queryByText("Not required")).not.toBeInTheDocument();
     });
 

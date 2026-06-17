@@ -134,6 +134,17 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
                       <TooltipContent>Your orders are submitted for this phase</TooltipContent>
                     </Tooltip>
                   )}
+                  {game.orderStatus === "orders_not_confirmed" && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge className="gap-1 bg-amber-500 text-white hover:bg-amber-500">
+                          <Clock className="size-3" />
+                          Not confirmed
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>You have entered orders but not confirmed them for this phase</TooltipContent>
+                    </Tooltip>
+                  )}
                   {game.orderStatus === "no_orders_required" && (
                     <Tooltip>
                       <TooltipTrigger asChild>

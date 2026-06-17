@@ -26,6 +26,13 @@ ChannelMessage = apps.get_model("channel", "ChannelMessage")
 tracer = trace.get_tracer(__name__)
 
 
+def _phase_state_order_count(phase_state):
+    count = getattr(phase_state, "order_count", None)
+    if count is None:
+        count = phase_state.orders.count()
+    return count
+
+
 def send_game_management_notification(game, title, body, notification_type, exclude_user_id):
     def _send():
         user_ids = game.notification_user_ids(exclude_user_id=exclude_user_id)
@@ -147,7 +154,7 @@ class GameListSerializer(serializers.Serializer):
             return obj.phase_confirmed(user)
 
     @extend_schema_field(serializers.ChoiceField(
-        choices=["orders_required", "orders_submitted", "no_orders_required"],
+        choices=["orders_required", "orders_submitted", "orders_not_confirmed", "no_orders_required"],
         allow_null=True,
     ))
     def get_order_status(self, obj):
@@ -165,7 +172,11 @@ class GameListSerializer(serializers.Serializer):
                     return "orders_submitted"
                 if not phase_state.has_possible_orders:
                     return "no_orders_required"
-                return "orders_required"
+                if _phase_state_order_count(phase_state) == 0:
+                    return "orders_required"
+                if obj.deadline_mode == DeadlineMode.FIXED_TIME:
+                    return "orders_submitted"
+                return "orders_not_confirmed"
         return None
 
     @extend_schema_field(serializers.ListField(
@@ -307,7 +318,7 @@ class GameRetrieveSerializer(serializers.Serializer):
             return obj.phase_confirmed(user)
 
     @extend_schema_field(serializers.ChoiceField(
-        choices=["orders_required", "orders_submitted", "no_orders_required"],
+        choices=["orders_required", "orders_submitted", "orders_not_confirmed", "no_orders_required"],
         allow_null=True,
     ))
     def get_order_status(self, obj):
@@ -325,7 +336,11 @@ class GameRetrieveSerializer(serializers.Serializer):
                     return "orders_submitted"
                 if not phase_state.has_possible_orders:
                     return "no_orders_required"
-                return "orders_required"
+                if _phase_state_order_count(phase_state) == 0:
+                    return "orders_required"
+                if obj.deadline_mode == DeadlineMode.FIXED_TIME:
+                    return "orders_submitted"
+                return "orders_not_confirmed"
         return None
 
     @extend_schema_field(serializers.ListField(

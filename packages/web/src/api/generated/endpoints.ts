@@ -383,6 +383,7 @@ export type OrderStatusEnum =
 export const OrderStatusEnum = {
   orders_required: "orders_required",
   orders_submitted: "orders_submitted",
+  orders_not_confirmed: "orders_not_confirmed",
   no_orders_required: "no_orders_required",
 } as const;
 
