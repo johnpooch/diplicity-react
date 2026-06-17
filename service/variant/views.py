@@ -42,9 +42,11 @@ def _variants_list_etag(user_id):
 
 
 class VariantListCreateView(generics.ListCreateAPIView):
-    queryset = Variant.objects.all().with_related_data()
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser]
+
+    def get_queryset(self):
+        return Variant.objects.visible_to(self.request.user).with_related_data()
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -63,9 +65,11 @@ class VariantListCreateView(generics.ListCreateAPIView):
 
 
 class VariantDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Variant.objects.all().with_related_data()
     permission_classes = [IsAuthenticated, IsOwnedDraftForWrite]
     parser_classes = [MultiPartParser]
+
+    def get_queryset(self):
+        return Variant.objects.visible_to(self.request.user).with_related_data()
 
     def get_serializer_class(self):
         if self.request.method in ("PUT", "PATCH"):
@@ -79,10 +83,12 @@ class VariantDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class VariantDvarDownloadView(generics.GenericAPIView):
-    queryset = Variant.objects.all().with_related_data()
     serializer_class = VariantSerializer
     permission_classes = [IsAuthenticated]
     lookup_url_kwarg = "variant_id"
+
+    def get_queryset(self):
+        return Variant.objects.visible_to(self.request.user).with_related_data()
 
     def get(self, request, *args, **kwargs):
         variant = self.get_object()

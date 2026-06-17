@@ -204,14 +204,15 @@ const VariantsList: React.FC = () => {
     const order: Record<string, number> = {
       draft: 0,
       published: 1,
-      archived: 2,
     };
-    return [...variants].sort((a, b) => {
-      const statusDiff =
-        (order[a.status] ?? 99) - (order[b.status] ?? 99);
-      if (statusDiff !== 0) return statusDiff;
-      return a.name.localeCompare(b.name);
-    });
+    return [...variants]
+      .filter((v) => v.status === "published" || v.canEdit)
+      .sort((a, b) => {
+        const statusDiff =
+          (order[a.status] ?? 99) - (order[b.status] ?? 99);
+        if (statusDiff !== 0) return statusDiff;
+        return a.name.localeCompare(b.name);
+      });
   }, [variants]);
 
   const handleDelete = async () => {
