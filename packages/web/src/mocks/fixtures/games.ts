@@ -128,7 +128,10 @@ const buildActiveMovement = () => {
   return makeFixture({
     description:
       "Active game in the Spring 1901 movement phase. The current user (England) has entered 2 of 3 orders. Includes public and private chat channels.",
-    game: makeGame("active-movement", "Spring Awakening", members, [phase]),
+    game: makeGame("active-movement", "Spring Awakening", members, [phase], {
+      orderStatus: "orders_required",
+      memberStatus: [],
+    }),
     phases: [phase],
     ordersByPhase: {
       101: [
@@ -163,6 +166,81 @@ const buildActiveMovement = () => {
 };
 
 export const activeGameMovement = buildActiveMovement();
+
+const buildActiveNamedCoast = () => {
+  const members = makeActiveMembers();
+  const phase = makePhase(901, 1, {
+    remainingTime: 20 * 60 * 60,
+    units: [
+      ...classicalStartUnits.filter(
+        u =>
+          u.nation.name !== "England" &&
+          u.province.id !== "stp" &&
+          u.province.id !== "stp/sc"
+      ),
+      makeUnit("Fleet", "england", "por"),
+      makeUnit("Fleet", "england", "mid"),
+      makeUnit("Fleet", "england", "stp/nc"),
+      makeUnit("Fleet", "england", "nwy"),
+    ],
+  });
+  return makeFixture({
+    description:
+      "Active movement phase showcasing named coasts. The current user (England) has a fleet on St. Petersburg (NC) supporting a move, a fleet supporting another into Spain (NC), and a fleet moving onto Spain's north coast. Used to verify orders and the map render the correct coast.",
+    game: makeGame("active-named-coast", "Iberian Gambit", members, [phase]),
+    phases: [phase],
+    ordersByPhase: {
+      901: [
+        makeOrder({
+          nationId: "england",
+          unitType: "Fleet",
+          orderType: "Move",
+          source: "por",
+          target: "spa",
+          namedCoast: "spa/nc",
+          summary: "Move to Spain (NC)",
+        }),
+        makeOrder({
+          nationId: "england",
+          unitType: "Fleet",
+          orderType: "Support",
+          source: "mid",
+          aux: "por",
+          target: "spa",
+          targetCoast: "spa/nc",
+          summary: "Support Portugal to Spain (NC)",
+        }),
+        makeOrder({
+          nationId: "england",
+          unitType: "Fleet",
+          orderType: "Support",
+          source: "stp",
+          sourceCoast: "stp/nc",
+          aux: "nwy",
+          target: "bar",
+          summary: "Support Norway to Barents Sea",
+        }),
+        makeOrder({
+          nationId: "england",
+          unitType: "Fleet",
+          orderType: "Move",
+          source: "nwy",
+          target: "bar",
+          summary: "Move to Barents Sea",
+        }),
+      ],
+    },
+    phaseStates: [
+      makePhaseState(members[0], ["por", "mid", "stp", "nwy"]),
+      makePhaseState(members[2], ["par", "mar", "bre"]),
+      makePhaseState(members[5], ["mos", "war", "sev"]),
+    ],
+    channels: [makeChannel("Public Press", members, [])],
+    totalUnreadMessageCount: 0,
+  });
+};
+
+export const activeGameNamedCoast = buildActiveNamedCoast();
 
 const buildActiveRetreat = () => {
   const members = makeActiveMembers();
@@ -205,7 +283,10 @@ const buildActiveRetreat = () => {
       spring,
       fallMove,
       retreat,
-    ]),
+    ], {
+      orderStatus: "orders_required",
+      memberStatus: [],
+    }),
     phases: [spring, fallMove, retreat],
     ordersByPhase: {
       202: [
@@ -286,7 +367,10 @@ const buildActiveBuild = () => {
       spring,
       fallMove,
       adjustment,
-    ]),
+    ], {
+      orderStatus: "orders_required",
+      memberStatus: [],
+    }),
     phases: [spring, fallMove, adjustment],
     ordersByPhase: {
       302: [

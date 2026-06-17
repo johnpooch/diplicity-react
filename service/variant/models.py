@@ -117,6 +117,7 @@ class Variant(BaseModel):
         on_delete=models.SET_NULL,
         related_name="owned_variants",
     )
+    official = models.BooleanField(default=False)
 
     @property
     def solo_victory_supply_centers(self):

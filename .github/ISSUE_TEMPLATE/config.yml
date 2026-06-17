@@ -3,3 +3,6 @@ contact_links:
   - name: Report via Discord
     url: https://discord.gg/2TkZbBRPW
     about: Don't have a GitHub account? Report the bug in our Discord server.
+  - name: Not sure what to build? Start a Discussion first
+    url: https://github.com/johnpooch/diplicity-react/discussions/new
+    about: If the right approach is not yet obvious, open a Discussion before creating an issue.

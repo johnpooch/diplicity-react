@@ -43,6 +43,7 @@ function buildOptimisticOrder(
   return {
     source,
     sourceCoast: null,
+    targetCoast: null,
     target,
     aux,
     namedCoast,

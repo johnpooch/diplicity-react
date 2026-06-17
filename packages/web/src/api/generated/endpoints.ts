@@ -304,6 +304,20 @@ export const PressTypeEnum = {
   no_press: "no_press",
 } as const;
 
+/**
+ * * `open` - Open
+ * `reliable_and_new` - Reliable + New Players
+ * `reliable_only` - Reliable only
+ */
+export type MinReliabilityEnum =
+  (typeof MinReliabilityEnum)[keyof typeof MinReliabilityEnum];
+
+export const MinReliabilityEnum = {
+  open: "open",
+  reliable_and_new: "reliable_and_new",
+  reliable_only: "reliable_only",
+} as const;
+
 export interface GameCreate {
   readonly id: string;
   name: string;
@@ -330,6 +344,7 @@ export interface GameCreate {
    */
   nmrExtensionsAllowed?: number;
   pressType?: PressTypeEnum;
+  minReliability?: MinReliabilityEnum;
 }
 
 export interface GameCreateSandbox {
@@ -361,6 +376,32 @@ export interface GameListCurrentPhase {
   readonly scheduledResolution: string | null;
   readonly remainingTime: number;
 }
+
+/**
+ * * `orders_required` - orders_required
+ * `orders_submitted` - orders_submitted
+ * `no_orders_required` - no_orders_required
+ */
+export type OrderStatusEnum =
+  (typeof OrderStatusEnum)[keyof typeof OrderStatusEnum];
+
+export const OrderStatusEnum = {
+  orders_required: "orders_required",
+  orders_submitted: "orders_submitted",
+  no_orders_required: "no_orders_required",
+} as const;
+
+/**
+ * * `nmr` - nmr
+ * `civil_disorder` - civil_disorder
+ */
+export type MemberStatusEnum =
+  (typeof MemberStatusEnum)[keyof typeof MemberStatusEnum];
+
+export const MemberStatusEnum = {
+  nmr: "nmr",
+  civil_disorder: "civil_disorder",
+} as const;
 
 export interface Member {
   readonly id: number;
@@ -404,6 +445,9 @@ export interface GameList {
   readonly currentPhaseId: number | null;
   readonly currentPhase: GameListCurrentPhase | null;
   readonly phaseConfirmed: boolean;
+  readonly orderStatus: OrderStatusEnum | NullEnum | null;
+  /** @nullable */
+  readonly memberStatus: readonly MemberStatusEnum[] | null;
   readonly private: boolean;
   readonly anonymous: boolean;
   /** @nullable */
@@ -428,6 +472,7 @@ export interface GameList {
   /** @nullable */
   readonly retreatFrequency: string | null;
   readonly pressType: string;
+  readonly minReliability: string;
   readonly totalUnreadMessageCount: number;
 }
 
@@ -454,6 +499,9 @@ export interface GameRetrieve {
   readonly variantId: string;
   readonly nationAssignment: string;
   readonly phaseConfirmed: boolean;
+  readonly orderStatus: OrderStatusEnum | NullEnum | null;
+  /** @nullable */
+  readonly memberStatus: readonly MemberStatusEnum[] | null;
   /** @nullable */
   readonly movementPhaseDuration: string | null;
   /** @nullable */
@@ -474,6 +522,7 @@ export interface GameRetrieve {
   /** @nullable */
   readonly retreatFrequency: string | null;
   readonly pressType: string;
+  readonly minReliability: string;
   readonly totalUnreadMessageCount: number;
 }
 
@@ -555,9 +604,10 @@ export const StepEnum = {
 export interface Order {
   readonly source: Province;
   readonly sourceCoast: Province | null;
-  readonly target: Province | null;
-  readonly aux: Province | null;
-  readonly namedCoast: Province | null;
+  readonly target: Province;
+  readonly targetCoast: Province | null;
+  readonly aux: Province;
+  readonly namedCoast: Province;
   readonly resolution: OrderResolution;
   readonly options: readonly OrderOption[];
   readonly orderType: OrderTypeEnum;
@@ -798,6 +848,7 @@ export interface Variant {
   author?: string;
   rules: string;
   readonly status: string;
+  readonly official: boolean;
   /** @nullable */
   readonly ownerId: number | null;
   /** @nullable */
@@ -955,6 +1006,7 @@ export type ApiSchemaRetrieve200Four = { [key: string]: unknown };
 
 export type GamesListParams = {
   can_join?: boolean;
+  eligible_only?: boolean;
   mine?: boolean;
   /**
    * * `1 hour` - 1 hour

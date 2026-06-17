@@ -8,3 +8,6 @@
 - [ ] For PRs of any significant complexity: I ran `/review-pr` against this PR in Claude Code and addressed (or responded to) its findings
 - [ ] Tests cover the change
 - [ ] `RELEASE_NOTES.md` updated if the change is user-facing
+- [ ] Screenshots embedded in the PR description for any visual changes (see CLAUDE.md)
+
+<!-- Project target: ≤ 5 open PRs. If opening this pushes the count over, close or merge another first. -->

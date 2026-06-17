@@ -961,6 +961,10 @@ paths:
         schema:
           type: boolean
       - in: query
+        name: eligible_only
+        schema:
+          type: boolean
+      - in: query
         name: mine
         schema:
           type: boolean
@@ -2088,6 +2092,10 @@ components:
           allOf:
           - $ref: '#/components/schemas/PressTypeEnum'
           default: full_press
+        minReliability:
+          allOf:
+          - $ref: '#/components/schemas/MinReliabilityEnum'
+          default: open
       required:
       - id
       - name
@@ -2177,6 +2185,18 @@ components:
         phaseConfirmed:
           type: boolean
           readOnly: true
+        orderStatus:
+          nullable: true
+          readOnly: true
+          oneOf:
+          - $ref: '#/components/schemas/OrderStatusEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        memberStatus:
+          type: array
+          items:
+            $ref: '#/components/schemas/MemberStatusEnum'
+          nullable: true
+          readOnly: true
         private:
           type: boolean
           readOnly: true
@@ -2241,6 +2261,9 @@ components:
         pressType:
           type: string
           readOnly: true
+        minReliability:
+          type: string
+          readOnly: true
         totalUnreadMessageCount:
           type: integer
           readOnly: true
@@ -2260,12 +2283,15 @@ components:
       - gameMaster
       - id
       - isPaused
+      - memberStatus
       - members
+      - minReliability
       - movementFrequency
       - movementPhaseDuration
       - name
       - nationAssignment
       - nmrExtensionsAllowed
+      - orderStatus
       - pausedAt
       - phaseConfirmed
       - phases
@@ -2401,6 +2427,18 @@ components:
         phaseConfirmed:
           type: boolean
           readOnly: true
+        orderStatus:
+          nullable: true
+          readOnly: true
+          oneOf:
+          - $ref: '#/components/schemas/OrderStatusEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        memberStatus:
+          type: array
+          items:
+            $ref: '#/components/schemas/MemberStatusEnum'
+          nullable: true
+          readOnly: true
         movementPhaseDuration:
           type: string
           readOnly: true
@@ -2449,6 +2487,9 @@ components:
         pressType:
           type: string
           readOnly: true
+        minReliability:
+          type: string
+          readOnly: true
         totalUnreadMessageCount:
           type: integer
           readOnly: true
@@ -2466,12 +2507,15 @@ components:
       - gameMaster
       - id
       - isPaused
+      - memberStatus
       - members
+      - minReliability
       - movementFrequency
       - movementPhaseDuration
       - name
       - nationAssignment
       - nmrExtensionsAllowed
+      - orderStatus
       - pausedAt
       - phaseConfirmed
       - phases
@@ -2543,6 +2587,24 @@ components:
       - replaceable
       - seekingReplacement
       - userId
+    MemberStatusEnum:
+      enum:
+      - nmr
+      - civil_disorder
+      type: string
+      description: |-
+        * `nmr` - nmr
+        * `civil_disorder` - civil_disorder
+    MinReliabilityEnum:
+      enum:
+      - open
+      - reliable_and_new
+      - reliable_only
+      type: string
+      description: |-
+        * `open` - Open
+        * `reliable_and_new` - Reliable + New Players
+        * `reliable_only` - Reliable only
     MovementFrequencyEnum:
       enum:
       - hourly
@@ -2622,17 +2684,19 @@ components:
           allOf:
           - $ref: '#/components/schemas/Province'
           readOnly: true
+        targetCoast:
+          allOf:
+          - $ref: '#/components/schemas/Province'
+          readOnly: true
           nullable: true
         aux:
           allOf:
           - $ref: '#/components/schemas/Province'
           readOnly: true
-          nullable: true
         namedCoast:
           allOf:
           - $ref: '#/components/schemas/Province'
           readOnly: true
-          nullable: true
         resolution:
           allOf:
           - $ref: '#/components/schemas/OrderResolution'
@@ -2689,6 +2753,7 @@ components:
       - step
       - summary
       - target
+      - targetCoast
       - title
       - unitType
     OrderOption:
@@ -2729,6 +2794,16 @@ components:
       required:
       - by
       - status
+    OrderStatusEnum:
+      enum:
+      - orders_required
+      - orders_submitted
+      - no_orders_required
+      type: string
+      description: |-
+        * `orders_required` - orders_required
+        * `orders_submitted` - orders_submitted
+        * `no_orders_required` - no_orders_required
     OrderTypeEnum:
       enum:
       - Move
@@ -3222,6 +3297,9 @@ components:
         status:
           type: string
           readOnly: true
+        official:
+          type: boolean
+          readOnly: true
         ownerId:
           type: integer
           readOnly: true
@@ -3255,6 +3333,7 @@ components:
       - id
       - name
       - nations
+      - official
       - ownerId
       - ownerUsername
       - provinces

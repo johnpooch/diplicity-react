@@ -22,15 +22,15 @@ const orderSourceId = (order: Order): string => {
   if (order.orderType === "Build") {
     return order.namedCoast?.id ?? order.source.id;
   }
-  if (order.orderType === "Support" || order.orderType === "Convoy") {
-    return order.source.id;
-  }
   return order.sourceCoast?.id ?? order.source.id;
 };
 
 const orderTargetId = (order: Order): string | undefined => {
   if (order.orderType === "Move" || order.orderType === "MoveViaConvoy") {
     return order.namedCoast?.id ?? order.target?.id;
+  }
+  if (order.orderType === "Support") {
+    return order.targetCoast?.id ?? order.target?.id ?? undefined;
   }
   return order.target?.id ?? undefined;
 };

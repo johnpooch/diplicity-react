@@ -1,5 +1,5 @@
 import React, { Suspense, useRef, useEffect, useState, useMemo } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Send, MessageCircle, MessageSquareOff } from "lucide-react";
 import { useDraft, useRequiredParams } from "@/hooks";
@@ -7,7 +7,7 @@ import { toast } from "sonner";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import {
   Message,
@@ -101,6 +101,7 @@ const ChannelScreen: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [message, setMessage] = useDraft(gameId, channelId);
+  const [, setSearchParams] = useSearchParams();
 
   const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: channels } = useGamesChannelsListSuspense(gameId);
@@ -109,6 +110,14 @@ const ChannelScreen: React.FC = () => {
   const markReadMutation = useGamesChannelsMarkReadCreate();
 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set("channelId", channelId);
+      return next;
+    }, { replace: true });
+  }, [channelId, setSearchParams]);
 
   const channel = channels.find(c => c.id === parseInt(channelId));
   if (!channel) throw new Error("Channel not found");
@@ -180,8 +189,8 @@ const ChannelScreen: React.FC = () => {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
       handleSubmit();
     }
@@ -309,13 +318,14 @@ const ChannelScreen: React.FC = () => {
           <Separator />
           <Panel.Footer>
             <div className="flex gap-2 w-full">
-              <Input
+              <Textarea
                 placeholder="Type a message"
                 value={message}
+                rows={1}
                 onChange={e => setMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
                 disabled={createMessageMutation.isPending}
-                className="flex-1"
+                className="flex-1 min-h-0 max-h-32 resize-none py-2"
               />
               <Button
                 onClick={handleSubmit}

@@ -101,6 +101,19 @@ def flatten_options(nation_options, province_lookup):
     return results
 
 
+def build_move_coast_lookup(orders):
+    lookup = {}
+    for order in orders:
+        if (
+            order.order_type in (OrderType.MOVE, OrderType.MOVE_VIA_CONVOY)
+            and order.named_coast_id is not None
+            and order.source_id is not None
+            and order.target_id is not None
+        ):
+            lookup[(order.source.province_id, order.target.province_id)] = order.named_coast
+    return lookup
+
+
 def get_order_data_from_selected(selected):
     if not selected:
         return {}

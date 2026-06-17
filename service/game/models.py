@@ -18,6 +18,7 @@ from opentelemetry import trace
 from common.constants import (
     DeadlineMode,
     GameStatus,
+    MinReliability,
     MovementPhaseDuration,
     NationAssignment,
     PhaseFrequency,
@@ -357,6 +358,11 @@ class Game(BaseModel):
         max_length=20,
         choices=PressType.PRESS_TYPE_CHOICES,
         default=PressType.FULL_PRESS,
+    )
+    min_reliability = models.CharField(
+        max_length=20,
+        choices=MinReliability.MIN_RELIABILITY_CHOICES,
+        default=MinReliability.OPEN,
     )
     movement_phase_duration = models.CharField(
         max_length=20,

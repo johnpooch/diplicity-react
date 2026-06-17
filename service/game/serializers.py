@@ -7,7 +7,8 @@ from django.db.models import Count, Q, Subquery, OuterRef
 from django.apps import apps
 from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
-from common.constants import DeadlineMode, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType, VariantStatus
+from common.constants import DeadlineMode, MinReliability, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType, VariantStatus
+from user_profile.utils import get_player_stats, tier_allows_min_reliability
 from member.serializers import MemberSerializer
 from unit.models import Unit
 from supply_center.models import SupplyCenter
@@ -71,6 +72,8 @@ class GameListSerializer(serializers.Serializer):
     current_phase_id = serializers.SerializerMethodField()
     current_phase = serializers.SerializerMethodField()
     phase_confirmed = serializers.SerializerMethodField()
+    order_status = serializers.SerializerMethodField()
+    member_status = serializers.SerializerMethodField()
     private = serializers.BooleanField(read_only=True)
     anonymous = serializers.BooleanField(read_only=True)
     movement_phase_duration = serializers.CharField(read_only=True, allow_null=True)
@@ -88,6 +91,7 @@ class GameListSerializer(serializers.Serializer):
     movement_frequency = serializers.CharField(read_only=True, allow_null=True)
     retreat_frequency = serializers.CharField(read_only=True, allow_null=True)
     press_type = serializers.CharField(read_only=True)
+    min_reliability = serializers.CharField(read_only=True)
     total_unread_message_count = serializers.IntegerField(read_only=True, default=0)
 
     @extend_schema_field(serializers.BooleanField)
@@ -142,6 +146,57 @@ class GameListSerializer(serializers.Serializer):
                 return False
             return obj.phase_confirmed(user)
 
+    @extend_schema_field(serializers.ChoiceField(
+        choices=["orders_required", "orders_submitted", "no_orders_required"],
+        allow_null=True,
+    ))
+    def get_order_status(self, obj):
+        if obj.sandbox:
+            return None
+        user = self.context["request"].user
+        if not user.is_authenticated or obj.status != "active":
+            return None
+        current_phase = obj.current_phase
+        if current_phase is None:
+            return None
+        for phase_state in current_phase.phase_states.all():
+            if phase_state.member.user_id == user.id:
+                if phase_state.orders_confirmed:
+                    return "orders_submitted"
+                if not phase_state.has_possible_orders:
+                    return "no_orders_required"
+                return "orders_required"
+        return None
+
+    @extend_schema_field(serializers.ListField(
+        child=serializers.ChoiceField(choices=["nmr", "civil_disorder"]),
+        allow_null=True,
+    ))
+    def get_member_status(self, obj):
+        if obj.sandbox:
+            return None
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return []
+        current_member = next(
+            (m for m in obj.members.all() if m.user_id == user.id), None
+        )
+        if current_member is None:
+            return []
+        statuses = []
+        if current_member.civil_disorder:
+            statuses.append("civil_disorder")
+        phases = list(obj.phases.all())
+        completed_phases = [p for p in phases if p.status == "completed"]
+        if completed_phases:
+            prev_phase = max(completed_phases, key=lambda p: p.ordinal)
+            for phase_state in prev_phase.phase_states.all():
+                if phase_state.member.user_id == user.id:
+                    if phase_state.orders_outcome == "nmr":
+                        statuses.append("nmr")
+                    break
+        return statuses
+
 
 class GameFindSimilarSerializer(serializers.Serializer):
     game = GameListSerializer(allow_null=True)
@@ -165,6 +220,8 @@ class GameRetrieveSerializer(serializers.Serializer):
     variant_id = serializers.CharField(source="variant.id", read_only=True)
     nation_assignment = serializers.CharField(read_only=True)
     phase_confirmed = serializers.SerializerMethodField()
+    order_status = serializers.SerializerMethodField()
+    member_status = serializers.SerializerMethodField()
     movement_phase_duration = serializers.CharField(read_only=True, allow_null=True)
     retreat_phase_duration = serializers.CharField(read_only=True, allow_null=True)
     private = serializers.BooleanField(read_only=True)
@@ -178,6 +235,7 @@ class GameRetrieveSerializer(serializers.Serializer):
     movement_frequency = serializers.CharField(read_only=True, allow_null=True)
     retreat_frequency = serializers.CharField(read_only=True, allow_null=True)
     press_type = serializers.CharField(read_only=True)
+    min_reliability = serializers.CharField(read_only=True)
     total_unread_message_count = serializers.SerializerMethodField()
 
     @extend_schema_field(serializers.IntegerField)
@@ -248,6 +306,57 @@ class GameRetrieveSerializer(serializers.Serializer):
                 return False
             return obj.phase_confirmed(user)
 
+    @extend_schema_field(serializers.ChoiceField(
+        choices=["orders_required", "orders_submitted", "no_orders_required"],
+        allow_null=True,
+    ))
+    def get_order_status(self, obj):
+        if obj.sandbox:
+            return None
+        user = self.context["request"].user
+        if not user.is_authenticated or obj.status != "active":
+            return None
+        current_phase = obj.current_phase
+        if current_phase is None:
+            return None
+        for phase_state in current_phase.phase_states.all():
+            if phase_state.member.user_id == user.id:
+                if phase_state.orders_confirmed:
+                    return "orders_submitted"
+                if not phase_state.has_possible_orders:
+                    return "no_orders_required"
+                return "orders_required"
+        return None
+
+    @extend_schema_field(serializers.ListField(
+        child=serializers.ChoiceField(choices=["nmr", "civil_disorder"]),
+        allow_null=True,
+    ))
+    def get_member_status(self, obj):
+        if obj.sandbox:
+            return None
+        user = self.context["request"].user
+        if not user.is_authenticated:
+            return []
+        current_member = next(
+            (m for m in obj.members.all() if m.user_id == user.id), None
+        )
+        if current_member is None:
+            return []
+        statuses = []
+        if current_member.civil_disorder:
+            statuses.append("civil_disorder")
+        phases = list(obj.phases.all())
+        completed_phases = [p for p in phases if p.status == "completed"]
+        if completed_phases:
+            prev_phase = max(completed_phases, key=lambda p: p.ordinal)
+            for phase_state in prev_phase.phase_states.all():
+                if phase_state.member.user_id == user.id:
+                    if phase_state.orders_outcome == "nmr":
+                        statuses.append("nmr")
+                    break
+        return statuses
+
     def to_representation(self, instance):
         with tracer.start_as_current_span("game.serializers.to_representation") as span:
             span.set_attribute("game.id", instance.id)
@@ -300,6 +409,10 @@ class GameCreateSerializer(serializers.Serializer):
         choices=PressType.PRESS_TYPE_CHOICES,
         default=PressType.FULL_PRESS,
     )
+    min_reliability = serializers.ChoiceField(
+        choices=MinReliability.MIN_RELIABILITY_CHOICES,
+        default=MinReliability.OPEN,
+    )
 
     def validate_variant_id(self, value):
         try:
@@ -336,6 +449,15 @@ class GameCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"game_master": "A Game Master is only available in private games."}
             )
+
+        min_reliability = attrs["min_reliability"]
+        if not attrs.get("game_master") and min_reliability != MinReliability.OPEN:
+            request = self.context["request"]
+            tier = get_player_stats(request.user)["reliability_tier"]
+            if not tier_allows_min_reliability(tier, min_reliability):
+                raise serializers.ValidationError(
+                    {"min_reliability": "Your reliability rating does not meet this requirement."}
+                )
 
         deadline_mode = attrs["deadline_mode"]
 
@@ -386,6 +508,7 @@ class GameCreateSerializer(serializers.Serializer):
                 retreat_frequency=validated_data.get("retreat_frequency"),
                 nmr_extensions_allowed=validated_data["nmr_extensions_allowed"],
                 press_type=validated_data["press_type"],
+                min_reliability=validated_data["min_reliability"],
             )
 
             public_channel = game.channels.create(name="Public Press", private=False)

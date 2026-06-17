@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import { Link } from "react-router";
+import { Link, Navigate, useSearchParams } from "react-router";
 import { UserPlus, MessageSquare, MessageSquareOff } from "lucide-react";
 import { useRequiredParams } from "@/hooks";
 
@@ -144,12 +144,22 @@ const ChannelListScreen: React.FC = () => {
   );
 };
 
-const ChannelListScreenSuspense: React.FC = () => (
-  <QueryErrorBoundary>
-    <Suspense fallback={<div></div>}>
-      <ChannelListScreen />
-    </Suspense>
-  </QueryErrorBoundary>
-);
+const ChannelListScreenSuspense: React.FC = () => {
+  const { gameId, phaseId } = useRequiredParams<{ gameId: string; phaseId: string }>();
+  const [searchParams] = useSearchParams();
+  const channelId = searchParams.get("channelId");
+
+  if (channelId) {
+    return <Navigate to={`/game/${gameId}/phase/${phaseId}/chat/channel/${channelId}`} replace />;
+  }
+
+  return (
+    <QueryErrorBoundary>
+      <Suspense fallback={<div></div>}>
+        <ChannelListScreen />
+      </Suspense>
+    </QueryErrorBoundary>
+  );
+};
 
 export { ChannelListScreenSuspense as ChannelListScreen };

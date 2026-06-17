@@ -134,6 +134,14 @@ describe("FindGames", () => {
     );
   });
 
+  it("passes eligible_only: true to the games list query", () => {
+    renderFindGames();
+
+    expect(mockUseGamesListInfinite).toHaveBeenCalledWith(
+      expect.objectContaining({ eligible_only: true })
+    );
+  });
+
   it("renders the Fastest Start and More games headers when the top game has at least 3 members", () => {
     const buildMember = (id: number) => ({ id, user: { id, username: `u${id}` } });
     const buildGame = (id: string, memberCount: number) => ({

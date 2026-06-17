@@ -11,6 +11,23 @@ units and retreats, and the build/disband adjustment phase. You give orders by t
 just like in a real game, and a coach panel explains what is happening at each step. When you
 finish you can jump straight to finding a game or replay the tutorial.
 
+## My Games No Longer Crashes With Sandbox Games (June 2026)
+
+### Fix: My Games screen could fail to load for players with sandbox games
+
+The My Games screen could show a "Something went wrong" error and fail to load for players
+whose game list included a sandbox game. The game cards now render correctly regardless of a
+game's member status.
+
+## Player Reliability Requirements on Games (June 2026)
+
+### Feature: Require a minimum reliability tier to join a game
+
+When creating a game you can now set a "Player Reliability" requirement: **Open** (anyone can
+join), **Reliable + New Players** (excludes players with a history of abandoning games), or
+**Reliable only**. On Find Games, games you can't join are hidden so the lobby only shows
+games you're eligible for.
+
 ## Expandable, Zoomable Map Preview (June 2026)
 
 ### Feature: Inspect a variant's map before committing to a game
