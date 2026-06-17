@@ -247,6 +247,12 @@ describe("GameCard", () => {
       expect(screen.queryByText("NMR")).not.toBeInTheDocument();
       expect(screen.queryByText("CD")).not.toBeInTheDocument();
     });
+
+    it("renders without crashing when memberStatus is null", () => {
+      renderGameCard({ game: { ...mockGames[0], orderStatus: null, memberStatus: null }, ...defaultProps });
+      expect(screen.queryByText("NMR")).not.toBeInTheDocument();
+      expect(screen.queryByText("CD")).not.toBeInTheDocument();
+    });
   });
 
   describe("sandbox visual treatment", () => {
