@@ -149,17 +149,6 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
-  /api/test-sentry/:
-    get:
-      operationId: apiTestSentryRetrieve
-      tags:
-      - api
-      security:
-      - jwtAuth: []
-      - {}
-      responses:
-        '200':
-          description: No response body
   /api/token/refresh/:
     post:
       operationId: apiTokenRefreshCreate
@@ -327,60 +316,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VerifyEmail'
-          description: ''
-  /devices/:
-    get:
-      operationId: devicesList
-      tags:
-      - devices
-      security:
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/FCMDevice'
-          description: ''
-    post:
-      operationId: devicesCreate
-      tags:
-      - devices
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/FCMDevice'
-        required: true
-      security:
-      - jwtAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FCMDevice'
-          description: ''
-    put:
-      operationId: devicesUpdate
-      tags:
-      - devices
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/FCMDevice'
-        required: true
-      security:
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FCMDevice'
           description: ''
   /game/:
     post:
@@ -1944,42 +1879,6 @@ components:
       - name
       - password
       - refreshToken
-    FCMDevice:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        name:
-          type: string
-          nullable: true
-          maxLength: 255
-        registrationId:
-          type: string
-          title: Registration token
-        deviceId:
-          type: string
-          nullable: true
-          description: Unique device identifier
-          maxLength: 255
-        active:
-          type: boolean
-          default: true
-          title: Is active
-          description: Inactive devices will not be sent notifications
-        dateCreated:
-          type: string
-          format: date-time
-          readOnly: true
-          nullable: true
-          title: Creation date
-        type:
-          $ref: '#/components/schemas/TypeEnum'
-      required:
-      - dateCreated
-      - id
-      - registrationId
-      - type
     FieldValue:
       type: object
       properties:
@@ -2163,8 +2062,8 @@ components:
         gameMaster:
           allOf:
           - $ref: '#/components/schemas/GameMaster'
-          nullable: true
           readOnly: true
+          nullable: true
         variantId:
           type: string
           readOnly: true
@@ -2184,6 +2083,18 @@ components:
           readOnly: true
         phaseConfirmed:
           type: boolean
+          readOnly: true
+        orderStatus:
+          nullable: true
+          readOnly: true
+          oneOf:
+          - $ref: '#/components/schemas/OrderStatusEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        memberStatus:
+          type: array
+          items:
+            $ref: '#/components/schemas/MemberStatusEnum'
+          nullable: true
           readOnly: true
         private:
           type: boolean
@@ -2271,6 +2182,7 @@ components:
       - gameMaster
       - id
       - isPaused
+      - memberStatus
       - members
       - minReliability
       - movementFrequency
@@ -2278,6 +2190,7 @@ components:
       - name
       - nationAssignment
       - nmrExtensionsAllowed
+      - orderStatus
       - pausedAt
       - phaseConfirmed
       - phases
@@ -2380,8 +2293,8 @@ components:
         gameMaster:
           allOf:
           - $ref: '#/components/schemas/GameMaster'
-          nullable: true
           readOnly: true
+          nullable: true
         phases:
           type: array
           items:
@@ -2412,6 +2325,18 @@ components:
           readOnly: true
         phaseConfirmed:
           type: boolean
+          readOnly: true
+        orderStatus:
+          nullable: true
+          readOnly: true
+          oneOf:
+          - $ref: '#/components/schemas/OrderStatusEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        memberStatus:
+          type: array
+          items:
+            $ref: '#/components/schemas/MemberStatusEnum'
+          nullable: true
           readOnly: true
         movementPhaseDuration:
           type: string
@@ -2481,6 +2406,7 @@ components:
       - gameMaster
       - id
       - isPaused
+      - memberStatus
       - members
       - minReliability
       - movementFrequency
@@ -2488,6 +2414,7 @@ components:
       - name
       - nationAssignment
       - nmrExtensionsAllowed
+      - orderStatus
       - pausedAt
       - phaseConfirmed
       - phases
@@ -2559,6 +2486,14 @@ components:
       - replaceable
       - seekingReplacement
       - userId
+    MemberStatusEnum:
+      enum:
+      - nmr
+      - civil_disorder
+      type: string
+      description: |-
+        * `nmr` - nmr
+        * `civil_disorder` - civil_disorder
     MinReliabilityEnum:
       enum:
       - open
@@ -2758,6 +2693,16 @@ components:
       required:
       - by
       - status
+    OrderStatusEnum:
+      enum:
+      - orders_required
+      - orders_submitted
+      - no_orders_required
+      type: string
+      description: |-
+        * `orders_required` - orders_required
+        * `orders_submitted` - orders_submitted
+        * `no_orders_required` - no_orders_required
     OrderTypeEnum:
       enum:
       - Move
@@ -2860,6 +2805,12 @@ components:
         member:
           allOf:
           - $ref: '#/components/schemas/Member'
+          readOnly: true
+        unitCount:
+          type: integer
+          readOnly: true
+        remainingOrders:
+          type: integer
           readOnly: true
     PatchedUserProfile:
       type: object
@@ -2994,12 +2945,20 @@ components:
           allOf:
           - $ref: '#/components/schemas/Member'
           readOnly: true
+        unitCount:
+          type: integer
+          readOnly: true
+        remainingOrders:
+          type: integer
+          readOnly: true
       required:
       - eliminated
       - id
       - member
       - orderableProvinces
       - ordersConfirmed
+      - remainingOrders
+      - unitCount
     PressTypeEnum:
       enum:
       - full_press
@@ -3167,16 +3126,6 @@ components:
       required:
       - access
       - refresh
-    TypeEnum:
-      enum:
-      - ios
-      - android
-      - web
-      type: string
-      description: |-
-        * `ios` - ios
-        * `android` - android
-        * `web` - web
     Unit:
       type: object
       properties:

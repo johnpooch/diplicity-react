@@ -1,5 +1,6 @@
 from django.db import transaction
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
 from common.constants import PhaseStatus
 from member.serializers import MemberSerializer
 from phase.tasks import resolve_phase
@@ -20,6 +21,19 @@ class PhaseStateSerializer(serializers.Serializer):
     eliminated = serializers.BooleanField(read_only=True)
     orderable_provinces = ProvinceSerializer(read_only=True, many=True)
     member = MemberSerializer(read_only=True)
+    unit_count = serializers.SerializerMethodField()
+    remaining_orders = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.IntegerField())
+    def get_unit_count(self, obj):
+        return obj.phase.units.filter(nation=obj.member.nation).count()
+
+    @extend_schema_field(serializers.IntegerField())
+    def get_remaining_orders(self, obj):
+        try:
+            return obj.orderable_provinces.count() - obj.orders.count()
+        except (KeyError, TypeError):
+            return 0
 
     def update(self, instance, validated_data):
         with transaction.atomic():

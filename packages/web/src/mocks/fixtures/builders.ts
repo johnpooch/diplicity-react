@@ -234,6 +234,8 @@ export const makePhaseState = (
   ordersConfirmed: false,
   eliminated: false,
   orderableProvinces: orderableProvinceIds.map(province),
+  unitCount: 0,
+  remainingOrders: orderableProvinceIds.length,
   member,
   ...overrides,
 });

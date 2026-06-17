@@ -1,20 +1,17 @@
 import React from "react";
-import { Shield, Star, Trophy, HardHat, Gavel } from "lucide-react";
+import { Shield, Trophy } from "lucide-react";
 import { Link, useParams } from "react-router";
 
 import { CivilDisorderBadge } from "@/components/CivilDisorderBadge";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
-import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
+import { PlayerCard } from "@/components/PlayerCard";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import {
   useGameRetrieveSuspense,
   useGamePhaseRetrieve,
   useGamePhaseStatesList,
-  useGameOrdersList,
   useVariantsListSuspense,
   Member,
 } from "@/api/generated/endpoints";
@@ -37,9 +34,6 @@ export const PlayerInfoContent: React.FC = () => {
   const { data: phaseStates } = useGamePhaseStatesList(gameId, {
     query: { enabled: !!currentPhaseId && game.status === "active" },
   });
-  const { data: currentOrders } = useGameOrdersList(gameId, currentPhaseId ?? 0, {
-    query: { enabled: !!currentPhaseId && game.status === "active" },
-  });
 
   const variant = variants.find(v => v.id === game.variantId);
 
@@ -48,19 +42,6 @@ export const PlayerInfoContent: React.FC = () => {
     return currentPhase.supplyCenters.filter(
       sc => sc.nation.name === member.nation
     ).length;
-  };
-
-  const getUnitCount = (member: Member) => {
-    if (!currentPhase) return undefined;
-    return currentPhase.units.filter(u => u.nation.name === member.nation).length;
-  };
-
-  const getRemainingOrders = (member: Member) => {
-    if (!phaseStates || !currentOrders || !member.nation) return undefined;
-    const ps = phaseStates.find(p => p.member.nation === member.nation);
-    if (!ps) return undefined;
-    const placed = currentOrders.filter(o => o.nation.name === member.nation).length;
-    return ps.orderableProvinces.length - placed;
   };
 
   const winnerIds = game.victory?.members?.map(m => m.id) || [];
@@ -95,41 +76,35 @@ export const PlayerInfoContent: React.FC = () => {
           )}
           {game.members.map(member => {
             const supplyCenterCount = getSupplyCenterCount(member);
-            const unitCount = getUnitCount(member);
-            const remainingOrders = getRemainingOrders(member);
+            const phaseState = phaseStates?.find(
+              ps => ps.member.nation === member.nation
+            );
+            const unitCount = phaseState?.unitCount;
+            const remainingOrders = phaseState?.remainingOrders;
             const isWinner = winnerIds.includes(member.id);
 
             return (
               <div
                 key={member.id}
-                className="flex items-center gap-4 py-4 first:pt-0 last:pb-0"
+                className="py-4 first:pt-0 last:pb-0"
               >
-                {member.nation && variant && (
-                  <NationFlag
-                    flagUrl={findNationFlagUrl(variant.nations, member.nation)}
-                    alt={member.nation}
-                    size="lg"
-                    className="size-8"
-                    color={findNationColor(variant.nations, member.nation)}
+                {variant ? (
+                  <PlayerCard
+                    member={member}
+                    variant={variant}
+                    gameId={gameId}
+                    phaseId={phaseId}
+                    supplyCenterCount={supplyCenterCount}
+                    unitCount={unitCount}
+                    remainingOrders={remainingOrders}
+                    showOrdersCount={game.status === "active"}
+                    nmrExtensionsAllowed={game.nmrExtensionsAllowed}
+                    isWinner={isWinner}
+                    victoryType={game.victory?.type}
                   />
-                )}
-
-                <div className="flex-1 min-w-0">
+                ) : (
                   <div className="flex items-center gap-2 flex-wrap">
-                    {member.userId ? (
-                      <Link
-                        to={
-                          phaseId
-                            ? `/game/${gameId}/phase/${phaseId}/player/${member.userId}`
-                            : `/player/${member.userId}`
-                        }
-                        className="font-medium text-primary underline-offset-4 hover:underline"
-                      >
-                        {member.name}
-                      </Link>
-                    ) : (
-                      <span className="font-medium">{member.name}</span>
-                    )}
+                    <span className="font-medium">{member.name}</span>
                     {member.isGameCreator && (
                       <Badge variant="secondary" className="gap-1">
                         <Shield className="size-3" />
@@ -144,67 +119,7 @@ export const PlayerInfoContent: React.FC = () => {
                     )}
                     {member.civilDisorder && <CivilDisorderBadge />}
                   </div>
-
-                  {member.nation && (
-                    <div className="text-sm text-muted-foreground mt-1">
-                      <span className="inline-flex items-center gap-2">
-                        <span>{member.nation}</span>
-                        <span>•</span>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="inline-flex items-center gap-1">
-                              <Star className="size-3" />
-                              {supplyCenterCount !== undefined ? (
-                                <span>{supplyCenterCount}</span>
-                              ) : (
-                                <Skeleton className="h-3 w-4" />
-                              )}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>Supply centres</TooltipContent>
-                        </Tooltip>
-                        <span>•</span>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="inline-flex items-center gap-1">
-                              <HardHat className="size-3" />
-                              {unitCount !== undefined ? (
-                                <span>{unitCount}</span>
-                              ) : (
-                                <Skeleton className="h-3 w-4" />
-                              )}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>Units</TooltipContent>
-                        </Tooltip>
-                        {game.status === "active" && (
-                          <>
-                            <span>•</span>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="inline-flex items-center gap-1">
-                                  <Gavel className="size-3" />
-                                  {remainingOrders !== undefined ? (
-                                    <span>{remainingOrders}</span>
-                                  ) : (
-                                    <Skeleton className="h-3 w-4" />
-                                  )}
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent>Orders remaining</TooltipContent>
-                            </Tooltip>
-                          </>
-                        )}
-                        {game.nmrExtensionsAllowed > 0 && (
-                          <>
-                            <span>•</span>
-                            <span>{member.nmrExtensionsRemaining} ext. remaining</span>
-                          </>
-                        )}
-                      </span>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
             );
           })}

@@ -37,6 +37,7 @@ import {
 import { Notice } from "@/components/Notice";
 import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
 import { NationBadge } from "@/components/NationBadge";
+import { PlayerCard } from "@/components/PlayerCard";
 import { GameDropdownMenu } from "@/components/GameDropdownMenu";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
@@ -438,28 +439,24 @@ const OrdersScreen: React.FC = () => {
                   return (
                     <AccordionItem key={nation} value={nation}>
                       <AccordionTrigger className="p-2 items-center">
-                        <div className="flex items-center gap-2">
-                          <NationFlag
-                            flagUrl={findNationFlagUrl(variant.nations, nation)}
-                            alt={nation}
-                            size="md"
-                            color={nationColor}
-                          />
-                          <span>{nation}</span>
-                          <span className="text-muted-foreground">•</span>
-                          {member.isCurrentUser && nation && (
-                            <>
-                              <NationBadge nations={variant.nations} nation={nation}>
-                                you
-                              </NationBadge>
-                              <span className="text-muted-foreground">•</span>
-                            </>
-                          )}
-                          <span className="inline-flex items-center gap-1 text-muted-foreground">
-                            <Star className="size-3" />
-                            <span>{getSupplyCenterCount(nation)}</span>
-                          </span>
-                        </div>
+                        {(() => {
+                          const fullMember = game.members.find(m => m.nation === nation);
+                          if (!fullMember) return <span>{nation}</span>;
+                          const unitCount = phase.units.filter(
+                            u => u.nation.name === nation
+                          ).length;
+                          return (
+                            <PlayerCard
+                              member={fullMember}
+                              variant={variant}
+                              gameId={gameId}
+                              phaseId={phaseId}
+                              supplyCenterCount={getSupplyCenterCount(nation)}
+                              unitCount={unitCount}
+                              showOrdersCount={false}
+                            />
+                          );
+                        })()}
                       </AccordionTrigger>
                       <AccordionContent className="p-0">
                         <ItemGroup>

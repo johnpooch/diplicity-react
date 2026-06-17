@@ -50,7 +50,11 @@ class PhaseStateListView(SelectedGameMixin, generics.ListAPIView):
     def get_queryset(self):
         game = self.get_game()
         current_phase = game.current_phase
-        return current_phase.phase_states.filter(member__user=self.request.user)
+        return current_phase.phase_states.select_related(
+            "member__nation",
+        ).prefetch_related(
+            "orders",
+        ).all()
 
 
 class PhaseResolveAllView(views.APIView):
