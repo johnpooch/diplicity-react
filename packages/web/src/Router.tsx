@@ -18,6 +18,7 @@ import { ErrorFallbackUI } from "./components/ErrorBoundary";
 import { HomeLayout } from "./components/HomeLayout";
 import { GameDetailLayout } from "./components/GameDetailLayout";
 import { GamePhaseRedirect } from "./components/GamePhaseRedirect";
+import { useIsMobile } from "./hooks/use-mobile";
 import { getVariantsListQueryOptions } from "./api/generated/endpoints";
 import * as Sentry from "@sentry/react";
 import { deepLinkStorage, useDeepLink } from "./deepLink";
@@ -65,8 +66,8 @@ const AuthenticatedRoot: React.FC = () => {
   return <Outlet />;
 };
 
-const GameIndexRoute: React.FC = () => {
-  const isMobile = window.innerWidth < 1024;
+export const GameIndexRoute: React.FC = () => {
+  const isMobile = useIsMobile();
   return (
     <Suspense fallback={<RouteFallback />}>
       {isMobile ? <GameDetail.MapScreen /> : <GameDetail.OrdersScreen />}
