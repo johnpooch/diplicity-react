@@ -10,9 +10,15 @@ import { Button } from "@/components/ui/button";
 import { MapVisual } from "./MapVisual";
 import { MapHitLayer } from "./MapHitLayer";
 import { useDsvg } from "../../hooks/useDsvg";
-import { parseDsvg, type ViewBox } from "./dsvgParser";
+import { parseDsvg } from "./dsvgParser";
 import { DiplicityMap } from "./mapRenderer";
 import { toRenderState } from "./toRenderState";
+import {
+  applyViewBox,
+  transformToViewBox,
+  type Dimensions,
+  type TransformState,
+} from "./viewBoxZoom";
 import { isNativePlatform } from "../../utils/platform";
 import type {
   Order,
@@ -37,38 +43,8 @@ type InteractiveMapContentProps = {
   ) => void;
 };
 
-type Dimensions = {
-  width: number;
-  height: number;
-};
-
 type InteractiveMapZoomWrapperProps = {
   interactiveMapProps: InteractiveMapContentProps;
-};
-
-type TransformState = {
-  scale: number;
-  positionX: number;
-  positionY: number;
-};
-
-// Converts react-zoom-pan-pinch's CSS transform of the (intrinsic-sized,
-// transparent) hit layer into the visible window expressed as an SVG viewBox.
-// The hit layer's content-local pixels map 1:1 to user units offset by the map
-// viewBox origin, so the visible window is just the container rect projected
-// back through the transform.
-const transformToViewBox = (
-  state: TransformState,
-  container: Dimensions,
-  mapViewBox: ViewBox
-): ViewBox => {
-  const scale = state.scale;
-  return {
-    minX: mapViewBox.minX - state.positionX / scale,
-    minY: mapViewBox.minY - state.positionY / scale,
-    width: container.width / scale,
-    height: container.height / scale,
-  };
 };
 
 const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
@@ -161,11 +137,10 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
 
   const syncViewBox = (state: TransformState) => {
     const container = containerSizeRef.current;
-    if (!container || !mapViewBox || !mapVisualRef.current) return;
-    const viewBox = transformToViewBox(state, container, mapViewBox);
-    mapVisualRef.current.setAttribute(
-      "viewBox",
-      `${viewBox.minX} ${viewBox.minY} ${viewBox.width} ${viewBox.height}`
+    if (!container || !mapViewBox) return;
+    applyViewBox(
+      mapVisualRef.current,
+      transformToViewBox(state, container, mapViewBox)
     );
   };
 
@@ -212,11 +187,8 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
   // Seed the visible layer's viewBox before first paint so it isn't briefly
   // rendered without a coordinate system; the transform sync refines it.
   useLayoutEffect(() => {
-    if (mapVisualRef.current && mapViewBox) {
-      mapVisualRef.current.setAttribute(
-        "viewBox",
-        `${mapViewBox.minX} ${mapViewBox.minY} ${mapViewBox.width} ${mapViewBox.height}`
-      );
+    if (mapViewBox) {
+      applyViewBox(mapVisualRef.current, mapViewBox);
     }
   }, [mapViewBox]);
 

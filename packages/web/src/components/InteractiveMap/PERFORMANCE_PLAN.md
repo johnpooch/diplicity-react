@@ -7,13 +7,12 @@ This document is the source of truth for the effort and is meant to be resumed
 across sessions. Update the **Status** line of each phase and the **Next action**
 pointer below as work progresses.
 
-> **Next action:** Phase 1 core landed for the **GameMap** path
-> (`InteractiveMapZoomWrapper`) on branch `perf/map-viewbox-zoom`. Remaining
-> before the measurement gate: (a) **on-device flicker validation** on Pixel 8a +
-> iPhone + the old laptop for Cold War / Spice Islands; (b) migrate the other two
-> zoom surfaces still on CSS-transform — `TutorialMap.tsx` and
-> `ExpandableMapPreview.tsx` (`ZoomableMap`) — to the same split, or consciously
-> defer them. Then measure gesture FPS and decide on Phases 4/2.
+> **Next action:** Phase 1 implemented for **all three** zoom surfaces on branch
+> `perf/map-viewbox-zoom`: `InteractiveMapZoomWrapper` (GameMap), `TutorialMap`,
+> and `ExpandableMapPreview` (`ZoomableMap`). Shared transform→viewBox math lives
+> in `viewBoxZoom.ts`. Remaining before the measurement gate: **on-device flicker
+> validation** on Pixel 8a + iPhone + the old laptop for Cold War / Spice Islands.
+> Then measure gesture FPS and decide on Phases 4/2.
 
 ---
 
@@ -104,9 +103,19 @@ the existing fit/center/fullscreen/bounds math while removing the flicker:
   gesture pointer-event suppression. `translateZ(0)` is gone from this path.
 - **`mapLayers.ts`** (new) — extracted `stripSvgWrapper` /
   `splitAfterProvinceFills` / hover constants, shared with `InteractiveMap.tsx`.
-- **`InteractiveMap.tsx`** — kept (still used by TutorialMap/stories); only the
-  PR #634 diagnostic logging was removed. Its `translateZ(0)` was left in place to
-  avoid regressing TutorialMap until that surface is migrated.
+- **`InteractiveMap.tsx`** — kept only for Storybook stories now (no longer used
+  by any live screen); the PR #634 diagnostic logging was removed.
+- **`viewBoxZoom.ts`** (new) — shared `transformToViewBox` / `applyViewBox`
+  helpers used by all three surfaces.
+
+All three zoom surfaces now use the split (no consumer left on CSS-transform):
+- **`InteractiveMapZoomWrapper`** (GameMap) — fullscreen toggle preserved.
+- **`TutorialMap`** — focus-on-provinces `setTransform` animation preserved; the
+  `getBBox` lookups now target the hit layer (which carries the id'd province
+  paths).
+- **`ExpandableMapPreview` `ZoomableMap`** — read-only; uses a non-interactive
+  transparent `MapHitLayer` purely so RZPP has content for bounds/gestures, with
+  `minScale = containedScale` / `maxScale = containedScale * 8`.
 
 Why this over the from-scratch hook: pointer arbitration (pan vs. tap vs. pinch)
 is exactly what RZPP already solves; moving the visible SVG out of the transform
@@ -119,11 +128,9 @@ desktop + mobile fixtures (initial fit is itself driven through the
 transform→viewBox path, so correct fitting validates the conversion math).
 **Not yet validated:** real flicker behaviour during live gestures on device.
 
-### Deferred to finish Phase 1
+### Notes
 
-- `TutorialMap.tsx` — still RZPP CSS-transform of a full `InteractiveMap`
-  (+ a `setTransform` focus animation to port). Same split applies.
-- `ExpandableMapPreview.tsx` `ZoomableMap` — its own RZPP + `dangerouslySetInnerHTML`.
+- `TutorialMap.tsx` and `ExpandableMapPreview.tsx` — **migrated** (see above).
 - Decision taken: **skipped `non-scaling-stroke`** — strokes scaling with zoom
   matches today's behaviour, so it's out of scope for a flicker-only change.
 

@@ -1,6 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Expand, X } from "lucide-react";
-import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
+import {
+  TransformWrapper,
+  TransformComponent,
+  type ReactZoomPanPinchContentRef,
+} from "react-zoom-pan-pinch";
 
 import type {
   PhaseRetrieve,
@@ -11,6 +15,14 @@ import { useDsvg } from "../hooks/useDsvg";
 import { parseDsvg } from "./InteractiveMap/dsvgParser";
 import { DiplicityMap } from "./InteractiveMap/mapRenderer";
 import { toRenderState } from "./InteractiveMap/toRenderState";
+import { MapVisual } from "./InteractiveMap/MapVisual";
+import { MapHitLayer } from "./InteractiveMap/MapHitLayer";
+import {
+  applyViewBox,
+  transformToViewBox,
+  type Dimensions,
+  type TransformState,
+} from "./InteractiveMap/viewBoxZoom";
 import { MapPreview } from "./MapPreview";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,28 +46,45 @@ const ZoomableMap: React.FC<{
   phase: PhaseRetrieve | VariantTemplatePhase;
 }> = ({ variant, phase }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const mapVisualRef = useRef<SVGSVGElement>(null);
+  const hitRef = useRef<SVGSVGElement>(null);
+  const transformRef = useRef<ReactZoomPanPinchContentRef>(null);
+  const containerSizeRef = useRef<Dimensions | null>(null);
 
   const { data: dsvg } = useDsvg(variant.svgUrl, true);
+  const parsedDsvg = useMemo(() => (dsvg ? parseDsvg(dsvg) : null), [dsvg]);
+  const renderer = useMemo(() => (dsvg ? new DiplicityMap(dsvg) : null), [dsvg]);
+  const renderState = useMemo(
+    () => toRenderState(variant, phase, [], [], []),
+    [variant, phase]
+  );
 
-  const viewBox = useMemo(() => (dsvg ? parseDsvg(dsvg).viewBox : null), [dsvg]);
-  const svg = useMemo(() => {
-    if (!dsvg) return null;
-    const renderState = toRenderState(variant, phase, [], [], []);
-    return new DiplicityMap(dsvg)
-      .render(renderState)
-      .replace("<svg ", '<svg width="100%" height="100%" ');
-  }, [dsvg, variant, phase]);
+  const [container, setContainer] = useState<Dimensions>();
 
-  const [container, setContainer] = useState<{
-    width: number;
-    height: number;
-  }>();
+  const mapViewBox = parsedDsvg?.viewBox;
+  const containedScale =
+    container && mapViewBox
+      ? Math.min(
+          container.width / mapViewBox.width,
+          container.height / mapViewBox.height
+        )
+      : 1;
+
+  const syncViewBox = (state: TransformState) => {
+    const size = containerSizeRef.current;
+    if (!size || !mapViewBox) return;
+    applyViewBox(
+      mapVisualRef.current,
+      transformToViewBox(state, size, mapViewBox)
+    );
+  };
 
   useEffect(() => {
     if (!containerRef.current) return;
     const observer = new ResizeObserver(entries => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
+        containerSizeRef.current = { width, height };
         setContainer({ width, height });
       }
     });
@@ -63,36 +92,61 @@ const ZoomableMap: React.FC<{
     return () => observer.disconnect();
   }, []);
 
-  const containedScale =
-    container && viewBox
-      ? Math.min(container.width / viewBox.width, container.height / viewBox.height)
-      : 1;
+  useLayoutEffect(() => {
+    if (mapViewBox) {
+      applyViewBox(mapVisualRef.current, mapViewBox);
+    }
+  }, [mapViewBox]);
+
+  useEffect(() => {
+    if (transformRef.current && container && mapViewBox) {
+      const scaledWidth = mapViewBox.width * containedScale;
+      const scaledHeight = mapViewBox.height * containedScale;
+      const centerX = (container.width - scaledWidth) / 2;
+      const centerY = (container.height - scaledHeight) / 2;
+      transformRef.current.setTransform(centerX, centerY, containedScale, 0);
+    }
+  }, [containedScale, container, mapViewBox]);
 
   return (
-    <div ref={containerRef} className="h-full w-full">
-      {svg && viewBox && container ? (
-        <TransformWrapper
-          key={`${container.width}x${container.height}`}
-          minScale={1}
-          maxScale={8}
-          centerOnInit
-          limitToBounds
-          centerZoomedOut
-          disablePadding
-          doubleClick={{ mode: "zoomIn", step: 0.7 }}
-          panning={{ velocityDisabled: true }}
-          velocityAnimation={{ disabled: true }}
-        >
-          <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
-            <div
-              style={{
-                width: viewBox.width * containedScale,
-                height: viewBox.height * containedScale,
-              }}
-              dangerouslySetInnerHTML={{ __html: svg }}
-            />
-          </TransformComponent>
-        </TransformWrapper>
+    <div ref={containerRef} className="relative h-full w-full">
+      {parsedDsvg && renderer ? (
+        <>
+          <MapVisual
+            svgRef={mapVisualRef}
+            parsedDsvg={parsedDsvg}
+            renderer={renderer}
+            renderState={renderState}
+            hoveredProvince={null}
+            selected={[]}
+          />
+          <div style={{ position: "absolute", inset: 0 }}>
+            <TransformWrapper
+              ref={transformRef}
+              minScale={containedScale}
+              maxScale={containedScale * 8}
+              centerOnInit
+              limitToBounds
+              centerZoomedOut
+              disablePadding
+              doubleClick={{ mode: "zoomIn", step: 0.7 }}
+              panning={{ velocityDisabled: true }}
+              velocityAnimation={{ disabled: true }}
+              onTransformed={(_ref, state) => syncViewBox(state)}
+            >
+              <TransformComponent
+                wrapperStyle={{ width: "100%", height: "100%" }}
+              >
+                <MapHitLayer
+                  svgRef={hitRef}
+                  parsedDsvg={parsedDsvg}
+                  isNative={false}
+                  onHover={() => {}}
+                />
+              </TransformComponent>
+            </TransformWrapper>
+          </div>
+        </>
       ) : null}
     </div>
   );
