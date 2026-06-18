@@ -88,7 +88,9 @@ class GameQuerySet(models.QuerySet):
         # here keeps the per-game cost flat (no N+1 across the games list).
         phase_states_prefetch = Prefetch(
             "phase_states",
-            queryset=PhaseState.objects.select_related("member"),
+            queryset=PhaseState.objects.select_related("member").annotate(
+                order_count=Count("orders")
+            ),
         )
         phases_prefetch = Prefetch(
             "phases",
@@ -114,7 +116,9 @@ class GameQuerySet(models.QuerySet):
 
         phase_states_prefetch = Prefetch(
             "phase_states",
-            queryset=PhaseState.objects.select_related("member__user")
+            queryset=PhaseState.objects.select_related("member__user").annotate(
+                order_count=Count("orders")
+            )
         )
 
         phases_prefetch = Prefetch(
@@ -152,7 +156,7 @@ class GameQuerySet(models.QuerySet):
             queryset=PhaseState.objects.select_related(
                 "member__nation__flag",
                 "member__user__profile",
-            ),
+            ).annotate(order_count=Count("orders")),
         )
 
         template_phase_prefetch = Prefetch(

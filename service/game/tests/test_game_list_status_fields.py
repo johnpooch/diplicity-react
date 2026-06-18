@@ -2,7 +2,7 @@ import pytest
 from django.urls import reverse
 from rest_framework import status
 
-from common.constants import GameStatus, PhaseStatus
+from common.constants import DeadlineMode, GameStatus, PhaseStatus
 from game.models import Game
 from phase.models import PhaseState
 
@@ -316,3 +316,186 @@ def test_member_status_null_for_sandbox_game(
     data = _get_game_data(response, game.id)
     assert data is not None
     assert data["member_status"] is None
+
+
+@pytest.mark.django_db
+def test_order_status_orders_submitted_for_fixed_time_game_with_orders(
+    authenticated_client,
+    db,
+    primary_user,
+    classical_variant,
+    classical_england_nation,
+):
+    game = Game.objects.create(
+        name="Fixed Time Orders Given Test Game",
+        variant=classical_variant,
+        status=GameStatus.ACTIVE,
+        deadline_mode=DeadlineMode.FIXED_TIME,
+    )
+    member = game.members.create(user=primary_user, nation=classical_england_nation)
+    phase = game.phases.create(
+        variant=classical_variant,
+        season="Spring",
+        year=1901,
+        type="Movement",
+        status=PhaseStatus.ACTIVE,
+        ordinal=1,
+    )
+    phase_state = phase.phase_states.create(
+        member=member,
+        has_possible_orders=True,
+        orders_confirmed=False,
+    )
+    phase_state.orders.create()
+
+    response = authenticated_client.get(LIST_URL + "?mine=1")
+    assert response.status_code == status.HTTP_200_OK
+    data = _get_game_data(response, game.id)
+    assert data is not None
+    assert data["order_status"] == "orders_submitted"
+
+
+@pytest.mark.django_db
+def test_order_status_required_for_fixed_time_game_without_orders(
+    authenticated_client,
+    db,
+    primary_user,
+    classical_variant,
+    classical_england_nation,
+):
+    game = Game.objects.create(
+        name="Fixed Time No Orders Test Game",
+        variant=classical_variant,
+        status=GameStatus.ACTIVE,
+        deadline_mode=DeadlineMode.FIXED_TIME,
+    )
+    member = game.members.create(user=primary_user, nation=classical_england_nation)
+    phase = game.phases.create(
+        variant=classical_variant,
+        season="Spring",
+        year=1901,
+        type="Movement",
+        status=PhaseStatus.ACTIVE,
+        ordinal=1,
+    )
+    phase.phase_states.create(
+        member=member,
+        has_possible_orders=True,
+        orders_confirmed=False,
+    )
+
+    response = authenticated_client.get(LIST_URL + "?mine=1")
+    assert response.status_code == status.HTTP_200_OK
+    data = _get_game_data(response, game.id)
+    assert data is not None
+    assert data["order_status"] == "orders_required"
+
+
+@pytest.mark.django_db
+def test_order_status_not_confirmed_for_duration_game_with_orders(
+    authenticated_client,
+    db,
+    primary_user,
+    classical_variant,
+    classical_england_nation,
+):
+    game = Game.objects.create(
+        name="Duration Orders Given Test Game",
+        variant=classical_variant,
+        status=GameStatus.ACTIVE,
+        deadline_mode=DeadlineMode.DURATION,
+    )
+    member = game.members.create(user=primary_user, nation=classical_england_nation)
+    phase = game.phases.create(
+        variant=classical_variant,
+        season="Spring",
+        year=1901,
+        type="Movement",
+        status=PhaseStatus.ACTIVE,
+        ordinal=1,
+    )
+    phase_state = phase.phase_states.create(
+        member=member,
+        has_possible_orders=True,
+        orders_confirmed=False,
+    )
+    phase_state.orders.create()
+
+    response = authenticated_client.get(LIST_URL + "?mine=1")
+    assert response.status_code == status.HTTP_200_OK
+    data = _get_game_data(response, game.id)
+    assert data is not None
+    assert data["order_status"] == "orders_not_confirmed"
+
+
+@pytest.mark.django_db
+def test_order_status_required_for_duration_game_without_orders(
+    authenticated_client,
+    db,
+    primary_user,
+    classical_variant,
+    classical_england_nation,
+):
+    game = Game.objects.create(
+        name="Duration No Orders Test Game",
+        variant=classical_variant,
+        status=GameStatus.ACTIVE,
+        deadline_mode=DeadlineMode.DURATION,
+    )
+    member = game.members.create(user=primary_user, nation=classical_england_nation)
+    phase = game.phases.create(
+        variant=classical_variant,
+        season="Spring",
+        year=1901,
+        type="Movement",
+        status=PhaseStatus.ACTIVE,
+        ordinal=1,
+    )
+    phase.phase_states.create(
+        member=member,
+        has_possible_orders=True,
+        orders_confirmed=False,
+    )
+
+    response = authenticated_client.get(LIST_URL + "?mine=1")
+    assert response.status_code == status.HTTP_200_OK
+    data = _get_game_data(response, game.id)
+    assert data is not None
+    assert data["order_status"] == "orders_required"
+
+
+@pytest.mark.django_db
+def test_order_status_submitted_when_confirmed_for_duration_game(
+    authenticated_client,
+    db,
+    primary_user,
+    classical_variant,
+    classical_england_nation,
+):
+    game = Game.objects.create(
+        name="Duration Confirmed Test Game",
+        variant=classical_variant,
+        status=GameStatus.ACTIVE,
+        deadline_mode=DeadlineMode.DURATION,
+    )
+    member = game.members.create(user=primary_user, nation=classical_england_nation)
+    phase = game.phases.create(
+        variant=classical_variant,
+        season="Spring",
+        year=1901,
+        type="Movement",
+        status=PhaseStatus.ACTIVE,
+        ordinal=1,
+    )
+    phase_state = phase.phase_states.create(
+        member=member,
+        has_possible_orders=True,
+        orders_confirmed=True,
+    )
+    phase_state.orders.create()
+
+    response = authenticated_client.get(LIST_URL + "?mine=1")
+    assert response.status_code == status.HTTP_200_OK
+    data = _get_game_data(response, game.id)
+    assert data is not None
+    assert data["order_status"] == "orders_submitted"
