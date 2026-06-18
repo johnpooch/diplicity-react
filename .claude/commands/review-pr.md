@@ -29,9 +29,9 @@ Read the PR description (and any linked issue) to understand the problem being s
 - **Verify the changeset matches the intent**: Do the actual code changes correspond to the stated problem? Is the approach logical?
 - **Explore the codebase for context**: Look at the files being changed, understand surrounding code, and check how modified functions and components are used elsewhere.
 - **Correctness**: Is the change logically correct? Are there edge cases, off-by-one errors, or null/undefined hazards? Trace the execution and confirm the changeset makes sense.
-- **Completeness**: If code is added, removed, or renamed — are all references updated? Check call sites, URL routes, serializer fields, generated API client usage, tests, and config. If the change is user-facing, was `RELEASE_NOTES.md` updated?
+- **Completeness**: If code is added, removed, or renamed — are all references updated? Check call sites, URL routes, serializer fields, generated API client usage, tests, and config.
 - **Verify root cause**: If the PR claims to fix a bug, does the fix address the root cause, or does it mask the symptom?
-- **Single purpose**: Does the PR do one thing? A PR that bundles multiple unrelated pieces of work — a feature plus an unrelated bug fix, a refactor plus a behavior change, drive-by cleanups in files the stated change doesn't require touching — is harder to review, harder to revert, and hides regressions. When you find unrelated work, name each distinct piece and which files belong to it, and recommend splitting it into separate PRs. Mechanical changes directly caused by the main change (regenerated API client code, updated tests, a `RELEASE_NOTES.md` entry) do not count as scope creep.
+- **Single purpose**: Does the PR do one thing? A PR that bundles multiple unrelated pieces of work — a feature plus an unrelated bug fix, a refactor plus a behavior change, drive-by cleanups in files the stated change doesn't require touching — is harder to review, harder to revert, and hides regressions. When you find unrelated work, name each distinct piece and which files belong to it, and recommend splitting it into separate PRs. Mechanical changes directly caused by the main change (regenerated API client code, updated tests) do not count as scope creep.
 
 ## Criterion 2: Does it meet the project's bar?
 
