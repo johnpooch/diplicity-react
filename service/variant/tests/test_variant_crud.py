@@ -215,7 +215,7 @@ def test_update_other_users_draft_forbidden(
         _dvar_upload(dvar, classical_dsvg),
         format="multipart",
     )
-    assert update_response.status_code == status.HTTP_403_FORBIDDEN
+    assert update_response.status_code == status.HTTP_404_NOT_FOUND
 
 
 @pytest.mark.django_db

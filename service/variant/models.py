@@ -2,7 +2,7 @@ import hashlib
 
 from django.conf import settings
 from django.db import models
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 
 from common.models import BaseModel
 from common.constants import PhaseStatus, VariantStatus
@@ -32,6 +32,13 @@ def default_phase_progression():
 
 
 class VariantQuerySet(models.QuerySet):
+
+    def visible_to(self, user):
+        return self.filter(
+            Q(status=VariantStatus.PUBLISHED)
+            | Q(status=VariantStatus.DRAFT, owner=user)
+            | Q(games__members__user=user)
+        ).distinct()
 
     def with_related_data(self):
         from nation.models import Nation
@@ -85,6 +92,9 @@ class VariantQuerySet(models.QuerySet):
 class VariantManager(models.Manager):
     def get_queryset(self):
         return VariantQuerySet(self.model, using=self._db)
+
+    def visible_to(self, user):
+        return self.get_queryset().visible_to(user)
 
     def with_related_data(self):
         return self.get_queryset().with_related_data()
