@@ -1,0 +1,29 @@
+labels: []
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What are we building, and why does it matter? (2–4 sentences)
+    validations:
+      required: true
+
+  - type: textarea
+    id: definition-of-done
+    attributes:
+      label: Definition of done
+      description: >-
+        Concrete, checkable success criteria. This is the stop condition that
+        tells us the RFC is fully delivered — be specific about the end state,
+        not the steps to get there. Do not list a task breakdown; the work is
+        sliced into issues separately.
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Background, constraints, or sequencing notes. Leave blank if the goal speaks for itself.
+    validations:
+      required: false
