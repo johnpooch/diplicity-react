@@ -18,15 +18,7 @@ type MapVisualProps = {
   svgRef: React.Ref<SVGSVGElement>;
 };
 
-// The visible map layers. This SVG fills its container and never receives a CSS
-// transform — pan/zoom is expressed by mutating its `viewBox` attribute
-// (driven imperatively by InteractiveMapZoomWrapper via `svgRef`). Keeping the
-// rasterised surface bounded to the viewport is what eliminates the re-raster
-// flicker that CSS-scaling a large SVG produced.
-//
-// `viewBox` is intentionally NOT a JSX attribute here: the wrapper owns the live
-// value, and letting React re-apply a stale `viewBox` on every hover/state
-// re-render would fight the imperative updates.
+// Viewport-filling visual layer; viewBox is mutated imperatively (not via JSX) so React doesn't clobber gesture updates.
 const MapVisual: React.FC<MapVisualProps> = ({
   parsedDsvg,
   renderer,

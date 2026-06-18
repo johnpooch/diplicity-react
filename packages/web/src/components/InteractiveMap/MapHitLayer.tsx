@@ -14,12 +14,7 @@ type MapHitLayerProps = {
   svgRef: React.Ref<SVGSVGElement>;
 };
 
-// Transparent, intrinsic-sized SVG holding only the province hit paths. This is
-// the element react-zoom-pan-pinch CSS-transforms for pan/zoom: because every
-// path is transparent, re-rasterising it at any scale costs nothing and never
-// flickers, while pointer hit-testing (which uses geometry, not the raster)
-// continues to work at all zoom levels. Province hover/click is reported up to
-// the wrapper, which drives the visible MapVisual layer.
+// Transparent hit-path layer that RZPP CSS-transforms; geometry-based hit-testing works at any scale.
 const MapHitLayer: React.FC<MapHitLayerProps> = ({
   parsedDsvg,
   interactive,
