@@ -42,7 +42,6 @@ Google OAuth is not configured for staging — use email/password login. The env
 
 - Keep changes small and focused — one PR per concern. Big sweeping changes are hard to review and slow to land.
 - Discuss meaningful new features, refactors, or architectural changes in the Diplicity Hub Discord before starting work. It's much easier to course-correct early than to rework a finished PR.
-- Update `RELEASE_NOTES.md` for user-visible changes. Internal refactors don't need a note.
 
 ---
 

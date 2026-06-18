@@ -848,6 +848,7 @@ export interface Variant {
   author?: string;
   rules: string;
   readonly status: string;
+  readonly official: boolean;
   /** @nullable */
   readonly ownerId: number | null;
   /** @nullable */

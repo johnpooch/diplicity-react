@@ -117,6 +117,7 @@ class Variant(BaseModel):
         on_delete=models.SET_NULL,
         related_name="owned_variants",
     )
+    official = models.BooleanField(default=False)
 
     @property
     def slug(self):

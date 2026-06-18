@@ -55,11 +55,13 @@ def test_create_variant_success(authenticated_client, primary_user, classical_dv
     expected_id = f"{primary_user.id}-my-draft"
     assert response.data["id"] == expected_id
     assert response.data["status"] == VariantStatus.DRAFT
+    assert response.data["official"] is False
 
     variant = Variant.objects.get(id=expected_id)
     assert variant.owner_id == primary_user.id
     assert variant.status == VariantStatus.DRAFT
     assert variant.slug == "my-draft"
+    assert variant.official is False
     assert variant.nations.count() == len(dvar["nations"])
     assert variant.provinces.filter(parent__isnull=True).count() == len(dvar["provinces"])
 
