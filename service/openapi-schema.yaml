@@ -3297,6 +3297,9 @@ components:
         status:
           type: string
           readOnly: true
+        official:
+          type: boolean
+          readOnly: true
         ownerId:
           type: integer
           readOnly: true
@@ -3330,6 +3333,7 @@ components:
       - id
       - name
       - nations
+      - official
       - ownerId
       - ownerUsername
       - provinces
