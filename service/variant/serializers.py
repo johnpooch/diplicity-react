@@ -15,6 +15,7 @@ from .utils import (
     update_variant_from_dvar,
     validate_dsvg,
     validate_dvar,
+    variant_id_for,
 )
 
 
@@ -119,7 +120,7 @@ class VariantWriteSerializer(serializers.Serializer):
         except etree.XMLSyntaxError as exc:
             raise serializers.ValidationError({"dsvg": f"DSVG could not be parsed: {exc}."})
 
-    def _validate_dvar_payload(self, dvar, allow_existing_id=None):
+    def _validate_dvar_payload(self, dvar, allow_existing_id=None, owner=None):
         errors = validate_dvar(dvar)
         if errors:
             raise serializers.ValidationError(
@@ -130,7 +131,8 @@ class VariantWriteSerializer(serializers.Serializer):
                     ]
                 }
             )
-        existing = Variant.objects.filter(id=dvar["id"]).first()
+        computed_id = variant_id_for(owner, dvar["id"])
+        existing = Variant.objects.filter(id=computed_id).first()
         if existing is not None and existing.id != allow_existing_id:
             raise serializers.ValidationError(
                 {"dvar": f"A variant with id '{dvar['id']}' already exists."}
@@ -152,8 +154,8 @@ class VariantWriteSerializer(serializers.Serializer):
     def create(self, validated_data):
         dvar = self._parse_dvar(validated_data["dvar"])
         dsvg_text = self._parse_dsvg(validated_data["dsvg"])
-        self._validate_dvar_payload(dvar)
         user = self.context["request"].user
+        self._validate_dvar_payload(dvar, owner=user)
         try:
             with transaction.atomic():
                 variant = create_variant_from_dvar(dvar, owner=user, status=VariantStatus.DRAFT)
@@ -165,10 +167,11 @@ class VariantWriteSerializer(serializers.Serializer):
     def update(self, instance, validated_data):
         dvar = self._parse_dvar(validated_data["dvar"])
         dsvg_text = self._parse_dsvg(validated_data["dsvg"])
-        self._validate_dvar_payload(dvar, allow_existing_id=instance.id)
-        if dvar["id"] != instance.id:
+        user = self.context["request"].user
+        self._validate_dvar_payload(dvar, allow_existing_id=instance.id, owner=user)
+        if dvar["id"] != instance.slug:
             raise serializers.ValidationError(
-                {"dvar": f"DVAR id '{dvar['id']}' does not match variant id '{instance.id}'."}
+                {"dvar": f"DVAR id '{dvar['id']}' does not match variant id '{instance.slug}'."}
             )
         with transaction.atomic():
             variant = update_variant_from_dvar(instance, dvar)

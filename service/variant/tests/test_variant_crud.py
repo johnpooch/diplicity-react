@@ -52,28 +52,87 @@ def test_create_variant_success(authenticated_client, primary_user, classical_dv
         format="multipart",
     )
     assert response.status_code == status.HTTP_201_CREATED, response.data
-    assert response.data["id"] == "my-draft"
+    expected_id = f"{primary_user.id}-my-draft"
+    assert response.data["id"] == expected_id
     assert response.data["status"] == VariantStatus.DRAFT
     assert response.data["official"] is False
 
-    variant = Variant.objects.get(id="my-draft")
+    variant = Variant.objects.get(id=expected_id)
     assert variant.owner_id == primary_user.id
     assert variant.status == VariantStatus.DRAFT
+    assert variant.slug == "my-draft"
     assert variant.official is False
     assert variant.nations.count() == len(dvar["nations"])
     assert variant.provinces.filter(parent__isnull=True).count() == len(dvar["provinces"])
 
 
 @pytest.mark.django_db
-def test_create_variant_rejects_duplicate_id(authenticated_client, classical_dvar, classical_dsvg):
+def test_create_variant_id_prefixed_with_owner(
+    authenticated_client, primary_user, classical_dvar, classical_dsvg
+):
     dvar = copy.deepcopy(classical_dvar)
+    dvar["id"] = "europe-1939"
     response = authenticated_client.post(
         reverse("variant-list"),
         _dvar_upload(dvar, classical_dsvg),
         format="multipart",
     )
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "already exists" in str(response.data)
+    assert response.status_code == status.HTTP_201_CREATED, response.data
+    assert response.data["id"] == f"{primary_user.id}-europe-1939"
+    assert Variant.objects.filter(id=f"{primary_user.id}-europe-1939").exists()
+    assert not Variant.objects.filter(id="europe-1939").exists()
+
+
+@pytest.mark.django_db
+def test_two_users_can_upload_same_slug(
+    authenticated_client,
+    authenticated_client_for_secondary_user,
+    primary_user,
+    secondary_user,
+    classical_dvar,
+    classical_dsvg,
+):
+    dvar = copy.deepcopy(classical_dvar)
+    dvar["id"] = "shared-slug"
+
+    r1 = authenticated_client.post(
+        reverse("variant-list"),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+    assert r1.status_code == status.HTTP_201_CREATED, r1.data
+    assert r1.data["id"] == f"{primary_user.id}-shared-slug"
+
+    r2 = authenticated_client_for_secondary_user.post(
+        reverse("variant-list"),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+    assert r2.status_code == status.HTTP_201_CREATED, r2.data
+    assert r2.data["id"] == f"{secondary_user.id}-shared-slug"
+
+
+@pytest.mark.django_db
+def test_same_user_cannot_upload_same_slug_twice(
+    authenticated_client, classical_dvar, classical_dsvg
+):
+    dvar = copy.deepcopy(classical_dvar)
+    dvar["id"] = "duplicate-slug"
+
+    r1 = authenticated_client.post(
+        reverse("variant-list"),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+    assert r1.status_code == status.HTTP_201_CREATED, r1.data
+
+    r2 = authenticated_client.post(
+        reverse("variant-list"),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+    assert r2.status_code == status.HTTP_400_BAD_REQUEST
+    assert "already exists" in str(r2.data)
 
 
 @pytest.mark.django_db
@@ -115,10 +174,11 @@ def test_update_own_draft_success(authenticated_client, classical_dvar, classica
         format="multipart",
     )
     assert create_response.status_code == status.HTTP_201_CREATED
+    variant_id = create_response.data["id"]
 
     dvar["name"] = "Updated Name"
     update_response = authenticated_client.put(
-        reverse("variant-detail", kwargs={"pk": "my-draft-2"}),
+        reverse("variant-detail", kwargs={"pk": variant_id}),
         _dvar_upload(dvar, classical_dsvg),
         format="multipart",
     )
@@ -148,9 +208,10 @@ def test_update_other_users_draft_forbidden(
         format="multipart",
     )
     assert create_response.status_code == status.HTTP_201_CREATED
+    variant_id = create_response.data["id"]
 
     update_response = authenticated_client.put(
-        reverse("variant-detail", kwargs={"pk": "owned-by-secondary"}),
+        reverse("variant-detail", kwargs={"pk": variant_id}),
         _dvar_upload(dvar, classical_dsvg),
         format="multipart",
     )
@@ -171,17 +232,18 @@ def test_delete_own_draft_cascades_sandbox_games(
         format="multipart",
     )
     assert create_response.status_code == status.HTTP_201_CREATED
+    variant_id = create_response.data["id"]
 
-    variant = Variant.objects.get(id="to-delete")
+    variant = Variant.objects.get(id=variant_id)
     Game.objects.create_sandbox(user=primary_user, name="Test Sandbox", variant=variant)
     assert Game.objects.filter(variant=variant).count() == 1
 
     delete_response = authenticated_client.delete(
-        reverse("variant-detail", kwargs={"pk": "to-delete"}),
+        reverse("variant-detail", kwargs={"pk": variant_id}),
     )
     assert delete_response.status_code == status.HTTP_204_NO_CONTENT
-    assert not Variant.objects.filter(id="to-delete").exists()
-    assert Game.objects.filter(variant_id="to-delete").count() == 0
+    assert not Variant.objects.filter(id=variant_id).exists()
+    assert Game.objects.filter(variant_id=variant_id).count() == 0
 
 
 @pytest.mark.django_db
@@ -193,7 +255,7 @@ def test_delete_published_variant_forbidden(authenticated_client):
 
 
 @pytest.mark.django_db
-def test_download_dvar(authenticated_client):
+def test_download_dvar_system_variant(authenticated_client):
     response = authenticated_client.get(
         reverse("variant-dvar", kwargs={"variant_id": "classical"}),
     )
@@ -206,20 +268,71 @@ def test_download_dvar(authenticated_client):
 
 
 @pytest.mark.django_db
-def test_game_create_rejects_draft_variant(authenticated_client, classical_dvar, classical_dsvg):
+def test_download_dvar_owned_variant_emits_slug(
+    authenticated_client, classical_dvar, classical_dsvg
+):
     dvar = copy.deepcopy(classical_dvar)
-    dvar["id"] = "draft-for-game"
-    authenticated_client.post(
+    dvar["id"] = "my-slug"
+    create_response = authenticated_client.post(
         reverse("variant-list"),
         _dvar_upload(dvar, classical_dsvg),
         format="multipart",
     )
+    assert create_response.status_code == status.HTTP_201_CREATED
+    variant_id = create_response.data["id"]
+
+    download_response = authenticated_client.get(
+        reverse("variant-dvar", kwargs={"variant_id": variant_id}),
+    )
+    assert download_response.status_code == status.HTTP_200_OK
+    payload = json.loads(download_response.content)
+    assert payload["id"] == "my-slug"
+
+
+@pytest.mark.django_db
+def test_download_then_reupload_roundtrips(
+    authenticated_client, classical_dvar, classical_dsvg
+):
+    dvar = copy.deepcopy(classical_dvar)
+    dvar["id"] = "roundtrip"
+    create_response = authenticated_client.post(
+        reverse("variant-list"),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+    assert create_response.status_code == status.HTTP_201_CREATED
+    variant_id = create_response.data["id"]
+
+    download_response = authenticated_client.get(
+        reverse("variant-dvar", kwargs={"variant_id": variant_id}),
+    )
+    downloaded_dvar = json.loads(download_response.content)
+
+    update_response = authenticated_client.put(
+        reverse("variant-detail", kwargs={"pk": variant_id}),
+        _dvar_upload(downloaded_dvar, classical_dsvg),
+        format="multipart",
+    )
+    assert update_response.status_code == status.HTTP_200_OK, update_response.data
+
+
+@pytest.mark.django_db
+def test_game_create_rejects_draft_variant(authenticated_client, primary_user, classical_dvar, classical_dsvg):
+    dvar = copy.deepcopy(classical_dvar)
+    dvar["id"] = "draft-for-game"
+    create_response = authenticated_client.post(
+        reverse("variant-list"),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+    assert create_response.status_code == status.HTTP_201_CREATED
+    variant_id = create_response.data["id"]
 
     response = authenticated_client.post(
         reverse("game-create"),
         {
             "name": "Game on draft",
-            "variant_id": "draft-for-game",
+            "variant_id": variant_id,
             "nation_assignment": "random",
             "private": False,
             "deadline_mode": "duration",
@@ -239,38 +352,37 @@ def test_dvar_reupload_preserves_flags_for_surviving_nations(
 
     dvar = copy.deepcopy(classical_dvar)
     dvar["id"] = "preserve-flags"
-    assert (
-        authenticated_client.post(
-            reverse("variant-list"),
-            _dvar_upload(dvar, classical_dsvg),
-            format="multipart",
-        ).status_code
-        == status.HTTP_201_CREATED
+    create_response = authenticated_client.post(
+        reverse("variant-list"),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
     )
+    assert create_response.status_code == status.HTTP_201_CREATED
+    variant_id = create_response.data["id"]
 
     flag_svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10"/></svg>'
     flag_upload = {"flag": SimpleUploadedFile("flag.svg", flag_svg.encode(), "image/svg+xml")}
     assert (
         authenticated_client.put(
-            reverse("nation-flag", kwargs={"variant_id": "preserve-flags", "nation_id": "england"}),
+            reverse("nation-flag", kwargs={"variant_id": variant_id, "nation_id": "england"}),
             flag_upload,
             format="multipart",
         ).status_code
         == status.HTTP_200_OK
     )
     flag_hash_before = NationFlag.objects.get(
-        nation__variant_id="preserve-flags", nation__nation_id="england"
+        nation__variant_id=variant_id, nation__nation_id="england"
     ).content_hash
 
     update_response = authenticated_client.put(
-        reverse("variant-detail", kwargs={"pk": "preserve-flags"}),
+        reverse("variant-detail", kwargs={"pk": variant_id}),
         _dvar_upload(dvar, classical_dsvg),
         format="multipart",
     )
     assert update_response.status_code == status.HTTP_200_OK, update_response.data
 
     flag_after = NationFlag.objects.get(
-        nation__variant_id="preserve-flags", nation__nation_id="england"
+        nation__variant_id=variant_id, nation__nation_id="england"
     )
     assert flag_after.content_hash == flag_hash_before
 
@@ -284,20 +396,19 @@ def test_dvar_reupload_drops_flags_for_removed_nations(
 
     dvar = copy.deepcopy(classical_dvar)
     dvar["id"] = "drop-flags"
-    assert (
-        authenticated_client.post(
-            reverse("variant-list"),
-            _dvar_upload(dvar, classical_dsvg),
-            format="multipart",
-        ).status_code
-        == status.HTTP_201_CREATED
+    create_response = authenticated_client.post(
+        reverse("variant-list"),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
     )
+    assert create_response.status_code == status.HTTP_201_CREATED
+    variant_id = create_response.data["id"]
 
     flag_svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"/>'
     flag_upload = {"flag": SimpleUploadedFile("flag.svg", flag_svg.encode(), "image/svg+xml")}
     assert (
         authenticated_client.put(
-            reverse("nation-flag", kwargs={"variant_id": "drop-flags", "nation_id": "england"}),
+            reverse("nation-flag", kwargs={"variant_id": variant_id, "nation_id": "england"}),
             flag_upload,
             format="multipart",
         ).status_code
@@ -320,17 +431,17 @@ def test_dvar_reupload_drops_flags_for_removed_nations(
             sc["nation"] = "britain"
 
     update_response = authenticated_client.put(
-        reverse("variant-detail", kwargs={"pk": "drop-flags"}),
+        reverse("variant-detail", kwargs={"pk": variant_id}),
         _dvar_upload(renamed, classical_dsvg),
         format="multipart",
     )
     assert update_response.status_code == status.HTTP_200_OK, update_response.data
 
     assert not NationFlag.objects.filter(
-        nation__variant_id="drop-flags", nation__nation_id="england"
+        nation__variant_id=variant_id, nation__nation_id="england"
     ).exists()
     assert not NationFlag.objects.filter(
-        nation__variant_id="drop-flags", nation__nation_id="britain"
+        nation__variant_id=variant_id, nation__nation_id="britain"
     ).exists()
 
 
@@ -338,15 +449,17 @@ def test_dvar_reupload_drops_flags_for_removed_nations(
 def test_sandbox_game_accepts_draft_variant(authenticated_client, classical_dvar, classical_dsvg):
     dvar = copy.deepcopy(classical_dvar)
     dvar["id"] = "draft-for-sandbox"
-    authenticated_client.post(
+    create_response = authenticated_client.post(
         reverse("variant-list"),
         _dvar_upload(dvar, classical_dsvg),
         format="multipart",
     )
+    assert create_response.status_code == status.HTTP_201_CREATED
+    variant_id = create_response.data["id"]
 
     response = authenticated_client.post(
         reverse("sandbox-game-create"),
-        {"name": "Sandbox of draft", "variant_id": "draft-for-sandbox"},
+        {"name": "Sandbox of draft", "variant_id": variant_id},
         format="json",
     )
     assert response.status_code == status.HTTP_201_CREATED, response.data
