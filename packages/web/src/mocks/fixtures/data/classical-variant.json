@@ -5,6 +5,7 @@
   "author": "Allan B. Calhamer",
   "rules": "The first to 18 Supply Centers (SC) is the winner.\nKiel and Constantinople have a canal, so fleets can exit on either side.\nArmies can move from Denmark to Kiel.",
   "status": "published",
+  "official": true,
   "ownerId": null,
   "ownerUsername": null,
   "canEdit": false,
