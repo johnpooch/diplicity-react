@@ -242,7 +242,7 @@ describe("GameMap", () => {
       const orders = getLastOrdersProp();
       expect(orders).toHaveLength(1);
       expect(orders[0].source.id).toBe("lon");
-      expect(orders[0].target.id).toBe("nth");
+      expect(orders[0].target!.id).toBe("nth");
       expect(orders[0].orderType).toBe("Move");
 
       // Resolve so the promise doesn't leave unhandled rejection

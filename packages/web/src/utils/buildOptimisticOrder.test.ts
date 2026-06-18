@@ -51,7 +51,7 @@ describe("buildOptimisticOrder", () => {
 
     expect(result).not.toBeNull();
     expect(result!.source.id).toBe("lon");
-    expect(result!.target.id).toBe("nth");
+    expect(result!.target!.id).toBe("nth");
     expect(result!.orderType).toBe("Move");
     expect(result!.nation).toEqual(england);
   });
@@ -65,7 +65,7 @@ describe("buildOptimisticOrder", () => {
 
     expect(result).not.toBeNull();
     expect(result!.source.id).toBe("par");
-    expect(result!.target.id).toBe("par");
+    expect(result!.target!.id).toBe("par");
     expect(result!.orderType).toBe("Hold");
   });
 
@@ -77,8 +77,8 @@ describe("buildOptimisticOrder", () => {
     );
 
     expect(result).not.toBeNull();
-    expect(result!.aux.id).toBe("bre");
-    expect(result!.target.id).toBe("par");
+    expect(result!.aux!.id).toBe("bre");
+    expect(result!.target!.id).toBe("par");
   });
 
   it("resolves nation from phase.supplyCenters for Build orders", () => {
@@ -152,7 +152,7 @@ describe("buildOptimisticOrder", () => {
     );
 
     expect(result).not.toBeNull();
-    expect(result!.aux.id).toBe("lon");
+    expect(result!.aux!.id).toBe("lon");
   });
 
   it("defaults unitType to Army when not in selections", () => {
@@ -172,6 +172,6 @@ describe("buildOptimisticOrder", () => {
       phaseWithUnit("lon", england)
     );
 
-    expect(result!.namedCoast.id).toBe("nth");
+    expect(result!.namedCoast!.id).toBe("nth");
   });
 });
