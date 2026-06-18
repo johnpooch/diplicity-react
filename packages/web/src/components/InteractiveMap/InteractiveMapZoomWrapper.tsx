@@ -3,23 +3,38 @@ import {
   TransformComponent,
   ReactZoomPanPinchContentRef,
 } from "react-zoom-pan-pinch";
-import { useRef, useState, useEffect, useMemo } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Maximize, Minimize } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-import { InteractiveMap } from "./InteractiveMap";
+import { MapVisual } from "./MapVisual";
+import { MapHitLayer } from "./MapHitLayer";
 import { useDsvg } from "../../hooks/useDsvg";
-import { parseDsvg } from "./dsvgParser";
+import { parseDsvg, type ViewBox } from "./dsvgParser";
 import { DiplicityMap } from "./mapRenderer";
-import type { Variant } from "../../api/generated/endpoints";
+import { toRenderState } from "./toRenderState";
+import { isNativePlatform } from "../../utils/platform";
+import type {
+  Order,
+  PhaseRetrieve,
+  Variant,
+} from "../../api/generated/endpoints";
 
 type VariantForMap = Pick<Variant, "id" | "nations" | "svgUrl">;
 
-type InteractiveMapProps = Omit<
-  React.ComponentProps<typeof InteractiveMap>,
-  "parsedDsvg" | "renderer" | "variant"
-> & {
+type InteractiveMapContentProps = {
+  interactive?: boolean;
   variant: VariantForMap;
+  phase: PhaseRetrieve;
+  selected: string[];
+  highlighted?: string[];
+  civilDisorderNations?: string[];
+  orders: Order[] | undefined;
+  renderableProvinces?: string[];
+  onClickProvince?: (
+    province: string,
+    event: React.MouseEvent<SVGPathElement>
+  ) => void;
 };
 
 type Dimensions = {
@@ -28,40 +43,79 @@ type Dimensions = {
 };
 
 type InteractiveMapZoomWrapperProps = {
-  interactiveMapProps: InteractiveMapProps;
+  interactiveMapProps: InteractiveMapContentProps;
+};
+
+type TransformState = {
+  scale: number;
+  positionX: number;
+  positionY: number;
+};
+
+// Converts react-zoom-pan-pinch's CSS transform of the (intrinsic-sized,
+// transparent) hit layer into the visible window expressed as an SVG viewBox.
+// The hit layer's content-local pixels map 1:1 to user units offset by the map
+// viewBox origin, so the visible window is just the container rect projected
+// back through the transform.
+const transformToViewBox = (
+  state: TransformState,
+  container: Dimensions,
+  mapViewBox: ViewBox
+): ViewBox => {
+  const scale = state.scale;
+  return {
+    minX: mapViewBox.minX - state.positionX / scale,
+    minY: mapViewBox.minY - state.positionY / scale,
+    width: container.width / scale,
+    height: container.height / scale,
+  };
 };
 
 const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
   interactiveMapProps,
 }) => {
-  const svgRef = useRef<SVGSVGElement>(null);
+  const mapVisualRef = useRef<SVGSVGElement>(null);
+  const hitRef = useRef<SVGSVGElement>(null);
   const transformRef = useRef<ReactZoomPanPinchContentRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const containerSizeRef = useRef<Dimensions | null>(null);
 
-  // --- Diagnostic ---
-  const renderCountRef = useRef(0);
-  const prevZoomPropsRef = useRef<typeof interactiveMapProps | null>(null);
-  const lastTransformTimeRef = useRef<number | null>(null);
-  const transformFrameTimesRef = useRef<number[]>([]);
-  const fpsFlushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isNative = isNativePlatform();
 
   const { data: dsvg, isLoading } = useDsvg(interactiveMapProps.variant.svgUrl);
 
   const parsedDsvg = useMemo(() => (dsvg ? parseDsvg(dsvg) : null), [dsvg]);
-  const renderer = useMemo(
-    () => (dsvg ? new DiplicityMap(dsvg) : null),
-    [dsvg]
-  );
+  const renderer = useMemo(() => (dsvg ? new DiplicityMap(dsvg) : null), [dsvg]);
 
+  const [hoveredProvince, setHoveredProvince] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(true);
-
-  const [svgViewBox, setSvgViewBox] = useState<Dimensions | undefined>(
-    undefined
-  );
-
   const [containerDimensions, setContainerDimensions] = useState<
     Dimensions | undefined
   >(undefined);
+
+  const {
+    variant,
+    phase,
+    orders,
+    selected,
+    highlighted,
+    civilDisorderNations,
+  } = interactiveMapProps;
+
+  const renderState = useMemo(
+    () =>
+      toRenderState(
+        variant,
+        phase,
+        orders ?? [],
+        selected,
+        highlighted ?? [],
+        civilDisorderNations ?? []
+      ),
+    [variant, phase, orders, selected, highlighted, civilDisorderNations]
+  );
+
+  const mapViewBox = parsedDsvg?.viewBox;
 
   const containerAspectRatio =
     containerDimensions?.width && containerDimensions?.height
@@ -69,8 +123,8 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
       : undefined;
 
   const svgAspectRatio =
-    svgViewBox?.width && svgViewBox?.height
-      ? svgViewBox.width / svgViewBox.height
+    mapViewBox?.width && mapViewBox?.height
+      ? mapViewBox.width / mapViewBox.height
       : undefined;
 
   const containerIsTallerThanSvg =
@@ -84,135 +138,97 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
       : undefined;
 
   const calculateFittedScale = (): number => {
-    if (!containerDimensions || !svgViewBox) return 1;
-
+    if (!containerDimensions || !mapViewBox) return 1;
     if (containerIsTallerThanSvg) {
-      return containerDimensions.height / svgViewBox.height;
+      return containerDimensions.height / mapViewBox.height;
     }
-
     if (containerIsWiderThanSvg) {
-      return containerDimensions.width / svgViewBox.width;
+      return containerDimensions.width / mapViewBox.width;
     }
-
     return 1;
   };
 
   const calculateContainedScale = (): number => {
-    if (!containerDimensions || !svgViewBox) return 1;
-
-    const scaleX = containerDimensions.width / svgViewBox.width;
-    const scaleY = containerDimensions.height / svgViewBox.height;
-
+    if (!containerDimensions || !mapViewBox) return 1;
+    const scaleX = containerDimensions.width / mapViewBox.width;
+    const scaleY = containerDimensions.height / mapViewBox.height;
     return Math.min(scaleX, scaleY);
   };
 
   const fittedScale = calculateFittedScale();
   const containedScale = calculateContainedScale();
-
   const minScale = isFullscreen ? fittedScale : containedScale;
+
+  const syncViewBox = (state: TransformState) => {
+    const container = containerSizeRef.current;
+    if (!container || !mapViewBox || !mapVisualRef.current) return;
+    const viewBox = transformToViewBox(state, container, mapViewBox);
+    mapVisualRef.current.setAttribute(
+      "viewBox",
+      `${viewBox.minX} ${viewBox.minY} ${viewBox.width} ${viewBox.height}`
+    );
+  };
 
   const handleToggleFullscreen = () => {
     setIsFullscreen((prev) => {
       const newIsFullscreen = !prev;
-
-      if (transformRef.current && containerDimensions && svgViewBox) {
+      if (transformRef.current && containerDimensions && mapViewBox) {
         const targetScale = newIsFullscreen ? fittedScale : containedScale;
-
-        const scaledWidth = svgViewBox.width * targetScale;
-        const scaledHeight = svgViewBox.height * targetScale;
+        const scaledWidth = mapViewBox.width * targetScale;
+        const scaledHeight = mapViewBox.height * targetScale;
         const centerX = (containerDimensions.width - scaledWidth) / 2;
         const centerY = (containerDimensions.height - scaledHeight) / 2;
-
         transformRef.current.setTransform(centerX, centerY, targetScale, 300);
       }
-
       return newIsFullscreen;
     });
   };
 
   const handleGestureStart = () => {
-    if (svgRef.current) {
-      svgRef.current.style.pointerEvents = "none";
+    if (hitRef.current) {
+      hitRef.current.style.pointerEvents = "none";
     }
   };
 
   const handleGestureStop = () => {
-    if (svgRef.current) {
-      svgRef.current.style.pointerEvents = "";
+    if (hitRef.current) {
+      hitRef.current.style.pointerEvents = "";
     }
-  };
-
-  const handleTransformed = () => {
-    const now = performance.now();
-    if (lastTransformTimeRef.current !== null) {
-      transformFrameTimesRef.current.push(now - lastTransformTimeRef.current);
-    }
-    lastTransformTimeRef.current = now;
-
-    if (fpsFlushTimerRef.current) clearTimeout(fpsFlushTimerRef.current);
-    fpsFlushTimerRef.current = setTimeout(() => {
-      const times = transformFrameTimesRef.current;
-      if (times.length > 1) {
-        const avg = times.reduce((a, b) => a + b, 0) / times.length;
-        console.log(
-          `[InteractiveMapZoom] gesture: ${times.length} updates, avg ${avg.toFixed(1)}ms between transforms (~${(1000 / avg).toFixed(0)} fps)`
-        );
-      }
-      transformFrameTimesRef.current = [];
-      lastTransformTimeRef.current = null;
-    }, 500);
   };
 
   useEffect(() => {
     if (!containerRef.current) return;
-
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
+        containerSizeRef.current = { width, height };
         setContainerDimensions({ width, height });
       }
     });
-
     resizeObserver.observe(containerRef.current);
-
-    return () => {
-      resizeObserver.disconnect();
-    };
+    return () => resizeObserver.disconnect();
   }, []);
 
-  useEffect(() => {
-    if (parsedDsvg) {
-      setSvgViewBox({
-        width: parsedDsvg.viewBox.width,
-        height: parsedDsvg.viewBox.height,
-      });
+  // Seed the visible layer's viewBox before first paint so it isn't briefly
+  // rendered without a coordinate system; the transform sync refines it.
+  useLayoutEffect(() => {
+    if (mapVisualRef.current && mapViewBox) {
+      mapVisualRef.current.setAttribute(
+        "viewBox",
+        `${mapViewBox.minX} ${mapViewBox.minY} ${mapViewBox.width} ${mapViewBox.height}`
+      );
     }
-  }, [parsedDsvg]);
+  }, [mapViewBox]);
 
   useEffect(() => {
-    if (transformRef.current && containerDimensions && svgViewBox) {
-      const scaledWidth = svgViewBox.width * minScale;
-      const scaledHeight = svgViewBox.height * minScale;
+    if (transformRef.current && containerDimensions && mapViewBox) {
+      const scaledWidth = mapViewBox.width * minScale;
+      const scaledHeight = mapViewBox.height * minScale;
       const centerX = (containerDimensions.width - scaledWidth) / 2;
       const centerY = (containerDimensions.height - scaledHeight) / 2;
       transformRef.current.setTransform(centerX, centerY, minScale, 0);
     }
-  }, [minScale, containerDimensions, svgViewBox]);
-
-  // --- Diagnostic logging ---
-  renderCountRef.current += 1;
-  if (prevZoomPropsRef.current) {
-    const changed = (
-      Object.keys(interactiveMapProps) as Array<keyof typeof interactiveMapProps>
-    ).filter((k) => interactiveMapProps[k] !== prevZoomPropsRef.current![k]);
-    console.log(
-      `[InteractiveMapZoom] render #${renderCountRef.current}`,
-      changed.length > 0 ? { changedProps: changed } : "(internal state change)"
-    );
-  } else {
-    console.log(`[InteractiveMapZoom] render #${renderCountRef.current} (initial)`);
-  }
-  prevZoomPropsRef.current = interactiveMapProps;
+  }, [minScale, containerDimensions, mapViewBox]);
 
   if (isLoading || !parsedDsvg || !renderer) {
     return (
@@ -229,33 +245,46 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
       ref={containerRef}
       style={{ width: "100%", height: "100%", position: "relative" }}
     >
-      <TransformWrapper
-        ref={transformRef}
-        maxScale={4}
-        minScale={minScale}
-        centerOnInit={true}
-        limitToBounds={true}
-        centerZoomedOut={true}
-        disablePadding={true}
-        panning={{ velocityDisabled: true }}
-        velocityAnimation={{ disabled: true }}
-        onTransformed={handleTransformed}
-        onPanningStart={handleGestureStart}
-        onPanningStop={handleGestureStop}
-        onPinchingStart={handleGestureStart}
-        onPinchingStop={handleGestureStop}
-        onZoomStart={handleGestureStart}
-        onZoomStop={handleGestureStop}
-      >
-        <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
-          <InteractiveMap
-            ref={svgRef}
-            {...interactiveMapProps}
-            parsedDsvg={parsedDsvg}
-            renderer={renderer}
-          />
-        </TransformComponent>
-      </TransformWrapper>
+      <MapVisual
+        svgRef={mapVisualRef}
+        parsedDsvg={parsedDsvg}
+        renderer={renderer}
+        renderState={renderState}
+        hoveredProvince={hoveredProvince}
+        selected={selected}
+      />
+      <div style={{ position: "absolute", inset: 0 }}>
+        <TransformWrapper
+          ref={transformRef}
+          maxScale={4}
+          minScale={minScale}
+          centerOnInit={true}
+          limitToBounds={true}
+          centerZoomedOut={true}
+          disablePadding={true}
+          panning={{ velocityDisabled: true }}
+          velocityAnimation={{ disabled: true }}
+          onTransformed={(_ref, state) => syncViewBox(state)}
+          onPanningStart={handleGestureStart}
+          onPanningStop={handleGestureStop}
+          onPinchingStart={handleGestureStart}
+          onPinchingStop={handleGestureStop}
+          onZoomStart={handleGestureStart}
+          onZoomStop={handleGestureStop}
+        >
+          <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
+            <MapHitLayer
+              svgRef={hitRef}
+              parsedDsvg={parsedDsvg}
+              interactive={interactiveMapProps.interactive}
+              isNative={isNative}
+              renderableProvinces={interactiveMapProps.renderableProvinces}
+              onHover={setHoveredProvince}
+              onClickProvince={interactiveMapProps.onClickProvince}
+            />
+          </TransformComponent>
+        </TransformWrapper>
+      </div>
       <Button
         size="icon"
         onClick={handleToggleFullscreen}

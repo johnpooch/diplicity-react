@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import type {
   Order,
   PhaseRetrieve,
@@ -8,6 +8,13 @@ import type { ParsedDsvg } from "./dsvgParser";
 import type { DiplicityMap, RenderState } from "./mapRenderer";
 import { toRenderState } from "./toRenderState";
 import { isNativePlatform } from "../../utils/platform";
+import {
+  HOVER_FILL,
+  HOVER_STROKE_COLOR,
+  HOVER_STROKE_WIDTH,
+  splitAfterProvinceFills,
+  stripSvgWrapper,
+} from "./mapLayers";
 
 type VariantForMap = Pick<Variant, "id" | "nations">;
 
@@ -30,51 +37,9 @@ type InteractiveMapProps = {
   renderer: DiplicityMap;
 };
 
-const HOVER_STROKE_WIDTH = 5;
-const HOVER_STROKE_COLOR = "white";
-const HOVER_FILL = "rgba(255, 255, 255, 0.6)";
-
-const stripSvgWrapper = (svg: string): string => {
-  const openEnd = svg.indexOf(">");
-  const closeStart = svg.lastIndexOf("</svg>");
-  if (openEnd === -1 || closeStart === -1) {
-    return svg;
-  }
-  return svg.slice(openEnd + 1, closeStart).trim();
-};
-
-const ABOVE_HOVER_LAYER_IDS = [
-  "supply-center-markers",
-  "province-names",
-  "borders",
-  "foreground",
-  "units",
-  "orders",
-];
-
-const splitAfterProvinceFills = (
-  inner: string
-): { below: string; above: string } => {
-  const candidates = ABOVE_HOVER_LAYER_IDS.map((id) =>
-    inner.indexOf(`<g id="${id}">`)
-  ).filter((index) => index !== -1);
-  if (candidates.length === 0) {
-    return { below: inner, above: "" };
-  }
-  const splitIndex = Math.min(...candidates);
-  return {
-    below: inner.slice(0, splitIndex),
-    above: inner.slice(splitIndex),
-  };
-};
-
 const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
   const isNative = isNativePlatform();
   const [hoveredProvince, setHoveredProvince] = useState<string | null>(null);
-
-  // --- Diagnostic ---
-  const renderCountRef = useRef(0);
-  const prevPropsRef = useRef<InteractiveMapProps | null>(null);
 
   const orders = useMemo(() => props.orders ?? [], [props.orders]);
   const highlighted = useMemo(
@@ -100,16 +65,8 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
   );
 
   const renderedSplit = useMemo(
-    () => {
-      const t0 = performance.now();
-      const result = splitAfterProvinceFills(
-        stripSvgWrapper(props.renderer.render(renderState))
-      );
-      console.log(
-        `[InteractiveMap] renderer.render() took ${(performance.now() - t0).toFixed(1)}ms`
-      );
-      return result;
-    },
+    () =>
+      splitAfterProvinceFills(stripSvgWrapper(props.renderer.render(renderState))),
     [props.renderer, renderState]
   );
 
@@ -172,21 +129,6 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
     : undefined;
   const hoveredIsSelected =
     hoveredProvince !== null && props.selected.includes(hoveredProvince);
-
-  // --- Diagnostic logging ---
-  renderCountRef.current += 1;
-  if (prevPropsRef.current) {
-    const changed = (Object.keys(props) as Array<keyof InteractiveMapProps>).filter(
-      (k) => props[k] !== prevPropsRef.current![k]
-    );
-    console.log(
-      `[InteractiveMap] render #${renderCountRef.current}`,
-      changed.length > 0 ? { changedProps: changed } : "(internal state change)"
-    );
-  } else {
-    console.log(`[InteractiveMap] render #${renderCountRef.current} (initial)`);
-  }
-  prevPropsRef.current = props;
 
   return (
     <svg
