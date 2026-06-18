@@ -178,13 +178,6 @@ Organise the technical approach into sections by layer:
 - Note any new response types or request bodies that will be generated
 ```
 
-#### Release Notes
-
-```
-- Is this a user-facing change? (Yes/No)
-- If yes, draft the RELEASE_NOTES.md entry
-```
-
 ### Good example
 
 > **Backend:**

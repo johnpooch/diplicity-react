@@ -218,9 +218,8 @@ The Team ID is `G76UP8FNMS` (stored in `.env` as `CAPACITOR_IOS_TEAM_ID`).
 6. **Prefer composition over effects** - Minimize useEffect usage in React
 7. **Use proper error handling** - Catch and handle errors appropriately
 8. **Write tests alongside features** - Not as an afterthought
-9. **Update RELEASE_NOTES.md for user-facing changes** - When implementing features, improvements, or bug fixes that players would notice or care about, add an entry to RELEASE_NOTES.md. Internal refactors, code cleanup, or developer-only changes do not need release notes.
-10. **Self-review non-trivial PRs with `/review-pr`** - Convention: whenever a pull request is of any significant complexity, the author runs the `/review-pr` command against it before requesting human review, and addresses (or explicitly responds to) its findings. This applies to PRs authored by Claude sessions too. Trivial PRs (typo fixes, dependency bumps, doc-only changes) are exempt.
-11. **PR description must match the diff** - Before writing or finalising a PR description, run `git diff main` and confirm every change claimed in the description is visible in that output. Do not describe work that happened in a prior PR or session — describe only what is in this diff.
+9. **Self-review non-trivial PRs with `/review-pr`** - Convention: whenever a pull request is of any significant complexity, the author runs the `/review-pr` command against it before requesting human review, and addresses (or explicitly responds to) its findings. This applies to PRs authored by Claude sessions too. Trivial PRs (typo fixes, dependency bumps, doc-only changes) are exempt.
+10. **PR description must match the diff** - Before writing or finalising a PR description, run `git diff main` and confirm every change claimed in the description is visible in that output. Do not describe work that happened in a prior PR or session — describe only what is in this diff.
 
 ---
 

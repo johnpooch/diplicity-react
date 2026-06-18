@@ -75,7 +75,6 @@ Check the current open PR count. If it is already at 5, close or merge something
 
 - [ ] This PR does one thing — no unrelated fixes or drive-by cleanups
 - [ ] Tests cover the change
-- [ ] `RELEASE_NOTES.md` updated if the change is user-facing
 - [ ] Screenshots embedded in the PR description for any visual changes
 - [ ] For PRs of any significant complexity: `/review-pr` run in Claude Code and findings addressed
 
