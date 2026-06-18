@@ -77,6 +77,16 @@ const collectPoints = (layer: Element | null): Map<string, Point> => {
 const stripRedundantNamespace = (markup: string): string =>
   markup.split(' xmlns="http://www.w3.org/2000/svg"').join("");
 
+// The variant-creator subsets each embedded font to exactly the glyphs the map
+// uses and emits a matching `unicode-range`. With a single inlined face that
+// gate is redundant in Blink, but WebKit (iOS Safari / WKWebView) mishandles
+// `unicode-range` on `@font-face` applied to SVG <text> and silently falls back
+// to serif. Stripping it makes the font apply to every character that requests
+// it — a no-op in Blink, a fix in WebKit — with no tofu risk, since every used
+// character is covered by the subset by construction.
+const stripUnicodeRange = (markup: string): string =>
+  markup.replace(/\s*unicode-range\s*:[^;}]*;?/gi, "");
+
 const collectDefs = (root: Element): string => {
   let markup = "";
   for (const child of Array.from(root.children)) {
@@ -85,7 +95,7 @@ const collectDefs = (root: Element): string => {
       markup += child.outerHTML;
     }
   }
-  return stripRedundantNamespace(markup);
+  return stripUnicodeRange(stripRedundantNamespace(markup));
 };
 
 const layerMarkup = (root: Element, id: string): string =>

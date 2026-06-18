@@ -47,6 +47,17 @@ describe("parseDsvg", () => {
     expect(parsed.defs).toContain("<style");
   });
 
+  test("strips unicode-range from embedded @font-face but keeps the face", () => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">
+      <style>@font-face { font-family: 'Italianno'; src: url('data:font/woff2;base64,AAAA') format('woff2'); unicode-range: U+41-57, U+61-7a; }</style>
+      <g id="background"></g>
+    </svg>`;
+    const { defs } = parseDsvg(svg);
+    expect(defs).not.toContain("unicode-range");
+    expect(defs).toContain("font-family: 'Italianno'");
+    expect(defs).toContain("format('woff2')");
+  });
+
   test("returns empty maps when the position layers are absent", () => {
     const withoutPositions = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">
       <g id="background"></g>
