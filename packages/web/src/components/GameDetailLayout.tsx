@@ -76,11 +76,26 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
     });
   }, [gameId, phaseId, searchParams, location.pathname, game?.totalUnreadMessageCount, game?.sandbox]);
 
-  // Filter out Map for desktop sidebar since map is already visible in right panel
-  const sidebarNavItems = useMemo(
-    () => navItems.filter(item => item.label !== "Map"),
-    [navItems]
-  );
+  // Filter out Map for desktop sidebar since map is already visible in right
+  // panel. Unlike the bottom nav, the sidebar Chat icon should return to the
+  // channel list rather than resuming the last channel, since the map is
+  // always visible alongside the chat in the desktop layout.
+  const sidebarNavItems = useMemo(() => {
+    const params = new URLSearchParams(searchParams);
+    params.delete("channelId");
+    const paramsStr = params.toString();
+    const chatBasePath = `/game/${gameId}/phase/${phaseId}/chat`;
+    return navItems
+      .filter(item => item.label !== "Map")
+      .map(item =>
+        item.label === "Chat"
+          ? {
+              ...item,
+              path: paramsStr ? `${chatBasePath}?${paramsStr}` : chatBasePath,
+            }
+          : item
+      );
+  }, [navItems, searchParams, gameId, phaseId]);
 
   const bottomClasses = cn("border-t bg-background", "block md:hidden");
 
