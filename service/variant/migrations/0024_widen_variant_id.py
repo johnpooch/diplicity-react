@@ -4,7 +4,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("variant", "0021_add_dominance_rules"),
+        ("variant", "0023_mark_official_variants"),
     ]
 
     operations = [
