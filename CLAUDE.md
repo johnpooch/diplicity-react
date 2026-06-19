@@ -243,6 +243,60 @@ Issues follow the three-section format enforced by the `create-issue` skill: **G
 
 ---
 
+# Code Philosophy
+
+This section is the **rubric for writing and reviewing code** in this repository. The prescriptive patterns elsewhere in this document say *what* to do; the tenets below, together with the good/bad examples and "What to check in review" notes woven into the Frontend and Backend sections, define what well-executed code looks like and how to judge whether a change meets the bar. Apply this rubric when implementing features and when running `/review-pr`.
+
+## Core Tenets
+
+These five principles govern all code decisions. When in doubt, fall back to these.
+
+### 1. Match existing patterns
+
+The codebase has established conventions for every layer. New code should be indistinguishable from existing code in style and structure. If the existing pattern seems wrong, raise it as a discussion — don't silently deviate.
+
+**Test:** Could a reviewer tell which code is new and which is existing, purely by style? If yes, the new code doesn't match.
+
+### 2. Simplicity is correctness
+
+The right amount of code is the minimum needed for the current requirement. Do not add abstractions, configurability, error handling, or features that aren't needed today. Three similar lines of code is better than a premature helper function.
+
+**Test:** Can any line, function, or file be removed without breaking an acceptance criterion? If yes, it shouldn't be there.
+
+### 3. Observable over internal
+
+Code quality is judged by what it produces (API responses, rendered UI, test assertions) not by internal cleverness. A serializer that returns the right data with explicit field declarations is better than a "clever" one that auto-generates fields.
+
+**Test:** Do the tests assert on observable outcomes (HTTP responses, rendered text, navigation) rather than internal state?
+
+### 4. Evidence over assertion
+
+Every code change should be justified by evidence: a failing test that now passes, a user flow that now works, a performance regression that's resolved. "I think this is better" is not justification.
+
+**Test:** Can the reviewer see the evidence for why this change is correct (test output, before/after, linked issue)?
+
+### 5. Fix, don't suppress
+
+When the linter, type checker, or test framework flags an issue, fix the root cause. Never suppress with `eslint-disable`, `@ts-ignore`, `# noqa`, or `pytest.mark.skip`. The only exception is the documented mutation-in-`useEffect` pattern (see "Mutations in useEffect Dependencies").
+
+**Test:** Are there any new suppression comments in the diff? If yes, they need justification.
+
+### Simplicity over cleverness
+
+Prefer the straightforward approach over the clever one. If a piece of code requires a comment to explain, it's probably too clever.
+
+```python
+# BAD — clever but obscure
+members_by_nation = {m.nation_id: m for m in members if m.nation_id}
+ordered_members = [members_by_nation[n.id] for n in nations if n.id in members_by_nation]
+
+# GOOD — straightforward
+for member, nation in zip(members, nations):
+    member.nation = nation
+```
+
+---
+
 # Frontend Development (`/packages/web/`)
 
 ## Architecture Overview
@@ -298,6 +352,11 @@ The `mutateAsync` function itself is stable, but the containing mutation object 
 
 If state could reasonably be derived from the backend or URL, it should be.
 
+**What to check in review:**
+- Is any domain data stored in `useState`? It should come from React Query.
+- Is any navigation-relevant state in `useState`? It should be in the URL.
+- Is there a `useEffect` that syncs state? It's probably state that should be derived.
+
 ### Suspense Data Guarantees
 
 Prefer Suspense data fetching so components can assume data exists. Avoid optional chaining on data that should always be present after render.
@@ -312,6 +371,17 @@ const { data: games } = useGamesListSuspense();
 games?.map(game => ...);
 ```
 
+Always use `useXxxSuspense` hooks for reads — never the non-suspense variants. The non-suspense variant forces `isLoading` handling and optional chaining that the Suspense boundary already removes:
+
+```typescript
+// BAD - non-suspense hook
+const { data: games, isLoading } = useGamesList({ mine: true });
+if (isLoading) return <Spinner />;
+games?.map(game => ...);
+```
+
+Optional chaining on Suspense data signals that the developer doesn't trust the Suspense boundary, and it hides potential bugs.
+
 ### Entity Data from URL
 
 When a component needs entity data based on a URL param, fetch it directly:
@@ -321,7 +391,12 @@ const { gameId } = useRequiredParams<{ gameId: string }>();
 const { data: game } = useGameRetrieveSuspense(gameId);
 ```
 
-Do not use React Context to share entity data. Each component should fetch what it needs - React Query handles deduplication and caching.
+Do not use React Context to share entity data. Each component should fetch what it needs - React Query handles deduplication and caching, so multiple components fetching the same game by ID share a single request.
+
+```typescript
+// BAD - receiving game data through Context
+const { game } = useGameContext();
+```
 
 ## Component Patterns
 
@@ -353,11 +428,22 @@ const MyScreenSuspense: React.FC = () => (
 export { MyScreenSuspense as MyScreen };
 ```
 
+The outer wrapper should also include `QueryErrorBoundary` wrapping `Suspense` (see "Query Errors" below).
+
+**What to check in review:**
+- Does the inner component use `useXxxSuspense` hooks (not `useXxx`)?
+- Is the outer wrapper present with `ScreenContainer`, `ScreenHeader`, `QueryErrorBoundary`, and `Suspense`?
+- Is the wrapper exported with the screen name?
+- Is the `Suspense` fallback an empty div (not a spinner or skeleton — keep it minimal)?
+- Is `QueryErrorBoundary` wrapping `Suspense` (not inside it)? Without it, query errors crash the whole page instead of showing the "Try Again" UI in the content area.
+
 ### Inline Over Extract
 
 - **Inline sub-components** when they're only used in one place
 - **Inline utility functions** at the top of the file when specific to that component
 - Only extract to separate files when genuinely shared across multiple screens
+
+`CreateGame.tsx` demonstrates this — `VariantSelector`, `GameMetadataTable`, `CreateStandardGameForm`, and `CreateSandboxGameForm` are all defined inline because they're used only there. Extract only when a component is used in two or more screens.
 
 ### Prop Types
 
@@ -374,6 +460,13 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant }) => {
   // Infer types for local variables
   const playerCount = game.members.length;
   ...
+};
+```
+
+```typescript
+// BAD - inline prop type
+const GameCard: React.FC<{ game: Game; variant: Variant }> = ({ game, variant }) => {
+  // ...
 };
 ```
 
@@ -410,6 +503,17 @@ const OrdersScreen: React.FC = () => {
 };
 ```
 
+```typescript
+// BAD - screen wraps itself in a layout (layout belongs at the router level)
+const OrdersScreen: React.FC = () => {
+  return (
+    <GameDetailLayout>
+      <Panel>...</Panel>
+    </GameDetailLayout>
+  );
+};
+```
+
 **Stories** - Wrap screens in their layout for proper rendering:
 ```typescript
 const meta = {
@@ -420,6 +524,21 @@ const meta = {
   ),
 };
 ```
+
+## Custom Hooks
+
+Custom hooks live in `packages/web/src/hooks/` and should only be created when:
+1. **The same logic is needed in multiple components** (not just "it feels like a hook")
+2. **The hook encapsulates a genuine concern** (not just a one-liner wrapper)
+
+Current custom hooks: `useRequiredParams` (type-safe route params), `useMapData` (map rendering data composition), `use-mobile` (responsive breakpoint detection).
+
+For data fetching, prefer the generated hooks directly (`useGameRetrieveSuspense`, `useGamesListSuspense`) rather than wrapping them in custom hooks.
+
+**What to check in review:**
+- Is the new hook used in more than one place? If not, inline the logic.
+- Does the hook do more than wrap a single call? If not, use the underlying call directly.
+- Is the hook in `/hooks/` and exported from the index?
 
 ## UI Guidelines
 
@@ -453,7 +572,42 @@ Only add classes that actually do something. Question every class:
 - `ml-4` when `gap` utilities already handle spacing
 - `className="h-4 w-4"` on icons when the default size is appropriate
 
-Trust component defaults - shadcn/ui components have sensible defaults; only override when necessary.
+Trust component defaults - shadcn/ui components have sensible defaults; only override when necessary:
+
+```typescript
+// BAD - redundant size override on an icon Button
+<Button variant="ghost" size="icon" className="h-8 w-8">
+  <Settings className="h-4 w-4" />
+</Button>
+
+// GOOD - let size="icon" handle dimensions
+<Button variant="ghost" size="icon">
+  <Settings />
+</Button>
+```
+
+**What to check in review:**
+- Are there Tailwind classes that don't change anything?
+- Are icon sizes specified when the default is correct?
+- Are there spacing classes where a parent `gap` or `space-y` already handles spacing?
+
+### Empty States
+
+Use the `Notice` component for empty states — it provides a consistent look with an icon, title, message, and optional actions.
+
+```typescript
+// GOOD - using Notice for empty state
+<Notice
+  title="No staging games"
+  message="Go to Find Games to join a game."
+  icon={Inbox}
+/>
+
+// BAD - ad-hoc empty state
+<div className="text-center text-muted-foreground p-8">
+  <p>No games found</p>
+</div>
+```
 
 ## Forms
 
@@ -494,6 +648,13 @@ const MyForm: React.FC = () => {
 };
 ```
 
+**What to check in review:**
+- Is Zod used for validation (not manual validation)?
+- Is the type derived from the schema with `z.infer` (not manually duplicated)?
+- Does every `FormField` include `FormItem`, `FormLabel`, `FormControl`, and `FormMessage`?
+- Is the submit handler wrapped in `form.handleSubmit`?
+- Are `defaultValues` provided for all fields?
+
 ## User Feedback
 
 ### Mutations
@@ -515,6 +676,12 @@ const handleCreate = async (data: FormValues) => {
 Skip toasts when:
 - A checkbox toggle immediately shows the new state
 - Inline editing where the UI confirms the change
+
+**What to check in review:**
+- Does every user-triggered mutation have error handling?
+- Are success toasts used for non-obvious outcomes (creation, deletion)?
+- Are error toasts present for all `catch` paths?
+- Is `mutateAsync` used (not `mutate`) so errors propagate to the try/catch?
 
 ### Query Errors
 
@@ -720,6 +887,46 @@ Follow this pattern:
 - Use mixins from `common.views` for shared functionality (`SelectedGameMixin`, `CurrentGameMemberMixin`, etc.)
 - Keep view logic minimal - delegate to managers and querysets
 
+```python
+# GOOD - thin view, delegates everything to serializer and queryset
+class GameRetrieveView(generics.RetrieveAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = GameRetrieveSerializer
+    queryset = Game.objects.all().with_retrieve_data()
+
+    def get_object(self):
+        return get_object_or_404(self.queryset, id=self.kwargs.get("game_id"))
+
+
+# GOOD - thin view with mixin for context
+class GamePauseView(SelectedGameMixin, generics.UpdateAPIView):
+    permission_classes = [permissions.IsAuthenticated, IsActiveGame, IsGameMaster]
+    serializer_class = GamePauseSerializer
+
+    def get_object(self):
+        return self.get_game()
+```
+
+**Common mistake** — business logic in the view body. Validation and update logic belong in the serializer; the view should only set up permissions and delegate:
+
+```python
+# BAD - business logic in the view
+class GamePauseView(generics.UpdateAPIView):
+    def update(self, request, *args, **kwargs):
+        game = self.get_object()
+        if game.is_paused:
+            return Response({"error": "Already paused"}, status=400)
+        game.pause()
+        return Response(GameRetrieveSerializer(game).data)
+```
+
+**What to check in review:**
+- Is the view using a DRF generic (not a raw `APIView`)?
+- Are permission classes declared (not checked in the view body)?
+- Is the view thin (no business logic)?
+- Are view mixins used for shared context (not duplicated `get_object` logic)?
+- Is the queryset optimized using QuerySet methods like `with_list_data()`?
+
 ## Serializers
 
 Serializers should use the standard `Serializer` base class over the `ModelSerializer` base class. They should be kept as simple as possible.
@@ -730,6 +937,54 @@ Follow this pattern:
 - Import and compose other serializers for related objects
 - Keep validation logic in custom `validate_*` methods
 - Use context from views (`self.context["request"]`, `self.context["game"]`, etc.)
+
+```python
+# GOOD - explicit fields, Serializer base, @extend_schema_field on method fields
+class GameListSerializer(serializers.Serializer):
+    id = serializers.CharField(read_only=True)
+    name = serializers.CharField(read_only=True)
+    status = serializers.CharField(read_only=True)
+    can_join = serializers.SerializerMethodField()
+    variant_id = serializers.CharField(source="variant.id", read_only=True)
+    members = MemberSerializer(many=True, read_only=True)
+
+    @extend_schema_field(serializers.BooleanField)
+    def get_can_join(self, obj):
+        return obj.can_join(self.context["request"].user)
+
+# BAD - auto-generated fields, ModelSerializer base
+class GameListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Game
+        fields = "__all__"
+```
+
+Explicit field declarations make the API contract visible in the code. `ModelSerializer` hides the contract behind model introspection, making it easy to accidentally expose fields or break the frontend when a model changes.
+
+**Multiple serializers per model.** Different API operations get different serializers (e.g. `GameListSerializer`, `GameRetrieveSerializer`, `GameCreateSerializer`, `GamePauseSerializer`). Field-level validation uses `validate_<field_name>`; cross-field validation uses `validate()`:
+
+```python
+def validate_variant_id(self, value):
+    if not Variant.objects.filter(id=value).exists():
+        raise serializers.ValidationError("Variant with this ID does not exist.")
+    return value
+
+def validate(self, attrs):
+    if attrs["deadline_mode"] == DeadlineMode.FIXED_TIME:
+        if not attrs.get("fixed_deadline_time"):
+            raise serializers.ValidationError({
+                "fixed_deadline_time": "Required when deadline_mode is 'fixed_time'."
+            })
+    return attrs
+```
+
+Common context keys supplied by view mixins: `self.context["request"]`, `self.context["game"]` (`SelectedGameMixin`), `self.context["phase"]` (`SelectedPhaseMixin`/`CurrentPhaseMixin`), `self.context["channel"]` (`SelectedChannelMixin`), `self.context["current_game_member"]` (`CurrentGameMemberMixin`).
+
+**What to check in review:**
+- Is the serializer using `serializers.Serializer` (not `ModelSerializer`)?
+- Are all fields explicitly declared, with `read_only=True` on computed/derived fields?
+- Are `SerializerMethodField`s annotated with `@extend_schema_field` for OpenAPI generation?
+- Does `to_representation` delegate to another serializer when returning a different shape (e.g., `GameCreateSerializer` returning `GameRetrieveSerializer` data)?
 
 ## Models
 
@@ -764,6 +1019,102 @@ class Model(BaseModel):
     def derived_property(self):
         return self.some_calculation()
 ```
+
+All models inherit from `BaseModel` (`service/common/models.py`), which provides `created_at` and `updated_at`. A QuerySet typically has multiple prefetch strategies of increasing weight (e.g. `with_list_data` < `with_retrieve_data` < `with_related_data`); views choose the lightest strategy sufficient for their serializer. Complex multi-model creation flows live in Manager methods (e.g. `create_from_template`, `clone_from_phase`), not in serializer `create()`.
+
+**Common mistake** — query optimization in the view instead of the QuerySet:
+
+```python
+# BAD - select_related in the view
+class GameListView(generics.ListAPIView):
+    def get_queryset(self):
+        return Game.objects.all().select_related("variant").prefetch_related("members")
+
+# GOOD - use the QuerySet method
+class GameListView(generics.ListAPIView):
+    def get_queryset(self):
+        return Game.objects.all().with_list_data()
+```
+
+**What to check in review:**
+- Are query optimizations (`select_related`, `prefetch_related`) in the QuerySet, not in views or serializers?
+- Does the Manager delegate QuerySet methods?
+- Are complex creation flows in Manager methods (not in serializer `create()`)?
+- Are derived values exposed as `@property` on the model?
+- Does the model inherit from `BaseModel`?
+
+## Permissions
+
+Custom permission classes live in `service/common/permissions.py`. Each class checks exactly one thing, has a descriptive `message`, and is composed with others in the view's `permission_classes` list.
+
+```python
+class IsGameMaster(BasePermission):
+    message = "Only the Game Master can perform this action."
+
+    def has_permission(self, request, view):
+        game_id = view.kwargs.get("game_id")
+        game = get_object_or_404(Game, id=game_id)
+        member = game.members.filter(user=request.user).first()
+        if not member:
+            self.message = "User is not a member of the game."
+            return False
+        return member.is_game_master
+```
+
+**Check the existing classes before creating a new one** — most checks already exist:
+
+| Class | Checks |
+|---|---|
+| `IsActiveGame` | Game status is `ACTIVE` |
+| `IsActiveOrCompletedGame` | Game status is `ACTIVE`, `COMPLETED`, or `ABANDONED` |
+| `IsPendingGame` | Game status is `PENDING` |
+| `IsGameMember` / `IsNotGameMember` | User is / is not a member of the game |
+| `IsActiveGameMember` | User is a non-eliminated, non-kicked member |
+| `IsGameMaster` | User is the game master |
+| `IsChannelMember` | User is a member of the channel (public channels always pass) |
+| `IsSpaceAvailable` | Game has fewer members than variant nations |
+| `IsCurrentPhaseActive` | Current phase status is `ACTIVE` |
+| `IsUserPhaseStateExists` | User has a phase state for the current phase |
+| `IsSandboxGame` / `IsNotSandboxGame` | Game is / is not a sandbox |
+
+**What to check in review:**
+- Does the permission class check exactly one concept and have a clear `message`?
+- Is it composed with other permissions in the view, not duplicating checks?
+- Does an existing permission class already cover this check?
+
+## Constants
+
+Constants use class-based definitions with `CHOICES` tuples (`service/common/constants.py`). Reference them by class attribute (`GameStatus.ACTIVE`), never by raw string (`"active"`).
+
+```python
+class GameStatus:
+    PENDING = "pending"
+    ACTIVE = "active"
+    COMPLETED = "completed"
+    ABANDONED = "abandoned"
+
+    STATUS_CHOICES = (
+        (PENDING, "Pending"),
+        (ACTIVE, "Active"),
+        (COMPLETED, "Completed"),
+        (ABANDONED, "Abandoned"),
+    )
+```
+
+## Database and Transactions
+
+Use `transaction.atomic()` for operations that create multiple related objects, and `transaction.on_commit()` for side effects that should only run after a successful commit (e.g. notifications):
+
+```python
+def create(self, validated_data):
+    with transaction.atomic():
+        game = Game.objects.create_from_template(variant, ...)
+        game.members.create(user=request.user, is_game_master=True)
+        game.channels.create(name="Public Press", private=False)
+    return Game.objects.all().with_related_data().get(id=game.id)
+```
+
+Use `Prefetch` objects for complex prefetch strategies — simple (`"phases"`), with `select_related` on the related model, or with a custom queryset (e.g. `to_attr="template_phases"`). See `GameQuerySet` for the canonical patterns.
 
 ## Utils
 
@@ -837,6 +1188,82 @@ Follow this testing pattern:
 - Test comprehensive endpoint behavior including permissions, validation, and data transformations
 - Add performance tests to ensure N+1 query issues are avoided
 - For complex logic in utils files, create separate test classes
+
+**What to check in review:**
+- Are tests testing API endpoints (not calling model methods directly)?
+- Do tests check response status codes AND response body?
+- Are permission tests present for endpoints that require specific permissions?
+- Do tests assert on observable outcomes rather than internal state?
+- Are fixtures in `conftest.py` (not in the test file) and following the naming conventions?
+
+---
+
+# Code Review Reference
+
+This section collects the cross-cutting standards and the consolidated checklist used when running `/review-pr`. The per-section "What to check in review" notes above are the detail; this is the summary.
+
+## Cross-Cutting Concerns
+
+### Type safety and lint discipline
+
+- **Frontend:** TypeScript strict mode. Never use `any`. The one existing `any` in `CreateGame.tsx` (`Control<any>`) is a known compromise for `VariantSelector` — do not add more.
+- **Backend:** Type annotations are not enforced, but use them when they clarify intent (e.g. `duration_to_seconds(duration: Optional[str]) -> Optional[int]`).
+- **Linting:** Fix all violations. Never suppress (`eslint-disable`, `@ts-ignore`, `# noqa`) except the documented mutation-in-`useEffect` pattern.
+
+### Evidence-based changes
+
+Every change must be justifiable by evidence (a failing test that now passes, a user flow that now works, a linked issue). Do not make changes "because it seems better" or "for consistency" unless the issue specifically calls for it.
+
+### Generated code boundary
+
+Files in `packages/web/src/api/generated/` are auto-generated by orval. Never edit them by hand. API changes flow through: backend serializer/view change → `docker compose up codegen` → frontend consumes the new hooks/types. A PR that changes the API shape must include the regenerated output.
+
+### Full-stack consistency
+
+Backend and frontend must agree on the data contract. The API converts `snake_case` (Python) to `camelCase` (TypeScript) via middleware; enum string values come from `service/common/constants.py` and arrive as string-literal types in the generated client.
+
+## PR Review Checklist
+
+### Frontend
+
+- [ ] New screens use the Suspense wrapper pattern (`ScreenContainer` + `ScreenHeader` + `QueryErrorBoundary` + `Suspense`)
+- [ ] Data fetching uses `useXxxSuspense` hooks (not non-suspense variants)
+- [ ] No optional chaining on Suspense-guaranteed data
+- [ ] No mutation objects in `useEffect` dependency arrays (unless with documented eslint-disable)
+- [ ] State lives at the appropriate level (backend → URL → local)
+- [ ] Forms use React Hook Form + Zod with the `FormField` pattern
+- [ ] UI uses shadcn/ui components (not raw HTML elements)
+- [ ] Tailwind classes are minimal — no redundant classes
+- [ ] Empty states use the `Notice` component
+- [ ] Mutation handlers have try/catch with toast feedback; `mutateAsync` used (not `mutate`)
+- [ ] No hand-edits to `src/api/generated/`
+- [ ] Component props have explicit interface definitions
+- [ ] Components under 200 lines
+- [ ] No unnecessary `useEffect` — prefer derived state and event handlers
+- [ ] No `any` types and no lint suppressions (except the mutation dependency exception)
+
+### Backend
+
+- [ ] Serializers use `serializers.Serializer` base (not `ModelSerializer`) with all fields explicitly declared
+- [ ] `SerializerMethodField`s have `@extend_schema_field` annotations
+- [ ] Views use DRF generic views and are thin — no business logic in the view body
+- [ ] Permission classes are declared and each checks one thing
+- [ ] View mixins used for shared context (not duplicated `get_object` logic)
+- [ ] Query optimizations in QuerySet methods (not in views)
+- [ ] Models inherit from `BaseModel`
+- [ ] Constants use the class-based pattern with a `CHOICES` tuple
+- [ ] Multi-object creation uses `transaction.atomic()`; side effects use `transaction.on_commit()`
+- [ ] Imports at the top of file (no inline imports); circular imports resolved with `apps.get_model()` at module level
+- [ ] No docstrings or comments (except DRF view docstrings for OpenAPI)
+- [ ] Test fixtures are factory functions in `conftest.py`, focused on API endpoints (not internal methods)
+- [ ] Tests check permissions, validation, and edge cases
+
+### Cross-Cutting
+
+- [ ] Codegen has been run if backend API shape changed; no non-codegen changes to generated files
+- [ ] Evidence supports the change (linked issue, test results, before/after)
+- [ ] No scope creep — only changes related to the issue
+- [ ] No premature abstractions or unnecessary error handling
 
 ---
 

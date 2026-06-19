@@ -18,7 +18,7 @@ All work in Wave 1 can be launched simultaneously as parallel Claude Code sessio
 
 2. **Code Philosophy Document** — implementation and review standards. Cover: observed patterns in the codebase for component structure, state management, hook design, test style, naming conventions, what the codebase avoids, preference for simplicity over premature optimisation, and any other patterns evident from studying the code.
 
-Save both documents to `.claude/philosophy/issue-philosophy.md` and `.claude/philosophy/code-philosophy.md`.
+Save the issue philosophy to `.claude/philosophy/issue-philosophy.md`. The code philosophy now lives in the "Code Philosophy" section of `CLAUDE.md`.
 
 > ⚠️ **Human review required.** Both documents must be reviewed and approved by the human before Wave 2 begins. The human's corrections and additions should be noted — they will form the first entries when the `/learn-from` commands run for the first time.
 
@@ -116,7 +116,7 @@ Write the following commands:
 - Input: issue number
 - Creates a git worktree in `.worktrees/<issue-number>-<slug>`
 - Creates a branch named `issue/<issue-number>-<slug>`
-- Implements the work described in the issue, following `code-philosophy.md`
+- Implements the work described in the issue, following the code philosophy in `CLAUDE.md`
 - Runs the full test suite and confirms it passes
 - Creates a PR linked to the issue with a description summarising the approach and referencing the acceptance criteria
 - Transitions issue label to `workflow: in-progress`
@@ -124,7 +124,7 @@ Write the following commands:
 
 **`/review-pr`**
 - Input: PR number
-- Reviews the PR as a staff engineer using `code-philosophy.md` and the linked issue's acceptance criteria
+- Reviews the PR as a staff engineer using the code philosophy in `CLAUDE.md` and the linked issue's acceptance criteria
 - Checks: does the implementation satisfy all acceptance criteria, are there regressions, is the approach clean and appropriately simple, is test coverage adequate
 - Posts inline comments directly on the PR for specific issues
 - Posts a summary review comment
@@ -142,7 +142,7 @@ Write the following commands:
 - Input: PR number
 - Reads the human's review comments and any changes they requested
 - Extracts the underlying principle behind each piece of feedback
-- Appends new principles to `code-philosophy.md` under the appropriate section
+- Appends new principles to the "Code Philosophy" section of `CLAUDE.md` under the appropriate heading
 - Does not append duplicates
 
 > ⚠️ **Human review required** for each command before Wave 3 begins. Review for: does the command do what it says, will it produce the right label transitions, does it reference the philosophy documents correctly, is the staff engineer persona well-calibrated.
