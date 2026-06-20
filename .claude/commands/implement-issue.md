@@ -9,9 +9,9 @@ All project context — architecture, conventions, tooling, how to run tests/lin
 
 ## Steps
 
-1. **Find a candidate issue.** Query open issues labelled `workflow: ready-for-implementation` that do **not** also carry `workflow: in-progress`. If several qualify, pick one (oldest is a reasonable default). If none qualify, stop and report that there is no ready work — do nothing else.
+1. **Find a candidate issue.** Query open issues labelled `workflow: ready-for-implementation` that do **not** also carry `workflow: in-progress`, `workflow: needs-pr-review`, or `workflow: needs-human-review`. Also skip any issue that already has an open PR linked to it via `Closes #N`. If several qualify, pick one (oldest is a reasonable default). If none qualify, stop and report that there is no ready work — do nothing else.
 
-2. **Claim it before anything else.** Your very first action after selecting the issue is to add the `workflow: in-progress` label to it. This is the lock that stops a concurrent or scheduled run from grabbing the same issue. Only after the label is applied, read the issue in full — including the **entire** comment thread. Earlier attempts and human notes recorded there must inform your implementation.
+2. **Claim it before anything else.** Your very first action after selecting the issue — before reading it — is to do **two** label operations on it: remove `workflow: ready-for-implementation` **and** add `workflow: in-progress`. Removing the ready label consumes the trigger that started this routine, so it cannot re-fire on this issue; adding `workflow: in-progress` is the lock that stops a concurrent or scheduled run from grabbing the same issue. Only after both label operations have been applied, read the issue in full — including the **entire** comment thread. Earlier attempts and human notes recorded there must inform your implementation.
 
 3. **Implement.** Create a new branch and make the change, following the conventions in CLAUDE.md. Run the relevant tests, lint, and (if the API shape changed) codegen as CLAUDE.md describes.
 
