@@ -75,6 +75,7 @@ export interface Nation {
   nationId: string;
   name: string;
   color: string;
+  nonPlayable: boolean;
   /** @nullable */
   readonly flagUrl: string | null;
 }

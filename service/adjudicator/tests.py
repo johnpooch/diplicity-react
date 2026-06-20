@@ -10808,6 +10808,41 @@ def test_options_adjustment_no_disbands_when_no_surplus():
     assert [o for o in options if o.order_type == "Disband"] == []
 
 
+def _with_non_playable_south(variant: Variant) -> Variant:
+    nations = tuple(
+        replace(n, non_playable=True) if n.id == SOUTH else n
+        for n in variant.nations
+    )
+    return replace(variant, nations=nations)
+
+
+def test_options_adjustment_no_builds_for_non_playable_nation():
+    variant = _with_non_playable_south(make_variant())
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[],
+        supply_centers=[SupplyCenter(nation=SOUTH, province="rhs")],
+    )
+    options = get_options(state)
+    assert [o for o in options if o.order_type == "Build"] == []
+
+
+def test_options_adjustment_no_disbands_for_non_playable_nation():
+    variant = _with_non_playable_south(make_variant())
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[
+            Unit(nation=SOUTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="mid"),
+        ],
+        supply_centers=[SupplyCenter(nation=SOUTH, province="rhs")],
+    )
+    options = get_options(state)
+    assert [o for o in options if o.order_type == "Disband"] == []
+
+
 # === Generic / boundary ===
 
 
