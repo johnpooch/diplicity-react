@@ -63,6 +63,24 @@ class TestEmailLogin:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert "Invalid email or password" in str(response.data)
 
+    def test_case_insensitive_email_login(self, unauthenticated_client):
+        user = User.objects.create_user(
+            username="Player@Example.com",
+            email="Player@Example.com",
+            password="strongpass123",
+            is_active=True,
+        )
+        UserProfile.objects.create(user=user, name="Test Player")
+
+        url = reverse(login_viewname)
+        response = unauthenticated_client.post(
+            url,
+            {"email": "PLAYER@EXAMPLE.COM", "password": "strongpass123"},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+
     def test_unverified_account_returns_401(self, unauthenticated_client):
         User.objects.create_user(
             username="unverified@example.com",

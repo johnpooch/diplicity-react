@@ -23,7 +23,7 @@ class EmailLoginSerializer(serializers.Serializer):
     refresh_token = serializers.CharField(read_only=True)
 
     def create(self, validated_data):
-        user = User.objects.filter(email=validated_data["email"]).first()
+        user = User.objects.filter(email__iexact=validated_data["email"]).first()
         if user is None or not user.check_password(validated_data["password"]):
             raise exceptions.AuthenticationFailed("Invalid email or password.")
         if not user.is_active:
@@ -101,7 +101,7 @@ class RegisterSerializer(serializers.Serializer):
     display_name = serializers.CharField(write_only=True)
 
     def validate_email(self, value):
-        if User.objects.filter(email=value).exists():
+        if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError(
                 "An account with this email already exists. "
                 "If you signed up with Google, please sign in with Google instead."
@@ -249,7 +249,7 @@ class PasswordResetSerializer(serializers.Serializer):
     email = serializers.EmailField(write_only=True)
 
     def create(self, validated_data):
-        user = User.objects.filter(email=validated_data["email"], is_active=True).first()
+        user = User.objects.filter(email__iexact=validated_data["email"], is_active=True).first()
         if user:
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             token = default_token_generator.make_token(user)
