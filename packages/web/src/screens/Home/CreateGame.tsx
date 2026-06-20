@@ -440,10 +440,24 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
   const [step, setStep] = useState(0);
   const [variantCategory, setVariantCategory] =
     useState<VariantCategory>(initialCategory);
+  const [lastSelectedByCategory, setLastSelectedByCategory] = useState<
+    Record<VariantCategory, string>
+  >({
+    official: (defaultVariant?.official ? defaultVariantId : officialVariants[0]?.id) ?? "",
+    community: (!defaultVariant?.official ? defaultVariantId : communityVariants[0]?.id) ?? "",
+  });
 
   const handleVariantCategoryChange = (category: VariantCategory) => {
+    const currentVariantId = form.getValues("variantId");
+    setLastSelectedByCategory(prev => ({ ...prev, [variantCategory]: currentVariantId }));
     setVariantCategory(category);
-    form.setValue("variantId", "", { shouldValidate: false });
+    const newVariants = category === "official" ? officialVariants : communityVariants;
+    const restoredId = lastSelectedByCategory[category];
+    const newVariantId =
+      restoredId && newVariants.some(v => v.id === restoredId)
+        ? restoredId
+        : newVariants[0]?.id ?? "";
+    form.setValue("variantId", newVariantId, { shouldValidate: false });
   };
 
   const activeVariants =
