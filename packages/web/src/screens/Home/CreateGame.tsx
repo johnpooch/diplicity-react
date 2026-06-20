@@ -1,4 +1,4 @@
-import React, { Suspense, useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useForm, Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -440,11 +440,34 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
   const [step, setStep] = useState(0);
   const [variantCategory, setVariantCategory] =
     useState<VariantCategory>(initialCategory);
+  const variantSelectionByCategoryRef = useRef<Record<VariantCategory, string>>({
+    official:
+      initialCategory === "official"
+        ? defaultVariantId
+        : (officialVariants[0]?.id ?? ""),
+    community:
+      initialCategory === "community"
+        ? defaultVariantId
+        : (communityVariants[0]?.id ?? ""),
+  });
 
   const handleVariantCategoryChange = (category: VariantCategory) => {
+    variantSelectionByCategoryRef.current[variantCategory] =
+      form.getValues("variantId");
     setVariantCategory(category);
-    form.setValue("variantId", "", { shouldValidate: false });
   };
+
+  useEffect(() => {
+    const newCategoryVariants =
+      variantCategory === "official" ? officialVariants : communityVariants;
+    const savedId = variantSelectionByCategoryRef.current[variantCategory];
+    const newVariantId =
+      savedId && newCategoryVariants.some(v => v.id === savedId)
+        ? savedId
+        : (newCategoryVariants[0]?.id ?? "");
+    form.setValue("variantId", newVariantId, { shouldValidate: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- form.setValue is stable; variantSelectionByCategoryRef is a ref
+  }, [variantCategory]);
 
   const activeVariants =
     variantCategory === "official" ? officialVariants : communityVariants;

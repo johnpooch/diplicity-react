@@ -115,6 +115,19 @@ const communityVariant = {
 
 const variantsWithCommunity = [variantsFixture[0], communityVariant];
 
+const secondOfficialVariant = {
+  ...variantsFixture[0],
+  id: "hundred",
+  name: "Hundred",
+  official: true,
+};
+
+const variantsWithMultipleOfficial = [
+  variantsFixture[0],
+  secondOfficialVariant,
+  communityVariant,
+];
+
 const matchedGame: GameList = {
   id: "matched-game",
   name: "Matched Game",
@@ -725,5 +738,43 @@ describe("CreateGame — variant category toggle", () => {
     expect(createGameMutateAsync.mock.calls[0][0].data.variantId).toBe(
       "homebrew"
     );
+  });
+
+  it("auto-selects the first community variant when switching to the Community tab", async () => {
+    const user = userEvent.setup();
+    mockedUseVariantsListSuspense.mockReturnValue({
+      data: variantsWithCommunity,
+    } as unknown as ReturnType<typeof useVariantsListSuspense>);
+    renderCreateGame();
+
+    await user.click(screen.getByRole("tab", { name: /community/i }));
+
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.click(screen.getByRole("button", { name: /create game/i }));
+
+    await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
+    expect(createGameMutateAsync.mock.calls[0][0].data.variantId).toBe("homebrew");
+  });
+
+  it("restores the last-selected variant when returning to a category", async () => {
+    const user = userEvent.setup();
+    mockedUseVariantsListSuspense.mockReturnValue({
+      data: variantsWithMultipleOfficial,
+    } as unknown as ReturnType<typeof useVariantsListSuspense>);
+    renderCreateGame();
+
+    await user.click(screen.getByRole("combobox", { name: /variant/i }));
+    await user.click(screen.getByRole("option", { name: /hundred/i }));
+
+    await user.click(screen.getByRole("tab", { name: /community/i }));
+    await user.click(screen.getByRole("tab", { name: /official/i }));
+
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.click(screen.getByRole("button", { name: /create game/i }));
+
+    await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
+    expect(createGameMutateAsync.mock.calls[0][0].data.variantId).toBe("hundred");
   });
 });
