@@ -272,7 +272,7 @@ class GameManager(models.Manager):
         with transaction.atomic():
             game = self.create_from_template(variant, name=name, **kwargs)
 
-            nations_list = list(variant.nations.filter(non_playable=False))
+            nations_list = [n for n in variant.nations.all() if not n.non_playable]
             members_to_create = [Member(game=game, user=user) for _ in nations_list]
             created_members = Member.objects.bulk_create(members_to_create)
 
@@ -583,7 +583,7 @@ class Game(BaseModel):
             # Use prefetched nations if available, otherwise fetch
             # variant.nations.all() is already prefetched via with_game_creation_data()
             # Accessing .all() on a prefetched queryset doesn't trigger a new query
-            nations = list(self.variant.nations.filter(non_playable=False))
+            nations = [n for n in self.variant.nations.all() if not n.non_playable]
 
             if self.nation_assignment == NationAssignment.RANDOM:
                 import random
