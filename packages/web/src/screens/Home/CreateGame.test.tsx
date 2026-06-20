@@ -706,6 +706,54 @@ describe("CreateGame — variant category toggle", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("auto-selects the first community variant when switching to the Community tab", async () => {
+    const user = userEvent.setup();
+    mockedUseVariantsListSuspense.mockReturnValue({
+      data: variantsWithCommunity,
+    } as unknown as ReturnType<typeof useVariantsListSuspense>);
+    renderCreateGame();
+
+    await user.click(screen.getByRole("tab", { name: /community/i }));
+
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.click(screen.getByRole("button", { name: /create game/i }));
+
+    await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
+    expect(createGameMutateAsync.mock.calls[0][0].data.variantId).toBe(
+      "homebrew"
+    );
+  });
+
+  it("restores the last selected variant when returning to a previously visited category", async () => {
+    const user = userEvent.setup();
+    const secondOfficialVariant = {
+      ...variantsFixture[0],
+      id: "fleet-rome",
+      name: "Fleet Rome",
+      official: true,
+    };
+    mockedUseVariantsListSuspense.mockReturnValue({
+      data: [...variantsFixture, secondOfficialVariant, communityVariant],
+    } as unknown as ReturnType<typeof useVariantsListSuspense>);
+    renderCreateGame();
+
+    await user.click(screen.getByRole("combobox", { name: /variant/i }));
+    await user.click(screen.getByRole("option", { name: /fleet rome/i }));
+
+    await user.click(screen.getByRole("tab", { name: /community/i }));
+    await user.click(screen.getByRole("tab", { name: /official/i }));
+
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.click(screen.getByRole("button", { name: /create game/i }));
+
+    await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
+    expect(createGameMutateAsync.mock.calls[0][0].data.variantId).toBe(
+      "fleet-rome"
+    );
+  });
+
   it("creates the game with a community variant selected from the Community tab", async () => {
     const user = userEvent.setup();
     mockedUseVariantsListSuspense.mockReturnValue({

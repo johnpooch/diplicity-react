@@ -1,4 +1,4 @@
-import React, { Suspense, useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useForm, Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -440,11 +440,37 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
   const [step, setStep] = useState(0);
   const [variantCategory, setVariantCategory] =
     useState<VariantCategory>(initialCategory);
+  const [lastSelectedByCategory, setLastSelectedByCategory] = useState<
+    Record<VariantCategory, string>
+  >({
+    official:
+      initialCategory === "official"
+        ? defaultVariantId
+        : (officialVariants[0]?.id ?? ""),
+    community:
+      initialCategory === "community"
+        ? defaultVariantId
+        : (communityVariants[0]?.id ?? ""),
+  });
+
+  const lastSelectedByCategoryRef = useRef(lastSelectedByCategory);
+  lastSelectedByCategoryRef.current = lastSelectedByCategory;
 
   const handleVariantCategoryChange = (category: VariantCategory) => {
+    const currentVariantId = form.getValues("variantId");
+    const updated = { ...lastSelectedByCategory, [variantCategory]: currentVariantId };
+    setLastSelectedByCategory(updated);
     setVariantCategory(category);
-    form.setValue("variantId", "", { shouldValidate: false });
   };
+
+  useEffect(() => {
+    form.setValue(
+      "variantId",
+      lastSelectedByCategoryRef.current[variantCategory],
+      { shouldValidate: false }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- setValue is stable; ref provides latest lastSelectedByCategory without causing re-runs on every selection change
+  }, [variantCategory]);
 
   const activeVariants =
     variantCategory === "official" ? officialVariants : communityVariants;
