@@ -706,6 +706,25 @@ describe("CreateGame — variant category toggle", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("auto-selects the first variant when switching tabs, without manual selection", async () => {
+    const user = userEvent.setup();
+    mockedUseVariantsListSuspense.mockReturnValue({
+      data: variantsWithCommunity,
+    } as unknown as ReturnType<typeof useVariantsListSuspense>);
+    renderCreateGame();
+
+    await user.click(screen.getByRole("tab", { name: /community/i }));
+
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.click(screen.getByRole("button", { name: /create game/i }));
+
+    await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
+    expect(createGameMutateAsync.mock.calls[0][0].data.variantId).toBe(
+      "homebrew"
+    );
+  });
+
   it("creates the game with a community variant selected from the Community tab", async () => {
     const user = userEvent.setup();
     mockedUseVariantsListSuspense.mockReturnValue({

@@ -231,6 +231,7 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
               />
             ) : (
               <Select
+                key={category}
                 onValueChange={field.onChange}
                 value={field.value}
                 disabled={disabled}
@@ -443,7 +444,11 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
 
   const handleVariantCategoryChange = (category: VariantCategory) => {
     setVariantCategory(category);
-    form.setValue("variantId", "", { shouldValidate: false });
+    const firstVariant =
+      category === "official" ? officialVariants[0] : communityVariants[0];
+    form.setValue("variantId", firstVariant?.id ?? "", {
+      shouldValidate: false,
+    });
   };
 
   const activeVariants =
