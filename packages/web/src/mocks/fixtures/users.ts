@@ -63,7 +63,7 @@ for (const player of players) {
     soloWins: 1,
     draws: 3,
     losses: 6,
-    nmrRate: 2.5,
+    nmrRate: 0.05,
     cdRate: 0,
     reliabilityTier: "reliable",
   };

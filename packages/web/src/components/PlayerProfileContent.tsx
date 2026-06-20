@@ -99,11 +99,6 @@ export const PlayerProfileContent: React.FC<PlayerProfileContentProps> = ({
               value={formatPercent(profile.nmrRate)}
               info="The percentage of movement phases where this player submitted no orders, based on their last 10 games."
             />
-            <StatRow
-              label="CD Rate"
-              value={formatPercent(profile.cdRate)}
-              info="The percentage of games where this player entered civil disorder (abandoned the game), based on their last 10 games."
-            />
           </div>
         </ScreenCardContent>
       </ScreenCard>
