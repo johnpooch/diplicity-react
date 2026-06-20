@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Send, MessageCircle, MessageSquareOff } from "lucide-react";
 import { useDraft, useRequiredParams } from "@/hooks";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsDesktopWeb } from "@/hooks/use-platform";
 import { toast } from "sonner";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
@@ -101,7 +101,7 @@ const ChannelScreen: React.FC = () => {
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const isMobile = useIsMobile();
+  const isDesktopWeb = useIsDesktopWeb();
   const [message, setMessage] = useDraft(gameId, channelId);
   const [, setSearchParams] = useSearchParams();
 
@@ -192,7 +192,7 @@ const ChannelScreen: React.FC = () => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (isMobile) return;
+    if (!isDesktopWeb) return;
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
       handleSubmit();
