@@ -135,8 +135,8 @@ const gameSchema = z.object({
     .enum(["hourly", "daily", "every_2_days", "weekly"] as const)
     .optional()
     .nullable(),
-  acceleratedPhasesEnabled: z.boolean().default(true),
-  accelerationWindowSteps: z.number().int().min(1).max(11).default(2),
+  acceleratedPhasesEnabled: z.boolean(),
+  accelerationWindowSteps: z.number().int().min(1).max(11),
   nmrExtensionsAllowed: z.enum(["0", "1", "2"] as const),
   minReliability: z.enum([
     "open",
@@ -949,18 +949,35 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
               <Clock className="h-4 w-4" />
               <AlertDescription>
                 <DeadlineSummary
-                  game={{
-                    movementPhaseDuration:
-                      form.watch("movementPhaseDuration") ?? null,
-                    retreatPhaseDuration:
-                      form.watch("retreatPhaseDuration") ?? null,
-                    deadlineMode,
-                    fixedDeadlineTime: form.watch("fixedDeadlineTime") ?? null,
-                    fixedDeadlineTimezone:
-                      form.watch("fixedDeadlineTimezone") ?? null,
-                    movementFrequency: form.watch("movementFrequency") ?? null,
-                    retreatFrequency: form.watch("retreatFrequency") ?? null,
-                  }}
+                  game={(() => {
+                    const movFreq = form.watch("movementFrequency");
+                    const retFreq = form.watch("retreatFrequency");
+                    const accelEnabled = form.watch("acceleratedPhasesEnabled");
+                    const steps = form.watch("accelerationWindowSteps");
+                    const accelSeconds =
+                      deadlineMode === "fixed_time" &&
+                      accelEnabled &&
+                      movFreq
+                        ? Math.min(
+                            steps * computeAccelerationStep(movFreq),
+                            computeMaxAccelerationWindow(movFreq, retFreq)
+                          )
+                        : null;
+                    return {
+                      movementPhaseDuration:
+                        form.watch("movementPhaseDuration") ?? null,
+                      retreatPhaseDuration:
+                        form.watch("retreatPhaseDuration") ?? null,
+                      deadlineMode,
+                      fixedDeadlineTime:
+                        form.watch("fixedDeadlineTime") ?? null,
+                      fixedDeadlineTimezone:
+                        form.watch("fixedDeadlineTimezone") ?? null,
+                      movementFrequency: movFreq ?? null,
+                      retreatFrequency: retFreq ?? null,
+                      acceleratedPhaseWindowSeconds: accelSeconds,
+                    };
+                  })()}
                 />
               </AlertDescription>
             </Alert>

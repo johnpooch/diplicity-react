@@ -274,7 +274,41 @@ const OrdersScreen: React.FC = () => {
           Resolve phase
         </Button>
       );
-    if (game.deadlineMode === "fixed_time") return null;
+    if (game.deadlineMode === "fixed_time") {
+      if (phase.type === "Movement") {
+        return (
+          <Button disabled>
+            <CheckSquare className="size-4" />
+            Confirm orders
+          </Button>
+        );
+      }
+      if (phase.earlyResolveWindowEnd) {
+        const windowOpen = new Date(phase.earlyResolveWindowEnd) >= new Date();
+        if (windowOpen) {
+          return (
+            <Button
+              disabled={confirmOrdersMutation.isPending}
+              onClick={handleConfirmOrders}
+            >
+              {game.phaseConfirmed ? (
+                <CheckSquare className="size-4" />
+              ) : (
+                <Square className="size-4" />
+              )}
+              {game.phaseConfirmed ? "Orders confirmed" : "Confirm orders"}
+            </Button>
+          );
+        }
+        return (
+          <Button disabled>
+            <CheckSquare className="size-4" />
+            Confirm orders
+          </Button>
+        );
+      }
+      return null;
+    }
     if (hasContent)
       return (
         <Button disabled={confirmOrdersMutation.isPending} onClick={handleConfirmOrders}>
@@ -292,6 +326,42 @@ const OrdersScreen: React.FC = () => {
         Orders confirmed
       </Button>
     );
+  })();
+
+  const footerHelperText = (() => {
+    if (!canModifyOrders) return null;
+    if (game.sandbox) return null;
+    if (game.deadlineMode === "fixed_time") {
+      if (phase.type === "Movement") {
+        return (
+          <p className="text-xs text-muted-foreground">
+            Movement phases run their full duration
+          </p>
+        );
+      }
+      if (phase.earlyResolveWindowEnd) {
+        const windowEnd = new Date(phase.earlyResolveWindowEnd);
+        const windowOpen = windowEnd >= new Date();
+        if (windowOpen) {
+          return (
+            <p className="text-xs text-muted-foreground">
+              Window closes{" "}
+              {windowEnd.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </p>
+          );
+        }
+        return (
+          <p className="text-xs text-muted-foreground">
+            Acceleration window closed — this phase will run to its scheduled
+            time
+          </p>
+        );
+      }
+    }
+    return null;
   })();
 
   const emptyState = isActivePhase
@@ -439,28 +509,31 @@ const OrdersScreen: React.FC = () => {
             )}
           </Panel.Content>
 
-          {(rightFooterButton || showDrawProposalsButton) && (
+          {(rightFooterButton || footerHelperText || showDrawProposalsButton) && (
             <Panel.Footer divider>
-              <div className="flex w-full items-center">
-                <div className="flex-1">
-                  {showDrawProposalsButton && (
-                    <Button
-                      variant="outline"
-                      onClick={handleNavigateToDrawProposals}
-                      className="relative"
-                    >
-                      <Handshake className="size-4" />
-                      Draw proposals
-                      <Suspense fallback={null}>
-                        <DrawProposalsBadge
-                          gameId={gameId}
-                          currentMemberId={currentMember?.id}
-                        />
-                      </Suspense>
-                    </Button>
-                  )}
+              <div className="flex w-full flex-col gap-1">
+                <div className="flex w-full items-center">
+                  <div className="flex-1">
+                    {showDrawProposalsButton && (
+                      <Button
+                        variant="outline"
+                        onClick={handleNavigateToDrawProposals}
+                        className="relative"
+                      >
+                        <Handshake className="size-4" />
+                        Draw proposals
+                        <Suspense fallback={null}>
+                          <DrawProposalsBadge
+                            gameId={gameId}
+                            currentMemberId={currentMember?.id}
+                          />
+                        </Suspense>
+                      </Button>
+                    )}
+                  </div>
+                  {rightFooterButton}
                 </div>
-                {rightFooterButton}
+                {footerHelperText}
               </div>
             </Panel.Footer>
           )}
