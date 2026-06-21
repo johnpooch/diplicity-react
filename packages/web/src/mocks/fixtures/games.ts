@@ -275,11 +275,10 @@ const buildActiveRetreat = () => {
     remainingTime: 10 * 60 * 60,
     units: fallUnits,
     previousPhaseId: 202,
-    earlyResolveWindowEnd: futureIso(3600),
   });
   return makeFixture({
     description:
-      "Active game in a Fall 1901 retreat phase. The current user (England) has an army dislodged from Norway that must retreat or disband. Acceleration window is open.",
+      "Active game in a Fall 1901 retreat phase. The current user (England) has an army dislodged from Norway that must retreat or disband.",
     game: makeGame("active-retreat", "Northern Standoff", members, [
       spring,
       fallMove,
@@ -287,8 +286,6 @@ const buildActiveRetreat = () => {
     ], {
       orderStatus: "orders_required",
       memberStatus: [],
-      deadlineMode: "fixed_time",
-      acceleratedPhaseWindowSeconds: 14400,
     }),
     phases: [spring, fallMove, retreat],
     ordersByPhase: {

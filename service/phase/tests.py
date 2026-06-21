@@ -9,7 +9,7 @@ from django.db import connection
 from datetime import timedelta, time
 from unittest.mock import patch, Mock
 from rest_framework import status
-from common.constants import PhaseStatus, PhaseType, OrderType, UnitType, GameStatus, DeadlineMode, ProvinceType, PhaseFrequency
+from common.constants import PhaseStatus, PhaseType, OrderType, UnitType, GameStatus, DeadlineMode, ProvinceType, PhaseFrequency, MovementPhaseDuration
 from game.models import Game
 from .models import Phase, PhaseState
 from .serializers import PhaseStateSerializer
@@ -4731,11 +4731,6 @@ class TestFilterDuePhasesAcceleratedWindow:
 
     @pytest.mark.django_db
     def test_returns_phase_when_window_open_and_all_confirmed(self, phase_factory, classical_variant, primary_user, classical_england_nation):
-        from django.utils import timezone
-        from datetime import timedelta
-        from game.models import Game
-        from common.constants import DeadlineMode, GameStatus, MovementPhaseDuration
-
         game = Game.objects.create(
             variant=classical_variant,
             name="Accelerated Test Game",
@@ -4763,11 +4758,6 @@ class TestFilterDuePhasesAcceleratedWindow:
 
     @pytest.mark.django_db
     def test_does_not_return_phase_when_window_closed(self, phase_factory, classical_variant, primary_user, classical_england_nation):
-        from django.utils import timezone
-        from datetime import timedelta
-        from game.models import Game
-        from common.constants import DeadlineMode, GameStatus
-
         game = Game.objects.create(
             variant=classical_variant,
             name="Accelerated Window Closed Game",
@@ -4795,11 +4785,6 @@ class TestFilterDuePhasesAcceleratedWindow:
 
     @pytest.mark.django_db
     def test_does_not_return_movement_phase_early(self, phase_factory, classical_variant, primary_user, classical_england_nation):
-        from django.utils import timezone
-        from datetime import timedelta
-        from game.models import Game
-        from common.constants import DeadlineMode, GameStatus
-
         game = Game.objects.create(
             variant=classical_variant,
             name="Accelerated Movement Test Game",
@@ -4827,11 +4812,6 @@ class TestFilterDuePhasesAcceleratedWindow:
 
     @pytest.mark.django_db
     def test_does_not_return_duration_game_phase_via_accelerated_branch(self, phase_factory, classical_variant, primary_user, classical_england_nation):
-        from django.utils import timezone
-        from datetime import timedelta
-        from game.models import Game
-        from common.constants import DeadlineMode, GameStatus, MovementPhaseDuration
-
         game = Game.objects.create(
             variant=classical_variant,
             name="Duration Mode Game",
@@ -4883,9 +4863,6 @@ class TestCreateFromAdjudicationDataEarlyResolveWindow:
         self,
         italy_vs_germany_phase_with_orders,
     ):
-        from django.utils import timezone
-        from datetime import timedelta
-
         phase = italy_vs_germany_phase_with_orders
         phase.game.deadline_mode = DeadlineMode.FIXED_TIME
         phase.game.fixed_deadline_time = "21:00:00"
@@ -4912,9 +4889,6 @@ class TestCreateFromAdjudicationDataEarlyResolveWindow:
         self,
         italy_vs_germany_phase_with_orders,
     ):
-        from django.utils import timezone
-        from datetime import timedelta
-
         phase = italy_vs_germany_phase_with_orders
         phase.game.deadline_mode = DeadlineMode.FIXED_TIME
         phase.game.fixed_deadline_time = "21:00:00"
@@ -4939,9 +4913,6 @@ class TestCreateFromAdjudicationDataEarlyResolveWindow:
         self,
         italy_vs_germany_phase_with_orders,
     ):
-        from django.utils import timezone
-        from datetime import timedelta
-
         phase = italy_vs_germany_phase_with_orders
         phase.game.deadline_mode = DeadlineMode.FIXED_TIME
         phase.game.fixed_deadline_time = "21:00:00"
@@ -4965,9 +4936,6 @@ class TestCreateFromAdjudicationDataEarlyResolveWindow:
         self,
         italy_vs_germany_phase_with_orders,
     ):
-        from django.utils import timezone
-        from datetime import timedelta
-
         phase = italy_vs_germany_phase_with_orders
         phase.game.deadline_mode = DeadlineMode.FIXED_TIME
         phase.game.fixed_deadline_time = "21:00:00"

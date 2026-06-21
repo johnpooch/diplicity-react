@@ -97,6 +97,7 @@ class GameListSerializer(serializers.Serializer):
     fixed_deadline_timezone = serializers.CharField(read_only=True, allow_null=True)
     movement_frequency = serializers.CharField(read_only=True, allow_null=True)
     retreat_frequency = serializers.CharField(read_only=True, allow_null=True)
+    accelerated_phase_window_seconds = serializers.IntegerField(read_only=True, allow_null=True)
     press_type = serializers.CharField(read_only=True)
     min_reliability = serializers.CharField(read_only=True)
     total_unread_message_count = serializers.IntegerField(read_only=True, default=0)
