@@ -8,6 +8,7 @@
 - No thematic language ("dispatches", "nations" in button labels)
 - No exclamation marks
 - No first-person from the app ("We couldn't find that game")
+- No em-dashes, no marketing or LLM-flavored phrasing ("seamless", "effortless", "unlock"). UI copy should read like a human wrote it tersely.
 - Short sentences. Active voice.
 
 ---
@@ -28,7 +29,22 @@
 
 In a multi-step form, the final submit button names the outcome ("Create Game"), not the action ("Submit"). All other buttons: Next, Back — no label needed beyond that.
 
-When an action is in progress, the button shows a spinner (no text). Never "Creating...", never "Loading...".
+When an action is in progress, the button shows a spinner before its label and the label stays. Never change it to "Creating..." or "Loading...".
+
+### Icon-only buttons
+
+Any button whose only content is an icon (no visible text label) must have both an `aria-label` and a visible tooltip — the `aria-label` for screen readers, the tooltip for sighted users.
+
+```tsx
+<Tooltip>
+  <TooltipTrigger asChild>
+    <Button size="icon" variant="ghost" aria-label="Edit name" onClick={handleEdit}>
+      <Pencil className="size-4" />
+    </Button>
+  </TooltipTrigger>
+  <TooltipContent>Edit name</TooltipContent>
+</Tooltip>
+```
 
 ---
 
@@ -128,18 +144,7 @@ Do not add a third sentence suggesting the next step. The implication makes it c
 
 ## Empty States
 
-Every empty state has: icon + title + description + primary CTA.
-
-```tsx
-<Notice
-  icon={Map}
-  title="No games yet"
-  message="Join an existing game or create your own."
-  action={<Button>Find a Game</Button>}
-/>
-```
-
-When the empty state results from a search or filter with no results, the CTA is "Clear filters" instead of a creation action. Title: "No results". No description needed — the filter state is already visible.
+See [./interaction-patterns.md](./interaction-patterns.md) for the empty-state pattern (structure and the no-results variant). For the copy: the title names what's missing ("No games yet"), the message is one short sentence pointing to the resolving action ("Join an existing game or create your own."), and the CTA verb names that action ("Find a Game"). A no-results state uses the title "No results" and a "Clear filters" CTA, with no description.
 
 ---
 

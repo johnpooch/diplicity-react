@@ -419,7 +419,7 @@ const MyScreen: React.FC = () => {
 const MyScreenSuspense: React.FC = () => (
   <ScreenContainer>
     <ScreenHeader title="My Screen" />
-    <Suspense fallback={<div></div>}>
+    <Suspense fallback={<MyScreenSkeleton />}>
       <MyScreen />
     </Suspense>
   </ScreenContainer>
@@ -434,7 +434,7 @@ The outer wrapper should also include `QueryErrorBoundary` wrapping `Suspense` (
 - Does the inner component use `useXxxSuspense` hooks (not `useXxx`)?
 - Is the outer wrapper present with `ScreenContainer`, `ScreenHeader`, `QueryErrorBoundary`, and `Suspense`?
 - Is the wrapper exported with the screen name?
-- Is the `Suspense` fallback an empty div (not a spinner or skeleton — keep it minimal)?
+- Is the `Suspense` fallback a skeleton that mirrors the screen's content and matches its dimensions (not an empty div or a centered spinner)? The skeleton-to-content swap must not shift layout — see the UX skill's loading-states guidance.
 - Is `QueryErrorBoundary` wrapping `Suspense` (not inside it)? Without it, query errors crash the whole page instead of showing the "Try Again" UI in the content area.
 
 ### Inline Over Extract
@@ -692,7 +692,7 @@ const MyScreenSuspense: React.FC = () => (
   <ScreenContainer>
     <ScreenHeader title="My Screen" />
     <QueryErrorBoundary>
-      <Suspense fallback={<div></div>}>
+      <Suspense fallback={<MyScreenSkeleton />}>
         <MyScreen />
       </Suspense>
     </QueryErrorBoundary>

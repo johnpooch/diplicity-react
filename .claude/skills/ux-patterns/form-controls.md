@@ -15,9 +15,11 @@ Start with the number of options and their label length:
 | 5+ | Any | `<Select>` dropdown |
 | 10+ | Predictable/searchable names | Combobox (typeahead) |
 
+Examples: three short-label options (Light / Dark / System, or None / 1 / 2) → segmented control; three options that each need a description (game mode: Standard / Gunboat / Sandbox) → radio group with descriptions.
+
 **Spectrum options → Slider.** When options represent a continuum from permissive to restrictive (e.g. player reliability: Open → Reliable+New → Reliable Only), use a slider. Left = most open, right = most restrictive. Label the endpoints and current value.
 
-**CRITICAL: `<Tabs>` is never a form control.** It is navigation only. The current codebase incorrectly uses `<Tabs>` for `deadlineMode` and `variantCategory` — those are anti-patterns to fix, not to follow.
+**CRITICAL: `<Tabs>` is never a form control.** It is navigation only — never use it to drive form field selection or binary choices. Use a segmented control or radio group instead.
 
 ---
 
@@ -81,25 +83,11 @@ Truncate long labels with ellipsis after 1 line. Always add a tooltip that shows
 
 ---
 
-## Component Reference
+## Lists: Cards vs Rows
 
-| Control | Radix/shadcn component |
-|---------|----------------------|
-| Segmented control | `<Tabs>` used as a UI primitive (not for navigation) — or custom button group |
-| Radio group | `@radix-ui/react-radio-group` — not yet in `components/ui/`, add if needed |
-| Slider | `@radix-ui/react-slider` — not yet in `components/ui/`, add if needed |
-| Select/dropdown | `<Select>` from `@/components/ui/select` |
-| Combobox | `<Popover>` + `<Command>` (cmdk) — add if needed |
-| Checkbox | `<Checkbox>` from `@/components/ui/checkbox` |
-| Switch | `<Switch>` from `@/components/ui/switch` |
-| Stepper | Custom: two `<Button size="icon">` flanking a display span |
+| Content type | Component |
+|-------------|-----------|
+| Rich items with preview (games, variants with map) | `<Card>` or `<ScreenCard>` |
+| Simple items (players, account settings, nav items) | `<Item>` / `<ItemGroup>` from `@/components/ui/item` |
 
----
-
-## Anti-patterns in the current codebase (do not follow)
-
-- `mode` field (Standard/Gunboat/Sandbox): currently `<Select>` with 3 options → should be radio group (labels are short-ish but options have meaningfully different descriptions)
-- `nmrExtensionsAllowed` (None/1 per player/2 per player): currently `<Select>` with 3 short options → should be segmented control
-- `minReliability` (Open/Reliable+New/Reliable Only): currently `<Select>` with descriptions → should be slider (spectrum)
-- `deadlineMode` (Fixed Time/Duration): currently `<Tabs>` used as form selector → should be radio buttons
-- Theme selector (Light/Dark/System): currently `<Select>` with 3 options → should be segmented control
+Within a list, all items must use the same component. Never mix cards and rows. (Players are rows today; this may shift toward cards as more player data — reliability, rating — is surfaced.)

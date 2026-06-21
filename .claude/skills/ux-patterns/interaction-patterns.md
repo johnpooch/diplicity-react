@@ -10,11 +10,6 @@ Update the UI immediately. If the server rejects, revert silently and show an er
 ### Orders: optimistic + success confirmation
 Game orders are the exception. Update the UI immediately (optimistic), then show a success toast when the server confirms. This is non-negotiable: a missed order can lose a game. The player needs to know their order was received.
 
-```tsx
-// After mutateAsync resolves:
-toast.success("Orders submitted")
-```
-
 Do not apply this pattern elsewhere — it would create noise. Only game orders warrant explicit server confirmation.
 
 ### Pessimistic (one-shot actions: join game, create game)
@@ -24,14 +19,7 @@ Wait for the server before updating the UI. Show a spinner on the button. No opt
 
 ## Undo
 
-For reversible destructive actions (actions the user can redo without consequence, e.g. leaving a lobby they can rejoin):
-
-1. Execute the action immediately
-2. Show a toast: `"You left the lobby" [Undo]`
-3. Undo window: ~5 seconds
-4. If the user doesn't undo, the action is committed
-
-For irreversible actions, use a confirmation dialog instead (see [./feedback-patterns.md](./feedback-patterns.md)).
+See [./feedback-patterns.md](./feedback-patterns.md) for the canonical Undo pattern: execute immediately, show a toast with an Undo action, and reverse via a separate request on undo. For irreversible actions, use a confirmation dialog instead.
 
 ---
 
@@ -40,9 +28,11 @@ For irreversible actions, use a confirmation dialog instead (see [./feedback-pat
 When new data arrives while the user is viewing a screen (e.g. a new game phase starts):
 
 - Show a toast describing what changed
-- Automatically refresh the relevant list/screen
+- Automatically reload the relevant screen content
 
-Do not use "New content available — tap to refresh" banners. The toast + auto-refresh handles it.
+Do not use "New content available — tap to refresh" banners. The toast + auto-reload handles it.
+
+When the current phase resolves while the user is viewing an older phase, shift them to the newest phase anyway, and show a toast telling them it updated. One consistent rule (always show the latest) is worth more than the rare moment of being moved off a phase they were reviewing — and the toast explains why.
 
 ---
 
@@ -65,9 +55,22 @@ Other screens (profile, settings, variants) do not need pull-to-refresh — data
 
 ---
 
+## Touch Targets
+
+Minimum 48×48dp for all interactive elements on mobile. If a visual element is smaller (e.g. a 16×16 icon), expand the hit area with padding. The `size="icon"` variant on `<Button>` handles this for icon buttons — do not reduce it.
+
+---
+
 ## Inline Editing
 
-See [./navigation-layout.md](./navigation-layout.md) for the full pattern. Summary: tap edit icon → Input appears in-place → Save/Cancel icon buttons appear inline → success returns to display state → failure shows inline error.
+For editable fields on non-form screens (e.g. username on the Account screen):
+
+1. Show value + edit icon (`<Pencil>` button with `aria-label`)
+2. Tap edit: the value is replaced with an `<Input>` pre-filled with the current value
+3. Show Save (`<Check>`) and Cancel (`<X>`) icon buttons to the right
+4. Save/Cancel appear immediately — never below the field
+5. On save success: return to display state
+6. On save failure: show the error message inline below the input (not a toast)
 
 ---
 
@@ -80,30 +83,11 @@ All empty states include: icon + title + description + primary CTA (action to re
   icon={Users}
   title="No games found"
   message="Try a different filter or create your own game."
-  action={<Button>Create Game</Button>}
+  actions={<Button>Create Game</Button>}
 />
 ```
 
 **No-results state** (search/filter returned nothing): "No results" title + "Clear filters" CTA. No icon needed — keep it lightweight.
-
----
-
-## Multi-Select with Checkboxes
-
-In a vertical checkbox list, when the user has applied selections and the state is "nothing found":
-
-Show the empty state with a "Clear filters" button that resets all selections to their default (unselected) state.
-
----
-
-## Notification Badges
-
-| Situation | Component |
-|-----------|-----------|
-| "Your turn" on a nav item | Dot indicator (colored dot, no count) |
-| Unread message count | Numeric badge |
-| Phase or game status | Semantic `<Badge>` (colored pill) |
-| Metadata count (3/7 players) | Muted text — no badge |
 
 ---
 
@@ -112,51 +96,6 @@ Show the empty state with a "Clear filters" button that resets all selections to
 Direct manipulation on the map — tapping a unit shows order options contextually, inline on or near the map. No separate wizard panel. No sheet for order type selection.
 
 This is the existing pattern in the codebase. Do not change it to a side-panel form.
-
----
-
-## Accordion: Orders Display
-
-When showing resolved orders for a completed phase:
-
-- Collapsed by default (one row per nation)
-- Individual rows expand/collapse on tap
-- Always include "Expand all" / "Collapse all" controls above the accordion
-
-```tsx
-<div className="flex justify-end gap-3 text-sm mb-2">
-  <button
-    className="text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
-    onClick={() => setExpandedItems(allNationIds)}
-  >
-    Expand all
-  </button>
-  <button
-    className="text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
-    onClick={() => setExpandedItems([])}
-  >
-    Collapse all
-  </button>
-</div>
-```
-
----
-
-## First-Time Feature Encounter
-
-When a user encounters a feature for the first time (not covered in the new-player introduction):
-
-Show a subtle muted text block below the relevant UI element. It disappears after the user takes their first action. It does not reappear.
-
-This is the only contextual help mechanism for first encounters. Do not use highlighted "New" badges, modal announcements, or coach marks.
-
----
-
-## App Updates
-
-Non-breaking updates: distribute automatically through the app store. No in-app prompt, no banner, no notification. Users receive the update silently.
-
-Breaking updates (if ever required): blocking `<AlertDialog>` that prevents use until updated. This should be extremely rare.
 
 ---
 

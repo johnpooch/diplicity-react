@@ -87,73 +87,21 @@ The wizard exists because all steps require conscious decisions. Do not skip ste
 
 ---
 
-## Inline Editing
+## Settings
 
-For editable fields on non-form screens (e.g. username on Account screen):
+Group settings by topic — what they control (e.g. Profile, Notifications, Appearance) — not by where their value is stored. Users reason about the thing being configured, not whether it lives on the device or the account.
 
-1. Show value + edit icon (`<Pencil>` button with `aria-label`)
-2. Tap edit: value is replaced with `<Input>` pre-filled with current value
-3. Show Save (`<Check>`) and Cancel (`<X>`) icon buttons to the right
-4. Save/Cancel appear immediately — never below the field
-5. On save success: return to display state
-6. On save failure: show error message inline below the input (not a toast)
-
----
-
-## Settings: Local vs Global
-
-The Account screen contains both device-local settings (e.g. Push Notifications) and global account settings (e.g. username, theme preference). These must be visually separated with distinct section headings:
-
-- "This device" or "Notifications" — settings that apply to this device only
-- "Account" — profile settings that apply everywhere
-
-Never mix the two groups in the same section.
-
----
-
-## Icon-Only Buttons
-
-Both `aria-label` and a visible tooltip are required. No exceptions.
-
-```tsx
-<Tooltip>
-  <TooltipTrigger asChild>
-    <Button size="icon" variant="ghost" aria-label="Edit name" onClick={handleEdit}>
-      <Pencil className="size-4" />
-    </Button>
-  </TooltipTrigger>
-  <TooltipContent>Edit name</TooltipContent>
-</Tooltip>
-```
-
----
-
-## Touch Targets
-
-Minimum 48×48dp for all interactive elements on mobile. If a visual element is smaller (e.g. a 16×16 icon), expand the hit area with padding. The `size="icon"` variant on `<Button>` handles this for icon buttons — do not reduce it.
-
----
-
-## Lists: Cards vs Rows
-
-| Content type | Component |
-|-------------|-----------|
-| Rich items with preview (games, variants with map) | `<Card>` or `<ScreenCard>` |
-| Simple items (players, account settings, nav items) | `<Item>` / `<ItemGroup>` from `@/components/ui/item` |
-
-Within a list, all items must use the same component. Never mix cards and rows.
+Some settings apply only to the current device (e.g. push notifications). Where that scope isn't obvious, add a small muted indicator on the individual setting ("This device") rather than splitting the screen by storage location.
 
 ---
 
 ## Notification Badges
 
-| Signal | Style |
-|--------|-------|
-| "Your turn" (binary) | Dot indicator — colored dot, no count |
-| Unread messages (quantitative) | Numeric badge count |
-| Phase status, game status | Colored `<Badge>` with semantic color |
-| Metadata (3/7 players) | Muted text, no badge |
+Match the badge to the *kind* of signal it carries:
 
-Semantic badge colors: red = urgent/requires action, yellow = warning/approaching deadline, green = success/complete, blue = informational.
+- **Binary** ("your turn", something needs attention) → a dot indicator, no count
+- **Quantitative** (unread messages) → a numeric badge count
+- **Status** (phase status, game status) → a `<Badge>` whose color carries meaning: red = urgent/requires action, yellow = warning/approaching deadline, green = success/complete, blue = informational
+- **Passive metadata** (3/7 players) → muted text, never a badge
 
-In the game map and board context, color alone may convey nation identity — a visible legend must accompany any color-only encoding.
+Color is never the only carrier of meaning. Where color encodes something — a semantic badge, or nation identity on the map/board — a label or visible legend must accompany it.

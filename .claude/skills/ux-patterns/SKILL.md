@@ -29,7 +29,7 @@ The stack is **React 19 + Tailwind v4 + Radix UI (shadcn/ui style) + react-hook-
 
 ## Suspense Fallbacks
 
-All screens that fetch data must use a skeleton fallback — not `<Suspense fallback={<div></div>}>`. See [./feedback-patterns.md](./feedback-patterns.md) for the correct pattern.
+Keep the Suspense wrapper — it is the correct pattern. Only the fallback changes: replace the empty-div fallback (`<Suspense fallback={<div></div>}>`) with a skeleton that matches the loaded content's dimensions exactly, so the swap causes no layout shift. See [./feedback-patterns.md](./feedback-patterns.md) for the full pattern.
 
 Apply this to every new screen you build and to any existing screen you touch as part of the current issue. Do not fix screens the current PR is not already touching — boy scout rule.
 
