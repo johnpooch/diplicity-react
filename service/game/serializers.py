@@ -97,6 +97,7 @@ class GameListSerializer(serializers.Serializer):
     fixed_deadline_timezone = serializers.CharField(read_only=True, allow_null=True)
     movement_frequency = serializers.CharField(read_only=True, allow_null=True)
     retreat_frequency = serializers.CharField(read_only=True, allow_null=True)
+    accelerated_phase_window_seconds = serializers.IntegerField(read_only=True, allow_null=True)
     press_type = serializers.CharField(read_only=True)
     min_reliability = serializers.CharField(read_only=True)
     total_unread_message_count = serializers.IntegerField(read_only=True, default=0)
@@ -245,6 +246,7 @@ class GameRetrieveSerializer(serializers.Serializer):
     fixed_deadline_timezone = serializers.CharField(read_only=True, allow_null=True)
     movement_frequency = serializers.CharField(read_only=True, allow_null=True)
     retreat_frequency = serializers.CharField(read_only=True, allow_null=True)
+    accelerated_phase_window_seconds = serializers.IntegerField(read_only=True, allow_null=True)
     press_type = serializers.CharField(read_only=True)
     min_reliability = serializers.CharField(read_only=True)
     total_unread_message_count = serializers.SerializerMethodField()
@@ -414,6 +416,12 @@ class GameCreateSerializer(serializers.Serializer):
         allow_null=True,
         default=None,
     )
+    accelerated_phase_window_seconds = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        default=None,
+        min_value=1,
+    )
     nmr_extensions_allowed = serializers.IntegerField(
         required=False,
         default=0,
@@ -496,6 +504,7 @@ class GameCreateSerializer(serializers.Serializer):
             attrs["fixed_deadline_timezone"] = None
             attrs["movement_frequency"] = None
             attrs["retreat_frequency"] = None
+            attrs["accelerated_phase_window_seconds"] = None
 
         return attrs
 
@@ -521,6 +530,7 @@ class GameCreateSerializer(serializers.Serializer):
                 fixed_deadline_timezone=validated_data.get("fixed_deadline_timezone"),
                 movement_frequency=validated_data.get("movement_frequency"),
                 retreat_frequency=validated_data.get("retreat_frequency"),
+                accelerated_phase_window_seconds=validated_data.get("accelerated_phase_window_seconds"),
                 nmr_extensions_allowed=validated_data["nmr_extensions_allowed"],
                 press_type=validated_data["press_type"],
                 min_reliability=validated_data["min_reliability"],

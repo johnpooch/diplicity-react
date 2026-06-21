@@ -409,6 +409,7 @@ class Game(BaseModel):
         null=True,
         blank=True,
     )
+    accelerated_phase_window_seconds = models.PositiveIntegerField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
         if not self.id:

@@ -79,13 +79,20 @@ class PhaseQuerySet(models.QuerySet):
         all_confirmed = ~Exists(
             PhaseState.objects.filter(phase=OuterRef("pk"), has_possible_orders=True, orders_confirmed=False)
         )
+        accelerated_due = (
+            Q(game__deadline_mode=DeadlineMode.FIXED_TIME)
+            & ~Q(type=PhaseType.MOVEMENT)
+            & Q(early_resolve_window_end__isnull=False)
+            & Q(early_resolve_window_end__gte=timezone.now())
+            & all_confirmed
+        )
         return self.filter(
             Q(status=PhaseStatus.ACTIVE)
             & Q(game__sandbox=False)
             & Q(game__paused_at__isnull=True)
             & ~Q(game__status=GameStatus.COMPLETED)
             & ~Q(game__status=GameStatus.ABANDONED)
-            & (deadline_passed | (~Q(game__deadline_mode=DeadlineMode.FIXED_TIME) & all_confirmed))
+            & (deadline_passed | (~Q(game__deadline_mode=DeadlineMode.FIXED_TIME) & all_confirmed) | accelerated_due)
         )
 
 
@@ -678,6 +685,24 @@ class PhaseManager(models.Manager):
                 )
                 new_ordinal = previous_phase.ordinal + 1
 
+                early_resolve_window_end = None
+                game = previous_phase.game
+                if (
+                    game.deadline_mode == DeadlineMode.FIXED_TIME
+                    and adjudication_data["type"] != PhaseType.MOVEMENT
+                    and game.accelerated_phase_window_seconds is not None
+                ):
+                    if previous_phase.type == PhaseType.MOVEMENT:
+                        t0 = previous_phase.scheduled_resolution
+                        if t0 is not None:
+                            window_end = t0 + timedelta(seconds=game.accelerated_phase_window_seconds)
+                            if scheduled_resolution:
+                                early_resolve_window_end = min(window_end, scheduled_resolution)
+                            else:
+                                early_resolve_window_end = window_end
+                    else:
+                        early_resolve_window_end = previous_phase.early_resolve_window_end
+
                 logger.info(
                     f"Creating new phase {new_ordinal} ({adjudication_data['season']} {adjudication_data['year']}, {adjudication_data['type']})"
                 )
@@ -694,6 +719,7 @@ class PhaseManager(models.Manager):
                         options=adjudication_data["options"],
                         status=PhaseStatus.ACTIVE,
                         scheduled_resolution=scheduled_resolution,
+                        early_resolve_window_end=early_resolve_window_end,
                     )
                     new_phase_span.set_attribute("phase.id", new_phase.id)
                     new_phase_span.set_attribute("phase.ordinal", new_ordinal)
@@ -840,6 +866,7 @@ class Phase(BaseModel):
     type = models.CharField(max_length=10)
     scheduled_resolution = models.DateTimeField(null=True, blank=True)
     options = models.JSONField(default=dict)
+    early_resolve_window_end = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["ordinal"]

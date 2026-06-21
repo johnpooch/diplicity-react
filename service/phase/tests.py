@@ -2093,6 +2093,273 @@ class TestFilterDuePhasesBasicFiltering:
         assert phase in phases
 
 
+class TestFilterDuePhasesAccelerated:
+
+    @pytest.mark.django_db
+    def test_accelerated_retreat_phase_all_confirmed_within_window_is_due(
+        self, phase_factory, classical_variant, classical_england_nation, classical_france_nation
+    ):
+        game = Game.objects.create(
+            variant=classical_variant,
+            name="Accelerated Game",
+            status=GameStatus.ACTIVE,
+            deadline_mode=DeadlineMode.FIXED_TIME,
+            accelerated_phase_window_seconds=3600,
+        )
+        phase = phase_factory(
+            game=game,
+            type=PhaseType.RETREAT,
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            early_resolve_window_end=timezone.now() + timedelta(minutes=30),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
+                {"nation": classical_france_nation, "has_possible_orders": True, "orders_confirmed": True},
+            ],
+        )
+
+        phases = Phase.objects.filter_due_phases()
+
+        assert phase in phases
+
+    @pytest.mark.django_db
+    def test_accelerated_retreat_phase_window_expired_not_due(
+        self, phase_factory, classical_variant, classical_england_nation, classical_france_nation
+    ):
+        game = Game.objects.create(
+            variant=classical_variant,
+            name="Accelerated Game Expired",
+            status=GameStatus.ACTIVE,
+            deadline_mode=DeadlineMode.FIXED_TIME,
+            accelerated_phase_window_seconds=3600,
+        )
+        phase = phase_factory(
+            game=game,
+            type=PhaseType.RETREAT,
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            early_resolve_window_end=timezone.now() - timedelta(minutes=1),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
+                {"nation": classical_france_nation, "has_possible_orders": True, "orders_confirmed": True},
+            ],
+        )
+
+        phases = Phase.objects.filter_due_phases()
+
+        assert phase not in phases
+
+    @pytest.mark.django_db
+    def test_accelerated_movement_phase_not_included_by_accelerated_branch(
+        self, phase_factory, classical_variant, classical_england_nation, classical_france_nation
+    ):
+        game = Game.objects.create(
+            variant=classical_variant,
+            name="Accelerated Movement Game",
+            status=GameStatus.ACTIVE,
+            deadline_mode=DeadlineMode.FIXED_TIME,
+            accelerated_phase_window_seconds=3600,
+        )
+        phase = phase_factory(
+            game=game,
+            type=PhaseType.MOVEMENT,
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            early_resolve_window_end=timezone.now() + timedelta(minutes=30),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
+                {"nation": classical_france_nation, "has_possible_orders": True, "orders_confirmed": True},
+            ],
+        )
+
+        phases = Phase.objects.filter_due_phases()
+
+        assert phase not in phases
+
+    @pytest.mark.django_db
+    def test_accelerated_duration_mode_game_not_affected(
+        self, phase_factory, classical_england_nation, classical_france_nation
+    ):
+        phase = phase_factory(
+            type=PhaseType.RETREAT,
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            early_resolve_window_end=timezone.now() + timedelta(minutes=30),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
+                {"nation": classical_france_nation, "has_possible_orders": True, "orders_confirmed": True},
+            ],
+        )
+
+        phases = Phase.objects.filter_due_phases()
+
+        assert phase in phases
+
+    @pytest.mark.django_db
+    def test_accelerated_null_window_end_not_included(
+        self, phase_factory, classical_variant, classical_england_nation, classical_france_nation
+    ):
+        game = Game.objects.create(
+            variant=classical_variant,
+            name="No Window Game",
+            status=GameStatus.ACTIVE,
+            deadline_mode=DeadlineMode.FIXED_TIME,
+        )
+        phase = phase_factory(
+            game=game,
+            type=PhaseType.RETREAT,
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
+                {"nation": classical_france_nation, "has_possible_orders": True, "orders_confirmed": True},
+            ],
+        )
+
+        phases = Phase.objects.filter_due_phases()
+
+        assert phase not in phases
+
+
+class TestCreateFromAdjudicationDataEarlyResolveWindow:
+
+    @pytest.mark.django_db
+    def test_non_movement_after_movement_sets_window_clamped_to_scheduled_resolution(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        phase.game.deadline_mode = DeadlineMode.FIXED_TIME
+        phase.game.accelerated_phase_window_seconds = 3600
+        phase.game.save()
+        scheduled_resolution = timezone.now() + timedelta(hours=2)
+        phase.scheduled_resolution = scheduled_resolution
+        phase.save()
+
+        new_phase = Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+
+        assert new_phase.type == PhaseType.RETREAT
+        expected_window_end = scheduled_resolution + timedelta(seconds=3600)
+        assert new_phase.early_resolve_window_end is not None
+        if new_phase.scheduled_resolution:
+            assert new_phase.early_resolve_window_end <= new_phase.scheduled_resolution
+        assert abs((new_phase.early_resolve_window_end - expected_window_end).total_seconds()) < 2
+
+    @pytest.mark.django_db
+    def test_non_movement_after_movement_window_clamped_when_window_exceeds_deadline(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        phase.game.deadline_mode = DeadlineMode.FIXED_TIME
+        phase.game.accelerated_phase_window_seconds = 7 * 24 * 3600
+        phase.game.save()
+        # Set previous phase scheduled_resolution 2 hours from now.
+        # Window = t0 + 7 days, which exceeds the new phase's scheduled_resolution (2h).
+        # We simulate the new phase having a scheduled_resolution by patching.
+        scheduled_resolution = timezone.now() + timedelta(hours=2)
+        phase.scheduled_resolution = scheduled_resolution
+        phase.save()
+        new_phase_deadline = timezone.now() + timedelta(hours=3)
+
+        with patch.object(
+            phase.game.__class__,
+            "get_scheduled_resolution",
+            return_value=new_phase_deadline,
+        ):
+            new_phase = Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+
+        assert new_phase.type == PhaseType.RETREAT
+        assert new_phase.early_resolve_window_end is not None
+        assert abs((new_phase.early_resolve_window_end - new_phase_deadline).total_seconds()) < 2
+
+    @pytest.mark.django_db
+    def test_non_movement_after_non_movement_inherits_window(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        phase.game.deadline_mode = DeadlineMode.FIXED_TIME
+        phase.game.accelerated_phase_window_seconds = 3600
+        phase.game.save()
+        phase.type = PhaseType.RETREAT
+        scheduled_resolution = timezone.now() + timedelta(hours=2)
+        phase.scheduled_resolution = scheduled_resolution
+        inherited_window_end = timezone.now() + timedelta(minutes=45)
+        phase.early_resolve_window_end = inherited_window_end
+        phase.save()
+
+        mock_adjudication_data_basic["type"] = PhaseType.ADJUSTMENT
+
+        new_phase = Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+
+        assert new_phase.type == PhaseType.ADJUSTMENT
+        assert new_phase.early_resolve_window_end is not None
+        assert abs((new_phase.early_resolve_window_end - inherited_window_end).total_seconds()) < 2
+
+    @pytest.mark.django_db
+    def test_movement_phase_created_with_null_window(
+        self,
+        italy_vs_germany_phase_with_orders,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        phase.game.deadline_mode = DeadlineMode.FIXED_TIME
+        phase.game.accelerated_phase_window_seconds = 3600
+        phase.game.save()
+        scheduled_resolution = timezone.now() + timedelta(hours=2)
+        phase.scheduled_resolution = scheduled_resolution
+        phase.save()
+
+        mock_movement_data = {
+            "season": "Fall",
+            "year": 1901,
+            "type": PhaseType.MOVEMENT,
+            "options": {},
+            "supply_centers": [
+                {"province": "ven", "nation": "Italy"},
+                {"province": "rom", "nation": "Italy"},
+                {"province": "nap", "nation": "Italy"},
+                {"province": "kie", "nation": "Germany"},
+                {"province": "ber", "nation": "Germany"},
+                {"province": "mun", "nation": "Germany"},
+            ],
+            "units": [
+                {"type": "Army", "nation": "Italy", "province": "ven", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Italy", "province": "rom", "dislodged": False, "dislodged_by": None},
+                {"type": "Fleet", "nation": "Italy", "province": "nap", "dislodged": False, "dislodged_by": None},
+                {"type": "Fleet", "nation": "Germany", "province": "kie", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Germany", "province": "ber", "dislodged": False, "dislodged_by": None},
+                {"type": "Army", "nation": "Germany", "province": "mun", "dislodged": False, "dislodged_by": None},
+            ],
+            "resolutions": [
+                {"province": "ven", "result": "OK", "by": None},
+                {"province": "kie", "result": "OK", "by": None},
+            ],
+        }
+
+        new_phase = Phase.objects.create_from_adjudication_data(phase, mock_movement_data)
+
+        assert new_phase.type == PhaseType.MOVEMENT
+        assert new_phase.early_resolve_window_end is None
+
+    @pytest.mark.django_db
+    def test_feature_disabled_window_is_null(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+        phase.game.deadline_mode = DeadlineMode.FIXED_TIME
+        phase.game.accelerated_phase_window_seconds = None
+        phase.game.save()
+        scheduled_resolution = timezone.now() + timedelta(hours=2)
+        phase.scheduled_resolution = scheduled_resolution
+        phase.save()
+
+        new_phase = Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+
+        assert new_phase.type == PhaseType.RETREAT
+        assert new_phase.early_resolve_window_end is None
+
+
 class TestPhaseAdminQueryPerformance:
 
     @pytest.mark.django_db

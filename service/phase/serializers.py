@@ -57,6 +57,7 @@ class PhaseRetrieveSerializer(serializers.Serializer):
     units = UnitSerializer(many=True)
     supply_centers = SupplyCenterSerializer(many=True)
     previous_phase_id = serializers.IntegerField(allow_null=True)
+    early_resolve_window_end = serializers.DateTimeField(allow_null=True)
     next_phase_id = serializers.IntegerField(allow_null=True)
     province_nations = serializers.SerializerMethodField()
 
