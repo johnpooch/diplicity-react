@@ -38,6 +38,7 @@ const emptyPhase: PhaseRetrieve = {
   provinceNations: "{}",
   previousPhaseId: null,
   nextPhaseId: null,
+  earlyResolveWindowEnd: null,
 };
 
 const baseOrder: Order = {

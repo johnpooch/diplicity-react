@@ -17,6 +17,7 @@ const makePhase = (units: PhaseRetrieve["units"] = []): PhaseRetrieve => ({
   provinceNations: "",
   previousPhaseId: null,
   nextPhaseId: null,
+  earlyResolveWindowEnd: null,
 });
 
 const nation = { nationId: "england", name: "England", color: "#fff", flagUrl: null };

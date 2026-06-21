@@ -159,6 +159,7 @@ function phase(
     supplyCenters,
     previousPhaseId: null,
     nextPhaseId: null,
+    earlyResolveWindowEnd: null,
     provinceNations: "",
   };
 }
