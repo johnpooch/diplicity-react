@@ -265,6 +265,14 @@ const OrdersScreen: React.FC = () => {
     navigate(`/game/${gameId}/phase/${phaseId}/draw-proposals`);
   };
 
+  const isMovementPhase = phase.type === "Movement";
+  const accelerationWindowOpen =
+    !!phase.earlyResolveWindowEnd && new Date(phase.earlyResolveWindowEnd) > new Date();
+  const acceleratedEnabled =
+    game.deadlineMode === "fixed_time" &&
+    !!game.acceleratedPhaseWindowSeconds &&
+    !isMovementPhase;
+
   const rightFooterButton = (() => {
     if (!canModifyOrders) return null;
     if (game.sandbox)
@@ -274,7 +282,15 @@ const OrdersScreen: React.FC = () => {
           Resolve phase
         </Button>
       );
-    if (game.deadlineMode === "fixed_time") return null;
+    if (game.deadlineMode === "fixed_time" && isMovementPhase) return null;
+    if (game.deadlineMode === "fixed_time" && !acceleratedEnabled) return null;
+    if (game.deadlineMode === "fixed_time" && !accelerationWindowOpen)
+      return (
+        <Button disabled>
+          <CheckSquare className="size-4" />
+          Acceleration window closed
+        </Button>
+      );
     if (hasContent)
       return (
         <Button disabled={confirmOrdersMutation.isPending} onClick={handleConfirmOrders}>

@@ -219,9 +219,9 @@ class GameManager(models.Manager):
     def with_related_data(self):
         return self.get_queryset().with_related_data()
 
-    def create_from_template(self, variant, **kwargs):
+    def create_from_template(self, variant, accelerated_phase_window_seconds=None, **kwargs):
         template_phase = variant.template_phase
-        game = self.create(variant=variant, **kwargs)
+        game = self.create(variant=variant, accelerated_phase_window_seconds=accelerated_phase_window_seconds, **kwargs)
 
         phase = game.phases.create(
             game=game,
@@ -409,6 +409,7 @@ class Game(BaseModel):
         null=True,
         blank=True,
     )
+    accelerated_phase_window_seconds = models.PositiveIntegerField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
         if not self.id:

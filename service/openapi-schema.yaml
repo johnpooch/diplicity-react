@@ -2083,6 +2083,10 @@ components:
           oneOf:
           - $ref: '#/components/schemas/RetreatFrequencyEnum'
           - $ref: '#/components/schemas/NullEnum'
+        acceleratedPhaseWindowSeconds:
+          type: integer
+          nullable: true
+          minimum: 1
         nmrExtensionsAllowed:
           type: integer
           maximum: 2
@@ -2256,6 +2260,10 @@ components:
           nullable: true
         retreatFrequency:
           type: string
+          readOnly: true
+          nullable: true
+        acceleratedPhaseWindowSeconds:
+          type: integer
           readOnly: true
           nullable: true
         pressType:
@@ -2482,6 +2490,10 @@ components:
           nullable: true
         retreatFrequency:
           type: string
+          readOnly: true
+          nullable: true
+        acceleratedPhaseWindowSeconds:
+          type: integer
           readOnly: true
           nullable: true
         pressType:
@@ -2798,11 +2810,13 @@ components:
       enum:
       - orders_required
       - orders_submitted
+      - orders_not_confirmed
       - no_orders_required
       type: string
       description: |-
         * `orders_required` - orders_required
         * `orders_submitted` - orders_submitted
+        * `orders_not_confirmed` - orders_not_confirmed
         * `no_orders_required` - no_orders_required
     OrderTypeEnum:
       enum:
@@ -2985,6 +2999,10 @@ components:
         scheduledResolution:
           type: string
           format: date-time
+        earlyResolveWindowEnd:
+          type: string
+          format: date-time
+          nullable: true
         status:
           $ref: '#/components/schemas/StatusEnum'
         units:
@@ -3005,6 +3023,7 @@ components:
           type: string
           readOnly: true
       required:
+      - earlyResolveWindowEnd
       - id
       - name
       - nextPhaseId

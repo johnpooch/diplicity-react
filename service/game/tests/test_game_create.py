@@ -127,3 +127,34 @@ class TestDraftVariantGameCreate:
         payload = {**duration_payload(draft_variant_owned_by_primary.id), "private": False}
         response = authenticated_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+class TestAcceleratedPhaseWindowGameCreate:
+
+    @pytest.mark.django_db
+    def test_fixed_time_game_stores_accelerated_phase_window_seconds(
+        self, authenticated_client, classical_variant
+    ):
+        url = reverse(create_viewname)
+        payload = {
+            **fixed_time_payload(classical_variant.id),
+            "accelerated_phase_window_seconds": 3600,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        game = Game.objects.get(id=response.data["id"])
+        assert game.accelerated_phase_window_seconds == 3600
+
+    @pytest.mark.django_db
+    def test_duration_game_clears_accelerated_phase_window_seconds(
+        self, authenticated_client, classical_variant
+    ):
+        url = reverse(create_viewname)
+        payload = {
+            **duration_payload(classical_variant.id),
+            "accelerated_phase_window_seconds": 3600,
+        }
+        response = authenticated_client.post(url, payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        game = Game.objects.get(id=response.data["id"])
+        assert game.accelerated_phase_window_seconds is None

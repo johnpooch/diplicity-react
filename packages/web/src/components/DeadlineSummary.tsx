@@ -1,5 +1,27 @@
 import React from "react";
 
+const FREQUENCY_SECONDS: Record<string, number> = {
+  hourly: 3600,
+  daily: 86400,
+  every_2_days: 172800,
+  weekly: 604800,
+};
+
+function formatDurationSeconds(seconds: number): string {
+  if (seconds < 3600) {
+    const mins = Math.round(seconds / 60);
+    return `${mins} ${mins === 1 ? "minute" : "minutes"}`;
+  }
+  if (seconds % 86400 === 0) {
+    const days = seconds / 86400;
+    return `${days} ${days === 1 ? "day" : "days"}`;
+  }
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.round((seconds % 3600) / 60);
+  if (mins === 0) return `${hrs} ${hrs === 1 ? "hour" : "hours"}`;
+  return `${hrs}h ${mins}m`;
+}
+
 interface DeadlineSummaryGame {
   movementPhaseDuration: string | null;
   retreatPhaseDuration?: string | null;
@@ -8,6 +30,7 @@ interface DeadlineSummaryGame {
   fixedDeadlineTimezone?: string | null;
   movementFrequency?: string | null;
   retreatFrequency?: string | null;
+  acceleratedPhaseWindowSeconds?: number | null;
 }
 
 interface DeadlineSummaryProps {
@@ -91,6 +114,7 @@ export const DeadlineSummary: React.FC<DeadlineSummaryProps> = ({ game }) => {
     fixedDeadlineTimezone,
     movementFrequency,
     retreatFrequency,
+    acceleratedPhaseWindowSeconds,
   } = game;
 
   if (deadlineMode === "fixed_time") {
@@ -101,6 +125,22 @@ export const DeadlineSummary: React.FC<DeadlineSummaryProps> = ({ game }) => {
     const tz = TIMEZONE_ABBREVS[fixedDeadlineTimezone] ?? fixedDeadlineTimezone;
     const time = formatTime12Hour(fixedDeadlineTime);
     const sameFrequency = !retreatFrequency || retreatFrequency === movementFrequency;
+
+    if (acceleratedPhaseWindowSeconds) {
+      const movementCycle = FREQUENCY_SECONDS[movementFrequency];
+      const floor = movementCycle
+        ? movementCycle - acceleratedPhaseWindowSeconds
+        : null;
+      return (
+        <span>
+          Movement resolves {formatFreqTime(movementFrequency, time, tz)}.
+          Retreat and adjustment phases can resolve early if everyone confirms
+          within {formatDurationSeconds(acceleratedPhaseWindowSeconds)}, but
+          movement turns are always at least{" "}
+          {floor !== null ? formatDurationSeconds(floor) : "the full cycle"}.
+        </span>
+      );
+    }
 
     if (isSubDaily(movementFrequency)) {
       const firstEnd = formatTime12Hour(firstPhaseEndTime(fixedDeadlineTime, movementFrequency));

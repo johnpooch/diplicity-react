@@ -339,6 +339,11 @@ export interface GameCreate {
   movementFrequency?: MovementFrequencyEnum | NullEnum | null;
   retreatFrequency?: RetreatFrequencyEnum | NullEnum | null;
   /**
+   * @minimum 1
+   * @nullable
+   */
+  acceleratedPhaseWindowSeconds?: number | null;
+  /**
    * @minimum 0
    * @maximum 2
    */
@@ -472,6 +477,8 @@ export interface GameList {
   readonly movementFrequency: string | null;
   /** @nullable */
   readonly retreatFrequency: string | null;
+  /** @nullable */
+  readonly acceleratedPhaseWindowSeconds: number | null;
   readonly pressType: string;
   readonly minReliability: string;
   readonly totalUnreadMessageCount: number;
@@ -522,6 +529,8 @@ export interface GameRetrieve {
   readonly movementFrequency: string | null;
   /** @nullable */
   readonly retreatFrequency: string | null;
+  /** @nullable */
+  readonly acceleratedPhaseWindowSeconds: number | null;
   readonly pressType: string;
   readonly minReliability: string;
   readonly totalUnreadMessageCount: number;
@@ -741,6 +750,8 @@ export interface PhaseRetrieve {
   type: string;
   remainingTime: number;
   scheduledResolution: string;
+  /** @nullable */
+  earlyResolveWindowEnd: string | null;
   status: StatusEnum;
   units: Unit[];
   supplyCenters: SupplyCenter[];

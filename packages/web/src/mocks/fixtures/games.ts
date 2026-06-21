@@ -275,10 +275,11 @@ const buildActiveRetreat = () => {
     remainingTime: 10 * 60 * 60,
     units: fallUnits,
     previousPhaseId: 202,
+    earlyResolveWindowEnd: futureIso(3600),
   });
   return makeFixture({
     description:
-      "Active game in a Fall 1901 retreat phase. The current user (England) has an army dislodged from Norway that must retreat or disband.",
+      "Active game in a Fall 1901 retreat phase. The current user (England) has an army dislodged from Norway that must retreat or disband. Acceleration window is open.",
     game: makeGame("active-retreat", "Northern Standoff", members, [
       spring,
       fallMove,
@@ -286,6 +287,8 @@ const buildActiveRetreat = () => {
     ], {
       orderStatus: "orders_required",
       memberStatus: [],
+      deadlineMode: "fixed_time",
+      acceleratedPhaseWindowSeconds: 14400,
     }),
     phases: [spring, fallMove, retreat],
     ordersByPhase: {
@@ -331,6 +334,71 @@ const buildActiveRetreat = () => {
 };
 
 export const activeGameRetreat = buildActiveRetreat();
+
+const buildActiveRetreatWindowClosed = () => {
+  const members = makeActiveMembers();
+  const springUnits = classicalStartUnits.map(u => {
+    if (u.province.id === "lon") return makeUnit("Fleet", "england", "nth");
+    if (u.province.id === "edi") return makeUnit("Fleet", "england", "nrg");
+    if (u.province.id === "lvp") return makeUnit("Army", "england", "yor");
+    if (u.province.id === "kie") return makeUnit("Fleet", "germany", "den");
+    if (u.province.id === "ber") return makeUnit("Army", "germany", "kie");
+    return u;
+  });
+  const fallUnits = springUnits.map(u => {
+    if (u.province.id === "yor")
+      return makeUnit("Army", "england", "nwy", {
+        dislodged: true,
+        dislodgedBy: { type: "Army", nation: "Russia", province: "nwy" },
+      });
+    if (u.province.id === "stp") return makeUnit("Army", "russia", "nwy");
+    return u;
+  });
+  const spring = makePhase(211, 1, { status: "completed", nextPhaseId: 212 });
+  const fallMove = makePhase(212, 2, {
+    season: "Fall",
+    status: "completed",
+    units: springUnits,
+    previousPhaseId: 211,
+    nextPhaseId: 213,
+  });
+  const retreat = makePhase(213, 3, {
+    season: "Fall",
+    type: "Retreat",
+    remainingTime: 10 * 60 * 60,
+    units: fallUnits,
+    previousPhaseId: 212,
+    earlyResolveWindowEnd: futureIso(-3600),
+  });
+  return makeFixture({
+    description:
+      "Active game in a Fall 1901 retreat phase. Acceleration window has closed — confirm button is disabled.",
+    game: makeGame("active-retreat-window-closed", "Northern Standoff II", members, [
+      spring,
+      fallMove,
+      retreat,
+    ], {
+      orderStatus: "orders_required",
+      memberStatus: [],
+      deadlineMode: "fixed_time",
+      acceleratedPhaseWindowSeconds: 14400,
+    }),
+    phases: [spring, fallMove, retreat],
+    ordersByPhase: { 213: [] },
+    phaseStates: [
+      makePhaseState(members[0], ["nwy"]),
+      makePhaseState(members[1], []),
+      makePhaseState(members[2], []),
+      makePhaseState(members[3], []),
+      makePhaseState(members[4], []),
+      makePhaseState(members[5], []),
+      makePhaseState(members[6], []),
+    ],
+    channels: [makeChannel("Public Press", members, [])],
+  });
+};
+
+export const activeGameRetreatWindowClosed = buildActiveRetreatWindowClosed();
 
 const buildActiveBuild = () => {
   const members = makeActiveMembers();

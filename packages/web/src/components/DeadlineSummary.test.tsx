@@ -327,5 +327,42 @@ describe("DeadlineSummary", () => {
       expect(screen.getByText(/The first phase ends at 10:00 PM GMT/i)).toBeInTheDocument();
       expect(screen.getByText(/after that Movement: every hour and Retreat\/Adjustment: daily at 9:00 PM GMT/i)).toBeInTheDocument();
     });
+
+    describe("Accelerated phases", () => {
+      it("renders acceleration summary when acceleratedPhaseWindowSeconds is set (daily, 4h window)", () => {
+        render(
+          <DeadlineSummary
+            game={{
+              movementPhaseDuration: null,
+              deadlineMode: "fixed_time",
+              fixedDeadlineTime: "21:00",
+              fixedDeadlineTimezone: "America/New_York",
+              movementFrequency: "daily",
+              acceleratedPhaseWindowSeconds: 14400,
+            }}
+          />
+        );
+        expect(screen.getByText(/Movement resolves daily at 9:00 PM ET/)).toBeInTheDocument();
+        expect(screen.getByText(/everyone confirms within 4 hours/)).toBeInTheDocument();
+        expect(screen.getByText(/always at least 20 hours/)).toBeInTheDocument();
+      });
+
+      it("does not render acceleration summary when acceleratedPhaseWindowSeconds is null", () => {
+        render(
+          <DeadlineSummary
+            game={{
+              movementPhaseDuration: null,
+              deadlineMode: "fixed_time",
+              fixedDeadlineTime: "21:00",
+              fixedDeadlineTimezone: "America/New_York",
+              movementFrequency: "daily",
+              acceleratedPhaseWindowSeconds: null,
+            }}
+          />
+        );
+        expect(screen.queryByText(/everyone confirms/)).not.toBeInTheDocument();
+        expect(screen.getByText(/daily at 9:00 PM ET/)).toBeInTheDocument();
+      });
+    });
   });
 });

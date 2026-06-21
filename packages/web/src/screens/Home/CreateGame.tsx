@@ -77,8 +77,51 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Slider } from "@/components/ui/slider";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
 import { CREATE_GAME_PARAM } from "@/utils/routes";
+
+const FREQUENCY_SECONDS: Record<string, number> = {
+  hourly: 3600,
+  daily: 86400,
+  every_2_days: 172800,
+  weekly: 604800,
+};
+
+function formatDurationSeconds(seconds: number): string {
+  if (seconds < 3600) {
+    const mins = Math.round(seconds / 60);
+    return `${mins} ${mins === 1 ? "minute" : "minutes"}`;
+  }
+  if (seconds % 86400 === 0) {
+    const days = seconds / 86400;
+    return `${days} ${days === 1 ? "day" : "days"}`;
+  }
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.round((seconds % 3600) / 60);
+  if (mins === 0) return `${hrs} ${hrs === 1 ? "hour" : "hours"}`;
+  return `${hrs}h ${mins}m`;
+}
+
+function computeAcceleratedWindow(
+  deadlineMode: string,
+  enabled: boolean,
+  movementFrequency: string | null | undefined,
+  retreatFrequency: string | null | undefined,
+  sliderPosition: number
+): number | null {
+  if (deadlineMode !== "fixed_time" || !enabled || !movementFrequency)
+    return null;
+  const movementCycle = FREQUENCY_SECONDS[movementFrequency];
+  if (!movementCycle) return null;
+  const step = Math.floor(movementCycle / 12);
+  const retreatCycle = retreatFrequency
+    ? (FREQUENCY_SECONDS[retreatFrequency] ?? movementCycle)
+    : movementCycle;
+  const maxW = Math.min(retreatCycle, movementCycle - step);
+  const w = sliderPosition * step;
+  return Math.min(w, maxW);
+}
 
 const gameSchema = z.object({
   name: z
@@ -103,6 +146,8 @@ const gameSchema = z.object({
     .enum(["hourly", "daily", "every_2_days", "weekly"] as const)
     .optional()
     .nullable(),
+  acceleratedPhaseEnabled: z.boolean(),
+  acceleratedPhaseSliderPosition: z.number().min(1).max(11),
   nmrExtensionsAllowed: z.enum(["0", "1", "2"] as const),
   minReliability: z.enum([
     "open",
@@ -432,6 +477,8 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
       fixedDeadlineTimezone: getBrowserTimezone(),
       movementFrequency: "daily",
       retreatFrequency: null,
+      acceleratedPhaseEnabled: true,
+      acceleratedPhaseSliderPosition: 2,
       nmrExtensionsAllowed: "0",
       minReliability: "open",
     },
@@ -826,6 +873,95 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
                           )}
                         />
                       </div>
+
+                      <FormField
+                        control={form.control}
+                        name="acceleratedPhaseEnabled"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center gap-2">
+                              <FormControl>
+                                <Checkbox
+                                  id="accelerated-phase-enabled"
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                  disabled={isSubmitting}
+                                />
+                              </FormControl>
+                              <FormLabel
+                                htmlFor="accelerated-phase-enabled"
+                                className="cursor-pointer"
+                              >
+                                Accelerated Retreat/Adjustment Phases
+                              </FormLabel>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+
+                      {form.watch("acceleratedPhaseEnabled") &&
+                        (() => {
+                          const movementFreq = form.watch("movementFrequency");
+                          const retreatFreq = form.watch("retreatFrequency");
+                          const position = form.watch(
+                            "acceleratedPhaseSliderPosition"
+                          );
+                          if (!movementFreq) return null;
+                          const movementCycle =
+                            FREQUENCY_SECONDS[movementFreq] ?? 0;
+                          const step = Math.floor(movementCycle / 12);
+                          const retreatCycle = retreatFreq
+                            ? (FREQUENCY_SECONDS[retreatFreq] ?? movementCycle)
+                            : movementCycle;
+                          const maxPosition = Math.max(
+                            1,
+                            Math.min(
+                              11,
+                              Math.floor(
+                                Math.min(
+                                  retreatCycle,
+                                  movementCycle - step
+                                ) / step
+                              )
+                            )
+                          );
+                          const clampedPosition = Math.min(
+                            position,
+                            maxPosition
+                          );
+                          const w = clampedPosition * step;
+                          const floor = movementCycle - w;
+                          return (
+                            <FormField
+                              control={form.control}
+                              name="acceleratedPhaseSliderPosition"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <div className="flex justify-between text-sm text-muted-foreground mb-1">
+                                    <span>
+                                      Acceleration window:{" "}
+                                      {formatDurationSeconds(w)}
+                                    </span>
+                                    <span>
+                                      Minimum movement duration:{" "}
+                                      {formatDurationSeconds(floor)}
+                                    </span>
+                                  </div>
+                                  <FormControl>
+                                    <Slider
+                                      min={1}
+                                      max={maxPosition}
+                                      step={1}
+                                      value={[clampedPosition]}
+                                      onValueChange={v => field.onChange(v[0])}
+                                      disabled={isSubmitting}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+                          );
+                        })()}
                     </TabsContent>
                   </Tabs>
                 </FormItem>
@@ -847,6 +983,17 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
                       form.watch("fixedDeadlineTimezone") ?? null,
                     movementFrequency: form.watch("movementFrequency") ?? null,
                     retreatFrequency: form.watch("retreatFrequency") ?? null,
+                    acceleratedPhaseWindowSeconds:
+                      deadlineMode === "fixed_time" &&
+                      form.watch("acceleratedPhaseEnabled")
+                        ? computeAcceleratedWindow(
+                            deadlineMode,
+                            true,
+                            form.watch("movementFrequency"),
+                            form.watch("retreatFrequency"),
+                            form.watch("acceleratedPhaseSliderPosition")
+                          )
+                        : null,
                   }}
                 />
               </AlertDescription>
@@ -1044,6 +1191,16 @@ const CreateGame: React.FC = () => {
             data.deadlineMode === "fixed_time" ? data.movementFrequency : null,
           retreatFrequency:
             data.deadlineMode === "fixed_time" ? data.retreatFrequency : null,
+          acceleratedPhaseWindowSeconds:
+            data.deadlineMode === "fixed_time"
+              ? computeAcceleratedWindow(
+                  data.deadlineMode,
+                  data.acceleratedPhaseEnabled,
+                  data.movementFrequency,
+                  data.retreatFrequency,
+                  data.acceleratedPhaseSliderPosition
+                )
+              : null,
           nmrExtensionsAllowed: parseInt(data.nmrExtensionsAllowed, 10),
           minReliability: data.minReliability,
         },

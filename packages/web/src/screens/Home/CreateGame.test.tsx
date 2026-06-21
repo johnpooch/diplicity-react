@@ -177,6 +177,7 @@ const matchedGame: GameList = {
   fixedDeadlineTimezone: null,
   movementFrequency: null,
   retreatFrequency: null,
+  acceleratedPhaseWindowSeconds: null,
   pressType: "full_press",
   minReliability: "open",
   totalUnreadMessageCount: 0,

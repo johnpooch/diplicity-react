@@ -257,6 +257,7 @@ export const mockPhaseMovement: PhaseRetrieve = {
     nation: mockNations[index],
   })),
   provinceNations: "",
+  earlyResolveWindowEnd: null,
 };
 
 export const mockPhaseRetreat: PhaseRetrieve = {
@@ -285,6 +286,7 @@ export const mockPhaseRetreat: PhaseRetrieve = {
     nation: mockNations[index],
   })),
   provinceNations: "",
+  earlyResolveWindowEnd: null,
 };
 
 export const mockPhaseAdjustment: PhaseRetrieve = {
@@ -305,6 +307,7 @@ export const mockPhaseAdjustment: PhaseRetrieve = {
     nation: mockNations[index % mockNations.length],
   })),
   provinceNations: "",
+  earlyResolveWindowEnd: null,
 };
 
 export const mockGames: GameList[] = [
@@ -339,6 +342,7 @@ export const mockGames: GameList[] = [
     fixedDeadlineTimezone: null,
     movementFrequency: null,
     retreatFrequency: null,
+    acceleratedPhaseWindowSeconds: null,
     pressType: "full_press",
     minReliability: "open",
     totalUnreadMessageCount: 0,
@@ -376,6 +380,7 @@ export const mockGames: GameList[] = [
     fixedDeadlineTimezone: null,
     movementFrequency: null,
     retreatFrequency: null,
+    acceleratedPhaseWindowSeconds: null,
     pressType: "full_press",
     minReliability: "open",
     totalUnreadMessageCount: 0,
@@ -413,6 +418,7 @@ export const mockGames: GameList[] = [
     fixedDeadlineTimezone: null,
     movementFrequency: null,
     retreatFrequency: null,
+    acceleratedPhaseWindowSeconds: null,
     pressType: "full_press",
     minReliability: "open",
     totalUnreadMessageCount: 0,
@@ -450,6 +456,7 @@ export const mockGames: GameList[] = [
     fixedDeadlineTimezone: null,
     movementFrequency: null,
     retreatFrequency: null,
+    acceleratedPhaseWindowSeconds: null,
     pressType: "full_press",
     minReliability: "open",
     totalUnreadMessageCount: 0,
@@ -492,6 +499,7 @@ export const mockGames: GameList[] = [
     fixedDeadlineTimezone: null,
     movementFrequency: null,
     retreatFrequency: null,
+    acceleratedPhaseWindowSeconds: null,
     pressType: "full_press",
     minReliability: "open",
     totalUnreadMessageCount: 0,
@@ -534,6 +542,7 @@ export const mockGames: GameList[] = [
     fixedDeadlineTimezone: null,
     movementFrequency: null,
     retreatFrequency: null,
+    acceleratedPhaseWindowSeconds: null,
     pressType: "full_press",
     minReliability: "open",
     totalUnreadMessageCount: 0,
@@ -589,6 +598,7 @@ export const mockSandboxGames: GameList[] = [
     fixedDeadlineTimezone: null,
     movementFrequency: null,
     retreatFrequency: null,
+    acceleratedPhaseWindowSeconds: null,
     pressType: "full_press",
     minReliability: "open",
     totalUnreadMessageCount: 0,
@@ -626,6 +636,7 @@ export const mockSandboxGames: GameList[] = [
     fixedDeadlineTimezone: null,
     movementFrequency: null,
     retreatFrequency: null,
+    acceleratedPhaseWindowSeconds: null,
     pressType: "full_press",
     minReliability: "open",
     totalUnreadMessageCount: 0,

@@ -183,3 +183,81 @@ describe("OrdersScreen named coast display", () => {
     expect(screen.getByText(/Fleet Spain \(NC\)/)).toBeInTheDocument();
   });
 });
+
+describe("OrdersScreen accelerated phases confirm button", () => {
+  const baseGame = {
+    variantId: "classical",
+    status: "active",
+    sandbox: false,
+    deadlineMode: "fixed_time",
+    phaseConfirmed: false,
+    acceleratedPhaseWindowSeconds: 14400,
+    members: [baseMember()],
+  };
+
+  beforeEach(() => {
+    mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);
+    mockOrdersData.mockReturnValue([]);
+    mockPhaseStatesData.mockReturnValue([
+      {
+        member: baseMember(),
+        orderableProvinces: [{ id: "lon", name: "London" }],
+        ordersConfirmed: false,
+      },
+    ]);
+  });
+
+  it("hides confirm button for movement phases in fixed-time games", () => {
+    mockGameData.mockReturnValue(baseGame);
+    mockPhaseData.mockReturnValue({
+      id: 1, status: "active", type: "Movement",
+      earlyResolveWindowEnd: new Date(Date.now() + 3600000).toISOString(),
+      supplyCenters: [], units: [],
+    });
+
+    renderOrdersScreen();
+
+    expect(screen.queryByRole("button", { name: /confirm/i })).not.toBeInTheDocument();
+  });
+
+  it("shows active confirm button for non-movement phases while window is open", () => {
+    mockGameData.mockReturnValue(baseGame);
+    mockPhaseData.mockReturnValue({
+      id: 1, status: "active", type: "Retreat",
+      earlyResolveWindowEnd: new Date(Date.now() + 3600000).toISOString(),
+      supplyCenters: [], units: [],
+    });
+
+    renderOrdersScreen();
+
+    const confirmButton = screen.getByRole("button", { name: /confirm orders/i });
+    expect(confirmButton).not.toBeDisabled();
+  });
+
+  it("shows disabled button when acceleration window is closed", () => {
+    mockGameData.mockReturnValue(baseGame);
+    mockPhaseData.mockReturnValue({
+      id: 1, status: "active", type: "Retreat",
+      earlyResolveWindowEnd: new Date(Date.now() - 3600000).toISOString(),
+      supplyCenters: [], units: [],
+    });
+
+    renderOrdersScreen();
+
+    const closedButton = screen.getByRole("button", { name: /acceleration window closed/i });
+    expect(closedButton).toBeDisabled();
+  });
+
+  it("hides confirm button when acceleratedPhaseWindowSeconds is null", () => {
+    mockGameData.mockReturnValue({ ...baseGame, acceleratedPhaseWindowSeconds: null });
+    mockPhaseData.mockReturnValue({
+      id: 1, status: "active", type: "Retreat",
+      earlyResolveWindowEnd: new Date(Date.now() + 3600000).toISOString(),
+      supplyCenters: [], units: [],
+    });
+
+    renderOrdersScreen();
+
+    expect(screen.queryByRole("button", { name: /confirm/i })).not.toBeInTheDocument();
+  });
+});

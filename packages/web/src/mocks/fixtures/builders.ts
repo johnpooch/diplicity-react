@@ -37,6 +37,7 @@ interface PhaseOverrides {
   supplyCenters?: SupplyCenter[];
   previousPhaseId?: number | null;
   nextPhaseId?: number | null;
+  earlyResolveWindowEnd?: string | null;
 }
 
 export const makePhase = (
@@ -63,6 +64,7 @@ export const makePhase = (
     previousPhaseId: overrides.previousPhaseId ?? null,
     nextPhaseId: overrides.nextPhaseId ?? null,
     provinceNations: "",
+    earlyResolveWindowEnd: overrides.earlyResolveWindowEnd ?? null,
   };
 };
 
@@ -122,6 +124,7 @@ export const makeGame = (
     fixedDeadlineTimezone: null,
     movementFrequency: null,
     retreatFrequency: null,
+    acceleratedPhaseWindowSeconds: null,
     pressType: "full_press",
     minReliability: "open",
     totalUnreadMessageCount: 0,

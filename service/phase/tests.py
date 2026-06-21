@@ -4725,3 +4725,260 @@ class TestCheckEliminations:
         Phase.objects._check_eliminations(previous_phase, new_phase)
 
         assert _elimination_jobs(in_memory_procrastinate) == []
+
+
+class TestFilterDuePhasesAcceleratedWindow:
+
+    @pytest.mark.django_db
+    def test_returns_phase_when_window_open_and_all_confirmed(self, phase_factory, classical_variant, primary_user, classical_england_nation):
+        from django.utils import timezone
+        from datetime import timedelta
+        from game.models import Game
+        from common.constants import DeadlineMode, GameStatus, MovementPhaseDuration
+
+        game = Game.objects.create(
+            variant=classical_variant,
+            name="Accelerated Test Game",
+            status=GameStatus.ACTIVE,
+            deadline_mode=DeadlineMode.FIXED_TIME,
+            fixed_deadline_time="21:00:00",
+            fixed_deadline_timezone="UTC",
+            accelerated_phase_window_seconds=3600,
+        )
+        future_resolution = timezone.now() + timedelta(hours=12)
+        window_end = timezone.now() + timedelta(minutes=30)
+
+        phase = phase_factory(
+            game=game,
+            type=PhaseType.RETREAT,
+            scheduled_resolution=future_resolution,
+            early_resolve_window_end=window_end,
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True, "user": primary_user},
+            ],
+        )
+
+        due = Phase.objects.filter_due_phases()
+        assert phase in due
+
+    @pytest.mark.django_db
+    def test_does_not_return_phase_when_window_closed(self, phase_factory, classical_variant, primary_user, classical_england_nation):
+        from django.utils import timezone
+        from datetime import timedelta
+        from game.models import Game
+        from common.constants import DeadlineMode, GameStatus
+
+        game = Game.objects.create(
+            variant=classical_variant,
+            name="Accelerated Window Closed Game",
+            status=GameStatus.ACTIVE,
+            deadline_mode=DeadlineMode.FIXED_TIME,
+            fixed_deadline_time="21:00:00",
+            fixed_deadline_timezone="UTC",
+            accelerated_phase_window_seconds=3600,
+        )
+        future_resolution = timezone.now() + timedelta(hours=12)
+        expired_window_end = timezone.now() - timedelta(minutes=5)
+
+        phase = phase_factory(
+            game=game,
+            type=PhaseType.RETREAT,
+            scheduled_resolution=future_resolution,
+            early_resolve_window_end=expired_window_end,
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True, "user": primary_user},
+            ],
+        )
+
+        due = Phase.objects.filter_due_phases()
+        assert phase not in due
+
+    @pytest.mark.django_db
+    def test_does_not_return_movement_phase_early(self, phase_factory, classical_variant, primary_user, classical_england_nation):
+        from django.utils import timezone
+        from datetime import timedelta
+        from game.models import Game
+        from common.constants import DeadlineMode, GameStatus
+
+        game = Game.objects.create(
+            variant=classical_variant,
+            name="Accelerated Movement Test Game",
+            status=GameStatus.ACTIVE,
+            deadline_mode=DeadlineMode.FIXED_TIME,
+            fixed_deadline_time="21:00:00",
+            fixed_deadline_timezone="UTC",
+            accelerated_phase_window_seconds=3600,
+        )
+        future_resolution = timezone.now() + timedelta(hours=12)
+        window_end = timezone.now() + timedelta(minutes=30)
+
+        phase = phase_factory(
+            game=game,
+            type=PhaseType.MOVEMENT,
+            scheduled_resolution=future_resolution,
+            early_resolve_window_end=window_end,
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True, "user": primary_user},
+            ],
+        )
+
+        due = Phase.objects.filter_due_phases()
+        assert phase not in due
+
+    @pytest.mark.django_db
+    def test_does_not_return_duration_game_phase_via_accelerated_branch(self, phase_factory, classical_variant, primary_user, classical_england_nation):
+        from django.utils import timezone
+        from datetime import timedelta
+        from game.models import Game
+        from common.constants import DeadlineMode, GameStatus, MovementPhaseDuration
+
+        game = Game.objects.create(
+            variant=classical_variant,
+            name="Duration Mode Game",
+            status=GameStatus.ACTIVE,
+            deadline_mode=DeadlineMode.DURATION,
+            movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
+        )
+        future_resolution = timezone.now() + timedelta(hours=12)
+        window_end = timezone.now() + timedelta(minutes=30)
+
+        phase = phase_factory(
+            game=game,
+            type=PhaseType.RETREAT,
+            scheduled_resolution=future_resolution,
+            early_resolve_window_end=window_end,
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False, "user": primary_user},
+            ],
+        )
+
+        due = Phase.objects.filter_due_phases()
+        assert phase not in due
+
+
+class TestCreateFromAdjudicationDataEarlyResolveWindow:
+
+    def _make_adjudication_data(self, phase_type):
+        return {
+            "season": "Spring",
+            "year": 1901,
+            "type": phase_type,
+            "options": {},
+            "supply_centers": [
+                {"province": "ven", "nation": "Italy"},
+                {"province": "kie", "nation": "Germany"},
+            ],
+            "units": [
+                {"type": "Army", "nation": "Italy", "province": "ven", "dislodged": False, "dislodged_by": None},
+                {"type": "Fleet", "nation": "Germany", "province": "kie", "dislodged": False, "dislodged_by": None},
+            ],
+            "resolutions": [
+                {"province": "ven", "result": "OK", "by": None},
+                {"province": "kie", "result": "OK", "by": None},
+            ],
+        }
+
+    @pytest.mark.django_db
+    def test_early_resolve_window_end_set_when_previous_is_movement(
+        self,
+        italy_vs_germany_phase_with_orders,
+    ):
+        from django.utils import timezone
+        from datetime import timedelta
+
+        phase = italy_vs_germany_phase_with_orders
+        phase.game.deadline_mode = DeadlineMode.FIXED_TIME
+        phase.game.fixed_deadline_time = "21:00:00"
+        phase.game.fixed_deadline_timezone = "UTC"
+        phase.game.accelerated_phase_window_seconds = 7200
+        phase.game.save()
+
+        movement_resolution = timezone.now() + timedelta(hours=24)
+        phase.scheduled_resolution = movement_resolution
+        phase.save()
+
+        adjudication_data = self._make_adjudication_data(PhaseType.RETREAT)
+        new_phase = Phase.objects.create_from_adjudication_data(phase, adjudication_data)
+
+        expected_window_end = movement_resolution + timedelta(seconds=7200)
+        if new_phase.scheduled_resolution:
+            expected_window_end = min(expected_window_end, new_phase.scheduled_resolution)
+
+        assert new_phase.early_resolve_window_end is not None
+        assert abs((new_phase.early_resolve_window_end - expected_window_end).total_seconds()) < 1
+
+    @pytest.mark.django_db
+    def test_early_resolve_window_end_inherited_when_chaining_minor_phases(
+        self,
+        italy_vs_germany_phase_with_orders,
+    ):
+        from django.utils import timezone
+        from datetime import timedelta
+
+        phase = italy_vs_germany_phase_with_orders
+        phase.game.deadline_mode = DeadlineMode.FIXED_TIME
+        phase.game.fixed_deadline_time = "21:00:00"
+        phase.game.fixed_deadline_timezone = "UTC"
+        phase.game.accelerated_phase_window_seconds = 3600
+        phase.game.save()
+
+        window_end = timezone.now() + timedelta(hours=2)
+        phase.type = PhaseType.RETREAT
+        phase.early_resolve_window_end = window_end
+        phase.scheduled_resolution = timezone.now() + timedelta(hours=24)
+        phase.save()
+
+        adjudication_data = self._make_adjudication_data(PhaseType.ADJUSTMENT)
+        new_phase = Phase.objects.create_from_adjudication_data(phase, adjudication_data)
+
+        assert new_phase.early_resolve_window_end is not None
+        assert abs((new_phase.early_resolve_window_end - window_end).total_seconds()) < 1
+
+    @pytest.mark.django_db
+    def test_early_resolve_window_end_clamped_to_scheduled_resolution(
+        self,
+        italy_vs_germany_phase_with_orders,
+    ):
+        from django.utils import timezone
+        from datetime import timedelta
+
+        phase = italy_vs_germany_phase_with_orders
+        phase.game.deadline_mode = DeadlineMode.FIXED_TIME
+        phase.game.fixed_deadline_time = "21:00:00"
+        phase.game.fixed_deadline_timezone = "UTC"
+        phase.game.accelerated_phase_window_seconds = 48 * 3600
+        phase.game.save()
+
+        movement_resolution = timezone.now() + timedelta(hours=6)
+        phase.scheduled_resolution = movement_resolution
+        phase.save()
+
+        adjudication_data = self._make_adjudication_data(PhaseType.RETREAT)
+        new_phase = Phase.objects.create_from_adjudication_data(phase, adjudication_data)
+
+        assert new_phase.early_resolve_window_end is not None
+        if new_phase.scheduled_resolution:
+            assert new_phase.early_resolve_window_end <= new_phase.scheduled_resolution
+
+    @pytest.mark.django_db
+    def test_early_resolve_window_end_not_set_for_movement_phase(
+        self,
+        italy_vs_germany_phase_with_orders,
+    ):
+        from django.utils import timezone
+        from datetime import timedelta
+
+        phase = italy_vs_germany_phase_with_orders
+        phase.game.deadline_mode = DeadlineMode.FIXED_TIME
+        phase.game.fixed_deadline_time = "21:00:00"
+        phase.game.fixed_deadline_timezone = "UTC"
+        phase.game.accelerated_phase_window_seconds = 3600
+        phase.game.save()
+
+        phase.scheduled_resolution = timezone.now() + timedelta(hours=24)
+        phase.save()
+
+        adjudication_data = self._make_adjudication_data(PhaseType.MOVEMENT)
+        new_phase = Phase.objects.create_from_adjudication_data(phase, adjudication_data)
+
+        assert new_phase.early_resolve_window_end is None

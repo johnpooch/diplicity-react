@@ -53,6 +53,7 @@ class PhaseRetrieveSerializer(serializers.Serializer):
     type = serializers.CharField()
     remaining_time = serializers.IntegerField(source="remaining_time_seconds")
     scheduled_resolution = serializers.DateTimeField()
+    early_resolve_window_end = serializers.DateTimeField(allow_null=True)
     status = serializers.ChoiceField(choices=PhaseStatus.STATUS_CHOICES)
     units = UnitSerializer(many=True)
     supply_centers = SupplyCenterSerializer(many=True)
