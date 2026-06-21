@@ -17,8 +17,8 @@ const province = (id: string, parentId: string | null = null): Province => ({
 });
 
 const nations: Nation[] = [
-  { nationId: "england", name: "England", color: "#2196F3", flagUrl: null },
-  { nationId: "france", name: "France", color: "#80DEEA", flagUrl: null },
+  { nationId: "england", name: "England", color: "#2196F3", nonPlayable: false, flagUrl: null },
+  { nationId: "france", name: "France", color: "#80DEEA", nonPlayable: false, flagUrl: null },
 ];
 
 const variant = { nations };

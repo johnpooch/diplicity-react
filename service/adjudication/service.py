@@ -73,10 +73,10 @@ def start(phase) -> Dict[str, Any]:
         }
 
 
-def _should_skip(options, units, supply_centers, cd_nations, nation_name_by_id, variant):
+def _should_skip(options, units, supply_centers, skip_nations, nation_name_by_id, variant):
     if not options:
         return True
-    if not cd_nations:
+    if not skip_nations:
         return False
     location_to_nation = {
         u.location: nation_name_by_id.get(u.nation, u.nation)
@@ -96,7 +96,7 @@ def _should_skip(options, units, supply_centers, cd_nations, nation_name_by_id, 
             province = variant.parent_of(opt.source)
             if province in province_to_nation:
                 option_nations.add(province_to_nation[province])
-    return bool(option_nations) and option_nations.issubset(cd_nations)
+    return bool(option_nations) and option_nations.issubset(skip_nations)
 
 
 def resolve(phase) -> Dict[str, Any]:
@@ -113,6 +113,8 @@ def resolve(phase) -> Dict[str, Any]:
             .filter(civil_disorder=True)
             .values_list("nation__name", flat=True)
         )
+        non_playable_nations = {n.name for n in variant.nations if n.non_playable}
+        skip_nations = cd_nations | non_playable_nations
 
         states = Engine().adjudicate(state)
         resolved = states[0]
@@ -128,7 +130,7 @@ def resolve(phase) -> Dict[str, Any]:
         next_options = get_options(next_state) if len(states) > 1 else []
         _skip_count = 0
         _MAX_SKIP = 10
-        while len(states) > 1 and _should_skip(next_options, next_state.units, next_state.supply_centers, cd_nations, nation_name_by_id, next_state.variant):
+        while len(states) > 1 and _should_skip(next_options, next_state.units, next_state.supply_centers, skip_nations, nation_name_by_id, next_state.variant):
             _skip_count += 1
             if _skip_count >= _MAX_SKIP:
                 logger.warning(

@@ -23,6 +23,7 @@ const nation = (nationId: string): Nation => ({
   nationId,
   name: nationId,
   color: "#ffffff",
+  nonPlayable: false,
   flagUrl: null,
 });
 

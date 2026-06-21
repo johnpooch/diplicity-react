@@ -52,6 +52,7 @@ class Nation:
     id: str
     name: str
     color: str
+    non_playable: bool = False
 
 
 @dataclass(frozen=True)

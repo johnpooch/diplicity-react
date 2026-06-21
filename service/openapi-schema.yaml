@@ -2639,6 +2639,8 @@ components:
           type: string
         color:
           type: string
+        nonPlayable:
+          type: boolean
         flagUrl:
           type: string
           nullable: true
@@ -2648,6 +2650,7 @@ components:
       - flagUrl
       - name
       - nationId
+      - nonPlayable
     NationAssignmentEnum:
       enum:
       - random

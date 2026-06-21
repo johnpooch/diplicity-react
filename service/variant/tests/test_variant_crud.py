@@ -67,6 +67,32 @@ def test_create_variant_success(authenticated_client, primary_user, classical_dv
 
 
 @pytest.mark.django_db
+def test_create_variant_preserves_non_playable_nation(
+    authenticated_client, primary_user, classical_dvar, classical_dsvg
+):
+    dvar = copy.deepcopy(classical_dvar)
+    dvar["id"] = "neutral-draft"
+    dvar["name"] = "Neutral Draft"
+    neutral_id = dvar["nations"][0]["id"]
+    dvar["nations"][0]["non_playable"] = True
+
+    response = authenticated_client.post(
+        reverse("variant-list"),
+        _dvar_upload(dvar, classical_dsvg),
+        format="multipart",
+    )
+    assert response.status_code == status.HTTP_201_CREATED, response.data
+
+    variant = Variant.objects.get(id=f"{primary_user.id}-neutral-draft")
+    assert variant.nations.get(nation_id=neutral_id).non_playable is True
+    assert variant.nations.filter(non_playable=True).count() == 1
+
+    roundtripped = variant_to_canonical_dict(variant)
+    nation = next(n for n in roundtripped["nations"] if n["id"] == neutral_id)
+    assert nation["non_playable"] is True
+
+
+@pytest.mark.django_db
 def test_create_variant_id_prefixed_with_owner(
     authenticated_client, primary_user, classical_dvar, classical_dsvg
 ):
