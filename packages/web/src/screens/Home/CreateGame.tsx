@@ -80,6 +80,38 @@ import {
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
 import { CREATE_GAME_PARAM } from "@/utils/routes";
 
+const FREQ_SECONDS: Record<string, number> = {
+  hourly: 3600,
+  daily: 86400,
+  every_2_days: 172800,
+  weekly: 604800,
+};
+
+function computeAccelerationStep(movementFrequency: string): number {
+  return Math.round((FREQ_SECONDS[movementFrequency] ?? 86400) / 12);
+}
+
+function computeMaxAccelerationWindow(
+  movementFrequency: string,
+  retreatFrequency?: string | null
+): number {
+  const movCycle = FREQ_SECONDS[movementFrequency] ?? 86400;
+  const retCycle = retreatFrequency
+    ? (FREQ_SECONDS[retreatFrequency] ?? movCycle)
+    : movCycle;
+  const step = computeAccelerationStep(movementFrequency);
+  return Math.min(retCycle, movCycle - step);
+}
+
+function formatAccelerationDuration(seconds: number): string {
+  if (seconds >= 86400) {
+    const days = Math.round(seconds / 86400);
+    return days === 1 ? "1 day" : `${days} days`;
+  }
+  const hours = Math.round(seconds / 3600);
+  return hours === 1 ? "1 hour" : `${hours} hours`;
+}
+
 const gameSchema = z.object({
   name: z
     .string()
@@ -103,6 +135,8 @@ const gameSchema = z.object({
     .enum(["hourly", "daily", "every_2_days", "weekly"] as const)
     .optional()
     .nullable(),
+  acceleratedPhasesEnabled: z.boolean().default(true),
+  accelerationWindowSteps: z.number().int().min(1).max(11).default(2),
   nmrExtensionsAllowed: z.enum(["0", "1", "2"] as const),
   minReliability: z.enum([
     "open",
@@ -432,6 +466,8 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
       fixedDeadlineTimezone: getBrowserTimezone(),
       movementFrequency: "daily",
       retreatFrequency: null,
+      acceleratedPhasesEnabled: true,
+      accelerationWindowSteps: 2,
       nmrExtensionsAllowed: "0",
       minReliability: "open",
     },
@@ -826,6 +862,83 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
                           )}
                         />
                       </div>
+
+                      <FormField
+                        control={form.control}
+                        name="acceleratedPhasesEnabled"
+                        render={({ field: accelField }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={accelField.value}
+                                onCheckedChange={accelField.onChange}
+                                disabled={isSubmitting}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>
+                                Accelerate retreat/adjustment phases
+                              </FormLabel>
+                              <FormDescription>
+                                Retreat and adjustment phases resolve early if
+                                all players confirm orders within the window
+                                below.
+                              </FormDescription>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+
+                      {form.watch("acceleratedPhasesEnabled") &&
+                        form.watch("movementFrequency") && (() => {
+                          const movFreq = form.watch("movementFrequency")!;
+                          const retFreq = form.watch("retreatFrequency");
+                          const steps = form.watch("accelerationWindowSteps");
+                          const step = computeAccelerationStep(movFreq);
+                          const maxWindow = computeMaxAccelerationWindow(movFreq, retFreq);
+                          const maxSteps = Math.min(11, Math.floor(maxWindow / step));
+                          const windowSeconds = Math.min(steps * step, maxWindow);
+                          const movCycle = FREQ_SECONDS[movFreq] ?? 86400;
+                          const guaranteedGap = movCycle - windowSeconds;
+                          return (
+                            <FormField
+                              control={form.control}
+                              name="accelerationWindowSteps"
+                              render={({ field: stepsField }) => (
+                                <FormItem>
+                                  <FormLabel>Acceleration window</FormLabel>
+                                  <FormControl>
+                                    <input
+                                      type="range"
+                                      min={1}
+                                      max={maxSteps}
+                                      step={1}
+                                      value={stepsField.value}
+                                      onChange={e =>
+                                        stepsField.onChange(
+                                          parseInt(e.target.value, 10)
+                                        )
+                                      }
+                                      disabled={isSubmitting}
+                                      className="w-full"
+                                    />
+                                  </FormControl>
+                                  <FormDescription>
+                                    Retreat/adjustment phases will resolve early
+                                    if all players confirm within{" "}
+                                    {formatAccelerationDuration(windowSeconds)}.
+                                    Movement phases will always run at least{" "}
+                                    {formatAccelerationDuration(guaranteedGap)}{" "}
+                                    to guarantee{" "}
+                                    {formatAccelerationDuration(guaranteedGap)}{" "}
+                                    between turns.
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          );
+                        })()}
                     </TabsContent>
                   </Tabs>
                 </FormItem>
@@ -1044,6 +1157,19 @@ const CreateGame: React.FC = () => {
             data.deadlineMode === "fixed_time" ? data.movementFrequency : null,
           retreatFrequency:
             data.deadlineMode === "fixed_time" ? data.retreatFrequency : null,
+          acceleratedPhaseWindowSeconds:
+            data.deadlineMode === "fixed_time" &&
+            data.acceleratedPhasesEnabled &&
+            data.movementFrequency
+              ? Math.min(
+                  data.accelerationWindowSteps *
+                    computeAccelerationStep(data.movementFrequency),
+                  computeMaxAccelerationWindow(
+                    data.movementFrequency,
+                    data.retreatFrequency
+                  )
+                )
+              : null,
           nmrExtensionsAllowed: parseInt(data.nmrExtensionsAllowed, 10),
           minReliability: data.minReliability,
         },

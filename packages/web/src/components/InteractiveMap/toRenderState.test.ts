@@ -37,6 +37,7 @@ const emptyPhase: PhaseRetrieve = {
   supplyCenters: [],
   provinceNations: "{}",
   previousPhaseId: null,
+  earlyResolveWindowEnd: null,
   nextPhaseId: null,
 };
 

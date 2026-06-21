@@ -39,6 +39,7 @@ const phase = (units: Unit[] = []): PhaseRetrieve => ({
   units,
   supplyCenters: [],
   previousPhaseId: null,
+  earlyResolveWindowEnd: null,
   nextPhaseId: null,
   provinceNations: "",
 });

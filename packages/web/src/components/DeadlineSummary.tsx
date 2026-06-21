@@ -8,6 +8,7 @@ interface DeadlineSummaryGame {
   fixedDeadlineTimezone?: string | null;
   movementFrequency?: string | null;
   retreatFrequency?: string | null;
+  acceleratedPhaseWindowSeconds?: number | null;
 }
 
 interface DeadlineSummaryProps {
@@ -82,6 +83,15 @@ function formatTime12Hour(time: string): string {
   return `${hour12}:${minutes.toString().padStart(2, "0")} ${ampm}`;
 }
 
+function formatAccelDuration(seconds: number): string {
+  if (seconds >= 86400) {
+    const days = Math.round(seconds / 86400);
+    return days === 1 ? "1 day" : `${days} days`;
+  }
+  const hours = Math.round(seconds / 3600);
+  return hours === 1 ? "1 hour" : `${hours} hours`;
+}
+
 export const DeadlineSummary: React.FC<DeadlineSummaryProps> = ({ game }) => {
   const {
     movementPhaseDuration,
@@ -91,6 +101,7 @@ export const DeadlineSummary: React.FC<DeadlineSummaryProps> = ({ game }) => {
     fixedDeadlineTimezone,
     movementFrequency,
     retreatFrequency,
+    acceleratedPhaseWindowSeconds,
   } = game;
 
   if (deadlineMode === "fixed_time") {
@@ -101,6 +112,9 @@ export const DeadlineSummary: React.FC<DeadlineSummaryProps> = ({ game }) => {
     const tz = TIMEZONE_ABBREVS[fixedDeadlineTimezone] ?? fixedDeadlineTimezone;
     const time = formatTime12Hour(fixedDeadlineTime);
     const sameFrequency = !retreatFrequency || retreatFrequency === movementFrequency;
+    const accelNote = acceleratedPhaseWindowSeconds
+      ? ` Retreat and adjustment phases can resolve early if all players confirm within ${formatAccelDuration(acceleratedPhaseWindowSeconds)}.`
+      : "";
 
     if (isSubDaily(movementFrequency)) {
       const firstEnd = formatTime12Hour(firstPhaseEndTime(fixedDeadlineTime, movementFrequency));
@@ -108,7 +122,7 @@ export const DeadlineSummary: React.FC<DeadlineSummaryProps> = ({ game }) => {
         return (
           <span>
             The first phase ends at {firstEnd} {tz}, after that every hour,
-            regardless of whether players confirmed their orders.
+            regardless of whether players confirmed their orders.{accelNote}
           </span>
         );
       }
@@ -117,7 +131,7 @@ export const DeadlineSummary: React.FC<DeadlineSummaryProps> = ({ game }) => {
         <span>
           The first phase ends at {firstEnd} {tz}, after that Movement: every
           hour and Retreat/Adjustment: {retreatDisplay}, regardless of whether
-          players confirmed their orders.
+          players confirmed their orders.{accelNote}
         </span>
       );
     }
@@ -128,7 +142,7 @@ export const DeadlineSummary: React.FC<DeadlineSummaryProps> = ({ game }) => {
         <span>
           Movement resolves {formatFreqTime(movementFrequency, time, tz)}.
           Retreat/Adjustment resolves {intervalLabel} later, regardless
-          of whether players confirmed their orders.
+          of whether players confirmed their orders.{accelNote}
         </span>
       );
     }
@@ -137,7 +151,7 @@ export const DeadlineSummary: React.FC<DeadlineSummaryProps> = ({ game }) => {
       return (
         <span>
           Phases resolve {formatFreqTime(movementFrequency, time, tz)},
-          regardless of whether players confirmed their orders.
+          regardless of whether players confirmed their orders.{accelNote}
         </span>
       );
     }
@@ -146,7 +160,7 @@ export const DeadlineSummary: React.FC<DeadlineSummaryProps> = ({ game }) => {
       <span>
         Phases resolve Movement: {formatFreqTime(movementFrequency, time, tz)},
         Retreat: {formatFreqTime(retreatFrequency!, time, tz)}, regardless of
-        whether players confirmed their orders.
+        whether players confirmed their orders.{accelNote}
       </span>
     );
   }
