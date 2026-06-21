@@ -37,6 +37,24 @@ class TestPasswordReset:
         assert "reset" in call_kwargs["subject"].lower()
         assert "reset-password?uid=" in call_kwargs["html"]
 
+    def test_case_insensitive_email_sends_reset(self, unauthenticated_client, mock_send_email):
+        User.objects.create_user(
+            username="Player@Example.com",
+            email="Player@Example.com",
+            password="strongpass123",
+            is_active=True,
+        )
+
+        url = reverse(password_reset_viewname)
+        response = unauthenticated_client.post(
+            url,
+            {"email": "player@example.com"},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        mock_send_email.assert_called_once()
+
     def test_nonexistent_email_returns_200_without_sending(self, unauthenticated_client, mock_send_email):
         url = reverse(password_reset_viewname)
         response = unauthenticated_client.post(

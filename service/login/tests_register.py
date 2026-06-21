@@ -57,6 +57,27 @@ class TestRegister:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "already exists" in str(response.data["email"])
 
+    def test_duplicate_email_case_insensitive_returns_400(self, unauthenticated_client, mock_send_email):
+        User.objects.create_user(
+            username="existing",
+            email="Taken@Example.com",
+            password="somepass123",
+        )
+
+        url = reverse(register_viewname)
+        response = unauthenticated_client.post(
+            url,
+            {
+                "email": "taken@example.com",
+                "password": "strongpass123",
+                "display_name": "Another Player",
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "already exists" in str(response.data["email"])
+
     def test_short_password_returns_400(self, unauthenticated_client, mock_send_email):
         url = reverse(register_viewname)
         response = unauthenticated_client.post(
