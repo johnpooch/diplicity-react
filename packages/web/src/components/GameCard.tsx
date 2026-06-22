@@ -52,25 +52,25 @@ const ORDER_STATUS_CONFIG: Record<
   { label: string; badgeClassName: string; icon: React.ReactNode; tooltip: string }
 > = {
   orders_required: {
-    label: "Required",
+    label: "Orders required",
     badgeClassName: "bg-amber-500 text-white hover:bg-amber-500",
     icon: <Clock className="size-3" />,
     tooltip: "You have orders to submit this phase",
   },
   orders_submitted: {
-    label: "Submitted",
+    label: "Orders submitted",
     badgeClassName: "bg-green-600 text-white hover:bg-green-600",
     icon: <Check className="size-3" />,
     tooltip: "Your orders are submitted for this phase",
   },
   orders_not_confirmed: {
-    label: "Not confirmed",
+    label: "Orders not confirmed",
     badgeClassName: "bg-amber-500 text-white hover:bg-amber-500",
     icon: <Clock className="size-3" />,
     tooltip: "You have entered orders but not confirmed them for this phase",
   },
   no_orders_required: {
-    label: "Not required",
+    label: "Orders not required",
     badgeClassName: "bg-slate-900 text-white hover:bg-slate-900",
     icon: <Check className="size-3" />,
     tooltip: "No orders are needed from you this phase",

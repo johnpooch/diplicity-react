@@ -195,30 +195,30 @@ describe("GameCard", () => {
   });
 
   describe("order and member status badges", () => {
-    it("shows 'Required' badge when orderStatus is orders_required", () => {
+    it("shows 'Orders required' badge when orderStatus is orders_required", () => {
       renderGameCard({ game: { ...mockGames[0], orderStatus: "orders_required", memberStatus: [] }, ...defaultProps });
-      expect(screen.getByText("Required")).toBeInTheDocument();
+      expect(screen.getByText("Orders required")).toBeInTheDocument();
     });
 
-    it("shows 'Submitted' badge when orderStatus is orders_submitted", () => {
+    it("shows 'Orders submitted' badge when orderStatus is orders_submitted", () => {
       renderGameCard({ game: { ...mockGames[0], orderStatus: "orders_submitted", memberStatus: [] }, ...defaultProps });
-      expect(screen.getByText("Submitted")).toBeInTheDocument();
+      expect(screen.getByText("Orders submitted")).toBeInTheDocument();
     });
 
-    it("shows 'Not confirmed' badge when orderStatus is orders_not_confirmed", () => {
+    it("shows 'Orders not confirmed' badge when orderStatus is orders_not_confirmed", () => {
       renderGameCard({ game: { ...mockGames[0], orderStatus: "orders_not_confirmed", memberStatus: [] }, ...defaultProps });
-      expect(screen.getByText("Not confirmed")).toBeInTheDocument();
+      expect(screen.getByText("Orders not confirmed")).toBeInTheDocument();
     });
 
-    it("shows 'Not required' badge when orderStatus is no_orders_required", () => {
+    it("shows 'Orders not required' badge when orderStatus is no_orders_required", () => {
       renderGameCard({ game: { ...mockGames[0], orderStatus: "no_orders_required", memberStatus: [] }, ...defaultProps });
-      expect(screen.getByText("Not required")).toBeInTheDocument();
+      expect(screen.getByText("Orders not required")).toBeInTheDocument();
     });
 
     it("shows no order status badge when orderStatus is null", () => {
       renderGameCard({ game: { ...mockGames[0], orderStatus: null, memberStatus: [] }, ...defaultProps });
-      expect(screen.queryByText("Required")).not.toBeInTheDocument();
-      expect(screen.queryByText("Submitted")).not.toBeInTheDocument();
+      expect(screen.queryByText("Orders required")).not.toBeInTheDocument();
+      expect(screen.queryByText("Orders submitted")).not.toBeInTheDocument();
     });
 
     it("shows 'NMR' badge for active games when memberStatus includes nmr", () => {
@@ -278,7 +278,7 @@ describe("GameCard", () => {
     it("does not show order status or result badges", () => {
       renderGameCard({ game: mockPendingGames[0], ...defaultProps });
       expect(screen.queryByText(/joined/)).toBeInTheDocument();
-      expect(screen.queryByText("Required")).not.toBeInTheDocument();
+      expect(screen.queryByText("Orders required")).not.toBeInTheDocument();
       expect(screen.queryByText(/won/)).not.toBeInTheDocument();
     });
   });
