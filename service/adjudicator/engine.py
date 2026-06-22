@@ -860,35 +860,6 @@ class ApplyCivilDisorderReducer(Reducer):
         return state.replace(civil_disorder_disbands=tuple(sorted(civil)))
 
 
-class ApplyNonPlayableRebuildsReducer(Reducer):
-    """For each non-playable nation with rebuilds=True, find owned supply
-    centres with no standing unit and record them in auto_rebuild_units
-    for ApplyAdjustmentOutcomes to append."""
-
-    ACTION = Actions.ApplyNonPlayableRebuilds
-
-    @classmethod
-    def reduce(cls, state: StateView, action: Action) -> StateView:
-        rebuild: List[Unit] = []
-        for nation in state.variant().nations:
-            if not nation.non_playable or not nation.rebuilds:
-                continue
-            nation_view = state.nation(nation.id)
-            owned = nation_view.owned_supply_centers()
-            occupied = frozenset(
-                u.location
-                for u in state.units().all()
-                if u.nation == nation.id and not u.dislodged
-            )
-            if len(occupied) >= len(owned):
-                continue
-            for sc in sorted(owned - occupied):
-                province = state.variant().provinces[sc]
-                unit_type = Unit.FLEET if province.type == ProvinceType.SEA else Unit.ARMY
-                rebuild.append(Unit(nation=nation.id, type=unit_type, location=sc))
-        return state.replace(auto_rebuild_units=tuple(rebuild))
-
-
 class FinalizeStatusesReducer(Reducer):
     """Promote any order whose status is still None to its final value.
     Support orders read their final status from support_cut and

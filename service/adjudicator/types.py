@@ -1077,12 +1077,6 @@ class NationView:
                 return nation.non_playable
         return False
 
-    def _is_rebuilds(self) -> bool:
-        for nation in self._state.variant.nations:
-            if nation.id == self._nation:
-                return nation.rebuilds
-        return False
-
     def civil_disorder_ranking(self) -> Tuple[Unit, ...]:
         """Units of this nation ordered for civil-disorder selection:
         furthest-from-home-SC first, fleets before armies on ties,
