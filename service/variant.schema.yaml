@@ -194,6 +194,14 @@ properties:
             dislodged. Non-playable nations must have as many units as
             supply centers they own in initialState so the adjustment
             phase stays balanced.
+        rebuilds:
+          type: boolean
+          default: false
+          description: |
+            If true, this non-playable nation automatically rebuilds a unit on
+            each of its owned supply centres that has no unit at the start of
+            each adjustment phase. Has no effect unless non_playable is also
+            true. Defaults to false, preserving existing variant behaviour.
 
   provinces:
     type: array

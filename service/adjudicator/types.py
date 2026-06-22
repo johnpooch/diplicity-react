@@ -964,6 +964,12 @@ class AdjudicationState:
     ApplyAdjustmentOutcomesReducer to remove these units from the next
     state. Empty outside Adjustment."""
 
+    auto_rebuild_units: Tuple[Unit, ...] = ()
+    """Units to be auto-built for non-playable nations with rebuilds=True.
+    Populated by ApplyNonPlayableRebuildsReducer; consumed by
+    ApplyAdjustmentOutcomesReducer to add these units to next_units.
+    Empty outside Adjustment."""
+
     # --- outcome (populated by apply_*_outcomes; consumed by Engine return) ---
 
     next_units: Tuple[Unit, ...] = ()
@@ -1069,6 +1075,12 @@ class NationView:
         for nation in self._state.variant.nations:
             if nation.id == self._nation:
                 return nation.non_playable
+        return False
+
+    def _is_rebuilds(self) -> bool:
+        for nation in self._state.variant.nations:
+            if nation.id == self._nation:
+                return nation.rebuilds
         return False
 
     def civil_disorder_ranking(self) -> Tuple[Unit, ...]:
@@ -1267,6 +1279,9 @@ class StateView:
 
     def civil_disorder_disbands(self) -> Tuple[str, ...]:
         return self._state.civil_disorder_disbands
+
+    def auto_rebuild_units(self) -> Tuple[Unit, ...]:
+        return self._state.auto_rebuild_units
 
     def parsed_orders(self) -> Tuple[Order, ...]:
         return self._state.parsed_orders

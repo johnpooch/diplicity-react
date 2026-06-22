@@ -7,6 +7,7 @@ from typing import ClassVar, Dict, List, Tuple, Type
 from .convoy import convoy_path_exists, is_convoy_redundant
 from .domain import (
     Phase,
+    ProvinceType,
     Resolution,
     State,
     SupplyCenter,
@@ -164,6 +165,13 @@ class Actions:
         civil-disorder ranking to fill the gap. Selected locations are
         recorded on state.civil_disorder_disbands for the outcomes
         reducer to consume."""
+
+    @dataclass(frozen=True)
+    class ApplyNonPlayableRebuilds(Action):
+        """Adjustment phase: for each non-playable nation with rebuilds=True,
+        find all owned supply centres that have no standing unit and record
+        a Unit for each in auto_rebuild_units, to be appended by
+        ApplyAdjustmentOutcomes."""
 
     @dataclass(frozen=True)
     class FinalizeStatuses(Action):
@@ -852,6 +860,35 @@ class ApplyCivilDisorderReducer(Reducer):
         return state.replace(civil_disorder_disbands=tuple(sorted(civil)))
 
 
+class ApplyNonPlayableRebuildsReducer(Reducer):
+    """For each non-playable nation with rebuilds=True, find owned supply
+    centres with no standing unit and record them in auto_rebuild_units
+    for ApplyAdjustmentOutcomes to append."""
+
+    ACTION = Actions.ApplyNonPlayableRebuilds
+
+    @classmethod
+    def reduce(cls, state: StateView, action: Action) -> StateView:
+        rebuild: List[Unit] = []
+        for nation in state.variant().nations:
+            if not nation.non_playable or not nation.rebuilds:
+                continue
+            nation_view = state.nation(nation.id)
+            owned = nation_view.owned_supply_centers()
+            occupied = frozenset(
+                u.location
+                for u in state.units().all()
+                if u.nation == nation.id and not u.dislodged
+            )
+            if len(occupied) >= len(owned):
+                continue
+            for sc in sorted(owned - occupied):
+                province = state.variant().provinces[sc]
+                unit_type = Unit.FLEET if province.type == ProvinceType.SEA else Unit.ARMY
+                rebuild.append(Unit(nation=nation.id, type=unit_type, location=sc))
+        return state.replace(auto_rebuild_units=tuple(rebuild))
+
+
 class FinalizeStatusesReducer(Reducer):
     """Promote any order whose status is still None to its final value.
     Support orders read their final status from support_cut and
@@ -1112,6 +1149,34 @@ class ApplyRetreatOutcomesReducer(Reducer):
         return state.replace(next_units=tuple(next_units))
 
 
+class ApplyNonPlayableRebuildsReducer(Reducer):
+    """For each non-playable nation with rebuilds=True, find owned supply
+    centres with no standing unit and record a Unit for each in
+    auto_rebuild_units, for ApplyAdjustmentOutcomes to append."""
+
+    ACTION = Actions.ApplyNonPlayableRebuilds
+
+    @classmethod
+    def reduce(cls, state: StateView, action: Action) -> StateView:
+        rebuild: List[Unit] = []
+        for nation in state.variant().nations:
+            if not nation.non_playable or not nation.rebuilds:
+                continue
+            owned = state.nation(nation.id).owned_supply_centers()
+            occupied = frozenset(
+                u.location
+                for u in state.units().all()
+                if u.nation == nation.id and not u.dislodged
+            )
+            if len(occupied) >= len(owned):
+                continue
+            for sc in sorted(owned - occupied):
+                province = state.variant().provinces[sc]
+                unit_type = Unit.FLEET if province.type == ProvinceType.SEA else Unit.ARMY
+                rebuild.append(Unit(nation=nation.id, type=unit_type, location=sc))
+        return state.replace(auto_rebuild_units=tuple(rebuild))
+
+
 class UpdateSupplyCenterOwnershipReducer(Reducer):
     """Recompute supply-center ownership for the next phase. When the
     next phase is an Adjustment phase, ownership is recounted from the
@@ -1188,7 +1253,8 @@ class ApplyAdjustmentOutcomesReducer(Reducer):
 
     @classmethod
     def _append_built_units(cls, state: StateView) -> StateView:
-        """Append a new Unit for each OK BuildOrder onto next_units."""
+        """Append a new Unit for each OK BuildOrder onto next_units, then
+        append any auto-rebuild units for non-playable nations."""
         next_units: List[Unit] = list(state.next_units())
         resolutions = state.resolutions()
         for i, order in enumerate(state.parsed_orders()):
@@ -1203,6 +1269,8 @@ class ApplyAdjustmentOutcomesReducer(Reducer):
                     location=order.location,
                 )
             )
+        for unit in state.auto_rebuild_units():
+            next_units.append(unit)
         return state.replace(next_units=tuple(next_units))
 
 
@@ -1336,9 +1404,12 @@ class AdjustmentPhaseResolver(PhaseResolver):
     5. EnforceDisbandLimits    — cap successful disbands at required per nation.
     6. ApplyCivilDisorder      — fill any disband shortfall via the ranked
                                  civil-disorder selection.
-    7. FinalizeStatuses        — remaining undecided -> OK.
-    8. ApplyAdjustmentOutcomes — drop disbanded units (explicit + civil),
-                                 then append new units for OK builds."""
+    7. ApplyNonPlayableRebuilds — for each non-playable nation with rebuilds=True,
+                                  record units to auto-build on empty owned SCs.
+    8. FinalizeStatuses        — remaining undecided -> OK.
+    9. ApplyAdjustmentOutcomes — drop disbanded units (explicit + civil),
+                                 then append new units for OK builds and
+                                 auto-rebuilds."""
 
     PHASE_TYPE = Phase.ADJUSTMENT
 
@@ -1349,6 +1420,7 @@ class AdjustmentPhaseResolver(PhaseResolver):
         Actions.EnforceBuildLimits,
         Actions.EnforceDisbandLimits,
         Actions.ApplyCivilDisorder,
+        Actions.ApplyNonPlayableRebuilds,
         Actions.FinalizeStatuses,
         Actions.ApplyAdjustmentOutcomes,
     )
@@ -1437,6 +1509,14 @@ class Engine:
                     province=location,
                     resolution=Status.OK,
                     reason="Disbanded due to civil disorder.",
+                )
+            )
+        for unit in adj.auto_rebuild_units:
+            resolutions.append(
+                Resolution(
+                    province=unit.location,
+                    resolution=Status.OK,
+                    reason=None,
                 )
             )
         resolved = State(

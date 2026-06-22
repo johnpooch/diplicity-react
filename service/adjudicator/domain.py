@@ -53,6 +53,7 @@ class Nation:
     name: str
     color: str
     non_playable: bool = False
+    rebuilds: bool = False
 
 
 @dataclass(frozen=True)

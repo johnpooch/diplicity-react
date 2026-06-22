@@ -11053,3 +11053,81 @@ def test_dislodged_convoying_fleet_disrupts_convoyed_move():
         == "The convoying fleet was dislodged."
     )
 
+
+# === Non-playable nation auto-rebuild tests ===
+
+
+def _with_rebuilds_south(variant: Variant) -> Variant:
+    nations = tuple(
+        replace(n, non_playable=True, rebuilds=True) if n.id == SOUTH else n
+        for n in variant.nations
+    )
+    return replace(variant, nations=nations)
+
+
+def test_non_playable_rebuilds_unit_on_empty_sc():
+    variant = _with_rebuilds_south(make_variant())
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[],
+        supply_centers=[SupplyCenter(nation=SOUTH, province="rhs")],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _unit_at(result, "rhs") is not None
+    assert _unit_at(result, "rhs").nation == SOUTH
+    assert _resolution(result, "rhs") == Status.OK
+
+
+def test_non_playable_no_rebuild_when_unit_present():
+    variant = _with_rebuilds_south(make_variant())
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[Unit(nation=SOUTH, type=Unit.ARMY, location="rhs")],
+        supply_centers=[SupplyCenter(nation=SOUTH, province="rhs")],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _unit_at(result, "rhs") is not None
+    assert len([u for u in result[0].units if u.nation == SOUTH]) == 1
+
+
+def test_non_playable_no_rebuild_when_rebuilds_false():
+    variant = make_variant()
+    nations = tuple(
+        replace(n, non_playable=True, rebuilds=False) if n.id == SOUTH else n
+        for n in variant.nations
+    )
+    variant = replace(variant, nations=nations)
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[],
+        supply_centers=[SupplyCenter(nation=SOUTH, province="rhs")],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _unit_at(result, "rhs") is None
+
+
+def test_non_playable_no_rebuild_when_more_units_than_scs():
+    variant = _with_rebuilds_south(make_variant())
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[
+            Unit(nation=SOUTH, type=Unit.ARMY, location="rhs"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="mid"),
+        ],
+        supply_centers=[SupplyCenter(nation=SOUTH, province="rhs")],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert len([u for u in result[0].units if u.nation == SOUTH]) == 2
+

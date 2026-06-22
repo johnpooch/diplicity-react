@@ -128,7 +128,7 @@ def deserialize_variant(data: Dict[str, Any]) -> Variant:
     _validate_against_schema(data)
 
     nations = tuple(
-        Nation(id=n["id"], name=n["name"], color=n["color"], non_playable=n.get("non_playable", False))
+        Nation(id=n["id"], name=n["name"], color=n["color"], non_playable=n.get("non_playable", False), rebuilds=n.get("rebuilds", False))
         for n in data["nations"]
     )
 
