@@ -31,6 +31,10 @@ vi.mock("@/hooks/useInfiniteScroll", () => ({
   useInfiniteScroll: () => ({ current: null }),
 }));
 
+vi.mock("@/components/MapPreview", () => ({
+  MapPreview: () => <div data-testid="map-preview" />,
+}));
+
 vi.mock("@/hooks/use-mobile", () => ({
   useIsMobile: () => false,
 }));
