@@ -14,6 +14,7 @@ import { ForgotPassword } from "./screens/ForgotPassword";
 import { VerifyEmail } from "./screens/VerifyEmail";
 import { ResetPassword } from "./screens/ResetPassword";
 import { GameDetail, Home, Tutorial, Variants } from "./screens";
+const CardGallery = React.lazy(() => import("./screens/CardGallery"));
 import { ErrorFallbackUI } from "./components/ErrorBoundary";
 import { HomeLayout } from "./components/HomeLayout";
 import { GameDetailLayout } from "./components/GameDetailLayout";
@@ -199,6 +200,18 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
                         </Suspense>
                       ),
                     },
+                    ...(import.meta.env.DEV
+                      ? [
+                          {
+                            path: "card-gallery",
+                            element: (
+                              <Suspense fallback={<RouteFallback />}>
+                                <CardGallery />
+                              </Suspense>
+                            ),
+                          },
+                        ]
+                      : []),
                   ],
                 },
                 {
