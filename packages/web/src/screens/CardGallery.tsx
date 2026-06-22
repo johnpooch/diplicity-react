@@ -4,7 +4,7 @@ import { MapPreview } from "@/components/MapPreview";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { ScreenHeader } from "@/components/ui/screen-header";
-import { gameFixtures, classicalVariant } from "@/mocks/fixtures";
+import { gameFixtures, allVariants } from "@/mocks/fixtures";
 import type { GameList } from "@/api/generated/endpoints";
 
 const f = gameFixtures;
@@ -12,7 +12,27 @@ const f = gameFixtures;
 const active = f.activeGameMovement.game;
 const pendingSome = f.pendingGameSomePlayers.game;
 
-const variant = classicalVariant;
+const variant = allVariants[Math.floor(Math.random() * allVariants.length)];
+
+const nationName = (i: number) =>
+  variant.nations[i % variant.nations.length].name;
+
+const withVariantNations = (game: GameList): GameList => ({
+  ...game,
+  members: game.members.map((m, i) => ({
+    ...m,
+    nation: m.nation ? nationName(i) : m.nation,
+  })),
+  victory: game.victory
+    ? {
+        ...game.victory,
+        members: game.victory.members.map((m, i) => ({
+          ...m,
+          nation: nationName(i),
+        })),
+      }
+    : game.victory,
+});
 
 interface Scenario {
   label: string;
@@ -57,7 +77,7 @@ const ScenarioCard: React.FC<Scenario> = ({ label, game }) => (
       {label}
     </p>
     <GameCard
-      game={game}
+      game={withVariantNations(game)}
       variant={variant}
       map={
         <MapPreview
@@ -85,7 +105,7 @@ const Section: React.FC<{ title: string; scenarios: Scenario[] }> = ({
 
 const CardGallery: React.FC = () => (
   <ScreenContainer>
-    <ScreenHeader title="Card Gallery" />
+    <ScreenHeader title={`Card Gallery — ${variant.name}`} />
     <QueryErrorBoundary>
       <Suspense fallback={<div />}>
         <div className="space-y-10 pb-16">

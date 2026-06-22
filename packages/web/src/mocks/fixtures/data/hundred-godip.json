@@ -1,0 +1,427 @@
+{
+  "id": "hundred",
+  "name": "Hundred",
+  "description": "The Hundred Years' War was a series of conflicts from 1337 to 1453, waged between the English House of Plantagenet and the French House of Valois, over the Kingdom of France.",
+  "author": "Andy Schwarz",
+  "nations": [
+    {
+      "name": "England",
+      "color": "#2196F3"
+    },
+    {
+      "name": "Burgundy",
+      "color": "#808080"
+    },
+    {
+      "name": "France",
+      "color": "#80DEEA"
+    }
+  ],
+  "provinces": [
+    {
+      "id": "brt",
+      "name": "Brittany",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "cal",
+      "name": "Calais",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "dau",
+      "name": "Dauphine",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "pro",
+      "name": "Provence",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "cha",
+      "name": "Charlerois",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "brs",
+      "name": "Bristol Channel",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "iri",
+      "name": "Irish Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "eng",
+      "name": "English Channel",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "lon",
+      "name": "London",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "poi",
+      "name": "Poitou",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "nos",
+      "name": "North Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "ang",
+      "name": "Anglia",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "min",
+      "name": "Minch",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "lim",
+      "name": "Limousin",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "ara/nc",
+      "name": "Aragon (NC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "ara"
+    },
+    {
+      "id": "ara/sc",
+      "name": "Aragon (SC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "ara"
+    },
+    {
+      "id": "ara",
+      "name": "Aragon",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "thw",
+      "name": "The Wash",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "guy",
+      "name": "Guyenne",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "nom",
+      "name": "Normandy",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "sav",
+      "name": "Savoy",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "sco",
+      "name": "Scotland",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "dev",
+      "name": "Devon",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "wal",
+      "name": "Wales",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "anj",
+      "name": "Anjou",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "par",
+      "name": "Paris",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "lux",
+      "name": "Luxembourg",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "can",
+      "name": "Cantons",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "lor",
+      "name": "Lorraine",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "dij",
+      "name": "Dijon",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "fri",
+      "name": "Friesland",
+      "type": "coastal",
+      "supply_center": false
+    },
+    {
+      "id": "not/wc",
+      "name": "Northumbria (WC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "not"
+    },
+    {
+      "id": "not",
+      "name": "Northumbria",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "not/ec",
+      "name": "Northumbria (EC)",
+      "type": "named_coast",
+      "supply_center": false,
+      "parent": "not"
+    },
+    {
+      "id": "fla",
+      "name": "Flanders",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "med",
+      "name": "Mediterranean",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "bis",
+      "name": "Biscay",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "str",
+      "name": "Strait of Dover",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "orl",
+      "name": "Orleanais",
+      "type": "land",
+      "supply_center": true
+    },
+    {
+      "id": "tou",
+      "name": "Toulouse",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "hol",
+      "name": "Holland",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "als",
+      "name": "Alsace",
+      "type": "land",
+      "supply_center": false
+    },
+    {
+      "id": "atl",
+      "name": "Atlantic Sea",
+      "type": "sea",
+      "supply_center": false
+    },
+    {
+      "id": "cas",
+      "name": "Castile",
+      "type": "coastal",
+      "supply_center": true
+    },
+    {
+      "id": "thp",
+      "name": "The Pale",
+      "type": "coastal",
+      "supply_center": false
+    }
+  ],
+  "initial_phase": {
+    "season": "Year",
+    "year": 1425,
+    "type": "Movement"
+  },
+  "initial_units": [
+    {
+      "type": "Army",
+      "nation": "Burgundy",
+      "province": "dij"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "pro"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "lon"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "orl"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "par"
+    },
+    {
+      "type": "Fleet",
+      "nation": "England",
+      "province": "dev"
+    },
+    {
+      "type": "Fleet",
+      "nation": "Burgundy",
+      "province": "hol"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "dau"
+    },
+    {
+      "type": "Army",
+      "nation": "Burgundy",
+      "province": "lux"
+    },
+    {
+      "type": "Army",
+      "nation": "France",
+      "province": "tou"
+    },
+    {
+      "type": "Army",
+      "nation": "England",
+      "province": "cal"
+    },
+    {
+      "type": "Army",
+      "nation": "England",
+      "province": "nom"
+    },
+    {
+      "type": "Army",
+      "nation": "England",
+      "province": "guy"
+    },
+    {
+      "type": "Army",
+      "nation": "Burgundy",
+      "province": "fla"
+    }
+  ],
+  "initial_supply_centers": [
+    {
+      "nation": "England",
+      "province": "guy"
+    },
+    {
+      "nation": "England",
+      "province": "nom"
+    },
+    {
+      "nation": "France",
+      "province": "orl"
+    },
+    {
+      "nation": "France",
+      "province": "tou"
+    },
+    {
+      "nation": "England",
+      "province": "cal"
+    },
+    {
+      "nation": "Burgundy",
+      "province": "dij"
+    },
+    {
+      "nation": "England",
+      "province": "lon"
+    },
+    {
+      "nation": "England",
+      "province": "dev"
+    },
+    {
+      "nation": "Burgundy",
+      "province": "hol"
+    },
+    {
+      "nation": "Burgundy",
+      "province": "lux"
+    },
+    {
+      "nation": "Burgundy",
+      "province": "fla"
+    },
+    {
+      "nation": "France",
+      "province": "dau"
+    },
+    {
+      "nation": "France",
+      "province": "par"
+    }
+  ]
+}
