@@ -591,7 +591,7 @@ class AdjustmentDisbandUnitExistsCheck(Check):
     @classmethod
     def check(cls, state: "StateView", order: Order) -> bool:
         assert isinstance(order, AdjustmentDisbandOrder)
-        unit = state.units().standing_by_loc().get(order.location)
+        unit = state.units().at_parent(order.location)
         return unit is not None and unit.nation == order.nation
 
 

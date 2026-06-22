@@ -7246,6 +7246,48 @@ def test_excess_disbands_beyond_required_are_illegal():
     assert resolutions[1].resolution == Status.ILLEGAL
 
 
+def test_disband_unit_on_named_coast_resolves_ok():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.FLEET, location="mlc/sc"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+        ],
+        supply_centers=[SupplyCenter(nation=NORTH, province="lhs")],
+        orders=[RawOrder(nation=NORTH, source="mlc", order_type="Disband")],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _resolution(result, "mlc") == Status.OK
+    assert _unit_at(result, "mlc/sc") is None
+    assert _unit_at(result, "lhs") is not None
+
+
+def test_civil_disorder_does_not_double_disband_explicit_named_coast_unit():
+    variant = make_variant()
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[
+            Unit(nation=NORTH, type=Unit.FLEET, location="mlc/sc"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=NORTH, type=Unit.ARMY, location="mid"),
+        ],
+        supply_centers=[SupplyCenter(nation=NORTH, province="lhs")],
+        orders=[RawOrder(nation=NORTH, source="mlc", order_type="Disband")],
+    )
+
+    result = Engine().adjudicate(state)
+
+    assert _resolution(result, "mlc") == Status.OK
+    assert _unit_at(result, "mlc/sc") is None
+    assert _unit_at(result, "lhs") is not None
+    assert _unit_at(result, "mid") is None
+
+
 # === Civil-disorder tests ===
 
 
