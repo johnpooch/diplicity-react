@@ -6,12 +6,16 @@ import type {
   Version,
 } from "@/api/generated/endpoints";
 import {
-  classicalVariant,
+  allVariants,
   currentUserProfile,
   fixtureByGameId,
   publicProfiles,
 } from "./fixtures";
 import classicalMapSvg from "./fixtures/data/classical-map.svg?raw";
+import cantonMapSvg from "./fixtures/data/canton.d.svg?raw";
+import hundredMapSvg from "./fixtures/data/hundred.d.svg?raw";
+import vietnamMapSvg from "./fixtures/data/vietnam-war.d.svg?raw";
+import youngstownMapSvg from "./fixtures/data/youngstown-redux.d.svg?raw";
 import austriaFlag from "./fixtures/data/flags/austria.svg?raw";
 import englandFlag from "./fixtures/data/flags/england.svg?raw";
 import franceFlag from "./fixtures/data/flags/france.svg?raw";
@@ -28,6 +32,13 @@ const flags: Record<string, string> = {
   italy: italyFlag,
   russia: russiaFlag,
   turkey: turkeyFlag,
+};
+
+const mapSvgs: Record<string, string> = {
+  "canton.d.svg": cantonMapSvg,
+  "hundred.d.svg": hundredMapSvg,
+  "vietnam-war.d.svg": vietnamMapSvg,
+  "youngstown-redux.d.svg": youngstownMapSvg,
 };
 
 const svgResponse = (body: string) =>
@@ -67,17 +78,21 @@ export const handlers = [
     HttpResponse.json({ environment: "mock", version: "mock" } satisfies Version)
   ),
 
-  http.get("*/variants/", () => HttpResponse.json([classicalVariant])),
+  http.get("*/variants/", () => HttpResponse.json(allVariants)),
 
-  http.get("*/variants/:variantId/", ({ params }) =>
-    params.variantId === classicalVariant.id
-      ? HttpResponse.json(classicalVariant)
-      : notFound()
-  ),
+  http.get("*/variants/:variantId/", ({ params }) => {
+    const variant = allVariants.find(v => v.id === params.variantId);
+    return variant ? HttpResponse.json(variant) : notFound();
+  }),
 
   http.get("*/mock-assets/classical-map.svg", () =>
     svgResponse(classicalMapSvg)
   ),
+
+  http.get("*/mock-assets/:file", ({ params }) => {
+    const svg = mapSvgs[String(params.file)];
+    return svg ? svgResponse(svg) : notFound();
+  }),
 
   http.get("*/mock-assets/flags/:nationId", ({ params }) => {
     const flag = flags[String(params.nationId).replace(/\.svg$/, "")];

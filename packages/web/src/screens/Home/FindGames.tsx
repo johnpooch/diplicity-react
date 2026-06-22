@@ -5,6 +5,7 @@ import { ScreenHeader } from "@/components/ui/screen-header";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { GameCard } from "@/components/GameCard";
+import { MapPreview } from "@/components/MapPreview";
 import { Notice } from "@/components/Notice";
 import { Button } from "@/components/ui/button";
 import {
@@ -138,7 +139,14 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
                 key={knownGames[0].id}
                 game={knownGames[0]}
                 variant={variantMap.get(knownGames[0].variantId)!}
-                map={<div />}
+                map={
+                  <MapPreview
+                    variant={variantMap.get(knownGames[0].variantId)!}
+                    phase={variantMap.get(knownGames[0].variantId)!.templatePhase}
+                    cover
+                    className="w-full h-full"
+                  />
+                }
               />
               {knownGames.length > 1 && (
                 <>
@@ -148,7 +156,14 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
                       key={game.id}
                       game={game}
                       variant={variantMap.get(game.variantId)!}
-                      map={<div />}
+                      map={
+                        <MapPreview
+                          variant={variantMap.get(game.variantId)!}
+                          phase={variantMap.get(game.variantId)!.templatePhase}
+                          cover
+                          className="w-full h-full"
+                        />
+                      }
                     />
                   ))}
                 </>
@@ -160,7 +175,14 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
                 key={game.id}
                 game={game}
                 variant={variantMap.get(game.variantId)!}
-                map={<div />}
+                map={
+                  <MapPreview
+                    variant={variantMap.get(game.variantId)!}
+                    phase={variantMap.get(game.variantId)!.templatePhase}
+                    cover
+                    className="w-full h-full"
+                  />
+                }
               />
             ))
           )}
