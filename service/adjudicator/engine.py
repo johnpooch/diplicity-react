@@ -400,7 +400,6 @@ class ParseAdjustmentOrdersReducer(Reducer):
 
     @classmethod
     def reduce(cls, state: StateView, action: Action) -> StateView:
-        standing = state.units().standing_by_loc()
         parsed: List[Order] = []
         for raw in state.raw_orders():
             if raw.order_type == OrderType.BUILD:
@@ -413,7 +412,7 @@ class ParseAdjustmentOrdersReducer(Reducer):
                 continue
             if raw.order_type == OrderType.DISBAND:
                 source = raw.source or ""
-                unit = standing.get(source)
+                unit = state.units().at_parent(source)
                 unit_type = unit.type if unit is not None else (raw.unit_type or "")
                 parsed.append(
                     AdjustmentDisbandOrder(
@@ -819,6 +818,7 @@ class ApplyCivilDisorderReducer(Reducer):
 
     @classmethod
     def reduce(cls, state: StateView, action: Action) -> StateView:
+        variant = state.variant()
         resolutions = state.resolutions()
         disbanding_by_nation: Dict[str, set] = {}
         for i, order in enumerate(state.parsed_orders()):
@@ -826,7 +826,9 @@ class ApplyCivilDisorderReducer(Reducer):
                 continue
             if resolutions[i].status is not None:
                 continue
-            disbanding_by_nation.setdefault(order.nation, set()).add(order.location)
+            disbanding_by_nation.setdefault(order.nation, set()).add(
+                variant.parent_of(order.location)
+            )
         nations: List[str] = []
         for u in state.units().all():
             if u.dislodged:
@@ -845,7 +847,7 @@ class ApplyCivilDisorderReducer(Reducer):
             for unit in nation_view.civil_disorder_ranking():
                 if picked >= shortfall:
                     break
-                if unit.location in already:
+                if variant.parent_of(unit.location) in already:
                     continue
                 civil.append(unit.location)
                 picked += 1
@@ -1172,17 +1174,18 @@ class ApplyAdjustmentOutcomesReducer(Reducer):
         """Populate next_units with the non-dislodged units whose location
         is not the source of an OK AdjustmentDisbandOrder and not in the
         civil-disorder set."""
-        disbanded: set = set(state.civil_disorder_disbands())
+        variant = state.variant()
+        disbanded: set = {variant.parent_of(loc) for loc in state.civil_disorder_disbands()}
         resolutions = state.resolutions()
         for i, order in enumerate(state.parsed_orders()):
             if not isinstance(order, AdjustmentDisbandOrder):
                 continue
             if resolutions[i].status != Status.OK:
                 continue
-            disbanded.add(order.location)
+            disbanded.add(variant.parent_of(order.location))
         kept = tuple(
             u for u in state.units().all()
-            if not u.dislodged and u.location not in disbanded
+            if not u.dislodged and variant.parent_of(u.location) not in disbanded
         )
         return state.replace(next_units=kept)
 
