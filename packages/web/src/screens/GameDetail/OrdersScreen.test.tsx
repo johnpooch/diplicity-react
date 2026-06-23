@@ -143,6 +143,52 @@ describe("OrdersScreen civil disorder handling", () => {
   });
 });
 
+describe("OrdersScreen fixed-time confirm button", () => {
+  beforeEach(() => {
+    mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);
+    mockPhaseData.mockReturnValue({
+      id: 1, status: "active", supplyCenters: [], units: [],
+    });
+    mockOrdersData.mockReturnValue([]);
+    mockPhaseStatesData.mockReturnValue([
+      {
+        member: baseMember({ civilDisorder: false }),
+        orderableProvinces: [{ id: "lon", name: "London" }],
+      },
+    ]);
+  });
+
+  it("shows 'Confirm to advance early' for unconfirmed fixed-time phase with orders", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      deadlineMode: "fixed_time",
+      phaseConfirmed: false,
+      members: [baseMember({ civilDisorder: false })],
+    });
+
+    renderOrdersScreen();
+
+    expect(screen.getByRole("button", { name: /confirm to advance early/i })).toBeInTheDocument();
+  });
+
+  it("shows 'Orders confirmed' for confirmed fixed-time phase", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      deadlineMode: "fixed_time",
+      phaseConfirmed: true,
+      members: [baseMember({ civilDisorder: false })],
+    });
+
+    renderOrdersScreen();
+
+    expect(screen.getByRole("button", { name: /orders confirmed/i })).toBeInTheDocument();
+  });
+});
+
 describe("OrdersScreen named coast display", () => {
   beforeEach(() => {
     mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);

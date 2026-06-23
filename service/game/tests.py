@@ -3173,6 +3173,31 @@ class TestFixedTimeDeadlines:
         )
         assert game.get_phase_frequency(PhaseType.RETREAT) == PhaseFrequency.DAILY
 
+    @pytest.mark.django_db
+    def test_get_scheduled_resolution_anchors_to_reference_time_for_fixed_time(
+        self, db, classical_variant
+    ):
+        from datetime import time as dt_time
+        from zoneinfo import ZoneInfo
+
+        game = Game.objects.create_from_template(
+            classical_variant,
+            name="Fixed Time Game",
+            deadline_mode=DeadlineMode.FIXED_TIME,
+            fixed_deadline_time=dt_time(21, 0),
+            fixed_deadline_timezone="UTC",
+            movement_frequency=PhaseFrequency.DAILY,
+        )
+        tz = ZoneInfo("UTC")
+        reference = timezone.now().astimezone(tz).replace(hour=21, minute=0, second=0, microsecond=0)
+
+        result = game.get_scheduled_resolution(PhaseType.MOVEMENT, reference_time=reference)
+
+        local_result = result.astimezone(tz)
+        assert local_result.hour == 21
+        assert local_result.minute == 0
+        assert local_result.date() == (reference + timedelta(days=1)).date()
+
 
 class TestCreateSandboxManagerMethod:
 

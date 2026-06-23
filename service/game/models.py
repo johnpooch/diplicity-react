@@ -478,7 +478,7 @@ class Game(BaseModel):
         else:
             return self.effective_retreat_frequency
 
-    def get_scheduled_resolution(self, phase_type, is_first_phase=False):
+    def get_scheduled_resolution(self, phase_type, is_first_phase=False, reference_time=None):
         if self.deadline_mode == DeadlineMode.FIXED_TIME:
             frequency = self.get_phase_frequency(phase_type)
             if not frequency or not self.fixed_deadline_time or not self.fixed_deadline_timezone:
@@ -488,6 +488,7 @@ class Game(BaseModel):
                 frequency=frequency,
                 tz_name=self.fixed_deadline_timezone,
                 is_first_phase=is_first_phase,
+                reference_time=reference_time,
             )
         else:
             phase_duration_seconds = self.get_phase_duration_seconds(phase_type)
