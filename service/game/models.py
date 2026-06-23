@@ -83,9 +83,6 @@ class GameQuerySet(models.QuerySet):
             queryset=Member.objects.select_related("user__profile", "nation__flag")
         )
 
-        # The list view's current_phase + phase_confirmed read the latest
-        # phase plus its phase_states.member.user_id. Prefetching the chain
-        # here keeps the per-game cost flat (no N+1 across the games list).
         phase_states_prefetch = Prefetch(
             "phase_states",
             queryset=PhaseState.objects.select_related("member").annotate(
@@ -94,7 +91,15 @@ class GameQuerySet(models.QuerySet):
         )
         phases_prefetch = Prefetch(
             "phases",
-            queryset=Phase.objects.prefetch_related(phase_states_prefetch),
+            queryset=Phase.objects.prefetch_related(
+                phase_states_prefetch,
+                "units__nation__flag",
+                "units__province__parent",
+                "units__province__named_coasts",
+                "supply_centers__nation__flag",
+                "supply_centers__province__parent",
+                "supply_centers__province__named_coasts",
+            ),
         )
 
         return self.select_related("variant", "victory", "game_master__profile").prefetch_related(

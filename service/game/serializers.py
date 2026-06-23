@@ -11,7 +11,9 @@ from common.constants import DeadlineMode, MinReliability, NationAssignment, Mov
 from user_profile.utils import get_player_stats, tier_allows_min_reliability
 from member.serializers import MemberSerializer
 from unit.models import Unit
+from unit.serializers import UnitSerializer
 from supply_center.models import SupplyCenter
+from supply_center.serializers import SupplyCenterSerializer
 from notification import utils as notification_utils
 from phase.utils import format_deadline
 
@@ -62,6 +64,8 @@ class GameListCurrentPhaseSerializer(serializers.Serializer):
     status = serializers.CharField(read_only=True)
     scheduled_resolution = serializers.DateTimeField(read_only=True, allow_null=True)
     remaining_time = serializers.IntegerField(source="remaining_time_seconds", read_only=True)
+    units = UnitSerializer(many=True, read_only=True)
+    supply_centers = SupplyCenterSerializer(many=True, read_only=True)
 
 
 class GameListSerializer(serializers.Serializer):

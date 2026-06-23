@@ -24,6 +24,8 @@ vi.mock("@/api/generated/endpoints", async (importOriginal) => {
     }),
     useGamePhaseRetrieve: (...args: unknown[]) => mockUseGamePhaseRetrieve(...args),
     useGameJoinCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
+    useDevicesCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
+    getDevicesListQueryKey: () => ["devices"],
   };
 });
 
