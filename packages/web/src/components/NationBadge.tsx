@@ -23,7 +23,7 @@ const NationBadge: React.FC<NationBadgeProps> = ({ nations, nation, children }) 
   const color = findNationColor(nations, nation);
   return (
     <Badge
-      className="leading-none"
+      className="max-w-32 truncate"
       style={{ backgroundColor: color ?? undefined, color: getContrastColor(color) }}
     >
       {children ?? nation}
