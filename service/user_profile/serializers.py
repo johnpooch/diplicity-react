@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from .utils import get_player_stats
@@ -10,6 +11,11 @@ class UserProfileSerializer(serializers.Serializer):
     picture = serializers.CharField(read_only=True, allow_null=True)
     email = serializers.CharField(source="user.email", read_only=True)
     email_notifications_enabled = serializers.BooleanField(required=False)
+    reliability_tier = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_reliability_tier(self, obj):
+        return get_player_stats(obj.user)["reliability_tier"]
 
     def validate_name(self, value):
         value = value.strip()

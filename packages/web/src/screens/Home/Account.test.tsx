@@ -10,6 +10,7 @@ const mockUserProfile = {
   email: "player@example.com",
   name: "Test Player",
   picture: null,
+  reliabilityTier: "reliable",
 };
 
 const mockSetPreference = vi.fn();

@@ -20,10 +20,12 @@ vi.mock("@/api/generated/endpoints", async (importOriginal) => {
     ...(actual as Record<string, unknown>),
     useVariantsListSuspense: () => mockUseVariantsListSuspense(),
     useUserRetrieveSuspense: () => ({
-      data: { id: 1, email: "test@example.com", name: "Test", picture: null },
+      data: { id: 1, email: "test@example.com", name: "Test", picture: null, reliabilityTier: "reliable" },
     }),
     useGamePhaseRetrieve: (...args: unknown[]) => mockUseGamePhaseRetrieve(...args),
     useGameJoinCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
+    useDevicesCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
+    getDevicesListQueryKey: () => ["devices"],
   };
 });
 

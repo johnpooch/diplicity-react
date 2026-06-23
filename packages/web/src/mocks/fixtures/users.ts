@@ -11,6 +11,7 @@ export const currentUserProfile: UserProfile = {
   picture: null,
   email: "mock.player@example.com",
   emailNotificationsEnabled: true,
+  reliabilityTier: "reliable",
 };
 
 interface PlayerSeed {

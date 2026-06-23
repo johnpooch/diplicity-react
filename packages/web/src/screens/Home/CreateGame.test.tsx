@@ -43,6 +43,7 @@ import {
   useGameCreate,
   useSandboxGameCreate,
   useVariantsListSuspense,
+  useUserRetrieveSuspense,
   GameFindSimilar,
   GameList,
 } from "@/api/generated/endpoints";
@@ -65,6 +66,9 @@ vi.mock("@/api/generated/endpoints", async importOriginal => {
     useGameCreate: vi.fn(),
     useSandboxGameCreate: vi.fn(),
     getGamesFindSimilarRetrieveQueryOptions: vi.fn(),
+    useUserRetrieveSuspense: vi.fn(),
+    useDevicesCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
+    getDevicesListQueryKey: () => ["devices"],
   };
 });
 
@@ -203,6 +207,17 @@ const mockedUseSandboxGameCreate = vi.mocked(useSandboxGameCreate);
 const mockedGetFindSimilarOptions = vi.mocked(
   getGamesFindSimilarRetrieveQueryOptions
 );
+const mockedUseUserRetrieveSuspense = vi.mocked(useUserRetrieveSuspense);
+
+const mockUserProfile = {
+  id: 1,
+  userId: 1,
+  name: "Test Player",
+  picture: null,
+  email: "test@example.com",
+  emailNotificationsEnabled: true,
+  reliabilityTier: null as string | null,
+};
 
 const stubFindSimilar = (game: GameList | null) => {
   const queryFn = vi.fn().mockResolvedValue({ game } as GameFindSimilar);
@@ -235,6 +250,10 @@ describe("CreateGame — find-similar intervention", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     createGameMutateAsync = vi.fn().mockResolvedValue({ id: "created-game" });
+
+    mockedUseUserRetrieveSuspense.mockReturnValue({
+      data: mockUserProfile,
+    } as unknown as ReturnType<typeof useUserRetrieveSuspense>);
 
     mockedUseVariantsListSuspense.mockReturnValue({
       data: variantsFixture,
@@ -360,6 +379,10 @@ describe("CreateGame — game master option", () => {
     vi.clearAllMocks();
     createGameMutateAsync = vi.fn().mockResolvedValue({ id: "created-game" });
 
+    mockedUseUserRetrieveSuspense.mockReturnValue({
+      data: mockUserProfile,
+    } as unknown as ReturnType<typeof useUserRetrieveSuspense>);
+
     mockedUseVariantsListSuspense.mockReturnValue({
       data: variantsFixture,
     } as unknown as ReturnType<typeof useVariantsListSuspense>);
@@ -442,6 +465,10 @@ describe("CreateGame — multi-step navigation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
+    mockedUseUserRetrieveSuspense.mockReturnValue({
+      data: mockUserProfile,
+    } as unknown as ReturnType<typeof useUserRetrieveSuspense>);
+
     mockedUseVariantsListSuspense.mockReturnValue({
       data: variantsFixture,
     } as unknown as ReturnType<typeof useVariantsListSuspense>);
@@ -510,6 +537,10 @@ describe("CreateGame — sandbox mode", () => {
     vi.clearAllMocks();
     sandboxMutateAsync = vi.fn().mockResolvedValue({ id: "sandbox-game" });
     createGameMutateAsync = vi.fn().mockResolvedValue({ id: "created-game" });
+
+    mockedUseUserRetrieveSuspense.mockReturnValue({
+      data: mockUserProfile,
+    } as unknown as ReturnType<typeof useUserRetrieveSuspense>);
 
     mockedUseVariantsListSuspense.mockReturnValue({
       data: variantsFixture,
@@ -591,6 +622,10 @@ describe("CreateGame — minReliability dropdown", () => {
     vi.clearAllMocks();
     createGameMutateAsync = vi.fn().mockResolvedValue({ id: "created-game" });
 
+    mockedUseUserRetrieveSuspense.mockReturnValue({
+      data: mockUserProfile,
+    } as unknown as ReturnType<typeof useUserRetrieveSuspense>);
+
     mockedUseVariantsListSuspense.mockReturnValue({
       data: variantsFixture,
     } as unknown as ReturnType<typeof useVariantsListSuspense>);
@@ -646,6 +681,10 @@ describe("CreateGame — variant category toggle", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     createGameMutateAsync = vi.fn().mockResolvedValue({ id: "created-game" });
+
+    mockedUseUserRetrieveSuspense.mockReturnValue({
+      data: mockUserProfile,
+    } as unknown as ReturnType<typeof useUserRetrieveSuspense>);
 
     mockedUseGameCreate.mockReturnValue({
       mutateAsync: createGameMutateAsync,
