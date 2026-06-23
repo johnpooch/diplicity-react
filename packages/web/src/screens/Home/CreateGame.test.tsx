@@ -706,6 +706,56 @@ describe("CreateGame — variant category toggle", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("auto-selects the first community variant when switching to the Community tab", async () => {
+    const user = userEvent.setup();
+    mockedUseVariantsListSuspense.mockReturnValue({
+      data: variantsWithCommunity,
+    } as unknown as ReturnType<typeof useVariantsListSuspense>);
+    renderCreateGame();
+
+    await user.click(screen.getByRole("tab", { name: /community/i }));
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.click(screen.getByRole("button", { name: /create game/i }));
+
+    await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
+    expect(createGameMutateAsync.mock.calls[0][0].data.variantId).toBe(
+      "homebrew"
+    );
+  });
+
+  it("restores the last-selected variant when returning to a previously visited category", async () => {
+    const hundredVariant = {
+      ...variantsFixture[0],
+      id: "hundred",
+      name: "Hundred",
+      official: true,
+    };
+    const user = userEvent.setup();
+    mockedUseVariantsListSuspense.mockReturnValue({
+      data: [variantsFixture[0], hundredVariant, communityVariant],
+    } as unknown as ReturnType<typeof useVariantsListSuspense>);
+    renderCreateGame();
+
+    // Select Hundred in the Official tab
+    await user.click(screen.getByRole("combobox", { name: /variant/i }));
+    await user.click(screen.getByRole("option", { name: /hundred/i }));
+
+    // Switch to Community (auto-selects Homebrew), then back to Official
+    await user.click(screen.getByRole("tab", { name: /community/i }));
+    await user.click(screen.getByRole("tab", { name: /official/i }));
+
+    // Submit — should use Hundred, not Classical
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.click(screen.getByRole("button", { name: /create game/i }));
+
+    await waitFor(() => expect(createGameMutateAsync).toHaveBeenCalled());
+    expect(createGameMutateAsync.mock.calls[0][0].data.variantId).toBe(
+      "hundred"
+    );
+  });
+
   it("creates the game with a community variant selected from the Community tab", async () => {
     const user = userEvent.setup();
     mockedUseVariantsListSuspense.mockReturnValue({
