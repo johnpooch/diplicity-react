@@ -274,7 +274,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
               className="text-left hover:underline min-w-0"
             >
               <CardTitle className="flex items-center gap-2 min-w-0">
-                <span className="truncate">{game.name}</span>
+                <span className="truncate min-w-0">{game.name}</span>
                 {game.sandbox && <Badge variant="secondary">Sandbox</Badge>}
                 {!game.sandbox && (isActive || isFinished) && (
                   <NationBadge nations={variant.nations} nation={playerNation} />
