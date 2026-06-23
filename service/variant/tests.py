@@ -6,7 +6,7 @@ from django.test.utils import override_settings
 from django.db import connection
 from rest_framework import status
 
-from adjudicator.serializers import deserialize_variant
+from adjudicator.serializers import deserialize_variant, VariantValidationError
 from variant.models import Variant, default_phase_progression
 from variant.utils import variant_to_canonical_dict
 
@@ -268,6 +268,19 @@ class TestVariantToCanonicalDict:
         assert initial_state["phase"] == {"season": "Spring", "year": 1901, "type": "Movement"}
         assert len(initial_state["units"]) == 22
         assert len(initial_state["supplyCenters"]) == 22
+
+    @pytest.mark.django_db
+    def test_neutral_nations_auto_build_modifier_accepted(self, classical_variant):
+        canonical = variant_to_canonical_dict(classical_variant)
+        canonical["adjudicationModifiers"] = ["neutral-nations-auto-build"]
+        deserialize_variant(canonical)
+
+    @pytest.mark.django_db
+    def test_unknown_modifier_raises_variant_validation_error(self, classical_variant):
+        canonical = variant_to_canonical_dict(classical_variant)
+        canonical["adjudicationModifiers"] = ["not-a-real-modifier"]
+        with pytest.raises(VariantValidationError, match="Unknown adjudication modifier"):
+            deserialize_variant(canonical)
 
 
 @pytest.mark.django_db
