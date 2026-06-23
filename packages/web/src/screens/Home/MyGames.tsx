@@ -132,7 +132,7 @@ const GameTabContent: React.FC<GameTabContentProps> = ({
             map={
               <MapPreview
                 variant={variantMap.get(game.variantId)!}
-                phase={variantMap.get(game.variantId)!.templatePhase}
+                phase={game.currentPhase ?? variantMap.get(game.variantId)!.templatePhase}
                 cover
                 className="w-full h-full"
               />

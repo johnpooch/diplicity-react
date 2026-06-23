@@ -76,6 +76,8 @@ export const toCurrentPhase = (phase: PhaseRetrieve): GameListCurrentPhase => ({
   status: phase.status,
   scheduledResolution: phase.scheduledResolution,
   remainingTime: phase.remainingTime,
+  units: phase.units,
+  supplyCenters: phase.supplyCenters,
 });
 
 type GameOverrides = Partial<Omit<GameList, "id" | "name">>;

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type {
+  GameListCurrentPhase,
   PhaseRetrieve,
   Variant,
   VariantTemplatePhase,
@@ -13,7 +14,7 @@ type VariantForPreview = Pick<Variant, "nations" | "svgUrl">;
 
 type MapPreviewProps = {
   variant: VariantForPreview;
-  phase: PhaseRetrieve | VariantTemplatePhase;
+  phase: PhaseRetrieve | VariantTemplatePhase | GameListCurrentPhase;
   cover?: boolean;
   style?: React.CSSProperties;
   className?: string;
