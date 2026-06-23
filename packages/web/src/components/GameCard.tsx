@@ -218,7 +218,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
           <TooltipTrigger asChild>
             <Badge variant="secondary" className="gap-1">
               <Skull className="size-3" />
-              Lost
+              Eliminated
             </Badge>
           </TooltipTrigger>
           <TooltipContent>You have been eliminated from this game</TooltipContent>

@@ -244,31 +244,31 @@ describe("GameCard", () => {
       m.isCurrentUser ? { ...m, eliminated: true } : m
     );
 
-    it("shows 'Lost' badge when the current user is eliminated in an active game", () => {
+    it("shows 'Eliminated' badge when the current user is eliminated in an active game", () => {
       renderGameCard({
         game: { ...mockGames[0], members: eliminatedMembers },
         ...defaultProps,
       });
-      expect(screen.getByText("Lost")).toBeInTheDocument();
+      expect(screen.getByText("Eliminated")).toBeInTheDocument();
     });
 
-    it("does not show 'Lost' badge when the current user is not eliminated", () => {
+    it("does not show 'Eliminated' badge when the current user is not eliminated", () => {
       renderGameCard({
         game: { ...mockGames[0], members: mockMembers },
         ...defaultProps,
       });
-      expect(screen.queryByText("Lost")).not.toBeInTheDocument();
+      expect(screen.queryByText("Eliminated")).not.toBeInTheDocument();
     });
 
-    it("does not show 'Lost' badge for sandbox games", () => {
+    it("does not show 'Eliminated' badge for sandbox games", () => {
       renderGameCard({
         game: { ...mockSandboxGames[0], members: eliminatedMembers },
         ...defaultProps,
       });
-      expect(screen.queryByText("Lost")).not.toBeInTheDocument();
+      expect(screen.queryByText("Eliminated")).not.toBeInTheDocument();
     });
 
-    it("does not show 'Lost' badge when no member is the current user", () => {
+    it("does not show 'Eliminated' badge when no member is the current user", () => {
       renderGameCard({
         game: {
           ...mockGames[0],
@@ -276,7 +276,7 @@ describe("GameCard", () => {
         },
         ...defaultProps,
       });
-      expect(screen.queryByText("Lost")).not.toBeInTheDocument();
+      expect(screen.queryByText("Eliminated")).not.toBeInTheDocument();
     });
   });
 

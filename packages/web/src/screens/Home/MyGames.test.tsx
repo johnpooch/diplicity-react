@@ -116,7 +116,7 @@ describe("MyGames empty states", () => {
 });
 
 describe("MyGames eliminated games", () => {
-  it("shows 'Lost' section header before eliminated games in the active tab", async () => {
+  it("shows 'Eliminated' section header before eliminated games in the active tab", async () => {
     const activeGame = mockActiveGames[0];
     const eliminatedGame = {
       ...activeGame,
@@ -137,10 +137,10 @@ describe("MyGames eliminated games", () => {
     renderMyGames();
 
     await screen.findByText(activeGame.name);
-    expect(screen.getByRole("heading", { name: "Lost", level: 3 })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Eliminated", level: 3 })).toBeInTheDocument();
   });
 
-  it("does not show 'Lost' section header when no games have eliminated current user", async () => {
+  it("does not show 'Eliminated' section header when no games have eliminated current user", async () => {
     const game = mockActiveGames[0];
     mockUseGamesListInfinite.mockReturnValue({
       data: { pages: [{ results: [game], next: null }] },
@@ -153,7 +153,7 @@ describe("MyGames eliminated games", () => {
     renderMyGames();
 
     await screen.findByText(game.name);
-    expect(screen.queryByRole("heading", { name: "Lost", level: 3 })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Eliminated", level: 3 })).not.toBeInTheDocument();
   });
 });
 

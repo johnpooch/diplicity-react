@@ -124,7 +124,7 @@ const GameTabContent: React.FC<GameTabContentProps> = ({
       {knownGames.map((game, index) => (
         <Fragment key={game.id}>
           {index === firstEliminatedIndex && (
-            <h3 className="text-sm font-semibold pt-2">Lost</h3>
+            <h3 className="text-sm font-semibold pt-2">Eliminated</h3>
           )}
           <GameCard
             game={game}
