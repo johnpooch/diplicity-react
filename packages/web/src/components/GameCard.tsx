@@ -271,7 +271,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
           <div className="flex items-center justify-between gap-2">
             <button
               onClick={handleClickGame}
-              className="text-left hover:underline min-w-0 overflow-hidden"
+              className="text-left hover:underline flex-1 min-w-0 overflow-hidden"
             >
               <CardTitle className="flex flex-wrap items-center gap-2 min-w-0">
                 <span className="truncate min-w-0">{game.name}</span>
