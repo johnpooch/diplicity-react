@@ -2932,6 +2932,10 @@ components:
           readOnly: true
         emailNotificationsEnabled:
           type: boolean
+        reliabilityTier:
+          type: string
+          readOnly: true
+          nullable: true
     PatchedVariantWrite:
       type: object
       properties:
@@ -3278,11 +3282,16 @@ components:
           readOnly: true
         emailNotificationsEnabled:
           type: boolean
+        reliabilityTier:
+          type: string
+          readOnly: true
+          nullable: true
       required:
       - email
       - id
       - name
       - picture
+      - reliabilityTier
       - userId
     Variant:
       type: object

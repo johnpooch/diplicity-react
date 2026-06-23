@@ -60,6 +60,7 @@ import {
 } from "@/constants";
 import {
   useVariantsListSuspense,
+  useUserRetrieveSuspense,
   useGameCreate,
   useSandboxGameCreate,
   getGamesFindSimilarRetrieveQueryOptions,
@@ -314,6 +315,14 @@ function getBrowserTimezone(): string {
   return validTimezones.includes(tz) ? tz : "America/New_York";
 }
 
+function getMaxReliability(
+  reliabilityTier: string | null
+): "open" | "reliable_and_new" | "reliable_only" {
+  if (reliabilityTier === "reliable") return "reliable_only";
+  if (reliabilityTier === "new") return "reliable_and_new";
+  return "open";
+}
+
 const STEPS = ["General", "Deadlines", "Advanced"] as const;
 
 const STEP_FIELDS: Record<number, (keyof GameFormValues)[]> = {
@@ -397,6 +406,7 @@ interface CreateGameFormProps {
   initialVariantId?: string;
   initialPrivate?: boolean;
   initialMode?: GameMode;
+  maxReliability: "open" | "reliable_and_new" | "reliable_only";
 }
 
 const CreateGameForm: React.FC<CreateGameFormProps> = ({
@@ -407,6 +417,7 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
   initialVariantId,
   initialPrivate,
   initialMode,
+  maxReliability,
 }) => {
   const officialVariants = variants.filter(v => v.official);
   const communityVariants = variants.filter(v => !v.official);
@@ -434,7 +445,7 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
       movementFrequency: "daily",
       retreatFrequency: null,
       nmrExtensionsAllowed: "0",
-      minReliability: "open",
+      minReliability: maxReliability,
     },
   });
 
@@ -909,37 +920,46 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
             <FormField
               control={form.control}
               name="minReliability"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Player Reliability</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    disabled={isSubmitting}
-                  >
+              render={({ field }) => {
+                const maxIndex = MIN_RELIABILITY_OPTIONS.findIndex(
+                  o => o.value === maxReliability
+                );
+                return (
+                  <FormItem>
+                    <FormLabel>Player Reliability</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
+                      <div className="flex rounded-md border overflow-hidden">
+                        {MIN_RELIABILITY_OPTIONS.map((option, i) => (
+                          <Button
+                            key={option.value}
+                            type="button"
+                            variant={
+                              field.value === option.value ? "default" : "ghost"
+                            }
+                            disabled={i > maxIndex || isSubmitting}
+                            onClick={() => field.onChange(option.value)}
+                            className={cn(
+                              "flex-1 rounded-none",
+                              i < MIN_RELIABILITY_OPTIONS.length - 1 &&
+                                "border-r"
+                            )}
+                          >
+                            {option.label}
+                          </Button>
+                        ))}
+                      </div>
                     </FormControl>
-                    <SelectContent>
-                      {MIN_RELIABILITY_OPTIONS.map(option => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    {
-                      MIN_RELIABILITY_OPTIONS.find(
-                        option => option.value === field.value
-                      )?.description
-                    }
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
+                    <FormDescription>
+                      {
+                        MIN_RELIABILITY_OPTIONS.find(
+                          option => option.value === field.value
+                        )?.description
+                      }
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
           </div>
         )}
@@ -989,6 +1009,8 @@ const CreateGame: React.FC = () => {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { data: allVariants } = useVariantsListSuspense();
+  const { data: userProfile } = useUserRetrieveSuspense();
+  const maxReliability = getMaxReliability(userProfile.reliabilityTier);
   const publishedVariants = React.useMemo(
     () => allVariants.filter(v => v.status === "published"),
     [allVariants]
@@ -1147,6 +1169,7 @@ const CreateGame: React.FC = () => {
             initialVariantId={initialVariantId}
             initialPrivate={initialPrivate}
             initialMode={initialMode}
+            maxReliability={maxReliability}
           />
         </ScreenCardContent>
       </ScreenCard>

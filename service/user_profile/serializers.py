@@ -10,6 +10,13 @@ class UserProfileSerializer(serializers.Serializer):
     picture = serializers.CharField(read_only=True, allow_null=True)
     email = serializers.CharField(source="user.email", read_only=True)
     email_notifications_enabled = serializers.BooleanField(required=False)
+    reliability_tier = serializers.CharField(read_only=True, allow_null=True)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        stats = get_player_stats(instance.user)
+        data["reliability_tier"] = stats.get("reliability_tier")
+        return data
 
     def validate_name(self, value):
         value = value.strip()

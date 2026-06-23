@@ -682,6 +682,8 @@ export interface PatchedUserProfile {
   readonly picture?: string | null;
   readonly email?: string;
   emailNotificationsEnabled?: boolean;
+  /** @nullable */
+  readonly reliabilityTier?: string | null;
 }
 
 export interface PatchedVariantWrite {
@@ -800,6 +802,8 @@ export interface UserProfile {
   readonly picture: string | null;
   readonly email: string;
   emailNotificationsEnabled?: boolean;
+  /** @nullable */
+  readonly reliabilityTier: string | null;
 }
 
 export interface VictoryConditions {
