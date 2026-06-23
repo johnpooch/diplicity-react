@@ -42,6 +42,29 @@ def test_started_games_ordered_by_deadline_with_sandboxes_last(
 
 
 @pytest.mark.django_db
+def test_eliminated_games_sort_last_regardless_of_deadline(
+    authenticated_client, primary_user, classical_variant, game_factory, phase_factory
+):
+    now = timezone.now()
+
+    active = game_factory(variant=classical_variant, status=GameStatus.ACTIVE)
+    active.members.create(user=primary_user)
+    phase_factory(game=active, status=PhaseStatus.ACTIVE, scheduled_resolution=now + timedelta(hours=5))
+
+    eliminated = game_factory(variant=classical_variant, status=GameStatus.ACTIVE)
+    eliminated.members.create(user=primary_user, eliminated=True)
+    phase_factory(game=eliminated, status=PhaseStatus.ACTIVE, scheduled_resolution=now + timedelta(hours=1))
+
+    url = reverse(list_viewname) + "?mine=true&status=active&ordering=deadline"
+    response = authenticated_client.get(url)
+
+    assert response.status_code == status.HTTP_200_OK
+    ids = [g["id"] for g in response.data["results"]]
+    my_ids = {active.id, eliminated.id}
+    assert [i for i in ids if i in my_ids] == [active.id, eliminated.id]
+
+
+@pytest.mark.django_db
 def test_started_games_default_order_is_created_at(
     authenticated_client, primary_user, classical_variant, game_factory, phase_factory
 ):

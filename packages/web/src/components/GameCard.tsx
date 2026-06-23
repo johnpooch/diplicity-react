@@ -23,6 +23,7 @@ import {
   AlertTriangle,
   UserX,
   Pause,
+  Skull,
   Trophy,
   Users,
 } from "lucide-react";
@@ -90,6 +91,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
   const isPending = game.status === "pending";
   const isAbandoned = game.status === "abandoned";
   const isFinished = game.status === "completed" || isAbandoned;
+  const currentMember = game.members.find(m => m.isCurrentUser);
   const showAvatars = !game.sandbox;
   const totalSlots = variant.nations.length;
   const joinedCount = game.members.length;
@@ -211,6 +213,17 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
 
   const badgeCluster = (
     <div className="flex flex-wrap items-center gap-2">
+      {isActive && currentMember?.eliminated && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant="secondary" className="gap-1">
+              <Skull className="size-3" />
+              Lost
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>You have been eliminated from this game</TooltipContent>
+        </Tooltip>
+      )}
       {isActive && orderStatusConfig && (
         <Tooltip>
           <TooltipTrigger asChild>
