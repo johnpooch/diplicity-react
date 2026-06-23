@@ -116,7 +116,7 @@ const GameTabContent: React.FC<GameTabContentProps> = ({
 
   const firstEliminatedIndex =
     status === "active"
-      ? knownGames.findIndex(game => game.members.find(m => m.isCurrentUser)?.eliminated)
+      ? knownGames.findIndex(game => !game.sandbox && game.members.find(m => m.isCurrentUser)?.eliminated)
       : -1;
 
   return (

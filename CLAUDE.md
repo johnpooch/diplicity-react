@@ -745,6 +745,7 @@ Registered game fixtures (the fixture's game `id` doubles as the URL slug, e.g. 
 | `activeGameRetreat` | `active-retreat` | Fall 1901 retreat; England army dislodged from Norway |
 | `activeGameBuild` | `active-build` | Fall 1901 adjustment; England can build 1 unit |
 | `activeGameDrawProposal` | `active-draw-proposal` | Active game with an open draw proposal, current user hasn't voted |
+| `activeGameEliminated` | `active-eliminated` | Active game; current user (England) has been eliminated |
 | `finishedGameSolo` | `finished-solo` | Completed; current user won a solo victory |
 | `finishedGameDraw` | `finished-draw` | Completed; 3-way draw incl. current user |
 | `gameNotJoined` | `not-joined` | Active game the current user is not a member of |
