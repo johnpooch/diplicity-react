@@ -45,6 +45,7 @@ from .engine import (
 )
 from .resolution import resolve_strengths_and_cuts
 from .serializers import (
+    VariantValidationError,
     deserialize_game_state,
     deserialize_variant,
     serialize_game_state,
@@ -809,6 +810,23 @@ def test_loader_rejects_unknown_order_type_in_game_state():
 
     with pytest.raises(Exception):
         adjudicate(variant, state)
+
+
+def test_loader_rejects_unknown_adjudication_modifier():
+    variant = _datc_classical_variant()
+    variant["adjudicationModifiers"] = ["unknown-modifier"]
+
+    with pytest.raises(VariantValidationError):
+        deserialize_variant(variant)
+
+
+def test_loader_accepts_neutral_nations_auto_build_modifier():
+    variant = _datc_classical_variant()
+    variant["adjudicationModifiers"] = ["neutral-nations-auto-build"]
+
+    result = deserialize_variant(variant)
+
+    assert "neutral-nations-auto-build" in result.adjudication_modifiers
 
 
 def test_state_builder_round_trips_through_adjudicate():

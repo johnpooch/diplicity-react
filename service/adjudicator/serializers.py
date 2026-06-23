@@ -39,7 +39,7 @@ SUPPORTED_ORDER_TYPES = frozenset(
     {"Move", "Hold", "Support", "Convoy", "Build", "Disband", "Retreat"}
 )
 SUPPORTED_ADJUDICATION_MODIFIERS = frozenset(
-    {"allow-builds-in-non-home-centers"}
+    {"allow-builds-in-non-home-centers", "neutral-nations-auto-build"}
 )
 
 
