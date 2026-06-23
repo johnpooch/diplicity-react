@@ -1,7 +1,8 @@
 import django_filters
-from django.db.models import Count, F, OuterRef, Q, Subquery
+from django.db.models import Count, Exists, F, OuterRef, Q, Subquery
 
 from common.constants import GameStatus, MinReliability, MovementPhaseDuration, PhaseStatus
+from member.models import Member
 from phase.models import Phase
 from user_profile.utils import get_player_stats
 
@@ -77,7 +78,23 @@ class GameFilter(django_filters.FilterSet):
                 .order_by("-ordinal")
                 .values("scheduled_resolution")[:1]
             )
-            return queryset.annotate(next_deadline=Subquery(next_deadline)).order_by(
+            qs = queryset.annotate(next_deadline=Subquery(next_deadline))
+            if self.request.user.is_authenticated:
+                user_eliminated = Exists(
+                    Member.objects.filter(
+                        game=OuterRef("pk"),
+                        user=self.request.user,
+                        eliminated=True,
+                    )
+                )
+                qs = qs.annotate(user_eliminated=user_eliminated)
+                return qs.order_by(
+                    "sandbox",
+                    "user_eliminated",
+                    F("next_deadline").asc(nulls_last=True),
+                    "-created_at",
+                )
+            return qs.order_by(
                 "sandbox",
                 F("next_deadline").asc(nulls_last=True),
                 "-created_at",

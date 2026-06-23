@@ -461,6 +461,32 @@ const buildActiveDrawProposal = () => {
 
 export const activeGameDrawProposal = buildActiveDrawProposal();
 
+const buildActiveEliminated = () => {
+  const members = makeActiveMembers().map(m =>
+    m.nation === "England" ? { ...m, eliminated: true } : m
+  );
+  const phase = makePhase(801, 5, {
+    season: "Fall",
+    year: 1902,
+    type: "Movement",
+    remainingTime: 36 * 60 * 60,
+  });
+  return makeFixture({
+    description:
+      "Active game in Fall 1902 where the current user (England) has been eliminated. The game continues for the remaining players.",
+    game: makeGame("active-eliminated", "The Fallen Kingdom", members, [phase], {
+      orderStatus: "no_orders_required",
+      memberStatus: [],
+    }),
+    phases: [phase],
+    ordersByPhase: { 801: [] },
+    phaseStates: members.map(m => makePhaseState(m, [])),
+    channels: [makeChannel("Public Press", members, [])],
+  });
+};
+
+export const activeGameEliminated = buildActiveEliminated();
+
 const buildFinishedSolo = () => {
   const members = makeActiveMembers().map(m =>
     m.nation === "Austria" || m.nation === "Italy"

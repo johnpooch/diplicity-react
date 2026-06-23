@@ -2,6 +2,7 @@ import type { GameFixture } from "./types";
 import {
   activeGameBuild,
   activeGameDrawProposal,
+  activeGameEliminated,
   activeGameMovement,
   activeGameNamedCoast,
   activeGameRetreat,
@@ -28,6 +29,7 @@ export const gameFixtures = {
   activeGameRetreat,
   activeGameBuild,
   activeGameDrawProposal,
+  activeGameEliminated,
   finishedGameSolo,
   finishedGameDraw,
   gameMasterGame,

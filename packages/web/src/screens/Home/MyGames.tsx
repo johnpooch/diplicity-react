@@ -1,4 +1,4 @@
-import React, { Suspense, useState } from "react";
+import React, { Fragment, Suspense, useState } from "react";
 import { Link } from "react-router";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -114,22 +114,31 @@ const GameTabContent: React.FC<GameTabContentProps> = ({
     );
   }
 
+  const firstEliminatedIndex =
+    status === "active"
+      ? knownGames.findIndex(game => game.members.find(m => m.isCurrentUser)?.eliminated)
+      : -1;
+
   return (
     <div className="space-y-4">
-      {knownGames.map(game => (
-        <GameCard
-          key={game.id}
-          game={game}
-          variant={variantMap.get(game.variantId)!}
-          map={
-            <MapPreview
-              variant={variantMap.get(game.variantId)!}
-              phase={variantMap.get(game.variantId)!.templatePhase}
-              cover
-              className="w-full h-full"
-            />
-          }
-        />
+      {knownGames.map((game, index) => (
+        <Fragment key={game.id}>
+          {index === firstEliminatedIndex && (
+            <h3 className="text-sm font-semibold pt-2">Lost</h3>
+          )}
+          <GameCard
+            game={game}
+            variant={variantMap.get(game.variantId)!}
+            map={
+              <MapPreview
+                variant={variantMap.get(game.variantId)!}
+                phase={variantMap.get(game.variantId)!.templatePhase}
+                cover
+                className="w-full h-full"
+              />
+            }
+          />
+        </Fragment>
       ))}
       {isFetchingNextPage && (
         <div className="flex justify-center py-4">

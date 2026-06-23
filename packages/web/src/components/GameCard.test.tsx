@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GameCard } from "./GameCard";
 import {
   mockGames,
+  mockMembers,
   mockNations,
   mockSandboxGames,
   mockPendingGames,
@@ -235,6 +236,47 @@ describe("GameCard", () => {
       renderGameCard({ game: { ...mockGames[0], orderStatus: null, memberStatus: null }, ...defaultProps });
       expect(screen.queryByText("NMR")).not.toBeInTheDocument();
       expect(screen.queryByText("CD")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("eliminated player", () => {
+    const eliminatedMembers = mockMembers.map(m =>
+      m.isCurrentUser ? { ...m, eliminated: true } : m
+    );
+
+    it("shows 'Lost' badge when the current user is eliminated in an active game", () => {
+      renderGameCard({
+        game: { ...mockGames[0], members: eliminatedMembers },
+        ...defaultProps,
+      });
+      expect(screen.getByText("Lost")).toBeInTheDocument();
+    });
+
+    it("does not show 'Lost' badge when the current user is not eliminated", () => {
+      renderGameCard({
+        game: { ...mockGames[0], members: mockMembers },
+        ...defaultProps,
+      });
+      expect(screen.queryByText("Lost")).not.toBeInTheDocument();
+    });
+
+    it("does not show 'Lost' badge for sandbox games", () => {
+      renderGameCard({
+        game: { ...mockSandboxGames[0], members: eliminatedMembers },
+        ...defaultProps,
+      });
+      expect(screen.queryByText("Lost")).not.toBeInTheDocument();
+    });
+
+    it("does not show 'Lost' badge when no member is the current user", () => {
+      renderGameCard({
+        game: {
+          ...mockGames[0],
+          members: mockMembers.map(m => ({ ...m, isCurrentUser: false, eliminated: true })),
+        },
+        ...defaultProps,
+      });
+      expect(screen.queryByText("Lost")).not.toBeInTheDocument();
     });
   });
 
