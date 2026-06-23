@@ -271,9 +271,9 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
           <div className="flex items-center justify-between gap-2">
             <button
               onClick={handleClickGame}
-              className="text-left hover:underline min-w-0"
+              className="text-left hover:underline min-w-0 overflow-hidden"
             >
-              <CardTitle className="flex items-center gap-2 min-w-0">
+              <CardTitle className="flex flex-wrap items-center gap-2 min-w-0">
                 <span className="truncate min-w-0">{game.name}</span>
                 {game.sandbox && <Badge variant="secondary">Sandbox</Badge>}
                 {!game.sandbox && (isActive || isFinished) && (
