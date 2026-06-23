@@ -1,4 +1,5 @@
 import React, { Suspense, useState } from "react";
+import { flushSync } from "react-dom";
 import { useNavigate, useSearchParams } from "react-router";
 import { useForm, Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -440,10 +441,25 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
   const [step, setStep] = useState(0);
   const [variantCategory, setVariantCategory] =
     useState<VariantCategory>(initialCategory);
+  const [lastSelectedByCategory, setLastSelectedByCategory] = useState<
+    Partial<Record<VariantCategory, string>>
+  >({ [initialCategory]: defaultVariantId });
 
   const handleVariantCategoryChange = (category: VariantCategory) => {
-    setVariantCategory(category);
-    form.setValue("variantId", "", { shouldValidate: false });
+    const currentVariantId = form.getValues("variantId");
+    const targetVariants =
+      category === "official" ? officialVariants : communityVariants;
+    const savedId = lastSelectedByCategory[category];
+    const newVariantId = savedId ?? targetVariants[0]?.id ?? "";
+    // flushSync: Radix hidden <select> resets to "" if the new <option> isn't mounted yet.
+    flushSync(() => {
+      setLastSelectedByCategory(prev => ({
+        ...prev,
+        [variantCategory]: currentVariantId,
+      }));
+      setVariantCategory(category);
+    });
+    form.setValue("variantId", newVariantId, { shouldValidate: false });
   };
 
   const activeVariants =
