@@ -213,6 +213,10 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
 
   const badgeCluster = (
     <div className="flex flex-wrap items-center gap-2">
+      {game.sandbox && <Badge variant="secondary">Sandbox</Badge>}
+      {!game.sandbox && (isActive || isFinished) && (
+        <NationBadge nations={variant.nations} nation={playerNation} />
+      )}
       {isActive && currentMember?.eliminated && (
         <Tooltip>
           <TooltipTrigger asChild>
@@ -284,15 +288,9 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
           <div className="flex items-center justify-between gap-2">
             <button
               onClick={handleClickGame}
-              className="text-left hover:underline min-w-0"
+              className="text-left hover:underline min-w-0 overflow-hidden"
             >
-              <CardTitle className="flex items-center gap-2 min-w-0">
-                <span className="truncate">{game.name}</span>
-                {game.sandbox && <Badge variant="secondary">Sandbox</Badge>}
-                {!game.sandbox && (isActive || isFinished) && (
-                  <NationBadge nations={variant.nations} nation={playerNation} />
-                )}
-              </CardTitle>
+              <CardTitle className="truncate">{game.name}</CardTitle>
             </button>
             <div className="flex items-center gap-2 shrink-0">
               {unreadPill}
@@ -345,7 +343,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
           </CardDescription>
         </CardHeader>
 
-        {!game.sandbox && (isActive || isFinished) && badgeCluster}
+        {(game.sandbox || isActive || isFinished) && badgeCluster}
 
         <div className="flex-grow" />
 
