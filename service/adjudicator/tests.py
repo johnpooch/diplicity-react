@@ -10885,6 +10885,75 @@ def test_options_adjustment_no_disbands_for_non_playable_nation():
     assert [o for o in options if o.order_type == "Disband"] == []
 
 
+def _with_neutral_auto_build(variant: Variant) -> Variant:
+    return replace(variant, adjudication_modifiers=("neutral-nations-auto-build",))
+
+
+def test_adjustment_neutral_auto_build_adds_unit_on_empty_sc():
+    variant = _with_neutral_auto_build(_with_non_playable_south(make_variant()))
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[],
+        supply_centers=[SupplyCenter(nation=SOUTH, province="rhs")],
+    )
+    result = Engine().adjudicate(state)
+    assert _unit_at(result, "rhs") is not None
+
+
+def test_adjustment_neutral_auto_build_skipped_when_unit_already_present():
+    variant = _with_neutral_auto_build(_with_non_playable_south(make_variant()))
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[Unit(nation=SOUTH, type=Unit.ARMY, location="rhs")],
+        supply_centers=[SupplyCenter(nation=SOUTH, province="rhs")],
+    )
+    result = Engine().adjudicate(state)
+    assert sum(1 for u in result[0].units if u.nation == SOUTH) == 1
+
+
+def test_adjustment_neutral_auto_build_skipped_when_units_exceed_scs():
+    variant = _with_neutral_auto_build(_with_non_playable_south(make_variant()))
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[
+            Unit(nation=SOUTH, type=Unit.ARMY, location="lhs"),
+            Unit(nation=SOUTH, type=Unit.ARMY, location="mid"),
+        ],
+        supply_centers=[SupplyCenter(nation=SOUTH, province="rhs")],
+    )
+    result = Engine().adjudicate(state)
+    assert sum(1 for u in result[0].units if u.nation == SOUTH) == 2
+
+
+def test_adjustment_neutral_auto_build_no_effect_without_modifier():
+    variant = _with_non_playable_south(make_variant())
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[],
+        supply_centers=[SupplyCenter(nation=SOUTH, province="rhs")],
+    )
+    result = Engine().adjudicate(state)
+    assert _unit_at(result, "rhs") is None
+
+
+def test_adjustment_neutral_auto_build_fleet_on_sea_province():
+    variant = _with_neutral_auto_build(_with_non_playable_south(make_variant()))
+    state = make_state(
+        variant,
+        phase_type=Phase.ADJUSTMENT,
+        units=[],
+        supply_centers=[SupplyCenter(nation=SOUTH, province="sea")],
+    )
+    result = Engine().adjudicate(state)
+    unit = _unit_at(result, "sea")
+    assert unit is not None
+    assert unit.type == Unit.FLEET
+
+
 # === Generic / boundary ===
 
 

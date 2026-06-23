@@ -60,6 +60,9 @@ class OrderType:
 # Variant modifier id permitting builds in any owned supply center.
 ALLOW_NON_HOME_BUILDS: str = "allow-builds-in-non-home-centers"
 
+# Variant modifier id enabling auto-rebuild for non-playable nations.
+NEUTRAL_NATIONS_AUTO_BUILD: str = "neutral-nations-auto-build"
+
 
 # === Marker base classes ===
 

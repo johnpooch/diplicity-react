@@ -15,6 +15,7 @@ from .domain import (
 from .resolution import resolve_strengths_and_cuts
 from .types import (
     ALLOW_NON_HOME_BUILDS,
+    NEUTRAL_NATIONS_AUTO_BUILD,
     Action,
     AdjudicationState,
     AdjustmentDisbandOrder,
@@ -197,6 +198,14 @@ class Actions:
     class ApplyAdjustmentOutcomes(Action):
         """Compute the Adjustment-phase post-resolution units list:
         existing units kept, OK builds appended as new units."""
+
+    @dataclass(frozen=True)
+    class AutoBuildNeutralNations(Action):
+        """When the 'neutral-nations-auto-build' adjudication modifier is set,
+        append an Army (or Fleet for sea provinces) to next_units for each
+        non-playable nation's owned supply centre that has no unit after
+        ApplyAdjustmentOutcomes. Nations whose unit count already meets or
+        exceeds their supply-centre count are skipped."""
 
 
 # === Reducers ===
@@ -1209,6 +1218,37 @@ class ApplyAdjustmentOutcomesReducer(Reducer):
         return state.replace(next_units=tuple(next_units))
 
 
+class AutoBuildNeutralNationsReducer(Reducer):
+    """When the 'neutral-nations-auto-build' modifier is active, append
+    auto-built units to next_units for each non-playable nation's owned
+    supply centres that lack a unit. Nations whose existing unit count
+    meets or exceeds their supply-centre count are skipped entirely."""
+
+    ACTION = Actions.AutoBuildNeutralNations
+
+    @classmethod
+    def reduce(cls, state: StateView, action: Action) -> StateView:
+        if NEUTRAL_NATIONS_AUTO_BUILD not in state.variant().adjudication_modifiers:
+            return state
+        variant = state.variant()
+        next_units: List[Unit] = list(state.next_units())
+        occupied = {variant.parent_of(u.location) for u in next_units}
+        for nation in variant.nations:
+            if not nation.non_playable:
+                continue
+            owned_scs = state.nation(nation.id).owned_supply_centers()
+            nation_unit_count = sum(1 for u in next_units if u.nation == nation.id)
+            if nation_unit_count >= len(owned_scs):
+                continue
+            for sc_province in sorted(owned_scs):
+                if sc_province in occupied:
+                    continue
+                unit_type = Unit.FLEET if state.province(sc_province).is_sea() else Unit.ARMY
+                next_units.append(Unit(nation=nation.id, type=unit_type, location=sc_province))
+                occupied.add(sc_province)
+        return state.replace(next_units=tuple(next_units))
+
+
 # === Phase resolvers ===
 
 
@@ -1341,7 +1381,10 @@ class AdjustmentPhaseResolver(PhaseResolver):
                                  civil-disorder selection.
     7. FinalizeStatuses        — remaining undecided -> OK.
     8. ApplyAdjustmentOutcomes — drop disbanded units (explicit + civil),
-                                 then append new units for OK builds."""
+                                 then append new units for OK builds.
+    9. AutoBuildNeutralNations — when the 'neutral-nations-auto-build' modifier
+                                 is set, append one unit per empty owned SC for
+                                 each non-playable nation (unit count < SC count)."""
 
     PHASE_TYPE = Phase.ADJUSTMENT
 
@@ -1354,6 +1397,7 @@ class AdjustmentPhaseResolver(PhaseResolver):
         Actions.ApplyCivilDisorder,
         Actions.FinalizeStatuses,
         Actions.ApplyAdjustmentOutcomes,
+        Actions.AutoBuildNeutralNations,
     )
 
 
