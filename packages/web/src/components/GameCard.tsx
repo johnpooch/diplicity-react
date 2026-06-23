@@ -260,7 +260,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
     <Card className="w-full flex flex-col md:flex-row overflow-hidden p-0">
       <button
         onClick={handleClickGame}
-        className="relative shrink-0 w-full h-40 md:h-44 md:w-48 overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+        className="relative shrink-0 w-full h-40 md:h-auto md:w-48 md:self-stretch md:min-h-[150px] overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
         aria-label="Open game map"
       >
         {map}
