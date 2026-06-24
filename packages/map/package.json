@@ -1,0 +1,13 @@
+{
+  "name": "@diplicity/map",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bench:map": "node scripts/map-bench.mjs"
+  },
+  "devDependencies": {
+    "@sparticuz/chromium": "^149.0.0",
+    "playwright": "^1.60.0"
+  }
+}
