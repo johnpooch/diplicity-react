@@ -7,6 +7,7 @@ import type {
 import type { ParsedDsvg } from "./dsvgParser";
 import type { DiplicityMap, RenderState } from "./mapRenderer";
 import { toRenderState } from "./toRenderState";
+import { recordInitialRender } from "./mapTelemetry";
 import { isNativePlatform } from "../../utils/platform";
 
 type VariantForMap = Pick<Variant, "id" | "nations">;
@@ -72,9 +73,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
   const isNative = isNativePlatform();
   const [hoveredProvince, setHoveredProvince] = useState<string | null>(null);
 
-  // --- Diagnostic ---
-  const renderCountRef = useRef(0);
-  const prevPropsRef = useRef<InteractiveMapProps | null>(null);
+  const initialRenderRecordedRef = useRef(false);
 
   const orders = useMemo(() => props.orders ?? [], [props.orders]);
   const highlighted = useMemo(
@@ -105,12 +104,16 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
       const result = splitAfterProvinceFills(
         stripSvgWrapper(props.renderer.render(renderState))
       );
-      console.log(
-        `[InteractiveMap] renderer.render() took ${(performance.now() - t0).toFixed(1)}ms`
-      );
+      if (!initialRenderRecordedRef.current) {
+        initialRenderRecordedRef.current = true;
+        recordInitialRender({
+          variantId: props.variant.id,
+          renderMs: performance.now() - t0,
+        });
+      }
       return result;
     },
-    [props.renderer, renderState]
+    [props.renderer, renderState, props.variant.id]
   );
 
   const { viewBox, provincePaths, namedCoastPaths } = props.parsedDsvg;
@@ -172,21 +175,6 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
     : undefined;
   const hoveredIsSelected =
     hoveredProvince !== null && props.selected.includes(hoveredProvince);
-
-  // --- Diagnostic logging ---
-  renderCountRef.current += 1;
-  if (prevPropsRef.current) {
-    const changed = (Object.keys(props) as Array<keyof InteractiveMapProps>).filter(
-      (k) => props[k] !== prevPropsRef.current![k]
-    );
-    console.log(
-      `[InteractiveMap] render #${renderCountRef.current}`,
-      changed.length > 0 ? { changedProps: changed } : "(internal state change)"
-    );
-  } else {
-    console.log(`[InteractiveMap] render #${renderCountRef.current} (initial)`);
-  }
-  prevPropsRef.current = props;
 
   return (
     <svg
