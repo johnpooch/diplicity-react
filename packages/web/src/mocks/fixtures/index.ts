@@ -1,6 +1,7 @@
 import type { GameFixture } from "./types";
 import {
   activeGameBuild,
+  activeGameCivilDisorder,
   activeGameDrawProposal,
   activeGameEliminated,
   activeGameMovement,
@@ -30,6 +31,7 @@ export const gameFixtures = {
   activeGameBuild,
   activeGameDrawProposal,
   activeGameEliminated,
+  activeGameCivilDisorder,
   finishedGameSolo,
   finishedGameDraw,
   gameMasterGame,

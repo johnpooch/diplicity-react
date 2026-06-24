@@ -36,10 +36,12 @@ vi.mock("@/api/generated/endpoints", () => ({
   useGameOrdersDeleteDestroy: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useGameConfirmPhasePartialUpdate: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useGameResolvePhaseCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useGameRecoverFromCivilDisorderCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useGamesDrawProposalsListSuspense: () => ({ data: [] }),
   getGameRetrieveQueryKey: () => ["game"],
   getGameOrdersListQueryKey: () => ["orders"],
   getGameOptionsRetrieveQueryKey: () => ["options"],
+  getGamePhaseStatesListQueryKey: () => ["phase-states"],
 }));
 
 vi.mock("@/components/NationFlag", () => ({
@@ -140,6 +142,36 @@ describe("OrdersScreen civil disorder handling", () => {
     renderOrdersScreen();
 
     expect(screen.queryByRole("button", { name: /confirm orders/i })).not.toBeInTheDocument();
+  });
+
+  it("shows 'I'm back' button when current member is in civil disorder", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: [baseMember({ civilDisorder: true })],
+    });
+
+    renderOrdersScreen();
+
+    expect(screen.getByRole("button", { name: /i'm back/i })).toBeInTheDocument();
+  });
+
+  it("does not show 'I'm back' button when current member is not in civil disorder", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: [baseMember({ civilDisorder: false })],
+    });
+
+    renderOrdersScreen();
+
+    expect(screen.queryByRole("button", { name: /i'm back/i })).not.toBeInTheDocument();
   });
 });
 

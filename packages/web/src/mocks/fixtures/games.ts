@@ -576,3 +576,29 @@ const buildNotJoined = () => {
 };
 
 export const gameNotJoined = buildNotJoined();
+
+const buildActiveCivilDisorder = () => {
+  const members = makeActiveMembers().map(m =>
+    m.nation === "England" ? { ...m, civilDisorder: true } : m
+  );
+  const phase = makePhase(1001, 5, {
+    season: "Spring",
+    year: 1901,
+    type: "Movement",
+    remainingTime: 36 * 60 * 60,
+  });
+  return makeFixture({
+    description:
+      "Active game in Spring 1901 where the current user (England) is in civil disorder and cannot submit orders.",
+    game: makeGame("active-civil-disorder", "Lost Connection", members, [phase], {
+      orderStatus: "no_orders_required",
+      memberStatus: [],
+    }),
+    phases: [phase],
+    ordersByPhase: { 1001: [] },
+    phaseStates: members.map(m => makePhaseState(m, [])),
+    channels: [makeChannel("Public Press", members, [])],
+  });
+};
+
+export const activeGameCivilDisorder = buildActiveCivilDisorder();

@@ -15,7 +15,6 @@ import {
 import { toast } from "sonner";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -56,6 +55,7 @@ import {
   useGameRetrieveSuspense,
   useVariantsListSuspense,
   useGamesDrawProposalsListSuspense,
+  useGameRecoverFromCivilDisorderCreate,
   getGameRetrieveQueryKey,
   getGameOrdersListQueryKey,
   getGamePhaseStatesListQueryKey,
@@ -173,6 +173,7 @@ const OrdersScreen: React.FC = () => {
   const deleteOrderMutation = useGameOrdersDeleteDestroy();
   const confirmOrdersMutation = useGameConfirmPhasePartialUpdate();
   const resolvePhaseMutation = useGameResolvePhaseCreate();
+  const recoverMutation = useGameRecoverFromCivilDisorderCreate();
 
   const variant = variants.find(v => v.id === game.variantId)!;
 
@@ -235,6 +236,18 @@ const OrdersScreen: React.FC = () => {
       navigate(`/game/${gameId}/phase/${result.id}/orders`);
     } catch {
       toast.error("Failed to resolve phase");
+    }
+  };
+
+  const handleRecoverFromCivilDisorder = async () => {
+    try {
+      await recoverMutation.mutateAsync({ gameId });
+      queryClient.invalidateQueries({
+        queryKey: getGameRetrieveQueryKey(gameId),
+      });
+      toast.success("Welcome back!");
+    } catch {
+      toast.error("Failed to recover from civil disorder");
     }
   };
 
@@ -328,17 +341,23 @@ const OrdersScreen: React.FC = () => {
       />
       <div className="flex-1 overflow-y-auto">
         <Panel>
-          {isCurrentMemberInCivilDisorder && (
-            <Alert className="border-x-0 border-t-0 rounded-none">
-              <UserX className="size-4" />
-              <AlertDescription>
-                Your nation is in civil disorder. Your units hold each turn and
-                you cannot submit orders.
-              </AlertDescription>
-            </Alert>
-          )}
           <Panel.Content>
-            {!hasContent ? (
+            {isCurrentMemberInCivilDisorder ? (
+              <Notice
+                icon={UserX}
+                title="Civil Disorder"
+                message="Your nation is in civil disorder. Your units hold each turn and you cannot submit orders."
+                className="h-full"
+                actions={
+                  <Button
+                    onClick={handleRecoverFromCivilDisorder}
+                    disabled={recoverMutation.isPending}
+                  >
+                    I'm back
+                  </Button>
+                }
+              />
+            ) : !hasContent ? (
               <Notice
                 icon={emptyState.icon}
                 title={emptyState.title}
@@ -439,7 +458,7 @@ const OrdersScreen: React.FC = () => {
             )}
           </Panel.Content>
 
-          {(rightFooterButton || showDrawProposalsButton) && (
+          {!isCurrentMemberInCivilDisorder && (rightFooterButton || showDrawProposalsButton) && (
             <Panel.Footer divider>
               <div className="flex w-full items-center">
                 <div className="flex-1">
