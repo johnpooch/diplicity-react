@@ -151,3 +151,23 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+[data-rich-colors='true'][data-sonner-toast][data-type='success'] [data-button] {
+  background: var(--success-text);
+  color: var(--success-bg);
+}
+
+[data-rich-colors='true'][data-sonner-toast][data-type='error'] [data-button] {
+  background: var(--error-text);
+  color: var(--error-bg);
+}
+
+[data-rich-colors='true'][data-sonner-toast][data-type='info'] [data-button] {
+  background: var(--info-text);
+  color: var(--info-bg);
+}
+
+[data-rich-colors='true'][data-sonner-toast][data-type='warning'] [data-button] {
+  background: var(--warning-text);
+  color: var(--warning-bg);
+}
