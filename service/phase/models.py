@@ -200,16 +200,9 @@ class PhaseManager(models.Manager):
         return self.resolve_due_phases(canary=True)
 
     def _check_and_apply_nmr_extensions(self, phase):
-        if phase.game.deadline_mode == DeadlineMode.FIXED_TIME:
-            unconfirmed = phase.phase_states.filter(
-                has_possible_orders=True,
-            ).annotate(order_count=Count('orders')).filter(
-                order_count=0,
-            ).select_related('member')
-        else:
-            unconfirmed = phase.phase_states.filter(
-                has_possible_orders=True, orders_confirmed=False
-            ).select_related('member')
+        unconfirmed = phase.phase_states.filter(
+            has_possible_orders=True, orders_confirmed=False
+        ).select_related('member')
 
         members_with_extensions = [
             ps.member for ps in unconfirmed

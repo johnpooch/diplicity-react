@@ -4515,7 +4515,7 @@ class TestNMRExtensionsFixedTime:
         assert phase.scheduled_resolution > now + timedelta(hours=24)
 
     @pytest.mark.django_db
-    def test_fixed_time_with_any_order_skips_extension(
+    def test_fixed_time_confirmed_skips_extension(
         self,
         deadline_warning_game_factory,
         italy_vs_germany_italy_nation,
@@ -4525,6 +4525,10 @@ class TestNMRExtensionsFixedTime:
         game, italy, germany, phase = deadline_warning_game_factory(
             DeadlineMode.FIXED_TIME, now - timedelta(minutes=1)
         )
+        game.movement_frequency = PhaseFrequency.EVERY_2_DAYS
+        game.fixed_deadline_time = time(12, 0)
+        game.fixed_deadline_timezone = "UTC"
+        game.save()
         italy.nmr_extensions_remaining = 1
         italy.save()
         phase.units.create(
@@ -4532,8 +4536,7 @@ class TestNMRExtensionsFixedTime:
             type=UnitType.ARMY,
             nation=italy_vs_germany_italy_nation,
         )
-        ps = phase.phase_states.create(member=italy, has_possible_orders=True)
-        ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
+        phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=True)
 
         result = Phase.objects._check_and_apply_nmr_extensions(phase)
 
