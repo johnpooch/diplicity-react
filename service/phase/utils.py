@@ -34,7 +34,12 @@ def build_notification_body(orders_confirmed, is_fixed_time, orders_given, total
 
     if is_fixed_time:
         if orders_given == total_units:
-            return None
+            if orders_confirmed:
+                return None
+            return (
+                f"All orders ready. Confirm to advance the game early — "
+                f"the next deadline stays on schedule. {time_left} remaining."
+            )
         if orders_given > 0:
             return (
                 f"Deadline approaching - orders incomplete. "
