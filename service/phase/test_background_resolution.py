@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import time, timedelta
 from unittest.mock import patch
 
 import pytest
@@ -7,7 +7,8 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 
-from common.constants import PhaseStatus
+from common.constants import DeadlineMode, PhaseFrequency, PhaseStatus
+from game.models import Game
 from phase.models import Phase
 from phase.serializers import PhaseStateSerializer
 
@@ -243,3 +244,48 @@ class TestSweepCanary:
 
         mock_capture.assert_not_called()
         mock_resolve.assert_called_once()
+
+
+class TestFixedTimeEarlyResolution:
+
+    @pytest.mark.django_db
+    def test_fixed_time_phase_is_due_when_all_confirmed(self, phase_factory, classical_england_nation, classical_variant):
+        game = Game.objects.create(
+            variant=classical_variant,
+            name="Fixed Time Test",
+            status="active",
+            deadline_mode=DeadlineMode.FIXED_TIME,
+            movement_frequency=PhaseFrequency.DAILY,
+            fixed_deadline_time=time(21, 0),
+            fixed_deadline_timezone="UTC",
+        )
+        phase_factory(
+            game=game,
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
+            ],
+        )
+
+        assert Phase.objects.filter_due_phases().filter(game=game).exists()
+
+    @pytest.mark.django_db
+    def test_fixed_time_phase_not_due_when_not_all_confirmed(self, phase_factory, classical_england_nation, classical_variant):
+        game = Game.objects.create(
+            variant=classical_variant,
+            name="Fixed Time Test",
+            status="active",
+            deadline_mode=DeadlineMode.FIXED_TIME,
+            movement_frequency=PhaseFrequency.DAILY,
+            fixed_deadline_time=time(21, 0),
+            fixed_deadline_timezone="UTC",
+        )
+        phase = phase_factory(
+            game=game,
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+
+        assert not Phase.objects.filter_due_phases().filter(pk=phase.id).exists()

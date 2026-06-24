@@ -274,7 +274,6 @@ const OrdersScreen: React.FC = () => {
           Resolve phase
         </Button>
       );
-    if (game.deadlineMode === "fixed_time") return null;
     if (hasContent)
       return (
         <Button disabled={confirmOrdersMutation.isPending} onClick={handleConfirmOrders}>

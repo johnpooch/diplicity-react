@@ -143,6 +143,52 @@ describe("OrdersScreen civil disorder handling", () => {
   });
 });
 
+describe("OrdersScreen confirm orders button", () => {
+  beforeEach(() => {
+    mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);
+    mockPhaseData.mockReturnValue({
+      id: 1, status: "active", supplyCenters: [], units: [],
+    });
+    mockPhaseStatesData.mockReturnValue([
+      {
+        member: baseMember({ civilDisorder: false }),
+        orderableProvinces: [{ id: "lon", name: "London" }],
+      },
+    ]);
+    mockOrdersData.mockReturnValue([]);
+  });
+
+  it("shows confirm orders button for fixed-time game", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      deadlineMode: "fixed_time",
+      phaseConfirmed: false,
+      members: [baseMember()],
+    });
+
+    renderOrdersScreen();
+
+    expect(screen.getByRole("button", { name: /confirm orders/i })).toBeInTheDocument();
+  });
+
+  it("shows confirm orders button for duration game", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: [baseMember()],
+    });
+
+    renderOrdersScreen();
+
+    expect(screen.getByRole("button", { name: /confirm orders/i })).toBeInTheDocument();
+  });
+});
+
 describe("OrdersScreen named coast display", () => {
   beforeEach(() => {
     mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);
