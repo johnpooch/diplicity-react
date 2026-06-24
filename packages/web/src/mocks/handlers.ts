@@ -227,6 +227,14 @@ export const handlers = [
     HttpResponse.json({ id: "active-movement" }, { status: 201 })
   ),
 
+  http.post("*/game/:gameId/recover-from-civil-disorder/", ({ params }) => {
+    const fixture = gameOr404(params.gameId as string);
+    if (!fixture) return notFound();
+    const member = fixture.game.members.find(m => m.isCurrentUser);
+    if (!member) return notFound();
+    return HttpResponse.json({ ...member, civilDisorder: false });
+  }),
+
   http.post("*/game/:gameId/orders/", async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return HttpResponse.json(body, { status: 201 });

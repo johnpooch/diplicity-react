@@ -57,9 +57,11 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
         .replace(":gameId", gameId)
         .replace(":phaseId", phaseId);
       const badge =
-        item.label === "Chat" &&
-        game?.totalUnreadMessageCount &&
-        game.totalUnreadMessageCount > 0
+        (item.label === "Chat" &&
+          game?.totalUnreadMessageCount &&
+          game.totalUnreadMessageCount > 0) ||
+        (item.label === "Orders" &&
+          game?.members.some(m => m.isCurrentUser && m.civilDisorder))
           ? "•"
           : undefined;
       const path = searchParamsStr ? `${basePath}?${searchParamsStr}` : basePath;
@@ -74,7 +76,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
         badge,
       };
     });
-  }, [gameId, phaseId, searchParams, location.pathname, game?.totalUnreadMessageCount, game?.sandbox]);
+  }, [gameId, phaseId, searchParams, location.pathname, game?.totalUnreadMessageCount, game?.sandbox, game?.members]);
 
   // Filter out Map for desktop sidebar since map is already visible in right
   // panel. Unlike the bottom nav, the sidebar Chat icon should return to the
