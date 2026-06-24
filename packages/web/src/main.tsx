@@ -9,10 +9,16 @@ import App from "./App.tsx";
 import { initializeObservability } from "./observability";
 import { initializeSentry } from "./sentry";
 import { themeStorage } from "./theme/themeStorage";
+import { reloadForStaleChunk } from "./utils/staleChunk";
 
 themeStorage.initialize();
 initializeObservability();
 initializeSentry();
+
+window.addEventListener("vite:preloadError", (event) => {
+  event.preventDefault();
+  reloadForStaleChunk();
+});
 
 const enableMocking = async () => {
   if (import.meta.env.VITE_MOCKS !== "true") return;
