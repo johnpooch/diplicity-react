@@ -9,7 +9,7 @@ import {
   buildOrderProgressText,
   unitAbbrev,
 } from "../utils/buildOrderProgressText";
-import { InteractiveMapZoomWrapper } from "./InteractiveMap/InteractiveMapZoomWrapper";
+import { MapView } from "./MapView";
 import { FloatingMenu, FloatingMenuItem } from "./FloatingMenu";
 import {
   useGameRetrieve,
@@ -161,11 +161,11 @@ const GameMap: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mutateAsync is stable
   }, [wizard.isComplete]);
 
-  const captureMenuPosition = (event: React.MouseEvent<SVGPathElement>) => {
+  const captureMenuPosition = (position: { x: number; y: number }) => {
     if (containerRef.current) {
       const containerRect = containerRef.current.getBoundingClientRect();
-      const x = event.clientX - containerRect.left;
-      const y = event.clientY - containerRect.top;
+      const x = position.x - containerRect.left;
+      const y = position.y - containerRect.top;
       if (x > 0 && y > 0) {
         setMenuPosition({ x, y });
       }
@@ -174,7 +174,7 @@ const GameMap: React.FC = () => {
 
   const handleProvinceClick = (
     province: string,
-    event: React.MouseEvent<SVGPathElement>
+    position: { x: number; y: number }
   ) => {
     if (!renderableProvinces.includes(province)) {
       return;
@@ -193,7 +193,7 @@ const GameMap: React.FC = () => {
         }
         return;
       }
-      captureMenuPosition(event);
+      captureMenuPosition(position);
       wizard.select(province);
     } else if (
       wizard.nextField === "target" ||
@@ -208,7 +208,7 @@ const GameMap: React.FC = () => {
         wizard.nextField === "namedCoast") &&
       province === wizard.resolvedSelections["source"]
     ) {
-      captureMenuPosition(event);
+      captureMenuPosition(position);
     }
   };
 
@@ -272,18 +272,16 @@ const GameMap: React.FC = () => {
     <div ref={containerRef} className="relative w-full h-full">
       {game && variant && phase && orders && (
         <>
-          <InteractiveMapZoomWrapper
-            interactiveMapProps={{
-              interactive: true,
-              variant: variant,
-              phase: phase,
-              orders: displayOrders,
-              selected: wizard.selectedArray,
-              onClickProvince: handleProvinceClick,
-              renderableProvinces: renderableProvinces,
-              highlighted: highlightedIds,
-              civilDisorderNations: civilDisorderNations,
-            }}
+          <MapView
+            interactive
+            variant={variant}
+            phase={phase}
+            orders={displayOrders}
+            selected={wizard.selectedArray}
+            onClickProvince={handleProvinceClick}
+            renderableProvinces={renderableProvinces}
+            highlighted={highlightedIds}
+            civilDisorderNations={civilDisorderNations}
           />
           <FloatingMenu
             open={showMenu}
