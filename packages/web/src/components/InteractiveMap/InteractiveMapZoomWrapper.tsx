@@ -8,6 +8,7 @@ import { Maximize, Minimize } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import { InteractiveMap } from "./InteractiveMap";
+import { recordGesture, type GestureType } from "./mapTelemetry";
 import { useDsvg } from "../../hooks/useDsvg";
 import { parseDsvg } from "./dsvgParser";
 import { DiplicityMap } from "./mapRenderer";
@@ -38,12 +39,10 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
   const transformRef = useRef<ReactZoomPanPinchContentRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // --- Diagnostic ---
-  const renderCountRef = useRef(0);
-  const prevZoomPropsRef = useRef<typeof interactiveMapProps | null>(null);
   const lastTransformTimeRef = useRef<number | null>(null);
   const transformFrameTimesRef = useRef<number[]>([]);
-  const fpsFlushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const gestureTypeRef = useRef<GestureType | null>(null);
+  const gestureStartTimeRef = useRef<number>(0);
 
   const { data: dsvg, isLoading } = useDsvg(interactiveMapProps.variant.svgUrl);
 
@@ -130,16 +129,31 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
     });
   };
 
-  const handleGestureStart = () => {
+  const handleGestureStart = (gestureType: GestureType) => {
     if (svgRef.current) {
       svgRef.current.style.pointerEvents = "none";
     }
+    gestureTypeRef.current = gestureType;
+    gestureStartTimeRef.current = performance.now();
+    transformFrameTimesRef.current = [];
+    lastTransformTimeRef.current = null;
   };
 
   const handleGestureStop = () => {
     if (svgRef.current) {
       svgRef.current.style.pointerEvents = "";
     }
+    if (gestureTypeRef.current !== null) {
+      recordGesture({
+        variantId: interactiveMapProps.variant.id,
+        gestureType: gestureTypeRef.current,
+        durationMs: performance.now() - gestureStartTimeRef.current,
+        frameMs: transformFrameTimesRef.current,
+      });
+      gestureTypeRef.current = null;
+    }
+    transformFrameTimesRef.current = [];
+    lastTransformTimeRef.current = null;
   };
 
   const handleTransformed = () => {
@@ -148,19 +162,6 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
       transformFrameTimesRef.current.push(now - lastTransformTimeRef.current);
     }
     lastTransformTimeRef.current = now;
-
-    if (fpsFlushTimerRef.current) clearTimeout(fpsFlushTimerRef.current);
-    fpsFlushTimerRef.current = setTimeout(() => {
-      const times = transformFrameTimesRef.current;
-      if (times.length > 1) {
-        const avg = times.reduce((a, b) => a + b, 0) / times.length;
-        console.log(
-          `[InteractiveMapZoom] gesture: ${times.length} updates, avg ${avg.toFixed(1)}ms between transforms (~${(1000 / avg).toFixed(0)} fps)`
-        );
-      }
-      transformFrameTimesRef.current = [];
-      lastTransformTimeRef.current = null;
-    }, 500);
   };
 
   useEffect(() => {
@@ -199,21 +200,6 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
     }
   }, [minScale, containerDimensions, svgViewBox]);
 
-  // --- Diagnostic logging ---
-  renderCountRef.current += 1;
-  if (prevZoomPropsRef.current) {
-    const changed = (
-      Object.keys(interactiveMapProps) as Array<keyof typeof interactiveMapProps>
-    ).filter((k) => interactiveMapProps[k] !== prevZoomPropsRef.current![k]);
-    console.log(
-      `[InteractiveMapZoom] render #${renderCountRef.current}`,
-      changed.length > 0 ? { changedProps: changed } : "(internal state change)"
-    );
-  } else {
-    console.log(`[InteractiveMapZoom] render #${renderCountRef.current} (initial)`);
-  }
-  prevZoomPropsRef.current = interactiveMapProps;
-
   if (isLoading || !parsedDsvg || !renderer) {
     return (
       <div
@@ -240,11 +226,11 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
         panning={{ velocityDisabled: true }}
         velocityAnimation={{ disabled: true }}
         onTransformed={handleTransformed}
-        onPanningStart={handleGestureStart}
+        onPanningStart={() => handleGestureStart("pan")}
         onPanningStop={handleGestureStop}
-        onPinchingStart={handleGestureStart}
+        onPinchingStart={() => handleGestureStart("pinch")}
         onPinchingStop={handleGestureStop}
-        onZoomStart={handleGestureStart}
+        onZoomStart={() => handleGestureStart("zoom")}
         onZoomStop={handleGestureStop}
       >
         <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
