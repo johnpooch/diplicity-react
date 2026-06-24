@@ -40,7 +40,7 @@ function usePhaseGuidance(): GuidanceResult {
   }
 
   const userNation = userMember.nation;
-  const confirmationApplies = !game.sandbox && game.deadlineMode !== "fixed_time";
+  const confirmationApplies = !game.sandbox;
   const isConfirmed = confirmationApplies ? game.phaseConfirmed : undefined;
 
   switch (phase.type) {
