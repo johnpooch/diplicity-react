@@ -4205,7 +4205,7 @@ class TestPhaseToCanonicalGameStatePerformance:
 class TestSendDeadlineWarnings:
 
     @pytest.mark.django_db
-    def test_fixed_time_all_orders_no_notification(
+    def test_fixed_time_all_orders_not_confirmed_sends_confirm_prompt(
         self,
         deadline_warning_game_factory,
         add_italy_germany_units,
@@ -4218,6 +4218,29 @@ class TestSendDeadlineWarnings:
         add_italy_germany_units(phase)
         italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True)
         germany_ps = phase.phase_states.create(member=germany, has_possible_orders=True)
+        italy_ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
+        germany_ps.orders.create(source=italy_vs_germany_kiel_province, order_type=OrderType.HOLD)
+
+        Phase.objects.send_deadline_warnings()
+
+        assert mock_send_notification_to_users.call_count == 2
+        body = mock_send_notification_to_users.call_args_list[0].kwargs["body"]
+        assert "Confirm to advance the game early" in body
+
+    @pytest.mark.django_db
+    def test_fixed_time_all_orders_confirmed_no_notification(
+        self,
+        deadline_warning_game_factory,
+        add_italy_germany_units,
+        italy_vs_germany_venice_province,
+        italy_vs_germany_kiel_province,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.FIXED_TIME, now + timedelta(minutes=10))
+        add_italy_germany_units(phase)
+        italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=True)
+        germany_ps = phase.phase_states.create(member=germany, has_possible_orders=True, orders_confirmed=True)
         italy_ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
         germany_ps.orders.create(source=italy_vs_germany_kiel_province, order_type=OrderType.HOLD)
 
