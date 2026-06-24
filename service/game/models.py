@@ -89,16 +89,29 @@ class GameQuerySet(models.QuerySet):
                 order_count=Count("orders")
             ),
         )
+        current_phase_id = (
+            Phase.objects.filter(game=OuterRef("phase__game_id"))
+            .order_by("-ordinal")
+            .values("id")[:1]
+        )
+        current_units_prefetch = Prefetch(
+            "units",
+            queryset=Unit.objects.filter(phase=Subquery(current_phase_id))
+            .select_related("nation__flag", "province__parent")
+            .prefetch_related("province__named_coasts"),
+        )
+        current_supply_centers_prefetch = Prefetch(
+            "supply_centers",
+            queryset=SupplyCenter.objects.filter(phase=Subquery(current_phase_id))
+            .select_related("nation__flag", "province__parent")
+            .prefetch_related("province__named_coasts"),
+        )
         phases_prefetch = Prefetch(
             "phases",
             queryset=Phase.objects.prefetch_related(
                 phase_states_prefetch,
-                "units__nation__flag",
-                "units__province__parent",
-                "units__province__named_coasts",
-                "supply_centers__nation__flag",
-                "supply_centers__province__parent",
-                "supply_centers__province__named_coasts",
+                current_units_prefetch,
+                current_supply_centers_prefetch,
             ),
         )
 
