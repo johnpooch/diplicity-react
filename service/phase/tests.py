@@ -2115,7 +2115,7 @@ class TestFilterDuePhasesBasicFiltering:
         assert phase in phases
 
     @pytest.mark.django_db
-    def test_filter_due_phases_fixed_time_all_confirmed_does_not_resolve_early(
+    def test_filter_due_phases_fixed_time_all_confirmed_resolves_early(
         self, phase_factory, classical_variant, classical_england_nation, classical_france_nation
     ):
         game = Game.objects.create(
@@ -2135,7 +2135,7 @@ class TestFilterDuePhasesBasicFiltering:
 
         phases = Phase.objects.filter_due_phases()
 
-        assert phase not in phases
+        assert phase in phases
 
     @pytest.mark.django_db
     def test_filter_due_phases_fixed_time_resolves_at_scheduled_time(
