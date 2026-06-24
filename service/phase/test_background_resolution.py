@@ -1,4 +1,4 @@
-from datetime import time, timedelta
+from datetime import datetime, time, timedelta, timezone as dt_timezone
 from unittest.mock import patch
 
 import pytest
@@ -289,3 +289,31 @@ class TestFixedTimeEarlyResolution:
         )
 
         assert not Phase.objects.filter_due_phases().filter(pk=phase.id).exists()
+
+
+class TestDeadlineGridPreservation:
+
+    @pytest.mark.django_db
+    def test_next_deadline_anchored_to_scheduled_resolution_not_now(
+        self, classical_variant
+    ):
+        phase1_scheduled = datetime(2026, 1, 3, 21, 0, 0, tzinfo=dt_timezone.utc)
+
+        game = Game.objects.create(
+            variant=classical_variant,
+            name="Grid Test",
+            status="active",
+            deadline_mode=DeadlineMode.FIXED_TIME,
+            movement_frequency=PhaseFrequency.DAILY,
+            fixed_deadline_time=time(21, 0),
+            fixed_deadline_timezone="UTC",
+        )
+
+        next_with_reference = game.get_scheduled_resolution(
+            "Movement", reference_time=phase1_scheduled
+        )
+        next_from_now = game.get_scheduled_resolution("Movement")
+
+        expected = datetime(2026, 1, 4, 21, 0, 0, tzinfo=dt_timezone.utc)
+        assert next_with_reference == expected
+        assert next_from_now != expected
