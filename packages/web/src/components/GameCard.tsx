@@ -217,7 +217,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
       {!game.sandbox && (isActive || isFinished) && (
         <NationBadge nations={variant.nations} nation={playerNation} />
       )}
-      {isActive && currentMember?.eliminated && (
+      {isActive && !game.sandbox && currentMember?.eliminated && (
         <Tooltip>
           <TooltipTrigger asChild>
             <Badge variant="secondary" className="gap-1">
