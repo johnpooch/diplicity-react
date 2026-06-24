@@ -1,8 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+type StartSpan = (
+  name: string,
+  options: { attributes: Record<string, string | number> }
+) => { end: () => void };
+
 const { startSpanSpy, endSpy } = vi.hoisted(() => {
   const endSpy = vi.fn();
-  return { startSpanSpy: vi.fn(() => ({ end: endSpy })), endSpy };
+  const startSpanSpy = vi.fn<StartSpan>(() => ({ end: endSpy }));
+  return { startSpanSpy, endSpy };
 });
 
 vi.mock("@opentelemetry/api", () => ({
@@ -20,11 +26,15 @@ describe("mapTelemetry", () => {
   it("emits a map.initial_render span with render time and variant", () => {
     recordInitialRender({ variantId: "classical", renderMs: 12.5 });
 
-    expect(startSpanSpy).toHaveBeenCalledTimes(1);
-    const [name, options] = startSpanSpy.mock.calls[0];
-    expect(name).toBe("map.initial_render");
-    expect(options.attributes["map.variant_id"]).toBe("classical");
-    expect(options.attributes["map.render_ms"]).toBe(12.5);
+    expect(startSpanSpy).toHaveBeenCalledWith(
+      "map.initial_render",
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          "map.variant_id": "classical",
+          "map.render_ms": 12.5,
+        }),
+      })
+    );
     expect(endSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -36,15 +46,19 @@ describe("mapTelemetry", () => {
       frameMs: [16, 16, 40, 16],
     });
 
-    expect(startSpanSpy).toHaveBeenCalledTimes(1);
-    const [name, options] = startSpanSpy.mock.calls[0];
-    expect(name).toBe("map.gesture");
-    expect(options.attributes["map.gesture_type"]).toBe("pan");
-    expect(options.attributes["map.duration_ms"]).toBe(100);
-    expect(options.attributes["map.median_frame_ms"]).toBe(16);
-    expect(options.attributes["map.p95_frame_ms"]).toBe(40);
-    expect(options.attributes["map.dropped_frame_pct"]).toBe(25);
-    expect(options.attributes["map.frame_count"]).toBe(4);
+    expect(startSpanSpy).toHaveBeenCalledWith(
+      "map.gesture",
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          "map.gesture_type": "pan",
+          "map.duration_ms": 100,
+          "map.median_frame_ms": 16,
+          "map.p95_frame_ms": 40,
+          "map.dropped_frame_pct": 25,
+          "map.frame_count": 4,
+        }),
+      })
+    );
     expect(endSpy).toHaveBeenCalledTimes(1);
   });
 
