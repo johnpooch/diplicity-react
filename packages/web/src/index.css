@@ -152,27 +152,11 @@ body {
   }
 }
 
-[data-rich-colors='true'][data-sonner-toast][data-type='success'] [data-button] {
-  background: transparent;
-  border: 1px solid var(--success-text);
-  color: var(--success-text);
-}
-
-[data-rich-colors='true'][data-sonner-toast][data-type='error'] [data-button] {
-  background: transparent;
-  border: 1px solid var(--error-text);
-  color: var(--error-text);
-}
-
-[data-rich-colors='true'][data-sonner-toast][data-type='warning'] [data-button] {
-  background: transparent;
-  border: 1px solid var(--warning-text);
-  color: var(--warning-text);
-}
-
-[data-rich-colors='true'][data-sonner-toast][data-type='info'] [data-button] {
-  background: transparent;
-  border: 1px solid var(--info-text);
-  color: var(--info-text);
+/* Tailwind v4 preflight no longer strips native button appearance, so on
+   Chrome/Linux the GTK button style overrides Sonner's background/border.
+   Force appearance: none so Sonner's own CSS takes full effect. */
+[data-sonner-toast] [data-button] {
+  -webkit-appearance: none;
+  appearance: none;
 }
 
