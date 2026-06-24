@@ -85,7 +85,7 @@ class PhaseQuerySet(models.QuerySet):
             & Q(game__paused_at__isnull=True)
             & ~Q(game__status=GameStatus.COMPLETED)
             & ~Q(game__status=GameStatus.ABANDONED)
-            & (deadline_passed | (~Q(game__deadline_mode=DeadlineMode.FIXED_TIME) & all_confirmed))
+            & (deadline_passed | all_confirmed)
         )
 
 
@@ -715,7 +715,8 @@ class PhaseManager(models.Manager):
 
                 # Calculate next phase details
                 scheduled_resolution = previous_phase.game.get_scheduled_resolution(
-                    adjudication_data["type"]
+                    adjudication_data["type"],
+                    reference_time=previous_phase.scheduled_resolution,
                 )
                 new_ordinal = previous_phase.ordinal + 1
 
