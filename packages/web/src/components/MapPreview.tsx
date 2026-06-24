@@ -70,9 +70,16 @@ const MapPreview: React.FC<MapPreviewProps> = ({
   }, [dsvg, variant, phase, cover]);
 
   return (
-    <div ref={containerRef} className={className} style={style}>
+    <div
+      ref={containerRef}
+      className={cover ? `relative overflow-hidden ${className ?? ""}` : className}
+      style={style}
+    >
       {svg ? (
-        <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: svg }} />
+        <div
+          className={cover ? "absolute inset-0" : "w-full h-full"}
+          dangerouslySetInnerHTML={{ __html: svg }}
+        />
       ) : (
         <Skeleton className="w-full h-full" />
       )}
