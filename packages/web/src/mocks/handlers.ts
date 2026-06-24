@@ -147,7 +147,7 @@ export const handlers = [
     const game = { ...fixture.game } as Record<string, unknown>;
     delete game.currentPhase;
     const members = recoveredCivilDisorderGames.has(String(params.gameId))
-      ? (fixture.game.members as Array<Record<string, unknown>>).map(m =>
+      ? fixture.game.members.map(m =>
           m.isCurrentUser ? { ...m, civilDisorder: false } : m
         )
       : fixture.game.members;
