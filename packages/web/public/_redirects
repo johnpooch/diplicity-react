@@ -1,1 +1,6 @@
-/*    /index.html   200
+# Hashed build assets must never fall back to index.html. A missing chunk
+# (stale after a redeploy) should 404 so the app can recover, rather than
+# receiving index.html served as JavaScript (a MIME-type crash). Existing
+# files are still served normally since Netlify prioritises them over rules.
+/assets/*    /assets/:splat   404
+/*           /index.html      200
