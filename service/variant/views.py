@@ -32,11 +32,16 @@ class IsOwnedDraftForWrite(permissions.BasePermission):
         )
 
 
-def _variants_list_etag(user_id):
+def _variants_list_etag(user):
     variant_max = Variant.objects.aggregate(Max("updated_at"))["updated_at__max"]
     flag_max = NationFlag.objects.aggregate(Max("updated_at"))["updated_at__max"]
+    mode = None
+    if user.is_authenticated:
+        profile = getattr(user, "profile", None)
+        if profile is not None:
+            mode = profile.colorblind_mode
     digest = hashlib.sha256(
-        f"{variant_max}|{flag_max}|{user_id}".encode()
+        f"{variant_max}|{flag_max}|{user.id}|{mode}".encode()
     ).hexdigest()
     return f'"{digest[:32]}"'
 
@@ -65,7 +70,7 @@ class VariantListCreateView(generics.ListCreateAPIView):
         return context
 
     def list(self, request, *args, **kwargs):
-        etag = _variants_list_etag(request.user.id)
+        etag = _variants_list_etag(request.user)
         if request.headers.get("If-None-Match") == etag:
             response = Response(status=status.HTTP_304_NOT_MODIFIED)
         else:

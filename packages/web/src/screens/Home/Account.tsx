@@ -27,6 +27,7 @@ import {
   useUserRetrieveSuspense,
   useUserUpdatePartialUpdate,
   getUserRetrieveQueryKey,
+  getVariantsListQueryKey,
   type ColorblindModeEnum,
 } from "@/api/generated/endpoints";
 import { useQueryClient } from "@tanstack/react-query";
@@ -214,6 +215,9 @@ const Account: React.FC = () => {
                     });
                     queryClient.invalidateQueries({
                       queryKey: getUserRetrieveQueryKey(),
+                    });
+                    queryClient.invalidateQueries({
+                      queryKey: getVariantsListQueryKey(),
                     });
                   } catch {
                     toast.error("Failed to update colorblind mode");

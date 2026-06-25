@@ -62,6 +62,23 @@ def test_list_variants_unauthenticated(unauthenticated_client):
 
 
 @pytest.mark.django_db
+def test_etag_changes_when_colorblind_mode_changes(user_factory, authenticated_client_factory):
+    user = user_factory()
+    client = authenticated_client_factory(user)
+
+    response1 = client.get(reverse(viewname))
+    etag1 = response1["ETag"]
+
+    user.profile.colorblind_mode = "deuteranopia"
+    user.profile.save()
+
+    response2 = client.get(reverse(viewname))
+    etag2 = response2["ETag"]
+
+    assert etag1 != etag2
+
+
+@pytest.mark.django_db
 def test_list_variants_includes_svg_url(authenticated_client):
     response = authenticated_client.get(reverse(viewname))
 
