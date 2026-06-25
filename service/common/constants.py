@@ -218,6 +218,18 @@ class ProvinceType:
     )
 
 
+class ColorblindMode:
+    DEUTERANOPIA = "deuteranopia"
+    PROTANOPIA = "protanopia"
+    TRITANOPIA = "tritanopia"
+
+    CHOICES = (
+        (DEUTERANOPIA, "Deuteranopia"),
+        (PROTANOPIA, "Protanopia"),
+        (TRITANOPIA, "Tritanopia"),
+    )
+
+
 class OrderResolutionStatus:
     SUCCEEDED = "OK"
     ILLEGAL_MOVE = "ErrIllegalMove"

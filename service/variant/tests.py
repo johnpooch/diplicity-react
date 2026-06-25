@@ -371,3 +371,60 @@ def test_member_of_draft_variant_game_can_retrieve_variant(
     member_factory(game=game, user=other_user)
     response = other_client.get(reverse("variant-detail", kwargs={"pk": draft_variant.id}))
     assert response.status_code == status.HTTP_200_OK
+
+
+class TestNationColorColorblindAdjustment:
+
+    @pytest.mark.django_db
+    def test_no_colorblind_mode_returns_default_colors(
+        self, authenticated_client, classical_variant, primary_user
+    ):
+        primary_user.profile.colorblind_mode = None
+        primary_user.profile.save()
+
+        response = authenticated_client.get(reverse(viewname))
+
+        classical = {v["id"]: v for v in response.data}["classical"]
+        nations_by_id = {n["nation_id"]: n for n in classical["nations"]}
+        assert nations_by_id["england"]["color"] == "#2196F3"
+        assert nations_by_id["italy"]["color"] == "#4CAF50"
+
+    @pytest.mark.django_db
+    def test_deuteranopia_adjusts_nation_colors(
+        self, authenticated_client, classical_variant, primary_user
+    ):
+        primary_user.profile.colorblind_mode = "deuteranopia"
+        primary_user.profile.save()
+
+        response = authenticated_client.get(reverse(viewname))
+
+        classical = {v["id"]: v for v in response.data}["classical"]
+        nations_by_id = {n["nation_id"]: n for n in classical["nations"]}
+        assert nations_by_id["england"]["color"] == "#0072B2"
+        assert nations_by_id["italy"]["color"] == "#CC79A7"
+
+    @pytest.mark.django_db
+    def test_protanopia_adjusts_nation_colors(
+        self, authenticated_client, classical_variant, primary_user
+    ):
+        primary_user.profile.colorblind_mode = "protanopia"
+        primary_user.profile.save()
+
+        response = authenticated_client.get(reverse(viewname))
+
+        classical = {v["id"]: v for v in response.data}["classical"]
+        nations_by_id = {n["nation_id"]: n for n in classical["nations"]}
+        assert nations_by_id["austria"]["color"] == "#E69F00"
+
+    @pytest.mark.django_db
+    def test_tritanopia_adjusts_nation_colors(
+        self, authenticated_client, classical_variant, primary_user
+    ):
+        primary_user.profile.colorblind_mode = "tritanopia"
+        primary_user.profile.save()
+
+        response = authenticated_client.get(reverse(viewname))
+
+        classical = {v["id"]: v for v in response.data}["classical"]
+        nations_by_id = {n["nation_id"]: n for n in classical["nations"]}
+        assert nations_by_id["turkey"]["color"] == "#CC79A7"

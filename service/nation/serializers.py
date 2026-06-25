@@ -1,17 +1,30 @@
 from typing import Optional
 
 from django.urls import reverse
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from common.colorblind import apply_colorblind_palette
 from .models import Nation, NationFlag
 
 
 class NationSerializer(serializers.Serializer):
     nation_id = serializers.CharField()
     name = serializers.CharField()
-    color = serializers.CharField()
+    color = serializers.SerializerMethodField()
     non_playable = serializers.BooleanField()
     flag_url = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.CharField)
+    def get_color(self, nation) -> str:
+        request = self.context.get("request")
+        mode = None
+        if request and request.user.is_authenticated:
+            try:
+                mode = request.user.profile.colorblind_mode
+            except Exception:
+                pass
+        return apply_colorblind_palette(nation.color, mode)
 
     def get_flag_url(self, nation) -> Optional[str]:
         try:

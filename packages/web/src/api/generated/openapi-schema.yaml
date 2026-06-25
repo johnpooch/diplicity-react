@@ -2823,13 +2823,11 @@ components:
       enum:
       - orders_required
       - orders_submitted
-      - orders_not_confirmed
       - no_orders_required
       type: string
       description: |-
         * `orders_required` - orders_required
         * `orders_submitted` - orders_submitted
-        * `orders_not_confirmed` - orders_not_confirmed
         * `no_orders_required` - no_orders_required
     OrderTypeEnum:
       enum:

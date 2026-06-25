@@ -26,6 +26,7 @@ import {
   useUserRetrieveSuspense,
   useUserUpdatePartialUpdate,
   getUserRetrieveQueryKey,
+  type ColorblindModeEnum,
 } from "@/api/generated/endpoints";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -196,6 +197,34 @@ const Account: React.FC = () => {
                   <SelectItem value="light">Light</SelectItem>
                   <SelectItem value="dark">Dark</SelectItem>
                   <SelectItem value="system">System</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-4">
+              <Label htmlFor="colorblind-select">Colorblind mode</Label>
+              <Select
+                value={userProfile.colorblindMode ?? "off"}
+                onValueChange={async (value) => {
+                  const mode =
+                    value === "off"
+                      ? null
+                      : (value as ColorblindModeEnum);
+                  await updateProfileMutation.mutateAsync({
+                    data: { colorblindMode: mode },
+                  });
+                  queryClient.invalidateQueries({
+                    queryKey: getUserRetrieveQueryKey(),
+                  });
+                }}
+              >
+                <SelectTrigger id="colorblind-select" className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="off">Off</SelectItem>
+                  <SelectItem value="deuteranopia">Deuteranopia</SelectItem>
+                  <SelectItem value="protanopia">Protanopia</SelectItem>
+                  <SelectItem value="tritanopia">Tritanopia</SelectItem>
                 </SelectContent>
               </Select>
             </div>
