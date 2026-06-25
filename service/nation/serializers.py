@@ -17,15 +17,10 @@ class NationSerializer(serializers.Serializer):
 
     @extend_schema_field(serializers.CharField)
     def get_color(self, nation) -> str:
-        request = self.context.get("request")
-        mode = None
-        if request and request.user.is_authenticated:
-            try:
-                mode = request.user.profile.colorblind_mode
-            except Exception:
-                pass
+        mode = self.context.get("colorblind_mode")
         return apply_colorblind_palette(nation.color, mode)
 
+    @extend_schema_field(serializers.URLField(allow_null=True))
     def get_flag_url(self, nation) -> Optional[str]:
         try:
             flag = nation.flag

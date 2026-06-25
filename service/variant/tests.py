@@ -377,12 +377,12 @@ class TestNationColorColorblindAdjustment:
 
     @pytest.mark.django_db
     def test_no_colorblind_mode_returns_default_colors(
-        self, authenticated_client, classical_variant, primary_user
+        self, user_factory, authenticated_client_factory, classical_variant
     ):
-        primary_user.profile.colorblind_mode = None
-        primary_user.profile.save()
+        user = user_factory()
+        client = authenticated_client_factory(user)
 
-        response = authenticated_client.get(reverse(viewname))
+        response = client.get(reverse(viewname))
 
         classical = {v["id"]: v for v in response.data}["classical"]
         nations_by_id = {n["nation_id"]: n for n in classical["nations"]}
@@ -391,12 +391,14 @@ class TestNationColorColorblindAdjustment:
 
     @pytest.mark.django_db
     def test_deuteranopia_adjusts_nation_colors(
-        self, authenticated_client, classical_variant, primary_user
+        self, user_factory, authenticated_client_factory, classical_variant
     ):
-        primary_user.profile.colorblind_mode = "deuteranopia"
-        primary_user.profile.save()
+        user = user_factory()
+        user.profile.colorblind_mode = "deuteranopia"
+        user.profile.save()
+        client = authenticated_client_factory(user)
 
-        response = authenticated_client.get(reverse(viewname))
+        response = client.get(reverse(viewname))
 
         classical = {v["id"]: v for v in response.data}["classical"]
         nations_by_id = {n["nation_id"]: n for n in classical["nations"]}
@@ -405,12 +407,14 @@ class TestNationColorColorblindAdjustment:
 
     @pytest.mark.django_db
     def test_protanopia_adjusts_nation_colors(
-        self, authenticated_client, classical_variant, primary_user
+        self, user_factory, authenticated_client_factory, classical_variant
     ):
-        primary_user.profile.colorblind_mode = "protanopia"
-        primary_user.profile.save()
+        user = user_factory()
+        user.profile.colorblind_mode = "protanopia"
+        user.profile.save()
+        client = authenticated_client_factory(user)
 
-        response = authenticated_client.get(reverse(viewname))
+        response = client.get(reverse(viewname))
 
         classical = {v["id"]: v for v in response.data}["classical"]
         nations_by_id = {n["nation_id"]: n for n in classical["nations"]}
@@ -418,12 +422,14 @@ class TestNationColorColorblindAdjustment:
 
     @pytest.mark.django_db
     def test_tritanopia_adjusts_nation_colors(
-        self, authenticated_client, classical_variant, primary_user
+        self, user_factory, authenticated_client_factory, classical_variant
     ):
-        primary_user.profile.colorblind_mode = "tritanopia"
-        primary_user.profile.save()
+        user = user_factory()
+        user.profile.colorblind_mode = "tritanopia"
+        user.profile.save()
+        client = authenticated_client_factory(user)
 
-        response = authenticated_client.get(reverse(viewname))
+        response = client.get(reverse(viewname))
 
         classical = {v["id"]: v for v in response.data}["classical"]
         nations_by_id = {n["nation_id"]: n for n in classical["nations"]}

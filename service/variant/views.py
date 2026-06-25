@@ -53,6 +53,17 @@ class VariantListCreateView(generics.ListCreateAPIView):
             return VariantWriteSerializer
         return VariantSerializer
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        user = self.request.user
+        mode = None
+        if user.is_authenticated:
+            profile = getattr(user, "profile", None)
+            if profile is not None:
+                mode = profile.colorblind_mode
+        context["colorblind_mode"] = mode
+        return context
+
     def list(self, request, *args, **kwargs):
         etag = _variants_list_etag(request.user.id)
         if request.headers.get("If-None-Match") == etag:
@@ -70,6 +81,17 @@ class VariantDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return Variant.objects.visible_to(self.request.user).with_related_data()
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        user = self.request.user
+        mode = None
+        if user.is_authenticated:
+            profile = getattr(user, "profile", None)
+            if profile is not None:
+                mode = profile.colorblind_mode
+        context["colorblind_mode"] = mode
+        return context
 
     def get_serializer_class(self):
         if self.request.method in ("PUT", "PATCH"):

@@ -12,7 +12,7 @@ class UserProfileSerializer(serializers.Serializer):
     email = serializers.CharField(source="user.email", read_only=True)
     email_notifications_enabled = serializers.BooleanField(required=False)
     colorblind_mode = serializers.ChoiceField(
-        choices=[c[0] for c in ColorblindMode.CHOICES],
+        choices=ColorblindMode.CHOICES,
         allow_null=True,
         required=False,
     )

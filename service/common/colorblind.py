@@ -35,4 +35,4 @@ def apply_colorblind_palette(color: str, mode: Optional[str]) -> str:
     if mode is None:
         return color
     palette = _PALETTES.get(mode, {})
-    return palette.get(color, color)
+    return palette.get(color.upper(), color)

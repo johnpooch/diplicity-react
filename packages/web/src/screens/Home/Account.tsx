@@ -1,5 +1,6 @@
 import React, { Suspense, useState } from "react";
 import { Check, X, Pencil, ChevronRight } from "lucide-react";
+import { toast } from "sonner";
 import { Link } from "react-router";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
@@ -206,15 +207,17 @@ const Account: React.FC = () => {
                 value={userProfile.colorblindMode ?? "off"}
                 onValueChange={async (value) => {
                   const mode =
-                    value === "off"
-                      ? null
-                      : (value as ColorblindModeEnum);
-                  await updateProfileMutation.mutateAsync({
-                    data: { colorblindMode: mode },
-                  });
-                  queryClient.invalidateQueries({
-                    queryKey: getUserRetrieveQueryKey(),
-                  });
+                    value === "off" ? null : (value as ColorblindModeEnum);
+                  try {
+                    await updateProfileMutation.mutateAsync({
+                      data: { colorblindMode: mode },
+                    });
+                    queryClient.invalidateQueries({
+                      queryKey: getUserRetrieveQueryKey(),
+                    });
+                  } catch {
+                    toast.error("Failed to update colorblind mode");
+                  }
                 }}
               >
                 <SelectTrigger id="colorblind-select" className="w-40">
