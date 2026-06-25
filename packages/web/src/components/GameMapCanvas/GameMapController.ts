@@ -21,6 +21,15 @@ const MAX_ABSOLUTE_ZOOM = 2;
 const ZOOM_QUERY_FLOOR = -10;
 const FIT_EPSILON = 0.05;
 
+// Zoom levels applied per pixel of wheel delta by the custom wheel handler.
+// Leaflet's built-in scroll-wheel pipeline divides the delta by a Mac-retina
+// factor of devicePixelRatio*3 and then runs it through a sigmoid that crushes
+// small deltas, which makes trackpad pinch crawl. The custom handler maps delta
+// straight to zoom instead. WHEEL_MAX_STEP caps a single mouse-wheel notch so
+// it does not leap across zoom levels.
+const WHEEL_ZOOM_SPEED = 0.005;
+const WHEEL_MAX_STEP = 0.5;
+
 export type StyleState = {
   selected: Set<string>;
   highlighted: Set<string>;
@@ -82,8 +91,16 @@ export class GameMapController {
   private fillZoom = 0;
   private containZoom = 0;
 
+  private baseReady = false;
+
+  private readonly container: HTMLElement;
+  private wheelDelta = 0;
+  private wheelPoint: L.Point | null = null;
+  private wheelRaf: number | null = null;
+
   constructor(container: HTMLElement, options: ControllerOptions) {
     this.options = options;
+    this.container = container;
     this.bounds = L.latLngBounds(viewBoxBounds(options.viewBox));
 
     this.map = L.map(container, {
@@ -92,11 +109,14 @@ export class GameMapController {
       zoomControl: false,
       zoomSnap: 0,
       zoomDelta: 0.6,
-      // How many scroll pixels equal one zoom level. Trackpad pinch arrives as
-      // ctrl+wheel on desktop, so a high value makes pinch zoom crawl; 60 is
-      // Leaflet's default and keeps pinch responsive.
-      wheelPxPerZoomLevel: 60,
+      // Wheel zoom is handled manually (see onWheel) to get a responsive
+      // trackpad pinch on desktop, so Leaflet's own scroll-wheel handler is off.
+      scrollWheelZoom: false,
       maxBoundsViscosity: 1,
+      // Clamp zoom to the limits live during a pinch instead of overshooting and
+      // animating back, so a touch pinch does not leave the map in a settle
+      // animation that blocks the pan that follows it.
+      bounceAtZoomLimits: false,
       doubleClickZoom: false,
     });
 
@@ -104,10 +124,17 @@ export class GameMapController {
     const highlightPane = this.map.createPane("highlightMap");
     highlightPane.style.zIndex = "350";
     highlightPane.style.pointerEvents = "none";
-    this.map.createPane("overlayMap").style.zIndex = "450";
-    this.map.getPane("overlayMap")!.style.pointerEvents = "none";
+    const overlayPane = this.map.createPane("overlayMap");
+    overlayPane.style.zIndex = "450";
+    overlayPane.style.pointerEvents = "none";
+    // The units/orders overlay is applied synchronously while the base map is
+    // still rasterising, so it is hidden until the first base raster lands to
+    // avoid units flashing on the blank background before the map appears.
+    overlayPane.style.visibility = "hidden";
 
     this.hitLayer = L.layerGroup().addTo(this.map);
+
+    this.container.addEventListener("wheel", this.onWheel, { passive: false });
 
     this.refit();
     this.wireGestures();
@@ -168,6 +195,34 @@ export class GameMapController {
     this.fitToRegime(true);
   }
 
+  // Maps wheel delta straight to a zoom change, batched per animation frame.
+  // Trackpad pinch (ctrl+wheel) and the mouse wheel both flow through here; the
+  // per-event step is capped so a single mouse notch stays smooth.
+  private onWheel = (event: WheelEvent): void => {
+    event.preventDefault();
+    let delta = event.deltaY;
+    if (event.deltaMode === 1) {
+      delta *= 16;
+    } else if (event.deltaMode === 2) {
+      delta *= this.map.getSize().y;
+    }
+    this.wheelDelta += delta;
+    this.wheelPoint = this.map.mouseEventToContainerPoint(event);
+    if (this.wheelRaf !== null) return;
+    this.wheelRaf = requestAnimationFrame(() => {
+      this.wheelRaf = null;
+      if (!this.wheelPoint) return;
+      const step = Math.max(
+        -WHEEL_MAX_STEP,
+        Math.min(WHEEL_MAX_STEP, -this.wheelDelta * WHEEL_ZOOM_SPEED)
+      );
+      this.wheelDelta = 0;
+      this.map.setZoomAround(this.wheelPoint, this.map.getZoom() + step, {
+        animate: false,
+      });
+    });
+  };
+
   private beginGesture(type: GestureType): void {
     if (this.gestureType !== null) return;
     this.gestureType = type;
@@ -219,6 +274,10 @@ export class GameMapController {
       this.map.removeLayer(this.baseLayer);
     }
     this.baseLayer = next;
+    if (!this.baseReady) {
+      this.baseReady = true;
+      this.map.getPane("overlayMap")!.style.visibility = "";
+    }
   }
 
   setOverlay(svg: string): void {
@@ -329,6 +388,10 @@ export class GameMapController {
     if (this.rafId !== null) {
       cancelAnimationFrame(this.rafId);
     }
+    if (this.wheelRaf !== null) {
+      cancelAnimationFrame(this.wheelRaf);
+    }
+    this.container.removeEventListener("wheel", this.onWheel);
     this.map.remove();
   }
 }
