@@ -92,7 +92,10 @@ export class GameMapController {
       zoomControl: false,
       zoomSnap: 0,
       zoomDelta: 0.6,
-      wheelPxPerZoomLevel: 120,
+      // How many scroll pixels equal one zoom level. Trackpad pinch arrives as
+      // ctrl+wheel on desktop, so a high value makes pinch zoom crawl; 60 is
+      // Leaflet's default and keeps pinch responsive.
+      wheelPxPerZoomLevel: 60,
       maxBoundsViscosity: 1,
       doubleClickZoom: false,
     });
