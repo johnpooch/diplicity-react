@@ -62,6 +62,30 @@ describe("mapTelemetry", () => {
     expect(endSpy).toHaveBeenCalledTimes(1);
   });
 
+  it("defaults the implementation attribute to svg and honours an explicit value", () => {
+    recordInitialRender({ variantId: "classical", renderMs: 1 });
+    expect(startSpanSpy).toHaveBeenLastCalledWith(
+      "map.initial_render",
+      expect.objectContaining({
+        attributes: expect.objectContaining({ "map.implementation": "svg" }),
+      })
+    );
+
+    recordGesture({
+      variantId: "classical",
+      gestureType: "zoom",
+      durationMs: 50,
+      frameMs: [16, 16],
+      implementation: "leaflet",
+    });
+    expect(startSpanSpy).toHaveBeenLastCalledWith(
+      "map.gesture",
+      expect.objectContaining({
+        attributes: expect.objectContaining({ "map.implementation": "leaflet" }),
+      })
+    );
+  });
+
   it("does not emit a gesture span when no frames were recorded", () => {
     recordGesture({
       variantId: "classical",

@@ -149,6 +149,7 @@ const InteractiveMapZoomWrapper: React.FC<InteractiveMapZoomWrapperProps> = ({
         gestureType: gestureTypeRef.current,
         durationMs: performance.now() - gestureStartTimeRef.current,
         frameMs: transformFrameTimesRef.current,
+        implementation: "svg",
       });
       gestureTypeRef.current = null;
     }
