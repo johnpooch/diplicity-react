@@ -10,7 +10,7 @@ from django.utils import timezone
 from opentelemetry import trace
 from common.models import BaseModel
 from datetime import timedelta
-from common.constants import PhaseStatus, PhaseType, GameStatus, DeadlineMode
+from common.constants import PhaseStatus, PhaseType, GameStatus, DeadlineMode, OrderType
 from adjudication.service import resolve
 from member.models import Member
 from order.models import OrderResolution, Order
@@ -636,15 +636,51 @@ class PhaseManager(models.Manager):
 
                 # Process order resolutions
                 with tracer.start_as_current_span("phase.create_order_resolutions") as resolutions_span:
-                    order_count = len(previous_phase.all_orders)
+                    existing_orders = list(previous_phase.all_orders)
+                    order_count = len(existing_orders)
 
                     # Delete existing resolutions in bulk
-                    order_ids = [order.id for order in previous_phase.all_orders]
+                    order_ids = [order.id for order in existing_orders]
                     OrderResolution.objects.filter(order_id__in=order_ids).delete()
+
+                    # Build lookups needed to create implicit Hold orders
+                    unit_nation_by_province = {
+                        unit.province.province_id: unit.nation
+                        for unit in previous_phase.units.all()
+                    }
+                    phase_state_by_nation_name = {
+                        ps.member.nation.name: ps
+                        for ps in previous_phase.phase_states.all()
+                    }
+                    existing_order_provinces = {order.source.province_id for order in existing_orders}
+
+                    # Create implicit Hold orders for failed resolutions with no existing order row
+                    implicit_orders_to_create = []
+                    implicit_resolution_pairs = []
+                    for resolution_data in adjudication_data["resolutions"]:
+                        if resolution_data["result"] != "OK" and resolution_data["province"] not in existing_order_provinces:
+                            source_province = province_lookup.get(resolution_data["province"])
+                            nation = unit_nation_by_province.get(resolution_data["province"])
+                            if source_province and nation:
+                                phase_state = phase_state_by_nation_name.get(nation.name)
+                                if phase_state:
+                                    implicit_orders_to_create.append(
+                                        Order(
+                                            phase_state=phase_state,
+                                            source=source_province,
+                                            order_type=OrderType.HOLD,
+                                            is_implicit=True,
+                                        )
+                                    )
+                                    implicit_resolution_pairs.append(resolution_data)
+
+                    if implicit_orders_to_create:
+                        created_implicit_orders = Order.objects.bulk_create(implicit_orders_to_create)
+                        logger.info(f"Created {len(created_implicit_orders)} implicit Hold orders for failed resolutions")
 
                     # Build list of resolutions to bulk create
                     resolutions_to_create = []
-                    for order in previous_phase.all_orders:
+                    for order in existing_orders:
                         resolution_data = next(
                             (r for r in adjudication_data["resolutions"] if r["province"] == order.source.province_id),
                             None,
@@ -662,6 +698,17 @@ class PhaseManager(models.Manager):
                         else:
                             logger.warning(
                                 f"No resolution found for order {order.id} in province {order.source.province_id}"
+                            )
+
+                    if implicit_orders_to_create:
+                        for implicit_order, resolution_data in zip(created_implicit_orders, implicit_resolution_pairs):
+                            by_province = province_lookup.get(resolution_data["by"]) if resolution_data["by"] else None
+                            resolutions_to_create.append(
+                                OrderResolution(
+                                    order=implicit_order,
+                                    status=resolution_data["result"],
+                                    by=by_province,
+                                )
                             )
 
                     # Bulk create all resolutions
