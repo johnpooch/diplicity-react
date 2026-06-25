@@ -7,6 +7,12 @@ import { buildHighlightSvg } from "./highlightSvg";
 
 const MAX_ZOOM_FACTORS = 2;
 
+// In CRS.Simple zoom 2 is 4x the native board size, matching the SVG map's
+// maxScale of 4. The cap is absolute rather than relative to the contain fit:
+// on tall/narrow viewports the contain fit is far below the fill fit, so a
+// relative cap would collapse the usable zoom-in range to almost nothing.
+const MAX_ABSOLUTE_ZOOM = 2;
+
 // getBoundsZoom clamps its result to the map's current zoom range, so the floor
 // is dropped well below any realistic fit zoom before querying — otherwise the
 // default minimum of 0 prevents the negative zoom needed to fit a board that is
@@ -117,7 +123,9 @@ export class GameMapController {
     this.map.setMinZoom(ZOOM_QUERY_FLOOR);
     this.containZoom = this.map.getBoundsZoom(this.bounds, false);
     this.fillZoom = this.map.getBoundsZoom(this.bounds, true);
-    this.map.setMaxZoom(this.containZoom + MAX_ZOOM_FACTORS);
+    this.map.setMaxZoom(
+      Math.max(MAX_ABSOLUTE_ZOOM, this.containZoom + MAX_ZOOM_FACTORS)
+    );
     this.applyRegime();
     const fitZoom = this.fill ? this.fillZoom : this.containZoom;
     if (!this.fitted || this.map.getZoom() <= fitZoom + FIT_EPSILON) {
@@ -144,10 +152,16 @@ export class GameMapController {
     this.map.setView(this.bounds.getCenter(), zoom, { animate });
   }
 
+  // Animate to the new regime. The zoom floor is dropped to the contain fit for
+  // the duration of the transition so that raising the operational minimum
+  // (which Leaflet would apply synchronously) does not snap past the animation
+  // when zooming back in; the real regime is applied once the view settles.
   setFill(fill: boolean): void {
     if (this.fill === fill) return;
     this.fill = fill;
-    this.applyRegime();
+    this.map.setMaxBounds(fill ? this.bounds : undefined);
+    this.map.setMinZoom(this.containZoom);
+    this.map.once("zoomend", () => this.applyRegime());
     this.fitToRegime(true);
   }
 

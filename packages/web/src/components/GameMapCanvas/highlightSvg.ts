@@ -3,7 +3,10 @@ import type { ViewBox } from "../InteractiveMap/dsvgParser";
 export const SELECTED_FILL = "rgba(255, 255, 255, 0.8)";
 export const HOVER_FILL = "rgba(255, 255, 255, 0.6)";
 export const ACTIVE_STROKE = "#FFFFFF";
-export const ACTIVE_STROKE_WIDTH = 5;
+// The highlight overlay paints above the baked-in borders layer, so the stroke
+// reads thicker than it did in the SVG map (where it sat below the borders).
+// Keep it thinner to compensate.
+export const ACTIVE_STROKE_WIDTH = 3;
 
 const STRIPES_DEFS =
   '<defs><pattern patternTransform="rotate(45)" height="8" width="8"' +
