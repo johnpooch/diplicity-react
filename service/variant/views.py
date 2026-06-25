@@ -76,7 +76,7 @@ class VariantListCreateView(generics.ListCreateAPIView):
         else:
             response = super().list(request, *args, **kwargs)
         response["ETag"] = etag
-        response["Cache-Control"] = "private, must-revalidate, max-age=60"
+        response["Cache-Control"] = "private, no-cache"
         return response
 
 

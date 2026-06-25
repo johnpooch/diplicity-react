@@ -79,6 +79,23 @@ def test_etag_changes_when_colorblind_mode_changes(user_factory, authenticated_c
 
 
 @pytest.mark.django_db
+def test_list_variants_cache_control_forces_revalidation(authenticated_client):
+    response = authenticated_client.get(reverse(viewname))
+
+    assert response["Cache-Control"] == "private, no-cache"
+
+
+@pytest.mark.django_db
+def test_list_variants_returns_304_when_etag_matches(authenticated_client):
+    response1 = authenticated_client.get(reverse(viewname))
+    etag = response1["ETag"]
+
+    response2 = authenticated_client.get(reverse(viewname), HTTP_IF_NONE_MATCH=etag)
+
+    assert response2.status_code == status.HTTP_304_NOT_MODIFIED
+
+
+@pytest.mark.django_db
 def test_list_variants_includes_svg_url(authenticated_client):
     response = authenticated_client.get(reverse(viewname))
 
