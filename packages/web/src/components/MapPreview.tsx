@@ -81,7 +81,7 @@ const MapPreview: React.FC<MapPreviewProps> = ({
           dangerouslySetInnerHTML={{ __html: svg }}
         />
       ) : (
-        <Skeleton className="w-full h-full" />
+        <Skeleton className={cover ? "absolute inset-0" : "w-full h-full"} />
       )}
     </div>
   );
