@@ -52,6 +52,8 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
       ? navigationItems.filter(item => item.label !== "Chat")
       : navigationItems;
     const searchParamsStr = searchParams.toString();
+    const chatBasePath = `/game/${gameId}/phase/${phaseId}/chat`;
+    const isInChatChannel = location.pathname.startsWith(chatBasePath + "/");
     return items.map(item => {
       const basePath = item.path
         .replace(":gameId", gameId)
@@ -64,8 +66,15 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
           game?.members.some(m => m.isCurrentUser && m.civilDisorder))
           ? "•"
           : undefined;
-      const path = searchParamsStr ? `${basePath}?${searchParamsStr}` : basePath;
-      const chatBasePath = `/game/${gameId}/phase/${phaseId}/chat`;
+      let path: string;
+      if (item.label === "Chat" && isInChatChannel) {
+        const params = new URLSearchParams(searchParams);
+        params.delete("channelId");
+        const paramsStr = params.toString();
+        path = paramsStr ? `${chatBasePath}?${paramsStr}` : chatBasePath;
+      } else {
+        path = searchParamsStr ? `${basePath}?${searchParamsStr}` : basePath;
+      }
       const isActive = item.label === "Chat"
         ? location.pathname === chatBasePath || location.pathname.startsWith(chatBasePath + "/")
         : location.pathname === basePath;
