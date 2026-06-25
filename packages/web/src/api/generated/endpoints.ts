@@ -109,6 +109,20 @@ export interface Channel {
 }
 
 /**
+ * * `deuteranopia` - deuteranopia
+ * `protanopia` - protanopia
+ * `tritanopia` - tritanopia
+ */
+export type ColorblindModeEnum =
+  (typeof ColorblindModeEnum)[keyof typeof ColorblindModeEnum];
+
+export const ColorblindModeEnum = {
+  deuteranopia: "deuteranopia",
+  protanopia: "protanopia",
+  tritanopia: "tritanopia",
+} as const;
+
+/**
  * * `duration` - Duration
  * `fixed_time` - Fixed Time
  */
@@ -365,6 +379,35 @@ export interface GameMaster {
   readonly picture: string | null;
 }
 
+export interface Province {
+  id: string;
+  name: string;
+  type: string;
+  supplyCenter: boolean;
+  /** @nullable */
+  parentId: string | null;
+  readonly namedCoastIds: readonly string[];
+}
+
+/**
+ * @nullable
+ */
+export type UnitDislodgedBy = { [key: string]: unknown } | null | null;
+
+export interface Unit {
+  type: string;
+  nation: Nation;
+  province: Province;
+  dislodged: boolean;
+  /** @nullable */
+  readonly dislodgedBy: UnitDislodgedBy;
+}
+
+export interface SupplyCenter {
+  province: Province;
+  nation: Nation;
+}
+
 export interface GameListCurrentPhase {
   readonly id: number;
   readonly ordinal: number;
@@ -383,6 +426,7 @@ export interface GameListCurrentPhase {
 /**
  * * `orders_required` - orders_required
  * `orders_submitted` - orders_submitted
+ * `orders_not_confirmed` - orders_not_confirmed
  * `no_orders_required` - no_orders_required
  */
 export type OrderStatusEnum =
@@ -534,16 +578,6 @@ export interface NationFlagUpload {
   flag: string;
 }
 
-export interface Province {
-  id: string;
-  name: string;
-  type: string;
-  supplyCenter: boolean;
-  /** @nullable */
-  parentId: string | null;
-  readonly namedCoastIds: readonly string[];
-}
-
 export interface OrderResolution {
   status: string;
   by: Province | null;
@@ -684,6 +718,7 @@ export interface PatchedUserProfile {
   readonly picture?: string | null;
   readonly email?: string;
   emailNotificationsEnabled?: boolean;
+  colorblindMode?: ColorblindModeEnum | NullEnum | null;
 }
 
 export interface PatchedVariantWrite {
@@ -714,25 +749,6 @@ export interface PhaseList {
   name: string;
   type: string;
   status: StatusEnum;
-}
-
-/**
- * @nullable
- */
-export type UnitDislodgedBy = { [key: string]: unknown } | null | null;
-
-export interface Unit {
-  type: string;
-  nation: Nation;
-  province: Province;
-  dislodged: boolean;
-  /** @nullable */
-  readonly dislodgedBy: UnitDislodgedBy;
-}
-
-export interface SupplyCenter {
-  province: Province;
-  nation: Nation;
 }
 
 export interface PhaseRetrieve {
@@ -802,6 +818,7 @@ export interface UserProfile {
   readonly picture: string | null;
   readonly email: string;
   emailNotificationsEnabled?: boolean;
+  colorblindMode?: ColorblindModeEnum | NullEnum | null;
 }
 
 export interface VictoryConditions {

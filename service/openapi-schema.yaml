@@ -1791,6 +1791,16 @@ components:
       - createdAt
       - id
       - sender
+    ColorblindModeEnum:
+      enum:
+      - deuteranopia
+      - protanopia
+      - tritanopia
+      type: string
+      description: |-
+        * `deuteranopia` - deuteranopia
+        * `protanopia` - protanopia
+        * `tritanopia` - tritanopia
     DeadlineModeEnum:
       enum:
       - duration
@@ -2813,11 +2823,13 @@ components:
       enum:
       - orders_required
       - orders_submitted
+      - orders_not_confirmed
       - no_orders_required
       type: string
       description: |-
         * `orders_required` - orders_required
         * `orders_submitted` - orders_submitted
+        * `orders_not_confirmed` - orders_not_confirmed
         * `no_orders_required` - no_orders_required
     OrderTypeEnum:
       enum:
@@ -2944,6 +2956,11 @@ components:
           readOnly: true
         emailNotificationsEnabled:
           type: boolean
+        colorblindMode:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/ColorblindModeEnum'
+          - $ref: '#/components/schemas/NullEnum'
     PatchedVariantWrite:
       type: object
       properties:
@@ -3290,6 +3307,11 @@ components:
           readOnly: true
         emailNotificationsEnabled:
           type: boolean
+        colorblindMode:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/ColorblindModeEnum'
+          - $ref: '#/components/schemas/NullEnum'
       required:
       - email
       - id

@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from common.constants import ColorblindMode
 from .utils import get_player_stats
 
 
@@ -10,6 +11,11 @@ class UserProfileSerializer(serializers.Serializer):
     picture = serializers.CharField(read_only=True, allow_null=True)
     email = serializers.CharField(source="user.email", read_only=True)
     email_notifications_enabled = serializers.BooleanField(required=False)
+    colorblind_mode = serializers.ChoiceField(
+        choices=ColorblindMode.CHOICES,
+        allow_null=True,
+        required=False,
+    )
 
     def validate_name(self, value):
         value = value.strip()
@@ -24,6 +30,8 @@ class UserProfileSerializer(serializers.Serializer):
         instance.email_notifications_enabled = validated_data.get(
             "email_notifications_enabled", instance.email_notifications_enabled
         )
+        if "colorblind_mode" in validated_data:
+            instance.colorblind_mode = validated_data["colorblind_mode"]
         instance.save()
         return instance
 

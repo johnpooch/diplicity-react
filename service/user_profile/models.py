@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+from common.constants import ColorblindMode
 from common.models import BaseModel
 
 
@@ -23,3 +24,9 @@ class UserProfile(BaseModel):
     name = models.CharField(max_length=255)
     picture = models.URLField(null=True, blank=True)
     email_notifications_enabled = models.BooleanField(default=False)
+    colorblind_mode = models.CharField(
+        max_length=20,
+        choices=ColorblindMode.CHOICES,
+        null=True,
+        blank=True,
+    )
