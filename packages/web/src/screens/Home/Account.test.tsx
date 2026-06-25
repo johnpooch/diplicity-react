@@ -10,6 +10,7 @@ const mockUserProfile = {
   email: "player@example.com",
   name: "Test Player",
   picture: null,
+  colorblindMode: null,
 };
 
 const mockSetPreference = vi.fn();
@@ -100,7 +101,7 @@ describe("Account - Appearance section", () => {
 
   it("renders the theme select trigger", async () => {
     renderAccount();
-    expect(await screen.findByRole("combobox")).toBeInTheDocument();
+    expect(await screen.findByRole("combobox", { name: /theme/i })).toBeInTheDocument();
   });
 
   it("Appearance section appears before Notifications section", async () => {
