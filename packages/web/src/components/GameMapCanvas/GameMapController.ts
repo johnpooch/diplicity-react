@@ -3,14 +3,17 @@ import type { Point, ViewBox } from "../InteractiveMap/dsvgParser";
 import type { GestureType } from "../InteractiveMap/mapTelemetry";
 import { toLatLng, viewBoxBounds } from "./leafletCoords";
 import type { ProvinceRing } from "./provincePolygons";
+import { buildHighlightSvg } from "./highlightSvg";
 
 const MAX_ZOOM_FACTORS = 2;
 
-const SELECTED_STROKE = "#FFFFFF";
-const SELECTED_FILL_OPACITY = 0.8;
-const HOVER_FILL_OPACITY = 0.6;
-const HIGHLIGHTED_FILL_OPACITY = 0.25;
-const ACTIVE_STROKE_WIDTH = 5;
+// getBoundsZoom clamps its result to the map's current zoom range, so the floor
+// is dropped well below any realistic fit zoom before querying — otherwise the
+// default minimum of 0 prevents the negative zoom needed to fit a board that is
+// larger than its container, leaving the user unable to zoom out to the whole
+// board.
+const ZOOM_QUERY_FLOOR = -10;
+const FIT_EPSILON = 0.05;
 
 export type StyleState = {
   selected: Set<string>;
@@ -32,7 +35,7 @@ type ControllerOptions = {
   onGesture: (record: GestureRecord) => void;
 };
 
-const emptyStyle = (): L.PathOptions => ({
+const hitTestStyle = (): L.PathOptions => ({
   stroke: false,
   fill: true,
   fillColor: "#000000",
@@ -45,9 +48,11 @@ export class GameMapController {
   private readonly options: ControllerOptions;
 
   private baseLayer: L.ImageOverlay | null = null;
+  private highlightLayer: L.SVGOverlay | null = null;
   private overlayLayer: L.SVGOverlay | null = null;
   private readonly hitLayer: L.LayerGroup;
   private readonly polygonsByProvince = new Map<string, L.Polygon[]>();
+  private provincePaths = new Map<string, string>();
 
   private style: StyleState = {
     selected: new Set(),
@@ -62,6 +67,14 @@ export class GameMapController {
   private lastFrame: number | null = null;
   private rafId: number | null = null;
   private fitted = false;
+
+  // The board can be viewed in two regimes, mirroring the SVG map: "fill" makes
+  // the board cover the whole viewport (clamped to the board edges), "contain"
+  // lets the user zoom out until the entire board is visible. fillZoom and
+  // containZoom are recomputed for the current container size on every refit.
+  private fill = true;
+  private fillZoom = 0;
+  private containZoom = 0;
 
   constructor(container: HTMLElement, options: ControllerOptions) {
     this.options = options;
@@ -79,6 +92,9 @@ export class GameMapController {
     });
 
     this.map.createPane("baseMap").style.zIndex = "200";
+    const highlightPane = this.map.createPane("highlightMap");
+    highlightPane.style.zIndex = "350";
+    highlightPane.style.pointerEvents = "none";
     this.map.createPane("overlayMap").style.zIndex = "450";
     this.map.getPane("overlayMap")!.style.pointerEvents = "none";
 
@@ -88,23 +104,51 @@ export class GameMapController {
     this.wireGestures();
   }
 
-  // Clamps the zoom range to the board and fits the whole board on the first
-  // sizing. Later resizes only recompute the limits — they never yank the user's
-  // current zoom/pan back to the fitted view.
+  // Recomputes the zoom limits for the current container size and applies the
+  // active regime. The board is (re)fitted on the first sizing and on any later
+  // resize while the user is still zoomed all the way out, so the whole-board
+  // view tracks the container — but a user who has zoomed in is left untouched.
   private refit(): void {
     const size = this.map.getSize();
     if (size.x === 0 || size.y === 0) {
       this.map.fitBounds(this.bounds, { animate: false });
       return;
     }
-    const fitZoom = this.map.getBoundsZoom(this.bounds, false);
-    this.map.setMinZoom(fitZoom);
-    this.map.setMaxZoom(fitZoom + MAX_ZOOM_FACTORS);
-    this.map.setMaxBounds(this.bounds);
-    if (!this.fitted) {
-      this.map.fitBounds(this.bounds, { animate: false });
+    this.map.setMinZoom(ZOOM_QUERY_FLOOR);
+    this.containZoom = this.map.getBoundsZoom(this.bounds, false);
+    this.fillZoom = this.map.getBoundsZoom(this.bounds, true);
+    this.map.setMaxZoom(this.containZoom + MAX_ZOOM_FACTORS);
+    this.applyRegime();
+    const fitZoom = this.fill ? this.fillZoom : this.containZoom;
+    if (!this.fitted || this.map.getZoom() <= fitZoom + FIT_EPSILON) {
+      this.fitToRegime(false);
       this.fitted = true;
     }
+  }
+
+  // In fill mode the camera is clamped to the board edges and cannot zoom out
+  // past the point where the board fills the viewport. In contain mode the
+  // clamp is removed so the whole board can be framed with margins around it.
+  private applyRegime(): void {
+    if (this.fill) {
+      this.map.setMaxBounds(this.bounds);
+      this.map.setMinZoom(this.fillZoom);
+    } else {
+      this.map.setMaxBounds();
+      this.map.setMinZoom(this.containZoom);
+    }
+  }
+
+  private fitToRegime(animate: boolean): void {
+    const zoom = this.fill ? this.fillZoom : this.containZoom;
+    this.map.setView(this.bounds.getCenter(), zoom, { animate });
+  }
+
+  setFill(fill: boolean): void {
+    if (this.fill === fill) return;
+    this.fill = fill;
+    this.applyRegime();
+    this.fitToRegime(true);
   }
 
   private beginGesture(type: GestureType): void {
@@ -173,14 +217,16 @@ export class GameMapController {
     this.overlayLayer = next;
   }
 
+  setProvincePaths(paths: Map<string, string>): void {
+    this.provincePaths = paths;
+    this.renderHighlight();
+  }
+
   setHitTest(rings: ProvinceRing[]): void {
     this.hitLayer.clearLayers();
     this.polygonsByProvince.clear();
     for (const ring of rings) {
-      const polygon = L.polygon(
-        ring.points.map(toLatLng),
-        emptyStyle()
-      );
+      const polygon = L.polygon(ring.points.map(toLatLng), hitTestStyle());
       polygon.on("click", (event) => this.handleClick(ring.id, event));
       if (this.options.enableHover) {
         polygon.on("mouseover", () => this.handleHover(ring.id));
@@ -194,7 +240,7 @@ export class GameMapController {
         this.polygonsByProvince.set(ring.id, [polygon]);
       }
     }
-    this.applyStyles();
+    this.updateCursors();
   }
 
   private handleClick(province: string, event: L.LeafletMouseEvent): void {
@@ -210,46 +256,48 @@ export class GameMapController {
     if (!this.options.interactive) return;
     if (this.hovered === province) return;
     this.hovered = province;
-    this.applyStyles();
+    this.renderHighlight();
   }
 
   setStyleState(style: StyleState): void {
     this.style = style;
-    this.applyStyles();
+    this.updateCursors();
+    this.renderHighlight();
   }
 
-  private styleFor(province: string): L.PathOptions {
-    const selected = this.style.selected.has(province);
-    const highlighted = this.style.highlighted.has(province);
-    const hovered =
-      this.hovered === province && this.style.renderable.has(province);
-
-    const activeFill = (fillOpacity: number): L.PathOptions => ({
-      stroke: true,
-      color: SELECTED_STROKE,
-      weight: ACTIVE_STROKE_WIDTH,
-      fill: true,
-      fillColor: "#FFFFFF",
-      fillOpacity,
-      fillRule: "evenodd",
+  // The visible highlight is drawn from the exact dSVG province shapes for only
+  // the handful of active provinces, so hover/selection match the SVG map rather
+  // than showing the decimated hit-test rings.
+  private renderHighlight(): void {
+    const svg = buildHighlightSvg({
+      paths: this.provincePaths,
+      viewBox: this.options.viewBox,
+      selected: this.style.selected,
+      highlighted: this.style.highlighted,
+      renderable: this.style.renderable,
+      hovered: this.hovered,
     });
-
-    if (selected) return activeFill(SELECTED_FILL_OPACITY);
-    if (hovered) return activeFill(HOVER_FILL_OPACITY);
-    if (highlighted) return activeFill(HIGHLIGHTED_FILL_OPACITY);
-    return emptyStyle();
+    const element = new DOMParser().parseFromString(svg, "image/svg+xml")
+      .documentElement as unknown as SVGElement;
+    const next = L.svgOverlay(element, this.bounds, {
+      interactive: false,
+      pane: "highlightMap",
+    }).addTo(this.map);
+    if (this.highlightLayer) {
+      this.map.removeLayer(this.highlightLayer);
+    }
+    this.highlightLayer = next;
   }
 
-  private applyStyles(): void {
+  private updateCursors(): void {
     for (const [province, polygons] of this.polygonsByProvince) {
-      const style = this.styleFor(province);
       const renderable = this.style.renderable.has(province);
+      const cursor =
+        renderable && this.options.interactive ? "pointer" : "default";
       for (const polygon of polygons) {
-        polygon.setStyle(style);
         const element = polygon.getElement();
         if (element instanceof SVGElement || element instanceof HTMLElement) {
-          element.style.cursor =
-            renderable && this.options.interactive ? "pointer" : "default";
+          element.style.cursor = cursor;
         }
       }
     }

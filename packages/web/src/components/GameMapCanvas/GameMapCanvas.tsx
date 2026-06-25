@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
+import { Maximize, Minimize } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { Order, PhaseRetrieve, Variant } from "../../api/generated/endpoints";
 import { parseDsvg } from "../InteractiveMap/dsvgParser";
 import { DiplicityMap } from "../InteractiveMap/mapRenderer";
@@ -35,17 +37,22 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
 
   const { data: dsvg } = useDsvg(props.variant.svgUrl);
 
+  const [fill, setFill] = useState(true);
+
   const parsed = useMemo(() => (dsvg ? parseDsvg(dsvg) : null), [dsvg]);
   const renderer = useMemo(() => (dsvg ? new DiplicityMap(dsvg) : null), [dsvg]);
 
-  const rings = useMemo(
+  const provincePaths = useMemo(
     () =>
       parsed
-        ? buildProvinceRings(
-            new Map([...parsed.provincePaths, ...parsed.namedCoastPaths])
-          )
+        ? new Map([...parsed.provincePaths, ...parsed.namedCoastPaths])
         : null,
     [parsed]
+  );
+
+  const rings = useMemo(
+    () => (provincePaths ? buildProvinceRings(provincePaths) : null),
+    [provincePaths]
   );
 
   const civilDisorderNations = props.civilDisorderNations;
@@ -139,6 +146,16 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
   }, [rings]);
 
   useEffect(() => {
+    if (controllerRef.current && provincePaths) {
+      controllerRef.current.setProvincePaths(provincePaths);
+    }
+  }, [provincePaths]);
+
+  useEffect(() => {
+    controllerRef.current?.setFill(fill);
+  }, [fill]);
+
+  useEffect(() => {
     const controller = controllerRef.current;
     if (!controller || baseSvg === null || !parsed) return;
 
@@ -199,10 +216,29 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
 
   return (
     <div
-      ref={containerRef}
-      data-map-impl="leaflet"
-      style={{ width: "100%", height: "100%", background: "#fff", ...props.style }}
-    />
+      style={{
+        position: "relative",
+        isolation: "isolate",
+        width: "100%",
+        height: "100%",
+        ...props.style,
+      }}
+    >
+      <div
+        ref={containerRef}
+        data-map-impl="leaflet"
+        style={{ width: "100%", height: "100%", background: "#fff" }}
+      />
+      {props.interactive && (
+        <Button
+          size="icon"
+          onClick={() => setFill((prev) => !prev)}
+          className="absolute bottom-5 right-5 z-[1000] rounded-full shadow-lg"
+        >
+          {fill ? <Minimize /> : <Maximize />}
+        </Button>
+      )}
+    </div>
   );
 };
 
