@@ -17,7 +17,9 @@ def resolve_game(request, game_id):
         cache = {}
         request._game_cache = cache
     if game_id not in cache:
-        cache[game_id] = get_object_or_404(Game, id=game_id)
+        cache[game_id] = get_object_or_404(
+            Game.objects.select_related("managing_member"), id=game_id
+        )
     return cache[game_id]
 
 

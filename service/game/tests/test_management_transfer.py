@@ -1,95 +1,15 @@
-from unittest.mock import patch
-
 import pytest
-from django.contrib.auth import get_user_model
 from django.db import connection
 from django.test.utils import override_settings
 from django.urls import reverse
 from rest_framework import status
-from rest_framework.test import APIClient
 
 from common.constants import GameStatus
 from game.models import Game
-from member.models import Member
-from user_profile.models import UserProfile
 
 retrieve_viewname = "game-retrieve"
 pause_viewname = "game-pause"
 kick_viewname = "game-kick"
-
-User = get_user_model()
-
-
-@pytest.fixture
-def player_run_active_game_factory(db, classical_variant, primary_user, secondary_user, tertiary_user):
-    def _create():
-        game = Game.objects.create(
-            variant=classical_variant,
-            name="Player Run Game",
-            status=GameStatus.ACTIVE,
-            created_by=primary_user,
-        )
-        nations = list(classical_variant.nations.filter(non_playable=False))
-        primary_member = game.members.create(user=primary_user, nation=nations[0])
-        secondary_member = game.members.create(user=secondary_user, nation=nations[1])
-        tertiary_member = game.members.create(user=tertiary_user, nation=nations[2])
-        return game, primary_member, secondary_member, tertiary_member
-
-    return _create
-
-
-@pytest.fixture
-def player_run_pending_game_factory(db, classical_variant, primary_user, secondary_user, tertiary_user):
-    def _create():
-        game = Game.objects.create(
-            variant=classical_variant,
-            name="Player Run Pending Game",
-            status=GameStatus.PENDING,
-            created_by=primary_user,
-        )
-        nations = list(classical_variant.nations.filter(non_playable=False))
-        primary_member = game.members.create(user=primary_user, nation=nations[0])
-        secondary_member = game.members.create(user=secondary_user, nation=nations[1])
-        tertiary_member = game.members.create(user=tertiary_user, nation=nations[2])
-        return game, primary_member, secondary_member, tertiary_member
-
-    return _create
-
-
-@pytest.fixture
-def game_master_game_factory(db, classical_variant, primary_user, secondary_user, tertiary_user):
-    def _create():
-        game = Game.objects.create(
-            variant=classical_variant,
-            name="GM Game",
-            status=GameStatus.ACTIVE,
-            created_by=primary_user,
-            game_master=primary_user,
-        )
-        nations = list(classical_variant.nations.filter(non_playable=False))
-        secondary_member = game.members.create(user=secondary_user, nation=nations[0])
-        tertiary_member = game.members.create(user=tertiary_user, nation=nations[1])
-        return game, secondary_member, tertiary_member
-
-    return _create
-
-
-@pytest.fixture
-def sandbox_game_factory(db, classical_variant, primary_user, secondary_user):
-    def _create():
-        game = Game.objects.create(
-            variant=classical_variant,
-            name="Sandbox Game",
-            status=GameStatus.ACTIVE,
-            sandbox=True,
-            created_by=primary_user,
-        )
-        nations = list(classical_variant.nations.filter(non_playable=False))
-        primary_member = game.members.create(user=primary_user, nation=nations[0])
-        secondary_member = game.members.create(user=secondary_user, nation=nations[1])
-        return game, primary_member, secondary_member
-
-    return _create
 
 
 class TestTransferManagementNoEligibleReplacement:
@@ -104,7 +24,7 @@ class TestTransferManagementNoEligibleReplacement:
         tertiary_member.civil_disorder = True
         tertiary_member.save()
 
-        game.transfer_management_if_needed(primary_user)
+        Game.objects.transfer_management_if_needed(game, primary_user)
 
         game.refresh_from_db()
         assert game.managing_member is None
@@ -120,7 +40,7 @@ class TestTransferManagementNoEligibleReplacement:
         nations = list(classical_variant.nations.filter(non_playable=False))
         game.members.create(user=primary_user, nation=nations[0])
 
-        game.transfer_management_if_needed(primary_user)
+        Game.objects.transfer_management_if_needed(game, primary_user)
 
         game.refresh_from_db()
         assert game.managing_member is None
@@ -142,7 +62,7 @@ class TestTransferManagementOnCivilDisorder:
         primary_member.civil_disorder = True
         primary_member.save()
 
-        game.transfer_management_if_needed(primary_user, reason="entered civil disorder")
+        Game.objects.transfer_management_if_needed(game, primary_user, reason="entered civil disorder")
 
         game.refresh_from_db()
         assert game.managing_member is not None
@@ -164,7 +84,7 @@ class TestTransferManagementOnCivilDisorder:
         secondary_member.civil_disorder = True
         secondary_member.save()
 
-        game.transfer_management_if_needed(primary_user, reason="entered civil disorder")
+        Game.objects.transfer_management_if_needed(game, primary_user, reason="entered civil disorder")
 
         game.refresh_from_db()
         assert game.managing_member == tertiary_member
@@ -181,7 +101,7 @@ class TestTransferManagementOnCivilDisorder:
     ):
         game, primary_member, secondary_member, tertiary_member = player_run_active_game_factory()
 
-        game.transfer_management_if_needed(primary_user, reason="entered civil disorder")
+        Game.objects.transfer_management_if_needed(game, primary_user, reason="entered civil disorder")
 
         game.refresh_from_db()
         assert game.can_manage(primary_user) is False
@@ -196,7 +116,7 @@ class TestTransferManagementOnCivilDisorder:
     ):
         game, primary_member, secondary_member, tertiary_member = player_run_active_game_factory()
 
-        game.transfer_management_if_needed(primary_user, reason="entered civil disorder")
+        Game.objects.transfer_management_if_needed(game, primary_user, reason="entered civil disorder")
 
         mock_send_notification_to_users.assert_called_once()
         call_kwargs = mock_send_notification_to_users.call_args[1]
@@ -217,7 +137,7 @@ class TestTransferManagementOnElimination:
     ):
         game, primary_member, secondary_member, tertiary_member = player_run_active_game_factory()
 
-        game.transfer_management_if_needed(primary_user, reason="was eliminated")
+        Game.objects.transfer_management_if_needed(game, primary_user, reason="was eliminated")
 
         game.refresh_from_db()
         assert game.managing_member is not None
@@ -236,7 +156,7 @@ class TestTransferManagementOnElimination:
         secondary_member.eliminated = True
         secondary_member.save()
 
-        game.transfer_management_if_needed(primary_user, reason="was eliminated")
+        Game.objects.transfer_management_if_needed(game, primary_user, reason="was eliminated")
 
         game.refresh_from_db()
         assert game.managing_member == tertiary_member
@@ -255,7 +175,7 @@ class TestTransferManagementNotApplicable:
     ):
         game, secondary_member, tertiary_member = game_master_game_factory()
 
-        game.transfer_management_if_needed(primary_user)
+        Game.objects.transfer_management_if_needed(game, primary_user)
 
         game.refresh_from_db()
         assert game.managing_member is None
@@ -264,14 +184,14 @@ class TestTransferManagementNotApplicable:
     @pytest.mark.django_db
     def test_no_transfer_for_sandbox_game(
         self,
-        sandbox_game_factory,
+        management_transfer_sandbox_game_factory,
         primary_user,
         mock_send_notification_to_users,
         mock_immediate_on_commit,
     ):
-        game, primary_member, secondary_member = sandbox_game_factory()
+        game, primary_member, secondary_member = management_transfer_sandbox_game_factory()
 
-        game.transfer_management_if_needed(primary_user)
+        Game.objects.transfer_management_if_needed(game, primary_user)
 
         game.refresh_from_db()
         assert game.managing_member is None
@@ -287,7 +207,7 @@ class TestTransferManagementNotApplicable:
     ):
         game, primary_member, secondary_member, tertiary_member = player_run_active_game_factory()
 
-        game.transfer_management_if_needed(secondary_user)
+        Game.objects.transfer_management_if_needed(game, secondary_user)
 
         game.refresh_from_db()
         assert game.managing_member is None
@@ -302,7 +222,7 @@ class TestTransferManagementNotApplicable:
     ):
         game, primary_member, secondary_member, tertiary_member = player_run_active_game_factory()
 
-        game.transfer_management_if_needed(None)
+        Game.objects.transfer_management_if_needed(game, None)
 
         game.refresh_from_db()
         assert game.managing_member is None
@@ -321,7 +241,7 @@ class TestTransferManagementChain:
     ):
         game, primary_member, secondary_member, tertiary_member = player_run_active_game_factory()
 
-        game.transfer_management_if_needed(primary_user)
+        Game.objects.transfer_management_if_needed(game, primary_user)
 
         game.refresh_from_db()
         first_manager = game.managing_member
@@ -329,7 +249,7 @@ class TestTransferManagementChain:
         first_manager.civil_disorder = True
         first_manager.save()
 
-        game.transfer_management_if_needed(first_manager.user)
+        Game.objects.transfer_management_if_needed(game, first_manager.user)
 
         game.refresh_from_db()
         assert game.managing_member is not None

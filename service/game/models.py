@@ -307,6 +307,54 @@ class GameManager(models.Manager):
 
         return game
 
+    def transfer_management_if_needed(self, game, exiting_user, reason=None):
+        if exiting_user is None:
+            return
+        if game.game_master_id is not None:
+            return
+        if game.sandbox:
+            return
+        current_manager_id = (
+            game.managing_member.user_id
+            if game.managing_member_id is not None
+            else game.created_by_id
+        )
+        if current_manager_id != exiting_user.id:
+            return
+        eligible = list(
+            game.members.filter(
+                eliminated=False, kicked=False, civil_disorder=False
+            ).exclude(user_id=exiting_user.id).select_related("user", "nation")
+            .filter(user__isnull=False)
+        )
+        if not eligible:
+            return
+
+        def reliability_key(member):
+            stats = get_player_stats(member.user)
+            tier_score = {"reliable": 2, "new": 1}.get(stats["reliability_tier"], 0)
+            return (-tier_score, stats["nmr_rate"] + stats["cd_rate"])
+
+        new_manager = min(eligible, key=reliability_key)
+        game.managing_member = new_manager
+        game.save(update_fields=["managing_member"])
+        user_ids = game.notification_user_ids()
+        nation_name = new_manager.nation.name if new_manager.nation else new_manager.name
+        reason_text = f" because the previous manager {reason}" if reason else ""
+        body = f"Game management has been transferred to {nation_name}{reason_text}."
+
+        def _send():
+            if user_ids:
+                notification_utils.send_notification_to_users(
+                    user_ids=user_ids,
+                    title=game.name,
+                    body=body,
+                    notification_type="management_transfer",
+                    data={"game_id": str(game.id), "link": f"{settings.FRONTEND_URL}/game/{game.id}"},
+                )
+
+        transaction.on_commit(_send)
+
     def clone_from_phase(self, source_phase, name):
         game = self.create(
             variant=source_phase.game.variant,
@@ -571,52 +619,7 @@ class Game(BaseModel):
             )
 
     def transfer_management_if_needed(self, exiting_user, reason=None):
-        if exiting_user is None:
-            return
-        if self.game_master_id is not None:
-            return
-        if self.sandbox:
-            return
-        current_manager_id = (
-            self.managing_member.user_id
-            if self.managing_member_id is not None
-            else self.created_by_id
-        )
-        if current_manager_id != exiting_user.id:
-            return
-        eligible = list(
-            self.members.filter(
-                eliminated=False, kicked=False, civil_disorder=False
-            ).exclude(user_id=exiting_user.id).select_related("user", "nation")
-            .filter(user__isnull=False)
-        )
-        if not eligible:
-            return
-
-        def reliability_key(member):
-            stats = get_player_stats(member.user)
-            tier_score = {"reliable": 2, "new": 1}.get(stats["reliability_tier"], 0)
-            return (-tier_score, stats["nmr_rate"] + stats["cd_rate"])
-
-        new_manager = min(eligible, key=reliability_key)
-        self.managing_member = new_manager
-        self.save(update_fields=["managing_member"])
-        user_ids = self.notification_user_ids()
-        nation_name = new_manager.nation.name if new_manager.nation else new_manager.name
-        reason_text = f" because the previous manager {reason}" if reason else ""
-        body = f"Game management has been transferred to {nation_name}{reason_text}."
-
-        def _send():
-            if user_ids:
-                notification_utils.send_notification_to_users(
-                    user_ids=user_ids,
-                    title=self.name,
-                    body=body,
-                    notification_type="management_transfer",
-                    data={"game_id": str(self.id), "link": f"{settings.FRONTEND_URL}/game/{self.id}"},
-                )
-
-        transaction.on_commit(_send)
+        Game.objects.transfer_management_if_needed(self, exiting_user, reason=reason)
 
     def notification_user_ids(self, exclude_user_id=None):
         user_ids = {
