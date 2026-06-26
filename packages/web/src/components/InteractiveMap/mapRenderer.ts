@@ -42,6 +42,7 @@ export type OrderState = {
   aux?: string;
   unitType?: "Army" | "Fleet";
   failed?: boolean;
+  isImplicit?: boolean;
 };
 
 export type RenderState = {
@@ -315,6 +316,7 @@ const holdMarkup = (order: OrderState, position: Point): string =>
     fill: "transparent",
     stroke: SUCCESS_COLOR,
     strokeWidth: ORDER_LINE_WIDTH,
+    opacity: order.isImplicit ? 0.3 : undefined,
     renderBottomCenter: order.failed ? failureCross : undefined,
   });
 

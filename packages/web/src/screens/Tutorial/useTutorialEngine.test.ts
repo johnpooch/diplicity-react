@@ -69,6 +69,7 @@ const order = (
   unitType: "Army",
   nation: nation("france"),
   complete: true,
+  isImplicit: false,
   step: "completed",
   title: "t",
   summary: "t",

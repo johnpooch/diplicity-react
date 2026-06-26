@@ -149,17 +149,6 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
-  /api/test-sentry/:
-    get:
-      operationId: apiTestSentryRetrieve
-      tags:
-      - api
-      security:
-      - jwtAuth: []
-      - {}
-      responses:
-        '200':
-          description: No response body
   /api/token/refresh/:
     post:
       operationId: apiTokenRefreshCreate
@@ -327,60 +316,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VerifyEmail'
-          description: ''
-  /devices/:
-    get:
-      operationId: devicesList
-      tags:
-      - devices
-      security:
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/FCMDevice'
-          description: ''
-    post:
-      operationId: devicesCreate
-      tags:
-      - devices
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/FCMDevice'
-        required: true
-      security:
-      - jwtAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FCMDevice'
-          description: ''
-    put:
-      operationId: devicesUpdate
-      tags:
-      - devices
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/FCMDevice'
-        required: true
-      security:
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FCMDevice'
           description: ''
   /game/:
     post:
@@ -1798,9 +1733,9 @@ components:
       - tritanopia
       type: string
       description: |-
-        * `deuteranopia` - deuteranopia
-        * `protanopia` - protanopia
-        * `tritanopia` - tritanopia
+        * `deuteranopia` - Deuteranopia
+        * `protanopia` - Protanopia
+        * `tritanopia` - Tritanopia
     DeadlineModeEnum:
       enum:
       - duration
@@ -1954,42 +1889,6 @@ components:
       - name
       - password
       - refreshToken
-    FCMDevice:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        name:
-          type: string
-          nullable: true
-          maxLength: 255
-        registrationId:
-          type: string
-          title: Registration token
-        deviceId:
-          type: string
-          nullable: true
-          description: Unique device identifier
-          maxLength: 255
-        active:
-          type: boolean
-          default: true
-          title: Is active
-          description: Inactive devices will not be sent notifications
-        dateCreated:
-          type: string
-          format: date-time
-          readOnly: true
-          nullable: true
-          title: Creation date
-        type:
-          $ref: '#/components/schemas/TypeEnum'
-      required:
-      - dateCreated
-      - id
-      - registrationId
-      - type
     FieldValue:
       type: object
       properties:
@@ -2173,8 +2072,8 @@ components:
         gameMaster:
           allOf:
           - $ref: '#/components/schemas/GameMaster'
-          nullable: true
           readOnly: true
+          nullable: true
         variantId:
           type: string
           readOnly: true
@@ -2416,8 +2315,8 @@ components:
         gameMaster:
           allOf:
           - $ref: '#/components/schemas/GameMaster'
-          nullable: true
           readOnly: true
+          nullable: true
         phases:
           type: array
           items:
@@ -2661,10 +2560,12 @@ components:
           type: string
         color:
           type: string
+          readOnly: true
         nonPlayable:
           type: boolean
         flagUrl:
           type: string
+          format: uri
           nullable: true
           readOnly: true
       required:
@@ -2743,6 +2644,9 @@ components:
           allOf:
           - $ref: '#/components/schemas/Nation'
           readOnly: true
+        isImplicit:
+          type: boolean
+          readOnly: true
         complete:
           type: boolean
           readOnly: true
@@ -2768,6 +2672,7 @@ components:
       required:
       - aux
       - complete
+      - isImplicit
       - namedCoast
       - nation
       - options
@@ -3245,16 +3150,6 @@ components:
       required:
       - access
       - refresh
-    TypeEnum:
-      enum:
-      - ios
-      - android
-      - web
-      type: string
-      description: |-
-        * `ios` - ios
-        * `android` - android
-        * `web` - web
     Unit:
       type: object
       properties:

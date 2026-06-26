@@ -87,6 +87,7 @@ export const toRenderState = (
       failed: Boolean(
         order.resolution && order.resolution.status !== "Succeeded"
       ),
+      isImplicit: order.isImplicit,
     };
   });
 

@@ -168,6 +168,7 @@ interface OrderSpec {
   summary?: string;
   succeeded?: boolean;
   failedBy?: string;
+  isImplicit?: boolean;
 }
 
 const orderTitle = (spec: OrderSpec, source: Province): string => {
@@ -218,6 +219,7 @@ export const makeOrder = (spec: OrderSpec): Order => {
     orderType: spec.orderType,
     unitType: spec.unitType,
     nation: nation(spec.nationId),
+    isImplicit: spec.isImplicit ?? false,
     complete: true,
     step: "completed",
     title,
