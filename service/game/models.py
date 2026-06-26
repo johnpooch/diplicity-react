@@ -117,7 +117,7 @@ class GameQuerySet(models.QuerySet):
             ),
         )
 
-        return self.select_related("variant", "victory", "game_master__profile").prefetch_related(
+        return self.select_related("variant", "victory", "game_master__profile", "managing_member").prefetch_related(
             members_prefetch,
             victory_members_prefetch,
             phases_prefetch,
@@ -146,7 +146,7 @@ class GameQuerySet(models.QuerySet):
             queryset=Phase.objects.prefetch_related(phase_states_prefetch)
         )
 
-        return self.select_related("variant", "victory", "game_master__profile").prefetch_related(
+        return self.select_related("variant", "victory", "game_master__profile", "managing_member").prefetch_related(
             members_prefetch,
             victory_members_prefetch,
             phases_prefetch,
@@ -587,7 +587,7 @@ class Game(BaseModel):
         eligible = list(
             self.members.filter(
                 eliminated=False, kicked=False, civil_disorder=False
-            ).exclude(user_id=exiting_user.id).select_related("user")
+            ).exclude(user_id=exiting_user.id).select_related("user", "nation")
             .filter(user__isnull=False)
         )
         if not eligible:

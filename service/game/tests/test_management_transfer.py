@@ -2,6 +2,8 @@ from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.db import connection
+from django.test.utils import override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -457,3 +459,37 @@ class TestIsGameManagerPermissionWithManagingMember:
         response = api_client.delete(url)
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+class TestGameListQueryCount:
+
+    @pytest.mark.django_db
+    def test_game_list_query_count_does_not_grow_with_managing_member(
+        self,
+        player_run_active_game_factory,
+        primary_user,
+        secondary_user,
+        api_client,
+    ):
+        game1, primary_member1, secondary_member1, _ = player_run_active_game_factory()
+        game1.managing_member = secondary_member1
+        game1.save()
+
+        url = reverse("game-list")
+        api_client.force_authenticate(user=primary_user)
+
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            api_client.get(url)
+        query_count_one_game = len(connection.queries)
+
+        game2, primary_member2, secondary_member2, _ = player_run_active_game_factory()
+        game2.managing_member = secondary_member2
+        game2.save()
+
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            api_client.get(url)
+        query_count_two_games = len(connection.queries)
+
+        assert query_count_one_game == query_count_two_games
