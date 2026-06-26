@@ -331,6 +331,8 @@ class GameManager(models.Manager):
             return
 
         def reliability_key(member):
+            # get_player_stats issues ~5 queries per member; acceptable because
+            # transfers are rare one-off events during adjudication.
             stats = get_player_stats(member.user)
             tier_score = {"reliable": 2, "new": 1}.get(stats["reliability_tier"], 0)
             return (-tier_score, stats["nmr_rate"] + stats["cd_rate"])

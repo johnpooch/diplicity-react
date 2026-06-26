@@ -3,6 +3,7 @@ from django.db import connection
 from django.test.utils import override_settings
 from django.urls import reverse
 from rest_framework import status
+from unittest.mock import patch
 
 from common.constants import GameStatus
 from game.models import Game
@@ -256,29 +257,27 @@ class TestTransferManagementChain:
         assert game.managing_member != first_manager
 
 
-class TestCanManageWithManagingMember:
+class TestTransferManagementOnKick:
 
     @pytest.mark.django_db
-    def test_managing_member_can_manage_returns_true(
-        self, player_run_active_game_factory, secondary_user
+    def test_kick_calls_transfer_management_if_needed(
+        self, player_run_pending_game_factory, secondary_user, user_factory, api_client
     ):
-        game, primary_member, secondary_member, tertiary_member = player_run_active_game_factory()
+        game, primary_member, secondary_member, tertiary_member = player_run_pending_game_factory()
         game.managing_member = secondary_member
         game.save()
 
-        game.refresh_from_db()
-        assert game.can_manage(secondary_user) is True
+        extra_user = user_factory()
+        nations = list(game.variant.nations.filter(non_playable=False))
+        extra_member = game.members.create(user=extra_user, nation=nations[3])
 
-    @pytest.mark.django_db
-    def test_original_creator_cannot_manage_when_managing_member_set(
-        self, player_run_active_game_factory, primary_user, secondary_user
-    ):
-        game, primary_member, secondary_member, tertiary_member = player_run_active_game_factory()
-        game.managing_member = secondary_member
-        game.save()
+        with patch.object(Game.objects, "transfer_management_if_needed") as mock_transfer:
+            api_client.force_authenticate(user=secondary_user)
+            url = reverse(kick_viewname, args=[game.id, extra_member.id])
+            response = api_client.delete(url)
 
-        game.refresh_from_db()
-        assert game.can_manage(primary_user) is False
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        mock_transfer.assert_called_once_with(game, extra_user, reason="was kicked")
 
 
 class TestCanManageApiResponse:

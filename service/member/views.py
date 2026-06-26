@@ -55,9 +55,11 @@ class MemberKickView(SelectedGameMixin, generics.DestroyAPIView):
         return member
 
     def perform_destroy(self, instance):
-        game = instance.game
+        game = self.get_game()
+        kicked_user = instance.user
         user_id = instance.user_id
         with transaction.atomic():
+            game.transfer_management_if_needed(kicked_user, reason="was kicked")
             instance.delete()
             if user_id:
                 send_notification.defer(

@@ -176,6 +176,7 @@ class IsGameManager(BasePermission):
             self.message = "Only the game master can perform this action."
             return game.game_master_id == request.user.id
         if game.managing_member_id is not None:
+            self.message = "Only the managing member can perform this action."
             return game.managing_member.user_id == request.user.id
         if not game.members.filter(user=request.user).exists():
             self.message = "User is not a member of the game."
