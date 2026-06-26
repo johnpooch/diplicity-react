@@ -52,6 +52,7 @@ const baseOrder: Order = {
   orderType: "Hold",
   unitType: "Army",
   nation: nations[0],
+  isImplicit: false,
   complete: null,
   step: null,
   title: null,

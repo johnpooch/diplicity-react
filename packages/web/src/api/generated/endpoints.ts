@@ -651,6 +651,7 @@ export interface Order {
   readonly orderType: OrderTypeEnum;
   readonly unitType: UnitTypeEnum;
   readonly nation: Nation;
+  readonly isImplicit: boolean;
   /** @nullable */
   readonly complete: boolean | null;
   readonly step: StepEnum | NullEnum | null;

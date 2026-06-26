@@ -708,6 +708,7 @@ export const mockOrders: Order[] = [
     orderType: "Move",
     unitType: "Army",
     nation: mockNations[0], // Austria
+    isImplicit: false,
     complete: true,
     step: null,
     title: "A Vienna - Berlin",
@@ -725,6 +726,7 @@ export const mockOrders: Order[] = [
     orderType: "Hold",
     unitType: "Fleet",
     nation: mockNations[1], // England
+    isImplicit: false,
     complete: true,
     step: null,
     title: "F London Hold",
@@ -742,6 +744,7 @@ export const mockOrders: Order[] = [
     orderType: "Move",
     unitType: "Army",
     nation: mockNations[2], // France
+    isImplicit: false,
     complete: true,
     step: null,
     title: "A Paris - Berlin",
@@ -759,6 +762,7 @@ export const mockOrders: Order[] = [
     orderType: "Move",
     unitType: "Fleet",
     nation: mockNations[6], // Turkey
+    isImplicit: false,
     complete: true,
     step: null,
     title: "F Constantinople - Moscow",

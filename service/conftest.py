@@ -2014,6 +2014,68 @@ def mock_adjudication_data_with_dislodged_unit():
 
 
 @pytest.fixture
+def mock_adjudication_data_with_failed_implicit_hold():
+    return {
+        "season": "Spring",
+        "year": 1901,
+        "type": "Retreat",
+        "options": {},
+        "supply_centers": [
+            {"province": "ven", "nation": "Italy"},
+            {"province": "rom", "nation": "Italy"},
+            {"province": "nap", "nation": "Italy"},
+            {"province": "kie", "nation": "Germany"},
+            {"province": "ber", "nation": "Germany"},
+            {"province": "mun", "nation": "Germany"},
+        ],
+        "units": [
+            {"type": "Army", "nation": "Italy", "province": "ven", "dislodged": False, "dislodged_by": None},
+            {"type": "Army", "nation": "Italy", "province": "rom", "dislodged": False, "dislodged_by": None},
+            {"type": "Fleet", "nation": "Italy", "province": "nap", "dislodged": False, "dislodged_by": None},
+            {"type": "Fleet", "nation": "Germany", "province": "kie", "dislodged": False, "dislodged_by": None},
+            {"type": "Army", "nation": "Germany", "province": "ber", "dislodged": False, "dislodged_by": None},
+            {"type": "Army", "nation": "Germany", "province": "mun", "dislodged": False, "dislodged_by": None},
+        ],
+        "resolutions": [
+            {"province": "ven", "result": "OK", "by": None},
+            {"province": "kie", "result": "OK", "by": None},
+            {"province": "ber", "result": "ErrBounce", "by": None},
+        ],
+    }
+
+
+@pytest.fixture
+def mock_adjudication_data_with_dislodged_implicit_hold():
+    return {
+        "season": "Spring",
+        "year": 1901,
+        "type": "Retreat",
+        "options": {},
+        "supply_centers": [
+            {"province": "ven", "nation": "Italy"},
+            {"province": "rom", "nation": "Italy"},
+            {"province": "nap", "nation": "Italy"},
+            {"province": "kie", "nation": "Germany"},
+            {"province": "ber", "nation": "Germany"},
+            {"province": "mun", "nation": "Germany"},
+        ],
+        "units": [
+            {"type": "Army", "nation": "Italy", "province": "ven", "dislodged": False, "dislodged_by": None},
+            {"type": "Army", "nation": "Italy", "province": "rom", "dislodged": False, "dislodged_by": None},
+            {"type": "Fleet", "nation": "Italy", "province": "nap", "dislodged": False, "dislodged_by": None},
+            {"type": "Fleet", "nation": "Germany", "province": "kie", "dislodged": False, "dislodged_by": None},
+            {"type": "Army", "nation": "Germany", "province": "ber", "dislodged": True, "dislodged_by": "ven"},
+            {"type": "Army", "nation": "Germany", "province": "mun", "dislodged": False, "dislodged_by": None},
+        ],
+        "resolutions": [
+            {"province": "ven", "result": "OK", "by": None},
+            {"province": "kie", "result": "OK", "by": None},
+            {"province": "ber", "result": "ErrForcedDisband", "by": None},
+        ],
+    }
+
+
+@pytest.fixture
 def pending_game_with_game_master_factory(db, primary_user, classical_variant, base_pending_phase):
     def _create(game_master=None):
         if game_master is None:

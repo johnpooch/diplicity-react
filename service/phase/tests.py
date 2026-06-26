@@ -1085,6 +1085,59 @@ class TestCreateFromAdjudicationData:
         resolved_orders = [order for order in phase.all_orders if hasattr(order, "resolution")]
         assert len(resolved_orders) == orders_count
 
+    @pytest.mark.django_db
+    def test_create_from_adjudication_data_creates_implicit_hold_for_failed_resolution_without_explicit_order(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_with_failed_implicit_hold,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+
+        Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_with_failed_implicit_hold)
+
+        implicit_order = Order.objects.get(
+            phase_state__phase=phase,
+            phase_state__member__nation__name="Germany",
+            source__province_id="ber",
+            is_implicit=True,
+        )
+        assert implicit_order.order_type == OrderType.HOLD
+        assert implicit_order.resolution.status == "ErrBounce"
+
+    @pytest.mark.django_db
+    def test_create_from_adjudication_data_does_not_create_implicit_hold_for_successful_resolution_without_explicit_order(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+
+        Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+
+        assert not Order.objects.filter(
+            phase_state__phase=phase,
+            is_implicit=True,
+        ).exists()
+
+    @pytest.mark.django_db
+    def test_create_from_adjudication_data_creates_implicit_hold_for_dislodged_unit_without_explicit_order(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_with_dislodged_implicit_hold,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+
+        Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_with_dislodged_implicit_hold)
+
+        implicit_order = Order.objects.get(
+            phase_state__phase=phase,
+            phase_state__member__nation__name="Germany",
+            source__province_id="ber",
+            is_implicit=True,
+        )
+        assert implicit_order.order_type == OrderType.HOLD
+        assert implicit_order.resolution.status == "ErrForcedDisband"
+
 
 class TestCreateFromAdjudicationDataPerformance:
 
