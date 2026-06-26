@@ -36,6 +36,8 @@ from supply_center.models import SupplyCenter
 from victory.models import Victory
 from channel.models import ChannelMember, ChannelMessage
 from adjudication import service as adjudication_service
+from notification import utils as notification_utils
+from user_profile.utils import get_player_stats
 
 tracer = trace.get_tracer(__name__)
 
@@ -370,6 +372,13 @@ class Game(BaseModel):
         blank=True,
         related_name="game_master_games",
     )
+    managing_member = models.ForeignKey(
+        "member.Member",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="managing_games",
+    )
     variant = models.ForeignKey("variant.Variant", on_delete=models.CASCADE, related_name="games")
     name = models.CharField(max_length=100)
     status = models.CharField(max_length=20, choices=GameStatus.STATUS_CHOICES, default=GameStatus.PENDING)
@@ -552,12 +561,62 @@ class Game(BaseModel):
         with tracer.start_as_current_span("game.models.can_manage"):
             if self.game_master_id is not None:
                 return self.game_master_id == user.id
+            if self.managing_member_id is not None:
+                return self.managing_member.user_id == user.id
             if self.created_by_id is None or self.created_by_id != user.id:
                 return False
             return any(
                 member.user_id is not None and member.user_id == user.id
                 for member in self.members.all()
             )
+
+    def transfer_management_if_needed(self, exiting_user, reason=None):
+        if exiting_user is None:
+            return
+        if self.game_master_id is not None:
+            return
+        if self.sandbox:
+            return
+        current_manager_id = (
+            self.managing_member.user_id
+            if self.managing_member_id is not None
+            else self.created_by_id
+        )
+        if current_manager_id != exiting_user.id:
+            return
+        eligible = list(
+            self.members.filter(
+                eliminated=False, kicked=False, civil_disorder=False
+            ).exclude(user_id=exiting_user.id).select_related("user")
+            .filter(user__isnull=False)
+        )
+        if not eligible:
+            return
+
+        def reliability_key(member):
+            stats = get_player_stats(member.user)
+            tier_score = {"reliable": 2, "new": 1}.get(stats["reliability_tier"], 0)
+            return (-tier_score, stats["nmr_rate"] + stats["cd_rate"])
+
+        new_manager = min(eligible, key=reliability_key)
+        self.managing_member = new_manager
+        self.save(update_fields=["managing_member"])
+        user_ids = self.notification_user_ids()
+        nation_name = new_manager.nation.name if new_manager.nation else new_manager.name
+        reason_text = f" because the previous manager {reason}" if reason else ""
+        body = f"Game management has been transferred to {nation_name}{reason_text}."
+
+        def _send():
+            if user_ids:
+                notification_utils.send_notification_to_users(
+                    user_ids=user_ids,
+                    title=self.name,
+                    body=body,
+                    notification_type="management_transfer",
+                    data={"game_id": str(self.id), "link": f"{settings.FRONTEND_URL}/game/{self.id}"},
+                )
+
+        transaction.on_commit(_send)
 
     def notification_user_ids(self, exclude_user_id=None):
         user_ids = {

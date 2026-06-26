@@ -452,6 +452,10 @@ class PhaseManager(models.Manager):
             m.civil_disorder = True
         Member.objects.bulk_update(newly_cd_members, ["civil_disorder"])
 
+        for m in newly_cd_members:
+            if m.user_id is not None:
+                phase.game.transfer_management_if_needed(m.user, reason="entered civil disorder")
+
         cd_user_ids = [m.user_id for m in newly_cd_members if m.user_id is not None]
         self._remove_from_staging_games(cd_user_ids)
 
@@ -552,6 +556,10 @@ class PhaseManager(models.Manager):
         Member.objects.bulk_update(newly_eliminated, ["eliminated"])
 
         game = previous_phase.game
+
+        for member in newly_eliminated:
+            if member.user_id is not None:
+                game.transfer_management_if_needed(member.user, reason="was eliminated")
 
         for member in newly_eliminated:
             if member.user_id is None:
