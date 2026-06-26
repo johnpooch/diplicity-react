@@ -4634,10 +4634,6 @@ class TestNMRExtensionsFixedTime:
         game, italy, germany, phase = deadline_warning_game_factory(
             DeadlineMode.FIXED_TIME, now - timedelta(minutes=1)
         )
-        game.movement_frequency = PhaseFrequency.EVERY_2_DAYS
-        game.fixed_deadline_time = time(12, 0)
-        game.fixed_deadline_timezone = "UTC"
-        game.save()
         italy.nmr_extensions_remaining = 1
         italy.save()
         phase.units.create(
