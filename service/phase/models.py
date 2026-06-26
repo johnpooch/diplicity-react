@@ -43,7 +43,7 @@ class PhaseQuerySet(models.QuerySet):
         )
 
     def with_adjudication_data(self):
-        return self.select_related("variant", "game").prefetch_related(
+        return self.select_related("variant", "game__managing_member").prefetch_related(
             "supply_centers__province",
             "supply_centers__nation__flag",
             "units__province",
