@@ -411,7 +411,7 @@ class PhaseManager(models.Manager):
             return []
 
         current_nmr_members = []
-        for phase_state in phase.phase_states.select_related("member").all():
+        for phase_state in phase.phase_states.select_related("member__user").all():
             if phase_state.orders_outcome != PhaseState.OrdersOutcome.NMR:
                 continue
             member = phase_state.member

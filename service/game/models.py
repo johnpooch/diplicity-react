@@ -324,7 +324,7 @@ class GameManager(models.Manager):
         eligible = list(
             game.members.filter(
                 eliminated=False, kicked=False, civil_disorder=False
-            ).exclude(user_id=exiting_user.id).select_related("user", "nation")
+            ).exclude(user_id=exiting_user.id).select_related("user__profile", "nation")
             .filter(user__isnull=False)
         )
         if not eligible:
