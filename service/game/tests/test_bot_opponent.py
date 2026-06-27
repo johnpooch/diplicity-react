@@ -3,6 +3,7 @@ from django.urls import reverse
 from rest_framework import status
 
 from bot.utils import get_bot_user
+from common.constants import GameStatus, PhaseStatus
 from game.models import Game
 
 
@@ -76,6 +77,38 @@ class TestBotOpponentSeating:
         game = Game.objects.get(id=response.data["id"])
         assert game.members.count() == 1
         assert not game.members.filter(user=get_bot_user()).exists()
+
+
+class TestBotGameStart:
+
+    @pytest.mark.django_db
+    def test_full_bot_game_starts_on_creation(
+        self, authenticated_client, italy_vs_germany_variant, settings
+    ):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+        response = authenticated_client.post(
+            reverse(create_viewname),
+            bot_payload(italy_vs_germany_variant.id, True),
+            format="json",
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+        game = Game.objects.get(id=response.data["id"])
+        assert game.status == GameStatus.ACTIVE
+        assert game.current_phase.status == PhaseStatus.ACTIVE
+
+    @pytest.mark.django_db
+    def test_partial_bot_game_stays_pending(
+        self, authenticated_client, classical_variant, settings
+    ):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+        response = authenticated_client.post(
+            reverse(create_viewname),
+            bot_payload(classical_variant.id, True),
+            format="json",
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+        game = Game.objects.get(id=response.data["id"])
+        assert game.status == GameStatus.PENDING
 
 
 class TestCanCreateBotGamesFlag:

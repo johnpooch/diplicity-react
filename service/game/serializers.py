@@ -552,6 +552,8 @@ class GameCreateSerializer(serializers.Serializer):
                 bot_member = game.members.create(user=get_bot_user())
                 public_channel.member_channels.create(member=bot_member)
 
+            game.start_if_full()
+
             if hasattr(game, "_created_phase"):
                 delattr(game, "_created_phase")
 
