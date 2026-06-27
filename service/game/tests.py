@@ -1192,6 +1192,52 @@ class TestGameListViewQueryPerformance:
         assert "DISTINCT ON" in unit_queries[0]
         assert "DISTINCT ON" in supply_center_queries[0]
 
+    @pytest.mark.django_db
+    def test_list_games_does_not_load_flag_svg(
+        self,
+        authenticated_client,
+        primary_user,
+        classical_variant,
+        classical_england_nation,
+        classical_edinburgh_province,
+    ):
+        game = Game.objects.create(
+            name="Flag svg game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        game.members.create(user=primary_user, nation=classical_england_nation)
+        phase = game.phases.create(
+            game=game,
+            variant=game.variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            status=PhaseStatus.ACTIVE,
+            ordinal=1,
+        )
+        phase.units.create(
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_edinburgh_province,
+        )
+        phase.supply_centers.create(
+            nation=classical_england_nation,
+            province=classical_edinburgh_province,
+        )
+
+        url = reverse(list_viewname)
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(url, {"mine": "true"})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert all('"nation_nationflag"."svg"' not in q["sql"] for q in connection.queries)
+
+        result = next(g for g in response.data["results"] if g["id"] == game.id)
+        assert result["current_phase"]["units"][0]["nation"]["flag_url"] is not None
+
 
 class TestGameCreateView:
 
