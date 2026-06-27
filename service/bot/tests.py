@@ -160,6 +160,35 @@ class TestPlanTask:
         assert all(order.complete for order in bot_phase_state.orders.all())
         assert bot_phase_state.orders_confirmed is False
 
+    @pytest.mark.django_db
+    def test_plan_creates_orders_when_testserver_not_allowed(
+        self, bot_game_factory, in_memory_procrastinate, settings
+    ):
+        settings.ALLOWED_HOSTS = ["example.com"]
+        game = bot_game_factory()
+        bot_user = get_bot_user()
+        bot_phase_state = game.current_phase.phase_states.get(member__user=bot_user)
+
+        tasks.plan(user_id=bot_user.id, game_id=game.id)
+
+        bot_phase_state.refresh_from_db()
+        assert bot_phase_state.orders.count() > 0
+
+
+class TestBotRequestHost:
+
+    def test_returns_first_concrete_host(self, settings):
+        settings.ALLOWED_HOSTS = ["example.com", "localhost"]
+        assert utils.bot_request_host() == "example.com"
+
+    def test_strips_leading_dot(self, settings):
+        settings.ALLOWED_HOSTS = [".railway.app"]
+        assert utils.bot_request_host() == "railway.app"
+
+    def test_falls_back_to_testserver_for_wildcard(self, settings):
+        settings.ALLOWED_HOSTS = ["*"]
+        assert utils.bot_request_host() == "testserver"
+
 
 class TestFinalizeTask:
 
