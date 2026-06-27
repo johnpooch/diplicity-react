@@ -23,16 +23,21 @@ def plan(user_id, game_id):
     if options_response.status_code != 200:
         logger.error(f"[{label}] options request failed: {options_response.status_code}")
         return
+    selections = first_legal_selections(options_response.data["orders"])
+
+    phase_states_response = client.get(reverse("phase-state-list", args=[game_id]))
+    if phase_states_response.status_code != 200:
+        logger.error(f"[{label}] phase states request failed: {phase_states_response.status_code}")
+        return
+    max_orders = phase_states_response.data[0]["max_orders"] if phase_states_response.data else None
+    if max_orders is not None:
+        selections = selections[:max_orders]
 
     create_url = reverse("order-create", args=[game_id])
-    for selected in first_legal_selections(options_response.data["orders"]):
+    for selected in selections:
         response = client.post(create_url, {"selected": selected}, format="json")
         if response.status_code not in (200, 201):
-            logger.info(
-                f"[{label}] order {selected} rejected ({response.status_code}); "
-                f"order limit reached, stopping"
-            )
-            break
+            logger.error(f"[{label}] create order failed ({response.status_code}) for {selected}")
 
     logger.info(f"[{label}] completed")
 
@@ -58,16 +63,21 @@ def finalize(user_id, game_id):
     if options_response.status_code != 200:
         logger.error(f"[{label}] options request failed: {options_response.status_code}")
         return
+    selections = first_legal_selections(options_response.data["orders"])
+
+    phase_states_response = client.get(reverse("phase-state-list", args=[game_id]))
+    if phase_states_response.status_code != 200:
+        logger.error(f"[{label}] phase states request failed: {phase_states_response.status_code}")
+        return
+    max_orders = phase_states_response.data[0]["max_orders"] if phase_states_response.data else None
+    if max_orders is not None:
+        selections = selections[:max_orders]
 
     create_url = reverse("order-create", args=[game_id])
-    for selected in first_legal_selections(options_response.data["orders"]):
+    for selected in selections:
         response = client.post(create_url, {"selected": selected}, format="json")
         if response.status_code not in (200, 201):
-            logger.info(
-                f"[{label}] order {selected} rejected ({response.status_code}); "
-                f"order limit reached, stopping"
-            )
-            break
+            logger.error(f"[{label}] create order failed ({response.status_code}) for {selected}")
 
     confirm_response = client.put(reverse("game-confirm-phase", args=[game_id]))
     if confirm_response.status_code != 200:
