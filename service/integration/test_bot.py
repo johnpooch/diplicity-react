@@ -9,7 +9,14 @@ from adjudication import service as adjudication_service
 from common.constants import DeadlineMode, MovementPhaseDuration, NationAssignment, PhaseStatus
 from game.models import Game
 from bot import tasks
-from bot.utils import get_bot_user
+from bot.utils import first_legal_selections, get_bot_user
+
+
+def _submit_first_legal_orders(client, game_id):
+    options = client.get(reverse("order-options", args=[game_id])).data["orders"]
+    create_url = reverse("order-create", args=[game_id])
+    for selected in first_legal_selections(options):
+        client.post(create_url, {"selected": selected}, format="json")
 
 
 @pytest.fixture
@@ -46,7 +53,7 @@ def test_bot_plays_phase_and_game_advances(bot_game):
     assert bot_phase_state.orders.exists()
     assert bot_phase_state.orders_confirmed is False
 
-    tasks._submit_orders(human_client, game.id, "human")
+    _submit_first_legal_orders(human_client, game.id)
     confirm_response = human_client.put(reverse("game-confirm-phase", args=[game.id]))
     assert confirm_response.status_code == status.HTTP_200_OK
 
@@ -74,7 +81,7 @@ def test_bot_can_play_the_next_phase(bot_game):
     human_client.force_authenticate(user=game.created_by)
 
     tasks.plan(user_id=bot_user.id, game_id=game.id)
-    tasks._submit_orders(human_client, game.id, "human")
+    _submit_first_legal_orders(human_client, game.id)
     human_client.put(reverse("game-confirm-phase", args=[game.id]))
     tasks.finalize(user_id=bot_user.id, game_id=game.id)
     human_client.post(reverse("phase-resolve-all"))

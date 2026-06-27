@@ -9,6 +9,14 @@ from bot.constants import BOT_USER_EMAIL
 _previous_phase_status = {}
 
 
+def _bot_user_ids_for_phase(phase_id):
+    return set(
+        Member.objects.filter(
+            game__phases=phase_id, user__email=BOT_USER_EMAIL
+        ).values_list("user_id", flat=True)
+    )
+
+
 def capture_phase_status(sender, instance, **kwargs):
     if instance.pk and instance.status == PhaseStatus.ACTIVE:
         _previous_phase_status[instance.pk] = (
@@ -40,5 +48,51 @@ def with_bot_members(func):
         if not bot_members:
             return
         return func(sender=sender, instance=instance, bot_members=bot_members, **kwargs)
+
+    return wrapper
+
+
+def on_orders_confirmed(func):
+    @functools.wraps(func)
+    def wrapper(sender, instance, **kwargs):
+        if not instance.orders_confirmed:
+            return
+        return func(sender=sender, instance=instance, **kwargs)
+
+    return wrapper
+
+
+def when_humans_confirmed(func):
+    @functools.wraps(func)
+    def wrapper(sender, instance, **kwargs):
+        bot_user_ids = _bot_user_ids_for_phase(instance.phase_id)
+        if not bot_user_ids:
+            return
+
+        phase = instance.phase
+        if phase.status != PhaseStatus.ACTIVE:
+            return
+
+        humans_pending = (
+            phase.phase_states.filter(has_possible_orders=True, orders_confirmed=False)
+            .exclude(member__user_id__in=bot_user_ids)
+            .exists()
+        )
+        if humans_pending:
+            return
+
+        bot_phase_states = list(
+            phase.phase_states.filter(
+                has_possible_orders=True,
+                orders_confirmed=False,
+                member__user_id__in=bot_user_ids,
+            ).select_related("member")
+        )
+        if not bot_phase_states:
+            return
+
+        return func(
+            sender=sender, instance=instance, phase=phase, bot_phase_states=bot_phase_states, **kwargs
+        )
 
     return wrapper

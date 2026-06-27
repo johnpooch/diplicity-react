@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.urls import reverse
@@ -11,10 +11,9 @@ from common.constants import (
     MovementPhaseDuration,
     NationAssignment,
     OrderType,
-    PhaseStatus,
 )
 from game.models import Game
-from bot import tasks
+from bot import tasks, utils
 from bot.utils import get_bot_user
 
 
@@ -35,27 +34,27 @@ def _option(source, order_type, target=None, aux=None, unit_type=None, named_coa
 class TestOptionToSelected:
 
     def test_hold(self):
-        assert tasks._option_to_selected(_option("lon", OrderType.HOLD)) == ["lon", OrderType.HOLD]
+        assert utils.option_to_selected(_option("lon", OrderType.HOLD)) == ["lon", OrderType.HOLD]
 
     def test_move(self):
-        assert tasks._option_to_selected(_option("lon", OrderType.MOVE, target="nth")) == [
+        assert utils.option_to_selected(_option("lon", OrderType.MOVE, target="nth")) == [
             "lon",
             OrderType.MOVE,
             "nth",
         ]
 
     def test_move_with_named_coast(self):
-        assert tasks._option_to_selected(
+        assert utils.option_to_selected(
             _option("mid", OrderType.MOVE, target="spa", named_coast="spa/nc")
         ) == ["mid", OrderType.MOVE, "spa", "spa/nc"]
 
     def test_support(self):
-        assert tasks._option_to_selected(
+        assert utils.option_to_selected(
             _option("lon", OrderType.SUPPORT, aux="wal", target="lvp")
         ) == ["lon", OrderType.SUPPORT, "wal", "lvp"]
 
     def test_build_fleet_named_coast(self):
-        assert tasks._option_to_selected(
+        assert utils.option_to_selected(
             _option("stp", OrderType.BUILD, unit_type="Fleet", named_coast="stp/sc")
         ) == ["stp", OrderType.BUILD, "Fleet", "stp/sc"]
 
@@ -69,10 +68,36 @@ class TestFirstLegalSelections:
             _option("edi", OrderType.MOVE, target="nwg"),
             _option("edi", OrderType.HOLD),
         ]
-        assert tasks._first_legal_selections(options) == [
+        assert utils.first_legal_selections(options) == [
             ["lon", OrderType.HOLD],
             ["edi", OrderType.MOVE, "nwg"],
         ]
+
+
+class TestAdjustmentOrderLimit:
+
+    @pytest.mark.django_db
+    def test_plan_stops_submitting_when_an_order_is_rejected(self):
+        bot_user = get_bot_user()
+        options = {
+            "orders": [
+                _option("lon", OrderType.BUILD, unit_type="Army"),
+                _option("edi", OrderType.BUILD, unit_type="Fleet"),
+                _option("lvp", OrderType.BUILD, unit_type="Army"),
+            ]
+        }
+        fake_client = MagicMock()
+        fake_client.get.return_value = Mock(status_code=200, data=options)
+        fake_client.post.side_effect = [
+            Mock(status_code=201),
+            Mock(status_code=400),
+            Mock(status_code=400),
+        ]
+
+        with patch("bot.tasks.APIClient", return_value=fake_client):
+            tasks.plan(user_id=bot_user.id, game_id="some-game")
+
+        assert fake_client.post.call_count == 2
 
 
 @pytest.fixture
