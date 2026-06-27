@@ -601,6 +601,38 @@ class TestAdjustmentPhaseOrderLimits:
         assert orderable.count() == 3  # All have orders
         assert set(p.province_id for p in orderable) == {"lon", "par", "edi"}
 
+    @pytest.mark.django_db
+    def test_max_orders_in_api_response_non_adjustment(
+        self,
+        authenticated_client,
+        active_game_with_phase_options,
+    ):
+        url = reverse("phase-state-list", args=[active_game_with_phase_options.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data[0]["max_orders"] is None
+
+    @pytest.mark.django_db
+    def test_max_orders_in_api_response_adjustment(
+        self,
+        authenticated_client,
+        active_game_with_phase_options,
+        classical_england_nation,
+        classical_london_province,
+        classical_paris_province,
+    ):
+        phase = active_game_with_phase_options.current_phase
+        phase.type = PhaseType.ADJUSTMENT
+        phase.save()
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_paris_province)
+        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+
+        url = reverse("phase-state-list", args=[active_game_with_phase_options.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data[0]["max_orders"] == 1
+
 
 class TestOptionsTransformation:
 

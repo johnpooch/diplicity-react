@@ -237,6 +237,7 @@ export const makePhaseState = (
   id: `ps-${++phaseStateIdCounter}`,
   ordersConfirmed: false,
   eliminated: false,
+  maxOrders: null,
   orderableProvinces: orderableProvinceIds.map(province),
   member,
   ...overrides,

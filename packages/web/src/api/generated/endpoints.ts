@@ -706,6 +706,8 @@ export interface PatchedPhaseState {
   readonly eliminated?: boolean;
   readonly orderableProvinces?: readonly Province[];
   readonly member?: Member;
+  /** @nullable */
+  readonly maxOrders?: number | null;
 }
 
 export interface PatchedUserProfile {
@@ -779,6 +781,8 @@ export interface PhaseState {
   readonly eliminated: boolean;
   readonly orderableProvinces: readonly Province[];
   readonly member: Member;
+  /** @nullable */
+  readonly maxOrders: number | null;
 }
 
 export interface PublicUserProfile {
