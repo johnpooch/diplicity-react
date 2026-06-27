@@ -17,6 +17,13 @@ def user_can_use_bot_opponent(user):
     return user.email.lower() in settings.BOT_OPPONENT_ALLOWLIST
 
 
+def bot_request_host():
+    for host in settings.ALLOWED_HOSTS:
+        if host and host != "*":
+            return host.lstrip(".")
+    return "testserver"
+
+
 def option_to_selected(option):
     order_type = option["order_type"]["id"]
     selected = [option["source"]["id"], order_type]

@@ -5,7 +5,7 @@ from django.urls import reverse
 from procrastinate.contrib.django import app
 from rest_framework.test import APIClient
 
-from bot.utils import first_legal_selections
+from bot.utils import bot_request_host, first_legal_selections
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ def plan(user_id, game_id):
     logger.info(f"[{label}] invoked")
 
     user = get_user_model().objects.get(id=user_id)
-    client = APIClient()
+    client = APIClient(SERVER_NAME=bot_request_host())
     client.force_authenticate(user=user)
 
     options_response = client.get(reverse("order-options", args=[game_id]))
@@ -43,7 +43,7 @@ def finalize(user_id, game_id):
     logger.info(f"[{label}] invoked")
 
     user = get_user_model().objects.get(id=user_id)
-    client = APIClient()
+    client = APIClient(SERVER_NAME=bot_request_host())
     client.force_authenticate(user=user)
 
     game_response = client.get(reverse("game-retrieve", args=[game_id]))
