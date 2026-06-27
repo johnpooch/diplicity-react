@@ -1,5 +1,13 @@
+import { lazy, Suspense } from "react";
 import type { Order, PhaseRetrieve, Variant } from "../api/generated/endpoints";
 import { InteractiveMapZoomWrapper } from "./InteractiveMap/InteractiveMapZoomWrapper";
+import { resolveMapImplementation } from "./GameMapCanvas/mapImplementation";
+
+const GameMapCanvas = lazy(() =>
+  import("./GameMapCanvas/GameMapCanvas").then((module) => ({
+    default: module.GameMapCanvas,
+  }))
+);
 
 interface MapViewProps {
   variant: Pick<Variant, "id" | "nations" | "svgUrl">;
@@ -15,6 +23,14 @@ interface MapViewProps {
 }
 
 const MapView: React.FC<MapViewProps> = ({ onClickProvince, ...props }) => {
+  if (resolveMapImplementation() === "leaflet") {
+    return (
+      <Suspense fallback={<div style={{ width: "100%", height: "100%" }} />}>
+        <GameMapCanvas {...props} onClickProvince={onClickProvince} />
+      </Suspense>
+    );
+  }
+
   return (
     <InteractiveMapZoomWrapper
       interactiveMapProps={{

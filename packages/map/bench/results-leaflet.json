@@ -1,0 +1,100 @@
+{
+  "generatedAt": "2026-06-25T00:40:59.581Z",
+  "git": {
+    "commit": "2d5881ff37a774d0de9c446812be58659e4f3086",
+    "dirty": true
+  },
+  "map": "leaflet",
+  "environment": {
+    "harness": "map-bench.mjs",
+    "chromium": "sparticuz-fallback",
+    "gpu": "disabled (--disable-gpu)",
+    "note": "headless software rendering; absolute fps not comparable to real devices"
+  },
+  "gesture": {
+    "zoomTicks": 12,
+    "panSteps": 40,
+    "reps": 2,
+    "frameBudgetMs": 16.67,
+    "droppedThreshold": 1.5
+  },
+  "results": [
+    {
+      "fixture": "classical-active-movement",
+      "route": "/game/active-movement/phase/101",
+      "viewport": "1280x800",
+      "cpuThrottle": 1,
+      "initialRenderMs": 387.6,
+      "medianFrameMs": 16.7,
+      "p95FrameMs": 16.7,
+      "droppedFramePct": 0,
+      "frameCount": 224,
+      "effectiveFps": 60
+    },
+    {
+      "fixture": "classical-active-movement",
+      "route": "/game/active-movement/phase/101",
+      "viewport": "1280x800",
+      "cpuThrottle": 4,
+      "initialRenderMs": 2330.3,
+      "medianFrameMs": 16.7,
+      "p95FrameMs": 16.7,
+      "droppedFramePct": 0.21,
+      "frameCount": 239,
+      "effectiveFps": 59.88
+    },
+    {
+      "fixture": "classical-active-movement",
+      "route": "/game/active-movement/phase/101",
+      "viewport": "1280x800",
+      "cpuThrottle": 6,
+      "initialRenderMs": 3468.55,
+      "medianFrameMs": 16.7,
+      "p95FrameMs": 16.8,
+      "droppedFramePct": 3.83,
+      "frameCount": 236,
+      "effectiveFps": 57.08
+    },
+    {
+      "fixture": "classical-active-movement",
+      "route": "/game/active-movement/phase/101",
+      "viewport": "390x844",
+      "cpuThrottle": 1,
+      "initialRenderMs": 736.75,
+      "medianFrameMs": 16.7,
+      "p95FrameMs": 16.7,
+      "droppedFramePct": 0,
+      "frameCount": 218,
+      "effectiveFps": 60
+    },
+    {
+      "fixture": "classical-active-movement",
+      "route": "/game/active-movement/phase/101",
+      "viewport": "390x844",
+      "cpuThrottle": 4,
+      "initialRenderMs": 3020.35,
+      "medianFrameMs": 16.7,
+      "p95FrameMs": 16.75,
+      "droppedFramePct": 2.31,
+      "frameCount": 218,
+      "effectiveFps": 55.41
+    },
+    {
+      "fixture": "classical-active-movement",
+      "route": "/game/active-movement/phase/101",
+      "viewport": "390x844",
+      "cpuThrottle": 6,
+      "initialRenderMs": 4433.95,
+      "medianFrameMs": 16.7,
+      "p95FrameMs": 16.8,
+      "droppedFramePct": 3.84,
+      "frameCount": 236,
+      "effectiveFps": 56.41
+    }
+  ],
+  "notes": [
+    "Only classical variant benchmarked: every mock game is wired to variantId 'classical'; godip coverage deferred.",
+    "Absolute timings are headless + software-render; use only for before/after delta on the same machine/config.",
+    "GPU compositing cost (the real-device hot path) is NOT captured here; real-user data is Block 2 (telemetry)."
+  ]
+}

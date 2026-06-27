@@ -20,6 +20,8 @@
 //   --out PATH          Working JSON output path (default bench/results.json)
 //   --write-baseline    Also write bench/baseline.json
 //   --wait MS           Extra settle time after readiness gate (default 1000)
+//   --map IMPL          Map implementation to drive: svg (default) or leaflet.
+//                       leaflet appends ?map=leaflet and targets the Leaflet DOM.
 
 import { chromium } from "playwright";
 import { execSync } from "node:child_process";
@@ -52,9 +54,34 @@ const base = getOption("base") ?? "http://localhost:5173";
 const reps = Number(getOption("reps") ?? 3);
 const cpuTiers = (getOption("cpu") ?? "1,4,6").split(",").map(Number);
 const viewports = (getOption("viewports") ?? "1280x800,390x844").split(",");
-const outPath = resolve(PACKAGE_ROOT, getOption("out") ?? "bench/results.json");
 const writeBaseline = args.includes("--write-baseline");
 const settleMs = Number(getOption("wait") ?? 1000);
+const mapImpl = getOption("map") ?? "svg";
+if (mapImpl !== "svg" && mapImpl !== "leaflet") {
+  throw new Error(`--map must be "svg" or "leaflet" (got "${mapImpl}")`);
+}
+
+// The two implementations expose different DOM: the legacy map renders an SVG
+// inside react-zoom-pan-pinch; the Leaflet map renders a .leaflet-container and
+// marks itself ready via a data attribute once the base raster is applied.
+const TARGET = {
+  svg: {
+    routeQuery: "",
+    readySelector: ".react-transform-component svg",
+    boxSelector: ".react-transform-component",
+  },
+  leaflet: {
+    routeQuery: "?map=leaflet",
+    readySelector: '[data-map-impl="leaflet"][data-map-ready="true"]',
+    boxSelector: ".leaflet-container",
+  },
+}[mapImpl];
+
+const outPath = resolve(
+  PACKAGE_ROOT,
+  getOption("out") ??
+    (mapImpl === "leaflet" ? "bench/results-leaflet.json" : "bench/results.json")
+);
 
 const delay = ms => new Promise(r => setTimeout(r, ms));
 const median = xs => {
@@ -165,15 +192,24 @@ const runRep = async (context, fixture, cpuThrottle) => {
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: cpuThrottle });
 
   try {
-    const url = new URL(fixture.route, base).toString();
+    const url = new URL(fixture.route + TARGET.routeQuery, base).toString();
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
-    await page.waitForSelector(".react-transform-component svg", { timeout: 30000 });
+    await page.waitForSelector(TARGET.readySelector, { timeout: 30000 });
     await page.waitForTimeout(settleMs);
 
-    const box = await page.locator(".react-transform-component").first().boundingBox();
+    const box = await page.locator(TARGET.boxSelector).first().boundingBox();
     const center = box
       ? { x: Math.round(box.x + box.width / 2), y: Math.round(box.y + box.height / 2) }
       : { x: 640, y: 400 };
+
+    if (initialRenderMs === null) {
+      const attr = await page
+        .locator('[data-map-impl="leaflet"]')
+        .first()
+        .getAttribute("data-initial-render-ms")
+        .catch(() => null);
+      if (attr !== null) initialRenderMs = Number(attr);
+    }
 
     await page.evaluate(() => window.__mapBenchStart());
     await runGesture(cdp, center);
@@ -206,6 +242,7 @@ const browser = await chromium.launch({
 const results = [];
 try {
   const chromiumVersion = source === "system" ? browser.version() : "sparticuz-fallback";
+  console.log(`Benchmarking map=${mapImpl} (${source} chromium)`);
   for (const viewportArg of viewports) {
     const [width, height] = viewportArg.split("x").map(Number);
     const context = await browser.newContext({ viewport: { width, height } });
@@ -242,6 +279,7 @@ try {
   const output = {
     generatedAt: new Date().toISOString(),
     git: gitInfo(),
+    map: mapImpl,
     environment: {
       harness: "map-bench.mjs",
       chromium: chromiumVersion,

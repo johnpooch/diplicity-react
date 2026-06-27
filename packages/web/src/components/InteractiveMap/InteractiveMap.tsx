@@ -109,6 +109,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = (props) => {
         recordInitialRender({
           variantId: props.variant.id,
           renderMs: performance.now() - t0,
+          implementation: "svg",
         });
       }
       return result;

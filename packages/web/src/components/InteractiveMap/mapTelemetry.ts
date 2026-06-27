@@ -7,6 +7,8 @@ const DROPPED_THRESHOLD = 1.5;
 
 export type GestureType = "pan" | "pinch" | "zoom";
 
+export type MapImplementation = "svg" | "leaflet";
+
 type FrameStats = {
   medianFrameMs: number;
   p95FrameMs: number;
@@ -55,11 +57,16 @@ const deviceContext = (): Attributes => {
   return attributes;
 };
 
-const recordInitialRender = (params: { variantId: string; renderMs: number }): void => {
+const recordInitialRender = (params: {
+  variantId: string;
+  renderMs: number;
+  implementation?: MapImplementation;
+}): void => {
   const span = tracer.startSpan("map.initial_render", {
     attributes: {
       "map.variant_id": params.variantId,
       "map.render_ms": params.renderMs,
+      "map.implementation": params.implementation ?? "svg",
       ...deviceContext(),
     },
   });
@@ -71,6 +78,7 @@ const recordGesture = (params: {
   gestureType: GestureType;
   durationMs: number;
   frameMs: number[];
+  implementation?: MapImplementation;
 }): void => {
   if (params.frameMs.length === 0) return;
   const stats = frameStats(params.frameMs);
@@ -78,6 +86,7 @@ const recordGesture = (params: {
     attributes: {
       "map.variant_id": params.variantId,
       "map.gesture_type": params.gestureType,
+      "map.implementation": params.implementation ?? "svg",
       "map.duration_ms": params.durationMs,
       "map.median_frame_ms": stats.medianFrameMs,
       "map.p95_frame_ms": stats.p95FrameMs,
