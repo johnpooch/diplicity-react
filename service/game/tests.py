@@ -1135,6 +1135,63 @@ class TestGameListViewQueryPerformance:
         assert hydrated_units == games_count * units_per_phase
         assert hydrated_supply_centers == games_count * supply_centers_per_phase
 
+    @pytest.mark.django_db
+    def test_list_games_scopes_board_with_set_based_subquery(
+        self,
+        authenticated_client,
+        primary_user,
+        classical_variant,
+        classical_england_nation,
+        classical_edinburgh_province,
+    ):
+        games_count = 2
+        phases_per_game = 8
+
+        for i in range(games_count):
+            game = Game.objects.create(
+                name=f"Set based game {i}",
+                variant=classical_variant,
+                status=GameStatus.ACTIVE,
+            )
+            game.members.create(user=primary_user, nation=classical_england_nation)
+            for ordinal in range(1, phases_per_game + 1):
+                phase = game.phases.create(
+                    game=game,
+                    variant=game.variant,
+                    season="Spring",
+                    year=1900 + ordinal,
+                    type=PhaseType.MOVEMENT,
+                    status=PhaseStatus.ACTIVE if ordinal == phases_per_game else PhaseStatus.COMPLETED,
+                    ordinal=ordinal,
+                )
+                phase.units.create(
+                    type=UnitType.FLEET,
+                    nation=classical_england_nation,
+                    province=classical_edinburgh_province,
+                )
+                phase.supply_centers.create(
+                    nation=classical_england_nation,
+                    province=classical_edinburgh_province,
+                )
+
+        url = reverse(list_viewname)
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(url, {"mine": "true"})
+
+        assert response.status_code == status.HTTP_200_OK
+
+        unit_queries = [q["sql"] for q in connection.queries if 'FROM "unit_unit"' in q["sql"]]
+        supply_center_queries = [
+            q["sql"] for q in connection.queries if 'FROM "supply_center_supplycenter"' in q["sql"]
+        ]
+
+        assert len(unit_queries) == 1
+        assert len(supply_center_queries) == 1
+        assert "DISTINCT ON" in unit_queries[0]
+        assert "DISTINCT ON" in supply_center_queries[0]
+
 
 class TestGameCreateView:
 
