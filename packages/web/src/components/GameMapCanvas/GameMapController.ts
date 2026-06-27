@@ -316,7 +316,7 @@ export class GameMapController {
         this.polygonsByProvince.set(ring.id, [polygon]);
       }
     }
-    this.updateCursors();
+    this.updateHitTargets();
   }
 
   private handleClick(province: string, event: L.LeafletMouseEvent): void {
@@ -337,7 +337,7 @@ export class GameMapController {
 
   setStyleState(style: StyleState): void {
     this.style = style;
-    this.updateCursors();
+    this.updateHitTargets();
     this.renderHighlight();
   }
 
@@ -365,7 +365,13 @@ export class GameMapController {
     this.highlightLayer = next;
   }
 
-  private updateCursors(): void {
+  // Mirrors the SVG map (InteractiveMap), where every hit path is given
+  // pointer-events only when its province is renderable. Named coasts are not
+  // renderable by default and their hit shapes overlap the parent province, so
+  // leaving them interactive would let them intercept the hover and suppress the
+  // highlight. Disabling pointer events on non-renderable shapes lets the hover
+  // fall through to the renderable province beneath.
+  private updateHitTargets(): void {
     for (const [province, polygons] of this.polygonsByProvince) {
       const renderable = this.style.renderable.has(province);
       const cursor =
@@ -374,6 +380,7 @@ export class GameMapController {
         const element = polygon.getElement();
         if (element instanceof SVGElement || element instanceof HTMLElement) {
           element.style.cursor = cursor;
+          element.style.pointerEvents = renderable ? "" : "none";
         }
       }
     }
