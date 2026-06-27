@@ -12,6 +12,7 @@ export const currentUserProfile: UserProfile = {
   email: "mock.player@example.com",
   emailNotificationsEnabled: true,
   colorblindMode: null,
+  canCreateBotGames: false,
 };
 
 interface PlayerSeed {

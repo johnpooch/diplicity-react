@@ -2005,6 +2005,10 @@ components:
           allOf:
           - $ref: '#/components/schemas/MinReliabilityEnum'
           default: open
+        includeBotOpponent:
+          type: boolean
+          writeOnly: true
+          default: false
       required:
       - id
       - name
@@ -2866,6 +2870,9 @@ components:
           oneOf:
           - $ref: '#/components/schemas/ColorblindModeEnum'
           - $ref: '#/components/schemas/NullEnum'
+        canCreateBotGames:
+          type: boolean
+          readOnly: true
     PatchedVariantWrite:
       type: object
       properties:
@@ -3207,7 +3214,11 @@ components:
           oneOf:
           - $ref: '#/components/schemas/ColorblindModeEnum'
           - $ref: '#/components/schemas/NullEnum'
+        canCreateBotGames:
+          type: boolean
+          readOnly: true
       required:
+      - canCreateBotGames
       - email
       - id
       - name

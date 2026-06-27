@@ -1,5 +1,7 @@
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
 
+from bot.utils import user_can_use_bot_opponent
 from common.constants import ColorblindMode
 from .utils import get_player_stats
 
@@ -16,6 +18,11 @@ class UserProfileSerializer(serializers.Serializer):
         allow_null=True,
         required=False,
     )
+    can_create_bot_games = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.BooleanField)
+    def get_can_create_bot_games(self, obj):
+        return user_can_use_bot_opponent(obj.user)
 
     def validate_name(self, value):
         value = value.strip()
