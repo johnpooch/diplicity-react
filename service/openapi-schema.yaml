@@ -2843,6 +2843,10 @@ components:
           allOf:
           - $ref: '#/components/schemas/Member'
           readOnly: true
+        maxOrders:
+          type: integer
+          nullable: true
+          readOnly: true
     PatchedUserProfile:
       type: object
       properties:
@@ -2984,9 +2988,14 @@ components:
           allOf:
           - $ref: '#/components/schemas/Member'
           readOnly: true
+        maxOrders:
+          type: integer
+          nullable: true
+          readOnly: true
       required:
       - eliminated
       - id
+      - maxOrders
       - member
       - orderableProvinces
       - ordersConfirmed

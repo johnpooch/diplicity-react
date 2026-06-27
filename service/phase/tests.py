@@ -112,6 +112,46 @@ def test_list_orderable_provinces_not_member(authenticated_client, active_game_c
 
 
 @pytest.mark.django_db
+def test_phase_state_list_max_orders_null_for_movement_phase(authenticated_client, active_game_with_phase_options):
+    url = reverse("phase-state-list", args=[active_game_with_phase_options.id])
+    response = authenticated_client.get(url)
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data[0]["max_orders"] is None
+
+
+@pytest.mark.django_db
+def test_phase_state_list_max_orders_for_adjustment_phase(
+    authenticated_client,
+    primary_user,
+    base_active_game_for_primary_user,
+    classical_england_nation,
+    classical_edinburgh_province,
+    classical_london_province,
+    classical_liverpool_province,
+):
+    phase = base_active_game_for_primary_user.phases.create(
+        game=base_active_game_for_primary_user,
+        variant=base_active_game_for_primary_user.variant,
+        season="Fall",
+        year=1901,
+        type=PhaseType.ADJUSTMENT,
+        status=PhaseStatus.ACTIVE,
+        ordinal=1,
+    )
+    phase.supply_centers.create(nation=classical_england_nation, province=classical_edinburgh_province)
+    phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
+    phase.supply_centers.create(nation=classical_england_nation, province=classical_liverpool_province)
+    phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_edinburgh_province)
+    member = base_active_game_for_primary_user.members.create(user=primary_user, nation=classical_england_nation)
+    phase.phase_states.create(member=member)
+
+    url = reverse("phase-state-list", args=[base_active_game_for_primary_user.id])
+    response = authenticated_client.get(url)
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data[0]["max_orders"] == 2
+
+
+@pytest.mark.django_db
 def test_resolve_phases_success(authenticated_client):
     url = reverse("phase-resolve-all")
     response = authenticated_client.post(url)

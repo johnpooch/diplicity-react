@@ -1,6 +1,7 @@
 from django.db import transaction
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
-from common.constants import PhaseStatus
+from common.constants import PhaseStatus, PhaseType
 from member.serializers import MemberSerializer
 from phase.tasks import resolve_phase
 from phase.utils import compute_province_nations
@@ -20,6 +21,13 @@ class PhaseStateSerializer(serializers.Serializer):
     eliminated = serializers.BooleanField(read_only=True)
     orderable_provinces = ProvinceSerializer(read_only=True, many=True)
     member = MemberSerializer(read_only=True)
+    max_orders = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
+    def get_max_orders(self, obj):
+        if obj.phase.type != PhaseType.ADJUSTMENT:
+            return None
+        return obj.max_allowed_adjustment_orders()
 
     def update(self, instance, validated_data):
         with transaction.atomic():
