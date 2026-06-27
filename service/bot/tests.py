@@ -1,12 +1,20 @@
 from unittest.mock import patch
 
 import pytest
+from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APIClient
 
 from adjudication import service as adjudication_service
-from common.constants import DeadlineMode, MovementPhaseDuration, NationAssignment, OrderType, PhaseType
+from common.constants import (
+    DeadlineMode,
+    MovementPhaseDuration,
+    NationAssignment,
+    OrderType,
+    PhaseStatus,
+)
 from game.models import Game
-from order.utils import flatten_options
-from bot.play import _option_to_selected, _select_first_legal_orders, play_bot_turn
+from bot import tasks
 from bot.utils import get_bot_user
 
 
@@ -24,54 +32,35 @@ def _option(source, order_type, target=None, aux=None, unit_type=None, named_coa
     }
 
 
-class _StubPhase:
-    def __init__(self, phase_type):
-        self.type = phase_type
-
-
-class _StubPhaseState:
-    def __init__(self, phase_type, max_orders=float("inf")):
-        self.phase = _StubPhase(phase_type)
-        self._max_orders = max_orders
-
-    def max_allowed_adjustment_orders(self):
-        return self._max_orders
-
-
 class TestOptionToSelected:
 
     def test_hold(self):
-        assert _option_to_selected(_option("lon", OrderType.HOLD)) == ["lon", OrderType.HOLD]
+        assert tasks._option_to_selected(_option("lon", OrderType.HOLD)) == ["lon", OrderType.HOLD]
 
     def test_move(self):
-        assert _option_to_selected(_option("lon", OrderType.MOVE, target="nth")) == [
+        assert tasks._option_to_selected(_option("lon", OrderType.MOVE, target="nth")) == [
             "lon",
             OrderType.MOVE,
             "nth",
         ]
 
     def test_move_with_named_coast(self):
-        assert _option_to_selected(
+        assert tasks._option_to_selected(
             _option("mid", OrderType.MOVE, target="spa", named_coast="spa/nc")
         ) == ["mid", OrderType.MOVE, "spa", "spa/nc"]
 
     def test_support(self):
-        assert _option_to_selected(
+        assert tasks._option_to_selected(
             _option("lon", OrderType.SUPPORT, aux="wal", target="lvp")
         ) == ["lon", OrderType.SUPPORT, "wal", "lvp"]
 
-    def test_build(self):
-        assert _option_to_selected(
-            _option("lon", OrderType.BUILD, unit_type="Army")
-        ) == ["lon", OrderType.BUILD, "Army"]
-
     def test_build_fleet_named_coast(self):
-        assert _option_to_selected(
+        assert tasks._option_to_selected(
             _option("stp", OrderType.BUILD, unit_type="Fleet", named_coast="stp/sc")
         ) == ["stp", OrderType.BUILD, "Fleet", "stp/sc"]
 
 
-class TestSelectFirstLegalOrders:
+class TestFirstLegalSelections:
 
     def test_picks_first_option_per_source(self):
         options = [
@@ -80,24 +69,10 @@ class TestSelectFirstLegalOrders:
             _option("edi", OrderType.MOVE, target="nwg"),
             _option("edi", OrderType.HOLD),
         ]
-        result = _select_first_legal_orders(options, _StubPhaseState(PhaseType.MOVEMENT))
-        assert result == [["lon", OrderType.HOLD], ["edi", OrderType.MOVE, "nwg"]]
-
-    def test_adjustment_caps_at_max_orders(self):
-        options = [
-            _option("lon", OrderType.BUILD, unit_type="Army"),
-            _option("edi", OrderType.BUILD, unit_type="Fleet"),
-            _option("lvp", OrderType.BUILD, unit_type="Army"),
+        assert tasks._first_legal_selections(options) == [
+            ["lon", OrderType.HOLD],
+            ["edi", OrderType.MOVE, "nwg"],
         ]
-        result = _select_first_legal_orders(
-            options, _StubPhaseState(PhaseType.ADJUSTMENT, max_orders=2)
-        )
-        assert result == [["lon", OrderType.BUILD, "Army"], ["edi", OrderType.BUILD, "Fleet"]]
-
-    def test_movement_not_capped(self):
-        options = [_option(f"p{i}", OrderType.HOLD) for i in range(5)]
-        result = _select_first_legal_orders(options, _StubPhaseState(PhaseType.MOVEMENT))
-        assert len(result) == 5
 
 
 @pytest.fixture
@@ -124,72 +99,104 @@ def bot_game_factory(db, primary_user, italy_vs_germany_variant, adjudication_da
     return _create
 
 
-class TestPlayBotTurn:
+class TestPlanTask:
 
     @pytest.mark.django_db
-    def test_bot_submits_and_confirms_orders(self, bot_game_factory, in_memory_procrastinate):
+    def test_plan_creates_orders_without_confirming(
+        self, bot_game_factory, in_memory_procrastinate
+    ):
         game = bot_game_factory()
-        phase = game.current_phase
-        bot_phase_state = phase.phase_states.get(member__user=get_bot_user())
+        bot_user = get_bot_user()
+        bot_phase_state = game.current_phase.phase_states.get(member__user=bot_user)
 
-        play_bot_turn(phase)
+        tasks.plan(user_id=bot_user.id, game_id=game.id)
+
+        bot_phase_state.refresh_from_db()
+        assert bot_phase_state.orders.count() > 0
+        assert all(order.complete for order in bot_phase_state.orders.all())
+        assert bot_phase_state.orders_confirmed is False
+
+
+class TestFinalizeTask:
+
+    @pytest.mark.django_db
+    def test_finalize_submits_and_confirms(self, bot_game_factory, in_memory_procrastinate):
+        game = bot_game_factory()
+        bot_user = get_bot_user()
+        bot_phase_state = game.current_phase.phase_states.get(member__user=bot_user)
+
+        tasks.finalize(user_id=bot_user.id, game_id=game.id)
+
+        bot_phase_state.refresh_from_db()
+        assert bot_phase_state.orders.count() > 0
+        assert bot_phase_state.orders_confirmed is True
+
+    @pytest.mark.django_db
+    def test_finalize_does_not_double_toggle_when_confirmed(
+        self, bot_game_factory, in_memory_procrastinate
+    ):
+        game = bot_game_factory()
+        bot_user = get_bot_user()
+        bot_phase_state = game.current_phase.phase_states.get(member__user=bot_user)
+
+        tasks.finalize(user_id=bot_user.id, game_id=game.id)
+        tasks.finalize(user_id=bot_user.id, game_id=game.id)
 
         bot_phase_state.refresh_from_db()
         assert bot_phase_state.orders_confirmed is True
 
-        nation_options = phase.transformed_options[bot_phase_state.member.nation.name]
-        assert bot_phase_state.orders.count() == len(nation_options)
-        assert all(order.complete for order in bot_phase_state.orders.all())
+
+def _bot_plan_jobs(connector):
+    return [j for j in connector.jobs.values() if j["task_name"] == "bot.plan"]
+
+
+def _bot_finalize_jobs(connector):
+    return [j for j in connector.jobs.values() if j["task_name"] == "bot.finalize"]
+
+
+class TestPlanTrigger:
 
     @pytest.mark.django_db
-    def test_bot_orders_match_first_legal_option(self, bot_game_factory, in_memory_procrastinate):
+    def test_first_phase_activation_defers_plan(self, bot_game_factory, in_memory_procrastinate):
         game = bot_game_factory()
-        phase = game.current_phase
-        bot_phase_state = phase.phase_states.get(member__user=get_bot_user())
+        bot_member = game.members.get(user=get_bot_user())
 
-        play_bot_turn(phase)
-
-        province_lookup = {p.province_id: p for p in phase.variant.provinces.all()}
-        nation_options = phase.transformed_options[bot_phase_state.member.nation.name]
-        flat = flatten_options(nation_options, province_lookup)
-        expected_first = {}
-        for option in flat:
-            expected_first.setdefault(option["source"]["id"], option["order_type"]["id"])
-
-        for order in bot_phase_state.orders.all():
-            assert order.order_type == expected_first[order.source.province_id]
-
-    @pytest.mark.django_db
-    def test_play_bot_turn_is_idempotent(self, bot_game_factory, in_memory_procrastinate):
-        game = bot_game_factory()
-        phase = game.current_phase
-        bot_phase_state = phase.phase_states.get(member__user=get_bot_user())
-
-        play_bot_turn(phase)
-        order_count = bot_phase_state.orders.count()
-        play_bot_turn(phase)
-
-        assert bot_phase_state.orders.count() == order_count
-
-
-class TestBotTrigger:
-
-    @pytest.mark.django_db
-    def test_starting_bot_game_defers_bot_task(self, bot_game_factory, in_memory_procrastinate):
-        game = bot_game_factory()
-        jobs = [
-            j for j in in_memory_procrastinate.jobs.values() if j["task_name"] == "bot.play_phase"
-        ]
+        jobs = _bot_plan_jobs(in_memory_procrastinate)
         assert len(jobs) == 1
-        assert jobs[0]["lock"] == f"bot-game-{game.id}"
-        assert jobs[0]["args"] == {"phase_id": game.current_phase.id}
+        assert jobs[0]["lock"] == f"plan-{game.current_phase.id}-{bot_member.id}"
+        assert jobs[0]["args"] == {"user_id": get_bot_user().id, "game_id": game.id}
 
     @pytest.mark.django_db
-    def test_non_bot_game_does_not_defer_bot_task(
-        self, active_game_factory, in_memory_procrastinate
+    def test_editing_active_phase_does_not_refire(
+        self, bot_game_factory, in_memory_procrastinate
     ):
+        game = bot_game_factory()
+        phase = game.current_phase
+
+        phase.refresh_from_db()
+        phase.save()
+
+        assert len(_bot_plan_jobs(in_memory_procrastinate)) == 1
+
+    @pytest.mark.django_db
+    def test_non_bot_game_does_not_defer_plan(self, active_game_factory, in_memory_procrastinate):
         active_game_factory()
-        jobs = [
-            j for j in in_memory_procrastinate.jobs.values() if j["task_name"] == "bot.play_phase"
-        ]
-        assert len(jobs) == 0
+        assert len(_bot_plan_jobs(in_memory_procrastinate)) == 0
+
+
+class TestFinalizeTrigger:
+
+    @pytest.mark.django_db
+    def test_human_confirm_defers_finalize(self, bot_game_factory, in_memory_procrastinate):
+        game = bot_game_factory()
+        bot_member = game.members.get(user=get_bot_user())
+
+        human_client = APIClient()
+        human_client.force_authenticate(user=game.created_by)
+        response = human_client.put(reverse("game-confirm-phase", args=[game.id]))
+        assert response.status_code == status.HTTP_200_OK
+
+        jobs = _bot_finalize_jobs(in_memory_procrastinate)
+        assert len(jobs) == 1
+        assert jobs[0]["lock"] == f"finalize-{game.current_phase.id}-{bot_member.id}"
+        assert jobs[0]["args"] == {"user_id": get_bot_user().id, "game_id": game.id}

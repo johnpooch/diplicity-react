@@ -1,33 +1,75 @@
 import logging
 
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
 from common.constants import PhaseStatus
 from member.models import Member
-from phase.models import Phase
+from phase.models import Phase, PhaseState
 
 from bot.constants import BOT_USER_EMAIL
-from bot.tasks import play_phase
+from bot.decorators import capture_phase_status, on_phase_activated, with_bot_members
+from bot.tasks import finalize as finalize_task
+from bot.tasks import plan as plan_task
 
 logger = logging.getLogger(__name__)
 
 
+pre_save.connect(capture_phase_status, sender=Phase)
+
+
 @receiver(post_save, sender=Phase)
-def trigger_bot_on_active_phase(sender, instance, **kwargs):
-    if instance.status != PhaseStatus.ACTIVE:
+@on_phase_activated
+@with_bot_members
+def plan(sender, instance, bot_members, **kwargs):
+    logger.info(f"[bot.plan signal] phase {instance.id} activated for game {instance.game_id}")
+    for member in bot_members:
+        plan_task.configure(lock=f"plan-{instance.id}-{member.id}").defer(
+            user_id=member.user_id, game_id=instance.game_id
+        )
+        logger.info(
+            f"[bot.plan signal] queued plan for member {member.id} (phase {instance.id})"
+        )
+
+
+@receiver(post_save, sender=PhaseState)
+def finalize(sender, instance, **kwargs):
+    if not instance.orders_confirmed:
         return
 
-    game_has_bot = Member.objects.filter(
-        game_id=instance.game_id, user__email=BOT_USER_EMAIL
-    ).exists()
-    if not game_has_bot:
+    bot_user_ids = set(
+        Member.objects.filter(
+            game__phases=instance.phase_id, user__email=BOT_USER_EMAIL
+        ).values_list("user_id", flat=True)
+    )
+    if not bot_user_ids:
         return
 
-    play_phase.configure(
-        lock=f"bot-game-{instance.game_id}",
-    ).defer(phase_id=instance.pk)
+    phase = instance.phase
+    if phase.status != PhaseStatus.ACTIVE:
+        return
+
+    human_states = phase.phase_states.filter(has_possible_orders=True).exclude(
+        member__user_id__in=bot_user_ids
+    )
+    if human_states.filter(orders_confirmed=False).exists():
+        return
+
+    bot_states = phase.phase_states.filter(
+        has_possible_orders=True,
+        orders_confirmed=False,
+        member__user_id__in=bot_user_ids,
+    ).select_related("member")
 
     logger.info(
-        f"Triggered bot turn for phase {instance.pk} (game {instance.game_id})"
+        f"[bot.finalize signal] all humans confirmed for phase {phase.id} "
+        f"(game {phase.game_id})"
     )
+    for phase_state in bot_states:
+        finalize_task.configure(
+            lock=f"finalize-{phase.id}-{phase_state.member_id}"
+        ).defer(user_id=phase_state.member.user_id, game_id=phase.game_id)
+        logger.info(
+            f"[bot.finalize signal] queued finalize for member {phase_state.member_id} "
+            f"(phase {phase.id})"
+        )
