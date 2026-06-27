@@ -1,12 +1,9 @@
-from unittest.mock import patch
-
 import pytest
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from adjudication import service as adjudication_service
-from common.constants import DeadlineMode, MovementPhaseDuration, NationAssignment, PhaseStatus
+from common.constants import DeadlineMode, GameStatus, NationAssignment, PhaseStatus
 from game.models import Game
 from bot import tasks
 from bot.utils import first_legal_selections, get_bot_user
@@ -19,34 +16,41 @@ def _submit_first_legal_orders(client, game_id):
         client.post(create_url, {"selected": selected}, format="json")
 
 
-@pytest.fixture
-def bot_game(db, primary_user, italy_vs_germany_variant, adjudication_data_italy_vs_germany):
-    game = Game.objects.create_from_template(
-        italy_vs_germany_variant,
-        name="Bot Integration Game",
-        nation_assignment=NationAssignment.ORDERED,
-        movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
-        deadline_mode=DeadlineMode.DURATION,
-        created_by=primary_user,
+def _create_bot_game(client, variant_id):
+    response = client.post(
+        reverse("game-create"),
+        {
+            "name": "Bot Integration Game",
+            "variant_id": variant_id,
+            "nation_assignment": NationAssignment.ORDERED,
+            "private": False,
+            "deadline_mode": DeadlineMode.DURATION,
+            "include_bot_opponent": True,
+        },
+        format="json",
     )
-    game.members.create(user=primary_user)
-    game.members.create(user=get_bot_user())
-    with patch.object(
-        adjudication_service, "start", return_value=adjudication_data_italy_vs_germany
-    ):
-        game.start()
-    return game
+    assert response.status_code == status.HTTP_201_CREATED
+    return Game.objects.get(id=response.data["id"])
+
+
+@pytest.fixture
+def allowlisted_human(authenticated_client, primary_user, settings):
+    settings.BOT_OPPONENT_ALLOWLIST = [primary_user.email.lower()]
+    return authenticated_client
 
 
 @pytest.mark.django_db
-def test_bot_plays_phase_and_game_advances(bot_game):
-    game = bot_game
-    bot_user = get_bot_user()
+def test_bot_game_starts_on_creation_and_plays_phase(
+    allowlisted_human, italy_vs_germany_variant
+):
+    human_client = allowlisted_human
+    game = _create_bot_game(human_client, italy_vs_germany_variant.id)
+
+    assert game.status == GameStatus.ACTIVE
     first_phase = game.current_phase
+    assert first_phase.status == PhaseStatus.ACTIVE
 
-    human_client = APIClient()
-    human_client.force_authenticate(user=game.created_by)
-
+    bot_user = get_bot_user()
     tasks.plan(user_id=bot_user.id, game_id=game.id)
 
     bot_phase_state = first_phase.phase_states.get(member__user=bot_user)
@@ -72,13 +76,11 @@ def test_bot_plays_phase_and_game_advances(bot_game):
 
 
 @pytest.mark.django_db
-def test_bot_can_play_the_next_phase(bot_game):
-    game = bot_game
+def test_bot_can_play_the_next_phase(allowlisted_human, italy_vs_germany_variant):
+    human_client = allowlisted_human
+    game = _create_bot_game(human_client, italy_vs_germany_variant.id)
     bot_user = get_bot_user()
     first_phase = game.current_phase
-
-    human_client = APIClient()
-    human_client.force_authenticate(user=game.created_by)
 
     tasks.plan(user_id=bot_user.id, game_id=game.id)
     _submit_first_legal_orders(human_client, game.id)

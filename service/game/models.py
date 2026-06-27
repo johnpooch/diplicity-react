@@ -634,6 +634,15 @@ class Game(BaseModel):
             self.started_at = timezone.now()
             self.save()
 
+    def start_if_full(self):
+        if self.status != GameStatus.PENDING:
+            return False
+        playable_nations = self.variant.nations.filter(non_playable=False).count()
+        if self.members.count() != playable_nations:
+            return False
+        self.start()
+        return True
+
     def pause(self):
         if self.status != GameStatus.ACTIVE:
             raise ValueError("Can only pause an active game")
