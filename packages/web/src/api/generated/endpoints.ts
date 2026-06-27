@@ -360,6 +360,7 @@ export interface GameCreate {
   nmrExtensionsAllowed?: number;
   pressType?: PressTypeEnum;
   minReliability?: MinReliabilityEnum;
+  includeBotOpponent?: boolean;
 }
 
 export interface GameCreateSandbox {
@@ -720,6 +721,7 @@ export interface PatchedUserProfile {
   readonly email?: string;
   emailNotificationsEnabled?: boolean;
   colorblindMode?: ColorblindModeEnum | NullEnum | null;
+  readonly canCreateBotGames?: boolean;
 }
 
 export interface PatchedVariantWrite {
@@ -820,6 +822,7 @@ export interface UserProfile {
   readonly email: string;
   emailNotificationsEnabled?: boolean;
   colorblindMode?: ColorblindModeEnum | NullEnum | null;
+  readonly canCreateBotGames: boolean;
 }
 
 export interface VictoryConditions {

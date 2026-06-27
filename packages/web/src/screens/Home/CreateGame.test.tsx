@@ -62,6 +62,9 @@ vi.mock("@/api/generated/endpoints", async importOriginal => {
   return {
     ...actual,
     useVariantsListSuspense: vi.fn(),
+    useUserRetrieveSuspense: vi.fn(() => ({
+      data: { canCreateBotGames: false },
+    })),
     useGameCreate: vi.fn(),
     useSandboxGameCreate: vi.fn(),
     getGamesFindSimilarRetrieveQueryOptions: vi.fn(),

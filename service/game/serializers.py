@@ -9,6 +9,7 @@ from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
 from common.constants import DeadlineMode, MinReliability, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType, VariantStatus
 from user_profile.utils import get_player_stats, tier_allows_min_reliability
+from bot.utils import get_bot_user, user_can_use_bot_opponent
 from member.serializers import MemberSerializer
 from unit.models import Unit
 from unit.serializers import UnitSerializer
@@ -432,6 +433,11 @@ class GameCreateSerializer(serializers.Serializer):
         choices=MinReliability.MIN_RELIABILITY_CHOICES,
         default=MinReliability.OPEN,
     )
+    include_bot_opponent = serializers.BooleanField(
+        default=False,
+        required=False,
+        write_only=True,
+    )
 
     def validate_variant_id(self, value):
         try:
@@ -441,6 +447,13 @@ class GameCreateSerializer(serializers.Serializer):
             )
         except Variant.DoesNotExist:
             raise serializers.ValidationError("Variant with this ID does not exist.")
+        return value
+
+    def validate_include_bot_opponent(self, value):
+        if value and not user_can_use_bot_opponent(self.context["request"].user):
+            raise serializers.ValidationError(
+                "You are not permitted to add a bot opponent."
+            )
         return value
 
     def validate_fixed_deadline_timezone(self, value):
@@ -534,6 +547,10 @@ class GameCreateSerializer(serializers.Serializer):
             if not with_game_master:
                 creator_member = game.members.create(user=request.user)
                 public_channel.member_channels.create(member=creator_member)
+
+            if validated_data["include_bot_opponent"]:
+                bot_member = game.members.create(user=get_bot_user())
+                public_channel.member_channels.create(member=bot_member)
 
             if hasattr(game, "_created_phase"):
                 delattr(game, "_created_phase")

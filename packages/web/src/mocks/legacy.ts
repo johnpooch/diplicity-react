@@ -693,6 +693,7 @@ export const mockUserProfile: UserProfile = {
   name: "John Doe",
   picture: null,
   email: "john.doe@example.com",
+  canCreateBotGames: false,
 };
 
 export const mockOrders: Order[] = [

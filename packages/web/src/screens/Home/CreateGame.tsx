@@ -60,6 +60,7 @@ import {
 } from "@/constants";
 import {
   useVariantsListSuspense,
+  useUserRetrieveSuspense,
   useGameCreate,
   useSandboxGameCreate,
   getGamesFindSimilarRetrieveQueryOptions,
@@ -110,6 +111,7 @@ const gameSchema = z.object({
     "reliable_and_new",
     "reliable_only",
   ] as const),
+  includeBotOpponent: z.boolean(),
 });
 
 type GameFormValues = z.infer<typeof gameSchema>;
@@ -408,6 +410,7 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
   initialPrivate,
   initialMode,
 }) => {
+  const { data: userProfile } = useUserRetrieveSuspense();
   const officialVariants = variants.filter(v => v.official);
   const communityVariants = variants.filter(v => !v.official);
 
@@ -435,6 +438,7 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
       retreatFrequency: null,
       nmrExtensionsAllowed: "0",
       minReliability: "open",
+      includeBotOpponent: false,
     },
   });
 
@@ -616,6 +620,30 @@ const CreateGameForm: React.FC<CreateGameFormProps> = ({
                 </FormItem>
               )}
             />
+
+            {userProfile.canCreateBotGames && (
+              <FormField
+                control={form.control}
+                name="includeBotOpponent"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={isSubmitting || isSandbox}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Include bot opponent</FormLabel>
+                      <FormDescription>
+                        Fill one seat with a bot player.
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            )}
 
             <hr className="border-t" />
 
@@ -1062,6 +1090,7 @@ const CreateGame: React.FC = () => {
             data.deadlineMode === "fixed_time" ? data.retreatFrequency : null,
           nmrExtensionsAllowed: parseInt(data.nmrExtensionsAllowed, 10),
           minReliability: data.minReliability,
+          includeBotOpponent: data.includeBotOpponent,
         },
       });
       toast.success("Game created successfully");
