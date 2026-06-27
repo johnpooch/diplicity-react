@@ -88,7 +88,7 @@ function usePhaseGuidance(): GuidanceResult {
         return { text: "No adjustments needed", isComplete: true, isConfirmed };
       }
 
-      const requiredCount = Math.abs(delta);
+      const requiredCount = userPhaseState.maxOrders ?? Math.abs(delta);
       const submittedCount = orders.filter(o => o.nation.name === userNation).length;
 
       if (delta > 0) {

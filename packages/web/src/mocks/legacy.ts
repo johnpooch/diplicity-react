@@ -775,6 +775,7 @@ export const mockPhaseStates: PhaseState[] = [
     id: "ps-1",
     ordersConfirmed: false,
     eliminated: false,
+    maxOrders: null,
     orderableProvinces: [mockProvinces[0]], // Vienna
     member: mockMembers[0], // Austria
   },
@@ -782,6 +783,7 @@ export const mockPhaseStates: PhaseState[] = [
     id: "ps-2",
     ordersConfirmed: true,
     eliminated: false,
+    maxOrders: null,
     orderableProvinces: [mockProvinces[1]], // London
     member: mockMembers[1], // England
   },
@@ -789,6 +791,7 @@ export const mockPhaseStates: PhaseState[] = [
     id: "ps-3",
     ordersConfirmed: false,
     eliminated: false,
+    maxOrders: null,
     orderableProvinces: [mockProvinces[2]], // Paris
     member: mockMembers[2], // France
   },
@@ -796,6 +799,7 @@ export const mockPhaseStates: PhaseState[] = [
     id: "ps-4",
     ordersConfirmed: false,
     eliminated: false,
+    maxOrders: null,
     orderableProvinces: [mockProvinces[3]], // Berlin
     member: mockMembers[3], // Germany
   },
@@ -803,6 +807,7 @@ export const mockPhaseStates: PhaseState[] = [
     id: "ps-5",
     ordersConfirmed: false,
     eliminated: false,
+    maxOrders: null,
     orderableProvinces: [mockProvinces[4]], // Rome
     member: mockMembers[4], // Italy
   },
@@ -810,6 +815,7 @@ export const mockPhaseStates: PhaseState[] = [
     id: "ps-6",
     ordersConfirmed: false,
     eliminated: false,
+    maxOrders: null,
     orderableProvinces: [mockProvinces[5]], // Moscow
     member: mockMembers[5], // Russia
   },
@@ -817,6 +823,7 @@ export const mockPhaseStates: PhaseState[] = [
     id: "ps-7",
     ordersConfirmed: false,
     eliminated: false,
+    maxOrders: null,
     orderableProvinces: [mockProvinces[6]], // Constantinople
     member: mockMembers[6], // Turkey (current user)
   },
