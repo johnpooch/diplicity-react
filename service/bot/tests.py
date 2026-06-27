@@ -76,28 +76,47 @@ class TestFirstLegalSelections:
 
 class TestAdjustmentOrderLimit:
 
-    @pytest.mark.django_db
-    def test_plan_stops_submitting_when_an_order_is_rejected(self):
-        bot_user = get_bot_user()
-        options = {
+    def _options_with_three_builds(self):
+        return {
             "orders": [
                 _option("lon", OrderType.BUILD, unit_type="Army"),
                 _option("edi", OrderType.BUILD, unit_type="Fleet"),
                 _option("lvp", OrderType.BUILD, unit_type="Army"),
             ]
         }
-        fake_client = MagicMock()
-        fake_client.get.return_value = Mock(status_code=200, data=options)
-        fake_client.post.side_effect = [
-            Mock(status_code=201),
-            Mock(status_code=400),
-            Mock(status_code=400),
-        ]
+
+    def _fake_client(self, max_orders):
+        options = self._options_with_three_builds()
+
+        def fake_get(url, *args, **kwargs):
+            if "phase-states" in url:
+                return Mock(status_code=200, data=[{"max_orders": max_orders}])
+            return Mock(status_code=200, data=options)
+
+        client = MagicMock()
+        client.get.side_effect = fake_get
+        client.post.return_value = Mock(status_code=201)
+        return client
+
+    @pytest.mark.django_db
+    def test_plan_caps_orders_at_max_orders(self):
+        bot_user = get_bot_user()
+        fake_client = self._fake_client(max_orders=1)
 
         with patch("bot.tasks.APIClient", return_value=fake_client):
             tasks.plan(user_id=bot_user.id, game_id="some-game")
 
-        assert fake_client.post.call_count == 2
+        assert fake_client.post.call_count == 1
+
+    @pytest.mark.django_db
+    def test_plan_submits_all_orders_when_no_limit(self):
+        bot_user = get_bot_user()
+        fake_client = self._fake_client(max_orders=None)
+
+        with patch("bot.tasks.APIClient", return_value=fake_client):
+            tasks.plan(user_id=bot_user.id, game_id="some-game")
+
+        assert fake_client.post.call_count == 3
 
 
 @pytest.fixture
