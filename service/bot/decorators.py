@@ -52,6 +52,34 @@ def with_bot_members(func):
     return wrapper
 
 
+def on_public_chat_message(func):
+    @functools.wraps(func)
+    def wrapper(sender, instance, created, **kwargs):
+        if not created:
+            return
+        if instance.channel.private:
+            return
+        message_sender = instance.sender
+        if message_sender.user is not None and message_sender.user.email == BOT_USER_EMAIL:
+            return
+        return func(sender=sender, instance=instance, created=created, **kwargs)
+
+    return wrapper
+
+
+def with_bot_channel_members(func):
+    @functools.wraps(func)
+    def wrapper(sender, instance, **kwargs):
+        bot_members = list(
+            instance.channel.members.filter(user__email=BOT_USER_EMAIL).select_related("user")
+        )
+        if not bot_members:
+            return
+        return func(sender=sender, instance=instance, bot_members=bot_members, **kwargs)
+
+    return wrapper
+
+
 def on_orders_confirmed(func):
     @functools.wraps(func)
     def wrapper(sender, instance, **kwargs):

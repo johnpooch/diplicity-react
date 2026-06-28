@@ -5,7 +5,7 @@ from django.urls import reverse
 from procrastinate.contrib.django import app
 from rest_framework.test import APIClient
 
-from bot.llm import select_orders
+from bot.llm import compose_reply, select_orders
 from bot.utils import bot_request_host
 
 logger = logging.getLogger(__name__)
@@ -93,5 +93,38 @@ def finalize(user_id, game_id):
         logger.error(f"[{label}] confirm failed: {confirm_response.status_code}")
         return
     logger.info(f"[{label}] confirmed phase")
+
+    logger.info(f"[{label}] completed")
+
+
+@app.task(name="bot.reply", retry=3)
+def reply(user_id, game_id, channel_id):
+    label = f"bot.reply user={user_id} game={game_id} channel={channel_id}"
+    logger.info(f"[{label}] invoked")
+
+    user = get_user_model().objects.get(id=user_id)
+    client = APIClient(SERVER_NAME=bot_request_host())
+    client.force_authenticate(user=user)
+
+    channels_response = client.get(reverse("channel-list", args=[game_id]))
+    if channels_response.status_code != 200:
+        logger.error(f"[{label}] channel list request failed: {channels_response.status_code}")
+        return
+    channel = next((c for c in channels_response.data if c["id"] == channel_id), None)
+    if channel is None:
+        logger.error(f"[{label}] channel {channel_id} not found")
+        return
+
+    reply_text = compose_reply(channel["messages"])
+    if not reply_text:
+        logger.info(f"[{label}] no reply composed; staying silent")
+        return
+
+    create_url = reverse("channel-message-create", args=[game_id, channel_id])
+    response = client.post(create_url, {"body": reply_text}, format="json")
+    if response.status_code not in (200, 201):
+        logger.error(f"[{label}] post reply failed ({response.status_code})")
+        return
+    logger.info(f"[{label}] posted reply")
 
     logger.info(f"[{label}] completed")
