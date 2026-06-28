@@ -81,13 +81,15 @@ def request_choices(grouped):
 
 def select_orders(options):
     if not settings.ANTHROPIC_API_KEY:
+        logger.info("[bot.llm] no ANTHROPIC_API_KEY set; using first-legal selection")
         return first_legal_selections(options)
 
     grouped = group_by_source(options)
+    logger.info(f"[bot.llm] asking {settings.BOT_LLM_MODEL} to choose orders for {len(grouped)} unit(s)")
     try:
         choices = request_choices(grouped)
     except Exception as e:
-        logger.error(f"[bot.llm] order selection failed: {e}")
+        logger.error(f"[bot.llm] order selection failed: {e}; falling back to first-legal")
         return first_legal_selections(options)
 
     selections = []
@@ -95,7 +97,10 @@ def select_orders(options):
         index = choices.get(source_id)
         if index is None or not (0 <= index < len(source_options)):
             chosen = source_options[0]
+            logger.info(f"[bot.llm] {source_id}: invalid/missing choice {index}; using first legal option {option_label(chosen)}")
         else:
             chosen = source_options[index]
+            logger.info(f"[bot.llm] {source_id}: chose {option_label(chosen)}")
         selections.append(option_to_selected(chosen))
+    logger.info(f"[bot.llm] selected {len(selections)} order(s) via {settings.BOT_LLM_MODEL}")
     return selections
