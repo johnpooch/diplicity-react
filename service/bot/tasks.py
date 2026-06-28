@@ -5,7 +5,8 @@ from django.urls import reverse
 from procrastinate.contrib.django import app
 from rest_framework.test import APIClient
 
-from bot.utils import bot_request_host, first_legal_selections
+from bot.llm import select_orders
+from bot.utils import bot_request_host
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ def plan(user_id, game_id):
     if options_response.status_code != 200:
         logger.error(f"[{label}] options request failed: {options_response.status_code}")
         return
-    selections = first_legal_selections(options_response.data["orders"])
+    selections = select_orders(options_response.data["orders"])
 
     phase_states_response = client.get(reverse("phase-state-list", args=[game_id]))
     if phase_states_response.status_code != 200:
@@ -63,7 +64,7 @@ def finalize(user_id, game_id):
     if options_response.status_code != 200:
         logger.error(f"[{label}] options request failed: {options_response.status_code}")
         return
-    selections = first_legal_selections(options_response.data["orders"])
+    selections = select_orders(options_response.data["orders"])
 
     phase_states_response = client.get(reverse("phase-state-list", args=[game_id]))
     if phase_states_response.status_code != 200:
