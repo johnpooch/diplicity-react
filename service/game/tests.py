@@ -927,7 +927,7 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 9
+        assert query_count == 7
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_phases_and_units(
@@ -968,7 +968,7 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 9
+        assert query_count == 7
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_different_nations(
@@ -1019,7 +1019,7 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 9
+        assert query_count == 7
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_phase_states(
@@ -1068,7 +1068,7 @@ class TestGameListViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        assert query_count == 9
+        assert query_count == 7
 
     @pytest.mark.django_db
     def test_list_games_hydrates_units_for_current_phase_only(
@@ -1193,7 +1193,7 @@ class TestGameListViewQueryPerformance:
         assert "DISTINCT ON" in supply_center_queries[0]
 
     @pytest.mark.django_db
-    def test_list_games_does_not_load_flag_svg(
+    def test_list_games_board_is_lean(
         self,
         authenticated_client,
         primary_user,
@@ -1202,7 +1202,7 @@ class TestGameListViewQueryPerformance:
         classical_edinburgh_province,
     ):
         game = Game.objects.create(
-            name="Flag svg game",
+            name="Lean board game",
             variant=classical_variant,
             status=GameStatus.ACTIVE,
         )
@@ -1233,10 +1233,18 @@ class TestGameListViewQueryPerformance:
             response = authenticated_client.get(url, {"mine": "true"})
 
         assert response.status_code == status.HTTP_200_OK
-        assert all('"nation_nationflag"."svg"' not in q["sql"] for q in connection.queries)
+        assert all("nation_nationflag" not in q["sql"] for q in connection.queries)
 
         result = next(g for g in response.data["results"] if g["id"] == game.id)
-        assert result["current_phase"]["units"][0]["nation"]["flag_url"] is not None
+        unit = result["current_phase"]["units"][0]
+        assert set(unit.keys()) == {"type", "nation", "province", "dislodged"}
+        assert set(unit["nation"].keys()) == {"name"}
+        assert set(unit["province"].keys()) == {"id"}
+        assert unit["type"] == UnitType.FLEET
+        assert unit["province"]["id"] == classical_edinburgh_province.province_id
+
+        supply_center = result["current_phase"]["supply_centers"][0]
+        assert set(supply_center.keys()) == {"nation", "province"}
 
 
 class TestGameCreateView:
