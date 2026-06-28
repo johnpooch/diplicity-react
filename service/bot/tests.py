@@ -13,7 +13,7 @@ from common.constants import (
     OrderType,
 )
 from game.models import Game
-from bot import tasks, utils
+from bot import llm, tasks, utils
 from bot.utils import get_bot_user
 
 
@@ -71,6 +71,66 @@ class TestFirstLegalSelections:
         assert utils.first_legal_selections(options) == [
             ["lon", OrderType.HOLD],
             ["edi", OrderType.MOVE, "nwg"],
+        ]
+
+
+def _llm_message(choices):
+    block = Mock()
+    block.type = "tool_use"
+    block.name = llm.TOOL_NAME
+    block.input = {"choices": choices}
+    return Mock(content=[block])
+
+
+class TestSelectOrders:
+
+    def _options(self):
+        return [
+            _option("lon", OrderType.HOLD),
+            _option("lon", OrderType.MOVE, target="nth"),
+            _option("edi", OrderType.HOLD),
+            _option("edi", OrderType.MOVE, target="nwg"),
+        ]
+
+    def test_returns_llm_choice_per_source(self, settings):
+        settings.ANTHROPIC_API_KEY = "test-key"
+        choices = [
+            {"source_id": "lon", "option_index": 1},
+            {"source_id": "edi", "option_index": 1},
+        ]
+        with patch("bot.llm.Anthropic") as mock_anthropic:
+            mock_anthropic.return_value.messages.create.return_value = _llm_message(choices)
+            selections = llm.select_orders(self._options())
+
+        assert selections == [
+            ["lon", OrderType.MOVE, "nth"],
+            ["edi", OrderType.MOVE, "nwg"],
+        ]
+
+    def test_falls_back_to_first_legal_without_key(self, settings):
+        settings.ANTHROPIC_API_KEY = ""
+        options = self._options()
+        assert llm.select_orders(options) == utils.first_legal_selections(options)
+
+    def test_falls_back_to_first_legal_when_client_raises(self, settings):
+        settings.ANTHROPIC_API_KEY = "test-key"
+        options = self._options()
+        with patch("bot.llm.Anthropic") as mock_anthropic:
+            mock_anthropic.return_value.messages.create.side_effect = RuntimeError("boom")
+            selections = llm.select_orders(options)
+
+        assert selections == utils.first_legal_selections(options)
+
+    def test_invalid_or_missing_index_falls_back_per_source(self, settings):
+        settings.ANTHROPIC_API_KEY = "test-key"
+        choices = [{"source_id": "lon", "option_index": 9}]
+        with patch("bot.llm.Anthropic") as mock_anthropic:
+            mock_anthropic.return_value.messages.create.return_value = _llm_message(choices)
+            selections = llm.select_orders(self._options())
+
+        assert selections == [
+            ["lon", OrderType.HOLD],
+            ["edi", OrderType.HOLD],
         ]
 
 

@@ -258,6 +258,9 @@ BOT_OPPONENT_ALLOWLIST = [
     if email.strip()
 ]
 
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+BOT_LLM_MODEL = os.getenv("BOT_LLM_MODEL", "claude-haiku-4-5")
+
 
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
