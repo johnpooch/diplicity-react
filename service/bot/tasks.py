@@ -24,6 +24,7 @@ def plan(user_id, game_id):
     if options_response.status_code != 200:
         logger.error(f"[{label}] options request failed: {options_response.status_code}")
         return
+    logger.info(f"[{label}] fetched {len(options_response.data['orders'])} order option(s)")
     selections = select_orders(options_response.data["orders"])
 
     phase_states_response = client.get(reverse("phase-state-list", args=[game_id]))
@@ -31,7 +32,8 @@ def plan(user_id, game_id):
         logger.error(f"[{label}] phase states request failed: {phase_states_response.status_code}")
         return
     max_orders = phase_states_response.data[0]["max_orders"] if phase_states_response.data else None
-    if max_orders is not None:
+    if max_orders is not None and len(selections) > max_orders:
+        logger.info(f"[{label}] capping {len(selections)} selection(s) to max_orders={max_orders}")
         selections = selections[:max_orders]
 
     create_url = reverse("order-create", args=[game_id])
@@ -39,6 +41,8 @@ def plan(user_id, game_id):
         response = client.post(create_url, {"selected": selected}, format="json")
         if response.status_code not in (200, 201):
             logger.error(f"[{label}] create order failed ({response.status_code}) for {selected}")
+        else:
+            logger.info(f"[{label}] created order {selected}")
 
     logger.info(f"[{label}] completed")
 
@@ -64,6 +68,7 @@ def finalize(user_id, game_id):
     if options_response.status_code != 200:
         logger.error(f"[{label}] options request failed: {options_response.status_code}")
         return
+    logger.info(f"[{label}] fetched {len(options_response.data['orders'])} order option(s)")
     selections = select_orders(options_response.data["orders"])
 
     phase_states_response = client.get(reverse("phase-state-list", args=[game_id]))
@@ -71,7 +76,8 @@ def finalize(user_id, game_id):
         logger.error(f"[{label}] phase states request failed: {phase_states_response.status_code}")
         return
     max_orders = phase_states_response.data[0]["max_orders"] if phase_states_response.data else None
-    if max_orders is not None:
+    if max_orders is not None and len(selections) > max_orders:
+        logger.info(f"[{label}] capping {len(selections)} selection(s) to max_orders={max_orders}")
         selections = selections[:max_orders]
 
     create_url = reverse("order-create", args=[game_id])
@@ -79,10 +85,13 @@ def finalize(user_id, game_id):
         response = client.post(create_url, {"selected": selected}, format="json")
         if response.status_code not in (200, 201):
             logger.error(f"[{label}] create order failed ({response.status_code}) for {selected}")
+        else:
+            logger.info(f"[{label}] created order {selected}")
 
     confirm_response = client.put(reverse("game-confirm-phase", args=[game_id]))
     if confirm_response.status_code != 200:
         logger.error(f"[{label}] confirm failed: {confirm_response.status_code}")
         return
+    logger.info(f"[{label}] confirmed phase")
 
     logger.info(f"[{label}] completed")
