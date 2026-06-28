@@ -2217,6 +2217,22 @@ components:
       - totalUnreadMessageCount
       - variantId
       - victory
+    GameListBoardNation:
+      type: object
+      properties:
+        name:
+          type: string
+          readOnly: true
+      required:
+      - name
+    GameListBoardProvince:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+      required:
+      - id
     GameListCurrentPhase:
       type: object
       properties:
@@ -2252,12 +2268,12 @@ components:
         units:
           type: array
           items:
-            $ref: '#/components/schemas/Unit'
+            $ref: '#/components/schemas/GameListUnit'
           readOnly: true
         supplyCenters:
           type: array
           items:
-            $ref: '#/components/schemas/SupplyCenter'
+            $ref: '#/components/schemas/GameListSupplyCenter'
           readOnly: true
       required:
       - id
@@ -2271,6 +2287,42 @@ components:
       - type
       - units
       - year
+    GameListSupplyCenter:
+      type: object
+      properties:
+        nation:
+          allOf:
+          - $ref: '#/components/schemas/GameListBoardNation'
+          readOnly: true
+        province:
+          allOf:
+          - $ref: '#/components/schemas/GameListBoardProvince'
+          readOnly: true
+      required:
+      - nation
+      - province
+    GameListUnit:
+      type: object
+      properties:
+        type:
+          type: string
+          readOnly: true
+        nation:
+          allOf:
+          - $ref: '#/components/schemas/GameListBoardNation'
+          readOnly: true
+        province:
+          allOf:
+          - $ref: '#/components/schemas/GameListBoardProvince'
+          readOnly: true
+        dislodged:
+          type: boolean
+          readOnly: true
+      required:
+      - dislodged
+      - nation
+      - province
+      - type
     GameMaster:
       type: object
       properties:
@@ -2845,8 +2897,8 @@ components:
           readOnly: true
         maxOrders:
           type: integer
-          readOnly: true
           nullable: true
+          readOnly: true
     PatchedUserProfile:
       type: object
       properties:
@@ -2990,8 +3042,8 @@ components:
           readOnly: true
         maxOrders:
           type: integer
-          readOnly: true
           nullable: true
+          readOnly: true
       required:
       - eliminated
       - id

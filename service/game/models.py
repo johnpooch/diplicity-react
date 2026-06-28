@@ -75,16 +75,12 @@ class GameQuerySet(models.QuerySet):
     def with_list_data(self):
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.select_related(
-                "nation__flag", "user__profile"
-            ).defer("nation__flag__svg"),
+            queryset=Member.objects.select_related("nation", "user__profile"),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related(
-                "user__profile", "nation__flag"
-            ).defer("nation__flag__svg"),
+            queryset=Member.objects.select_related("user__profile", "nation"),
         )
 
         phase_states_prefetch = Prefetch(
@@ -101,16 +97,12 @@ class GameQuerySet(models.QuerySet):
         current_units_prefetch = Prefetch(
             "units",
             queryset=Unit.objects.filter(phase__in=current_phase_ids)
-            .select_related("nation__flag", "province__parent")
-            .prefetch_related("province__named_coasts")
-            .defer("nation__flag__svg"),
+            .select_related("nation", "province"),
         )
         current_supply_centers_prefetch = Prefetch(
             "supply_centers",
             queryset=SupplyCenter.objects.filter(phase__in=current_phase_ids)
-            .select_related("nation__flag", "province__parent")
-            .prefetch_related("province__named_coasts")
-            .defer("nation__flag__svg"),
+            .select_related("nation", "province"),
         )
         phases_prefetch = Prefetch(
             "phases",

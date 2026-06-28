@@ -409,6 +409,26 @@ export interface SupplyCenter {
   nation: Nation;
 }
 
+export interface GameListBoardNation {
+  readonly name: string;
+}
+
+export interface GameListBoardProvince {
+  readonly id: string;
+}
+
+export interface GameListUnit {
+  readonly type: string;
+  readonly nation: GameListBoardNation;
+  readonly province: GameListBoardProvince;
+  readonly dislodged: boolean;
+}
+
+export interface GameListSupplyCenter {
+  readonly nation: GameListBoardNation;
+  readonly province: GameListBoardProvince;
+}
+
 export interface GameListCurrentPhase {
   readonly id: number;
   readonly ordinal: number;
@@ -420,8 +440,8 @@ export interface GameListCurrentPhase {
   /** @nullable */
   readonly scheduledResolution: string | null;
   readonly remainingTime: number;
-  readonly units: readonly Unit[];
-  readonly supplyCenters: readonly SupplyCenter[];
+  readonly units: readonly GameListUnit[];
+  readonly supplyCenters: readonly GameListSupplyCenter[];
 }
 
 /**
