@@ -12,6 +12,7 @@ from common.constants import (
     NationAssignment,
     OrderType,
 )
+from channel.models import ChannelMessage
 from game.models import Game
 from bot import llm, tasks, utils
 from bot.utils import get_bot_user
@@ -333,3 +334,181 @@ class TestFinalizeTrigger:
         assert len(jobs) == 1
         assert jobs[0]["lock"] == f"finalize-{game.current_phase.id}-{bot_member.id}"
         assert jobs[0]["args"] == {"user_id": get_bot_user().id, "game_id": game.id}
+
+
+def _llm_reply(should_reply, message=""):
+    block = Mock()
+    block.type = "tool_use"
+    block.name = llm.REPLY_TOOL_NAME
+    block.input = {"should_reply": should_reply, "message": message}
+    return Mock(content=[block])
+
+
+class TestComposeReply:
+
+    def _messages(self):
+        return [
+            {
+                "sender": {"name": "England", "is_current_user": False},
+                "body": "Hi bot, want to ally?",
+            },
+        ]
+
+    def test_returns_reply_when_model_replies(self, settings):
+        settings.ANTHROPIC_API_KEY = "test-key"
+        with patch("bot.llm.Anthropic") as mock_anthropic:
+            mock_anthropic.return_value.messages.create.return_value = _llm_reply(
+                True, "Sure, let's talk."
+            )
+            assert llm.compose_reply(self._messages()) == "Sure, let's talk."
+
+    def test_returns_none_when_model_declines(self, settings):
+        settings.ANTHROPIC_API_KEY = "test-key"
+        with patch("bot.llm.Anthropic") as mock_anthropic:
+            mock_anthropic.return_value.messages.create.return_value = _llm_reply(False, "")
+            assert llm.compose_reply(self._messages()) is None
+
+    def test_returns_none_for_empty_message(self, settings):
+        settings.ANTHROPIC_API_KEY = "test-key"
+        with patch("bot.llm.Anthropic") as mock_anthropic:
+            mock_anthropic.return_value.messages.create.return_value = _llm_reply(True, "   ")
+            assert llm.compose_reply(self._messages()) is None
+
+    def test_returns_none_without_key(self, settings):
+        settings.ANTHROPIC_API_KEY = ""
+        assert llm.compose_reply(self._messages()) is None
+
+    def test_returns_none_when_client_raises(self, settings):
+        settings.ANTHROPIC_API_KEY = "test-key"
+        with patch("bot.llm.Anthropic") as mock_anthropic:
+            mock_anthropic.return_value.messages.create.side_effect = RuntimeError("boom")
+            assert llm.compose_reply(self._messages()) is None
+
+
+@pytest.fixture
+def bot_public_channel_factory(bot_game_factory):
+    def _create():
+        game = bot_game_factory()
+        channel = game.channels.create(name="Public Press", private=False)
+        for member in game.members.all():
+            channel.member_channels.create(member=member)
+        return game, channel
+
+    return _create
+
+
+class TestReplyTask:
+
+    @pytest.mark.django_db
+    def test_reply_posts_message_when_model_replies(
+        self, bot_public_channel_factory, in_memory_procrastinate
+    ):
+        game, channel = bot_public_channel_factory()
+        bot_user = get_bot_user()
+        bot_member = game.members.get(user=bot_user)
+        human_member = game.members.get(user=game.created_by)
+        ChannelMessage.objects.create(channel=channel, sender=human_member, body="Hi bot")
+
+        with patch("bot.tasks.compose_reply", return_value="Hello, human!"):
+            tasks.reply(user_id=bot_user.id, game_id=game.id, channel_id=channel.id)
+
+        assert channel.messages.filter(sender=bot_member, body="Hello, human!").exists()
+
+    @pytest.mark.django_db
+    def test_reply_posts_nothing_when_model_declines(
+        self, bot_public_channel_factory, in_memory_procrastinate
+    ):
+        game, channel = bot_public_channel_factory()
+        bot_user = get_bot_user()
+        human_member = game.members.get(user=game.created_by)
+        ChannelMessage.objects.create(channel=channel, sender=human_member, body="Hi bot")
+
+        with patch("bot.tasks.compose_reply", return_value=None):
+            tasks.reply(user_id=bot_user.id, game_id=game.id, channel_id=channel.id)
+
+        assert channel.messages.filter(sender__user=bot_user).count() == 0
+
+
+def _bot_reply_jobs(connector):
+    return [j for j in connector.jobs.values() if j["task_name"] == "bot.reply"]
+
+
+class TestReplyTrigger:
+
+    @pytest.mark.django_db
+    def test_human_public_message_defers_reply(
+        self, bot_public_channel_factory, in_memory_procrastinate
+    ):
+        game, channel = bot_public_channel_factory()
+        bot_member = game.members.get(user=get_bot_user())
+
+        human_client = APIClient()
+        human_client.force_authenticate(user=game.created_by)
+        response = human_client.post(
+            reverse("channel-message-create", args=[game.id, channel.id]),
+            {"body": "Hello bot"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+
+        jobs = _bot_reply_jobs(in_memory_procrastinate)
+        assert len(jobs) == 1
+        assert jobs[0]["lock"] == f"reply-{response.data['id']}-{bot_member.id}"
+        assert jobs[0]["args"] == {
+            "user_id": get_bot_user().id,
+            "game_id": game.id,
+            "channel_id": channel.id,
+        }
+
+    @pytest.mark.django_db
+    def test_bot_own_message_does_not_defer_reply(
+        self, bot_public_channel_factory, in_memory_procrastinate
+    ):
+        game, channel = bot_public_channel_factory()
+        bot_member = game.members.get(user=get_bot_user())
+
+        ChannelMessage.objects.create(channel=channel, sender=bot_member, body="Hi all")
+
+        assert len(_bot_reply_jobs(in_memory_procrastinate)) == 0
+
+    @pytest.mark.django_db
+    def test_private_channel_message_does_not_defer_reply(
+        self, bot_public_channel_factory, in_memory_procrastinate
+    ):
+        game, _ = bot_public_channel_factory()
+        bot_member = game.members.get(user=get_bot_user())
+        human_member = game.members.get(user=game.created_by)
+        private = game.channels.create(name="Private", private=True)
+        private.member_channels.create(member=bot_member)
+        private.member_channels.create(member=human_member)
+
+        human_client = APIClient()
+        human_client.force_authenticate(user=game.created_by)
+        response = human_client.post(
+            reverse("channel-message-create", args=[game.id, private.id]),
+            {"body": "Just between us"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+
+        assert len(_bot_reply_jobs(in_memory_procrastinate)) == 0
+
+    @pytest.mark.django_db
+    def test_non_bot_game_does_not_defer_reply(
+        self, active_game_factory, in_memory_procrastinate
+    ):
+        game = active_game_factory()
+        channel = game.channels.create(name="Public Press", private=False)
+        member = game.members.get(user=game.created_by)
+        channel.member_channels.create(member=member)
+
+        human_client = APIClient()
+        human_client.force_authenticate(user=game.created_by)
+        response = human_client.post(
+            reverse("channel-message-create", args=[game.id, channel.id]),
+            {"body": "Anyone there?"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+
+        assert len(_bot_reply_jobs(in_memory_procrastinate)) == 0
