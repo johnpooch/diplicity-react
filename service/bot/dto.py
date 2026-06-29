@@ -45,9 +45,6 @@ class OrderOptionCollection:
     def from_api(cls, data):
         return cls([OrderOption(option) for option in data])
 
-    def __len__(self):
-        return len(self.options)
-
     def grouped_by_source(self):
         grouped = {}
         for option in self.options:
