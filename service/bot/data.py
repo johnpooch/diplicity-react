@@ -68,9 +68,8 @@ class ChatMessage:
         return [cls(message) for message in data]
 
     @property
-    def speaker(self):
-        sender = self._data["sender"]
-        return "You" if sender["is_current_user"] else sender["name"]
+    def role(self):
+        return "assistant" if self._data["sender"]["is_current_user"] else "user"
 
     @property
     def body(self):

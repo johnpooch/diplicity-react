@@ -6,7 +6,7 @@ from rest_framework.test import APIClient
 from common.constants import DeadlineMode, GameStatus, NationAssignment, PhaseStatus
 from game.models import Game
 from bot import tasks
-from bot.dto import OrderOptionCollection
+from bot.data import OrderOptionCollection
 from bot.utils import get_bot_user
 
 
