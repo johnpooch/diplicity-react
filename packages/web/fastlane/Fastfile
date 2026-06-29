@@ -212,7 +212,6 @@ platform :android do
 
   desc "Build signed AAB and upload to Play Console internal testing track"
   lane :release do
-    bump_patch_version
     build_aab
     upload_to_play
   end
