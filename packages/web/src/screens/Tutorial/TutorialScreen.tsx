@@ -12,7 +12,7 @@ import { Navigation } from "@/components/Navigation";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { buildLessons } from "./lessons";
 import { useTutorialEngine } from "./useTutorialEngine";
-import { TutorialMap } from "./components/TutorialMap";
+import { MapView } from "@/components/MapView";
 import { CoachCard } from "./components/CoachCard";
 import { ScriptedChat } from "./components/ScriptedChat";
 
@@ -62,14 +62,16 @@ const Tutorial: React.FC<TutorialProps> = ({ variant }) => {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="relative min-h-0 flex-1">
-          <TutorialMap
+          <MapView
+            mode="interactive"
             variant={variant}
-            board={engine.board}
+            phase={engine.board.phase}
+            orders={engine.board.orders}
             selected={engine.selected}
             highlighted={engine.highlighted}
-            tappable={engine.tappable}
+            renderableProvinces={engine.tappable}
             focus={engine.focus}
-            onProvinceClick={engine.onProvinceClick}
+            onClickProvince={province => engine.onProvinceClick(province)}
           />
 
           {engine.bannerText !== null && (

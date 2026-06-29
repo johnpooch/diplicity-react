@@ -71,8 +71,8 @@ vi.mock("@/api/generated/endpoints", async importOriginal => {
   };
 });
 
-vi.mock("@/components/MapPreview", () => ({
-  MapPreview: () => <div data-testid="map-preview" />,
+vi.mock("@/components/MapView", () => ({
+  MapView: () => <div data-testid="map-preview" />,
 }));
 
 vi.mock("@/components/UserAvatar", () => ({

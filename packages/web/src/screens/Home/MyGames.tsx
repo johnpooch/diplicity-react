@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { GameCard } from "@/components/GameCard";
-import { MapPreview } from "@/components/MapPreview";
+import { MapView } from "@/components/MapView";
 import { Notice } from "@/components/Notice";
 import { Button } from "@/components/ui/button";
 import { Inbox, Loader2 } from "lucide-react";
@@ -130,7 +130,8 @@ const GameTabContent: React.FC<GameTabContentProps> = ({
             game={game}
             variant={variantMap.get(game.variantId)!}
             map={
-              <MapPreview
+              <MapView
+                mode="static"
                 variant={variantMap.get(game.variantId)!}
                 phase={game.currentPhase ?? variantMap.get(game.variantId)!.templatePhase}
                 cover

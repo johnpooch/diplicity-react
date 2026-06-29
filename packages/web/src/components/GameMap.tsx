@@ -273,7 +273,8 @@ const GameMap: React.FC = () => {
       {game && variant && phase && orders && (
         <>
           <MapView
-            interactive
+            mode="interactive"
+            showFillToggle
             variant={variant}
             phase={phase}
             orders={displayOrders}

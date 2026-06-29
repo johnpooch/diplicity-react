@@ -1,6 +1,6 @@
 import React, { Suspense } from "react";
 import { GameCard } from "@/components/GameCard";
-import { MapPreview } from "@/components/MapPreview";
+import { MapView } from "@/components/MapView";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { ScreenHeader } from "@/components/ui/screen-header";
@@ -80,7 +80,8 @@ const ScenarioCard: React.FC<Scenario> = ({ label, game }) => (
       game={withVariantNations(game)}
       variant={variant}
       map={
-        <MapPreview
+        <MapView
+          mode="static"
           variant={variant}
           phase={variant.templatePhase}
           cover
