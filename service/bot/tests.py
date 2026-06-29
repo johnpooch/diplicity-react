@@ -14,7 +14,12 @@ from common.constants import (
 )
 from channel.models import ChannelMessage
 from game.models import Game
-from bot import llm, tasks, utils
+from bot import tasks, utils
+from bot.actions import ReplyAction, SelectOrderAction
+from bot.actions.reply import TOOL_NAME as REPLY_TOOL_NAME
+from bot.actions.select_order import TOOL_NAME as SELECT_TOOL_NAME
+from bot.dto import ChatMessage, OrderOption, OrderOptionCollection
+from bot.llm_client import LLMClient
 from bot.utils import get_bot_user
 
 
@@ -35,29 +40,29 @@ def _option(source, order_type, target=None, aux=None, unit_type=None, named_coa
 class TestOptionToSelected:
 
     def test_hold(self):
-        assert utils.option_to_selected(_option("lon", OrderType.HOLD)) == ["lon", OrderType.HOLD]
+        assert OrderOption(_option("lon", OrderType.HOLD)).to_selected() == ["lon", OrderType.HOLD]
 
     def test_move(self):
-        assert utils.option_to_selected(_option("lon", OrderType.MOVE, target="nth")) == [
+        assert OrderOption(_option("lon", OrderType.MOVE, target="nth")).to_selected() == [
             "lon",
             OrderType.MOVE,
             "nth",
         ]
 
     def test_move_with_named_coast(self):
-        assert utils.option_to_selected(
+        assert OrderOption(
             _option("mid", OrderType.MOVE, target="spa", named_coast="spa/nc")
-        ) == ["mid", OrderType.MOVE, "spa", "spa/nc"]
+        ).to_selected() == ["mid", OrderType.MOVE, "spa", "spa/nc"]
 
     def test_support(self):
-        assert utils.option_to_selected(
+        assert OrderOption(
             _option("lon", OrderType.SUPPORT, aux="wal", target="lvp")
-        ) == ["lon", OrderType.SUPPORT, "wal", "lvp"]
+        ).to_selected() == ["lon", OrderType.SUPPORT, "wal", "lvp"]
 
     def test_build_fleet_named_coast(self):
-        assert utils.option_to_selected(
+        assert OrderOption(
             _option("stp", OrderType.BUILD, unit_type="Fleet", named_coast="stp/sc")
-        ) == ["stp", OrderType.BUILD, "Fleet", "stp/sc"]
+        ).to_selected() == ["stp", OrderType.BUILD, "Fleet", "stp/sc"]
 
 
 class TestFirstLegalSelections:
@@ -69,7 +74,7 @@ class TestFirstLegalSelections:
             _option("edi", OrderType.MOVE, target="nwg"),
             _option("edi", OrderType.HOLD),
         ]
-        assert utils.first_legal_selections(options) == [
+        assert OrderOptionCollection.from_api(options).first_legal_selections() == [
             ["lon", OrderType.HOLD],
             ["edi", OrderType.MOVE, "nwg"],
         ]
@@ -78,7 +83,7 @@ class TestFirstLegalSelections:
 def _llm_message(choices):
     block = Mock()
     block.type = "tool_use"
-    block.name = llm.TOOL_NAME
+    block.name = SELECT_TOOL_NAME
     block.input = {"choices": choices}
     return Mock(content=[block])
 
@@ -93,15 +98,18 @@ class TestSelectOrders:
             _option("edi", OrderType.MOVE, target="nwg"),
         ]
 
+    def _run(self, options):
+        return LLMClient().run(SelectOrderAction(OrderOptionCollection.from_api(options)))
+
     def test_returns_llm_choice_per_source(self, settings):
         settings.ANTHROPIC_API_KEY = "test-key"
         choices = [
             {"source_id": "lon", "option_index": 1},
             {"source_id": "edi", "option_index": 1},
         ]
-        with patch("bot.llm.Anthropic") as mock_anthropic:
+        with patch("bot.llm_client.Anthropic") as mock_anthropic:
             mock_anthropic.return_value.messages.create.return_value = _llm_message(choices)
-            selections = llm.select_orders(self._options())
+            selections = self._run(self._options())
 
         assert selections == [
             ["lon", OrderType.MOVE, "nth"],
@@ -111,23 +119,25 @@ class TestSelectOrders:
     def test_falls_back_to_first_legal_without_key(self, settings):
         settings.ANTHROPIC_API_KEY = ""
         options = self._options()
-        assert llm.select_orders(options) == utils.first_legal_selections(options)
+        assert self._run(options) == OrderOptionCollection.from_api(
+            options
+        ).first_legal_selections()
 
     def test_falls_back_to_first_legal_when_client_raises(self, settings):
         settings.ANTHROPIC_API_KEY = "test-key"
         options = self._options()
-        with patch("bot.llm.Anthropic") as mock_anthropic:
+        with patch("bot.llm_client.Anthropic") as mock_anthropic:
             mock_anthropic.return_value.messages.create.side_effect = RuntimeError("boom")
-            selections = llm.select_orders(options)
+            selections = self._run(options)
 
-        assert selections == utils.first_legal_selections(options)
+        assert selections == OrderOptionCollection.from_api(options).first_legal_selections()
 
     def test_invalid_or_missing_index_falls_back_per_source(self, settings):
         settings.ANTHROPIC_API_KEY = "test-key"
         choices = [{"source_id": "lon", "option_index": 9}]
-        with patch("bot.llm.Anthropic") as mock_anthropic:
+        with patch("bot.llm_client.Anthropic") as mock_anthropic:
             mock_anthropic.return_value.messages.create.return_value = _llm_message(choices)
-            selections = llm.select_orders(self._options())
+            selections = self._run(self._options())
 
         assert selections == [
             ["lon", OrderType.HOLD],
@@ -164,7 +174,7 @@ class TestAdjustmentOrderLimit:
         bot_user = get_bot_user()
         fake_client = self._fake_client(max_orders=1)
 
-        with patch("bot.tasks.APIClient", return_value=fake_client):
+        with patch("bot.api_client.APIClient", return_value=fake_client):
             tasks.plan(user_id=bot_user.id, game_id="some-game")
 
         assert fake_client.post.call_count == 1
@@ -174,7 +184,7 @@ class TestAdjustmentOrderLimit:
         bot_user = get_bot_user()
         fake_client = self._fake_client(max_orders=None)
 
-        with patch("bot.tasks.APIClient", return_value=fake_client):
+        with patch("bot.api_client.APIClient", return_value=fake_client):
             tasks.plan(user_id=bot_user.id, game_id="some-game")
 
         assert fake_client.post.call_count == 3
@@ -339,7 +349,7 @@ class TestFinalizeTrigger:
 def _llm_reply(should_reply, message=""):
     block = Mock()
     block.type = "tool_use"
-    block.name = llm.REPLY_TOOL_NAME
+    block.name = REPLY_TOOL_NAME
     block.input = {"should_reply": should_reply, "message": message}
     return Mock(content=[block])
 
@@ -354,35 +364,38 @@ class TestComposeReply:
             },
         ]
 
+    def _run(self):
+        return LLMClient().run(ReplyAction(ChatMessage.list_from_api(self._messages())))
+
     def test_returns_reply_when_model_replies(self, settings):
         settings.ANTHROPIC_API_KEY = "test-key"
-        with patch("bot.llm.Anthropic") as mock_anthropic:
+        with patch("bot.llm_client.Anthropic") as mock_anthropic:
             mock_anthropic.return_value.messages.create.return_value = _llm_reply(
                 True, "Sure, let's talk."
             )
-            assert llm.compose_reply(self._messages()) == "Sure, let's talk."
+            assert self._run() == "Sure, let's talk."
 
     def test_returns_none_when_model_declines(self, settings):
         settings.ANTHROPIC_API_KEY = "test-key"
-        with patch("bot.llm.Anthropic") as mock_anthropic:
+        with patch("bot.llm_client.Anthropic") as mock_anthropic:
             mock_anthropic.return_value.messages.create.return_value = _llm_reply(False, "")
-            assert llm.compose_reply(self._messages()) is None
+            assert self._run() is None
 
     def test_returns_none_for_empty_message(self, settings):
         settings.ANTHROPIC_API_KEY = "test-key"
-        with patch("bot.llm.Anthropic") as mock_anthropic:
+        with patch("bot.llm_client.Anthropic") as mock_anthropic:
             mock_anthropic.return_value.messages.create.return_value = _llm_reply(True, "   ")
-            assert llm.compose_reply(self._messages()) is None
+            assert self._run() is None
 
     def test_returns_none_without_key(self, settings):
         settings.ANTHROPIC_API_KEY = ""
-        assert llm.compose_reply(self._messages()) is None
+        assert self._run() is None
 
     def test_returns_none_when_client_raises(self, settings):
         settings.ANTHROPIC_API_KEY = "test-key"
-        with patch("bot.llm.Anthropic") as mock_anthropic:
+        with patch("bot.llm_client.Anthropic") as mock_anthropic:
             mock_anthropic.return_value.messages.create.side_effect = RuntimeError("boom")
-            assert llm.compose_reply(self._messages()) is None
+            assert self._run() is None
 
 
 @pytest.fixture
@@ -409,7 +422,8 @@ class TestReplyTask:
         human_member = game.members.get(user=game.created_by)
         ChannelMessage.objects.create(channel=channel, sender=human_member, body="Hi bot")
 
-        with patch("bot.tasks.compose_reply", return_value="Hello, human!"):
+        with patch("bot.tasks.LLMClient") as mock_llm:
+            mock_llm.return_value.run.return_value = "Hello, human!"
             tasks.reply(user_id=bot_user.id, game_id=game.id, channel_id=channel.id)
 
         assert channel.messages.filter(sender=bot_member, body="Hello, human!").exists()
@@ -423,7 +437,8 @@ class TestReplyTask:
         human_member = game.members.get(user=game.created_by)
         ChannelMessage.objects.create(channel=channel, sender=human_member, body="Hi bot")
 
-        with patch("bot.tasks.compose_reply", return_value=None):
+        with patch("bot.tasks.LLMClient") as mock_llm:
+            mock_llm.return_value.run.return_value = None
             tasks.reply(user_id=bot_user.id, game_id=game.id, channel_id=channel.id)
 
         assert channel.messages.filter(sender__user=bot_user).count() == 0

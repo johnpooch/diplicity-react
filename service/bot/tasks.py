@@ -1,14 +1,24 @@
 import logging
 
-from django.contrib.auth import get_user_model
-from django.urls import reverse
 from procrastinate.contrib.django import app
-from rest_framework.test import APIClient
 
-from bot.llm import compose_reply, select_orders
-from bot.utils import bot_request_host
+from bot.actions import ReplyAction, SelectOrderAction
+from bot.api_client import BotApiClient, BotApiError
+from bot.llm_client import LLMClient
 
 logger = logging.getLogger(__name__)
+
+
+def _submit_selected_orders(api, game_id, label):
+    options = api.get_order_options(game_id)
+    selections = LLMClient().run(SelectOrderAction(options))
+
+    max_orders = api.get_max_orders(game_id)
+    if max_orders is not None and len(selections) > max_orders:
+        logger.info(f"[{label}] capping {len(selections)} selection(s) to max_orders={max_orders}")
+        selections = selections[:max_orders]
+
+    api.submit_orders(game_id, selections)
 
 
 @app.task(name="bot.plan", retry=3)
@@ -16,33 +26,12 @@ def plan(user_id, game_id):
     label = f"bot.plan user={user_id} game={game_id}"
     logger.info(f"[{label}] invoked")
 
-    user = get_user_model().objects.get(id=user_id)
-    client = APIClient(SERVER_NAME=bot_request_host())
-    client.force_authenticate(user=user)
-
-    options_response = client.get(reverse("order-options", args=[game_id]))
-    if options_response.status_code != 200:
-        logger.error(f"[{label}] options request failed: {options_response.status_code}")
+    api = BotApiClient.for_user(user_id)
+    try:
+        _submit_selected_orders(api, game_id, label)
+    except BotApiError as e:
+        logger.error(f"[{label}] aborting: {e}")
         return
-    logger.info(f"[{label}] fetched {len(options_response.data['orders'])} order option(s)")
-    selections = select_orders(options_response.data["orders"])
-
-    phase_states_response = client.get(reverse("phase-state-list", args=[game_id]))
-    if phase_states_response.status_code != 200:
-        logger.error(f"[{label}] phase states request failed: {phase_states_response.status_code}")
-        return
-    max_orders = phase_states_response.data[0]["max_orders"] if phase_states_response.data else None
-    if max_orders is not None and len(selections) > max_orders:
-        logger.info(f"[{label}] capping {len(selections)} selection(s) to max_orders={max_orders}")
-        selections = selections[:max_orders]
-
-    create_url = reverse("order-create", args=[game_id])
-    for selected in selections:
-        response = client.post(create_url, {"selected": selected}, format="json")
-        if response.status_code not in (200, 201):
-            logger.error(f"[{label}] create order failed ({response.status_code}) for {selected}")
-        else:
-            logger.info(f"[{label}] created order {selected}")
 
     logger.info(f"[{label}] completed")
 
@@ -52,47 +41,16 @@ def finalize(user_id, game_id):
     label = f"bot.finalize user={user_id} game={game_id}"
     logger.info(f"[{label}] invoked")
 
-    user = get_user_model().objects.get(id=user_id)
-    client = APIClient(SERVER_NAME=bot_request_host())
-    client.force_authenticate(user=user)
-
-    game_response = client.get(reverse("game-retrieve", args=[game_id]))
-    if game_response.status_code != 200:
-        logger.error(f"[{label}] game retrieve failed: {game_response.status_code}")
+    api = BotApiClient.for_user(user_id)
+    try:
+        if api.is_phase_confirmed(game_id):
+            logger.info(f"[{label}] orders already confirmed; skipping")
+            return
+        _submit_selected_orders(api, game_id, label)
+        api.confirm_phase(game_id)
+    except BotApiError as e:
+        logger.error(f"[{label}] aborting: {e}")
         return
-    if game_response.data.get("phase_confirmed"):
-        logger.info(f"[{label}] orders already confirmed; skipping")
-        return
-
-    options_response = client.get(reverse("order-options", args=[game_id]))
-    if options_response.status_code != 200:
-        logger.error(f"[{label}] options request failed: {options_response.status_code}")
-        return
-    logger.info(f"[{label}] fetched {len(options_response.data['orders'])} order option(s)")
-    selections = select_orders(options_response.data["orders"])
-
-    phase_states_response = client.get(reverse("phase-state-list", args=[game_id]))
-    if phase_states_response.status_code != 200:
-        logger.error(f"[{label}] phase states request failed: {phase_states_response.status_code}")
-        return
-    max_orders = phase_states_response.data[0]["max_orders"] if phase_states_response.data else None
-    if max_orders is not None and len(selections) > max_orders:
-        logger.info(f"[{label}] capping {len(selections)} selection(s) to max_orders={max_orders}")
-        selections = selections[:max_orders]
-
-    create_url = reverse("order-create", args=[game_id])
-    for selected in selections:
-        response = client.post(create_url, {"selected": selected}, format="json")
-        if response.status_code not in (200, 201):
-            logger.error(f"[{label}] create order failed ({response.status_code}) for {selected}")
-        else:
-            logger.info(f"[{label}] created order {selected}")
-
-    confirm_response = client.put(reverse("game-confirm-phase", args=[game_id]))
-    if confirm_response.status_code != 200:
-        logger.error(f"[{label}] confirm failed: {confirm_response.status_code}")
-        return
-    logger.info(f"[{label}] confirmed phase")
 
     logger.info(f"[{label}] completed")
 
@@ -102,29 +60,16 @@ def reply(user_id, game_id, channel_id):
     label = f"bot.reply user={user_id} game={game_id} channel={channel_id}"
     logger.info(f"[{label}] invoked")
 
-    user = get_user_model().objects.get(id=user_id)
-    client = APIClient(SERVER_NAME=bot_request_host())
-    client.force_authenticate(user=user)
-
-    channels_response = client.get(reverse("channel-list", args=[game_id]))
-    if channels_response.status_code != 200:
-        logger.error(f"[{label}] channel list request failed: {channels_response.status_code}")
+    api = BotApiClient.for_user(user_id)
+    try:
+        messages = api.get_channel_messages(game_id, channel_id)
+        reply_text = LLMClient().run(ReplyAction(messages))
+        if not reply_text:
+            logger.info(f"[{label}] no reply composed; staying silent")
+            return
+        api.post_message(game_id, channel_id, reply_text)
+    except BotApiError as e:
+        logger.error(f"[{label}] aborting: {e}")
         return
-    channel = next((c for c in channels_response.data if c["id"] == channel_id), None)
-    if channel is None:
-        logger.error(f"[{label}] channel {channel_id} not found")
-        return
-
-    reply_text = compose_reply(channel["messages"])
-    if not reply_text:
-        logger.info(f"[{label}] no reply composed; staying silent")
-        return
-
-    create_url = reverse("channel-message-create", args=[game_id, channel_id])
-    response = client.post(create_url, {"body": reply_text}, format="json")
-    if response.status_code not in (200, 201):
-        logger.error(f"[{label}] post reply failed ({response.status_code})")
-        return
-    logger.info(f"[{label}] posted reply")
 
     logger.info(f"[{label}] completed")
