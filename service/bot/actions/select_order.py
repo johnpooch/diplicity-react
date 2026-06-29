@@ -31,27 +31,28 @@ TOOL = {
     },
 }
 
-PROMPT_PREAMBLE = (
-    "You are playing a game of Diplomacy. For each unit below, choose one order "
-    "by its index from the listed legal options. Submit a choice for every unit "
-    "using the submit_order_choices tool."
+SYSTEM = (
+    "You are playing a game of Diplomacy. For each unit listed in the user message, "
+    "choose one order by its index from the listed legal options. Submit a choice for "
+    "every unit using the submit_order_choices tool."
 )
 
 
 class SelectOrderAction(Action):
     name = "select_order"
     tool = TOOL
+    system = SYSTEM
 
     def __init__(self, options):
         self.options = options
 
-    def build_prompt(self):
+    def build_messages(self):
         lines = []
         for source_id, source_options in self.options.grouped_by_source().items():
             lines.append(f"Unit {source_id}:")
             for index, option in enumerate(source_options):
                 lines.append(f"  {index}. {option.label}")
-        return PROMPT_PREAMBLE + "\n\n" + "\n".join(lines)
+        return [{"role": "user", "content": "\n".join(lines)}]
 
     def parse(self, tool_input):
         choices = {
@@ -72,6 +73,3 @@ class SelectOrderAction(Action):
             selections.append(chosen.to_selected())
         logger.info(f"[bot.llm] selected {len(selections)} order(s)")
         return selections
-
-    def fallback(self):
-        return self.options.first_legal_selections()

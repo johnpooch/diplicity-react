@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from bot.dto import ChatMessage, OrderOptionCollection
+from bot.data import ChatMessage, OrderOptionCollection
 from bot.utils import bot_request_host
 
 logger = logging.getLogger(__name__)

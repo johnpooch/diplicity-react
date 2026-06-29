@@ -21,26 +21,27 @@ TOOL = {
     },
 }
 
-PROMPT_PREAMBLE = (
+SYSTEM = (
     "You are a player in a game of Diplomacy, taking part in the public chat with the "
-    'other players. Below is the conversation so far, where "You" marks your own '
-    "previous messages. Decide whether to send a reply. Only reply if a reply is "
-    "warranted and you have something worth saying; staying silent is a perfectly good "
-    "choice. Keep any reply short, on-topic, and in the spirit of friendly table talk. "
-    "Use the reply_to_chat tool to respond."
+    "other players. The messages are the conversation so far; your own previous "
+    "messages appear as assistant messages and the other players' messages as user "
+    "messages. Decide whether to send a reply. Only reply if a reply is warranted and "
+    "you have something worth saying; staying silent is a perfectly good choice. Keep "
+    "any reply short, on-topic, and in the spirit of friendly table talk. Use the "
+    "reply_to_chat tool to respond."
 )
 
 
 class ReplyAction(Action):
     name = "reply"
     tool = TOOL
+    system = SYSTEM
 
     def __init__(self, messages):
         self.messages = messages
 
-    def build_prompt(self):
-        lines = [f"{message.speaker}: {message.body}" for message in self.messages]
-        return PROMPT_PREAMBLE + "\n\n" + "\n".join(lines)
+    def build_messages(self):
+        return [{"role": message.role, "content": message.body} for message in self.messages]
 
     def parse(self, tool_input):
         if not tool_input.get("should_reply"):
@@ -52,6 +53,3 @@ class ReplyAction(Action):
             return None
         logger.info(f"[bot.llm] composed chat reply ({len(reply)} char(s))")
         return reply
-
-    def fallback(self):
-        return None

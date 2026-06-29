@@ -18,8 +18,8 @@ from bot import tasks, utils
 from bot.actions import ReplyAction, SelectOrderAction
 from bot.actions.reply import TOOL_NAME as REPLY_TOOL_NAME
 from bot.actions.select_order import TOOL_NAME as SELECT_TOOL_NAME
-from bot.dto import ChatMessage, OrderOption, OrderOptionCollection
-from bot.llm_client import LLMClient
+from bot.data import ChatMessage, OrderOption, OrderOptionCollection
+from bot.llm_client import LLMClient, LLMError
 from bot.utils import get_bot_user
 
 
@@ -98,11 +98,10 @@ class TestSelectOrders:
             _option("edi", OrderType.MOVE, target="nwg"),
         ]
 
-    def _run(self, options):
-        return LLMClient().run(SelectOrderAction(OrderOptionCollection.from_api(options)))
+    def _run(self, options, key="test-key"):
+        return LLMClient(key).run(SelectOrderAction(OrderOptionCollection.from_api(options)))
 
-    def test_returns_llm_choice_per_source(self, settings):
-        settings.ANTHROPIC_API_KEY = "test-key"
+    def test_returns_llm_choice_per_source(self):
         choices = [
             {"source_id": "lon", "option_index": 1},
             {"source_id": "edi", "option_index": 1},
@@ -116,24 +115,17 @@ class TestSelectOrders:
             ["edi", OrderType.MOVE, "nwg"],
         ]
 
-    def test_falls_back_to_first_legal_without_key(self, settings):
-        settings.ANTHROPIC_API_KEY = ""
-        options = self._options()
-        assert self._run(options) == OrderOptionCollection.from_api(
-            options
-        ).first_legal_selections()
+    def test_raises_without_key(self):
+        with pytest.raises(LLMError):
+            LLMClient("")
 
-    def test_falls_back_to_first_legal_when_client_raises(self, settings):
-        settings.ANTHROPIC_API_KEY = "test-key"
-        options = self._options()
+    def test_raises_when_client_raises(self):
         with patch("bot.llm_client.Anthropic") as mock_anthropic:
             mock_anthropic.return_value.messages.create.side_effect = RuntimeError("boom")
-            selections = self._run(options)
+            with pytest.raises(LLMError):
+                self._run(self._options())
 
-        assert selections == OrderOptionCollection.from_api(options).first_legal_selections()
-
-    def test_invalid_or_missing_index_falls_back_per_source(self, settings):
-        settings.ANTHROPIC_API_KEY = "test-key"
+    def test_invalid_or_missing_index_falls_back_per_source(self):
         choices = [{"source_id": "lon", "option_index": 9}]
         with patch("bot.llm_client.Anthropic") as mock_anthropic:
             mock_anthropic.return_value.messages.create.return_value = _llm_message(choices)
@@ -364,38 +356,35 @@ class TestComposeReply:
             },
         ]
 
-    def _run(self):
-        return LLMClient().run(ReplyAction(ChatMessage.list_from_api(self._messages())))
+    def _run(self, key="test-key"):
+        return LLMClient(key).run(ReplyAction(ChatMessage.list_from_api(self._messages())))
 
-    def test_returns_reply_when_model_replies(self, settings):
-        settings.ANTHROPIC_API_KEY = "test-key"
+    def test_returns_reply_when_model_replies(self):
         with patch("bot.llm_client.Anthropic") as mock_anthropic:
             mock_anthropic.return_value.messages.create.return_value = _llm_reply(
                 True, "Sure, let's talk."
             )
             assert self._run() == "Sure, let's talk."
 
-    def test_returns_none_when_model_declines(self, settings):
-        settings.ANTHROPIC_API_KEY = "test-key"
+    def test_returns_none_when_model_declines(self):
         with patch("bot.llm_client.Anthropic") as mock_anthropic:
             mock_anthropic.return_value.messages.create.return_value = _llm_reply(False, "")
             assert self._run() is None
 
-    def test_returns_none_for_empty_message(self, settings):
-        settings.ANTHROPIC_API_KEY = "test-key"
+    def test_returns_none_for_empty_message(self):
         with patch("bot.llm_client.Anthropic") as mock_anthropic:
             mock_anthropic.return_value.messages.create.return_value = _llm_reply(True, "   ")
             assert self._run() is None
 
-    def test_returns_none_without_key(self, settings):
-        settings.ANTHROPIC_API_KEY = ""
-        assert self._run() is None
+    def test_raises_without_key(self):
+        with pytest.raises(LLMError):
+            LLMClient("")
 
-    def test_returns_none_when_client_raises(self, settings):
-        settings.ANTHROPIC_API_KEY = "test-key"
+    def test_raises_when_client_raises(self):
         with patch("bot.llm_client.Anthropic") as mock_anthropic:
             mock_anthropic.return_value.messages.create.side_effect = RuntimeError("boom")
-            assert self._run() is None
+            with pytest.raises(LLMError):
+                self._run()
 
 
 @pytest.fixture

@@ -1,17 +1,22 @@
 import logging
 
+from django.conf import settings
 from procrastinate.contrib.django import app
 
 from bot.actions import ReplyAction, SelectOrderAction
 from bot.api_client import BotApiClient, BotApiError
-from bot.llm_client import LLMClient
+from bot.llm_client import LLMClient, LLMError
 
 logger = logging.getLogger(__name__)
 
 
 def _submit_selected_orders(api, game_id, label):
     options = api.get_order_options(game_id)
-    selections = LLMClient().run(SelectOrderAction(options))
+    try:
+        selections = LLMClient(settings.ANTHROPIC_API_KEY).run(SelectOrderAction(options))
+    except LLMError as e:
+        logger.info(f"[{label}] {e}; using first-legal selection")
+        selections = options.first_legal_selections()
 
     max_orders = api.get_max_orders(game_id)
     if max_orders is not None and len(selections) > max_orders:
@@ -63,10 +68,21 @@ def reply(user_id, game_id, channel_id):
     api = BotApiClient.for_user(user_id)
     try:
         messages = api.get_channel_messages(game_id, channel_id)
-        reply_text = LLMClient().run(ReplyAction(messages))
-        if not reply_text:
-            logger.info(f"[{label}] no reply composed; staying silent")
-            return
+    except BotApiError as e:
+        logger.error(f"[{label}] aborting: {e}")
+        return
+
+    try:
+        reply_text = LLMClient(settings.ANTHROPIC_API_KEY).run(ReplyAction(messages))
+    except LLMError as e:
+        logger.info(f"[{label}] {e}; staying silent")
+        return
+
+    if not reply_text:
+        logger.info(f"[{label}] no reply composed; staying silent")
+        return
+
+    try:
         api.post_message(game_id, channel_id, reply_text)
     except BotApiError as e:
         logger.error(f"[{label}] aborting: {e}")
