@@ -6,13 +6,14 @@ from rest_framework.test import APIClient
 from common.constants import DeadlineMode, GameStatus, NationAssignment, PhaseStatus
 from game.models import Game
 from bot import tasks
-from bot.utils import first_legal_selections, get_bot_user
+from bot.dto import OrderOptionCollection
+from bot.utils import get_bot_user
 
 
 def _submit_first_legal_orders(client, game_id):
     options = client.get(reverse("order-options", args=[game_id])).data["orders"]
     create_url = reverse("order-create", args=[game_id])
-    for selected in first_legal_selections(options):
+    for selected in OrderOptionCollection.from_api(options).first_legal_selections():
         client.post(create_url, {"selected": selected}, format="json")
 
 
