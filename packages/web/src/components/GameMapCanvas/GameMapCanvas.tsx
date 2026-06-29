@@ -2,14 +2,24 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
 import { Maximize, Minimize } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { Order, PhaseRetrieve, Variant } from "../../api/generated/endpoints";
+import type {
+  GameListCurrentPhase,
+  Order,
+  PhaseRetrieve,
+  Variant,
+  VariantTemplatePhase,
+} from "../../api/generated/endpoints";
 import { parseDsvg } from "../InteractiveMap/dsvgParser";
 import { DiplicityMap } from "../InteractiveMap/mapRenderer";
 import { toRenderState } from "../InteractiveMap/toRenderState";
 import { recordGesture, recordInitialRender } from "../InteractiveMap/mapTelemetry";
 import { useDsvg } from "../../hooks/useDsvg";
 import { isNativePlatform } from "../../utils/platform";
-import { GameMapController, type GestureRecord } from "./GameMapController";
+import {
+  GameMapController,
+  type GestureRecord,
+  type MapMode,
+} from "./GameMapController";
 import { renderSplitSvg } from "./mapSvgLayers";
 import { rasterizeSvg } from "./rasterizeSvg";
 import { buildProvinceRings } from "./provincePolygons";
@@ -18,13 +28,15 @@ type VariantForMap = Pick<Variant, "id" | "nations" | "svgUrl">;
 
 type GameMapCanvasProps = {
   variant: VariantForMap;
-  phase: PhaseRetrieve;
+  phase: PhaseRetrieve | VariantTemplatePhase | GameListCurrentPhase;
   orders: Order[] | undefined;
   selected: string[];
   highlighted?: string[];
   civilDisorderNations?: string[];
   renderableProvinces?: string[];
-  interactive?: boolean;
+  mode?: MapMode;
+  showFillToggle?: boolean;
+  focus?: string[];
   onClickProvince?: (province: string, position: { x: number; y: number }) => void;
   style?: React.CSSProperties;
 };
@@ -35,9 +47,12 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
   const basePngRef = useRef<string | null>(null);
   const initialRecordedRef = useRef(false);
 
+  const mode = props.mode ?? "interactive";
+  const showFillToggle = props.showFillToggle ?? false;
+
   const { data: dsvg } = useDsvg(props.variant.svgUrl);
 
-  const [fill, setFill] = useState(true);
+  const [fill, setFill] = useState(showFillToggle);
 
   const parsed = useMemo(() => (dsvg ? parseDsvg(dsvg) : null), [dsvg]);
   const renderer = useMemo(() => (dsvg ? new DiplicityMap(dsvg) : null), [dsvg]);
@@ -116,8 +131,10 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
 
     const controller = new GameMapController(containerRef.current, {
       viewBox: parsed.viewBox,
-      interactive: props.interactive ?? false,
-      enableHover: (props.interactive ?? false) && !isNativePlatform(),
+      mode,
+      enableHover: mode === "interactive" && !isNativePlatform(),
+      maxZoomFactor: showFillToggle ? undefined : 4,
+      initialFill: showFillToggle,
       onClickProvince: (province, position) =>
         onClickRef.current?.(province, position),
       onGesture: handleGesture,
@@ -140,16 +157,26 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
   }, [parsed]);
 
   useEffect(() => {
-    if (controllerRef.current && rings) {
+    if (controllerRef.current && rings && mode === "interactive") {
       controllerRef.current.setHitTest(rings);
     }
-  }, [rings]);
+  }, [rings, mode]);
 
   useEffect(() => {
     if (controllerRef.current && provincePaths) {
       controllerRef.current.setProvincePaths(provincePaths);
     }
   }, [provincePaths]);
+
+  const focusKey = props.focus?.join(",") ?? "";
+  useEffect(() => {
+    const controller = controllerRef.current;
+    if (!controller || !provincePaths || !props.focus || props.focus.length === 0) {
+      return;
+    }
+    controller.focusProvinces(props.focus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- focus compared by joined key; provincePaths gates controller readiness
+  }, [focusKey, provincePaths]);
 
   useEffect(() => {
     controllerRef.current?.setFill(fill);
@@ -229,7 +256,7 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
         data-map-impl="leaflet"
         style={{ width: "100%", height: "100%", background: "#fff" }}
       />
-      {props.interactive && (
+      {showFillToggle && (
         <Button
           size="icon"
           onClick={() => setFill((prev) => !prev)}

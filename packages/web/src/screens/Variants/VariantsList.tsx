@@ -27,7 +27,7 @@ import {
   getVariantsListQueryKey,
   Variant,
 } from "@/api/generated/endpoints";
-import { MapPreview } from "@/components/MapPreview";
+import { MapView } from "@/components/MapView";
 import axiosInstance from "@/api/axiosInstance";
 import { useQueryClient } from "@tanstack/react-query";
 import { createGamePath } from "@/utils/routes";
@@ -104,7 +104,8 @@ const VariantRow: React.FC<VariantRowProps> = ({
       <div className="flex flex-col sm:flex-row sm:h-56">
         {variant.svgUrl && (
           <div className="sm:w-44 flex-shrink-0 overflow-hidden">
-            <MapPreview
+            <MapView
+              mode="static"
               variant={variant}
               phase={variant.templatePhase}
               cover

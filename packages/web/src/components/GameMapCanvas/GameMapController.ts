@@ -3,7 +3,10 @@ import type { Point, ViewBox } from "../InteractiveMap/dsvgParser";
 import type { GestureType } from "../InteractiveMap/mapTelemetry";
 import { toLatLng, viewBoxBounds } from "./leafletCoords";
 import type { ProvinceRing } from "./provincePolygons";
+import { focusBounds } from "./focusBounds";
 import { buildHighlightSvg } from "./highlightSvg";
+
+export type MapMode = "static" | "pannable" | "interactive";
 
 const MAX_ZOOM_FACTORS = 2;
 
@@ -44,8 +47,10 @@ export type GestureRecord = {
 
 type ControllerOptions = {
   viewBox: ViewBox;
-  interactive: boolean;
+  mode: MapMode;
   enableHover: boolean;
+  maxZoomFactor?: number;
+  initialFill?: boolean;
   onClickProvince?: (province: string, position: Point) => void;
   onGesture: (record: GestureRecord) => void;
 };
@@ -101,6 +106,7 @@ export class GameMapController {
   constructor(container: HTMLElement, options: ControllerOptions) {
     this.options = options;
     this.container = container;
+    this.fill = options.initialFill ?? true;
     this.bounds = L.latLngBounds(viewBoxBounds(options.viewBox));
 
     this.map = L.map(container, {
@@ -154,7 +160,10 @@ export class GameMapController {
     this.containZoom = this.map.getBoundsZoom(this.bounds, false);
     this.fillZoom = this.map.getBoundsZoom(this.bounds, true);
     this.map.setMaxZoom(
-      Math.max(MAX_ABSOLUTE_ZOOM, this.containZoom + MAX_ZOOM_FACTORS)
+      Math.max(
+        MAX_ABSOLUTE_ZOOM,
+        this.containZoom + (this.options.maxZoomFactor ?? MAX_ZOOM_FACTORS)
+      )
     );
     this.applyRegime();
     const fitZoom = this.fill ? this.fillZoom : this.containZoom;
@@ -193,6 +202,22 @@ export class GameMapController {
     this.map.setMinZoom(this.containZoom);
     this.map.once("zoomend", () => this.applyRegime());
     this.fitToRegime(true);
+  }
+
+  // Frame a set of provinces, animating the camera to their padded bounding box.
+  // The bounds are computed from the province path geometry (the rasterised base
+  // has no per-province elements to measure), reusing the same path flattener as
+  // the hit-test rings.
+  focusProvinces(ids: string[], padding = 1.4, animate = true): void {
+    if (ids.length === 0) return;
+    const rect = focusBounds(this.provincePaths, ids, padding);
+    if (!rect) return;
+    const bounds = L.latLngBounds(
+      toLatLng({ x: rect.minX, y: rect.minY }),
+      toLatLng({ x: rect.maxX, y: rect.maxY })
+    );
+    const zoom = this.map.getBoundsZoom(bounds, false);
+    this.map.setView(bounds.getCenter(), zoom, { animate });
   }
 
   // Maps wheel delta straight to a zoom change, batched per animation frame.
@@ -320,7 +345,7 @@ export class GameMapController {
   }
 
   private handleClick(province: string, event: L.LeafletMouseEvent): void {
-    if (!this.options.interactive) return;
+    if (this.options.mode !== "interactive") return;
     const original = event.originalEvent;
     this.options.onClickProvince?.(province, {
       x: original.clientX,
@@ -329,7 +354,7 @@ export class GameMapController {
   }
 
   private handleHover(province: string | null): void {
-    if (!this.options.interactive) return;
+    if (this.options.mode !== "interactive") return;
     if (this.hovered === province) return;
     this.hovered = province;
     this.renderHighlight();
@@ -375,7 +400,9 @@ export class GameMapController {
     for (const [province, polygons] of this.polygonsByProvince) {
       const renderable = this.style.renderable.has(province);
       const cursor =
-        renderable && this.options.interactive ? "pointer" : "default";
+        renderable && this.options.mode === "interactive"
+          ? "pointer"
+          : "default";
       for (const polygon of polygons) {
         const element = polygon.getElement();
         if (element instanceof SVGElement || element instanceof HTMLElement) {

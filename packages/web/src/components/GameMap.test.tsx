@@ -10,21 +10,21 @@ const {
   mockToastSuccess,
   mockToastError,
   mockWizardReset,
-  mockInteractiveMapZoomWrapper,
+  mockMapView,
 } = vi.hoisted(() => ({
   mockToastSuccess: vi.fn(),
   mockToastError: vi.fn(),
   mockWizardReset: vi.fn(),
-  mockInteractiveMapZoomWrapper: vi.fn(),
+  mockMapView: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
   toast: { success: mockToastSuccess, error: mockToastError },
 }));
 
-vi.mock("@/components/InteractiveMap/InteractiveMapZoomWrapper", () => ({
-  InteractiveMapZoomWrapper: (props: unknown) => {
-    mockInteractiveMapZoomWrapper(props);
+vi.mock("@/components/MapView", () => ({
+  MapView: (props: unknown) => {
+    mockMapView(props);
     return <div data-testid="map" />;
   },
 }));
@@ -190,10 +190,10 @@ function completeWizard() {
 }
 
 function getLastOrdersProp(): Order[] {
-  const last = mockInteractiveMapZoomWrapper.mock.calls.at(-1);
+  const last = mockMapView.mock.calls.at(-1);
   if (!last) return [];
-  const props = (last[0] as unknown) as { interactiveMapProps: { orders: Order[] } };
-  return props.interactiveMapProps.orders ?? [];
+  const props = (last[0] as unknown) as { orders: Order[] };
+  return props.orders ?? [];
 }
 
 // --- Tests ---
