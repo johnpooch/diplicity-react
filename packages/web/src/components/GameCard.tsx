@@ -283,7 +283,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
         {map}
       </button>
 
-      <div className="flex flex-col flex-grow gap-2 p-4 min-w-0">
+      <div className="flex flex-col flex-grow gap-2 p-4 md:py-2 min-w-0">
         <CardHeader className="p-0 gap-2">
           <div className="flex items-center justify-between gap-2">
             <button
@@ -345,10 +345,8 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
 
         {(game.sandbox || isActive || isFinished) && badgeCluster}
 
-        <div className="flex-grow" />
-
         {showAvatars && (
-          <CardFooter className="p-0 flex-col items-stretch gap-2">
+          <CardFooter className="p-0 mt-auto flex-col items-stretch gap-2">
             <div className="flex items-center justify-between gap-2">
               <button
                 onClick={handleClickPlayerInfo}
