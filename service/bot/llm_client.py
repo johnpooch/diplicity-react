@@ -16,21 +16,19 @@ class LLMClient:
             raise LLMError("ANTHROPIC_API_KEY is not set")
         self._client = Anthropic(api_key=api_key)
 
-    def run(self, action):
-        logger.info(f"[bot.llm] running {action.name} via {settings.BOT_LLM_MODEL}")
+    def complete(self, *, system, messages):
+        logger.info(f"[bot.llm] completing via {settings.BOT_LLM_MODEL}")
         try:
             message = self._client.messages.create(
                 model=settings.BOT_LLM_MODEL,
                 max_tokens=1024,
-                system=action.system,
-                tools=[action.tool],
-                tool_choice={"type": "tool", "name": action.tool["name"]},
-                messages=action.build_messages(),
+                system=system,
+                messages=messages,
             )
         except Exception as e:
-            raise LLMError(f"{action.name} request failed: {e}") from e
+            raise LLMError(f"request failed: {e}") from e
 
-        for block in message.content:
-            if block.type == "tool_use" and block.name == action.tool["name"]:
-                return action.parse(block.input)
-        raise LLMError(f"no {action.tool['name']} tool use in response")
+        text = "".join(block.text for block in message.content if block.type == "text")
+        if not text:
+            raise LLMError("no text content in response")
+        return text
