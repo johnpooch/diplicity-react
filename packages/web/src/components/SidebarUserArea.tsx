@@ -16,11 +16,11 @@ import {
   SidebarMenuAction,
 } from "@/components/ui/sidebar";
 import { useUserRetrieveSuspense } from "@/api/generated/endpoints";
-import { useAuth } from "@/auth";
+import { useLogout } from "@/hooks/useLogout";
 
 const SidebarUserArea: React.FC = () => {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const logout = useLogout();
   const { data: userProfile } = useUserRetrieveSuspense();
 
   const handleClick = () => {
