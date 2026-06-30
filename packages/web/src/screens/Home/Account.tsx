@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/theme/useTheme";
-import { useAuth } from "@/auth";
+import { useLogout } from "@/hooks/useLogout";
 import { useNavigate } from "react-router";
 import { useMessaging } from "@/hooks/useMessaging";
 import {
@@ -34,7 +34,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 const Account: React.FC = () => {
   const queryClient = useQueryClient();
-  const { logout } = useAuth();
+  const logout = useLogout();
   const navigate = useNavigate();
   const { data: userProfile } = useUserRetrieveSuspense();
   const updateProfileMutation = useUserUpdatePartialUpdate();
