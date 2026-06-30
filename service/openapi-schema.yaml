@@ -772,6 +772,7 @@ paths:
       - game
       security:
       - jwtAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -1381,6 +1382,7 @@ paths:
       - variants
       security:
       - jwtAuth: []
+      - {}
       responses:
         '200':
           content:
