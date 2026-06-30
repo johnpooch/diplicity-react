@@ -55,10 +55,17 @@ def test_list_variants_success(authenticated_client, classical_variant):
 
 
 @pytest.mark.django_db
-def test_list_variants_unauthenticated(unauthenticated_client):
+def test_list_variants_unauthenticated(unauthenticated_client, classical_variant, user_factory):
+    draft_variant = Variant.objects.create(
+        id="vis-draft", name="Visibility Draft", description="",
+        status=VariantStatus.DRAFT, owner=user_factory(),
+    )
     url = reverse(viewname)
     response = unauthenticated_client.get(url)
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.status_code == status.HTTP_200_OK
+    ids = {v["id"] for v in response.data}
+    assert classical_variant.id in ids
+    assert draft_variant.id not in ids
 
 
 @pytest.mark.django_db

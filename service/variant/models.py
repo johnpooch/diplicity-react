@@ -34,6 +34,8 @@ def default_phase_progression():
 class VariantQuerySet(models.QuerySet):
 
     def visible_to(self, user):
+        if not user.is_authenticated:
+            return self.filter(status=VariantStatus.PUBLISHED)
         return self.filter(
             Q(status=VariantStatus.PUBLISHED)
             | Q(status=VariantStatus.DRAFT, owner=user)

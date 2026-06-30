@@ -8,7 +8,7 @@ from django.http import HttpResponse, HttpResponseNotFound
 from django.views import View
 from rest_framework import generics, permissions, status
 from rest_framework.parsers import MultiPartParser
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from common.constants import VariantStatus
@@ -47,8 +47,12 @@ def _variants_list_etag(user):
 
 
 class VariantListCreateView(generics.ListCreateAPIView):
-    permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser]
+
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [IsAuthenticated()]
+        return [AllowAny()]
 
     def get_queryset(self):
         return Variant.objects.visible_to(self.request.user).with_related_data()
