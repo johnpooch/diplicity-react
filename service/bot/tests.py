@@ -1,3 +1,4 @@
+import json
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -15,10 +16,9 @@ from common.constants import (
 from channel.models import ChannelMessage
 from game.models import Game
 from bot import tasks, utils
-from bot.actions import ReplyAction, SelectOrderAction
-from bot.actions.reply import TOOL_NAME as REPLY_TOOL_NAME
-from bot.actions.select_order import TOOL_NAME as SELECT_TOOL_NAME
-from bot.data import ChatMessage, OrderOption, OrderOptionCollection
+from bot.context.builder import ContextBuilder
+from bot.context.orders import first_legal_selections, option_to_selected
+from bot.context.parsers import parse_order_selections, parse_reply
 from bot.llm_client import LLMClient, LLMError
 from bot.utils import get_bot_user
 
@@ -40,29 +40,29 @@ def _option(source, order_type, target=None, aux=None, unit_type=None, named_coa
 class TestOptionToSelected:
 
     def test_hold(self):
-        assert OrderOption(_option("lon", OrderType.HOLD)).to_selected() == ["lon", OrderType.HOLD]
+        assert option_to_selected(_option("lon", OrderType.HOLD)) == ["lon", OrderType.HOLD]
 
     def test_move(self):
-        assert OrderOption(_option("lon", OrderType.MOVE, target="nth")).to_selected() == [
+        assert option_to_selected(_option("lon", OrderType.MOVE, target="nth")) == [
             "lon",
             OrderType.MOVE,
             "nth",
         ]
 
     def test_move_with_named_coast(self):
-        assert OrderOption(
+        assert option_to_selected(
             _option("mid", OrderType.MOVE, target="spa", named_coast="spa/nc")
-        ).to_selected() == ["mid", OrderType.MOVE, "spa", "spa/nc"]
+        ) == ["mid", OrderType.MOVE, "spa", "spa/nc"]
 
     def test_support(self):
-        assert OrderOption(
+        assert option_to_selected(
             _option("lon", OrderType.SUPPORT, aux="wal", target="lvp")
-        ).to_selected() == ["lon", OrderType.SUPPORT, "wal", "lvp"]
+        ) == ["lon", OrderType.SUPPORT, "wal", "lvp"]
 
     def test_build_fleet_named_coast(self):
-        assert OrderOption(
+        assert option_to_selected(
             _option("stp", OrderType.BUILD, unit_type="Fleet", named_coast="stp/sc")
-        ).to_selected() == ["stp", OrderType.BUILD, "Fleet", "stp/sc"]
+        ) == ["stp", OrderType.BUILD, "Fleet", "stp/sc"]
 
 
 class TestFirstLegalSelections:
@@ -74,18 +74,10 @@ class TestFirstLegalSelections:
             _option("edi", OrderType.MOVE, target="nwg"),
             _option("edi", OrderType.HOLD),
         ]
-        assert OrderOptionCollection.from_api(options).first_legal_selections() == [
+        assert first_legal_selections(options) == [
             ["lon", OrderType.HOLD],
             ["edi", OrderType.MOVE, "nwg"],
         ]
-
-
-def _llm_message(choices):
-    block = Mock()
-    block.type = "tool_use"
-    block.name = SELECT_TOOL_NAME
-    block.input = {"choices": choices}
-    return Mock(content=[block])
 
 
 class TestSelectOrders:
@@ -98,22 +90,44 @@ class TestSelectOrders:
             _option("edi", OrderType.MOVE, target="nwg"),
         ]
 
-    def _run(self, options, key="test-key"):
-        return LLMClient(key).run(SelectOrderAction(OrderOptionCollection.from_api(options)))
-
     def test_returns_llm_choice_per_source(self):
-        choices = [
-            {"source_id": "lon", "option_index": 1},
-            {"source_id": "edi", "option_index": 1},
-        ]
-        with patch("bot.llm_client.Anthropic") as mock_anthropic:
-            mock_anthropic.return_value.messages.create.return_value = _llm_message(choices)
-            selections = self._run(self._options())
-
-        assert selections == [
+        response_text = json.dumps(
+            {
+                "choices": [
+                    {"source_id": "lon", "option_index": 1},
+                    {"source_id": "edi", "option_index": 1},
+                ]
+            }
+        )
+        assert parse_order_selections(response_text, self._options()) == [
             ["lon", OrderType.MOVE, "nth"],
             ["edi", OrderType.MOVE, "nwg"],
         ]
+
+    def test_parses_json_wrapped_in_markdown_fence(self):
+        response_text = (
+            "```json\n"
+            + json.dumps({"choices": [{"source_id": "lon", "option_index": 1}]})
+            + "\n```"
+        )
+        assert parse_order_selections(response_text, self._options()) == [
+            ["lon", OrderType.MOVE, "nth"],
+            ["edi", OrderType.HOLD],
+        ]
+
+    def test_invalid_or_missing_index_falls_back_per_source(self):
+        response_text = json.dumps({"choices": [{"source_id": "lon", "option_index": 9}]})
+        assert parse_order_selections(response_text, self._options()) == [
+            ["lon", OrderType.HOLD],
+            ["edi", OrderType.HOLD],
+        ]
+
+    def test_raises_on_unparseable_json(self):
+        with pytest.raises(LLMError):
+            parse_order_selections("not json at all", self._options())
+
+
+class TestLLMClient:
 
     def test_raises_without_key(self):
         with pytest.raises(LLMError):
@@ -123,18 +137,122 @@ class TestSelectOrders:
         with patch("bot.llm_client.Anthropic") as mock_anthropic:
             mock_anthropic.return_value.messages.create.side_effect = RuntimeError("boom")
             with pytest.raises(LLMError):
-                self._run(self._options())
+                LLMClient("test-key").complete(system="s", messages=[{"role": "user", "content": "x"}])
 
-    def test_invalid_or_missing_index_falls_back_per_source(self):
-        choices = [{"source_id": "lon", "option_index": 9}]
+    def test_returns_concatenated_text_blocks(self):
+        block_one = Mock(type="text", text="Hello, ")
+        block_two = Mock(type="text", text="human!")
         with patch("bot.llm_client.Anthropic") as mock_anthropic:
-            mock_anthropic.return_value.messages.create.return_value = _llm_message(choices)
-            selections = self._run(self._options())
+            mock_anthropic.return_value.messages.create.return_value = Mock(
+                content=[block_one, block_two]
+            )
+            result = LLMClient("test-key").complete(
+                system="s", messages=[{"role": "user", "content": "x"}]
+            )
+        assert result == "Hello, human!"
 
-        assert selections == [
-            ["lon", OrderType.HOLD],
-            ["edi", OrderType.HOLD],
+
+class TestContextBuilder:
+
+    def _data(self, channels=None):
+        return {
+            "orders": [
+                _option("lon", OrderType.HOLD),
+                _option("lon", OrderType.MOVE, target="nth"),
+            ],
+            "phase_states": [{"max_orders": 3}],
+            "game": {"phase_confirmed": False},
+            "channels": channels or [],
+        }
+
+    def _channel(self, channel_id, name, messages):
+        return {"id": channel_id, "name": name, "private": False, "messages": messages}
+
+    def test_with_orders_lists_options_in_shared(self):
+        builder = ContextBuilder(self._data()).with_orders()
+        shared = builder.build_shared()
+        assert "Unit lon:" in shared
+        assert "0. lon Hold" in shared
+        assert "1. lon Move nth" in shared
+
+    def test_with_conversations_includes_all_channels(self):
+        channels = [
+            self._channel(
+                1,
+                "Public Press",
+                [{"body": "hi", "sender": {"name": "England", "is_current_user": False}}],
+            ),
+            self._channel(
+                2,
+                "Private",
+                [{"body": "psst", "sender": {"name": "France", "is_current_user": False}}],
+            ),
         ]
+        private = ContextBuilder(self._data(channels)).with_conversations().build_private()
+        assert "Channel: Public Press" in private
+        assert "Channel: Private" in private
+        assert "user: hi" in private
+        assert "user: psst" in private
+
+    def test_with_messages_includes_only_that_channel(self):
+        channels = [
+            self._channel(
+                1,
+                "Public Press",
+                [{"body": "public", "sender": {"name": "England", "is_current_user": False}}],
+            ),
+            self._channel(
+                2,
+                "Private",
+                [{"body": "private", "sender": {"name": "France", "is_current_user": False}}],
+            ),
+        ]
+        private = ContextBuilder(self._data(channels)).with_messages(channel_id=2).build_private()
+        assert "Channel: Private" in private
+        assert "private" in private
+        assert "Public Press" not in private
+
+    def test_with_messages_maps_own_messages_to_assistant(self):
+        channels = [
+            self._channel(
+                1,
+                "Public Press",
+                [
+                    {"body": "their turn", "sender": {"name": "England", "is_current_user": False}},
+                    {"body": "my turn", "sender": {"name": "Bot", "is_current_user": True}},
+                ],
+            ),
+        ]
+        private = ContextBuilder(self._data(channels)).with_messages(channel_id=1).build_private()
+        assert "user: their turn" in private
+        assert "assistant: my turn" in private
+
+    def test_with_messages_missing_channel_is_noop(self):
+        private = ContextBuilder(self._data()).with_messages(channel_id=999).build_private()
+        assert private == ""
+
+
+def _reply_response(should_reply, message=""):
+    payload = {"should_reply": should_reply}
+    if message:
+        payload["message"] = message
+    return json.dumps(payload)
+
+
+class TestComposeReply:
+
+    def test_returns_reply_when_model_replies(self):
+        assert parse_reply(_reply_response(True, "Sure, let's talk.")) == "Sure, let's talk."
+
+    def test_returns_none_when_model_declines(self):
+        assert parse_reply(_reply_response(False)) is None
+
+    def test_returns_none_for_empty_message(self):
+        assert parse_reply(json.dumps({"should_reply": True, "message": "   "})) is None
+
+    def test_raises_on_unparseable_json(self):
+        with pytest.raises(LLMError):
+            parse_reply("not json at all")
 
 
 class TestAdjustmentOrderLimit:
@@ -154,7 +272,11 @@ class TestAdjustmentOrderLimit:
         def fake_get(url, *args, **kwargs):
             if "phase-states" in url:
                 return Mock(status_code=200, data=[{"max_orders": max_orders}])
-            return Mock(status_code=200, data=options)
+            if "channels" in url:
+                return Mock(status_code=200, data=[])
+            if url.endswith("/options/"):
+                return Mock(status_code=200, data=options)
+            return Mock(status_code=200, data={"phase_confirmed": False})
 
         client = MagicMock()
         client.get.side_effect = fake_get
@@ -338,55 +460,6 @@ class TestFinalizeTrigger:
         assert jobs[0]["args"] == {"user_id": get_bot_user().id, "game_id": game.id}
 
 
-def _llm_reply(should_reply, message=""):
-    block = Mock()
-    block.type = "tool_use"
-    block.name = REPLY_TOOL_NAME
-    block.input = {"should_reply": should_reply, "message": message}
-    return Mock(content=[block])
-
-
-class TestComposeReply:
-
-    def _messages(self):
-        return [
-            {
-                "sender": {"name": "England", "is_current_user": False},
-                "body": "Hi bot, want to ally?",
-            },
-        ]
-
-    def _run(self, key="test-key"):
-        return LLMClient(key).run(ReplyAction(ChatMessage.list_from_api(self._messages())))
-
-    def test_returns_reply_when_model_replies(self):
-        with patch("bot.llm_client.Anthropic") as mock_anthropic:
-            mock_anthropic.return_value.messages.create.return_value = _llm_reply(
-                True, "Sure, let's talk."
-            )
-            assert self._run() == "Sure, let's talk."
-
-    def test_returns_none_when_model_declines(self):
-        with patch("bot.llm_client.Anthropic") as mock_anthropic:
-            mock_anthropic.return_value.messages.create.return_value = _llm_reply(False, "")
-            assert self._run() is None
-
-    def test_returns_none_for_empty_message(self):
-        with patch("bot.llm_client.Anthropic") as mock_anthropic:
-            mock_anthropic.return_value.messages.create.return_value = _llm_reply(True, "   ")
-            assert self._run() is None
-
-    def test_raises_without_key(self):
-        with pytest.raises(LLMError):
-            LLMClient("")
-
-    def test_raises_when_client_raises(self):
-        with patch("bot.llm_client.Anthropic") as mock_anthropic:
-            mock_anthropic.return_value.messages.create.side_effect = RuntimeError("boom")
-            with pytest.raises(LLMError):
-                self._run()
-
-
 @pytest.fixture
 def bot_public_channel_factory(bot_game_factory):
     def _create():
@@ -412,7 +485,7 @@ class TestReplyTask:
         ChannelMessage.objects.create(channel=channel, sender=human_member, body="Hi bot")
 
         with patch("bot.tasks.LLMClient") as mock_llm:
-            mock_llm.return_value.run.return_value = "Hello, human!"
+            mock_llm.return_value.complete.return_value = _reply_response(True, "Hello, human!")
             tasks.reply(user_id=bot_user.id, game_id=game.id, channel_id=channel.id)
 
         assert channel.messages.filter(sender=bot_member, body="Hello, human!").exists()
@@ -427,7 +500,7 @@ class TestReplyTask:
         ChannelMessage.objects.create(channel=channel, sender=human_member, body="Hi bot")
 
         with patch("bot.tasks.LLMClient") as mock_llm:
-            mock_llm.return_value.run.return_value = None
+            mock_llm.return_value.complete.return_value = _reply_response(False)
             tasks.reply(user_id=bot_user.id, game_id=game.id, channel_id=channel.id)
 
         assert channel.messages.filter(sender__user=bot_user).count() == 0
