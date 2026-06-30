@@ -7,7 +7,7 @@
 # is ABI-compatible.
 
 # Node.js runtime source
-FROM node:24.17.0-bookworm-slim AS node
+FROM node:24.18.0-bookworm-slim AS node
 
 # Python 3.12 base
 FROM python:3.14-slim-bookworm
