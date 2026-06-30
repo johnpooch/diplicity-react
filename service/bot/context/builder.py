@@ -16,6 +16,38 @@ class ContextBuilder:
         self._shared_sections: list[str] = []
         self._private_sections: list[str] = []
 
+    def with_game_state(self) -> "ContextBuilder":
+        phase = self._data["phase"]
+        if not phase:
+            return self
+
+        lines = [f"Current phase: {phase['name']}"]
+
+        units_by_nation: dict[str, list[str]] = {}
+        for unit in phase.get("units", []):
+            label = f"{unit['type'][0].upper()} {unit['province']['id']}"
+            if unit.get("dislodged"):
+                label += " (dislodged)"
+            units_by_nation.setdefault(unit["nation"]["name"], []).append(label)
+
+        lines.append("Units:")
+        for nation in sorted(units_by_nation):
+            lines.append(f"  {nation}: {', '.join(units_by_nation[nation])}")
+
+        centers_by_nation: dict[str, list[str]] = {}
+        for center in phase.get("supply_centers", []):
+            centers_by_nation.setdefault(center["nation"]["name"], []).append(
+                center["province"]["id"]
+            )
+
+        lines.append("Supply centers:")
+        for nation in sorted(centers_by_nation):
+            provinces = sorted(centers_by_nation[nation])
+            lines.append(f"  {nation}: {len(provinces)} ({', '.join(provinces)})")
+
+        self._shared_sections.append("\n".join(lines))
+        return self
+
     def with_orders(self) -> "ContextBuilder":
         lines = ["Legal orders:"]
         for source_id, source_options in group_options_by_source(self._data["orders"]).items():

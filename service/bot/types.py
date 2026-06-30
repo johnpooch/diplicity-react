@@ -33,8 +33,38 @@ class ChannelDict(TypedDict, total=False):
     messages: list[ChatMessageDict]
 
 
+class NationDict(TypedDict, total=False):
+    nation_id: str
+    name: str
+
+
+class ProvinceDict(TypedDict, total=False):
+    id: str
+    name: str
+
+
+class UnitDict(TypedDict, total=False):
+    type: str
+    nation: NationDict
+    province: ProvinceDict
+    dislodged: bool
+
+
+class SupplyCenterDict(TypedDict, total=False):
+    province: ProvinceDict
+    nation: NationDict
+
+
+class PhaseDict(TypedDict, total=False):
+    name: str
+    type: str
+    units: list[UnitDict]
+    supply_centers: list[SupplyCenterDict]
+
+
 class ContextData(TypedDict):
     orders: list[OrderOptionDict]
     phase_states: list[dict]
     game: dict
+    phase: PhaseDict
     channels: list[ChannelDict]

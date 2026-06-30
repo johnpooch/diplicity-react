@@ -154,7 +154,7 @@ class TestLLMClient:
 
 class TestContextBuilder:
 
-    def _data(self, channels=None):
+    def _data(self, channels=None, phase=None):
         return {
             "orders": [
                 _option("lon", OrderType.HOLD),
@@ -162,8 +162,42 @@ class TestContextBuilder:
             ],
             "phase_states": [{"max_orders": 3}],
             "game": {"phase_confirmed": False},
+            "phase": phase if phase is not None else {},
             "channels": channels or [],
         }
+
+    def _phase(self):
+        def nation(name):
+            return {"nation_id": name.lower(), "name": name}
+
+        def province(province_id):
+            return {"id": province_id, "name": province_id}
+
+        return {
+            "name": "Spring 1901, Movement",
+            "type": "Movement",
+            "units": [
+                {"type": "Army", "nation": nation("England"), "province": province("lon"), "dislodged": False},
+                {"type": "Fleet", "nation": nation("England"), "province": province("nth"), "dislodged": True},
+                {"type": "Army", "nation": nation("France"), "province": province("par"), "dislodged": False},
+            ],
+            "supply_centers": [
+                {"province": province("lon"), "nation": nation("England")},
+                {"province": province("edi"), "nation": nation("England")},
+                {"province": province("par"), "nation": nation("France")},
+            ],
+        }
+
+    def test_with_game_state_groups_units_and_centers_by_nation(self):
+        shared = ContextBuilder(self._data(phase=self._phase())).with_game_state().build_shared()
+        assert "Current phase: Spring 1901, Movement" in shared
+        assert "England: A lon, F nth (dislodged)" in shared
+        assert "France: A par" in shared
+        assert "England: 2 (edi, lon)" in shared
+        assert "France: 1 (par)" in shared
+
+    def test_with_game_state_empty_phase_is_noop(self):
+        assert ContextBuilder(self._data()).with_game_state().build_shared() == ""
 
     def _channel(self, channel_id, name, messages):
         return {"id": channel_id, "name": name, "private": False, "messages": messages}

@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 def _submit_orders_from_context(api, data, game_id, label):
     builder = (
         ContextBuilder(data)
+        .with_game_state()
         .with_orders()
         .with_phase_state()
         .with_conversations()
@@ -96,7 +97,11 @@ def reply(user_id, game_id, channel_id):
         logger.error(f"[{label}] aborting: {e}")
         return
 
-    builder = ContextBuilder(data).with_messages(channel_id=channel_id)
+    builder = (
+        ContextBuilder(data)
+        .with_game_state()
+        .with_messages(channel_id=channel_id)
+    )
     system = load_prompt("reply_system.txt")
     instruction = load_prompt("reply_instruction.txt")
     user_content = "\n\n".join(
