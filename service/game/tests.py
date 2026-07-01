@@ -437,6 +437,59 @@ class TestGameListView:
                 assert field in game
 
     @pytest.mark.django_db
+    def test_list_games_current_phase_includes_board(
+        self,
+        authenticated_client,
+        primary_user,
+        classical_variant,
+        classical_england_nation,
+        classical_edinburgh_province,
+    ):
+        game = Game.objects.create(
+            name="Active board game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        game.members.create(user=primary_user, nation=classical_england_nation)
+        old_phase = game.phases.create(
+            game=game,
+            variant=game.variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            status=PhaseStatus.COMPLETED,
+            ordinal=1,
+        )
+        old_phase.units.create(
+            type=UnitType.ARMY, nation=classical_england_nation, province=classical_edinburgh_province
+        )
+        current_phase = game.phases.create(
+            game=game,
+            variant=game.variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            status=PhaseStatus.ACTIVE,
+            ordinal=2,
+        )
+        current_phase.units.create(
+            type=UnitType.FLEET, nation=classical_england_nation, province=classical_edinburgh_province
+        )
+        current_phase.supply_centers.create(
+            nation=classical_england_nation, province=classical_edinburgh_province
+        )
+
+        url = reverse(list_viewname)
+        response = authenticated_client.get(url, {"mine": "true"})
+
+        assert response.status_code == status.HTTP_200_OK
+        result = next(g for g in response.data["results"] if g["id"] == game.id)
+        assert len(result["current_phase"]["units"]) == 1
+        assert result["current_phase"]["units"][0]["type"] == UnitType.FLEET
+        assert result["current_phase"]["units"][0]["province"]["id"] == classical_edinburgh_province.province_id
+        assert len(result["current_phase"]["supply_centers"]) == 1
+
+    @pytest.mark.django_db
     def test_list_games_filter_mine_true(
         self, authenticated_client, pending_game_created_by_primary_user, pending_game_created_by_secondary_user
     ):
@@ -874,10 +927,7 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        # 5 (not 4) since GameListSerializer now embeds current_phase +
-        # phase_confirmed, which adds one prefetch for PhaseState.member.
-        # Still flat across N games and N phases.
-        assert query_count == 5
+        assert query_count == 7
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_phases_and_units(
@@ -918,7 +968,7 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 5
+        assert query_count == 7
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_different_nations(
@@ -969,7 +1019,7 @@ class TestGameListViewQueryPerformance:
 
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
-        assert query_count == 5
+        assert query_count == 7
 
     @pytest.mark.django_db
     def test_list_games_query_count_with_phase_states(
@@ -1018,10 +1068,183 @@ class TestGameListViewQueryPerformance:
         assert response.status_code == status.HTTP_200_OK
         query_count = len(connection.queries)
 
-        # 5 (not 4) since GameListSerializer now embeds current_phase +
-        # phase_confirmed, which adds one prefetch for PhaseState.member.
-        # Still flat across N games and N phases.
-        assert query_count == 5
+        assert query_count == 7
+
+    @pytest.mark.django_db
+    def test_list_games_hydrates_units_for_current_phase_only(
+        self,
+        django_assert_num_queries,
+        primary_user,
+        classical_variant,
+        classical_england_nation,
+        classical_edinburgh_province,
+    ):
+        games_count = 2
+        phases_per_game = 8
+        units_per_phase = 3
+        supply_centers_per_phase = 2
+
+        created_game_ids = []
+        for i in range(games_count):
+            game = Game.objects.create(
+                name=f"Deep history game {i}",
+                variant=classical_variant,
+                status=GameStatus.ACTIVE,
+            )
+            created_game_ids.append(game.id)
+            game.members.create(user=primary_user, nation=classical_england_nation)
+
+            for ordinal in range(1, phases_per_game + 1):
+                phase = game.phases.create(
+                    game=game,
+                    variant=game.variant,
+                    season="Spring",
+                    year=1900 + ordinal,
+                    type=PhaseType.MOVEMENT,
+                    status=PhaseStatus.ACTIVE if ordinal == phases_per_game else PhaseStatus.COMPLETED,
+                    ordinal=ordinal,
+                )
+                for _ in range(units_per_phase):
+                    phase.units.create(
+                        type=UnitType.FLEET,
+                        nation=classical_england_nation,
+                        province=classical_edinburgh_province,
+                    )
+                for _ in range(supply_centers_per_phase):
+                    phase.supply_centers.create(
+                        nation=classical_england_nation,
+                        province=classical_edinburgh_province,
+                    )
+
+        queryset = (
+            Game.objects.filter(id__in=created_game_ids)
+            .with_list_data()
+            .with_total_unread_counts(primary_user)
+            .order_by("-created_at")
+        )
+        games = list(queryset)
+
+        with django_assert_num_queries(0):
+            hydrated_units = sum(
+                len(phase.units.all()) for game in games for phase in game.phases.all()
+            )
+            hydrated_supply_centers = sum(
+                len(phase.supply_centers.all()) for game in games for phase in game.phases.all()
+            )
+
+        assert hydrated_units == games_count * units_per_phase
+        assert hydrated_supply_centers == games_count * supply_centers_per_phase
+
+    @pytest.mark.django_db
+    def test_list_games_scopes_board_with_set_based_subquery(
+        self,
+        authenticated_client,
+        primary_user,
+        classical_variant,
+        classical_england_nation,
+        classical_edinburgh_province,
+    ):
+        games_count = 2
+        phases_per_game = 8
+
+        for i in range(games_count):
+            game = Game.objects.create(
+                name=f"Set based game {i}",
+                variant=classical_variant,
+                status=GameStatus.ACTIVE,
+            )
+            game.members.create(user=primary_user, nation=classical_england_nation)
+            for ordinal in range(1, phases_per_game + 1):
+                phase = game.phases.create(
+                    game=game,
+                    variant=game.variant,
+                    season="Spring",
+                    year=1900 + ordinal,
+                    type=PhaseType.MOVEMENT,
+                    status=PhaseStatus.ACTIVE if ordinal == phases_per_game else PhaseStatus.COMPLETED,
+                    ordinal=ordinal,
+                )
+                phase.units.create(
+                    type=UnitType.FLEET,
+                    nation=classical_england_nation,
+                    province=classical_edinburgh_province,
+                )
+                phase.supply_centers.create(
+                    nation=classical_england_nation,
+                    province=classical_edinburgh_province,
+                )
+
+        url = reverse(list_viewname)
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(url, {"mine": "true"})
+
+        assert response.status_code == status.HTTP_200_OK
+
+        unit_queries = [q["sql"] for q in connection.queries if 'FROM "unit_unit"' in q["sql"]]
+        supply_center_queries = [
+            q["sql"] for q in connection.queries if 'FROM "supply_center_supplycenter"' in q["sql"]
+        ]
+
+        assert len(unit_queries) == 1
+        assert len(supply_center_queries) == 1
+        assert "DISTINCT ON" in unit_queries[0]
+        assert "DISTINCT ON" in supply_center_queries[0]
+
+    @pytest.mark.django_db
+    def test_list_games_board_is_lean(
+        self,
+        authenticated_client,
+        primary_user,
+        classical_variant,
+        classical_england_nation,
+        classical_edinburgh_province,
+    ):
+        game = Game.objects.create(
+            name="Lean board game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        game.members.create(user=primary_user, nation=classical_england_nation)
+        phase = game.phases.create(
+            game=game,
+            variant=game.variant,
+            season="Spring",
+            year=1901,
+            type=PhaseType.MOVEMENT,
+            status=PhaseStatus.ACTIVE,
+            ordinal=1,
+        )
+        phase.units.create(
+            type=UnitType.FLEET,
+            nation=classical_england_nation,
+            province=classical_edinburgh_province,
+        )
+        phase.supply_centers.create(
+            nation=classical_england_nation,
+            province=classical_edinburgh_province,
+        )
+
+        url = reverse(list_viewname)
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(url, {"mine": "true"})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert all("nation_nationflag" not in q["sql"] for q in connection.queries)
+
+        result = next(g for g in response.data["results"] if g["id"] == game.id)
+        unit = result["current_phase"]["units"][0]
+        assert set(unit.keys()) == {"type", "nation", "province", "dislodged"}
+        assert set(unit["nation"].keys()) == {"name"}
+        assert set(unit["province"].keys()) == {"id"}
+        assert unit["type"] == UnitType.FLEET
+        assert unit["province"]["id"] == classical_edinburgh_province.province_id
+
+        supply_center = result["current_phase"]["supply_centers"][0]
+        assert set(supply_center.keys()) == {"nation", "province"}
 
 
 class TestGameCreateView:
@@ -1561,7 +1784,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 44
+        assert query_count == 46
 
     @pytest.mark.django_db
     def test_create_game_query_count_large_variant(self, authenticated_client, classical_variant):
@@ -1581,7 +1804,7 @@ class TestGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 44
+        assert query_count == 46
 
 
 class TestGamePrivateFiltering:
@@ -2003,7 +2226,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 54
+        assert query_count == 56
 
     @pytest.mark.django_db
     def test_create_sandbox_game_query_count_large_variant(
@@ -2024,7 +2247,7 @@ class TestSandboxGameCreateViewPerformance:
 
         assert response.status_code == status.HTTP_201_CREATED
         query_count = len(connection.queries)
-        assert query_count == 54
+        assert query_count == 56
 
 
 class TestSandboxGameFiltering:

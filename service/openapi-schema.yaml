@@ -149,17 +149,6 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
-  /api/test-sentry/:
-    get:
-      operationId: apiTestSentryRetrieve
-      tags:
-      - api
-      security:
-      - jwtAuth: []
-      - {}
-      responses:
-        '200':
-          description: No response body
   /api/token/refresh/:
     post:
       operationId: apiTokenRefreshCreate
@@ -327,60 +316,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VerifyEmail'
-          description: ''
-  /devices/:
-    get:
-      operationId: devicesList
-      tags:
-      - devices
-      security:
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/FCMDevice'
-          description: ''
-    post:
-      operationId: devicesCreate
-      tags:
-      - devices
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/FCMDevice'
-        required: true
-      security:
-      - jwtAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FCMDevice'
-          description: ''
-    put:
-      operationId: devicesUpdate
-      tags:
-      - devices
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/FCMDevice'
-        required: true
-      security:
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FCMDevice'
           description: ''
   /game/:
     post:
@@ -837,6 +772,7 @@ paths:
       - game
       security:
       - jwtAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -1446,6 +1382,7 @@ paths:
       - variants
       security:
       - jwtAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -1791,6 +1728,16 @@ components:
       - createdAt
       - id
       - sender
+    ColorblindModeEnum:
+      enum:
+      - deuteranopia
+      - protanopia
+      - tritanopia
+      type: string
+      description: |-
+        * `deuteranopia` - Deuteranopia
+        * `protanopia` - Protanopia
+        * `tritanopia` - Tritanopia
     DeadlineModeEnum:
       enum:
       - duration
@@ -1944,42 +1891,6 @@ components:
       - name
       - password
       - refreshToken
-    FCMDevice:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        name:
-          type: string
-          nullable: true
-          maxLength: 255
-        registrationId:
-          type: string
-          title: Registration token
-        deviceId:
-          type: string
-          nullable: true
-          description: Unique device identifier
-          maxLength: 255
-        active:
-          type: boolean
-          default: true
-          title: Is active
-          description: Inactive devices will not be sent notifications
-        dateCreated:
-          type: string
-          format: date-time
-          readOnly: true
-          nullable: true
-          title: Creation date
-        type:
-          $ref: '#/components/schemas/TypeEnum'
-      required:
-      - dateCreated
-      - id
-      - registrationId
-      - type
     FieldValue:
       type: object
       properties:
@@ -2096,6 +2007,10 @@ components:
           allOf:
           - $ref: '#/components/schemas/MinReliabilityEnum'
           default: open
+        includeBotOpponent:
+          type: boolean
+          writeOnly: true
+          default: false
       required:
       - id
       - name
@@ -2163,8 +2078,8 @@ components:
         gameMaster:
           allOf:
           - $ref: '#/components/schemas/GameMaster'
-          nullable: true
           readOnly: true
+          nullable: true
         variantId:
           type: string
           readOnly: true
@@ -2304,6 +2219,22 @@ components:
       - totalUnreadMessageCount
       - variantId
       - victory
+    GameListBoardNation:
+      type: object
+      properties:
+        name:
+          type: string
+          readOnly: true
+      required:
+      - name
+    GameListBoardProvince:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+      required:
+      - id
     GameListCurrentPhase:
       type: object
       properties:
@@ -2336,6 +2267,16 @@ components:
         remainingTime:
           type: integer
           readOnly: true
+        units:
+          type: array
+          items:
+            $ref: '#/components/schemas/GameListUnit'
+          readOnly: true
+        supplyCenters:
+          type: array
+          items:
+            $ref: '#/components/schemas/GameListSupplyCenter'
+          readOnly: true
       required:
       - id
       - name
@@ -2344,8 +2285,46 @@ components:
       - scheduledResolution
       - season
       - status
+      - supplyCenters
       - type
+      - units
       - year
+    GameListSupplyCenter:
+      type: object
+      properties:
+        nation:
+          allOf:
+          - $ref: '#/components/schemas/GameListBoardNation'
+          readOnly: true
+        province:
+          allOf:
+          - $ref: '#/components/schemas/GameListBoardProvince'
+          readOnly: true
+      required:
+      - nation
+      - province
+    GameListUnit:
+      type: object
+      properties:
+        type:
+          type: string
+          readOnly: true
+        nation:
+          allOf:
+          - $ref: '#/components/schemas/GameListBoardNation'
+          readOnly: true
+        province:
+          allOf:
+          - $ref: '#/components/schemas/GameListBoardProvince'
+          readOnly: true
+        dislodged:
+          type: boolean
+          readOnly: true
+      required:
+      - dislodged
+      - nation
+      - province
+      - type
     GameMaster:
       type: object
       properties:
@@ -2394,8 +2373,8 @@ components:
         gameMaster:
           allOf:
           - $ref: '#/components/schemas/GameMaster'
-          nullable: true
           readOnly: true
+          nullable: true
         phases:
           type: array
           items:
@@ -2639,10 +2618,12 @@ components:
           type: string
         color:
           type: string
+          readOnly: true
         nonPlayable:
           type: boolean
         flagUrl:
           type: string
+          format: uri
           nullable: true
           readOnly: true
       required:
@@ -2721,6 +2702,9 @@ components:
           allOf:
           - $ref: '#/components/schemas/Nation'
           readOnly: true
+        isImplicit:
+          type: boolean
+          readOnly: true
         complete:
           type: boolean
           readOnly: true
@@ -2746,6 +2730,7 @@ components:
       required:
       - aux
       - complete
+      - isImplicit
       - namedCoast
       - nation
       - options
@@ -2801,11 +2786,13 @@ components:
       enum:
       - orders_required
       - orders_submitted
+      - orders_not_confirmed
       - no_orders_required
       type: string
       description: |-
         * `orders_required` - orders_required
         * `orders_submitted` - orders_submitted
+        * `orders_not_confirmed` - orders_not_confirmed
         * `no_orders_required` - no_orders_required
     OrderTypeEnum:
       enum:
@@ -2910,6 +2897,10 @@ components:
           allOf:
           - $ref: '#/components/schemas/Member'
           readOnly: true
+        maxOrders:
+          type: integer
+          nullable: true
+          readOnly: true
     PatchedUserProfile:
       type: object
       properties:
@@ -2932,6 +2923,14 @@ components:
           readOnly: true
         emailNotificationsEnabled:
           type: boolean
+        colorblindMode:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/ColorblindModeEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        canCreateBotGames:
+          type: boolean
+          readOnly: true
         reliabilityTier:
           type: string
           readOnly: true
@@ -3047,9 +3046,14 @@ components:
           allOf:
           - $ref: '#/components/schemas/Member'
           readOnly: true
+        maxOrders:
+          type: integer
+          nullable: true
+          readOnly: true
       required:
       - eliminated
       - id
+      - maxOrders
       - member
       - orderableProvinces
       - ordersConfirmed
@@ -3220,16 +3224,6 @@ components:
       required:
       - access
       - refresh
-    TypeEnum:
-      enum:
-      - ios
-      - android
-      - web
-      type: string
-      description: |-
-        * `ios` - ios
-        * `android` - android
-        * `web` - web
     Unit:
       type: object
       properties:
@@ -3282,11 +3276,20 @@ components:
           readOnly: true
         emailNotificationsEnabled:
           type: boolean
+        colorblindMode:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/ColorblindModeEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        canCreateBotGames:
+          type: boolean
+          readOnly: true
         reliabilityTier:
           type: string
           readOnly: true
           nullable: true
       required:
+      - canCreateBotGames
       - email
       - id
       - name

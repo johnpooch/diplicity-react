@@ -1,5 +1,5 @@
 import React from "react";
-import { BookOpen, Calendar, Clock, Users, Lock, Unlock, User, Map, Trophy, Pause, Shield, MessageSquare, MessageSquareOff } from "lucide-react";
+import { BookOpen, Calendar, Clock, Users, Lock, Unlock, User, Map, Trophy, Pause, Shield, ShieldCheck, MessageSquare, MessageSquareOff } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,6 +11,7 @@ import {
   useVariantsListSuspense,
 } from "@/api/generated/endpoints";
 import { getCurrentPhaseId, formatDateTime, formatTimeAgo } from "@/util";
+import { MIN_RELIABILITY_OPTIONS } from "@/constants";
 import { ExpandableMapPreview } from "@/components/ExpandableMapPreview";
 import { CardTitle } from "@/components/ui/card";
 import {
@@ -156,6 +157,14 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
               value={`${game.nmrExtensionsAllowed} per player`}
             />
           )}
+          <MetadataRow
+            icon={<ShieldCheck className="size-4" />}
+            label="Player reliability"
+            value={
+              MIN_RELIABILITY_OPTIONS.find(o => o.value === game.minReliability)?.label ??
+              game.minReliability
+            }
+          />
           <MetadataRow
             icon={<Users className="size-4" />}
             label="Players"

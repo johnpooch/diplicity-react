@@ -63,6 +63,10 @@ ALLOW_NON_HOME_BUILDS: str = "allow-builds-in-non-home-centers"
 # Variant modifier id enabling auto-rebuild for non-playable nations.
 NEUTRAL_NATIONS_AUTO_BUILD: str = "neutral-nations-auto-build"
 
+SUPPORTED_ADJUDICATION_MODIFIERS: frozenset = frozenset(
+    {ALLOW_NON_HOME_BUILDS, NEUTRAL_NATIONS_AUTO_BUILD}
+)
+
 
 # === Marker base classes ===
 

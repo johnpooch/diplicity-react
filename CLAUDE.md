@@ -746,6 +746,7 @@ Registered game fixtures (the fixture's game `id` doubles as the URL slug, e.g. 
 | `activeGameBuild` | `active-build` | Fall 1901 adjustment; England can build 1 unit |
 | `activeGameDrawProposal` | `active-draw-proposal` | Active game with an open draw proposal, current user hasn't voted |
 | `activeGameEliminated` | `active-eliminated` | Active game; current user (England) has been eliminated |
+| `activeGameCivilDisorder` | `active-civil-disorder` | Active game; current user (England) is in civil disorder, cannot submit orders |
 | `finishedGameSolo` | `finished-solo` | Completed; current user won a solo victory |
 | `finishedGameDraw` | `finished-draw` | Completed; 3-way draw incl. current user |
 | `gameNotJoined` | `not-joined` | Active game the current user is not a member of |
@@ -768,11 +769,13 @@ MSW is dev-only: `main.tsx` dynamically imports the worker only when `VITE_MOCKS
 
 **If a PR changes anything a user can see in the web app — new screens, layout changes, styling tweaks, new components, changed copy, empty states, error states — you MUST take screenshots of the affected screens and embed them in the PR description.** This is not optional polish; it is part of completing the PR. The reviewer should be able to see what changed without pulling the branch.
 
+**Screenshots must show the component that changed.** A screenshot of the wrong tab, a different variant map, or an unrelated screen does not count. Pick the fixture and navigate to the exact state where the changed component is visible. If the changed component is nested (e.g., a control on an "Advanced" tab, a non-standard map variant), navigate to that specific state — do not settle for a screenshot that merely includes the page without the changed component in view.
+
 The workflow (each step detailed below):
 
 1. Start the dev server with mock data (`npm run dev:mocks`)
 2. Pick the fixture(s) from the registry that exercise the changed UI (see "Mock Data" above) — add a fixture only if none covers the scenario
-3. Screenshot the affected route(s) with `npm run screenshot` — before/after pairs when modifying existing UI, mobile viewport (`--viewport 390x844`) when the change affects mobile layout
+3. Screenshot the changed component with `npm run screenshot`. Frame the screenshot so the specific component that changed is clearly visible. Before/after pairs are required when modifying existing UI. Use the mobile viewport (`--viewport 390x844`) when the change affects mobile layout.
 4. Push the screenshots to a dedicated `screenshots/*` branch and embed commit-pinned raw URLs in the PR description
 
 Only skip this when the change is genuinely invisible (pure refactor, backend-only, build tooling) — and if you skip it, say so explicitly in the PR description ("No visual changes").

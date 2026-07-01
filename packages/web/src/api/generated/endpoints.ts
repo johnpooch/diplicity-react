@@ -109,6 +109,20 @@ export interface Channel {
 }
 
 /**
+ * * `deuteranopia` - deuteranopia
+ * `protanopia` - protanopia
+ * `tritanopia` - tritanopia
+ */
+export type ColorblindModeEnum =
+  (typeof ColorblindModeEnum)[keyof typeof ColorblindModeEnum];
+
+export const ColorblindModeEnum = {
+  deuteranopia: "deuteranopia",
+  protanopia: "protanopia",
+  tritanopia: "tritanopia",
+} as const;
+
+/**
  * * `duration` - Duration
  * `fixed_time` - Fixed Time
  */
@@ -346,6 +360,7 @@ export interface GameCreate {
   nmrExtensionsAllowed?: number;
   pressType?: PressTypeEnum;
   minReliability?: MinReliabilityEnum;
+  includeBotOpponent?: boolean;
 }
 
 export interface GameCreateSandbox {
@@ -365,6 +380,55 @@ export interface GameMaster {
   readonly picture: string | null;
 }
 
+export interface Province {
+  id: string;
+  name: string;
+  type: string;
+  supplyCenter: boolean;
+  /** @nullable */
+  parentId: string | null;
+  readonly namedCoastIds: readonly string[];
+}
+
+/**
+ * @nullable
+ */
+export type UnitDislodgedBy = { [key: string]: unknown } | null | null;
+
+export interface Unit {
+  type: string;
+  nation: Nation;
+  province: Province;
+  dislodged: boolean;
+  /** @nullable */
+  readonly dislodgedBy: UnitDislodgedBy;
+}
+
+export interface SupplyCenter {
+  province: Province;
+  nation: Nation;
+}
+
+export interface GameListBoardNation {
+  readonly name: string;
+}
+
+export interface GameListBoardProvince {
+  readonly id: string;
+}
+
+export interface GameListUnit {
+  readonly type: string;
+  readonly nation: GameListBoardNation;
+  readonly province: GameListBoardProvince;
+  readonly dislodged: boolean;
+}
+
+export interface GameListSupplyCenter {
+  readonly nation: GameListBoardNation;
+  readonly province: GameListBoardProvince;
+}
+
 export interface GameListCurrentPhase {
   readonly id: number;
   readonly ordinal: number;
@@ -376,11 +440,14 @@ export interface GameListCurrentPhase {
   /** @nullable */
   readonly scheduledResolution: string | null;
   readonly remainingTime: number;
+  readonly units: readonly GameListUnit[];
+  readonly supplyCenters: readonly GameListSupplyCenter[];
 }
 
 /**
  * * `orders_required` - orders_required
  * `orders_submitted` - orders_submitted
+ * `orders_not_confirmed` - orders_not_confirmed
  * `no_orders_required` - no_orders_required
  */
 export type OrderStatusEnum =
@@ -532,16 +599,6 @@ export interface NationFlagUpload {
   flag: string;
 }
 
-export interface Province {
-  id: string;
-  name: string;
-  type: string;
-  supplyCenter: boolean;
-  /** @nullable */
-  parentId: string | null;
-  readonly namedCoastIds: readonly string[];
-}
-
 export interface OrderResolution {
   status: string;
   by: Province | null;
@@ -615,6 +672,7 @@ export interface Order {
   readonly orderType: OrderTypeEnum;
   readonly unitType: UnitTypeEnum;
   readonly nation: Nation;
+  readonly isImplicit: boolean;
   /** @nullable */
   readonly complete: boolean | null;
   readonly step: StepEnum | NullEnum | null;
@@ -668,6 +726,8 @@ export interface PatchedPhaseState {
   readonly eliminated?: boolean;
   readonly orderableProvinces?: readonly Province[];
   readonly member?: Member;
+  /** @nullable */
+  readonly maxOrders?: number | null;
 }
 
 export interface PatchedUserProfile {
@@ -682,6 +742,8 @@ export interface PatchedUserProfile {
   readonly picture?: string | null;
   readonly email?: string;
   emailNotificationsEnabled?: boolean;
+  colorblindMode?: ColorblindModeEnum | NullEnum | null;
+  readonly canCreateBotGames?: boolean;
   /** @nullable */
   readonly reliabilityTier?: string | null;
 }
@@ -716,25 +778,6 @@ export interface PhaseList {
   status: StatusEnum;
 }
 
-/**
- * @nullable
- */
-export type UnitDislodgedBy = { [key: string]: unknown } | null | null;
-
-export interface Unit {
-  type: string;
-  nation: Nation;
-  province: Province;
-  dislodged: boolean;
-  /** @nullable */
-  readonly dislodgedBy: UnitDislodgedBy;
-}
-
-export interface SupplyCenter {
-  province: Province;
-  nation: Nation;
-}
-
 export interface PhaseRetrieve {
   id: number;
   ordinal: number;
@@ -760,6 +803,8 @@ export interface PhaseState {
   readonly eliminated: boolean;
   readonly orderableProvinces: readonly Province[];
   readonly member: Member;
+  /** @nullable */
+  readonly maxOrders: number | null;
 }
 
 export interface PublicUserProfile {
@@ -802,6 +847,8 @@ export interface UserProfile {
   readonly picture: string | null;
   readonly email: string;
   emailNotificationsEnabled?: boolean;
+  colorblindMode?: ColorblindModeEnum | NullEnum | null;
+  readonly canCreateBotGames: boolean;
   /** @nullable */
   readonly reliabilityTier: string | null;
 }

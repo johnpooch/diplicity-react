@@ -3,6 +3,7 @@ import * as Sentry from "@sentry/react";
 import { DiplicityLogo } from "./DiplicityLogo";
 import { Button } from "@/components/ui/button";
 import { SafeAreaView } from "@/components/SafeAreaView";
+import { isStaleChunkError, reloadForStaleChunk } from "@/utils/staleChunk";
 
 interface ErrorFallbackUIProps {
   error: Error;
@@ -39,6 +40,21 @@ interface ErrorFallbackProps {
 }
 
 const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error }) => {
+  const staleChunk = isStaleChunkError(error);
+
+  React.useEffect(() => {
+    if (staleChunk) reloadForStaleChunk();
+  }, [staleChunk]);
+
+  if (staleChunk) {
+    return (
+      <SafeAreaView className="flex flex-col items-center justify-center min-h-screen text-center gap-6">
+        <DiplicityLogo />
+        <p className="text-muted-foreground">Updating to the latest version…</p>
+      </SafeAreaView>
+    );
+  }
+
   const errorObject = error instanceof Error ? error : new Error(String(error));
   return <ErrorFallbackUI error={errorObject} />;
 };

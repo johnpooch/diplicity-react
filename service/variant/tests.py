@@ -6,7 +6,7 @@ from django.test.utils import override_settings
 from django.db import connection
 from rest_framework import status
 
-from adjudicator.serializers import deserialize_variant
+from adjudicator.serializers import deserialize_variant, VariantValidationError
 from variant.models import Variant, default_phase_progression
 from variant.utils import variant_to_canonical_dict
 
@@ -55,10 +55,51 @@ def test_list_variants_success(authenticated_client, classical_variant):
 
 
 @pytest.mark.django_db
-def test_list_variants_unauthenticated(unauthenticated_client):
+def test_list_variants_unauthenticated(unauthenticated_client, classical_variant, user_factory):
+    draft_variant = Variant.objects.create(
+        id="vis-draft", name="Visibility Draft", description="",
+        status=VariantStatus.DRAFT, owner=user_factory(),
+    )
     url = reverse(viewname)
     response = unauthenticated_client.get(url)
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.status_code == status.HTTP_200_OK
+    ids = {v["id"] for v in response.data}
+    assert classical_variant.id in ids
+    assert draft_variant.id not in ids
+
+
+@pytest.mark.django_db
+def test_etag_changes_when_colorblind_mode_changes(user_factory, authenticated_client_factory):
+    user = user_factory()
+    client = authenticated_client_factory(user)
+
+    response1 = client.get(reverse(viewname))
+    etag1 = response1["ETag"]
+
+    user.profile.colorblind_mode = "deuteranopia"
+    user.profile.save()
+
+    response2 = client.get(reverse(viewname))
+    etag2 = response2["ETag"]
+
+    assert etag1 != etag2
+
+
+@pytest.mark.django_db
+def test_list_variants_cache_control_forces_revalidation(authenticated_client):
+    response = authenticated_client.get(reverse(viewname))
+
+    assert response["Cache-Control"] == "private, no-cache"
+
+
+@pytest.mark.django_db
+def test_list_variants_returns_304_when_etag_matches(authenticated_client):
+    response1 = authenticated_client.get(reverse(viewname))
+    etag = response1["ETag"]
+
+    response2 = authenticated_client.get(reverse(viewname), HTTP_IF_NONE_MATCH=etag)
+
+    assert response2.status_code == status.HTTP_304_NOT_MODIFIED
 
 
 @pytest.mark.django_db
@@ -269,6 +310,19 @@ class TestVariantToCanonicalDict:
         assert len(initial_state["units"]) == 22
         assert len(initial_state["supplyCenters"]) == 22
 
+    @pytest.mark.django_db
+    def test_neutral_nations_auto_build_modifier_accepted(self, classical_variant):
+        canonical = variant_to_canonical_dict(classical_variant)
+        canonical["adjudicationModifiers"] = ["neutral-nations-auto-build"]
+        deserialize_variant(canonical)
+
+    @pytest.mark.django_db
+    def test_unknown_modifier_raises_variant_validation_error(self, classical_variant):
+        canonical = variant_to_canonical_dict(classical_variant)
+        canonical["adjudicationModifiers"] = ["not-a-real-modifier"]
+        with pytest.raises(VariantValidationError, match="Unknown adjudication modifier"):
+            deserialize_variant(canonical)
+
 
 @pytest.mark.django_db
 def test_published_variant_visible_to_any_user(authenticated_client):
@@ -358,3 +412,66 @@ def test_member_of_draft_variant_game_can_retrieve_variant(
     member_factory(game=game, user=other_user)
     response = other_client.get(reverse("variant-detail", kwargs={"pk": draft_variant.id}))
     assert response.status_code == status.HTTP_200_OK
+
+
+class TestNationColorColorblindAdjustment:
+
+    @pytest.mark.django_db
+    def test_no_colorblind_mode_returns_default_colors(
+        self, user_factory, authenticated_client_factory, classical_variant
+    ):
+        user = user_factory()
+        client = authenticated_client_factory(user)
+
+        response = client.get(reverse(viewname))
+
+        classical = {v["id"]: v for v in response.data}["classical"]
+        nations_by_id = {n["nation_id"]: n for n in classical["nations"]}
+        assert nations_by_id["england"]["color"] == "#2196F3"
+        assert nations_by_id["italy"]["color"] == "#4CAF50"
+
+    @pytest.mark.django_db
+    def test_deuteranopia_adjusts_nation_colors(
+        self, user_factory, authenticated_client_factory, classical_variant
+    ):
+        user = user_factory()
+        user.profile.colorblind_mode = "deuteranopia"
+        user.profile.save()
+        client = authenticated_client_factory(user)
+
+        response = client.get(reverse(viewname))
+
+        classical = {v["id"]: v for v in response.data}["classical"]
+        nations_by_id = {n["nation_id"]: n for n in classical["nations"]}
+        assert nations_by_id["england"]["color"] == "#0072B2"
+        assert nations_by_id["italy"]["color"] == "#CC79A7"
+
+    @pytest.mark.django_db
+    def test_protanopia_adjusts_nation_colors(
+        self, user_factory, authenticated_client_factory, classical_variant
+    ):
+        user = user_factory()
+        user.profile.colorblind_mode = "protanopia"
+        user.profile.save()
+        client = authenticated_client_factory(user)
+
+        response = client.get(reverse(viewname))
+
+        classical = {v["id"]: v for v in response.data}["classical"]
+        nations_by_id = {n["nation_id"]: n for n in classical["nations"]}
+        assert nations_by_id["austria"]["color"] == "#E69F00"
+
+    @pytest.mark.django_db
+    def test_tritanopia_adjusts_nation_colors(
+        self, user_factory, authenticated_client_factory, classical_variant
+    ):
+        user = user_factory()
+        user.profile.colorblind_mode = "tritanopia"
+        user.profile.save()
+        client = authenticated_client_factory(user)
+
+        response = client.get(reverse(viewname))
+
+        classical = {v["id"]: v for v in response.data}["classical"]
+        nations_by_id = {n["nation_id"]: n for n in classical["nations"]}
+        assert nations_by_id["turkey"]["color"] == "#CC79A7"

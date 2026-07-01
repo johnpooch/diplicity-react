@@ -31,15 +31,13 @@ from .domain import (
     VictoryCondition,
     VictoryConditionType,
 )
+from .types import SUPPORTED_ADJUDICATION_MODIFIERS
 
 
 SUPPORTED_PHASE_TYPES = frozenset({Phase.MOVEMENT, Phase.RETREAT, Phase.ADJUSTMENT})
 SUPPORTED_UNIT_TYPES = frozenset({Unit.ARMY, Unit.FLEET})
 SUPPORTED_ORDER_TYPES = frozenset(
     {"Move", "Hold", "Support", "Convoy", "Build", "Disband", "Retreat"}
-)
-SUPPORTED_ADJUDICATION_MODIFIERS = frozenset(
-    {"allow-builds-in-non-home-centers"}
 )
 
 

@@ -48,6 +48,7 @@ class OrderSerializer(serializers.Serializer):
     order_type = serializers.ChoiceField(choices=OrderType.ORDER_TYPE_CHOICES, read_only=True)
     unit_type = serializers.ChoiceField(choices=UnitType.UNIT_TYPE_CHOICES, read_only=True)
     nation = NationSerializer(read_only=True)
+    is_implicit = serializers.BooleanField(read_only=True)
     complete = serializers.BooleanField(allow_null=True, read_only=True)
     step = serializers.ChoiceField(
         choices=OrderCreationStep.ORDER_CREATION_STEP_CHOICES, allow_null=True, read_only=True

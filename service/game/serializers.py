@@ -9,6 +9,7 @@ from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
 from common.constants import DeadlineMode, MinReliability, NationAssignment, MovementPhaseDuration, PhaseFrequency, PhaseStatus, PressType, VariantStatus
 from user_profile.utils import get_player_stats, tier_allows_min_reliability
+from bot.utils import get_bot_user, user_can_use_bot_opponent
 from member.serializers import MemberSerializer
 from unit.models import Unit
 from supply_center.models import SupplyCenter
@@ -52,6 +53,26 @@ class GameMasterSerializer(serializers.Serializer):
     picture = serializers.CharField(source="profile.picture", read_only=True, allow_null=True)
 
 
+class GameListBoardNationSerializer(serializers.Serializer):
+    name = serializers.CharField(read_only=True)
+
+
+class GameListBoardProvinceSerializer(serializers.Serializer):
+    id = serializers.CharField(source="province_id", read_only=True)
+
+
+class GameListUnitSerializer(serializers.Serializer):
+    type = serializers.CharField(read_only=True)
+    nation = GameListBoardNationSerializer(read_only=True)
+    province = GameListBoardProvinceSerializer(read_only=True)
+    dislodged = serializers.BooleanField(read_only=True)
+
+
+class GameListSupplyCenterSerializer(serializers.Serializer):
+    nation = GameListBoardNationSerializer(read_only=True)
+    province = GameListBoardProvinceSerializer(read_only=True)
+
+
 class GameListCurrentPhaseSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     ordinal = serializers.IntegerField(read_only=True)
@@ -62,6 +83,8 @@ class GameListCurrentPhaseSerializer(serializers.Serializer):
     status = serializers.CharField(read_only=True)
     scheduled_resolution = serializers.DateTimeField(read_only=True, allow_null=True)
     remaining_time = serializers.IntegerField(source="remaining_time_seconds", read_only=True)
+    units = GameListUnitSerializer(many=True, read_only=True)
+    supply_centers = GameListSupplyCenterSerializer(many=True, read_only=True)
 
 
 class GameListSerializer(serializers.Serializer):
@@ -428,6 +451,11 @@ class GameCreateSerializer(serializers.Serializer):
         choices=MinReliability.MIN_RELIABILITY_CHOICES,
         default=MinReliability.OPEN,
     )
+    include_bot_opponent = serializers.BooleanField(
+        default=False,
+        required=False,
+        write_only=True,
+    )
 
     def validate_variant_id(self, value):
         try:
@@ -437,6 +465,13 @@ class GameCreateSerializer(serializers.Serializer):
             )
         except Variant.DoesNotExist:
             raise serializers.ValidationError("Variant with this ID does not exist.")
+        return value
+
+    def validate_include_bot_opponent(self, value):
+        if value and not user_can_use_bot_opponent(self.context["request"].user):
+            raise serializers.ValidationError(
+                "You are not permitted to add a bot opponent."
+            )
         return value
 
     def validate_fixed_deadline_timezone(self, value):
@@ -530,6 +565,12 @@ class GameCreateSerializer(serializers.Serializer):
             if not with_game_master:
                 creator_member = game.members.create(user=request.user)
                 public_channel.member_channels.create(member=creator_member)
+
+            if validated_data["include_bot_opponent"]:
+                bot_member = game.members.create(user=get_bot_user())
+                public_channel.member_channels.create(member=bot_member)
+
+            game.start_if_full()
 
             if hasattr(game, "_created_phase"):
                 delattr(game, "_created_phase")

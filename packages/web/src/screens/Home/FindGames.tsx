@@ -5,7 +5,7 @@ import { ScreenHeader } from "@/components/ui/screen-header";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { GameCard } from "@/components/GameCard";
-import { MapPreview } from "@/components/MapPreview";
+import { MapView } from "@/components/MapView";
 import { Notice } from "@/components/Notice";
 import { Button } from "@/components/ui/button";
 import {
@@ -140,7 +140,8 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
                 game={knownGames[0]}
                 variant={variantMap.get(knownGames[0].variantId)!}
                 map={
-                  <MapPreview
+                  <MapView
+                    mode="static"
                     variant={variantMap.get(knownGames[0].variantId)!}
                     phase={variantMap.get(knownGames[0].variantId)!.templatePhase}
                     cover
@@ -157,7 +158,8 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
                       game={game}
                       variant={variantMap.get(game.variantId)!}
                       map={
-                        <MapPreview
+                        <MapView
+                          mode="static"
                           variant={variantMap.get(game.variantId)!}
                           phase={variantMap.get(game.variantId)!.templatePhase}
                           cover
@@ -176,7 +178,8 @@ const FindGames: React.FC<FindGamesProps> = ({ isFilterOpen }) => {
                 game={game}
                 variant={variantMap.get(game.variantId)!}
                 map={
-                  <MapPreview
+                  <MapView
+                    mode="static"
                     variant={variantMap.get(game.variantId)!}
                     phase={variantMap.get(game.variantId)!.templatePhase}
                     cover

@@ -53,6 +53,7 @@ function buildOptimisticOrder(
     orderType: orderType as Order["orderType"],
     unitType: (resolvedSelections["unitType"] as Order["unitType"]) ?? "Army",
     nation,
+    isImplicit: false,
     complete: null,
     step: null,
     title: null,

@@ -78,7 +78,7 @@ const GameInfo: React.FC = () => {
       >
         Join game
       </Button>
-    ) : (
+    ) : game.canLeave ? (
       <div className="flex gap-2 w-full sm:w-auto">
         <Button
           onClick={handleLeaveGame}
@@ -93,7 +93,16 @@ const GameInfo: React.FC = () => {
           Share &amp; invite
         </Button>
       </div>
-    )
+    ) : game.minReliability !== "open" ? (
+      <div className="flex flex-col gap-1 w-full sm:w-auto">
+        <Button disabled className="w-full sm:w-auto">
+          Join game
+        </Button>
+        <p className="text-xs text-muted-foreground text-center">
+          Your reliability is too low to join this game
+        </p>
+      </div>
+    ) : null
   ) : null;
 
   return (

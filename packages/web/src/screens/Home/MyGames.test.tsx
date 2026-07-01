@@ -24,6 +24,8 @@ vi.mock("@/api/generated/endpoints", async (importOriginal) => {
     }),
     useGamePhaseRetrieve: (...args: unknown[]) => mockUseGamePhaseRetrieve(...args),
     useGameJoinCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
+    useDevicesCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
+    getDevicesListQueryKey: () => ["devices"],
   };
 });
 
@@ -31,8 +33,8 @@ vi.mock("@/hooks/useInfiniteScroll", () => ({
   useInfiniteScroll: () => ({ current: null }),
 }));
 
-vi.mock("@/components/MapPreview", () => ({
-  MapPreview: () => <div data-testid="map-preview" />,
+vi.mock("@/components/MapView", () => ({
+  MapView: () => <div data-testid="map-preview" />,
 }));
 
 vi.mock("@/hooks/use-mobile", () => ({

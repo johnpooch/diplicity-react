@@ -8,7 +8,7 @@ from django.http import HttpResponse, HttpResponseNotFound
 from django.views import View
 from rest_framework import generics, permissions, status
 from rest_framework.parsers import MultiPartParser
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from common.constants import VariantStatus
@@ -32,18 +32,27 @@ class IsOwnedDraftForWrite(permissions.BasePermission):
         )
 
 
-def _variants_list_etag(user_id):
+def _variants_list_etag(user):
     variant_max = Variant.objects.aggregate(Max("updated_at"))["updated_at__max"]
     flag_max = NationFlag.objects.aggregate(Max("updated_at"))["updated_at__max"]
+    mode = None
+    if user.is_authenticated:
+        profile = getattr(user, "profile", None)
+        if profile is not None:
+            mode = profile.colorblind_mode
     digest = hashlib.sha256(
-        f"{variant_max}|{flag_max}|{user_id}".encode()
+        f"{variant_max}|{flag_max}|{user.id}|{mode}".encode()
     ).hexdigest()
     return f'"{digest[:32]}"'
 
 
 class VariantListCreateView(generics.ListCreateAPIView):
-    permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser]
+
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [IsAuthenticated()]
+        return [AllowAny()]
 
     def get_queryset(self):
         return Variant.objects.visible_to(self.request.user).with_related_data()
@@ -53,14 +62,25 @@ class VariantListCreateView(generics.ListCreateAPIView):
             return VariantWriteSerializer
         return VariantSerializer
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        user = self.request.user
+        mode = None
+        if user.is_authenticated:
+            profile = getattr(user, "profile", None)
+            if profile is not None:
+                mode = profile.colorblind_mode
+        context["colorblind_mode"] = mode
+        return context
+
     def list(self, request, *args, **kwargs):
-        etag = _variants_list_etag(request.user.id)
+        etag = _variants_list_etag(request.user)
         if request.headers.get("If-None-Match") == etag:
             response = Response(status=status.HTTP_304_NOT_MODIFIED)
         else:
             response = super().list(request, *args, **kwargs)
         response["ETag"] = etag
-        response["Cache-Control"] = "private, must-revalidate, max-age=60"
+        response["Cache-Control"] = "private, no-cache"
         return response
 
 
@@ -70,6 +90,17 @@ class VariantDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return Variant.objects.visible_to(self.request.user).with_related_data()
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        user = self.request.user
+        mode = None
+        if user.is_authenticated:
+            profile = getattr(user, "profile", None)
+            if profile is not None:
+                mode = profile.colorblind_mode
+        context["colorblind_mode"] = mode
+        return context
 
     def get_serializer_class(self):
         if self.request.method in ("PUT", "PATCH"):

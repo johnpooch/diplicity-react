@@ -36,10 +36,12 @@ vi.mock("@/api/generated/endpoints", () => ({
   useGameOrdersDeleteDestroy: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useGameConfirmPhasePartialUpdate: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useGameResolvePhaseCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useGameRecoverFromCivilDisorderCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useGamesDrawProposalsListSuspense: () => ({ data: [] }),
   getGameRetrieveQueryKey: () => ["game"],
   getGameOrdersListQueryKey: () => ["orders"],
   getGameOptionsRetrieveQueryKey: () => ["options"],
+  getGamePhaseStatesListQueryKey: () => ["phase-states"],
 }));
 
 vi.mock("@/components/NationFlag", () => ({
@@ -140,6 +142,82 @@ describe("OrdersScreen civil disorder handling", () => {
     renderOrdersScreen();
 
     expect(screen.queryByRole("button", { name: /confirm orders/i })).not.toBeInTheDocument();
+  });
+
+  it("shows 'I'm back' button when current member is in civil disorder", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: [baseMember({ civilDisorder: true })],
+    });
+
+    renderOrdersScreen();
+
+    expect(screen.getByRole("button", { name: /i'm back/i })).toBeInTheDocument();
+  });
+
+  it("does not show 'I'm back' button when current member is not in civil disorder", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: [baseMember({ civilDisorder: false })],
+    });
+
+    renderOrdersScreen();
+
+    expect(screen.queryByRole("button", { name: /i'm back/i })).not.toBeInTheDocument();
+  });
+});
+
+describe("OrdersScreen confirm orders button", () => {
+  beforeEach(() => {
+    mockVariantsData.mockReturnValue([{ id: "classical", name: "Classical" }]);
+    mockPhaseData.mockReturnValue({
+      id: 1, status: "active", supplyCenters: [], units: [],
+    });
+    mockPhaseStatesData.mockReturnValue([
+      {
+        member: baseMember({ civilDisorder: false }),
+        orderableProvinces: [{ id: "lon", name: "London" }],
+      },
+    ]);
+    mockOrdersData.mockReturnValue([]);
+  });
+
+  it("shows confirm orders button for fixed-time game", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      deadlineMode: "fixed_time",
+      phaseConfirmed: false,
+      members: [baseMember()],
+    });
+
+    renderOrdersScreen();
+
+    expect(screen.getByRole("button", { name: /confirm orders/i })).toBeInTheDocument();
+  });
+
+  it("shows confirm orders button for duration game", () => {
+    mockGameData.mockReturnValue({
+      variantId: "classical",
+      status: "active",
+      sandbox: false,
+      deadlineMode: "duration",
+      phaseConfirmed: false,
+      members: [baseMember()],
+    });
+
+    renderOrdersScreen();
+
+    expect(screen.getByRole("button", { name: /confirm orders/i })).toBeInTheDocument();
   });
 });
 

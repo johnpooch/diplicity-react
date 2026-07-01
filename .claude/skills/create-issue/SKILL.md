@@ -1,6 +1,6 @@
 ---
 name: create-issue
-description: Create a single GitHub issue for diplicity-react from a free-text description — infer whether it's a bug or feature, dig the codebase to resolve ambiguity, write a tight type-appropriate body, apply the bug/feature category label, and create it untriaged. Use when the user asks to create, open, file, or write up a GitHub issue.
+description: Create a single GitHub issue for diplicity-react from a free-text description — infer whether it's a bug, enhancement, or documentation change, dig the codebase to resolve ambiguity, write a tight type-appropriate body, apply the bug/enhancement/documentation category label, and create it untriaged. Use when the user asks to create, open, file, or write up a GitHub issue.
 allowed-tools: mcp__github__issue_write, mcp__github__issue_read, mcp__github__list_issues, mcp__github__get_label, Read, Grep, Glob, AskUserQuestion
 ---
 
@@ -17,12 +17,12 @@ The Issues Board is homogeneous and agent-driven. Two rules constrain this skill
 - **Every open issue is exactly one dispatchable PR.** Anything bigger than a single PR
   is not a board issue — it belongs in GitHub Discussions as an RFC. See the
   epic-size guard below.
-- **Issues carry two label dimensions.** A **category** (`bug` or `feature`) and a
-  **status** (`needs-context` → `ready` → `in-progress`). This skill owns the category
-  only. It **never** sets a status label: a newly created issue is **untriaged** (no
-  status). `ready` in particular is a loaded gun — a cron routine auto-opens a PR for
-  any `ready` issue — so status is owned solely by the triage routine or an explicit
-  human, never self-applied here.
+- **Issues carry two label dimensions.** A **category** (`bug`, `enhancement`, or
+  `documentation`) and a **status** (`needs-context` → `ready` → `in-progress`). This
+  skill owns the category only. It **never** sets a status label: a newly created issue
+  is **untriaged** (no status). `ready` in particular is a loaded gun — a cron routine
+  auto-opens a PR for any `ready` issue — so status is owned solely by the triage
+  routine or an explicit human, never self-applied here.
 
 A well-formed issue from this skill should sail through daily triage; a thin one bounces
 to `needs-context`. Your job is to make it well-formed.
@@ -35,9 +35,14 @@ leave it out.
 
 ## Workflow
 
-1. **Infer the type.** Decide from the description whether this is a `bug` (something is
-   broken / behaves wrong) or a `feature` (something new or changed by design). Do not
-   ask the user "bug or feature?" — infer it. Only ask if genuinely 50/50.
+1. **Infer the type.** Decide from the description which category applies:
+   - `bug` — something is broken or behaves wrong.
+   - `enhancement` — something new or changed by design (new feature, UX improvement,
+     refactor requested by a human).
+   - `documentation` — a change to documentation or AI guidance: CLAUDE.md updates,
+     `.claude/` skill changes, contributor-guide edits, and similar.
+
+   Do not ask the user which type applies — infer it. Only ask if genuinely ambiguous.
 
 2. **Dig before asking.** Investigation effort scales with the ambiguity actually
    present, not a fixed form. Use `Read`/`Grep`/`Glob` to resolve anything the codebase
@@ -57,14 +62,15 @@ leave it out.
    RFC, and stop. Do not auto-split it into multiple issues.
 
 4. **Verify the category label exists.** Call `mcp__github__get_label` for the inferred
-   category (`bug` or `feature`). If it does not exist, **do not create the label and do
-   not create the issue** — stop and report that the category label is missing (this is
-   a misconfigured-board signal, not something this skill papers over).
+   category (`bug`, `enhancement`, or `documentation`). If it does not exist, **do not
+   create the label and do not create the issue** — stop and report that the category
+   label is missing (this is a misconfigured-board signal, not something this skill
+   papers over).
 
 5. **Create directly.** Create the issue with `mcp__github__issue_write` (`method:
-   create`), passing the body, a plain title, and `labels: ["bug"]` or
-   `labels: ["feature"]` — **the category label only, no status label**. Do not
-   draft-and-wait for approval.
+   create`), passing the body, a plain title, and `labels: ["bug"]`,
+   `labels: ["enhancement"]`, or `labels: ["documentation"]` — **the category label
+   only, no status label**. Do not draft-and-wait for approval.
 
 6. **Report the link.** Reply with the new issue's URL.
 
@@ -73,7 +79,7 @@ leave it out.
 One skeleton, with type-conditional sections. Use these sections, in order, and **no
 others**.
 
-**Feature:**
+**Enhancement:**
 
 ```
 ## Goal
@@ -115,10 +121,28 @@ genuinely not locatable or obvious.>
 <How we'll fix it. Include ONLY if an approach was actually discussed.>
 ```
 
-Rules that apply to both:
+**Documentation:**
+
+```
+## Goal
+
+<1–2 sentences: what documentation or AI-guidance is being added or corrected.>
+
+## Context
+
+<1–2 sentences: why the change is needed. Omit the section entirely if there's nothing
+meaningful to add.>
+
+## Approach
+
+<How the documentation should be updated. Include ONLY if an approach was actually
+discussed.>
+```
+
+Rules that apply to all three:
 
 - **Goal** — always present.
-- **Approach** — for either type, include only when an approach was actually discussed
+- **Approach** — for any type, include only when an approach was actually discussed
   in the lead-up to creating the issue. Never invent one.
 - A bug's **Expected behaviour** is a short prose description, **not** an
   acceptance-criteria checklist.
@@ -173,3 +197,6 @@ The countdown component under the game detail screen in `packages/web/src/`.
 ```
 
 No Context/Approach (neither was needed), category label `bug`, no status label.
+
+A request like "update the create-issue skill to use the enhancement label instead of
+feature" becomes a `documentation` issue with the `documentation` label.

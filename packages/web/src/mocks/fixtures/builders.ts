@@ -76,6 +76,8 @@ export const toCurrentPhase = (phase: PhaseRetrieve): GameListCurrentPhase => ({
   status: phase.status,
   scheduledResolution: phase.scheduledResolution,
   remainingTime: phase.remainingTime,
+  units: phase.units,
+  supplyCenters: phase.supplyCenters,
 });
 
 type GameOverrides = Partial<Omit<GameList, "id" | "name">>;
@@ -166,6 +168,7 @@ interface OrderSpec {
   summary?: string;
   succeeded?: boolean;
   failedBy?: string;
+  isImplicit?: boolean;
 }
 
 const orderTitle = (spec: OrderSpec, source: Province): string => {
@@ -216,6 +219,7 @@ export const makeOrder = (spec: OrderSpec): Order => {
     orderType: spec.orderType,
     unitType: spec.unitType,
     nation: nation(spec.nationId),
+    isImplicit: spec.isImplicit ?? false,
     complete: true,
     step: "completed",
     title,
@@ -233,6 +237,7 @@ export const makePhaseState = (
   id: `ps-${++phaseStateIdCounter}`,
   ordersConfirmed: false,
   eliminated: false,
+  maxOrders: null,
   orderableProvinces: orderableProvinceIds.map(province),
   member,
   ...overrides,

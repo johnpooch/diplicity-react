@@ -82,8 +82,7 @@ def test_list_variants_returns_etag_and_cache_control(authenticated_client):
     response = authenticated_client.get(reverse("variant-list"))
     assert response.status_code == status.HTTP_200_OK
     assert response["ETag"].startswith('"') and response["ETag"].endswith('"')
-    assert "max-age=60" in response["Cache-Control"]
-    assert "must-revalidate" in response["Cache-Control"]
+    assert response["Cache-Control"] == "private, no-cache"
 
 
 @pytest.mark.django_db

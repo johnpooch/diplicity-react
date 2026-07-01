@@ -1,5 +1,8 @@
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
 
+from bot.utils import user_can_use_bot_opponent
+from common.constants import ColorblindMode
 from .utils import get_player_stats
 
 
@@ -10,7 +13,17 @@ class UserProfileSerializer(serializers.Serializer):
     picture = serializers.CharField(read_only=True, allow_null=True)
     email = serializers.CharField(source="user.email", read_only=True)
     email_notifications_enabled = serializers.BooleanField(required=False)
+    colorblind_mode = serializers.ChoiceField(
+        choices=ColorblindMode.CHOICES,
+        allow_null=True,
+        required=False,
+    )
+    can_create_bot_games = serializers.SerializerMethodField()
     reliability_tier = serializers.CharField(read_only=True, allow_null=True)
+
+    @extend_schema_field(serializers.BooleanField)
+    def get_can_create_bot_games(self, obj):
+        return user_can_use_bot_opponent(obj.user)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -31,6 +44,8 @@ class UserProfileSerializer(serializers.Serializer):
         instance.email_notifications_enabled = validated_data.get(
             "email_notifications_enabled", instance.email_notifications_enabled
         )
+        if "colorblind_mode" in validated_data:
+            instance.colorblind_mode = validated_data["colorblind_mode"]
         instance.save()
         return instance
 

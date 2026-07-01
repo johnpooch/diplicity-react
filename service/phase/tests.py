@@ -601,6 +601,38 @@ class TestAdjustmentPhaseOrderLimits:
         assert orderable.count() == 3  # All have orders
         assert set(p.province_id for p in orderable) == {"lon", "par", "edi"}
 
+    @pytest.mark.django_db
+    def test_max_orders_in_api_response_non_adjustment(
+        self,
+        authenticated_client,
+        active_game_with_phase_options,
+    ):
+        url = reverse("phase-state-list", args=[active_game_with_phase_options.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data[0]["max_orders"] is None
+
+    @pytest.mark.django_db
+    def test_max_orders_in_api_response_adjustment(
+        self,
+        authenticated_client,
+        active_game_with_phase_options,
+        classical_england_nation,
+        classical_london_province,
+        classical_paris_province,
+    ):
+        phase = active_game_with_phase_options.current_phase
+        phase.type = PhaseType.ADJUSTMENT
+        phase.save()
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_london_province)
+        phase.supply_centers.create(nation=classical_england_nation, province=classical_paris_province)
+        phase.units.create(type="Fleet", nation=classical_england_nation, province=classical_london_province)
+
+        url = reverse("phase-state-list", args=[active_game_with_phase_options.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data[0]["max_orders"] == 1
+
 
 class TestOptionsTransformation:
 
@@ -1085,6 +1117,59 @@ class TestCreateFromAdjudicationData:
         resolved_orders = [order for order in phase.all_orders if hasattr(order, "resolution")]
         assert len(resolved_orders) == orders_count
 
+    @pytest.mark.django_db
+    def test_create_from_adjudication_data_creates_implicit_hold_for_failed_resolution_without_explicit_order(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_with_failed_implicit_hold,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+
+        Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_with_failed_implicit_hold)
+
+        implicit_order = Order.objects.get(
+            phase_state__phase=phase,
+            phase_state__member__nation__name="Germany",
+            source__province_id="ber",
+            is_implicit=True,
+        )
+        assert implicit_order.order_type == OrderType.HOLD
+        assert implicit_order.resolution.status == "ErrBounce"
+
+    @pytest.mark.django_db
+    def test_create_from_adjudication_data_does_not_create_implicit_hold_for_successful_resolution_without_explicit_order(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_basic,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+
+        Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_basic)
+
+        assert not Order.objects.filter(
+            phase_state__phase=phase,
+            is_implicit=True,
+        ).exists()
+
+    @pytest.mark.django_db
+    def test_create_from_adjudication_data_creates_implicit_hold_for_dislodged_unit_without_explicit_order(
+        self,
+        italy_vs_germany_phase_with_orders,
+        mock_adjudication_data_with_dislodged_implicit_hold,
+    ):
+        phase = italy_vs_germany_phase_with_orders
+
+        Phase.objects.create_from_adjudication_data(phase, mock_adjudication_data_with_dislodged_implicit_hold)
+
+        implicit_order = Order.objects.get(
+            phase_state__phase=phase,
+            phase_state__member__nation__name="Germany",
+            source__province_id="ber",
+            is_implicit=True,
+        )
+        assert implicit_order.order_type == OrderType.HOLD
+        assert implicit_order.resolution.status == "ErrForcedDisband"
+
 
 class TestCreateFromAdjudicationDataPerformance:
 
@@ -1103,7 +1188,7 @@ class TestCreateFromAdjudicationDataPerformance:
 
         query_count = len(connection.queries)
 
-        assert query_count == 14
+        assert query_count == 15
 
     @pytest.mark.django_db
     def test_create_from_adjudication_data_query_count_with_full_game(
@@ -1218,7 +1303,7 @@ class TestCreateFromAdjudicationDataPerformance:
 
         query_count = len(connection.queries)
 
-        assert query_count == 13
+        assert query_count == 14
 
 
 class TestPhaseReversion:
@@ -1439,7 +1524,8 @@ class TestPhaseRetrieveView:
         phase = game.current_phase
         url = reverse("phase-retrieve", args=[game.id, phase.id])
         response = unauthenticated_client.get(url)
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["id"] == phase.id
 
     @pytest.mark.django_db
     def test_retrieve_phase_not_found(self, authenticated_client, active_game_with_phase_state):
@@ -2029,7 +2115,7 @@ class TestFilterDuePhasesBasicFiltering:
         assert phase in phases
 
     @pytest.mark.django_db
-    def test_filter_due_phases_fixed_time_all_confirmed_does_not_resolve_early(
+    def test_filter_due_phases_fixed_time_all_confirmed_resolves_early(
         self, phase_factory, classical_variant, classical_england_nation, classical_france_nation
     ):
         game = Game.objects.create(
@@ -2049,7 +2135,7 @@ class TestFilterDuePhasesBasicFiltering:
 
         phases = Phase.objects.filter_due_phases()
 
-        assert phase not in phases
+        assert phase in phases
 
     @pytest.mark.django_db
     def test_filter_due_phases_fixed_time_resolves_at_scheduled_time(
@@ -4119,7 +4205,7 @@ class TestPhaseToCanonicalGameStatePerformance:
 class TestSendDeadlineWarnings:
 
     @pytest.mark.django_db
-    def test_fixed_time_all_orders_no_notification(
+    def test_fixed_time_all_orders_not_confirmed_sends_confirm_prompt(
         self,
         deadline_warning_game_factory,
         add_italy_germany_units,
@@ -4132,6 +4218,29 @@ class TestSendDeadlineWarnings:
         add_italy_germany_units(phase)
         italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True)
         germany_ps = phase.phase_states.create(member=germany, has_possible_orders=True)
+        italy_ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
+        germany_ps.orders.create(source=italy_vs_germany_kiel_province, order_type=OrderType.HOLD)
+
+        Phase.objects.send_deadline_warnings()
+
+        assert mock_send_notification_to_users.call_count == 2
+        body = mock_send_notification_to_users.call_args_list[0].kwargs["body"]
+        assert "Confirm to advance the game early" in body
+
+    @pytest.mark.django_db
+    def test_fixed_time_all_orders_confirmed_no_notification(
+        self,
+        deadline_warning_game_factory,
+        add_italy_germany_units,
+        italy_vs_germany_venice_province,
+        italy_vs_germany_kiel_province,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = deadline_warning_game_factory(DeadlineMode.FIXED_TIME, now + timedelta(minutes=10))
+        add_italy_germany_units(phase)
+        italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=True)
+        germany_ps = phase.phase_states.create(member=germany, has_possible_orders=True, orders_confirmed=True)
         italy_ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
         germany_ps.orders.create(source=italy_vs_germany_kiel_province, order_type=OrderType.HOLD)
 
@@ -4515,7 +4624,7 @@ class TestNMRExtensionsFixedTime:
         assert phase.scheduled_resolution > now + timedelta(hours=24)
 
     @pytest.mark.django_db
-    def test_fixed_time_with_any_order_skips_extension(
+    def test_fixed_time_confirmed_skips_extension(
         self,
         deadline_warning_game_factory,
         italy_vs_germany_italy_nation,
@@ -4532,8 +4641,7 @@ class TestNMRExtensionsFixedTime:
             type=UnitType.ARMY,
             nation=italy_vs_germany_italy_nation,
         )
-        ps = phase.phase_states.create(member=italy, has_possible_orders=True)
-        ps.orders.create(source=italy_vs_germany_venice_province, order_type=OrderType.HOLD)
+        phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=True)
 
         result = Phase.objects._check_and_apply_nmr_extensions(phase)
 

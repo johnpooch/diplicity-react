@@ -314,6 +314,15 @@ const buildActiveRetreat = () => {
           orderType: "Hold",
           source: "nrg",
         }),
+        makeOrder({
+          nationId: "russia",
+          unitType: "Army",
+          orderType: "Hold",
+          source: "nwy",
+          succeeded: false,
+          failedBy: "yor",
+          isImplicit: true,
+        }),
       ],
       203: [],
     },
@@ -399,13 +408,13 @@ const buildActiveBuild = () => {
       303: [],
     },
     phaseStates: [
-      makePhaseState(members[0], ["lon", "edi", "lvp"]),
-      makePhaseState(members[1], []),
-      makePhaseState(members[2], []),
-      makePhaseState(members[3], []),
-      makePhaseState(members[4], []),
-      makePhaseState(members[5], []),
-      makePhaseState(members[6], []),
+      makePhaseState(members[0], ["lon", "edi", "lvp"], { maxOrders: 1 }),
+      makePhaseState(members[1], [], { maxOrders: 0 }),
+      makePhaseState(members[2], [], { maxOrders: 0 }),
+      makePhaseState(members[3], [], { maxOrders: 0 }),
+      makePhaseState(members[4], [], { maxOrders: 0 }),
+      makePhaseState(members[5], [], { maxOrders: 0 }),
+      makePhaseState(members[6], [], { maxOrders: 0 }),
     ],
     channels: [makeChannel("Public Press", members, [])],
   });
@@ -576,3 +585,29 @@ const buildNotJoined = () => {
 };
 
 export const gameNotJoined = buildNotJoined();
+
+const buildActiveCivilDisorder = () => {
+  const members = makeActiveMembers().map(m =>
+    m.nation === "England" ? { ...m, civilDisorder: true } : m
+  );
+  const phase = makePhase(1001, 5, {
+    season: "Spring",
+    year: 1901,
+    type: "Movement",
+    remainingTime: 36 * 60 * 60,
+  });
+  return makeFixture({
+    description:
+      "Active game in Spring 1901 where the current user (England) is in civil disorder and cannot submit orders.",
+    game: makeGame("active-civil-disorder", "Lost Connection", members, [phase], {
+      orderStatus: "no_orders_required",
+      memberStatus: [],
+    }),
+    phases: [phase],
+    ordersByPhase: { 1001: [] },
+    phaseStates: members.map(m => makePhaseState(m, [])),
+    channels: [makeChannel("Public Press", members, [])],
+  });
+};
+
+export const activeGameCivilDisorder = buildActiveCivilDisorder();

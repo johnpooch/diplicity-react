@@ -5,13 +5,13 @@ import type {
 import type { OrderState, RenderState, UnitState } from "./mapRenderer";
 
 type PhaseForRender = {
-  units: Array<{
+  units: ReadonlyArray<{
     province: { id: string };
     nation: { name: string };
     type: string;
     dislodged: boolean;
   }>;
-  supplyCenters: Array<{
+  supplyCenters: ReadonlyArray<{
     province: { id: string };
     nation: { name: string };
   }>;
@@ -87,6 +87,7 @@ export const toRenderState = (
       failed: Boolean(
         order.resolution && order.resolution.status !== "Succeeded"
       ),
+      isImplicit: order.isImplicit,
     };
   });
 

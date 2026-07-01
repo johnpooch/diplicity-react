@@ -101,6 +101,7 @@ INSTALLED_APPS = [
     "victory",
     "draw_proposal",
     "email_service",
+    "bot",
     "drf_spectacular",
 ]
 
@@ -250,6 +251,15 @@ APPLE_WEB_CLIENT_ID = os.getenv("APPLE_WEB_CLIENT_ID")
 SOCIAL_AUTH_PASSWORD = os.getenv("SOCIAL_AUTH_PASSWORD", "default_social_password")
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "https://diplicity.com")
+
+BOT_OPPONENT_ALLOWLIST = [
+    email.strip().lower()
+    for email in os.getenv("BOT_OPPONENT_ALLOWLIST", "").split(",")
+    if email.strip()
+]
+
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+BOT_LLM_MODEL = os.getenv("BOT_LLM_MODEL", "claude-haiku-4-5")
 
 
 REST_FRAMEWORK = {

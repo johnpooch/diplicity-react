@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, time, timedelta, timezone as dt_timezone
 from unittest.mock import patch
 
 import pytest
@@ -7,7 +7,8 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 
-from common.constants import PhaseStatus
+from common.constants import DeadlineMode, PhaseFrequency, PhaseStatus
+from game.models import Game
 from phase.models import Phase
 from phase.serializers import PhaseStateSerializer
 
@@ -243,3 +244,76 @@ class TestSweepCanary:
 
         mock_capture.assert_not_called()
         mock_resolve.assert_called_once()
+
+
+class TestFixedTimeEarlyResolution:
+
+    @pytest.mark.django_db
+    def test_fixed_time_phase_is_due_when_all_confirmed(self, phase_factory, classical_england_nation, classical_variant):
+        game = Game.objects.create(
+            variant=classical_variant,
+            name="Fixed Time Test",
+            status="active",
+            deadline_mode=DeadlineMode.FIXED_TIME,
+            movement_frequency=PhaseFrequency.DAILY,
+            fixed_deadline_time=time(21, 0),
+            fixed_deadline_timezone="UTC",
+        )
+        phase_factory(
+            game=game,
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": True},
+            ],
+        )
+
+        assert Phase.objects.filter_due_phases().filter(game=game).exists()
+
+    @pytest.mark.django_db
+    def test_fixed_time_phase_not_due_when_not_all_confirmed(self, phase_factory, classical_england_nation, classical_variant):
+        game = Game.objects.create(
+            variant=classical_variant,
+            name="Fixed Time Test",
+            status="active",
+            deadline_mode=DeadlineMode.FIXED_TIME,
+            movement_frequency=PhaseFrequency.DAILY,
+            fixed_deadline_time=time(21, 0),
+            fixed_deadline_timezone="UTC",
+        )
+        phase = phase_factory(
+            game=game,
+            scheduled_resolution=timezone.now() + timedelta(hours=24),
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+
+        assert not Phase.objects.filter_due_phases().filter(pk=phase.id).exists()
+
+
+class TestDeadlineGridPreservation:
+
+    @pytest.mark.django_db
+    def test_next_deadline_anchored_to_scheduled_resolution_not_now(
+        self, classical_variant
+    ):
+        phase1_scheduled = datetime(2026, 1, 3, 21, 0, 0, tzinfo=dt_timezone.utc)
+
+        game = Game.objects.create(
+            variant=classical_variant,
+            name="Grid Test",
+            status="active",
+            deadline_mode=DeadlineMode.FIXED_TIME,
+            movement_frequency=PhaseFrequency.DAILY,
+            fixed_deadline_time=time(21, 0),
+            fixed_deadline_timezone="UTC",
+        )
+
+        next_with_reference = game.get_scheduled_resolution(
+            "Movement", reference_time=phase1_scheduled
+        )
+        next_from_now = game.get_scheduled_resolution("Movement")
+
+        expected = datetime(2026, 1, 4, 21, 0, 0, tzinfo=dt_timezone.utc)
+        assert next_with_reference == expected
+        assert next_from_now != expected

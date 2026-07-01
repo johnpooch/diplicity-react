@@ -47,12 +47,12 @@ urlpatterns = [
 ]
 
 if settings._FIREBASE_PROJECT_ID:
-    from fcm_django.api.rest_framework import FCMDeviceAuthorizedViewSet
+    from notification.views import NotificationDeviceViewSet
 
     urlpatterns += [
         path(
             "devices/",
-            FCMDeviceAuthorizedViewSet.as_view({"get": "list", "post": "create", "put": "update"}),
+            NotificationDeviceViewSet.as_view({"get": "list", "post": "create", "put": "update"}),
             name="devices",
         ),
     ]

@@ -24,8 +24,7 @@ class MemberCreateView(SelectedGameMixin, generics.CreateAPIView):
 
     def perform_create(self, serializer):
         member = serializer.save()
-        if member.game.variant.nations.filter(non_playable=False).count() == member.game.members.count():
-            member.game.start()
+        member.game.start_if_full()
 
 
 class MemberDeleteView(SelectedGameMixin, generics.DestroyAPIView):

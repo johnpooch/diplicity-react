@@ -75,26 +75,42 @@ class GameQuerySet(models.QuerySet):
     def with_list_data(self):
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.select_related("nation__flag", "user__profile"),
+            queryset=Member.objects.select_related("nation", "user__profile"),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile", "nation__flag")
+            queryset=Member.objects.select_related("user__profile", "nation"),
         )
 
-        # The list view's current_phase + phase_confirmed read the latest
-        # phase plus its phase_states.member.user_id. Prefetching the chain
-        # here keeps the per-game cost flat (no N+1 across the games list).
         phase_states_prefetch = Prefetch(
             "phase_states",
             queryset=PhaseState.objects.select_related("member").annotate(
                 order_count=Count("orders")
             ),
         )
+        current_phase_ids = (
+            Phase.objects.order_by("game_id", "-ordinal")
+            .distinct("game_id")
+            .values("id")
+        )
+        current_units_prefetch = Prefetch(
+            "units",
+            queryset=Unit.objects.filter(phase__in=current_phase_ids)
+            .select_related("nation", "province"),
+        )
+        current_supply_centers_prefetch = Prefetch(
+            "supply_centers",
+            queryset=SupplyCenter.objects.filter(phase__in=current_phase_ids)
+            .select_related("nation", "province"),
+        )
         phases_prefetch = Prefetch(
             "phases",
-            queryset=Phase.objects.prefetch_related(phase_states_prefetch),
+            queryset=Phase.objects.prefetch_related(
+                phase_states_prefetch,
+                current_units_prefetch,
+                current_supply_centers_prefetch,
+            ),
         )
 
         return self.select_related("variant", "victory", "game_master__profile").prefetch_related(
@@ -478,7 +494,7 @@ class Game(BaseModel):
         else:
             return self.effective_retreat_frequency
 
-    def get_scheduled_resolution(self, phase_type, is_first_phase=False):
+    def get_scheduled_resolution(self, phase_type, is_first_phase=False, reference_time=None):
         if self.deadline_mode == DeadlineMode.FIXED_TIME:
             frequency = self.get_phase_frequency(phase_type)
             if not frequency or not self.fixed_deadline_time or not self.fixed_deadline_timezone:
@@ -487,6 +503,7 @@ class Game(BaseModel):
                 target_time=self.fixed_deadline_time,
                 frequency=frequency,
                 tz_name=self.fixed_deadline_timezone,
+                reference_time=reference_time,
                 is_first_phase=is_first_phase,
             )
         else:
@@ -615,6 +632,15 @@ class Game(BaseModel):
             self.status = GameStatus.ACTIVE
             self.started_at = timezone.now()
             self.save()
+
+    def start_if_full(self):
+        if self.status != GameStatus.PENDING:
+            return False
+        playable_nations = self.variant.nations.filter(non_playable=False).count()
+        if self.members.count() != playable_nations:
+            return False
+        self.start()
+        return True
 
     def pause(self):
         if self.status != GameStatus.ACTIVE:

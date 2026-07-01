@@ -95,6 +95,7 @@ export type OctagonOptions = {
   fill: string;
   stroke: string;
   strokeWidth: number;
+  opacity?: number;
   renderBottomCenter?: (x: number, y: number) => string;
 };
 
@@ -114,8 +115,9 @@ export const octagon = (o: OctagonOptions): string => {
   const extra = o.renderBottomCenter
     ? o.renderBottomCenter(bottomCenterX, bottomCenterY)
     : "";
+  const opacityAttr = o.opacity !== undefined ? ` opacity="${o.opacity}"` : "";
   return (
-    `<g><polygon points="${pointsAttr}" fill="${o.fill}" stroke="${o.stroke}" stroke-width="${n(o.strokeWidth)}"/>` +
+    `<g><polygon points="${pointsAttr}" fill="${o.fill}" stroke="${o.stroke}" stroke-width="${n(o.strokeWidth)}"${opacityAttr}/>` +
     `${extra}</g>`
   );
 };

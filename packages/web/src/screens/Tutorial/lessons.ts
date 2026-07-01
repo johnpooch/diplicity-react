@@ -128,6 +128,7 @@ function order(variant: Variant, spec: OrderSpec): Order {
     orderType: spec.orderType,
     unitType: spec.unitType,
     nation: nationOf(variant, spec.nationId),
+    isImplicit: false,
     complete: true,
     step: "completed",
     title,
