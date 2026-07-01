@@ -15,7 +15,9 @@ from common.constants import (
 )
 from channel.models import ChannelMessage
 from game.models import Game
+from bot.models import LLMCall
 from bot import decorators, tasks, utils
+from bot.constants import LLMCallStage, LLMCallStatus
 from bot.context.builder import ContextBuilder
 from bot.context.orders import first_legal_selections, option_to_selected
 from bot.context.parsers import parse_order_selections, parse_reply
@@ -645,3 +647,48 @@ class TestReplyTrigger:
         assert response.status_code == status.HTTP_201_CREATED
 
         assert len(_bot_reply_jobs(in_memory_procrastinate)) == 0
+
+
+class TestLLMCall:
+
+    @pytest.mark.django_db
+    def test_records_call_with_usage_and_text(self, bot_game_factory):
+        game = bot_game_factory()
+        phase = game.current_phase
+        member = game.members.get(user=get_bot_user())
+
+        call = LLMCall.objects.create(
+            phase=phase,
+            member=member,
+            stage=LLMCallStage.PLAN,
+            model="claude-haiku",
+            system="system prompt",
+            user_content="user content",
+            response="response text",
+            input_tokens=120,
+            output_tokens=45,
+            cache_read_tokens=80,
+            cache_write_tokens=10,
+        )
+
+        call.refresh_from_db()
+        assert call.status == LLMCallStatus.SUCCESS
+        assert call.input_tokens == 120
+        assert call.cache_read_tokens == 80
+        assert call.response == "response text"
+        assert call in phase.llm_calls.all()
+
+    @pytest.mark.django_db
+    def test_member_is_optional(self, bot_game_factory):
+        game = bot_game_factory()
+
+        call = LLMCall.objects.create(
+            phase=game.current_phase,
+            stage=LLMCallStage.NEGOTIATE,
+            model="claude-haiku",
+        )
+
+        call.refresh_from_db()
+        assert call.member is None
+        assert call.input_tokens == 0
+        assert call.system == ""
