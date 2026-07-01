@@ -15,7 +15,7 @@ from common.constants import (
 )
 from channel.models import ChannelMessage
 from game.models import Game
-from bot import tasks, utils
+from bot import decorators, tasks, utils
 from bot.context.builder import ContextBuilder
 from bot.context.orders import first_legal_selections, option_to_selected
 from bot.context.parsers import parse_order_selections, parse_reply
@@ -407,6 +407,28 @@ class TestBotRequestHost:
     def test_falls_back_to_testserver_for_wildcard(self, settings):
         settings.ALLOWED_HOSTS = ["*"]
         assert utils.bot_request_host() == "testserver"
+
+
+class TestBotIdentificationByProfile:
+
+    @pytest.mark.django_db
+    def test_get_bot_user_ignores_email(self):
+        bot_user = get_bot_user()
+        bot_user.email = "not-the-magic-email@example.com"
+        bot_user.save()
+
+        assert get_bot_user() == bot_user
+
+    @pytest.mark.django_db
+    def test_bot_user_ids_for_phase_ignores_email(self, phase_factory, classical_england_nation):
+        bot_user = get_bot_user()
+        bot_user.email = "not-the-magic-email@example.com"
+        bot_user.save()
+        phase = phase_factory(
+            phase_states_config=[{"nation": classical_england_nation, "user": bot_user}]
+        )
+
+        assert decorators._bot_user_ids_for_phase(phase.id) == {bot_user.id}
 
 
 class TestFinalizeTask:
