@@ -57,8 +57,7 @@ def on_public_chat_message(func):
             return
         if instance.channel.private:
             return
-        message_sender = instance.sender
-        if message_sender.user is not None and hasattr(message_sender.user, "bot_profile"):
+        if Member.objects.filter(pk=instance.sender_id, user__bot_profile__isnull=False).exists():
             return
         return func(sender=sender, instance=instance, created=created, **kwargs)
 
