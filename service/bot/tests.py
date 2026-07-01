@@ -16,7 +16,7 @@ from common.constants import (
 from channel.models import ChannelMessage
 from game.models import Game
 from bot.models import LLMCall
-from bot import tasks, utils
+from bot import decorators, tasks, utils
 from bot.constants import LLMCallStage, LLMCallStatus
 from bot.context.builder import ContextBuilder
 from bot.context.orders import first_legal_selections, option_to_selected
@@ -156,7 +156,7 @@ class TestLLMClient:
 
 class TestContextBuilder:
 
-    def _data(self, channels=None):
+    def _data(self, channels=None, phase=None):
         return {
             "orders": [
                 _option("lon", OrderType.HOLD),
@@ -164,8 +164,42 @@ class TestContextBuilder:
             ],
             "phase_states": [{"max_orders": 3}],
             "game": {"phase_confirmed": False},
+            "phase": phase if phase is not None else {},
             "channels": channels or [],
         }
+
+    def _phase(self):
+        def nation(name):
+            return {"nation_id": name.lower(), "name": name}
+
+        def province(province_id):
+            return {"id": province_id, "name": province_id}
+
+        return {
+            "name": "Spring 1901, Movement",
+            "type": "Movement",
+            "units": [
+                {"type": "Army", "nation": nation("England"), "province": province("lon"), "dislodged": False},
+                {"type": "Fleet", "nation": nation("England"), "province": province("nth"), "dislodged": True},
+                {"type": "Army", "nation": nation("France"), "province": province("par"), "dislodged": False},
+            ],
+            "supply_centers": [
+                {"province": province("lon"), "nation": nation("England")},
+                {"province": province("edi"), "nation": nation("England")},
+                {"province": province("par"), "nation": nation("France")},
+            ],
+        }
+
+    def test_with_game_state_groups_units_and_centers_by_nation(self):
+        shared = ContextBuilder(self._data(phase=self._phase())).with_game_state().build_shared()
+        assert "Current phase: Spring 1901, Movement" in shared
+        assert "England: A lon, F nth (dislodged)" in shared
+        assert "France: A par" in shared
+        assert "England: 2 (edi, lon)" in shared
+        assert "France: 1 (par)" in shared
+
+    def test_with_game_state_empty_phase_is_noop(self):
+        assert ContextBuilder(self._data()).with_game_state().build_shared() == ""
 
     def _channel(self, channel_id, name, messages):
         return {"id": channel_id, "name": name, "private": False, "messages": messages}
@@ -375,6 +409,28 @@ class TestBotRequestHost:
     def test_falls_back_to_testserver_for_wildcard(self, settings):
         settings.ALLOWED_HOSTS = ["*"]
         assert utils.bot_request_host() == "testserver"
+
+
+class TestBotIdentificationByProfile:
+
+    @pytest.mark.django_db
+    def test_get_bot_user_ignores_email(self):
+        bot_user = get_bot_user()
+        bot_user.email = "not-the-magic-email@example.com"
+        bot_user.save()
+
+        assert get_bot_user() == bot_user
+
+    @pytest.mark.django_db
+    def test_bot_user_ids_for_phase_ignores_email(self, phase_factory, classical_england_nation):
+        bot_user = get_bot_user()
+        bot_user.email = "not-the-magic-email@example.com"
+        bot_user.save()
+        phase = phase_factory(
+            phase_states_config=[{"nation": classical_england_nation, "user": bot_user}]
+        )
+
+        assert decorators._bot_user_ids_for_phase(phase.id) == {bot_user.id}
 
 
 class TestFinalizeTask:

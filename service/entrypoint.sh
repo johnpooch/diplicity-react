@@ -7,6 +7,16 @@ PROCESS_ROLE="${PROCESS_ROLE:-web}"
 echo "Starting entrypoint script (role: $PROCESS_ROLE)..."
 
 if [ "$PROCESS_ROLE" = "worker" ]; then
+    echo "Waiting for migrations to complete before starting Procrastinate worker..."
+    attempt=0
+    until python manage.py migrate --check; do
+        attempt=$((attempt + 1))
+        if [ "$attempt" -ge 60 ]; then
+            echo "Timed out waiting for migrations to complete." >&2
+            exit 1
+        fi
+        sleep 5
+    done
     echo "Starting Procrastinate worker..."
     exec python manage.py procrastinate worker
 fi

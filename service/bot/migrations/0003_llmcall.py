@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("bot", "0001_create_bot_user"),
+        ("bot", "0002_create_bot_profile"),
         ("member", "0007_member_seeking_replacement_replaced_by"),
         ("phase", "0015_backfill_orders_outcome"),
     ]

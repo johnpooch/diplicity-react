@@ -4,15 +4,13 @@ from common.constants import PhaseStatus
 from member.models import Member
 from phase.models import Phase
 
-from bot.constants import BOT_USER_EMAIL
-
 _previous_phase_status = {}
 
 
 def _bot_user_ids_for_phase(phase_id):
     return set(
         Member.objects.filter(
-            game__phases=phase_id, user__email=BOT_USER_EMAIL
+            game__phases=phase_id, user__bot_profile__isnull=False
         ).values_list("user_id", flat=True)
     )
 
@@ -42,7 +40,7 @@ def with_bot_members(func):
     def wrapper(sender, instance, **kwargs):
         bot_members = list(
             Member.objects.filter(
-                game_id=instance.game_id, user__email=BOT_USER_EMAIL
+                game_id=instance.game_id, user__bot_profile__isnull=False
             ).select_related("user")
         )
         if not bot_members:
@@ -59,8 +57,7 @@ def on_public_chat_message(func):
             return
         if instance.channel.private:
             return
-        message_sender = instance.sender
-        if message_sender.user is not None and message_sender.user.email == BOT_USER_EMAIL:
+        if Member.objects.filter(pk=instance.sender_id, user__bot_profile__isnull=False).exists():
             return
         return func(sender=sender, instance=instance, created=created, **kwargs)
 
@@ -71,7 +68,9 @@ def with_bot_channel_members(func):
     @functools.wraps(func)
     def wrapper(sender, instance, **kwargs):
         bot_members = list(
-            instance.channel.members.filter(user__email=BOT_USER_EMAIL).select_related("user")
+            instance.channel.members.filter(
+                user__bot_profile__isnull=False
+            ).select_related("user")
         )
         if not bot_members:
             return
