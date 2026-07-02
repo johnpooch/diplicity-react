@@ -21,6 +21,8 @@ def build_graph(provinces: list[VariantProvinceDict]) -> GraphDict:
     }
     for province in provinces:
         source = canonical[province["id"]]
+        if source not in edge_sets:
+            continue
         for adjacency in province.get("adjacencies", []):
             target = canonical.get(adjacency["to"])
             if target is None or target == source:
