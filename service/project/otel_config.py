@@ -5,7 +5,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import Resource, SERVICE_NAME, DEPLOYMENT_ENVIRONMENT
 from opentelemetry.instrumentation.django import DjangoInstrumentor
-from opentelemetry.instrumentation.psycopg2 import Psycopg2Instrumentor
+from opentelemetry.instrumentation.psycopg import PsycopgInstrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 
 
@@ -43,7 +43,7 @@ def configure_opentelemetry():
 
     DjangoInstrumentor().instrument()
 
-    Psycopg2Instrumentor().instrument(enable_commenter=True)
+    PsycopgInstrumentor().instrument(enable_commenter=True)
 
     RequestsInstrumentor().instrument()
 
