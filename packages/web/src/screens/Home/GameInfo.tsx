@@ -18,16 +18,24 @@ import { ScreenHeader } from "@/components/ui/screen-header";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { GameInfoContent } from "@/components/GameInfoContent";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
+import { useAuth } from "@/auth";
+import { deepLinkStorage } from "@/deepLink";
 
 const GameInfo: React.FC = () => {
   const { gameId } = useRequiredParams<{ gameId: string }>();
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { loggedIn } = useAuth();
   const { data: game } = useGameRetrieveSuspense(gameId);
   const joinGameMutation = useGameJoinCreate();
   const leaveGameMutation = useGameLeaveDestroy();
   const checkNotificationPermission = useCheckNotificationPermission();
+
+  const handleSignInToJoin = () => {
+    deepLinkStorage.setPendingPath(`/game-info/${gameId}`);
+    navigate("/login");
+  };
 
   const handleJoinGame = async () => {
     try {
@@ -70,7 +78,11 @@ const GameInfo: React.FC = () => {
   };
 
   const pendingAction = game.status === "pending" ? (
-    game.canJoin ? (
+    !loggedIn ? (
+      <Button onClick={handleSignInToJoin} className="w-full sm:w-auto">
+        Sign in to join
+      </Button>
+    ) : game.canJoin ? (
       <Button
         onClick={handleJoinGame}
         disabled={joinGameMutation.isPending}
