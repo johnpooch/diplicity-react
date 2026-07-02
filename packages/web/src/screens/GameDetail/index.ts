@@ -1,42 +1,32 @@
-import { lazy } from "react";
+import { lazyScreen } from "../../utils/lazyScreen";
 
 export const GameDetail = {
-  MapScreen: lazy(() =>
-    import("./MapScreen").then((m) => ({ default: m.MapScreen }))
+  MapScreen: lazyScreen(() => import("./MapScreen"), "MapScreen"),
+  OrdersScreen: lazyScreen(() => import("./OrdersScreen"), "OrdersScreen"),
+  ChannelListScreen: lazyScreen(
+    () => import("./ChannelListScreen"),
+    "ChannelListScreen"
   ),
-  OrdersScreen: lazy(() =>
-    import("./OrdersScreen").then((m) => ({ default: m.OrdersScreen }))
+  ChannelCreateScreen: lazyScreen(
+    () => import("./ChannelCreateScreen"),
+    "ChannelCreateScreen"
   ),
-  ChannelListScreen: lazy(() =>
-    import("./ChannelListScreen").then((m) => ({ default: m.ChannelListScreen }))
+  ChannelScreen: lazyScreen(() => import("./ChannelScreen"), "ChannelScreen"),
+  GameInfoScreen: lazyScreen(() => import("./GameInfoScreen"), "GameInfoScreen"),
+  PlayerInfoScreen: lazyScreen(
+    () => import("./PlayerInfoScreen"),
+    "PlayerInfoScreen"
   ),
-  ChannelCreateScreen: lazy(() =>
-    import("./ChannelCreateScreen").then((m) => ({
-      default: m.ChannelCreateScreen,
-    }))
+  ProposeDrawScreen: lazyScreen(
+    () => import("./ProposeDrawScreen"),
+    "ProposeDrawScreen"
   ),
-  ChannelScreen: lazy(() =>
-    import("./ChannelScreen").then((m) => ({ default: m.ChannelScreen }))
+  DrawProposalsScreen: lazyScreen(
+    () => import("./DrawProposalsScreen"),
+    "DrawProposalsScreen"
   ),
-  GameInfoScreen: lazy(() =>
-    import("./GameInfoScreen").then((m) => ({ default: m.GameInfoScreen }))
-  ),
-  PlayerInfoScreen: lazy(() =>
-    import("./PlayerInfoScreen").then((m) => ({ default: m.PlayerInfoScreen }))
-  ),
-  ProposeDrawScreen: lazy(() =>
-    import("./ProposeDrawScreen").then((m) => ({
-      default: m.ProposeDrawScreen,
-    }))
-  ),
-  DrawProposalsScreen: lazy(() =>
-    import("./DrawProposalsScreen").then((m) => ({
-      default: m.DrawProposalsScreen,
-    }))
-  ),
-  PlayerProfileScreen: lazy(() =>
-    import("./PlayerProfileScreen").then((m) => ({
-      default: m.PlayerProfileScreen,
-    }))
+  PlayerProfileScreen: lazyScreen(
+    () => import("./PlayerProfileScreen"),
+    "PlayerProfileScreen"
   ),
 };
