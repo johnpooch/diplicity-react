@@ -6,9 +6,7 @@ from bot.types import ChannelDict, ChatMessageDict, ContextData
 logger = logging.getLogger(__name__)
 
 
-def _message_role(message: ChatMessageDict) -> str:
-    if message["sender"]["is_current_user"]:
-        return "assistant"
+def _sender_label(message: ChatMessageDict) -> str:
     nation = (message["sender"].get("nation") or {}).get("name")
     return nation or "user"
 
@@ -19,12 +17,22 @@ class ContextBuilder:
         self._shared_sections: list[str] = []
         self._private_sections: list[str] = []
 
+    def _self_nation(self) -> str | None:
+        for member in self._data["game"].get("members", []):
+            if member.get("is_current_user"):
+                return member.get("nation")
+        return None
+
     def with_game_state(self) -> "ContextBuilder":
         phase = self._data["phase"]
         if not phase:
             return self
 
         lines = [f"Current phase: {phase['name']}"]
+
+        self_nation = self._self_nation()
+        if self_nation:
+            lines.append(f"You are playing {self_nation}.")
 
         units_by_nation: dict[str, list[str]] = {}
         for unit in phase.get("units", []):
@@ -88,7 +96,7 @@ class ContextBuilder:
         privacy = "private" if channel.get("private") else "public"
         lines = [f"Channel: {channel.get('name') or channel['id']} ({privacy})"]
         for message in channel["messages"]:
-            lines.append(f"{_message_role(message)}: {message['body']}")
+            lines.append(f"{_sender_label(message)}: {message['body']}")
         return "\n".join(lines)
 
     def build_shared(self) -> str:

@@ -224,6 +224,15 @@ class TestContextBuilder:
     def test_with_game_state_empty_phase_is_noop(self):
         assert ContextBuilder(self._data()).with_game_state().build_shared() == ""
 
+    def test_with_game_state_names_self_nation(self):
+        data = self._data(phase=self._phase())
+        data["game"]["members"] = [
+            {"is_current_user": False, "nation": "England"},
+            {"is_current_user": True, "nation": "France"},
+        ]
+        shared = ContextBuilder(data).with_game_state().build_shared()
+        assert "You are playing France." in shared
+
     def _channel(self, channel_id, name, messages, private=False):
         return {"id": channel_id, "name": name, "private": private, "messages": messages}
 
@@ -272,7 +281,7 @@ class TestContextBuilder:
         assert "France: private" in private
         assert "Public Press" not in private
 
-    def test_with_messages_maps_own_messages_to_assistant(self):
+    def test_with_messages_labels_every_message_by_nation(self):
         channels = [
             self._channel(
                 1,
@@ -285,7 +294,7 @@ class TestContextBuilder:
         ]
         private = ContextBuilder(self._data(channels)).with_messages(channel_id=1).build_private()
         assert "England: their turn" in private
-        assert "assistant: my turn" in private
+        assert "Germany: my turn" in private
 
     def test_with_messages_falls_back_to_user_without_nation(self):
         channels = [
