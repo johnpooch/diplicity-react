@@ -208,7 +208,6 @@ def seed_roster(apps, schema_editor):
             defaults={
                 "disposition": bot["disposition"],
                 "voice": bot["voice"],
-                "is_default": False,
             },
         )
 
@@ -222,7 +221,7 @@ def remove_roster(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("bot", "0004_botprofile_is_default"),
+        ("bot", "0003_llmcall"),
         ("user_profile", "0004_add_colorblind_mode"),
     ]
 

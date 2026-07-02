@@ -23,7 +23,6 @@ class BotProfile(BaseModel):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="bot_profile")
     disposition = models.TextField()
     voice = models.TextField()
-    is_default = models.BooleanField(default=False)
 
 
 class LLMCall(BaseModel):

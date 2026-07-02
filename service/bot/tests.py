@@ -437,18 +437,13 @@ class TestBotRoster:
 
     @pytest.mark.django_db
     def test_roster_is_seeded(self):
-        roster = BotProfile.objects.filter(is_default=False)
+        roster = BotProfile.objects.exclude(user=get_bot_user())
         assert roster.count() == 12
         assert all(profile.disposition and profile.voice for profile in roster)
 
     @pytest.mark.django_db
-    def test_exactly_one_default_bot(self):
-        assert BotProfile.objects.filter(is_default=True).count() == 1
-        assert get_bot_user().bot_profile.is_default is True
-
-    @pytest.mark.django_db
     def test_roster_bots_are_identified_as_bots(self, phase_factory, classical_england_nation):
-        roster_user = BotProfile.objects.filter(is_default=False).first().user
+        roster_user = BotProfile.objects.exclude(user=get_bot_user()).first().user
         phase = phase_factory(
             phase_states_config=[{"nation": classical_england_nation, "user": roster_user}]
         )
