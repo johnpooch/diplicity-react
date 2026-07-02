@@ -581,6 +581,24 @@ class TestReplyTask:
 
         assert channel.messages.filter(sender__user=bot_user).count() == 0
 
+    @pytest.mark.django_db
+    def test_reply_skips_llm_when_message_cap_reached(
+        self, bot_public_channel_factory, in_memory_procrastinate, settings
+    ):
+        game, channel = bot_public_channel_factory()
+        bot_user = get_bot_user()
+        bot_member = game.members.get(user=bot_user)
+        for i in range(settings.BOT_CHANNEL_MESSAGE_CAP):
+            ChannelMessage.objects.create(
+                channel=channel, sender=bot_member, body=f"msg {i}", phase=game.current_phase
+            )
+
+        with patch("bot.tasks.LLMClient") as mock_llm:
+            tasks.reply(user_id=bot_user.id, game_id=game.id, channel_id=channel.id)
+            mock_llm.return_value.complete.assert_not_called()
+
+        assert channel.messages.filter(sender=bot_member).count() == settings.BOT_CHANNEL_MESSAGE_CAP
+
 
 def _bot_reply_jobs(connector):
     return [j for j in connector.jobs.values() if j["task_name"] == "bot.reply"]

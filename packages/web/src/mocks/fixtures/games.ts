@@ -122,7 +122,7 @@ const buildActiveMovement = () => {
           "2026-05-01T12:10:00Z"
         ),
       ],
-      { unreadMessageCount: 1 }
+      { unreadMessageCount: 1, messageLimit: 10, memberMessageCount: 8 }
     ),
   ];
   return makeFixture({

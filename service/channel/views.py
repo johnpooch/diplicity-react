@@ -33,9 +33,14 @@ class ChannelListView(SelectedGameMixin, generics.ListAPIView):
     serializer_class = ChannelSerializer
 
     def get_queryset(self):
+        game = self.get_game()
+        user = self.request.user
+        member = game.members.filter(user=user).first() if user.is_authenticated else None
         return (
-            Channel.objects.accessible_to_user(self.request.user, self.get_game())
-            .with_unread_counts(self.request.user)
+            Channel.objects.accessible_to_user(user, game)
+            .with_unread_counts(user)
+            .with_bot_membership()
+            .with_member_message_count(member, game.current_phase)
             .with_related_data()
             .order_for_list()
         )

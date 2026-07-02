@@ -1665,6 +1665,14 @@ components:
           type: integer
           readOnly: true
           default: 0
+        messageLimit:
+          type: integer
+          nullable: true
+          readOnly: true
+        memberMessageCount:
+          type: integer
+          nullable: true
+          readOnly: true
         memberIds:
           type: array
           items:
@@ -1673,6 +1681,8 @@ components:
       required:
       - id
       - memberIds
+      - memberMessageCount
+      - messageLimit
       - messages
       - name
       - private
@@ -1714,7 +1724,7 @@ components:
           readOnly: true
         body:
           type: string
-          maxLength: 1000
+          maxLength: 500
         sender:
           allOf:
           - $ref: '#/components/schemas/ChannelMember'

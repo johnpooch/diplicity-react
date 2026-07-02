@@ -97,6 +97,14 @@ def reply(user_id, game_id, channel_id):
         logger.error(f"[{label}] aborting: {e}")
         return
 
+    channel = next((c for c in data["channels"] if c["id"] == channel_id), None)
+    if channel is not None:
+        limit = channel.get("message_limit")
+        count = channel.get("member_message_count")
+        if limit is not None and count is not None and count >= limit:
+            logger.info(f"[{label}] message cap reached ({count}/{limit}); staying silent")
+            return
+
     builder = (
         ContextBuilder(data)
         .with_game_state()
