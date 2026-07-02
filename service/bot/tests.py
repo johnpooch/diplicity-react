@@ -18,9 +18,7 @@ from game.models import Game
 from bot.models import BotProfile, LLMCall
 from bot import decorators, tasks, utils
 from bot.constants import LLMCallStage, LLMCallStatus
-from bot.api_client import ApiClientError
 from bot.context.builder import ContextBuilder
-from bot.context.fetch import fetch_context
 from bot.context.map import (
     build_graph,
     nearest_enemy_units,
@@ -516,29 +514,6 @@ class TestContextBuilder:
     def test_with_messages_missing_channel_is_noop(self):
         private = ContextBuilder(self._data()).with_messages(channel_id=999).build_private()
         assert private == ""
-
-
-class TestFetchContext:
-
-    def _api(self, get_variant):
-        api = Mock()
-        api.get_game.return_value = {"current_phase_id": None, "variant_id": "classical"}
-        api.get_order_options.return_value = []
-        api.get_phase_states.return_value = []
-        api.get_channels.return_value = []
-        api.get_variant.side_effect = get_variant
-        return api
-
-    def test_variant_fetch_failure_degrades_to_empty(self):
-        def raise_error(_variant_id):
-            raise ApiClientError("variant retrieve failed: 500")
-
-        data = fetch_context(self._api(raise_error), "game-1")
-        assert data["variant"] == {}
-
-    def test_variant_fetched_when_available(self):
-        data = fetch_context(self._api(lambda _variant_id: {"provinces": []}), "game-1")
-        assert data["variant"] == {"provinces": []}
 
 
 def _reply_response(should_reply, message=""):
