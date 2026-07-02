@@ -69,6 +69,11 @@ const LLMCallsList: React.FC = () => {
                 <ItemTitle>
                   <Badge variant="outline">{call.stage}</Badge>
                   {call.nation ?? "Unknown"}
+                  {call.channelNations.length > 0 && (
+                    <span className="font-normal">
+                      &rarr; {call.channelNations.join(", ")}
+                    </span>
+                  )}
                   <span className="font-normal text-muted-foreground">
                     {call.phaseName}
                   </span>

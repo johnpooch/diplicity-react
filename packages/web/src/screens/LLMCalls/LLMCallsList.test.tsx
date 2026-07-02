@@ -31,6 +31,7 @@ describe("LLMCallsList", () => {
         gameId: "active-movement",
         phaseName: "Spring 1901, Movement",
         nation: "Germany",
+        channelNations: [],
         totalTokens: 1820,
         latencyMs: 2400,
       },
@@ -46,6 +47,28 @@ describe("LLMCallsList", () => {
     );
   });
 
+  it("shows who a reply is addressed to", () => {
+    mockCallsData.mockReturnValue([
+      {
+        id: 9,
+        createdAt: "2026-05-01T10:00:03Z",
+        stage: "reply",
+        status: "success",
+        model: "claude-haiku",
+        gameId: "active-movement",
+        phaseName: "Spring 1901, Movement",
+        nation: "Germany",
+        channelNations: ["Italy"],
+        totalTokens: 640,
+        latencyMs: 1800,
+      },
+    ]);
+
+    renderList("/llm-calls?game=active-movement");
+
+    expect(screen.getByText(/→ Italy/)).toBeInTheDocument();
+  });
+
   it("shows an error badge for failed calls", () => {
     mockCallsData.mockReturnValue([
       {
@@ -57,6 +80,7 @@ describe("LLMCallsList", () => {
         gameId: "active-movement",
         phaseName: "Spring 1901, Movement",
         nation: "Italy",
+        channelNations: [],
         totalTokens: 0,
         latencyMs: 500,
       },

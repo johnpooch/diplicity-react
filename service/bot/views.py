@@ -37,9 +37,11 @@ class LLMCallBaseView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated, CanUseBotOpponent]
 
     def get_queryset(self):
-        return LLMCall.objects.select_related(
-            "member__nation", "phase"
-        ).order_by("created_at")
+        return (
+            LLMCall.objects.select_related("member__nation", "phase")
+            .prefetch_related("channel__members__nation")
+            .order_by("created_at")
+        )
 
 
 class LLMCallListView(LLMCallBaseView, generics.ListAPIView):

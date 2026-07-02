@@ -9,11 +9,12 @@ logger = logging.getLogger(__name__)
 
 
 class LLMCallRecorder:
-    def __init__(self, *, game_id, user_id, phase_id, stage):
+    def __init__(self, *, game_id, user_id, phase_id, stage, channel_id=None):
         self.game_id = game_id
         self.user_id = user_id
         self.phase_id = phase_id
         self.stage = stage
+        self.channel_id = channel_id
 
     def record_success(
         self,
@@ -60,6 +61,7 @@ class LLMCallRecorder:
             LLMCall.objects.create(
                 phase_id=self.phase_id,
                 member=member,
+                channel_id=self.channel_id,
                 stage=self.stage,
                 **fields,
             )

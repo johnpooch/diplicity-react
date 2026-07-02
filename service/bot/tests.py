@@ -956,6 +956,87 @@ class TestLLMCallDetailView:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
+class TestLLMCallCounterpartNations:
+
+    @pytest.mark.django_db
+    def test_reply_call_reports_other_channel_nations(
+        self, authenticated_client, bot_game_factory, settings
+    ):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+        game = bot_game_factory()
+        bot_member = game.members.get(user=get_bot_user())
+        human_member = game.members.exclude(user=get_bot_user()).get()
+        channel = game.channels.create(name="Private", private=True)
+        channel.members.add(bot_member, human_member)
+        call = LLMCall.objects.create(
+            phase=game.current_phase,
+            member=bot_member,
+            channel=channel,
+            stage=LLMCallStage.REPLY,
+            model="m",
+        )
+
+        response = authenticated_client.get(
+            reverse(llm_call_detail_viewname, args=[call.pk])
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["nation"] == bot_member.nation.name
+        assert response.data["channel_nations"] == [human_member.nation.name]
+
+    @pytest.mark.django_db
+    def test_non_reply_call_has_no_channel_nations(
+        self, authenticated_client, bot_game_factory, settings
+    ):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+        game = bot_game_factory()
+        bot_member = game.members.get(user=get_bot_user())
+        call = LLMCall.objects.create(
+            phase=game.current_phase,
+            member=bot_member,
+            stage=LLMCallStage.PLAN,
+            model="m",
+        )
+
+        response = authenticated_client.get(
+            reverse(llm_call_detail_viewname, args=[call.pk])
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["channel_nations"] == []
+
+
+class TestLLMCallRecorderChannel:
+
+    @pytest.mark.django_db
+    def test_reply_recorder_stores_channel(self, bot_game_factory):
+        game = bot_game_factory()
+        bot_user = get_bot_user()
+        channel = game.channels.create(name="Private", private=True)
+        recorder = LLMCallRecorder(
+            game_id=game.id,
+            user_id=bot_user.id,
+            phase_id=game.current_phase.id,
+            stage=LLMCallStage.REPLY,
+            channel_id=channel.id,
+        )
+
+        recorder.record_success(
+            model="m",
+            system="s",
+            user_content="u",
+            response="r",
+            input_tokens=1,
+            output_tokens=1,
+            cache_read_tokens=0,
+            cache_write_tokens=0,
+            latency_ms=10,
+        )
+
+        call = LLMCall.objects.get()
+        assert call.channel_id == channel.id
+
+
 game_create_viewname = "game-create"
 available_bots_viewname = "game-available-bots"
 add_bot_viewname = "game-add-bot"

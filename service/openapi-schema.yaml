@@ -2671,6 +2671,11 @@ components:
           type: string
           nullable: true
           readOnly: true
+        channelNations:
+          type: array
+          items:
+            type: string
+          readOnly: true
         totalTokens:
           type: integer
           readOnly: true
@@ -2705,6 +2710,7 @@ components:
       required:
       - cacheReadTokens
       - cacheWriteTokens
+      - channelNations
       - createdAt
       - errorMessage
       - gameId
@@ -2751,6 +2757,11 @@ components:
           type: string
           nullable: true
           readOnly: true
+        channelNations:
+          type: array
+          items:
+            type: string
+          readOnly: true
         totalTokens:
           type: integer
           readOnly: true
@@ -2759,6 +2770,7 @@ components:
           readOnly: true
           nullable: true
       required:
+      - channelNations
       - createdAt
       - gameId
       - id

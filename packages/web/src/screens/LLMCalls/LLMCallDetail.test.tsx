@@ -30,6 +30,7 @@ describe("LLMCallDetail", () => {
       gameId: "active-movement",
       phaseName: "Spring 1901, Movement",
       nation: "Germany",
+      channelNations: [],
       totalTokens: 1820,
       latencyMs: 2400,
       system: "You are Germany.",
@@ -62,6 +63,7 @@ describe("LLMCallDetail", () => {
       gameId: "active-movement",
       phaseName: "Spring 1901, Movement",
       nation: "Italy",
+      channelNations: [],
       totalTokens: 0,
       latencyMs: 500,
       system: "You are Italy.",
@@ -78,5 +80,34 @@ describe("LLMCallDetail", () => {
 
     expect(screen.getByText("Error")).toBeInTheDocument();
     expect(screen.getByText("Anthropic API timed out")).toBeInTheDocument();
+  });
+
+  it("shows who a reply is addressed to", () => {
+    mockCallData.mockReturnValue({
+      id: 2,
+      createdAt: "2026-05-01T10:00:03Z",
+      stage: "reply",
+      status: "success",
+      model: "claude-haiku",
+      gameId: "active-movement",
+      phaseName: "Spring 1901, Movement",
+      nation: "Germany",
+      channelNations: ["Italy"],
+      totalTokens: 640,
+      latencyMs: 1800,
+      system: "You are Germany.",
+      userContent: "Italy: shall we ally?",
+      response: "Agreed.",
+      inputTokens: 590,
+      outputTokens: 50,
+      cacheReadTokens: 400,
+      cacheWriteTokens: 100,
+      errorMessage: "",
+    });
+
+    renderDetail();
+
+    expect(screen.getByText("Replying to")).toBeInTheDocument();
+    expect(screen.getByText("Italy")).toBeInTheDocument();
   });
 });
