@@ -20,6 +20,7 @@ export type { GameFixture } from "./types";
 export { classicalVariant, classicalProvinces, nation, province } from "./classical";
 export { allVariants, extraVariants } from "./variants";
 export { botRoster, currentUserProfile, makeBotMember, publicProfiles } from "./users";
+export { llmCallSummaries, llmCallDetails } from "./llmCalls";
 
 export const gameFixtures = {
   pendingGameNoPlayers,

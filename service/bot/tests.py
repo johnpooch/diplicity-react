@@ -821,6 +821,141 @@ class TestLLMCallRecorder:
         assert LLMCall.objects.count() == 0
 
 
+llm_call_list_viewname = "llm-call-list"
+llm_call_detail_viewname = "llm-call-detail"
+
+
+class TestLLMCallListView:
+
+    @pytest.mark.django_db
+    def test_lists_calls_for_game_ordered_by_created_at(
+        self, authenticated_client, bot_game_factory, settings
+    ):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+        game = bot_game_factory()
+        phase = game.current_phase
+        member = game.members.get(user=get_bot_user())
+
+        later = LLMCall.objects.create(
+            phase=phase, member=member, stage=LLMCallStage.REPLY, model="claude-haiku"
+        )
+        earlier = LLMCall.objects.create(
+            phase=phase,
+            member=member,
+            stage=LLMCallStage.PLAN,
+            model="claude-haiku",
+            input_tokens=10,
+            output_tokens=5,
+            latency_ms=120,
+        )
+        # Force deterministic ordering independent of insertion order.
+        LLMCall.objects.filter(pk=earlier.pk).update(created_at="2026-01-01T00:00:00Z")
+        LLMCall.objects.filter(pk=later.pk).update(created_at="2026-01-02T00:00:00Z")
+
+        response = authenticated_client.get(
+            reverse(llm_call_list_viewname), {"game": game.id}
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert [call["id"] for call in response.data] == [earlier.pk, later.pk]
+
+        summary = response.data[0]
+        assert summary["stage"] == LLMCallStage.PLAN
+        assert summary["status"] == LLMCallStatus.SUCCESS
+        assert summary["game_id"] == game.id
+        assert summary["total_tokens"] == 15
+        assert summary["latency_ms"] == 120
+        assert summary["nation"] is not None
+        # Heavy fields are reserved for the detail view.
+        assert "user_content" not in summary
+        assert "response" not in summary
+
+    @pytest.mark.django_db
+    def test_filters_by_game(
+        self, authenticated_client, bot_game_factory, settings
+    ):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+        game = bot_game_factory()
+        other_game = bot_game_factory()
+        LLMCall.objects.create(
+            phase=game.current_phase, stage=LLMCallStage.PLAN, model="m"
+        )
+        other_call = LLMCall.objects.create(
+            phase=other_game.current_phase, stage=LLMCallStage.PLAN, model="m"
+        )
+
+        response = authenticated_client.get(
+            reverse(llm_call_list_viewname), {"game": other_game.id}
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert [call["id"] for call in response.data] == [other_call.pk]
+
+    @pytest.mark.django_db
+    def test_requires_authentication(self, bot_game_factory, settings):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+        response = APIClient().get(reverse(llm_call_list_viewname))
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_forbidden_when_not_allowlisted(self, authenticated_client, settings):
+        settings.BOT_OPPONENT_ALLOWLIST = []
+        response = authenticated_client.get(reverse(llm_call_list_viewname))
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+class TestLLMCallDetailView:
+
+    @pytest.mark.django_db
+    def test_returns_full_content(
+        self, authenticated_client, bot_game_factory, settings
+    ):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+        game = bot_game_factory()
+        member = game.members.get(user=get_bot_user())
+        call = LLMCall.objects.create(
+            phase=game.current_phase,
+            member=member,
+            stage=LLMCallStage.PLAN,
+            model="claude-haiku",
+            system="system prompt",
+            user_content="user content",
+            response="response text",
+            input_tokens=120,
+            output_tokens=45,
+            cache_read_tokens=80,
+            cache_write_tokens=10,
+        )
+
+        response = authenticated_client.get(
+            reverse(llm_call_detail_viewname, args=[call.pk])
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["system"] == "system prompt"
+        assert response.data["user_content"] == "user content"
+        assert response.data["response"] == "response text"
+        assert response.data["cache_read_tokens"] == 80
+        assert response.data["total_tokens"] == 165
+
+    @pytest.mark.django_db
+    def test_forbidden_when_not_allowlisted(
+        self, authenticated_client, bot_game_factory, settings
+    ):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+        game = bot_game_factory()
+        call = LLMCall.objects.create(
+            phase=game.current_phase, stage=LLMCallStage.PLAN, model="m"
+        )
+        settings.BOT_OPPONENT_ALLOWLIST = []
+
+        response = authenticated_client.get(
+            reverse(llm_call_detail_viewname, args=[call.pk])
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
 game_create_viewname = "game-create"
 available_bots_viewname = "game-available-bots"
 add_bot_viewname = "game-add-bot"

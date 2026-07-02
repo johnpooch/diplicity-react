@@ -1,8 +1,15 @@
 from rest_framework import permissions, generics
 from drf_spectacular.utils import extend_schema
+from django_filters.rest_framework import DjangoFilterBackend
 
-from bot.models import BotProfile
-from bot.serializers import AvailableBotSerializer, BotMemberCreateSerializer
+from bot.filters import LLMCallFilter
+from bot.models import BotProfile, LLMCall
+from bot.serializers import (
+    AvailableBotSerializer,
+    BotMemberCreateSerializer,
+    LLMCallDetailSerializer,
+    LLMCallSummarySerializer,
+)
 from member.serializers import MemberSerializer
 from common.permissions import CanUseBotOpponent, IsGameManager, IsPendingGame, IsSpaceAvailable
 from common.views import SelectedGameMixin
@@ -24,3 +31,22 @@ class BotMemberCreateView(SelectedGameMixin, generics.CreateAPIView):
     def perform_create(self, serializer):
         member = serializer.save()
         member.game.start_if_full()
+
+
+class LLMCallBaseView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated, CanUseBotOpponent]
+
+    def get_queryset(self):
+        return LLMCall.objects.select_related(
+            "member__nation", "phase"
+        ).order_by("created_at")
+
+
+class LLMCallListView(LLMCallBaseView, generics.ListAPIView):
+    serializer_class = LLMCallSummarySerializer
+    filterset_class = LLMCallFilter
+    filter_backends = [DjangoFilterBackend]
+
+
+class LLMCallDetailView(LLMCallBaseView, generics.RetrieveAPIView):
+    serializer_class = LLMCallDetailSerializer

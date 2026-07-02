@@ -37,6 +37,9 @@ vi.mock("@/api/generated/endpoints", () => ({
   useVariantsListSuspense: () => ({
     data: [],
   }),
+  useUserRetrieveSuspense: () => ({
+    data: { canCreateBotGames: false },
+  }),
 }));
 
 const renderChannelList = () =>

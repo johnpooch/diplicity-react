@@ -583,6 +583,46 @@ export interface GameRetrieve {
   readonly totalUnreadMessageCount: number;
 }
 
+export interface LLMCallDetail {
+  readonly id: number;
+  readonly createdAt: string;
+  readonly stage: string;
+  readonly status: string;
+  readonly model: string;
+  /** @nullable */
+  readonly gameId: string | null;
+  readonly phaseName: string;
+  /** @nullable */
+  readonly nation: string | null;
+  readonly totalTokens: number;
+  /** @nullable */
+  readonly latencyMs: number | null;
+  readonly system: string;
+  readonly userContent: string;
+  readonly response: string;
+  readonly inputTokens: number;
+  readonly outputTokens: number;
+  readonly cacheReadTokens: number;
+  readonly cacheWriteTokens: number;
+  readonly errorMessage: string;
+}
+
+export interface LLMCallSummary {
+  readonly id: number;
+  readonly createdAt: string;
+  readonly stage: string;
+  readonly status: string;
+  readonly model: string;
+  /** @nullable */
+  readonly gameId: string | null;
+  readonly phaseName: string;
+  /** @nullable */
+  readonly nation: string | null;
+  readonly totalTokens: number;
+  /** @nullable */
+  readonly latencyMs: number | null;
+}
+
 export interface NationFlagUpload {
   flag: string;
 }
@@ -1128,6 +1168,10 @@ export const GamesListMovementPhaseDuration = {
 export type GamesFindSimilarRetrieveParams = {
   movement_phase_duration: string;
   variant: string;
+};
+
+export type LlmCallsListParams = {
+  game?: string;
 };
 
 /**
@@ -7554,6 +7598,527 @@ export function useGamesFindSimilarRetrieveSuspense<
     params,
     options
   );
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const llmCallsList = (
+  params?: LlmCallsListParams,
+  signal?: AbortSignal
+) => {
+  return customInstance<LLMCallSummary[]>({
+    url: `/llm-calls/`,
+    method: "GET",
+    params,
+    signal,
+  });
+};
+
+export const getLlmCallsListQueryKey = (params?: LlmCallsListParams) => {
+  return [`/llm-calls/`, ...(params ? [params] : [])] as const;
+};
+
+export const getLlmCallsListQueryOptions = <
+  TData = Awaited<ReturnType<typeof llmCallsList>>,
+  TError = unknown,
+>(
+  params?: LlmCallsListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof llmCallsList>>, TError, TData>
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getLlmCallsListQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof llmCallsList>>> = ({
+    signal,
+  }) => llmCallsList(params, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof llmCallsList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type LlmCallsListQueryResult = NonNullable<
+  Awaited<ReturnType<typeof llmCallsList>>
+>;
+export type LlmCallsListQueryError = unknown;
+
+export function useLlmCallsList<
+  TData = Awaited<ReturnType<typeof llmCallsList>>,
+  TError = unknown,
+>(
+  params: undefined | LlmCallsListParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof llmCallsList>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof llmCallsList>>,
+          TError,
+          Awaited<ReturnType<typeof llmCallsList>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useLlmCallsList<
+  TData = Awaited<ReturnType<typeof llmCallsList>>,
+  TError = unknown,
+>(
+  params?: LlmCallsListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof llmCallsList>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof llmCallsList>>,
+          TError,
+          Awaited<ReturnType<typeof llmCallsList>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useLlmCallsList<
+  TData = Awaited<ReturnType<typeof llmCallsList>>,
+  TError = unknown,
+>(
+  params?: LlmCallsListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof llmCallsList>>, TError, TData>
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useLlmCallsList<
+  TData = Awaited<ReturnType<typeof llmCallsList>>,
+  TError = unknown,
+>(
+  params?: LlmCallsListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof llmCallsList>>, TError, TData>
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getLlmCallsListQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getLlmCallsListSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof llmCallsList>>,
+  TError = unknown,
+>(
+  params?: LlmCallsListParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof llmCallsList>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getLlmCallsListQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof llmCallsList>>> = ({
+    signal,
+  }) => llmCallsList(params, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof llmCallsList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type LlmCallsListSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof llmCallsList>>
+>;
+export type LlmCallsListSuspenseQueryError = unknown;
+
+export function useLlmCallsListSuspense<
+  TData = Awaited<ReturnType<typeof llmCallsList>>,
+  TError = unknown,
+>(
+  params: undefined | LlmCallsListParams,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof llmCallsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useLlmCallsListSuspense<
+  TData = Awaited<ReturnType<typeof llmCallsList>>,
+  TError = unknown,
+>(
+  params?: LlmCallsListParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof llmCallsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useLlmCallsListSuspense<
+  TData = Awaited<ReturnType<typeof llmCallsList>>,
+  TError = unknown,
+>(
+  params?: LlmCallsListParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof llmCallsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useLlmCallsListSuspense<
+  TData = Awaited<ReturnType<typeof llmCallsList>>,
+  TError = unknown,
+>(
+  params?: LlmCallsListParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof llmCallsList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getLlmCallsListSuspenseQueryOptions(params, options);
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const llmCallsRetrieve = (id: number, signal?: AbortSignal) => {
+  return customInstance<LLMCallDetail>({
+    url: `/llm-calls/${id}/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getLlmCallsRetrieveQueryKey = (id: number) => {
+  return [`/llm-calls/${id}/`] as const;
+};
+
+export const getLlmCallsRetrieveQueryOptions = <
+  TData = Awaited<ReturnType<typeof llmCallsRetrieve>>,
+  TError = unknown,
+>(
+  id: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof llmCallsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getLlmCallsRetrieveQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof llmCallsRetrieve>>
+  > = ({ signal }) => llmCallsRetrieve(id, signal);
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof llmCallsRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type LlmCallsRetrieveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof llmCallsRetrieve>>
+>;
+export type LlmCallsRetrieveQueryError = unknown;
+
+export function useLlmCallsRetrieve<
+  TData = Awaited<ReturnType<typeof llmCallsRetrieve>>,
+  TError = unknown,
+>(
+  id: number,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof llmCallsRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof llmCallsRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof llmCallsRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useLlmCallsRetrieve<
+  TData = Awaited<ReturnType<typeof llmCallsRetrieve>>,
+  TError = unknown,
+>(
+  id: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof llmCallsRetrieve>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof llmCallsRetrieve>>,
+          TError,
+          Awaited<ReturnType<typeof llmCallsRetrieve>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useLlmCallsRetrieve<
+  TData = Awaited<ReturnType<typeof llmCallsRetrieve>>,
+  TError = unknown,
+>(
+  id: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof llmCallsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useLlmCallsRetrieve<
+  TData = Awaited<ReturnType<typeof llmCallsRetrieve>>,
+  TError = unknown,
+>(
+  id: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof llmCallsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getLlmCallsRetrieveQueryOptions(id, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getLlmCallsRetrieveSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof llmCallsRetrieve>>,
+  TError = unknown,
+>(
+  id: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof llmCallsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getLlmCallsRetrieveQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof llmCallsRetrieve>>
+  > = ({ signal }) => llmCallsRetrieve(id, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof llmCallsRetrieve>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type LlmCallsRetrieveSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof llmCallsRetrieve>>
+>;
+export type LlmCallsRetrieveSuspenseQueryError = unknown;
+
+export function useLlmCallsRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof llmCallsRetrieve>>,
+  TError = unknown,
+>(
+  id: number,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof llmCallsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useLlmCallsRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof llmCallsRetrieve>>,
+  TError = unknown,
+>(
+  id: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof llmCallsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useLlmCallsRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof llmCallsRetrieve>>,
+  TError = unknown,
+>(
+  id: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof llmCallsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useLlmCallsRetrieveSuspense<
+  TData = Awaited<ReturnType<typeof llmCallsRetrieve>>,
+  TError = unknown,
+>(
+  id: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof llmCallsRetrieve>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getLlmCallsRetrieveSuspenseQueryOptions(id, options);
 
   const query = useSuspenseQuery(
     queryOptions,

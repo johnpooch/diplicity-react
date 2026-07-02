@@ -1307,6 +1307,47 @@ paths:
               schema:
                 $ref: '#/components/schemas/GameFindSimilar'
           description: ''
+  /llm-calls/:
+    get:
+      operationId: llmCallsList
+      parameters:
+      - in: query
+        name: game
+        schema:
+          type: string
+      tags:
+      - llm-calls
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LLMCallSummary'
+          description: ''
+  /llm-calls/{id}/:
+    get:
+      operationId: llmCallsRetrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - llm-calls
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LLMCallDetail'
+          description: ''
   /phase/deadline-warnings/:
     post:
       operationId: phaseDeadlineWarningsCreate
@@ -2600,6 +2641,134 @@ components:
       - totalUnreadMessageCount
       - variantId
       - victory
+    LLMCallDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+        stage:
+          type: string
+          readOnly: true
+        status:
+          type: string
+          readOnly: true
+        model:
+          type: string
+          readOnly: true
+        gameId:
+          type: string
+          readOnly: true
+          nullable: true
+        phaseName:
+          type: string
+          readOnly: true
+        nation:
+          type: string
+          nullable: true
+          readOnly: true
+        totalTokens:
+          type: integer
+          readOnly: true
+        latencyMs:
+          type: integer
+          readOnly: true
+          nullable: true
+        system:
+          type: string
+          readOnly: true
+        userContent:
+          type: string
+          readOnly: true
+        response:
+          type: string
+          readOnly: true
+        inputTokens:
+          type: integer
+          readOnly: true
+        outputTokens:
+          type: integer
+          readOnly: true
+        cacheReadTokens:
+          type: integer
+          readOnly: true
+        cacheWriteTokens:
+          type: integer
+          readOnly: true
+        errorMessage:
+          type: string
+          readOnly: true
+      required:
+      - cacheReadTokens
+      - cacheWriteTokens
+      - createdAt
+      - errorMessage
+      - gameId
+      - id
+      - inputTokens
+      - latencyMs
+      - model
+      - nation
+      - outputTokens
+      - phaseName
+      - response
+      - stage
+      - status
+      - system
+      - totalTokens
+      - userContent
+    LLMCallSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+        stage:
+          type: string
+          readOnly: true
+        status:
+          type: string
+          readOnly: true
+        model:
+          type: string
+          readOnly: true
+        gameId:
+          type: string
+          readOnly: true
+          nullable: true
+        phaseName:
+          type: string
+          readOnly: true
+        nation:
+          type: string
+          nullable: true
+          readOnly: true
+        totalTokens:
+          type: integer
+          readOnly: true
+        latencyMs:
+          type: integer
+          readOnly: true
+          nullable: true
+      required:
+      - createdAt
+      - gameId
+      - id
+      - latencyMs
+      - model
+      - nation
+      - phaseName
+      - stage
+      - status
+      - totalTokens
     Member:
       type: object
       properties:
