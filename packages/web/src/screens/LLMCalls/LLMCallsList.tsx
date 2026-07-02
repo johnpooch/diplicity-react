@@ -27,16 +27,8 @@ const formatTimestamp = (value: string): string =>
     second: "2-digit",
   });
 
-const buildSummary = (call: LLMCallSummary, showGame: boolean): string => {
-  const parts = [
-    formatTimestamp(call.createdAt),
-    call.model,
-    `${call.totalTokens} tokens`,
-  ];
-  if (call.latencyMs !== null) {
-    parts.push(`${call.latencyMs} ms`);
-  }
-  parts.push(call.phaseName);
+const buildBottomLine = (call: LLMCallSummary, showGame: boolean): string => {
+  const parts = [formatTimestamp(call.createdAt)];
   if (showGame && call.gameId) {
     parts.push(call.gameId);
   }
@@ -77,12 +69,15 @@ const LLMCallsList: React.FC = () => {
                 <ItemTitle>
                   <Badge variant="outline">{call.stage}</Badge>
                   {call.nation ?? "Unknown"}
+                  <span className="font-normal text-muted-foreground">
+                    {call.phaseName}
+                  </span>
                   {call.status === "error" && (
                     <Badge variant="destructive">error</Badge>
                   )}
                 </ItemTitle>
                 <ItemDescription>
-                  {buildSummary(call, !gameId)}
+                  {buildBottomLine(call, !gameId)}
                 </ItemDescription>
               </ItemContent>
             </Link>
