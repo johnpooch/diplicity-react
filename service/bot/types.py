@@ -15,9 +15,15 @@ class OrderOptionDict(TypedDict, total=False):
     named_coast: FieldDict
 
 
+class NationDict(TypedDict, total=False):
+    nation_id: str
+    name: str
+
+
 class ChatSenderDict(TypedDict, total=False):
     name: str
     is_current_user: bool
+    nation: NationDict
 
 
 class ChatMessageDict(TypedDict, total=False):
@@ -31,11 +37,6 @@ class ChannelDict(TypedDict, total=False):
     name: str
     private: bool
     messages: list[ChatMessageDict]
-
-
-class NationDict(TypedDict, total=False):
-    nation_id: str
-    name: str
 
 
 class ProvinceDict(TypedDict, total=False):

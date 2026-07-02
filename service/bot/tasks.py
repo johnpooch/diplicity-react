@@ -13,13 +13,21 @@ from bot.context import (
     parse_reply,
 )
 from bot.llm_client import LLMClient, LLMError
+from bot.models import BotProfile
 from bot.prompts import load_prompt
 from bot.recorder import LLMCallRecorder
 
 logger = logging.getLogger(__name__)
 
 
-def _submit_orders_from_context(api, data, game_id, user_id, label, stage):
+def _persona_block(user_id) -> str:
+    profile = BotProfile.objects.filter(user_id=user_id).first()
+    if profile is None:
+        return ""
+    return f"Your persona:\nDisposition: {profile.disposition}\nVoice: {profile.voice}"
+
+
+def _submit_orders_from_context(api, data, game_id, user_id, label, stage, persona=""):
     builder = (
         ContextBuilder(data)
         .with_game_state()
@@ -28,6 +36,8 @@ def _submit_orders_from_context(api, data, game_id, user_id, label, stage):
         .with_conversations()
     )
     system = load_prompt("select_orders_system.txt")
+    if persona:
+        system = f"{system}\n\n{persona}"
     instruction = load_prompt("select_orders_instruction.txt")
     user_content = "\n\n".join(
         part for part in [builder.build_shared(), builder.build_private(), instruction] if part
@@ -65,7 +75,10 @@ def plan(user_id, game_id):
     api = ApiClient.for_user(user_id)
     try:
         data = fetch_context(api, game_id)
-        _submit_orders_from_context(api, data, game_id, user_id, label, LLMCallStage.PLAN)
+        _submit_orders_from_context(
+            api, data, game_id, user_id, label, LLMCallStage.PLAN,
+            persona=_persona_block(user_id),
+        )
     except ApiClientError as e:
         logger.error(f"[{label}] aborting: {e}")
         return
@@ -84,7 +97,10 @@ def finalize(user_id, game_id):
         if data["game"].get("phase_confirmed"):
             logger.info(f"[{label}] orders already confirmed; skipping")
             return
-        _submit_orders_from_context(api, data, game_id, user_id, label, LLMCallStage.COMMIT)
+        _submit_orders_from_context(
+            api, data, game_id, user_id, label, LLMCallStage.COMMIT,
+            persona=_persona_block(user_id),
+        )
         api.confirm_phase(game_id)
     except ApiClientError as e:
         logger.error(f"[{label}] aborting: {e}")
@@ -119,6 +135,9 @@ def reply(user_id, game_id, channel_id):
         .with_messages(channel_id=channel_id)
     )
     system = load_prompt("reply_system.txt")
+    persona = _persona_block(user_id)
+    if persona:
+        system = f"{system}\n\n{persona}"
     instruction = load_prompt("reply_instruction.txt")
     user_content = "\n\n".join(
         part for part in [builder.build_shared(), builder.build_private(), instruction] if part

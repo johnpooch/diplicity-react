@@ -7,7 +7,10 @@ logger = logging.getLogger(__name__)
 
 
 def _message_role(message: ChatMessageDict) -> str:
-    return "assistant" if message["sender"]["is_current_user"] else "user"
+    if message["sender"]["is_current_user"]:
+        return "assistant"
+    nation = (message["sender"].get("nation") or {}).get("name")
+    return nation or "user"
 
 
 class ContextBuilder:
@@ -82,7 +85,8 @@ class ContextBuilder:
         return self
 
     def _format_channel(self, channel: ChannelDict) -> str:
-        lines = [f"Channel: {channel.get('name') or channel['id']}"]
+        privacy = "private" if channel.get("private") else "public"
+        lines = [f"Channel: {channel.get('name') or channel['id']} ({privacy})"]
         for message in channel["messages"]:
             lines.append(f"{_message_role(message)}: {message['body']}")
         return "\n".join(lines)

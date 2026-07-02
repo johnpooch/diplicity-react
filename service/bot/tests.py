@@ -224,8 +224,8 @@ class TestContextBuilder:
     def test_with_game_state_empty_phase_is_noop(self):
         assert ContextBuilder(self._data()).with_game_state().build_shared() == ""
 
-    def _channel(self, channel_id, name, messages):
-        return {"id": channel_id, "name": name, "private": False, "messages": messages}
+    def _channel(self, channel_id, name, messages, private=False):
+        return {"id": channel_id, "name": name, "private": private, "messages": messages}
 
     def test_with_orders_lists_options_in_shared(self):
         builder = ContextBuilder(self._data()).with_orders()
@@ -234,41 +234,42 @@ class TestContextBuilder:
         assert "0. lon Hold" in shared
         assert "1. lon Move nth" in shared
 
-    def test_with_conversations_includes_all_channels(self):
+    def test_with_conversations_labels_senders_by_nation_and_marks_privacy(self):
         channels = [
             self._channel(
                 1,
                 "Public Press",
-                [{"body": "hi", "sender": {"name": "England", "is_current_user": False}}],
+                [{"body": "hi", "sender": {"is_current_user": False, "nation": {"name": "England"}}}],
             ),
             self._channel(
                 2,
-                "Private",
-                [{"body": "psst", "sender": {"name": "France", "is_current_user": False}}],
+                "England, France",
+                [{"body": "psst", "sender": {"is_current_user": False, "nation": {"name": "France"}}}],
+                private=True,
             ),
         ]
         private = ContextBuilder(self._data(channels)).with_conversations().build_private()
-        assert "Channel: Public Press" in private
-        assert "Channel: Private" in private
-        assert "user: hi" in private
-        assert "user: psst" in private
+        assert "Channel: Public Press (public)" in private
+        assert "Channel: England, France (private)" in private
+        assert "England: hi" in private
+        assert "France: psst" in private
 
     def test_with_messages_includes_only_that_channel(self):
         channels = [
             self._channel(
                 1,
                 "Public Press",
-                [{"body": "public", "sender": {"name": "England", "is_current_user": False}}],
+                [{"body": "public", "sender": {"is_current_user": False, "nation": {"name": "England"}}}],
             ),
             self._channel(
                 2,
                 "Private",
-                [{"body": "private", "sender": {"name": "France", "is_current_user": False}}],
+                [{"body": "private", "sender": {"is_current_user": False, "nation": {"name": "France"}}}],
             ),
         ]
         private = ContextBuilder(self._data(channels)).with_messages(channel_id=2).build_private()
         assert "Channel: Private" in private
-        assert "private" in private
+        assert "France: private" in private
         assert "Public Press" not in private
 
     def test_with_messages_maps_own_messages_to_assistant(self):
@@ -277,14 +278,25 @@ class TestContextBuilder:
                 1,
                 "Public Press",
                 [
-                    {"body": "their turn", "sender": {"name": "England", "is_current_user": False}},
-                    {"body": "my turn", "sender": {"name": "Bot", "is_current_user": True}},
+                    {"body": "their turn", "sender": {"is_current_user": False, "nation": {"name": "England"}}},
+                    {"body": "my turn", "sender": {"is_current_user": True, "nation": {"name": "Germany"}}},
                 ],
             ),
         ]
         private = ContextBuilder(self._data(channels)).with_messages(channel_id=1).build_private()
-        assert "user: their turn" in private
+        assert "England: their turn" in private
         assert "assistant: my turn" in private
+
+    def test_with_messages_falls_back_to_user_without_nation(self):
+        channels = [
+            self._channel(
+                1,
+                "Public Press",
+                [{"body": "anon", "sender": {"is_current_user": False}}],
+            ),
+        ]
+        private = ContextBuilder(self._data(channels)).with_messages(channel_id=1).build_private()
+        assert "user: anon" in private
 
     def test_with_messages_missing_channel_is_noop(self):
         private = ContextBuilder(self._data()).with_messages(channel_id=999).build_private()
@@ -414,6 +426,22 @@ class TestPlanTask:
         assert bot_phase_state.orders.count() > 0
         assert all(order.complete for order in bot_phase_state.orders.all())
         assert bot_phase_state.orders_confirmed is False
+
+    @pytest.mark.django_db
+    def test_plan_injects_persona_into_system_prompt(
+        self, bot_game_factory, in_memory_procrastinate, settings
+    ):
+        settings.ANTHROPIC_API_KEY = "test-key"
+        game = bot_game_factory()
+        bot_user = get_bot_user()
+        disposition = BotProfile.objects.get(user=bot_user).disposition
+
+        with patch("bot.tasks.LLMClient") as mock_llm:
+            mock_llm.return_value.complete.return_value = '{"choices": []}'
+            tasks.plan(user_id=bot_user.id, game_id=game.id)
+
+        system = mock_llm.return_value.complete.call_args.kwargs["system"]
+        assert disposition in system
 
     @pytest.mark.django_db
     def test_plan_records_success_call(
@@ -672,6 +700,23 @@ class TestReplyTask:
             mock_llm.return_value.complete.assert_not_called()
 
         assert channel.messages.filter(sender=bot_member).count() == settings.BOT_CHANNEL_MESSAGE_CAP
+
+    @pytest.mark.django_db
+    def test_reply_injects_persona_into_system_prompt(
+        self, bot_public_channel_factory, in_memory_procrastinate
+    ):
+        game, channel = bot_public_channel_factory()
+        bot_user = get_bot_user()
+        human_member = game.members.get(user=game.created_by)
+        ChannelMessage.objects.create(channel=channel, sender=human_member, body="Hi bot")
+        disposition = BotProfile.objects.get(user=bot_user).disposition
+
+        with patch("bot.tasks.LLMClient") as mock_llm:
+            mock_llm.return_value.complete.return_value = _reply_response(False)
+            tasks.reply(user_id=bot_user.id, game_id=game.id, channel_id=channel.id)
+
+        system = mock_llm.return_value.complete.call_args.kwargs["system"]
+        assert disposition in system
 
 
 def _bot_reply_jobs(connector):
