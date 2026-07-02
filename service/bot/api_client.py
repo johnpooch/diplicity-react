@@ -43,6 +43,12 @@ class ApiClient:
             raise ApiClientError(f"game retrieve failed: {response.status_code}")
         return response.data
 
+    def get_variant(self, variant_id):
+        response = self._client.get(reverse("variant-detail", args=[variant_id]))
+        if response.status_code != 200:
+            raise ApiClientError(f"variant retrieve failed: {response.status_code}")
+        return response.data
+
     def get_phase(self, game_id, phase_id):
         response = self._client.get(reverse("phase-retrieve", args=[game_id, phase_id]))
         if response.status_code != 200:

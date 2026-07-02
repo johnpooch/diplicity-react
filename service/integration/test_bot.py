@@ -77,6 +77,21 @@ def test_bot_game_starts_on_creation_and_plays_phase(
 
 
 @pytest.mark.django_db
+def test_bot_plans_when_variant_has_no_adjacencies(allowlisted_human, italy_vs_germany_variant):
+    from province.models import Province
+
+    Province.objects.filter(variant=italy_vs_germany_variant).update(adjacencies=[])
+    human_client = allowlisted_human
+    game = _create_bot_game(human_client, italy_vs_germany_variant.id)
+
+    bot_user = get_bot_user()
+    tasks.plan(user_id=bot_user.id, game_id=game.id)
+
+    bot_phase_state = game.current_phase.phase_states.get(member__user=bot_user)
+    assert bot_phase_state.orders.exists()
+
+
+@pytest.mark.django_db
 def test_bot_can_play_the_next_phase(allowlisted_human, italy_vs_germany_variant):
     human_client = allowlisted_human
     game = _create_bot_game(human_client, italy_vs_germany_variant.id)
