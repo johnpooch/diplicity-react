@@ -21,6 +21,12 @@ from bot.models import BotProfile, LLMCall
 from bot import decorators, tasks, utils
 from bot.constants import LLMCallStage, LLMCallStatus
 from bot.context.builder import ContextBuilder
+from bot.context.map import (
+    build_graph,
+    nearest_enemy_units,
+    nearest_uncontrolled_supply_centers,
+    shortest_distances,
+)
 from bot.context.orders import first_legal_selections, option_to_selected
 from bot.context.parsers import parse_order_selections, parse_reply
 from bot.llm_client import LLMClient, LLMError
@@ -177,18 +183,178 @@ class TestLLMClient:
         assert kwargs["cache_write_tokens"] == 10
 
 
+def _map_province(province_id, type="coastal", supply_center=False, parent_id=None, adjacencies=None):
+    return {
+        "id": province_id,
+        "name": province_id,
+        "type": type,
+        "supply_center": supply_center,
+        "parent_id": parent_id,
+        "adjacencies": adjacencies or [],
+    }
+
+
+def _map_unit(unit_type, nation, province_id, dislodged=False):
+    return {
+        "type": unit_type,
+        "nation": {"nation_id": nation.lower(), "name": nation},
+        "province": {"id": province_id, "name": province_id},
+        "dislodged": dislodged,
+    }
+
+
+class TestMapGraph:
+
+    def _provinces(self):
+        return [
+            _map_province("a", type="land", supply_center=True, adjacencies=[{"to": "b", "pass": "army"}]),
+            _map_province(
+                "b",
+                adjacencies=[
+                    {"to": "a", "pass": "army"},
+                    {"to": "c", "pass": "both"},
+                    {"to": "s", "pass": "fleet"},
+                ],
+            ),
+            _map_province(
+                "c",
+                supply_center=True,
+                adjacencies=[{"to": "b", "pass": "both"}, {"to": "s", "pass": "fleet"}],
+            ),
+            _map_province(
+                "s",
+                type="sea",
+                adjacencies=[
+                    {"to": "b", "pass": "fleet"},
+                    {"to": "c", "pass": "fleet"},
+                    {"to": "c/nc", "pass": "fleet"},
+                ],
+            ),
+            _map_province("c/nc", type="named_coast", parent_id="c", adjacencies=[{"to": "s", "pass": "fleet"}]),
+        ]
+
+    def _data(self, units, supply_centers=None):
+        return {
+            "phase": {"units": units, "supply_centers": supply_centers or []},
+            "variant": {"provinces": self._provinces()},
+        }
+
+    def test_build_graph_typed_edges_collapse_named_coasts(self):
+        graph = build_graph(self._provinces())
+        assert graph["edges"]["a"] == {"army": ["b"], "fleet": []}
+        assert graph["edges"]["b"] == {"army": ["a", "c"], "fleet": ["c", "s"]}
+        assert "c/nc" not in graph["edges"]
+        assert graph["canonical"]["c/nc"] == "c"
+        assert graph["edges"]["s"]["fleet"] == ["b", "c"]
+
+    def test_shortest_distances_respect_pass_type(self):
+        graph = build_graph(self._provinces())
+        assert shortest_distances(graph, "a", "army") == {"a": 0, "b": 1, "c": 2}
+        fleet_from_sea = shortest_distances(graph, "s", "fleet")
+        assert fleet_from_sea == {"s": 0, "b": 1, "c": 1}
+
+    def test_nearest_enemy_units_ties_break_by_province_id(self):
+        graph = build_graph(self._provinces())
+        unit = _map_unit("Army", "England", "b")
+        enemies = [
+            _map_unit("Army", "France", "c"),
+            _map_unit("Army", "France", "a"),
+            _map_unit("Fleet", "France", "s", dislodged=True),
+        ]
+        nearest = nearest_enemy_units(self._data([unit] + enemies), graph, unit)
+        assert [(e["province"]["id"], d) for e, d in nearest] == [("a", 1), ("c", 1)]
+
+    def test_nearest_enemy_units_caps_at_n(self):
+        graph = build_graph(self._provinces())
+        unit = _map_unit("Army", "England", "b")
+        enemies = [_map_unit("Army", "France", "a"), _map_unit("Army", "France", "c")]
+        nearest = nearest_enemy_units(self._data([unit] + enemies), graph, unit, n=1)
+        assert len(nearest) == 1
+
+    def test_nearest_uncontrolled_scs_include_dist_zero_and_filter_owned(self):
+        graph = build_graph(self._provinces())
+        unit = _map_unit("Army", "England", "c")
+        supply_centers = [
+            {
+                "province": {"id": "a", "name": "a"},
+                "nation": {"nation_id": "france", "name": "France"},
+            }
+        ]
+        nearest = nearest_uncontrolled_supply_centers(
+            self._data([unit], supply_centers), graph, unit
+        )
+        assert nearest == [("c", None, 0), ("a", "France", 2)]
+
+        french_unit = _map_unit("Army", "France", "c")
+        nearest = nearest_uncontrolled_supply_centers(
+            self._data([french_unit], supply_centers), graph, french_unit
+        )
+        assert nearest == [("c", None, 0)]
+
+    def test_missing_adjacencies_degrade_gracefully(self):
+        provinces = [
+            _map_province("a", supply_center=True),
+            _map_province("b"),
+        ]
+        graph = build_graph(provinces)
+        assert shortest_distances(graph, "b", "army") == {"b": 0}
+        unit = _map_unit("Army", "England", "b")
+        data = {
+            "phase": {"units": [unit, _map_unit("Army", "France", "a")], "supply_centers": []},
+            "variant": {"provinces": provinces},
+        }
+        assert nearest_enemy_units(data, graph, unit) == []
+        assert nearest_uncontrolled_supply_centers(data, graph, unit) == []
+        assert build_graph([]) == {"edges": {}, "canonical": {}}
+
+
 class TestContextBuilder:
 
-    def _data(self, channels=None, phase=None):
+    def _data(self, channels=None, phase=None, variant=None):
         return {
             "orders": [
                 _option("lon", OrderType.HOLD),
                 _option("lon", OrderType.MOVE, target="nth"),
             ],
-            "phase_states": [{"max_orders": 3}],
+            "phase_states": [{"max_orders": 3, "member": {"nation": "England"}}],
             "game": {"phase_confirmed": False},
             "phase": phase if phase is not None else {},
             "channels": channels or [],
+            "variant": variant or {},
+        }
+
+    def _variant(self):
+        return {
+            "id": "test",
+            "provinces": [
+                _map_province(
+                    "lon",
+                    supply_center=True,
+                    adjacencies=[
+                        {"to": "nth", "pass": "fleet"},
+                        {"to": "wal", "pass": "army"},
+                        {"to": "edi", "pass": "army"},
+                        {"to": "par", "pass": "army"},
+                    ],
+                ),
+                _map_province(
+                    "nth",
+                    type="sea",
+                    adjacencies=[{"to": "lon", "pass": "fleet"}, {"to": "edi", "pass": "fleet"}],
+                ),
+                _map_province(
+                    "edi",
+                    supply_center=True,
+                    adjacencies=[{"to": "lon", "pass": "army"}, {"to": "nth", "pass": "fleet"}],
+                ),
+                _map_province("wal", adjacencies=[{"to": "lon", "pass": "army"}]),
+                _map_province(
+                    "par",
+                    type="land",
+                    supply_center=True,
+                    adjacencies=[{"to": "lon", "pass": "army"}],
+                ),
+            ],
         }
 
     def _phase(self):
@@ -216,23 +382,105 @@ class TestContextBuilder:
     def test_with_game_state_groups_units_and_centers_by_nation(self):
         shared = ContextBuilder(self._data(phase=self._phase())).with_game_state().build_shared()
         assert "Current phase: Spring 1901, Movement" in shared
-        assert "England: A lon, F nth (dislodged)" in shared
-        assert "France: A par" in shared
+        assert "England: 2 (A lon, F nth (dislodged))" in shared
+        assert "France: 1 (A par)" in shared
         assert "England: 2 (edi, lon)" in shared
         assert "France: 1 (par)" in shared
 
     def test_with_game_state_empty_phase_is_noop(self):
         assert ContextBuilder(self._data()).with_game_state().build_shared() == ""
 
+    def test_with_game_state_retreat_phase_lists_dislodged_units(self):
+        phase = self._phase()
+        phase["type"] = "Retreat"
+        shared = ContextBuilder(self._data(phase=phase)).with_game_state().build_shared()
+        assert "Dislodged units: F nth (England)" in shared
+
+    def test_with_game_state_adjustment_phase_frames_per_nation(self):
+        def nation(name):
+            return {"nation_id": name.lower(), "name": name}
+
+        def province(province_id):
+            return {"id": province_id, "name": province_id}
+
+        phase = {
+            "name": "Winter 1901, Adjustment",
+            "type": "Adjustment",
+            "units": [
+                {"type": "Army", "nation": nation("England"), "province": province("lon"), "dislodged": False},
+                {"type": "Army", "nation": nation("France"), "province": province("par"), "dislodged": False},
+                {"type": "Fleet", "nation": nation("France"), "province": province("bre"), "dislodged": False},
+                {"type": "Army", "nation": nation("Germany"), "province": province("mun"), "dislodged": False},
+            ],
+            "supply_centers": [
+                {"province": province("lon"), "nation": nation("England")},
+                {"province": province("edi"), "nation": nation("England")},
+                {"province": province("par"), "nation": nation("France")},
+                {"province": province("mun"), "nation": nation("Germany")},
+            ],
+        }
+        shared = ContextBuilder(self._data(phase=phase)).with_game_state().build_shared()
+        assert "Adjustments:" in shared
+        assert "England: 1 build available" in shared
+        assert "France: 1 disband required" in shared
+        assert "Germany: no change" in shared
+
+    def test_with_tactical_annotations_renders_unit_blocks(self):
+        shared = (
+            ContextBuilder(self._data(phase=self._phase(), variant=self._variant()))
+            .with_tactical_annotations()
+            .build_shared()
+        )
+        assert "Tactical annotations:" in shared
+        assert "Unit A lon (England):" in shared
+        assert (
+            "  Adjacent: edi (SC: England, empty), par (SC: France, occupied A par France), wal (no SC, empty)"
+            in shared
+        )
+        assert "  Nearest enemy units: A par (France, dist 1)" in shared
+        assert "  Nearest uncontrolled supply centers: par (France, dist 1)" in shared
+        assert "Unit F nth (England, dislodged):" in shared
+        assert "Nearest enemy units: none" in shared
+
+    def test_with_tactical_annotations_without_variant_is_noop(self):
+        shared = (
+            ContextBuilder(self._data(phase=self._phase()))
+            .with_tactical_annotations()
+            .build_shared()
+        )
+        assert shared == ""
+
+    def test_shared_block_is_byte_identical_across_builds(self):
+        def build():
+            return (
+                ContextBuilder(self._data(phase=self._phase(), variant=self._variant()))
+                .with_game_state()
+                .with_tactical_annotations()
+                .build_shared()
+            )
+
+        assert build() == build()
+
+    def test_with_identity_names_nation_in_private(self):
+        builder = ContextBuilder(self._data()).with_identity()
+        assert "You are playing England." in builder.build_private()
+        assert builder.build_shared() == ""
+
     def _channel(self, channel_id, name, messages):
         return {"id": channel_id, "name": name, "private": False, "messages": messages}
 
-    def test_with_orders_lists_options_in_shared(self):
+    def test_with_orders_lists_options_in_private(self):
         builder = ContextBuilder(self._data()).with_orders()
-        shared = builder.build_shared()
-        assert "Unit lon:" in shared
-        assert "0. lon Hold" in shared
-        assert "1. lon Move nth" in shared
+        private = builder.build_private()
+        assert "Unit lon:" in private
+        assert "0. lon Hold" in private
+        assert "1. lon Move nth" in private
+        assert "Legal orders:" not in builder.build_shared()
+
+    def test_with_phase_state_is_private(self):
+        builder = ContextBuilder(self._data()).with_phase_state()
+        assert "Orders to submit this phase: 3" in builder.build_private()
+        assert builder.build_shared() == ""
 
     def test_with_conversations_includes_all_channels(self):
         channels = [

@@ -3630,13 +3630,35 @@ components:
           type: string
         name:
           type: string
+        type:
+          type: string
+        supplyCenter:
+          type: boolean
         parentId:
           type: string
           nullable: true
+        adjacencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/VariantProvinceAdjacency'
+          readOnly: true
       required:
+      - adjacencies
       - id
       - name
       - parentId
+      - supplyCenter
+      - type
+    VariantProvinceAdjacency:
+      type: object
+      properties:
+        to:
+          type: string
+        pass:
+          type: string
+      required:
+      - pass
+      - to
     VariantTemplateNationRef:
       type: object
       properties:

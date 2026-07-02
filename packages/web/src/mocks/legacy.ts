@@ -10,6 +10,7 @@ import type {
   Province,
   StatusEnum,
   UserProfile,
+  VariantProvince,
 } from "@/api/generated/endpoints";
 
 export const mockNations: Nation[] = [
@@ -137,7 +138,7 @@ export const mockMembers: Member[] = [
   },
 ];
 
-export const mockProvinces: Province[] = [
+export const mockProvinces: (Province & VariantProvince)[] = [
   {
     id: "vie",
     name: "Vienna",
@@ -145,6 +146,7 @@ export const mockProvinces: Province[] = [
     supplyCenter: true,
     parentId: null,
     namedCoastIds: [],
+    adjacencies: [],
   },
   {
     id: "lon",
@@ -153,6 +155,7 @@ export const mockProvinces: Province[] = [
     supplyCenter: true,
     parentId: null,
     namedCoastIds: [],
+    adjacencies: [],
   },
   {
     id: "par",
@@ -161,6 +164,7 @@ export const mockProvinces: Province[] = [
     supplyCenter: true,
     parentId: null,
     namedCoastIds: [],
+    adjacencies: [],
   },
   {
     id: "ber",
@@ -169,6 +173,7 @@ export const mockProvinces: Province[] = [
     supplyCenter: true,
     parentId: null,
     namedCoastIds: [],
+    adjacencies: [],
   },
   {
     id: "rom",
@@ -177,6 +182,7 @@ export const mockProvinces: Province[] = [
     supplyCenter: true,
     parentId: null,
     namedCoastIds: [],
+    adjacencies: [],
   },
   {
     id: "mos",
@@ -185,6 +191,7 @@ export const mockProvinces: Province[] = [
     supplyCenter: true,
     parentId: null,
     namedCoastIds: [],
+    adjacencies: [],
   },
   {
     id: "con",
@@ -193,6 +200,7 @@ export const mockProvinces: Province[] = [
     supplyCenter: true,
     parentId: null,
     namedCoastIds: [],
+    adjacencies: [],
   },
 ];
 

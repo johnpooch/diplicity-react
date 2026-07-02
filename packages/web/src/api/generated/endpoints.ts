@@ -921,8 +921,16 @@ export interface VictoryConditions {
 export interface VariantProvince {
   id: string;
   name: string;
+  type: string;
+  supplyCenter: boolean;
   /** @nullable */
   parentId: string | null;
+  readonly adjacencies: readonly VariantProvinceAdjacency[];
+}
+
+export interface VariantProvinceAdjacency {
+  to: string;
+  pass: string;
 }
 
 export interface VariantTemplateNationRef {

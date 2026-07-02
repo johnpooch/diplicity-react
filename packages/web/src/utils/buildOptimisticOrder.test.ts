@@ -1,14 +1,15 @@
 import { describe, it, expect } from "vitest";
 import { buildOptimisticOrder } from "./buildOptimisticOrder";
-import type { Province, Nation, Variant, PhaseRetrieve } from "../api/generated/endpoints";
+import type { Province, Nation, Variant, PhaseRetrieve, VariantProvince } from "../api/generated/endpoints";
 
-const makeProvince = (id: string): Province => ({
+const makeProvince = (id: string): Province & VariantProvince => ({
   id,
   name: id,
   type: "land",
   supplyCenter: false,
   parentId: null,
   namedCoastIds: [],
+  adjacencies: [],
 });
 
 const england: Nation = { nationId: "england", name: "England", color: "rgb(255,0,0)", nonPlayable: false, flagUrl: null };

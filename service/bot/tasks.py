@@ -23,6 +23,8 @@ def _submit_orders_from_context(api, data, game_id, user_id, label, stage):
     builder = (
         ContextBuilder(data)
         .with_game_state()
+        .with_tactical_annotations()
+        .with_identity()
         .with_orders()
         .with_phase_state()
         .with_conversations()
@@ -116,6 +118,8 @@ def reply(user_id, game_id, channel_id):
     builder = (
         ContextBuilder(data)
         .with_game_state()
+        .with_tactical_annotations()
+        .with_identity()
         .with_messages(channel_id=channel_id)
     )
     system = load_prompt("reply_system.txt")

@@ -50,6 +50,25 @@ class UnitDict(TypedDict, total=False):
     dislodged: bool
 
 
+# Functional syntax because "pass" is a Python keyword.
+AdjacencyDict = TypedDict("AdjacencyDict", {"to": str, "pass": str})
+
+
+class VariantProvinceDict(TypedDict, total=False):
+    id: str
+    name: str
+    type: str
+    supply_center: bool
+    parent_id: str | None
+    adjacencies: list[AdjacencyDict]
+
+
+class VariantDict(TypedDict, total=False):
+    id: str
+    name: str
+    provinces: list[VariantProvinceDict]
+
+
 class SupplyCenterDict(TypedDict, total=False):
     province: ProvinceDict
     nation: NationDict
@@ -68,3 +87,4 @@ class ContextData(TypedDict):
     game: dict
     phase: PhaseDict
     channels: list[ChannelDict]
+    variant: VariantDict
