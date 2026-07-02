@@ -13,7 +13,7 @@ import { CheckEmail } from "./screens/CheckEmail";
 import { ForgotPassword } from "./screens/ForgotPassword";
 import { VerifyEmail } from "./screens/VerifyEmail";
 import { ResetPassword } from "./screens/ResetPassword";
-import { GameDetail, Home, Tutorial, Variants } from "./screens";
+import { GameDetail, Home, LLMCalls, Tutorial, Variants } from "./screens";
 const CardGallery = React.lazy(() => import("./screens/CardGallery"));
 import { ErrorFallbackUI } from "./components/ErrorBoundary";
 import { HomeLayout } from "./components/HomeLayout";
@@ -197,6 +197,22 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
                       element: (
                         <Suspense fallback={<RouteFallback />}>
                           <Variants.VariantEditRoute />
+                        </Suspense>
+                      ),
+                    },
+                    {
+                      path: "llm-calls",
+                      element: (
+                        <Suspense fallback={<RouteFallback />}>
+                          <LLMCalls.ListScreen />
+                        </Suspense>
+                      ),
+                    },
+                    {
+                      path: "llm-calls/:llmCallId",
+                      element: (
+                        <Suspense fallback={<RouteFallback />}>
+                          <LLMCalls.DetailScreen />
                         </Suspense>
                       ),
                     },
