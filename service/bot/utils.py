@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 
 def get_bot_user():
     User = get_user_model()
-    return User.objects.get(bot_profile__isnull=False)
+    return User.objects.get(bot_profile__is_default=True)
 
 
 def user_can_use_bot_opponent(user):

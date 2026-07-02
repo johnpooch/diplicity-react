@@ -15,7 +15,7 @@ from common.constants import (
 )
 from channel.models import ChannelMessage
 from game.models import Game
-from bot.models import LLMCall
+from bot.models import BotProfile, LLMCall
 from bot import decorators, tasks, utils
 from bot.constants import LLMCallStage, LLMCallStatus
 from bot.context.builder import ContextBuilder
@@ -431,6 +431,29 @@ class TestBotIdentificationByProfile:
         )
 
         assert decorators._bot_user_ids_for_phase(phase.id) == {bot_user.id}
+
+
+class TestBotRoster:
+
+    @pytest.mark.django_db
+    def test_roster_is_seeded(self):
+        roster = BotProfile.objects.filter(is_default=False)
+        assert roster.count() == 12
+        assert all(profile.disposition and profile.voice for profile in roster)
+
+    @pytest.mark.django_db
+    def test_exactly_one_default_bot(self):
+        assert BotProfile.objects.filter(is_default=True).count() == 1
+        assert get_bot_user().bot_profile.is_default is True
+
+    @pytest.mark.django_db
+    def test_roster_bots_are_identified_as_bots(self, phase_factory, classical_england_nation):
+        roster_user = BotProfile.objects.filter(is_default=False).first().user
+        phase = phase_factory(
+            phase_states_config=[{"nation": classical_england_nation, "user": roster_user}]
+        )
+
+        assert roster_user.id in decorators._bot_user_ids_for_phase(phase.id)
 
 
 class TestFinalizeTask:
