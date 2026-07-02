@@ -24,6 +24,7 @@ from bot.context.builder import ContextBuilder
 from bot.context.orders import first_legal_selections, option_to_selected
 from bot.context.parsers import parse_order_selections, parse_reply
 from bot.llm_client import LLMClient, LLMError
+from bot.recorder import LLMCallRecorder
 from bot.utils import get_bot_user
 
 
@@ -135,25 +136,45 @@ class TestLLMClient:
 
     def test_raises_without_key(self):
         with pytest.raises(LLMError):
-            LLMClient("")
+            LLMClient("", Mock())
 
-    def test_raises_when_client_raises(self):
+    def test_records_error_and_raises_when_client_raises(self):
+        recorder = Mock()
         with patch("bot.llm_client.Anthropic") as mock_anthropic:
             mock_anthropic.return_value.messages.create.side_effect = RuntimeError("boom")
             with pytest.raises(LLMError):
-                LLMClient("test-key").complete(system="s", messages=[{"role": "user", "content": "x"}])
+                LLMClient("test-key", recorder).complete(
+                    system="s", messages=[{"role": "user", "content": "x"}]
+                )
+        recorder.record_error.assert_called_once()
+        recorder.record_success.assert_not_called()
 
-    def test_returns_concatenated_text_blocks(self):
+    def test_returns_text_and_records_success(self):
         block_one = Mock(type="text", text="Hello, ")
         block_two = Mock(type="text", text="human!")
+        usage = Mock(
+            input_tokens=120,
+            output_tokens=45,
+            cache_read_input_tokens=80,
+            cache_creation_input_tokens=10,
+        )
+        recorder = Mock()
         with patch("bot.llm_client.Anthropic") as mock_anthropic:
             mock_anthropic.return_value.messages.create.return_value = Mock(
-                content=[block_one, block_two]
+                content=[block_one, block_two], model="test-model", usage=usage
             )
-            result = LLMClient("test-key").complete(
+            result = LLMClient("test-key", recorder).complete(
                 system="s", messages=[{"role": "user", "content": "x"}]
             )
         assert result == "Hello, human!"
+        recorder.record_success.assert_called_once()
+        kwargs = recorder.record_success.call_args.kwargs
+        assert kwargs["model"] == "test-model"
+        assert kwargs["response"] == "Hello, human!"
+        assert kwargs["input_tokens"] == 120
+        assert kwargs["output_tokens"] == 45
+        assert kwargs["cache_read_tokens"] == 80
+        assert kwargs["cache_write_tokens"] == 10
 
 
 class TestContextBuilder:
@@ -277,6 +298,17 @@ def _reply_response(should_reply, message=""):
     return json.dumps(payload)
 
 
+def _anthropic_message(text):
+    block = Mock(type="text", text=text)
+    usage = Mock(
+        input_tokens=100,
+        output_tokens=20,
+        cache_read_input_tokens=50,
+        cache_creation_input_tokens=5,
+    )
+    return Mock(content=[block], model="test-model", usage=usage)
+
+
 class TestComposeReply:
 
     def test_returns_reply_when_model_replies(self):
@@ -382,6 +414,46 @@ class TestPlanTask:
         assert bot_phase_state.orders.count() > 0
         assert all(order.complete for order in bot_phase_state.orders.all())
         assert bot_phase_state.orders_confirmed is False
+
+    @pytest.mark.django_db
+    def test_plan_records_success_call(
+        self, bot_game_factory, in_memory_procrastinate, settings
+    ):
+        settings.ANTHROPIC_API_KEY = "test-key"
+        game = bot_game_factory()
+        bot_user = get_bot_user()
+        bot_member = game.members.get(user=bot_user)
+
+        with patch("bot.llm_client.Anthropic") as mock_anthropic:
+            mock_anthropic.return_value.messages.create.return_value = _anthropic_message(
+                '{"choices": []}'
+            )
+            tasks.plan(user_id=bot_user.id, game_id=game.id)
+
+        call = LLMCall.objects.get(stage=LLMCallStage.PLAN)
+        assert call.status == LLMCallStatus.SUCCESS
+        assert call.member == bot_member
+        assert call.phase == game.current_phase
+        assert call.model == "test-model"
+        assert call.output_tokens == 20
+        assert call.cache_read_tokens == 50
+
+    @pytest.mark.django_db
+    def test_plan_records_error_call_when_llm_raises(
+        self, bot_game_factory, in_memory_procrastinate, settings
+    ):
+        settings.ANTHROPIC_API_KEY = "test-key"
+        game = bot_game_factory()
+        bot_user = get_bot_user()
+
+        with patch("bot.llm_client.Anthropic") as mock_anthropic:
+            mock_anthropic.return_value.messages.create.side_effect = RuntimeError("boom")
+            tasks.plan(user_id=bot_user.id, game_id=game.id)
+
+        call = LLMCall.objects.get(stage=LLMCallStage.PLAN)
+        assert call.status == LLMCallStatus.ERROR
+        assert call.error_message
+        assert call.input_tokens == 0
 
     @pytest.mark.django_db
     def test_plan_creates_orders_when_testserver_not_allowed(
@@ -730,6 +802,23 @@ class TestLLMCall:
         assert call.member is None
         assert call.input_tokens == 0
         assert call.system == ""
+
+
+class TestLLMCallRecorder:
+
+    @pytest.mark.django_db
+    def test_skips_write_when_phase_id_missing(self, bot_game_factory):
+        game = bot_game_factory()
+        bot_user = get_bot_user()
+        recorder = LLMCallRecorder(
+            game_id=game.id, user_id=bot_user.id, phase_id=None, stage=LLMCallStage.REPLY
+        )
+
+        recorder.record_error(
+            model="m", system="s", user_content="u", error_message="boom", latency_ms=1
+        )
+
+        assert LLMCall.objects.count() == 0
 
 
 game_create_viewname = "game-create"

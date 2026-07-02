@@ -4,6 +4,7 @@ from django.conf import settings
 from procrastinate.contrib.django import app
 
 from bot.api_client import ApiClient, ApiClientError
+from bot.constants import LLMCallStage
 from bot.context import (
     ContextBuilder,
     fetch_context,
@@ -13,11 +14,12 @@ from bot.context import (
 )
 from bot.llm_client import LLMClient, LLMError
 from bot.prompts import load_prompt
+from bot.recorder import LLMCallRecorder
 
 logger = logging.getLogger(__name__)
 
 
-def _submit_orders_from_context(api, data, game_id, label):
+def _submit_orders_from_context(api, data, game_id, user_id, label, stage):
     builder = (
         ContextBuilder(data)
         .with_game_state()
@@ -31,8 +33,14 @@ def _submit_orders_from_context(api, data, game_id, label):
         part for part in [builder.build_shared(), builder.build_private(), instruction] if part
     )
 
+    recorder = LLMCallRecorder(
+        game_id=game_id,
+        user_id=user_id,
+        phase_id=data["game"].get("current_phase_id"),
+        stage=stage,
+    )
     try:
-        response_text = LLMClient(settings.ANTHROPIC_API_KEY).complete(
+        response_text = LLMClient(settings.ANTHROPIC_API_KEY, recorder).complete(
             system=system, messages=[{"role": "user", "content": user_content}]
         )
         selections = parse_order_selections(response_text, data["orders"])
@@ -57,7 +65,7 @@ def plan(user_id, game_id):
     api = ApiClient.for_user(user_id)
     try:
         data = fetch_context(api, game_id)
-        _submit_orders_from_context(api, data, game_id, label)
+        _submit_orders_from_context(api, data, game_id, user_id, label, LLMCallStage.PLAN)
     except ApiClientError as e:
         logger.error(f"[{label}] aborting: {e}")
         return
@@ -76,7 +84,7 @@ def finalize(user_id, game_id):
         if data["game"].get("phase_confirmed"):
             logger.info(f"[{label}] orders already confirmed; skipping")
             return
-        _submit_orders_from_context(api, data, game_id, label)
+        _submit_orders_from_context(api, data, game_id, user_id, label, LLMCallStage.COMMIT)
         api.confirm_phase(game_id)
     except ApiClientError as e:
         logger.error(f"[{label}] aborting: {e}")
@@ -116,8 +124,14 @@ def reply(user_id, game_id, channel_id):
         part for part in [builder.build_shared(), builder.build_private(), instruction] if part
     )
 
+    recorder = LLMCallRecorder(
+        game_id=game_id,
+        user_id=user_id,
+        phase_id=data["game"].get("current_phase_id"),
+        stage=LLMCallStage.REPLY,
+    )
     try:
-        response_text = LLMClient(settings.ANTHROPIC_API_KEY).complete(
+        response_text = LLMClient(settings.ANTHROPIC_API_KEY, recorder).complete(
             system=system, messages=[{"role": "user", "content": user_content}]
         )
         reply_text = parse_reply(response_text)
