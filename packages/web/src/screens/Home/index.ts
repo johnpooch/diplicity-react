@@ -5,6 +5,9 @@ export const Home = {
   FindGames: lazy(() =>
     import("./FindGames").then((m) => ({ default: m.FindGames }))
   ),
+  OpenGames: lazy(() =>
+    import("./OpenGames").then((m) => ({ default: m.OpenGames }))
+  ),
   CreateGame: lazy(() =>
     import("./CreateGame").then((m) => ({ default: m.CreateGame }))
   ),

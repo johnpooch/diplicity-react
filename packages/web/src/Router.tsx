@@ -17,10 +17,12 @@ import { GameDetail, Home, Tutorial, Variants } from "./screens";
 const CardGallery = React.lazy(() => import("./screens/CardGallery"));
 import { ErrorFallbackUI } from "./components/ErrorBoundary";
 import { HomeLayout } from "./components/HomeLayout";
+import { LoggedOutLayout } from "./components/LoggedOutLayout";
 import { GameDetailLayout } from "./components/GameDetailLayout";
 import { GamePhaseRedirect } from "./components/GamePhaseRedirect";
 import { useIsMobile } from "./hooks/use-mobile";
 import { getVariantsListQueryOptions } from "./api/generated/endpoints";
+import { isNativePlatform } from "./utils/platform";
 import * as Sentry from "@sentry/react";
 import { deepLinkStorage, useDeepLink } from "./deepLink";
 
@@ -51,6 +53,14 @@ const HomeLayoutWrapper: React.FC = () => {
     <HomeLayout>
       <Outlet />
     </HomeLayout>
+  );
+};
+
+const LoggedOutLayoutWrapper: React.FC = () => {
+  return (
+    <LoggedOutLayout>
+      <Outlet />
+    </LoggedOutLayout>
   );
 };
 
@@ -308,10 +318,22 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
                     },
                   ],
                 },
+                ...[
+                  "login",
+                  "register",
+                  "forgot-password",
+                  "check-email",
+                  "verify-email",
+                  "reset-password",
+                ].map(path => ({
+                  path,
+                  loader: () => redirect("/"),
+                })),
               ],
             },
           ])
-        : createBrowserRouter([
+        : isNativePlatform()
+        ? createBrowserRouter([
             {
               path: "/",
               element: <Login />,
@@ -345,6 +367,73 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
                   deepLinkStorage.setPendingPath(path);
                 }
                 return redirect("/");
+              },
+            },
+          ])
+        : createBrowserRouter([
+            {
+              path: "/",
+              element: <LoggedOutLayoutWrapper />,
+              errorElement: <RootErrorBoundary />,
+              loader: createVariantsLoader(queryClient),
+              children: [
+                {
+                  index: true,
+                  element: (
+                    <Suspense fallback={<RouteFallback />}>
+                      <Home.OpenGames />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: "game-info/:gameId",
+                  element: (
+                    <Suspense fallback={<RouteFallback />}>
+                      <Home.GameInfoScreen />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: "player-info/:gameId",
+                  element: (
+                    <Suspense fallback={<RouteFallback />}>
+                      <Home.PlayerInfoScreen />
+                    </Suspense>
+                  ),
+                },
+              ],
+            },
+            {
+              path: "/login",
+              element: <Login />,
+            },
+            {
+              path: "/register",
+              element: <Register />,
+            },
+            {
+              path: "/forgot-password",
+              element: <ForgotPassword />,
+            },
+            {
+              path: "/check-email",
+              element: <CheckEmail />,
+            },
+            {
+              path: "/verify-email",
+              element: <VerifyEmail />,
+            },
+            {
+              path: "/reset-password",
+              element: <ResetPassword />,
+            },
+            {
+              path: "*",
+              loader: ({ request }) => {
+                const url = new URL(request.url);
+                const path = `${url.pathname}${url.search}${url.hash}`;
+                deepLinkStorage.setPendingPath(path);
+                return redirect("/login");
               },
             },
           ]),

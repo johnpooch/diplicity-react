@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GameInfoScreen } from "./GameInfo";
 import { mockPendingGames, mockActiveGames } from "@/mocks/legacy";
+import { deepLinkStorage } from "@/deepLink";
 
 const mockJoinMutateAsync = vi.fn();
 const mockLeaveMutateAsync = vi.fn();
@@ -42,6 +43,16 @@ vi.mock("@/components/GameDropdownMenu", () => ({
   GameDropdownMenu: () => <div data-testid="game-dropdown-menu" />,
 }));
 
+const mockUseAuth = vi.fn(() => ({ loggedIn: true }));
+
+vi.mock("@/auth", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...(actual as Record<string, unknown>),
+    useAuth: () => mockUseAuth(),
+  };
+});
+
 const pendingGameCanJoin = mockPendingGames.find((g) => g.canJoin)!;
 const pendingGameCanLeave = mockPendingGames.find((g) => !g.canJoin && g.canLeave)!;
 const pendingGameReliabilityRequired = {
@@ -76,6 +87,8 @@ describe("GameInfoScreen", () => {
     vi.clearAllMocks();
     mockJoinMutateAsync.mockResolvedValue(undefined);
     mockLeaveMutateAsync.mockResolvedValue(undefined);
+    mockUseAuth.mockReturnValue({ loggedIn: true });
+    deepLinkStorage.consumePendingPath();
   });
 
   describe("CTA placement", () => {
@@ -124,6 +137,36 @@ describe("GameInfoScreen", () => {
       expect(
         within(content).queryByRole("button", { name: /^leave$/i })
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("logged out", () => {
+    it("shows 'Sign in to join' instead of 'Join game' for a pending game", () => {
+      mockUseAuth.mockReturnValue({ loggedIn: false });
+      mockUseGameRetrieveSuspense.mockReturnValue({ data: pendingGameCanJoin });
+      renderGameInfo(pendingGameCanJoin.id);
+
+      const content = screen.getByTestId("game-info-content");
+      expect(
+        within(content).getByRole("button", { name: /sign in to join/i })
+      ).toBeInTheDocument();
+      expect(
+        within(content).queryByRole("button", { name: /join game/i })
+      ).not.toBeInTheDocument();
+    });
+
+    it("stores the game as a pending deep link when 'Sign in to join' is clicked", async () => {
+      mockUseAuth.mockReturnValue({ loggedIn: false });
+      mockUseGameRetrieveSuspense.mockReturnValue({ data: pendingGameCanJoin });
+      renderGameInfo(pendingGameCanJoin.id);
+
+      await userEvent.click(
+        screen.getByRole("button", { name: /sign in to join/i })
+      );
+
+      expect(deepLinkStorage.getPendingPath()).toBe(
+        `/game-info/${pendingGameCanJoin.id}`
+      );
     });
   });
 

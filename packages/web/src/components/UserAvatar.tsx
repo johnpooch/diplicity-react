@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUserRetrieveSuspense } from "@/api/generated/endpoints";
+import { tokenStorage } from "@/auth/tokenStorage";
 
 const UserAvatarContent: React.FC = () => {
   const navigate = useNavigate();
@@ -29,6 +30,9 @@ const UserAvatarContent: React.FC = () => {
 };
 
 const UserAvatar: React.FC = () => {
+  if (!tokenStorage.isLoggedIn()) {
+    return null;
+  }
   return (
     <Suspense fallback={null}>
       <UserAvatarContent />
