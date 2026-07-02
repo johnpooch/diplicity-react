@@ -2,12 +2,20 @@ from django.db import models
 from django.contrib.auth.models import User
 
 from common.models import BaseModel
-from bot.constants import LLMCallStage, LLMCallStatus
+from bot.constants import BOT_USER_USERNAME, LLMCallStage, LLMCallStatus
 
 
 class BotProfileQuerySet(models.QuerySet):
     def with_related_data(self):
         return self.select_related("user")
+
+    def available_for_game(self, game):
+        return (
+            self.select_related("user__profile")
+            .exclude(user__username=BOT_USER_USERNAME)
+            .exclude(user__members__game=game)
+            .order_by("user__profile__name")
+        )
 
 
 class BotProfileManager(models.Manager):
@@ -16,6 +24,9 @@ class BotProfileManager(models.Manager):
 
     def with_related_data(self):
         return self.get_queryset().with_related_data()
+
+    def available_for_game(self, game):
+        return self.get_queryset().available_for_game(game)
 
 
 class BotProfile(BaseModel):

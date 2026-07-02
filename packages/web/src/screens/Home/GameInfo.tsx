@@ -1,7 +1,7 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
-import { Share } from "lucide-react";
+import { Bot, Share } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRequiredParams } from "@/hooks";
 
@@ -12,10 +12,13 @@ import {
   useGameRetrieveSuspense,
   useGameJoinCreate,
   useGameLeaveDestroy,
+  useUserRetrieveSuspense,
+  useVariantsListSuspense,
   getGameRetrieveQueryKey,
 } from "@/api/generated/endpoints";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { ScreenContainer } from "@/components/ui/screen-container";
+import { AddBotSheet } from "@/components/AddBotSheet";
 import { GameInfoContent } from "@/components/GameInfoContent";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
 
@@ -25,9 +28,13 @@ const GameInfo: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: game } = useGameRetrieveSuspense(gameId);
+  const { data: variants } = useVariantsListSuspense();
+  const { data: userProfile } = useUserRetrieveSuspense();
   const joinGameMutation = useGameJoinCreate();
   const leaveGameMutation = useGameLeaveDestroy();
   const checkNotificationPermission = useCheckNotificationPermission();
+
+  const [addBotOpen, setAddBotOpen] = useState(false);
 
   const handleJoinGame = async () => {
     try {
@@ -69,6 +76,17 @@ const GameInfo: React.FC = () => {
     navigate(`/game-info/${gameId}`);
   };
 
+  const variant = variants.find(v => v.id === game.variantId);
+  const playableSeats = variant
+    ? variant.nations.filter(n => !n.nonPlayable).length
+    : 0;
+  const openSeats = Math.max(0, playableSeats - game.members.length);
+  const canAddBots =
+    game.status === "pending" &&
+    game.canManage &&
+    userProfile.canCreateBotGames &&
+    openSeats > 0;
+
   const pendingAction = game.status === "pending" ? (
     game.canJoin ? (
       <Button
@@ -78,16 +96,27 @@ const GameInfo: React.FC = () => {
       >
         Join game
       </Button>
-    ) : game.canLeave ? (
-      <div className="flex gap-2 w-full sm:w-auto">
-        <Button
-          onClick={handleLeaveGame}
-          disabled={leaveGameMutation.isPending}
-          variant="outline"
-          className="flex-1 sm:flex-none"
-        >
-          Leave
-        </Button>
+    ) : game.canLeave || canAddBots ? (
+      <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+        {canAddBots && (
+          <Button
+            onClick={() => setAddBotOpen(true)}
+            className="flex-1 sm:flex-none"
+          >
+            <Bot className="size-4" />
+            Add AI player
+          </Button>
+        )}
+        {game.canLeave && (
+          <Button
+            onClick={handleLeaveGame}
+            disabled={leaveGameMutation.isPending}
+            variant="outline"
+            className="flex-1 sm:flex-none"
+          >
+            Leave
+          </Button>
+        )}
         <Button variant="outline" className="flex-1 sm:flex-none" onClick={handleShare}>
           <Share className="size-4" />
           Share &amp; invite
@@ -121,6 +150,13 @@ const GameInfo: React.FC = () => {
         onNavigateToPlayerInfo={handlePlayerInfo}
         pendingAction={pendingAction}
       />
+      {canAddBots && (
+        <AddBotSheet
+          gameId={gameId}
+          open={addBotOpen}
+          onOpenChange={setAddBotOpen}
+        />
+      )}
     </ScreenContainer>
   );
 };

@@ -19,7 +19,7 @@ import {
 export type { GameFixture } from "./types";
 export { classicalVariant, classicalProvinces, nation, province } from "./classical";
 export { allVariants, extraVariants } from "./variants";
-export { currentUserProfile, publicProfiles } from "./users";
+export { botRoster, currentUserProfile, makeBotMember, publicProfiles } from "./users";
 
 export const gameFixtures = {
   pendingGameNoPlayers,

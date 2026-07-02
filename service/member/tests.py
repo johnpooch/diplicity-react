@@ -4,6 +4,7 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APIClient
+from bot.models import BotProfile
 from game.models import Game
 from phase.models import Phase
 from user_profile.models import UserProfile
@@ -804,3 +805,113 @@ def test_join_game_reliability_requirement(
         assert response.status_code == status.HTTP_201_CREATED
     else:
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.fixture
+def roster_bot_user(db):
+    return (
+        BotProfile.objects.exclude(user__username="diplicitybot")
+        .order_by("user__profile__name")
+        .first()
+        .user
+    )
+
+
+class TestBotMemberSerialization:
+
+    @pytest.mark.django_db
+    def test_is_bot_serialized(
+        self, authenticated_client, pending_game_created_by_primary_user, roster_bot_user
+    ):
+        game = pending_game_created_by_primary_user
+        game.members.create(user=roster_bot_user)
+
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        members_by_name = {m["name"]: m for m in response.data["members"]}
+        assert members_by_name[roster_bot_user.profile.name]["is_bot"] is True
+        assert members_by_name["Primary User"]["is_bot"] is False
+
+    @pytest.mark.django_db
+    def test_bot_not_masked_in_anonymous_game(
+        self,
+        authenticated_client,
+        classical_variant,
+        classical_england_nation,
+        classical_france_nation,
+        classical_germany_nation,
+        primary_user,
+        secondary_user,
+        roster_bot_user,
+    ):
+        game = Game.objects.create(
+            name="Anon Bot Game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+            anonymous=True,
+        )
+        game.members.create(user=primary_user, nation=classical_england_nation)
+        game.members.create(user=secondary_user, nation=classical_france_nation)
+        game.members.create(user=roster_bot_user, nation=classical_germany_nation)
+
+        url = reverse(retrieve_viewname, args=[game.id])
+        response = authenticated_client.get(url)
+
+        members_by_nation = {m["nation"]: m for m in response.data["members"]}
+        bot_member = members_by_nation["Germany"]
+        assert bot_member["is_bot"] is True
+        assert bot_member["name"] == roster_bot_user.profile.name
+        assert bot_member["user_id"] == roster_bot_user.id
+        human_member = members_by_nation["France"]
+        assert human_member["is_bot"] is False
+        assert human_member["name"] == "Anonymous"
+        assert human_member["user_id"] is None
+
+
+class TestKickBotMember:
+
+    @pytest.mark.django_db
+    def test_kick_bot_sends_no_notification(
+        self, authenticated_client, pending_game_created_by_primary_user, roster_bot_user
+    ):
+        game = pending_game_created_by_primary_user
+        member = game.members.create(user=roster_bot_user)
+
+        with patch("member.views.send_notification") as mock_send:
+            url = reverse(kick_viewname, args=[game.id, member.id])
+            response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert not game.members.filter(user=roster_bot_user).exists()
+        mock_send.defer.assert_not_called()
+
+    @pytest.mark.django_db
+    def test_kick_human_sends_notification(
+        self, authenticated_client, pending_game_created_by_primary_user, secondary_user
+    ):
+        game = pending_game_created_by_primary_user
+        member = game.members.create(user=secondary_user)
+
+        with patch("member.views.send_notification") as mock_send:
+            url = reverse(kick_viewname, args=[game.id, member.id])
+            response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        mock_send.defer.assert_called_once()
+
+
+@pytest.mark.django_db
+def test_leave_pending_game_with_only_bots_remaining_deletes_game(
+    authenticated_client, pending_game_created_by_primary_user, roster_bot_user
+):
+    game = pending_game_created_by_primary_user
+    game.members.create(user=roster_bot_user)
+    game_id = game.id
+
+    url = reverse(leave_viewname, args=[game_id])
+    response = authenticated_client.delete(url)
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert not Game.objects.filter(id=game_id).exists()

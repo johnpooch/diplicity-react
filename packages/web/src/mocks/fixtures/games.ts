@@ -12,7 +12,7 @@ import {
   makeUnit,
 } from "./builders";
 import { classicalStartSupplyCenters, classicalStartUnits } from "./classical";
-import { makeMember, players } from "./users";
+import { botRoster, makeBotMember, makeMember, players } from "./users";
 
 const NATION_ASSIGNMENT: [number, string][] = [
   [0, "England"],
@@ -52,16 +52,17 @@ export const pendingGameNoPlayers = makeFixture({
 
 export const pendingGameSomePlayers = makeFixture({
   description:
-    "Pending game with 3 of 7 players, including the current user (who created it). Nations are not assigned yet.",
+    "Pending game with 3 of 7 players plus an AI player, including the current user (who created it and can manage it). Nations are not assigned yet.",
   game: makeGame(
     "pending-some-players",
     "Gathering Forces",
-    makePendingMembers(3),
+    [...makePendingMembers(3), makeBotMember(botRoster[3])],
     [],
     {
       status: "pending",
       canLeave: true,
       canDelete: true,
+      canManage: true,
     }
   ),
 });
@@ -77,6 +78,7 @@ export const pendingGameAlmostFull = makeFixture({
     {
       status: "pending",
       canLeave: true,
+      canManage: true,
     }
   ),
 });
@@ -436,6 +438,7 @@ const buildActiveDrawProposal = () => {
       name: members[1].name,
       picture: null,
       isCurrentUser: false,
+      isBot: false,
       nation: "Austria",
     },
     status: "pending",

@@ -725,3 +725,20 @@ class TestTierAllowsMinReliability:
         from user_profile.utils import tier_allows_min_reliability
 
         assert tier_allows_min_reliability(None, "something_else") is True
+
+
+class TestCanCreateBotGamesFlag:
+
+    @pytest.mark.django_db
+    def test_profile_reports_allowed_user(self, authenticated_client, settings):
+        settings.BOT_OPPONENT_ALLOWLIST = ["primary@example.com"]
+        response = authenticated_client.get(reverse("user-profile"))
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["can_create_bot_games"] is True
+
+    @pytest.mark.django_db
+    def test_profile_reports_disallowed_user(self, authenticated_client, settings):
+        settings.BOT_OPPONENT_ALLOWLIST = []
+        response = authenticated_client.get(reverse("user-profile"))
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["can_create_bot_games"] is False

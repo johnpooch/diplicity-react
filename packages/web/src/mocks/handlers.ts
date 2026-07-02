@@ -7,8 +7,10 @@ import type {
 } from "@/api/generated/endpoints";
 import {
   allVariants,
+  botRoster,
   currentUserProfile,
   fixtureByGameId,
+  makeBotMember,
   publicProfiles,
 } from "./fixtures";
 import classicalMapSvg from "./fixtures/data/classical-map.svg?raw";
@@ -223,6 +225,40 @@ export const handlers = [
   http.post("*/game/:gameId/join/", () =>
     HttpResponse.json({}, { status: 201 })
   ),
+  http.get("*/game/:gameId/available-bots/", ({ params }) => {
+    const fixture = gameOr404(params.gameId as string);
+    if (!fixture) return notFound();
+    const memberUserIds = new Set(fixture.game.members.map(m => m.userId));
+    return HttpResponse.json(
+      botRoster.filter(bot => !memberUserIds.has(bot.userId))
+    );
+  }),
+  http.post("*/game/:gameId/add-bot/", async ({ params, request }) => {
+    const fixture = gameOr404(params.gameId as string);
+    if (!fixture) return notFound();
+    const body = (await request.json()) as { userId: number };
+    const bot = botRoster.find(b => b.userId === body.userId);
+    if (!bot) {
+      return HttpResponse.json(
+        { userId: ["This bot is not available to add to this game."] },
+        { status: 400 }
+      );
+    }
+    const member = makeBotMember(bot);
+    fixture.game = { ...fixture.game, members: [...fixture.game.members, member] };
+    return HttpResponse.json(member, { status: 201 });
+  }),
+  http.delete("*/game/:gameId/kick/:memberId/", ({ params }) => {
+    const fixture = gameOr404(params.gameId as string);
+    if (!fixture) return notFound();
+    fixture.game = {
+      ...fixture.game,
+      members: fixture.game.members.filter(
+        m => m.id !== Number(params.memberId)
+      ),
+    };
+    return new HttpResponse(null, { status: 204 });
+  }),
   http.delete("*/game/:gameId/leave/", () => new HttpResponse(null, { status: 204 })),
   http.delete("*/game/:gameId/delete/", () => new HttpResponse(null, { status: 204 })),
   http.patch("*/game/:gameId/confirm-phase/", () => HttpResponse.json({})),

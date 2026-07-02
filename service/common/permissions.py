@@ -1,6 +1,7 @@
 from rest_framework.permissions import BasePermission
 from django.shortcuts import get_object_or_404
 from django.apps import apps
+from bot.utils import user_can_use_bot_opponent
 from common.constants import GameStatus, MinReliability, PressType
 from common.views import resolve_game
 from user_profile.utils import get_player_stats, tier_allows_min_reliability
@@ -198,6 +199,13 @@ class CanDeleteGame(BasePermission):
     def has_permission(self, request, view):
         game = resolve_game(request, view.kwargs.get("game_id"))
         return game.can_delete(request.user)
+
+
+class CanUseBotOpponent(BasePermission):
+    message = "You are not permitted to add a bot opponent."
+
+    def has_permission(self, request, view):
+        return user_can_use_bot_opponent(request.user)
 
 
 class IsInCivilDisorder(BasePermission):

@@ -20,10 +20,12 @@ class DrawProposalQuerySet(models.QuerySet):
         return self.select_related(
             "game",
             "created_by__user__profile",
+            "created_by__user__bot_profile",
             "created_by__nation",
             "phase",
         ).prefetch_related(
             "votes__member__user__profile",
+            "votes__member__user__bot_profile",
             "votes__member__nation",
         )
 
