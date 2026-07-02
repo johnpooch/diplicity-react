@@ -1,12 +1,10 @@
 import logging
-import time
 
 from django.conf import settings
 from procrastinate.contrib.django import app
 
-from member.models import Member
 from bot.api_client import ApiClient, ApiClientError
-from bot.constants import LLMCallStage, LLMCallStatus
+from bot.constants import LLMCallStage
 from bot.context import (
     ContextBuilder,
     fetch_context,
@@ -15,92 +13,10 @@ from bot.context import (
     parse_reply,
 )
 from bot.llm_client import LLMClient, LLMError
-from bot.models import LLMCall
 from bot.prompts import load_prompt
+from bot.recorder import LLMCallRecorder
 
 logger = logging.getLogger(__name__)
-
-
-def _record_llm_call(
-    *,
-    game_id,
-    user_id,
-    phase_id,
-    stage,
-    system,
-    user_content,
-    status,
-    model,
-    response="",
-    input_tokens=0,
-    output_tokens=0,
-    cache_read_tokens=0,
-    cache_write_tokens=0,
-    error_message="",
-    latency_ms=None,
-):
-    if phase_id is None:
-        logger.warning(f"[bot.llm] no phase id; skipping LLMCall record for stage={stage}")
-        return
-    try:
-        member = Member.objects.filter(game_id=game_id, user_id=user_id).first()
-        LLMCall.objects.create(
-            phase_id=phase_id,
-            member=member,
-            stage=stage,
-            status=status,
-            model=model,
-            system=system,
-            user_content=user_content,
-            response=response,
-            input_tokens=input_tokens,
-            output_tokens=output_tokens,
-            cache_read_tokens=cache_read_tokens,
-            cache_write_tokens=cache_write_tokens,
-            error_message=error_message,
-            latency_ms=latency_ms,
-        )
-    except Exception as e:
-        logger.error(f"[bot.llm] failed to record LLMCall: {e}")
-
-
-def _complete_and_record(*, system, user_content, stage, game_id, user_id, phase_id):
-    messages = [{"role": "user", "content": user_content}]
-    start = time.monotonic()
-    try:
-        result = LLMClient(settings.ANTHROPIC_API_KEY).complete(system=system, messages=messages)
-    except LLMError as e:
-        _record_llm_call(
-            game_id=game_id,
-            user_id=user_id,
-            phase_id=phase_id,
-            stage=stage,
-            system=system,
-            user_content=user_content,
-            status=LLMCallStatus.ERROR,
-            model=settings.BOT_LLM_MODEL,
-            error_message=str(e),
-            latency_ms=int((time.monotonic() - start) * 1000),
-        )
-        raise
-
-    _record_llm_call(
-        game_id=game_id,
-        user_id=user_id,
-        phase_id=phase_id,
-        stage=stage,
-        system=system,
-        user_content=user_content,
-        status=LLMCallStatus.SUCCESS,
-        model=result.model,
-        response=result.text,
-        input_tokens=result.input_tokens,
-        output_tokens=result.output_tokens,
-        cache_read_tokens=result.cache_read_tokens,
-        cache_write_tokens=result.cache_write_tokens,
-        latency_ms=int((time.monotonic() - start) * 1000),
-    )
-    return result.text
 
 
 def _submit_orders_from_context(api, data, game_id, user_id, label, stage):
@@ -117,14 +33,15 @@ def _submit_orders_from_context(api, data, game_id, user_id, label, stage):
         part for part in [builder.build_shared(), builder.build_private(), instruction] if part
     )
 
+    recorder = LLMCallRecorder(
+        game_id=game_id,
+        user_id=user_id,
+        phase_id=data["game"].get("current_phase_id"),
+        stage=stage,
+    )
     try:
-        response_text = _complete_and_record(
-            system=system,
-            user_content=user_content,
-            stage=stage,
-            game_id=game_id,
-            user_id=user_id,
-            phase_id=data["game"].get("current_phase_id"),
+        response_text = LLMClient(settings.ANTHROPIC_API_KEY, recorder).complete(
+            system=system, messages=[{"role": "user", "content": user_content}]
         )
         selections = parse_order_selections(response_text, data["orders"])
     except LLMError as e:
@@ -207,14 +124,15 @@ def reply(user_id, game_id, channel_id):
         part for part in [builder.build_shared(), builder.build_private(), instruction] if part
     )
 
+    recorder = LLMCallRecorder(
+        game_id=game_id,
+        user_id=user_id,
+        phase_id=data["game"].get("current_phase_id"),
+        stage=LLMCallStage.REPLY,
+    )
     try:
-        response_text = _complete_and_record(
-            system=system,
-            user_content=user_content,
-            stage=LLMCallStage.REPLY,
-            game_id=game_id,
-            user_id=user_id,
-            phase_id=data["game"].get("current_phase_id"),
+        response_text = LLMClient(settings.ANTHROPIC_API_KEY, recorder).complete(
+            system=system, messages=[{"role": "user", "content": user_content}]
         )
         reply_text = parse_reply(response_text)
     except LLMError as e:
