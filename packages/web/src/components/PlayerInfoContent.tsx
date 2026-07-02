@@ -1,18 +1,26 @@
-import React from "react";
-import { Shield, Star, Trophy } from "lucide-react";
+import React, { useState } from "react";
+import { Bot, Shield, Star, Trophy, UserPlus, X } from "lucide-react";
 import { Link, useParams } from "react-router";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
+import { AddBotSheet } from "@/components/AddBotSheet";
 import { CivilDisorderBadge } from "@/components/CivilDisorderBadge";
 import { GameStatusAlerts } from "@/components/GameStatusAlerts";
 import { NationFlag, findNationFlagUrl, findNationColor } from "@/components/NationFlag";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
 import {
   useGameRetrieveSuspense,
   useGamePhaseRetrieve,
+  useGameKickDestroy,
+  useUserRetrieveSuspense,
   useVariantsListSuspense,
+  getGameAvailableBotsListQueryKey,
+  getGameRetrieveQueryKey,
   Member,
 } from "@/api/generated/endpoints";
 import { getCurrentPhaseId } from "@/util";
@@ -24,6 +32,11 @@ export const PlayerInfoContent: React.FC = () => {
 
   const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: variants } = useVariantsListSuspense();
+  const { data: userProfile } = useUserRetrieveSuspense();
+  const queryClient = useQueryClient();
+  const kickMutation = useGameKickDestroy();
+
+  const [addBotOpen, setAddBotOpen] = useState(false);
 
   const currentPhaseId = getCurrentPhaseId(game);
   const { data: currentPhase } = useGamePhaseRetrieve(
@@ -42,6 +55,33 @@ export const PlayerInfoContent: React.FC = () => {
   };
 
   const winnerIds = game.victory?.members?.map(m => m.id) || [];
+
+  const isPending = game.status === "pending";
+  const playableSeats = variant
+    ? variant.nations.filter(n => !n.nonPlayable).length
+    : 0;
+  const openSeats = isPending
+    ? Math.max(0, playableSeats - game.members.length)
+    : 0;
+  const canAddBots =
+    isPending && game.canManage && userProfile.canCreateBotGames;
+
+  const handleRemoveBot = async (member: Member) => {
+    try {
+      await kickMutation.mutateAsync({ gameId, memberId: member.id });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: getGameRetrieveQueryKey(gameId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: getGameAvailableBotsListQueryKey(gameId),
+        }),
+      ]);
+      toast.success(`${member.name} removed from the game`);
+    } catch {
+      toast.error("Failed to remove AI player");
+    }
+  };
 
   return (
     <>
@@ -106,6 +146,12 @@ export const PlayerInfoContent: React.FC = () => {
                     ) : (
                       <span className="font-medium">{member.name}</span>
                     )}
+                    {member.isBot && (
+                      <Badge variant="secondary" className="gap-1">
+                        <Bot className="size-3" />
+                        Bot
+                      </Badge>
+                    )}
                     {member.isGameCreator && (
                       <Badge variant="secondary" className="gap-1">
                         <Shield className="size-3" />
@@ -144,11 +190,55 @@ export const PlayerInfoContent: React.FC = () => {
                     </div>
                   )}
                 </div>
+
+                {isPending && game.canManage && member.isBot && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Remove ${member.name}`}
+                    disabled={kickMutation.isPending}
+                    onClick={() => handleRemoveBot(member)}
+                  >
+                    <X className="size-4" />
+                  </Button>
+                )}
               </div>
             );
           })}
+          {Array.from({ length: openSeats }, (_, index) =>
+            canAddBots ? (
+              <button
+                key={`open-seat-${index}`}
+                onClick={() => setAddBotOpen(true)}
+                className="flex items-center gap-4 py-4 first:pt-0 last:pb-0 w-full text-left"
+              >
+                <div className="size-8 rounded-full border border-dashed border-muted-foreground/50 flex items-center justify-center">
+                  <UserPlus className="size-4 text-muted-foreground" />
+                </div>
+                <span className="font-medium text-primary underline-offset-4 hover:underline">
+                  Add AI player
+                </span>
+              </button>
+            ) : (
+              <div
+                key={`open-seat-${index}`}
+                className="flex items-center gap-4 py-4 first:pt-0 last:pb-0"
+              >
+                <div className="size-8 rounded-full border border-dashed border-muted-foreground/50" />
+                <span className="text-muted-foreground">Open seat</span>
+              </div>
+            )
+          )}
         </ScreenCardContent>
       </ScreenCard>
+
+      {canAddBots && (
+        <AddBotSheet
+          gameId={gameId}
+          open={addBotOpen && openSeats > 0}
+          onOpenChange={setAddBotOpen}
+        />
+      )}
     </>
   );
 };

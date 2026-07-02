@@ -56,9 +56,10 @@ class MemberKickView(SelectedGameMixin, generics.DestroyAPIView):
     def perform_destroy(self, instance):
         game = instance.game
         user_id = instance.user_id
+        is_bot = instance.user is not None and hasattr(instance.user, "bot_profile")
         with transaction.atomic():
             instance.delete()
-            if user_id:
+            if user_id and not is_bot:
                 send_notification.defer(
                     user_ids=[user_id],
                     title=game.name,

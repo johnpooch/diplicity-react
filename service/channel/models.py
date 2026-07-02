@@ -21,7 +21,7 @@ class ChannelQuerySet(models.QuerySet):
 
     def with_related_data(self):
         return self.prefetch_related(
-            "messages", "messages__sender", "messages__sender__user", "members", "members__user"
+            "messages", "messages__sender", "messages__sender__user", "messages__sender__user__bot_profile", "members", "members__user", "members__user__bot_profile"
         )
 
     def order_for_list(self):
@@ -114,7 +114,7 @@ class ChannelMessageQuerySet(models.QuerySet):
         return self.filter(channel=channel)
 
     def with_sender_data(self):
-        return self.select_related("sender", "sender__user")
+        return self.select_related("sender", "sender__user", "sender__user__bot_profile")
 
 
 class ChannelMessage(BaseModel):

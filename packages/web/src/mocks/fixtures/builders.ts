@@ -259,6 +259,7 @@ export const makeMessage = (
     name: sender.name,
     picture: sender.picture,
     isCurrentUser: sender.isCurrentUser,
+    isBot: sender.isBot,
     nation: nation((sender.nation ?? "england").toLowerCase()),
   },
   createdAt,

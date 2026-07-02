@@ -25,9 +25,29 @@ vi.mock("@/api/generated/endpoints", async (importOriginal) => {
       mutateAsync: mockLeaveMutateAsync,
       isPending: false,
     }),
+    useVariantsListSuspense: () => ({
+      data: [
+        {
+          id: "Classical",
+          name: "Classical",
+          nations: Array.from({ length: 7 }, (_, index) => ({
+            name: `Nation ${index}`,
+            nonPlayable: false,
+          })),
+        },
+      ],
+    }),
+    useUserRetrieveSuspense: () => ({
+      data: { canCreateBotGames: true },
+    }),
     getGameRetrieveQueryKey: (gameId: string) => ["games", gameId],
   };
 });
+
+vi.mock("@/components/AddBotSheet", () => ({
+  AddBotSheet: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="add-bot-sheet" /> : null,
+}));
 
 vi.mock("@/components/GameInfoContent", () => ({
   GameInfoContent: ({
@@ -50,6 +70,11 @@ const pendingGameReliabilityRequired = {
   canJoin: false,
   canLeave: false,
   minReliability: "reliable_only" as const,
+};
+const pendingGameCanManage = {
+  ...mockPendingGames.find((g) => !g.canJoin && g.canLeave)!,
+  id: "game-manage-test",
+  canManage: true,
 };
 
 const renderGameInfo = (gameId: string) => {
@@ -111,6 +136,29 @@ describe("GameInfoScreen", () => {
       expect(
         within(content).getByText(/your reliability is too low to join this game/i)
       ).toBeInTheDocument();
+    });
+
+    it("shows 'Add AI player' for a pending game the user manages", async () => {
+      mockUseGameRetrieveSuspense.mockReturnValue({ data: pendingGameCanManage });
+      renderGameInfo(pendingGameCanManage.id);
+
+      const content = screen.getByTestId("game-info-content");
+      const addButton = within(content).getByRole("button", {
+        name: /add ai player/i,
+      });
+      expect(screen.queryByTestId("add-bot-sheet")).not.toBeInTheDocument();
+      await userEvent.click(addButton);
+      expect(screen.getByTestId("add-bot-sheet")).toBeInTheDocument();
+    });
+
+    it("does not show 'Add AI player' to non-managing members", () => {
+      mockUseGameRetrieveSuspense.mockReturnValue({ data: pendingGameCanLeave });
+      renderGameInfo(pendingGameCanLeave.id);
+
+      const content = screen.getByTestId("game-info-content");
+      expect(
+        within(content).queryByRole("button", { name: /add ai player/i })
+      ).not.toBeInTheDocument();
     });
 
     it("shows no join/leave button for an active game", () => {

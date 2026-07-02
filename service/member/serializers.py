@@ -13,6 +13,7 @@ class BaseMemberSerializer(serializers.Serializer):
     name = serializers.SerializerMethodField()
     picture = serializers.SerializerMethodField()
     is_current_user = serializers.SerializerMethodField()
+    is_bot = serializers.SerializerMethodField()
 
     def _is_current_user(self, obj):
         if obj.user is None:
@@ -22,11 +23,16 @@ class BaseMemberSerializer(serializers.Serializer):
             return False
         return obj.user == request.user
 
+    def _is_bot(self, obj):
+        return obj.user is not None and hasattr(obj.user, "bot_profile")
+
     def _is_masked(self, obj):
         game = self._get_game(obj)
         if not game.anonymous:
             return False
         if game.status == GameStatus.COMPLETED:
+            return False
+        if self._is_bot(obj):
             return False
         return not self._is_current_user(obj)
 
@@ -62,6 +68,10 @@ class BaseMemberSerializer(serializers.Serializer):
     @extend_schema_field(serializers.BooleanField)
     def get_is_current_user(self, obj):
         return self._is_current_user(obj)
+
+    @extend_schema_field(serializers.BooleanField)
+    def get_is_bot(self, obj):
+        return self._is_bot(obj)
 
 
 class MemberSerializer(BaseMemberSerializer):

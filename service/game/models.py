@@ -75,12 +75,12 @@ class GameQuerySet(models.QuerySet):
     def with_list_data(self):
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.select_related("nation", "user__profile"),
+            queryset=Member.objects.select_related("nation", "user__profile", "user__bot_profile"),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile", "nation"),
+            queryset=Member.objects.select_related("user__profile", "user__bot_profile", "nation"),
         )
 
         phase_states_prefetch = Prefetch(
@@ -122,12 +122,12 @@ class GameQuerySet(models.QuerySet):
     def with_retrieve_data(self):
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.select_related("nation__flag", "user__profile"),
+            queryset=Member.objects.select_related("nation__flag", "user__profile", "user__bot_profile"),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile", "nation__flag")
+            queryset=Member.objects.select_related("user__profile", "user__bot_profile", "nation__flag")
         )
 
         phase_states_prefetch = Prefetch(
@@ -196,12 +196,12 @@ class GameQuerySet(models.QuerySet):
 
         members_prefetch = Prefetch(
             "members",
-            queryset=Member.objects.select_related("nation__flag", "user__profile"),
+            queryset=Member.objects.select_related("nation__flag", "user__profile", "user__bot_profile"),
         )
 
         victory_members_prefetch = Prefetch(
             "victory__members",
-            queryset=Member.objects.select_related("user__profile", "nation__flag")
+            queryset=Member.objects.select_related("user__profile", "user__bot_profile", "nation__flag")
         )
 
         return self.select_related("victory", "game_master__profile").prefetch_related(
@@ -668,7 +668,7 @@ class Game(BaseModel):
         self.save()
 
     def delete_if_empty_pending(self):
-        if self.status == GameStatus.PENDING and not self.members.exists():
+        if self.status == GameStatus.PENDING and not self.members.filter(user__bot_profile__isnull=True).exists():
             self.delete()
             return True
         return False
