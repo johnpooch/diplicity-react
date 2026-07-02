@@ -2931,6 +2931,10 @@ components:
         canCreateBotGames:
           type: boolean
           readOnly: true
+        reliabilityTier:
+          type: string
+          readOnly: true
+          nullable: true
     PatchedVariantWrite:
       type: object
       properties:
@@ -3280,12 +3284,17 @@ components:
         canCreateBotGames:
           type: boolean
           readOnly: true
+        reliabilityTier:
+          type: string
+          readOnly: true
+          nullable: true
       required:
       - canCreateBotGames
       - email
       - id
       - name
       - picture
+      - reliabilityTier
       - userId
     Variant:
       type: object

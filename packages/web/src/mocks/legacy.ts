@@ -694,6 +694,7 @@ export const mockUserProfile: UserProfile = {
   picture: null,
   email: "john.doe@example.com",
   canCreateBotGames: false,
+  reliabilityTier: "reliable",
 };
 
 export const mockOrders: Order[] = [

@@ -13,6 +13,7 @@ export const currentUserProfile: UserProfile = {
   emailNotificationsEnabled: true,
   colorblindMode: null,
   canCreateBotGames: false,
+  reliabilityTier: "reliable",
 };
 
 interface PlayerSeed {

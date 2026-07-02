@@ -744,6 +744,8 @@ export interface PatchedUserProfile {
   emailNotificationsEnabled?: boolean;
   colorblindMode?: ColorblindModeEnum | NullEnum | null;
   readonly canCreateBotGames?: boolean;
+  /** @nullable */
+  readonly reliabilityTier?: string | null;
 }
 
 export interface PatchedVariantWrite {
@@ -847,6 +849,8 @@ export interface UserProfile {
   emailNotificationsEnabled?: boolean;
   colorblindMode?: ColorblindModeEnum | NullEnum | null;
   readonly canCreateBotGames: boolean;
+  /** @nullable */
+  readonly reliabilityTier: string | null;
 }
 
 export interface VictoryConditions {

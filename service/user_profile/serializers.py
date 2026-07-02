@@ -19,10 +19,17 @@ class UserProfileSerializer(serializers.Serializer):
         required=False,
     )
     can_create_bot_games = serializers.SerializerMethodField()
+    reliability_tier = serializers.CharField(read_only=True, allow_null=True)
 
     @extend_schema_field(serializers.BooleanField)
     def get_can_create_bot_games(self, obj):
         return user_can_use_bot_opponent(obj.user)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        stats = get_player_stats(instance.user)
+        data["reliability_tier"] = stats.get("reliability_tier")
+        return data
 
     def validate_name(self, value):
         value = value.strip()
