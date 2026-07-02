@@ -23,7 +23,7 @@ from bot.constants import LLMCallStage, LLMCallStatus
 from bot.context.builder import ContextBuilder
 from bot.context.orders import first_legal_selections, option_to_selected
 from bot.context.parsers import parse_order_selections, parse_reply
-from bot.llm_client import LLMClient, LLMError
+from bot.llm_client import LLMClient, LLMError, LLMResult
 from bot.utils import get_bot_user
 
 
@@ -143,17 +143,28 @@ class TestLLMClient:
             with pytest.raises(LLMError):
                 LLMClient("test-key").complete(system="s", messages=[{"role": "user", "content": "x"}])
 
-    def test_returns_concatenated_text_blocks(self):
+    def test_returns_text_and_usage(self):
         block_one = Mock(type="text", text="Hello, ")
         block_two = Mock(type="text", text="human!")
+        usage = Mock(
+            input_tokens=120,
+            output_tokens=45,
+            cache_read_input_tokens=80,
+            cache_creation_input_tokens=10,
+        )
         with patch("bot.llm_client.Anthropic") as mock_anthropic:
             mock_anthropic.return_value.messages.create.return_value = Mock(
-                content=[block_one, block_two]
+                content=[block_one, block_two], model="test-model", usage=usage
             )
             result = LLMClient("test-key").complete(
                 system="s", messages=[{"role": "user", "content": "x"}]
             )
-        assert result == "Hello, human!"
+        assert result.text == "Hello, human!"
+        assert result.model == "test-model"
+        assert result.input_tokens == 120
+        assert result.output_tokens == 45
+        assert result.cache_read_tokens == 80
+        assert result.cache_write_tokens == 10
 
 
 class TestContextBuilder:
@@ -277,6 +288,17 @@ def _reply_response(should_reply, message=""):
     return json.dumps(payload)
 
 
+def _llm_result(text):
+    return LLMResult(
+        text=text,
+        model="test-model",
+        input_tokens=100,
+        output_tokens=20,
+        cache_read_tokens=50,
+        cache_write_tokens=5,
+    )
+
+
 class TestComposeReply:
 
     def test_returns_reply_when_model_replies(self):
@@ -382,6 +404,38 @@ class TestPlanTask:
         assert bot_phase_state.orders.count() > 0
         assert all(order.complete for order in bot_phase_state.orders.all())
         assert bot_phase_state.orders_confirmed is False
+
+    @pytest.mark.django_db
+    def test_plan_records_llm_call(self, bot_game_factory, in_memory_procrastinate):
+        game = bot_game_factory()
+        bot_user = get_bot_user()
+        bot_member = game.members.get(user=bot_user)
+
+        with patch("bot.tasks.LLMClient") as mock_llm:
+            mock_llm.return_value.complete.return_value = _llm_result('{"choices": []}')
+            tasks.plan(user_id=bot_user.id, game_id=game.id)
+
+        call = LLMCall.objects.get(stage=LLMCallStage.PLAN)
+        assert call.status == LLMCallStatus.SUCCESS
+        assert call.member == bot_member
+        assert call.phase == game.current_phase
+        assert call.model == "test-model"
+        assert call.output_tokens == 20
+
+    @pytest.mark.django_db
+    def test_plan_records_error_call_when_llm_unavailable(
+        self, bot_game_factory, in_memory_procrastinate, settings
+    ):
+        settings.ANTHROPIC_API_KEY = ""
+        game = bot_game_factory()
+        bot_user = get_bot_user()
+
+        tasks.plan(user_id=bot_user.id, game_id=game.id)
+
+        call = LLMCall.objects.get(stage=LLMCallStage.PLAN)
+        assert call.status == LLMCallStatus.ERROR
+        assert call.error_message
+        assert call.input_tokens == 0
 
     @pytest.mark.django_db
     def test_plan_creates_orders_when_testserver_not_allowed(
@@ -563,10 +617,19 @@ class TestReplyTask:
         ChannelMessage.objects.create(channel=channel, sender=human_member, body="Hi bot")
 
         with patch("bot.tasks.LLMClient") as mock_llm:
-            mock_llm.return_value.complete.return_value = _reply_response(True, "Hello, human!")
+            mock_llm.return_value.complete.return_value = _llm_result(
+                _reply_response(True, "Hello, human!")
+            )
             tasks.reply(user_id=bot_user.id, game_id=game.id, channel_id=channel.id)
 
         assert channel.messages.filter(sender=bot_member, body="Hello, human!").exists()
+
+        call = LLMCall.objects.get(stage=LLMCallStage.REPLY)
+        assert call.status == LLMCallStatus.SUCCESS
+        assert call.member == bot_member
+        assert call.phase == game.current_phase
+        assert call.input_tokens == 100
+        assert call.cache_read_tokens == 50
 
     @pytest.mark.django_db
     def test_reply_posts_nothing_when_model_declines(
@@ -578,7 +641,7 @@ class TestReplyTask:
         ChannelMessage.objects.create(channel=channel, sender=human_member, body="Hi bot")
 
         with patch("bot.tasks.LLMClient") as mock_llm:
-            mock_llm.return_value.complete.return_value = _reply_response(False)
+            mock_llm.return_value.complete.return_value = _llm_result(_reply_response(False))
             tasks.reply(user_id=bot_user.id, game_id=game.id, channel_id=channel.id)
 
         assert channel.messages.filter(sender__user=bot_user).count() == 0
