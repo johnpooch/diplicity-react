@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from channel.models import Channel, ChannelMessage
+from bot.utils import get_bot_user
 
 from common.constants import GameStatus
 
@@ -687,6 +688,142 @@ class TestGameRetrieveUnreadCount:
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["total_unread_message_count"] == 0
+
+
+@pytest.fixture
+def active_game_with_bot_channel(active_game_with_phase_state, classical_france_nation):
+    game = active_game_with_phase_state
+    bot_member = game.members.create(user=get_bot_user(), nation=classical_france_nation)
+    channel = Channel.objects.create(game=game, name="Bot Channel", private=True)
+    channel.members.add(game.members.first(), bot_member)
+    return game
+
+
+class TestChannelMessageCharLimit:
+
+    @pytest.mark.django_db
+    def test_message_over_limit_rejected(
+        self, authenticated_client, active_game_with_private_channel, in_memory_procrastinate, settings
+    ):
+        channel = Channel.objects.get(game=active_game_with_private_channel, private=True)
+        url = reverse("channel-message-create", args=[active_game_with_private_channel.id, channel.id])
+        response = authenticated_client.post(
+            url, {"body": "x" * (settings.CHAT_MESSAGE_MAX_CHARS + 1)}, format="json"
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert f"{settings.CHAT_MESSAGE_MAX_CHARS} characters" in response.data["body"][0]
+
+    @pytest.mark.django_db
+    def test_message_at_limit_accepted(
+        self, authenticated_client, active_game_with_private_channel, in_memory_procrastinate, settings
+    ):
+        channel = Channel.objects.get(game=active_game_with_private_channel, private=True)
+        url = reverse("channel-message-create", args=[active_game_with_private_channel.id, channel.id])
+        response = authenticated_client.post(
+            url, {"body": "x" * settings.CHAT_MESSAGE_MAX_CHARS}, format="json"
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+
+
+class TestChannelMessagePhaseStamping:
+
+    @pytest.mark.django_db
+    def test_message_stamped_with_current_phase(
+        self, authenticated_client, active_game_with_private_channel, in_memory_procrastinate
+    ):
+        game = active_game_with_private_channel
+        channel = Channel.objects.get(game=game, private=True)
+        url = reverse("channel-message-create", args=[game.id, channel.id])
+        authenticated_client.post(url, {"body": "hello"}, format="json")
+
+        message = channel.messages.get()
+        assert message.phase_id == game.current_phase.id
+
+
+class TestChannelMessageBotCap:
+
+    @pytest.mark.django_db
+    def test_cap_enforced_in_bot_channel(
+        self, authenticated_client, active_game_with_bot_channel, in_memory_procrastinate, settings
+    ):
+        game = active_game_with_bot_channel
+        channel = Channel.objects.get(game=game, name="Bot Channel")
+        url = reverse("channel-message-create", args=[game.id, channel.id])
+
+        for _ in range(settings.BOT_CHANNEL_MESSAGE_CAP):
+            response = authenticated_client.post(url, {"body": "hello"}, format="json")
+            assert response.status_code == status.HTTP_201_CREATED
+
+        response = authenticated_client.post(url, {"body": "one too many"}, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "reached the limit" in response.data["non_field_errors"][0]
+
+    @pytest.mark.django_db
+    def test_no_cap_in_human_only_channel(
+        self, authenticated_client, active_game_with_private_channel, in_memory_procrastinate, settings
+    ):
+        game = active_game_with_private_channel
+        channel = Channel.objects.get(game=game, private=True)
+        url = reverse("channel-message-create", args=[game.id, channel.id])
+
+        for _ in range(settings.BOT_CHANNEL_MESSAGE_CAP + 3):
+            response = authenticated_client.post(url, {"body": "hello"}, format="json")
+            assert response.status_code == status.HTTP_201_CREATED
+
+    @pytest.mark.django_db
+    def test_cap_is_per_phase(
+        self,
+        authenticated_client,
+        active_game_with_bot_channel,
+        in_memory_procrastinate,
+        settings,
+        phase_factory,
+    ):
+        game = active_game_with_bot_channel
+        channel = Channel.objects.get(game=game, name="Bot Channel")
+        url = reverse("channel-message-create", args=[game.id, channel.id])
+
+        for _ in range(settings.BOT_CHANNEL_MESSAGE_CAP):
+            authenticated_client.post(url, {"body": "hello"}, format="json")
+        blocked = authenticated_client.post(url, {"body": "blocked"}, format="json")
+        assert blocked.status_code == status.HTTP_400_BAD_REQUEST
+
+        phase_factory(game=game, ordinal=game.current_phase.ordinal + 1, season="Fall")
+        allowed = authenticated_client.post(url, {"body": "new phase"}, format="json")
+        assert allowed.status_code == status.HTTP_201_CREATED
+
+
+class TestChannelListMessageLimit:
+
+    @pytest.mark.django_db
+    def test_bot_channel_exposes_limit_and_count(
+        self, authenticated_client, active_game_with_bot_channel, primary_user, settings
+    ):
+        game = active_game_with_bot_channel
+        channel = Channel.objects.get(game=game, name="Bot Channel")
+        primary_member = game.members.get(user=primary_user)
+        ChannelMessage.objects.create(
+            channel=channel, sender=primary_member, body="hi", phase=game.current_phase
+        )
+
+        url = reverse("channel-list", args=[game.id])
+        response = authenticated_client.get(url)
+
+        data = next(ch for ch in response.data if ch["name"] == "Bot Channel")
+        assert data["message_limit"] == settings.BOT_CHANNEL_MESSAGE_CAP
+        assert data["member_message_count"] == 1
+
+    @pytest.mark.django_db
+    def test_human_only_channel_has_null_limit(
+        self, authenticated_client, active_game_with_private_channel
+    ):
+        game = active_game_with_private_channel
+        url = reverse("channel-list", args=[game.id])
+        response = authenticated_client.get(url)
+
+        data = next(ch for ch in response.data if ch["name"] == "Private Channel")
+        assert data["message_limit"] is None
+        assert data["member_message_count"] is None
 
 
 class TestChannelMemberAutoCreation:

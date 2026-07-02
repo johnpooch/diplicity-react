@@ -93,7 +93,7 @@ export interface ChannelMember {
 
 export interface ChannelMessage {
   readonly id: number;
-  /** @maxLength 1000 */
+  /** @maxLength 500 */
   body: string;
   readonly sender: ChannelMember;
   readonly createdAt: string;
@@ -105,6 +105,10 @@ export interface Channel {
   readonly private: boolean;
   readonly messages: readonly ChannelMessage[];
   readonly unreadMessageCount: number;
+  /** @nullable */
+  readonly messageLimit: number | null;
+  /** @nullable */
+  readonly memberMessageCount: number | null;
   memberIds: number[];
 }
 

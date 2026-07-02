@@ -74,5 +74,5 @@ class ApiClient:
         create_url = reverse("channel-message-create", args=[game_id, channel_id])
         response = self._client.post(create_url, {"body": body}, format="json")
         if response.status_code not in (200, 201):
-            raise ApiClientError(f"post reply failed: {response.status_code}")
+            raise ApiClientError(f"post reply failed: {response.status_code}: {response.data}")
         logger.info("[bot.api] posted reply")

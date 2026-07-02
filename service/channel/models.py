@@ -1,5 +1,5 @@
 from django.db import models
-from django.db.models import Q, Count, Subquery, OuterRef, IntegerField, Value, Max, F
+from django.db.models import Q, Count, Subquery, OuterRef, IntegerField, Value, Max, F, Exists
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from common.models import BaseModel
@@ -29,6 +29,24 @@ class ChannelQuerySet(models.QuerySet):
             "private",
             F("last_activity").desc(nulls_last=True),
             "-created_at",
+        )
+
+    def with_bot_membership(self):
+        bot_members = ChannelMember.objects.filter(
+            channel=OuterRef("pk"),
+            member__user__bot_profile__isnull=False,
+        )
+        return self.annotate(has_bot_member=Exists(bot_members))
+
+    def with_member_message_count(self, member, phase):
+        if member is None or phase is None:
+            return self.annotate(member_message_count=Value(0, output_field=IntegerField()))
+        return self.annotate(
+            member_message_count=Count(
+                "messages",
+                filter=Q(messages__sender=member) & Q(messages__phase=phase),
+                distinct=True,
+            )
         )
 
     def with_unread_counts(self, user):
@@ -75,6 +93,12 @@ class ChannelManager(models.Manager):
     def with_unread_counts(self, user):
         return self.get_queryset().with_unread_counts(user)
 
+    def with_bot_membership(self):
+        return self.get_queryset().with_bot_membership()
+
+    def with_member_message_count(self, member, phase):
+        return self.get_queryset().with_member_message_count(member, phase)
+
     def order_for_list(self):
         return self.get_queryset().order_for_list()
 
@@ -120,6 +144,9 @@ class ChannelMessageQuerySet(models.QuerySet):
 class ChannelMessage(BaseModel):
     channel = models.ForeignKey("channel.Channel", on_delete=models.CASCADE, related_name="messages")
     sender = models.ForeignKey("member.Member", on_delete=models.CASCADE, related_name="sent_messages")
+    phase = models.ForeignKey(
+        "phase.Phase", on_delete=models.SET_NULL, null=True, blank=True, related_name="channel_messages"
+    )
     body = models.TextField()
 
     objects = ChannelMessageQuerySet.as_manager()

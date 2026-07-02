@@ -275,6 +275,8 @@ export const makeChannel = (
   private: name !== "Public Press",
   messages,
   unreadMessageCount: 0,
+  messageLimit: null,
+  memberMessageCount: null,
   memberIds: members.map(m => m.id),
   ...overrides,
 });

@@ -209,6 +209,10 @@ const ChannelScreen: React.FC = () => {
     [channel.messages]
   );
 
+  const messageLimit = channel.messageLimit;
+  const memberMessageCount = channel.memberMessageCount ?? 0;
+  const capReached = messageLimit !== null && memberMessageCount >= messageLimit;
+
   if (isNoPressActiveGame) {
     return (
       <div className="flex flex-col flex-1 min-h-0">
@@ -320,24 +324,34 @@ const ChannelScreen: React.FC = () => {
           </Panel.Content>
           <Separator />
           <Panel.Footer>
-            <div className="flex gap-2 w-full">
-              <Textarea
-                placeholder="Type a message"
-                value={message}
-                rows={1}
-                enterKeyHint="enter"
-                onChange={e => setMessage(e.target.value)}
-                onKeyDown={handleKeyDown}
-                disabled={createMessageMutation.isPending}
-                className="flex-1 min-h-0 max-h-32 resize-none py-2"
-              />
-              <Button
-                onClick={handleSubmit}
-                disabled={!message.trim() || createMessageMutation.isPending}
-                size="icon"
-              >
-                <Send className="size-4" />
-              </Button>
+            <div className="flex flex-col gap-1 w-full">
+              {messageLimit !== null && (
+                <span className="text-xs text-muted-foreground px-1">
+                  {capReached
+                    ? `Message limit reached for this phase (${messageLimit})`
+                    : `${memberMessageCount} / ${messageLimit} messages this phase`}
+                </span>
+              )}
+              <div className="flex gap-2 w-full">
+                <Textarea
+                  placeholder="Type a message"
+                  value={message}
+                  rows={1}
+                  maxLength={500}
+                  enterKeyHint="enter"
+                  onChange={e => setMessage(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  disabled={createMessageMutation.isPending || capReached}
+                  className="flex-1 min-h-0 max-h-32 resize-none py-2"
+                />
+                <Button
+                  onClick={handleSubmit}
+                  disabled={!message.trim() || createMessageMutation.isPending || capReached}
+                  size="icon"
+                >
+                  <Send className="size-4" />
+                </Button>
+              </div>
             </div>
           </Panel.Footer>
         </Panel>
