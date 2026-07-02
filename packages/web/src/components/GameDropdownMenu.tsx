@@ -55,6 +55,7 @@ import {
   getGamePhaseRetrieveQueryKey,
 } from "@/api/generated/endpoints";
 import { EXTEND_DURATION_OPTIONS } from "@/constants";
+import { tokenStorage } from "@/auth/tokenStorage";
 
 interface GameDropdownMenuProps {
   game: Pick<
@@ -88,6 +89,7 @@ export function GameDropdownMenu({
   const pauseGameMutation = useGamePauseUpdate();
   const unpauseGameMutation = useGameUnpausePartialUpdate();
 
+  const loggedIn = tokenStorage.isLoggedIn();
   const isActiveGame = game.status === "active";
   const canExtendDeadline = game.canManage && isActiveGame && !game.isPaused;
   const canPauseGame = game.canManage && isActiveGame && !game.isPaused;
@@ -224,7 +226,7 @@ export function GameDropdownMenu({
           <Share />
           Share
         </DropdownMenuItem>
-        {!game.sandbox && (
+        {!game.sandbox && loggedIn && (
           <DropdownMenuItem onClick={() => setShowCloneConfirmation(true)}>
             <Copy />
             Clone to sandbox

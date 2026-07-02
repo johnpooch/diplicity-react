@@ -5,10 +5,12 @@ import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { GameCard } from "@/components/GameCard";
 import { MapView } from "@/components/MapView";
 import { Notice } from "@/components/Notice";
-import { Inbox, Loader2 } from "lucide-react";
+import { Inbox, Loader2, Zap } from "lucide-react";
 import { useVariantsListSuspense } from "@/api/generated/endpoints";
 import { useGamesListInfinite } from "@/hooks/useGamesListInfinite";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
+
+const EXPRESS_MIN_MEMBERS = 3;
 
 const OpenGames: React.FC = () => {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
@@ -38,24 +40,49 @@ const OpenGames: React.FC = () => {
     );
   }
 
+  const renderGameCard = (game: (typeof knownGames)[number]) => {
+    const variant = variantMap.get(game.variantId)!;
+    return (
+      <GameCard
+        key={game.id}
+        game={game}
+        variant={variant}
+        map={
+          <MapView
+            mode="static"
+            variant={variant}
+            phase={variant.templatePhase}
+            cover
+            className="w-full h-full"
+          />
+        }
+      />
+    );
+  };
+
+  const hasExpressGame = knownGames[0].members.length >= EXPRESS_MIN_MEMBERS;
+
   return (
     <div className="space-y-4">
-      {knownGames.map(game => (
-        <GameCard
-          key={game.id}
-          game={game}
-          variant={variantMap.get(game.variantId)!}
-          map={
-            <MapView
-              mode="static"
-              variant={variantMap.get(game.variantId)!}
-              phase={variantMap.get(game.variantId)!.templatePhase}
-              cover
-              className="w-full h-full"
-            />
-          }
-        />
-      ))}
+      {hasExpressGame ? (
+        <>
+          <div className="flex items-center gap-2 pt-2">
+            <Zap className="size-4" />
+            <h3 className="text-sm font-semibold">
+              Fastest Start — Join to start playing quickly
+            </h3>
+          </div>
+          {renderGameCard(knownGames[0])}
+          {knownGames.length > 1 && (
+            <>
+              <h3 className="text-sm font-semibold pt-2">More games</h3>
+              {knownGames.slice(1).map(renderGameCard)}
+            </>
+          )}
+        </>
+      ) : (
+        knownGames.map(renderGameCard)
+      )}
       {isFetchingNextPage && (
         <div className="flex justify-center py-4">
           <Loader2 className="animate-spin" />

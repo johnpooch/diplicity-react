@@ -46,10 +46,10 @@ vi.mock("@/components/MapView", () => ({
 
 const mockUseGamesListInfinite = vi.mocked(useGamesListInfinite);
 
-const buildGame = (id: string, variantId: string) => ({
+const buildGame = (id: string, variantId: string, memberCount = 0) => ({
   id,
   variantId,
-  members: [],
+  members: Array.from({ length: memberCount }, (_, i) => ({ id: i + 1 })),
   phases: [1],
 });
 
@@ -101,6 +101,63 @@ describe("OpenGames", () => {
 
     renderOpenGames();
 
+    expect(screen.getAllByTestId("game-card")).toHaveLength(2);
+  });
+
+  it("shows the Fastest Start and More games headers when the top game has at least 3 members", () => {
+    mockUseGamesListInfinite.mockReturnValue({
+      ...defaultGamesListResult,
+      data: {
+        pages: [
+          {
+            results: [
+              buildGame("g1", "classical", 4),
+              buildGame("g2", "classical", 2),
+              buildGame("g3", "classical", 1),
+            ],
+          },
+        ],
+      },
+    } as unknown as ReturnType<typeof useGamesListInfinite>);
+
+    renderOpenGames();
+
+    expect(screen.getByText(/fastest start/i)).toBeInTheDocument();
+    expect(screen.getByText(/more games/i)).toBeInTheDocument();
+    expect(screen.getAllByTestId("game-card")).toHaveLength(3);
+  });
+
+  it("omits the More games header when only the Fastest Start game is present", () => {
+    mockUseGamesListInfinite.mockReturnValue({
+      ...defaultGamesListResult,
+      data: {
+        pages: [{ results: [buildGame("g1", "classical", 4)] }],
+      },
+    } as unknown as ReturnType<typeof useGamesListInfinite>);
+
+    renderOpenGames();
+
+    expect(screen.getByText(/fastest start/i)).toBeInTheDocument();
+    expect(screen.queryByText(/more games/i)).not.toBeInTheDocument();
+    expect(screen.getAllByTestId("game-card")).toHaveLength(1);
+  });
+
+  it("renders a flat list when the top game has fewer than 3 members", () => {
+    mockUseGamesListInfinite.mockReturnValue({
+      ...defaultGamesListResult,
+      data: {
+        pages: [
+          {
+            results: [buildGame("g1", "classical", 2), buildGame("g2", "classical", 1)],
+          },
+        ],
+      },
+    } as unknown as ReturnType<typeof useGamesListInfinite>);
+
+    renderOpenGames();
+
+    expect(screen.queryByText(/fastest start/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/more games/i)).not.toBeInTheDocument();
     expect(screen.getAllByTestId("game-card")).toHaveLength(2);
   });
 

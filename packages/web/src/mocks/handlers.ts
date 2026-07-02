@@ -138,6 +138,10 @@ export const handlers = [
     if (variant) {
       games = games.filter(g => g.variantId === variant);
     }
+    const ordering = url.searchParams.get("ordering");
+    if (ordering === "slots_remaining") {
+      games = [...games].sort((a, b) => b.members.length - a.members.length);
+    }
     return HttpResponse.json(paginated(games));
   }),
 
