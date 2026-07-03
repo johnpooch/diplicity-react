@@ -151,6 +151,65 @@ class TestOrderListView:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
+class TestOrderListViewCompletedPhaseCaching:
+
+    @pytest.mark.django_db
+    def test_active_phase_response_is_not_cached(self, authenticated_client, order_active_game):
+        game = order_active_game
+        phase = game.current_phase
+        url = reverse("order-list", args=[game.id, phase.id])
+
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert "ETag" not in response
+        assert "Cache-Control" not in response
+
+    @pytest.mark.django_db
+    def test_completed_phase_response_has_cache_headers(self, authenticated_client, order_active_game):
+        game = order_active_game
+        phase = game.current_phase
+        phase.status = PhaseStatus.COMPLETED
+        phase.save()
+        url = reverse("order-list", args=[game.id, phase.id])
+
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response["ETag"]
+        assert response["Cache-Control"] == "private, max-age=604800"
+
+    @pytest.mark.django_db
+    def test_completed_phase_matching_etag_returns_304(self, authenticated_client, order_active_game):
+        game = order_active_game
+        phase = game.current_phase
+        phase.status = PhaseStatus.COMPLETED
+        phase.save()
+        url = reverse("order-list", args=[game.id, phase.id])
+
+        first = authenticated_client.get(url)
+        etag = first["ETag"]
+
+        second = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert second.status_code == status.HTTP_304_NOT_MODIFIED
+        assert second["ETag"] == etag
+        assert second["Cache-Control"] == "private, max-age=604800"
+
+    @pytest.mark.django_db
+    def test_completed_phase_stale_etag_returns_200(self, authenticated_client, order_active_game):
+        game = order_active_game
+        phase = game.current_phase
+        phase.status = PhaseStatus.COMPLETED
+        phase.save()
+        url = reverse("order-list", args=[game.id, phase.id])
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH='"stale"')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response["ETag"] != '"stale"'
+
+
 class TestOrderCreateView:
 
     @pytest.mark.django_db
