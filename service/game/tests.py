@@ -1246,6 +1246,98 @@ class TestGameListViewQueryPerformance:
         supply_center = result["current_phase"]["supply_centers"][0]
         assert set(supply_center.keys()) == {"nation", "province"}
 
+    @pytest.mark.django_db
+    def test_list_games_does_not_fetch_phase_options(
+        self,
+        authenticated_client,
+        primary_user,
+        classical_variant,
+        classical_england_nation,
+        classical_edinburgh_province,
+    ):
+        game = Game.objects.create(
+            name="Options game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        game.members.create(user=primary_user, nation=classical_england_nation)
+        for ordinal in range(1, 4):
+            phase = game.phases.create(
+                game=game,
+                variant=game.variant,
+                season="Spring",
+                year=1900 + ordinal,
+                type=PhaseType.MOVEMENT,
+                status=PhaseStatus.ACTIVE if ordinal == 3 else PhaseStatus.COMPLETED,
+                ordinal=ordinal,
+                options={"England": {"lon": {"Move": {}}}},
+            )
+            phase.units.create(
+                type=UnitType.FLEET,
+                nation=classical_england_nation,
+                province=classical_edinburgh_province,
+            )
+
+        url = reverse(list_viewname)
+        connection.queries_log.clear()
+
+        with override_settings(DEBUG=True):
+            response = authenticated_client.get(url, {"mine": "true"})
+
+        assert response.status_code == status.HTTP_200_OK
+        phase_queries = [
+            q["sql"] for q in connection.queries if 'FROM "phase_phase"' in q["sql"]
+        ]
+        assert phase_queries
+        assert all('"phase_phase"."options"' not in sql for sql in phase_queries)
+
+    @pytest.mark.django_db
+    def test_list_games_scopes_phase_states_to_current_and_latest_completed(
+        self,
+        django_assert_num_queries,
+        primary_user,
+        secondary_user,
+        classical_variant,
+        classical_england_nation,
+        classical_france_nation,
+        classical_edinburgh_province,
+    ):
+        phases_per_game = 5
+        game = Game.objects.create(
+            name="Phase state scope game",
+            variant=classical_variant,
+            status=GameStatus.ACTIVE,
+        )
+        member1 = game.members.create(user=primary_user, nation=classical_england_nation)
+        member2 = game.members.create(user=secondary_user, nation=classical_france_nation)
+        phases = []
+        for ordinal in range(1, phases_per_game + 1):
+            phase = game.phases.create(
+                game=game,
+                variant=game.variant,
+                season="Spring",
+                year=1900 + ordinal,
+                type=PhaseType.MOVEMENT,
+                status=PhaseStatus.ACTIVE if ordinal == phases_per_game else PhaseStatus.COMPLETED,
+                ordinal=ordinal,
+            )
+            phase.phase_states.create(member=member1, has_possible_orders=True)
+            phase.phase_states.create(member=member2, has_possible_orders=True)
+            phases.append(phase)
+
+        hydrated = list(
+            Game.objects.filter(id=game.id).with_list_data()
+        )
+        game_obj = hydrated[0]
+
+        with django_assert_num_queries(0):
+            states_by_ordinal = {
+                phase.ordinal: len(phase.phase_states.all())
+                for phase in game_obj.phases.all()
+            }
+
+        assert states_by_ordinal == {1: 0, 2: 0, 3: 0, 4: 2, 5: 2}
+
 
 class TestGameCreateView:
 

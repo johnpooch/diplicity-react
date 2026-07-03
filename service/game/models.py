@@ -84,16 +84,24 @@ class GameQuerySet(models.QuerySet):
             queryset=Member.objects.select_related("user__profile", "user__bot_profile", "nation"),
         )
 
-        phase_states_prefetch = Prefetch(
-            "phase_states",
-            queryset=PhaseState.objects.select_related("member").annotate(
-                order_count=Count("orders")
-            ),
-        )
         current_phase_ids = (
             Phase.objects.order_by("game_id", "-ordinal")
             .distinct("game_id")
             .values("id")
+        )
+        latest_completed_phase_ids = (
+            Phase.objects.filter(status=PhaseStatus.COMPLETED)
+            .order_by("game_id", "-ordinal")
+            .distinct("game_id")
+            .values("id")
+        )
+        phase_states_prefetch = Prefetch(
+            "phase_states",
+            queryset=PhaseState.objects.filter(
+                Q(phase__in=current_phase_ids) | Q(phase__in=latest_completed_phase_ids)
+            )
+            .select_related("member")
+            .annotate(order_count=Count("orders")),
         )
         current_units_prefetch = Prefetch(
             "units",
@@ -107,7 +115,17 @@ class GameQuerySet(models.QuerySet):
         )
         phases_prefetch = Prefetch(
             "phases",
-            queryset=Phase.objects.prefetch_related(
+            queryset=Phase.objects.only(
+                "id",
+                "ordinal",
+                "season",
+                "year",
+                "type",
+                "status",
+                "scheduled_resolution",
+                "game_id",
+                "variant_id",
+            ).prefetch_related(
                 phase_states_prefetch,
                 current_units_prefetch,
                 current_supply_centers_prefetch,
