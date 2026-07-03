@@ -874,6 +874,7 @@ class Phase(BaseModel):
     year = models.IntegerField()
     type = models.CharField(max_length=10)
     scheduled_resolution = models.DateTimeField(null=True, blank=True)
+    resolution_job_id = models.BigIntegerField(null=True, blank=True, editable=False)
     options = models.JSONField(default=dict)
 
     class Meta:

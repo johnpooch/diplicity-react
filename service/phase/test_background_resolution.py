@@ -207,6 +207,64 @@ class TestDeadlineTimerArming:
 
         assert len(_resolve_jobs(in_memory_procrastinate)) == 1
 
+    @pytest.mark.django_db
+    def test_deadline_change_cancels_previous_job(
+        self, phase_factory, in_memory_procrastinate, classical_england_nation
+    ):
+        future = timezone.now() + timedelta(hours=24)
+        phase = phase_factory(
+            scheduled_resolution=future,
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+        phase.refresh_from_db()
+        old_job_id = phase.resolution_job_id
+
+        phase.scheduled_resolution = future + timedelta(hours=2)
+        phase.save()
+
+        assert in_memory_procrastinate.jobs[old_job_id]["status"] == "cancelled"
+
+    @pytest.mark.django_db
+    def test_phase_completion_cancels_pending_job(
+        self, phase_factory, in_memory_procrastinate, classical_england_nation
+    ):
+        future = timezone.now() + timedelta(hours=24)
+        phase = phase_factory(
+            scheduled_resolution=future,
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+        phase.refresh_from_db()
+        old_job_id = phase.resolution_job_id
+
+        phase.status = PhaseStatus.COMPLETED
+        phase.save()
+
+        assert in_memory_procrastinate.jobs[old_job_id]["status"] == "cancelled"
+
+    @pytest.mark.django_db
+    def test_phase_completion_clears_job_id(
+        self, phase_factory, in_memory_procrastinate, classical_england_nation
+    ):
+        future = timezone.now() + timedelta(hours=24)
+        phase = phase_factory(
+            scheduled_resolution=future,
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+        phase.refresh_from_db()
+        assert phase.resolution_job_id is not None
+
+        phase.status = PhaseStatus.COMPLETED
+        phase.save()
+
+        phase.refresh_from_db()
+        assert phase.resolution_job_id is None
+
 
 class TestSweepCanary:
 
