@@ -1862,16 +1862,6 @@ components:
       - createdAt
       - id
       - sender
-    ColorblindModeEnum:
-      enum:
-      - deuteranopia
-      - protanopia
-      - tritanopia
-      type: string
-      description: |-
-        * `deuteranopia` - Deuteranopia
-        * `protanopia` - Protanopia
-        * `tritanopia` - Tritanopia
     DeadlineModeEnum:
       enum:
       - duration
@@ -3201,11 +3191,6 @@ components:
           readOnly: true
         emailNotificationsEnabled:
           type: boolean
-        colorblindMode:
-          nullable: true
-          oneOf:
-          - $ref: '#/components/schemas/ColorblindModeEnum'
-          - $ref: '#/components/schemas/NullEnum'
         canCreateBotGames:
           type: boolean
           readOnly: true
@@ -3554,11 +3539,6 @@ components:
           readOnly: true
         emailNotificationsEnabled:
           type: boolean
-        colorblindMode:
-          nullable: true
-          oneOf:
-          - $ref: '#/components/schemas/ColorblindModeEnum'
-          - $ref: '#/components/schemas/NullEnum'
         canCreateBotGames:
           type: boolean
           readOnly: true

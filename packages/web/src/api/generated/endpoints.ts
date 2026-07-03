@@ -125,20 +125,6 @@ export interface Channel {
 }
 
 /**
- * * `deuteranopia` - Deuteranopia
- * `protanopia` - Protanopia
- * `tritanopia` - Tritanopia
- */
-export type ColorblindModeEnum =
-  (typeof ColorblindModeEnum)[keyof typeof ColorblindModeEnum];
-
-export const ColorblindModeEnum = {
-  deuteranopia: "deuteranopia",
-  protanopia: "protanopia",
-  tritanopia: "tritanopia",
-} as const;
-
-/**
  * * `duration` - Duration
  * `fixed_time` - Fixed Time
  */
@@ -782,7 +768,6 @@ export interface PatchedUserProfile {
   readonly picture?: string | null;
   readonly email?: string;
   emailNotificationsEnabled?: boolean;
-  colorblindMode?: ColorblindModeEnum | NullEnum | null;
   readonly canCreateBotGames?: boolean;
   /** @nullable */
   readonly reliabilityTier?: string | null;
@@ -906,7 +891,6 @@ export interface UserProfile {
   readonly picture: string | null;
   readonly email: string;
   emailNotificationsEnabled?: boolean;
-  colorblindMode?: ColorblindModeEnum | NullEnum | null;
   readonly canCreateBotGames: boolean;
   /** @nullable */
   readonly reliabilityTier: string | null;

@@ -1,6 +1,5 @@
 import React, { Suspense, useState } from "react";
 import { Check, X, Pencil, ChevronRight } from "lucide-react";
-import { toast } from "sonner";
 import { Link } from "react-router";
 
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
@@ -27,8 +26,6 @@ import {
   useUserRetrieveSuspense,
   useUserUpdatePartialUpdate,
   getUserRetrieveQueryKey,
-  getVariantsListQueryKey,
-  type ColorblindModeEnum,
 } from "@/api/generated/endpoints";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -199,39 +196,6 @@ const Account: React.FC = () => {
                   <SelectItem value="light">Light</SelectItem>
                   <SelectItem value="dark">Dark</SelectItem>
                   <SelectItem value="system">System</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-4">
-              <Label htmlFor="colorblind-select">Colorblind mode</Label>
-              <Select
-                value={userProfile.colorblindMode ?? "off"}
-                onValueChange={async (value) => {
-                  const mode =
-                    value === "off" ? null : (value as ColorblindModeEnum);
-                  try {
-                    await updateProfileMutation.mutateAsync({
-                      data: { colorblindMode: mode },
-                    });
-                    queryClient.invalidateQueries({
-                      queryKey: getUserRetrieveQueryKey(),
-                    });
-                    queryClient.invalidateQueries({
-                      queryKey: getVariantsListQueryKey(),
-                    });
-                  } catch {
-                    toast.error("Failed to update colorblind mode");
-                  }
-                }}
-              >
-                <SelectTrigger id="colorblind-select" className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="off">Off</SelectItem>
-                  <SelectItem value="deuteranopia">Deuteranopia</SelectItem>
-                  <SelectItem value="protanopia">Protanopia</SelectItem>
-                  <SelectItem value="tritanopia">Tritanopia</SelectItem>
                 </SelectContent>
               </Select>
             </div>

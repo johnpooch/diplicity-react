@@ -136,51 +136,6 @@ class TestUserProfileUpdateView:
         primary_user.profile.refresh_from_db()
         assert primary_user.profile.email_notifications_enabled is False
 
-    @pytest.mark.django_db
-    def test_retrieve_colorblind_mode_defaults_to_null(self, authenticated_client):
-        url = reverse("user-profile")
-        response = authenticated_client.get(url)
-
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data["colorblind_mode"] is None
-
-    @pytest.mark.django_db
-    def test_set_colorblind_mode(self, authenticated_client, primary_user):
-        url = reverse("user-profile-update")
-        response = authenticated_client.patch(
-            url, {"colorblind_mode": "deuteranopia"}, format="json"
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data["colorblind_mode"] == "deuteranopia"
-        primary_user.profile.refresh_from_db()
-        assert primary_user.profile.colorblind_mode == "deuteranopia"
-
-    @pytest.mark.django_db
-    def test_clear_colorblind_mode(self, authenticated_client, primary_user):
-        primary_user.profile.colorblind_mode = "protanopia"
-        primary_user.profile.save()
-
-        url = reverse("user-profile-update")
-        response = authenticated_client.patch(
-            url, {"colorblind_mode": None}, format="json"
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data["colorblind_mode"] is None
-        primary_user.profile.refresh_from_db()
-        assert primary_user.profile.colorblind_mode is None
-
-    @pytest.mark.django_db
-    def test_invalid_colorblind_mode(self, authenticated_client):
-        url = reverse("user-profile-update")
-        response = authenticated_client.patch(
-            url, {"colorblind_mode": "invalid_mode"}, format="json"
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "colorblind_mode" in response.data
-
 
 class TestUserAccountDelete:
 
