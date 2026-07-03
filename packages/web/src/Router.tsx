@@ -5,6 +5,7 @@ import {
   RouterProvider,
   redirect,
   useRouteError,
+  type RouteObject,
 } from "react-router";
 import { QueryClient } from "@tanstack/react-query";
 import { Login } from "./screens/Login";
@@ -81,289 +82,299 @@ interface RouterProps {
   queryClient: QueryClient;
 }
 
+export const createAuthenticatedRoutes = (
+  queryClient: QueryClient
+): RouteObject[] => [
+  {
+    id: "root",
+    path: "/",
+    element: <AuthenticatedRoot />,
+    errorElement: <RootErrorBoundary />,
+    loader: createVariantsLoader(queryClient),
+    children: [
+      {
+        element: <HomeLayoutWrapper />,
+        children: [
+          {
+            index: true,
+            element: (
+              <Suspense fallback={<RouteFallback />}>
+                <Home.MyGames />
+              </Suspense>
+            ),
+          },
+          {
+            path: "find-games",
+            element: (
+              <Suspense fallback={<RouteFallback />}>
+                <Home.FindGames />
+              </Suspense>
+            ),
+          },
+          {
+            path: "create-game",
+            element: (
+              <Suspense fallback={<RouteFallback />}>
+                <Home.CreateGame />
+              </Suspense>
+            ),
+          },
+          {
+            path: "account",
+            element: (
+              <Suspense fallback={<RouteFallback />}>
+                <Home.Account />
+              </Suspense>
+            ),
+          },
+          {
+            path: "delete-account",
+            element: (
+              <Suspense fallback={<RouteFallback />}>
+                <Home.DeleteAccount />
+              </Suspense>
+            ),
+          },
+          {
+            path: "community",
+            element: (
+              <Suspense fallback={<RouteFallback />}>
+                <Home.Community />
+              </Suspense>
+            ),
+          },
+          {
+            path: "learn-to-play",
+            element: (
+              <Suspense fallback={<RouteFallback />}>
+                <Home.LearnToPlay />
+              </Suspense>
+            ),
+          },
+          {
+            path: "game-info/:gameId",
+            element: (
+              <Suspense fallback={<RouteFallback />}>
+                <Home.GameInfoScreen />
+              </Suspense>
+            ),
+          },
+          {
+            path: "player-info/:gameId",
+            element: (
+              <Suspense fallback={<RouteFallback />}>
+                <Home.PlayerInfoScreen />
+              </Suspense>
+            ),
+          },
+          {
+            path: "player/:userId",
+            element: (
+              <Suspense fallback={<RouteFallback />}>
+                <Home.PlayerProfileScreen />
+              </Suspense>
+            ),
+          },
+          {
+            path: "variants",
+            element: (
+              <Suspense fallback={<RouteFallback />}>
+                <Variants.VariantsList />
+              </Suspense>
+            ),
+          },
+          {
+            path: "variants/create",
+            element: (
+              <Suspense fallback={<RouteFallback />}>
+                <Variants.VariantCreate />
+              </Suspense>
+            ),
+          },
+          {
+            path: "variants/:variantId/edit",
+            element: (
+              <Suspense fallback={<RouteFallback />}>
+                <Variants.VariantEditRoute />
+              </Suspense>
+            ),
+          },
+          {
+            path: "llm-calls",
+            element: (
+              <Suspense fallback={<RouteFallback />}>
+                <LLMCalls.ListScreen />
+              </Suspense>
+            ),
+          },
+          {
+            path: "llm-calls/:llmCallId",
+            element: (
+              <Suspense fallback={<RouteFallback />}>
+                <LLMCalls.DetailScreen />
+              </Suspense>
+            ),
+          },
+          ...(import.meta.env.DEV
+            ? [
+                {
+                  path: "card-gallery",
+                  element: (
+                    <Suspense fallback={<RouteFallback />}>
+                      <CardGallery />
+                    </Suspense>
+                  ),
+                },
+              ]
+            : []),
+        ],
+      },
+      {
+        path: "learn-to-play/tutorial",
+        element: (
+          <Suspense fallback={<RouteFallback />}>
+            <Tutorial.TutorialScreen />
+          </Suspense>
+        ),
+      },
+      {
+        path: "game/:gameId",
+        children: [
+          // Redirect /game/:gameId to /game/:gameId/phase/:currentPhaseId/orders
+          { index: true, element: <GamePhaseRedirect /> },
+          {
+            path: "phase/:phaseId",
+            element: <GameDetailLayoutWrapper />,
+            children: [
+              { index: true, element: <GameIndexRoute /> },
+              {
+                path: "orders",
+                element: (
+                  <Suspense fallback={<RouteFallback />}>
+                    <GameDetail.OrdersScreen />
+                  </Suspense>
+                ),
+              },
+              {
+                path: "chat",
+                element: (
+                  <Suspense fallback={<RouteFallback />}>
+                    <GameDetail.ChannelListScreen />
+                  </Suspense>
+                ),
+              },
+              {
+                path: "chat/channel/create",
+                element: (
+                  <Suspense fallback={<RouteFallback />}>
+                    <GameDetail.ChannelCreateScreen />
+                  </Suspense>
+                ),
+              },
+              {
+                path: "chat/channel/:channelId",
+                element: (
+                  <Suspense fallback={<RouteFallback />}>
+                    <GameDetail.ChannelScreen />
+                  </Suspense>
+                ),
+              },
+              {
+                path: "game-info",
+                element: (
+                  <Suspense fallback={<RouteFallback />}>
+                    <GameDetail.GameInfoScreen />
+                  </Suspense>
+                ),
+              },
+              {
+                path: "player-info",
+                element: (
+                  <Suspense fallback={<RouteFallback />}>
+                    <GameDetail.PlayerInfoScreen />
+                  </Suspense>
+                ),
+              },
+              {
+                path: "propose-draw",
+                element: (
+                  <Suspense fallback={<RouteFallback />}>
+                    <GameDetail.ProposeDrawScreen />
+                  </Suspense>
+                ),
+              },
+              {
+                path: "draw-proposals",
+                element: (
+                  <Suspense fallback={<RouteFallback />}>
+                    <GameDetail.DrawProposalsScreen />
+                  </Suspense>
+                ),
+              },
+              {
+                path: "player/:userId",
+                element: (
+                  <Suspense fallback={<RouteFallback />}>
+                    <GameDetail.PlayerProfileScreen />
+                  </Suspense>
+                ),
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    path: "*",
+    loader: () => redirect("/"),
+  },
+];
+
+export const createUnauthenticatedRoutes = (): RouteObject[] => [
+  {
+    path: "/",
+    element: <Login />,
+  },
+  {
+    path: "/register",
+    element: <Register />,
+  },
+  {
+    path: "/forgot-password",
+    element: <ForgotPassword />,
+  },
+  {
+    path: "/check-email",
+    element: <CheckEmail />,
+  },
+  {
+    path: "/verify-email",
+    element: <VerifyEmail />,
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPassword />,
+  },
+  {
+    path: "*",
+    loader: ({ request }) => {
+      const url = new URL(request.url);
+      const path = `${url.pathname}${url.search}${url.hash}`;
+      if (url.pathname !== "/") {
+        deepLinkStorage.setPendingPath(path);
+      }
+      return redirect("/");
+    },
+  },
+];
+
 const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
   const router = React.useMemo(
     () =>
       loggedIn
-        ? createBrowserRouter([
-            {
-              id: "root",
-              path: "/",
-              element: <AuthenticatedRoot />,
-              errorElement: <RootErrorBoundary />,
-              loader: createVariantsLoader(queryClient),
-              children: [
-                {
-                  element: <HomeLayoutWrapper />,
-                  children: [
-                    {
-                      index: true,
-                      element: (
-                        <Suspense fallback={<RouteFallback />}>
-                          <Home.MyGames />
-                        </Suspense>
-                      ),
-                    },
-                    {
-                      path: "find-games",
-                      element: (
-                        <Suspense fallback={<RouteFallback />}>
-                          <Home.FindGames />
-                        </Suspense>
-                      ),
-                    },
-                    {
-                      path: "create-game",
-                      element: (
-                        <Suspense fallback={<RouteFallback />}>
-                          <Home.CreateGame />
-                        </Suspense>
-                      ),
-                    },
-                    {
-                      path: "account",
-                      element: (
-                        <Suspense fallback={<RouteFallback />}>
-                          <Home.Account />
-                        </Suspense>
-                      ),
-                    },
-                    {
-                      path: "delete-account",
-                      element: (
-                        <Suspense fallback={<RouteFallback />}>
-                          <Home.DeleteAccount />
-                        </Suspense>
-                      ),
-                    },
-                    {
-                      path: "community",
-                      element: (
-                        <Suspense fallback={<RouteFallback />}>
-                          <Home.Community />
-                        </Suspense>
-                      ),
-                    },
-                    {
-                      path: "learn-to-play",
-                      element: (
-                        <Suspense fallback={<RouteFallback />}>
-                          <Home.LearnToPlay />
-                        </Suspense>
-                      ),
-                    },
-                    {
-                      path: "game-info/:gameId",
-                      element: (
-                        <Suspense fallback={<RouteFallback />}>
-                          <Home.GameInfoScreen />
-                        </Suspense>
-                      ),
-                    },
-                    {
-                      path: "player-info/:gameId",
-                      element: (
-                        <Suspense fallback={<RouteFallback />}>
-                          <Home.PlayerInfoScreen />
-                        </Suspense>
-                      ),
-                    },
-                    {
-                      path: "player/:userId",
-                      element: (
-                        <Suspense fallback={<RouteFallback />}>
-                          <Home.PlayerProfileScreen />
-                        </Suspense>
-                      ),
-                    },
-                    {
-                      path: "variants",
-                      element: (
-                        <Suspense fallback={<RouteFallback />}>
-                          <Variants.VariantsList />
-                        </Suspense>
-                      ),
-                    },
-                    {
-                      path: "variants/create",
-                      element: (
-                        <Suspense fallback={<RouteFallback />}>
-                          <Variants.VariantCreate />
-                        </Suspense>
-                      ),
-                    },
-                    {
-                      path: "variants/:variantId/edit",
-                      element: (
-                        <Suspense fallback={<RouteFallback />}>
-                          <Variants.VariantEditRoute />
-                        </Suspense>
-                      ),
-                    },
-                    {
-                      path: "llm-calls",
-                      element: (
-                        <Suspense fallback={<RouteFallback />}>
-                          <LLMCalls.ListScreen />
-                        </Suspense>
-                      ),
-                    },
-                    {
-                      path: "llm-calls/:llmCallId",
-                      element: (
-                        <Suspense fallback={<RouteFallback />}>
-                          <LLMCalls.DetailScreen />
-                        </Suspense>
-                      ),
-                    },
-                    ...(import.meta.env.DEV
-                      ? [
-                          {
-                            path: "card-gallery",
-                            element: (
-                              <Suspense fallback={<RouteFallback />}>
-                                <CardGallery />
-                              </Suspense>
-                            ),
-                          },
-                        ]
-                      : []),
-                  ],
-                },
-                {
-                  path: "learn-to-play/tutorial",
-                  element: (
-                    <Suspense fallback={<RouteFallback />}>
-                      <Tutorial.TutorialScreen />
-                    </Suspense>
-                  ),
-                },
-                {
-                  path: "game/:gameId",
-                  children: [
-                    // Redirect /game/:gameId to /game/:gameId/phase/:currentPhaseId/orders
-                    { index: true, element: <GamePhaseRedirect /> },
-                    {
-                      path: "phase/:phaseId",
-                      element: <GameDetailLayoutWrapper />,
-                      children: [
-                        { index: true, element: <GameIndexRoute /> },
-                        {
-                          path: "orders",
-                          element: (
-                            <Suspense fallback={<RouteFallback />}>
-                              <GameDetail.OrdersScreen />
-                            </Suspense>
-                          ),
-                        },
-                        {
-                          path: "chat",
-                          element: (
-                            <Suspense fallback={<RouteFallback />}>
-                              <GameDetail.ChannelListScreen />
-                            </Suspense>
-                          ),
-                        },
-                        {
-                          path: "chat/channel/create",
-                          element: (
-                            <Suspense fallback={<RouteFallback />}>
-                              <GameDetail.ChannelCreateScreen />
-                            </Suspense>
-                          ),
-                        },
-                        {
-                          path: "chat/channel/:channelId",
-                          element: (
-                            <Suspense fallback={<RouteFallback />}>
-                              <GameDetail.ChannelScreen />
-                            </Suspense>
-                          ),
-                        },
-                        {
-                          path: "game-info",
-                          element: (
-                            <Suspense fallback={<RouteFallback />}>
-                              <GameDetail.GameInfoScreen />
-                            </Suspense>
-                          ),
-                        },
-                        {
-                          path: "player-info",
-                          element: (
-                            <Suspense fallback={<RouteFallback />}>
-                              <GameDetail.PlayerInfoScreen />
-                            </Suspense>
-                          ),
-                        },
-                        {
-                          path: "propose-draw",
-                          element: (
-                            <Suspense fallback={<RouteFallback />}>
-                              <GameDetail.ProposeDrawScreen />
-                            </Suspense>
-                          ),
-                        },
-                        {
-                          path: "draw-proposals",
-                          element: (
-                            <Suspense fallback={<RouteFallback />}>
-                              <GameDetail.DrawProposalsScreen />
-                            </Suspense>
-                          ),
-                        },
-                        {
-                          path: "player/:userId",
-                          element: (
-                            <Suspense fallback={<RouteFallback />}>
-                              <GameDetail.PlayerProfileScreen />
-                            </Suspense>
-                          ),
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
-          ])
-        : createBrowserRouter([
-            {
-              path: "/",
-              element: <Login />,
-            },
-            {
-              path: "/register",
-              element: <Register />,
-            },
-            {
-              path: "/forgot-password",
-              element: <ForgotPassword />,
-            },
-            {
-              path: "/check-email",
-              element: <CheckEmail />,
-            },
-            {
-              path: "/verify-email",
-              element: <VerifyEmail />,
-            },
-            {
-              path: "/reset-password",
-              element: <ResetPassword />,
-            },
-            {
-              path: "*",
-              loader: ({ request }) => {
-                const url = new URL(request.url);
-                const path = `${url.pathname}${url.search}${url.hash}`;
-                if (url.pathname !== "/") {
-                  deepLinkStorage.setPendingPath(path);
-                }
-                return redirect("/");
-              },
-            },
-          ]),
+        ? createBrowserRouter(createAuthenticatedRoutes(queryClient))
+        : createBrowserRouter(createUnauthenticatedRoutes()),
     [loggedIn, queryClient]
   );
 
