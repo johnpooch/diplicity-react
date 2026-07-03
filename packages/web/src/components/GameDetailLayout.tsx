@@ -41,7 +41,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
   const { data: game } = useGameRetrieve(gameId, {
     query: {
       refetchInterval: (query) =>
-        query.state.data?.status === "active" ? 10000 : false,
+        query.state.data?.status === "active" ? 5000 : false,
     },
   });
 

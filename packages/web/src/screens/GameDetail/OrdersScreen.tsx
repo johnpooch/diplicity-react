@@ -168,7 +168,11 @@ const OrdersScreen: React.FC = () => {
   const { data: phase } = useGamePhaseRetrieveSuspense(gameId, selectedPhase);
   const { data: orders } = useGameOrdersListSuspense(gameId, selectedPhase);
   const { data: variants } = useVariantsListSuspense();
-  const { data: phaseStates } = useGamePhaseStatesListSuspense(gameId);
+  const { data: phaseStates } = useGamePhaseStatesListSuspense(gameId, {
+    query: {
+      refetchInterval: game.status === "active" ? 5000 : false,
+    },
+  });
 
   const deleteOrderMutation = useGameOrdersDeleteDestroy();
   const confirmOrdersMutation = useGameConfirmPhasePartialUpdate();
