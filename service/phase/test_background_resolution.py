@@ -245,6 +245,26 @@ class TestDeadlineTimerArming:
 
         assert in_memory_procrastinate.jobs[old_job_id]["status"] == "cancelled"
 
+    @pytest.mark.django_db
+    def test_phase_completion_clears_job_id(
+        self, phase_factory, in_memory_procrastinate, classical_england_nation
+    ):
+        future = timezone.now() + timedelta(hours=24)
+        phase = phase_factory(
+            scheduled_resolution=future,
+            phase_states_config=[
+                {"nation": classical_england_nation, "has_possible_orders": True, "orders_confirmed": False},
+            ],
+        )
+        phase.refresh_from_db()
+        assert phase.resolution_job_id is not None
+
+        phase.status = PhaseStatus.COMPLETED
+        phase.save()
+
+        phase.refresh_from_db()
+        assert phase.resolution_job_id is None
+
 
 class TestSweepCanary:
 
