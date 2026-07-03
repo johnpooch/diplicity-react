@@ -3,7 +3,7 @@ from zoneinfo import ZoneInfo
 from django.conf import settings
 from rest_framework import serializers
 from django.db import transaction
-from django.db.models import Count, Q, Subquery, OuterRef
+from django.db.models import Subquery, OuterRef
 from django.apps import apps
 from drf_spectacular.utils import extend_schema_field
 from opentelemetry import trace
@@ -273,6 +273,9 @@ class GameRetrieveSerializer(serializers.Serializer):
 
     @extend_schema_field(serializers.IntegerField)
     def get_total_unread_message_count(self, obj):
+        annotated = getattr(obj, "total_unread_message_count", None)
+        if annotated is not None:
+            return annotated
         user = self.context["request"].user
         if not user.is_authenticated:
             return 0

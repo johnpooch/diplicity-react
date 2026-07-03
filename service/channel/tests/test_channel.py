@@ -5,8 +5,11 @@ from django.apps import apps
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
+from rest_framework.test import APIRequestFactory
 from channel.models import Channel, ChannelMessage
 from bot.utils import get_bot_user
+from game.models import Game
+from game.serializers import GameRetrieveSerializer
 
 from common.constants import GameStatus
 
@@ -688,6 +691,18 @@ class TestGameRetrieveUnreadCount:
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["total_unread_message_count"] == 0
+
+    @pytest.mark.django_db
+    def test_retrieve_serializer_computes_unread_without_annotation(
+        self, game_with_public_channel_and_messages, primary_user
+    ):
+        game = Game.objects.get(pk=game_with_public_channel_and_messages.pk)
+        request = APIRequestFactory().get("/")
+        request.user = primary_user
+
+        data = GameRetrieveSerializer(game, context={"request": request}).data
+
+        assert data["total_unread_message_count"] == 2
 
 
 @pytest.fixture
