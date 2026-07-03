@@ -173,6 +173,11 @@ def reply(user_id, game_id, channel_id):
         logger.info(f"[{label}] no reply composed; staying silent")
         return
 
+    max_chars = settings.CHAT_MESSAGE_MAX_CHARS
+    if len(reply_text) > max_chars:
+        logger.info(f"[{label}] reply is {len(reply_text)} chars; truncating to {max_chars}")
+        reply_text = reply_text[:max_chars].rstrip()
+
     try:
         api.post_message(game_id, channel_id, reply_text)
     except ApiClientError as e:

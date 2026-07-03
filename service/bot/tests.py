@@ -917,6 +917,24 @@ class TestReplyTask:
         assert channel.messages.filter(sender=bot_member, body="Hello, human!").exists()
 
     @pytest.mark.django_db
+    def test_reply_truncates_message_over_char_limit(
+        self, bot_public_channel_factory, in_memory_procrastinate, settings
+    ):
+        game, channel = bot_public_channel_factory()
+        bot_user = get_bot_user()
+        bot_member = game.members.get(user=bot_user)
+        human_member = game.members.get(user=game.created_by)
+        ChannelMessage.objects.create(channel=channel, sender=human_member, body="Hi bot")
+
+        overlong = "x" * (settings.CHAT_MESSAGE_MAX_CHARS + 50)
+        with patch("bot.tasks.LLMClient") as mock_llm:
+            mock_llm.return_value.complete.return_value = _reply_response(True, overlong)
+            tasks.reply(user_id=bot_user.id, game_id=game.id, channel_id=channel.id)
+
+        message = channel.messages.get(sender=bot_member)
+        assert len(message.body) == settings.CHAT_MESSAGE_MAX_CHARS
+
+    @pytest.mark.django_db
     def test_reply_posts_nothing_when_model_declines(
         self, bot_public_channel_factory, in_memory_procrastinate
     ):
