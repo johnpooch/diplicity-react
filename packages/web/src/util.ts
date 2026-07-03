@@ -102,17 +102,19 @@ export function randomGameName() {
   );
 }
 
-function formatRemainingTime(seconds: number): string {
+function formatRemainingTime(seconds: number, withSuffix = true): string {
   if (seconds <= 0) return "Deadline passed";
-  if (seconds < 60) return "< 1m remaining";
+
+  const suffix = withSuffix ? " remaining" : "";
+  if (seconds < 60) return `< 1m${suffix}`;
 
   const days = Math.floor(seconds / 86400);
   const hours = Math.floor((seconds % 86400) / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
 
-  if (days >= 1) return `${days}d ${hours}h remaining`;
-  if (hours >= 1) return `${hours}h ${minutes}m remaining`;
-  return `${minutes}m remaining`;
+  if (days >= 1) return `${days}d ${hours}h${suffix}`;
+  if (hours >= 1) return `${hours}h ${minutes}m${suffix}`;
+  return `${minutes}m${suffix}`;
 }
 
 function formatDateTime(djangoDatetime: string) {

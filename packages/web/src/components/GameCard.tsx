@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { GameDropdownMenu } from "./GameDropdownMenu";
 import { NationBadge } from "./NationBadge";
+import { NationFlag, findNationColor, findNationFlagUrl } from "./NationFlag";
 import {
   UserPlus,
   Lock,
@@ -26,6 +27,7 @@ import {
   Skull,
   Trophy,
   Users,
+  FlaskConical,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -35,7 +37,7 @@ import {
   useGameJoinCreate,
   getGamesListQueryKey,
 } from "../api/generated/endpoints";
-import { formatTimeAgo, getGameLandingPath } from "../util";
+import { formatDateTime, formatRemainingTime, formatTimeAgo, getGameLandingPath } from "../util";
 import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -46,6 +48,7 @@ export interface GameCardProps {
   variant: Pick<Variant, "name" | "id" | "nations">;
   map: React.ReactNode;
   className?: string;
+  mode?: "default" | "active";
 }
 
 const ORDER_STATUS_CONFIG: Record<
@@ -78,7 +81,37 @@ const ORDER_STATUS_CONFIG: Record<
   },
 };
 
-const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
+const ACTIVE_STATUS_LINE: Record<
+  string,
+  { verb: string; fallback: string; icon: React.ElementType; className: string }
+> = {
+  orders_required: {
+    verb: "Orders due in",
+    fallback: "Orders required",
+    icon: Clock,
+    className: "text-amber-600",
+  },
+  orders_not_confirmed: {
+    verb: "Orders not confirmed. Phase resolves in",
+    fallback: "Orders not confirmed",
+    icon: Clock,
+    className: "text-amber-600",
+  },
+  orders_submitted: {
+    verb: "Orders confirmed. Phase resolves in",
+    fallback: "Orders confirmed",
+    icon: Check,
+    className: "text-green-600",
+  },
+  no_orders_required: {
+    verb: "No orders required. Phase resolves in",
+    fallback: "No orders required",
+    icon: Check,
+    className: "text-muted-foreground",
+  },
+};
+
+const GameCard: React.FC<GameCardProps> = ({ game, variant, map, mode = "default" }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
@@ -96,6 +129,50 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
   const totalSlots = variant.nations.length;
   const joinedCount = game.members.length;
   const winnerIds = new Set(game.victory?.members.map(m => m.id) ?? []);
+
+  const isActiveMode = mode === "active";
+  const nationColor = findNationColor(variant.nations, playerNation);
+  const nationFlagUrl = findNationFlagUrl(variant.nations, playerNation);
+
+  const renderActiveStatusLine = () => {
+    if (game.isPaused) {
+      return (
+        <p className="flex items-center gap-1 text-amber-600">
+          <Pause className="size-3.5" />
+          Paused — resumes when unpaused
+        </p>
+      );
+    }
+    const config = game.orderStatus
+      ? ACTIVE_STATUS_LINE[game.orderStatus]
+      : undefined;
+    if (!config) return null;
+    const Icon = config.icon;
+    const showDeadline =
+      !game.sandbox &&
+      phase?.status === "active" &&
+      !!phase.scheduledResolution &&
+      phase.remainingTime > 0;
+    return (
+      <p className={`flex items-center gap-1 ${config.className}`}>
+        <Icon className="size-3.5 shrink-0" />
+        {showDeadline ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span tabIndex={0}>
+                {config.verb} {formatRemainingTime(phase!.remainingTime, false)}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              {formatDateTime(phase!.scheduledResolution!)}
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          <span>{config.fallback}</span>
+        )}
+      </p>
+    );
+  };
 
   const handleClickGame = () => {
     navigate(getGameLandingPath(game, isMobile));
@@ -281,6 +358,25 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
         aria-label="Open game map"
       >
         {map}
+        {isActiveMode && !game.sandbox && playerNation && (
+          <div
+            className="absolute top-2 left-2 flex items-center gap-1.5 rounded-full border bg-white py-0.5 pl-1 pr-2 shadow-sm"
+            style={{ borderColor: nationColor ?? undefined }}
+          >
+            <NationFlag flagUrl={nationFlagUrl} size="sm" alt={playerNation} />
+            <span className="text-xs font-medium text-slate-900">
+              {playerNation}
+            </span>
+          </div>
+        )}
+        {isActiveMode && game.isPaused && (
+          <div className="absolute inset-0 flex items-center justify-center bg-slate-900/40">
+            <span className="flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-xs font-medium text-slate-900 shadow-sm">
+              <Pause className="size-3.5" />
+              Paused
+            </span>
+          </div>
+        )}
       </button>
 
       <div className="flex flex-col flex-grow gap-2 p-4 md:py-2 min-w-0">
@@ -304,6 +400,39 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
           </div>
 
           <CardDescription className="text-sm text-muted-foreground">
+            {isActiveMode ? (
+              <>
+                <div className="flex items-center gap-1">
+                  {game.private && <Lock className="h-3 w-3" />}
+                  {game.sandbox && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span tabIndex={0}>
+                          <FlaskConical className="h-3 w-3" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Sandbox — practice game</TooltipContent>
+                    </Tooltip>
+                  )}
+                  {game.pressType === "no_press" && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span tabIndex={0}>
+                          <MessageSquareOff className="h-3 w-3" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Gunboat — no private messaging</TooltipContent>
+                    </Tooltip>
+                  )}
+                  <span>
+                    {variant.name}
+                    {phase && ` · ${phase.season} ${phase.year} · ${phase.type}`}
+                  </span>
+                </div>
+                {renderActiveStatusLine()}
+              </>
+            ) : (
+              <>
             <div className="flex items-center gap-1">
               {game.private && <Lock className="h-3 w-3" />}
               <span>
@@ -340,10 +469,12 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
             ) : isFinished ? null : (
               <Skeleton className="w-24 h-4" />
             )}
+              </>
+            )}
           </CardDescription>
         </CardHeader>
 
-        {(game.sandbox || isActive || isFinished) && badgeCluster}
+        {!isActiveMode && (game.sandbox || isActive || isFinished) && badgeCluster}
 
         {showAvatars && (
           <CardFooter className="p-0 mt-auto flex-col items-stretch gap-2">

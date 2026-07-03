@@ -1,4 +1,4 @@
-import React, { Fragment, Suspense, useState } from "react";
+import React, { Suspense, useState } from "react";
 import { Link } from "react-router";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,9 +8,10 @@ import { GameCard } from "@/components/GameCard";
 import { MapView } from "@/components/MapView";
 import { Notice } from "@/components/Notice";
 import { Button } from "@/components/ui/button";
-import { Inbox, Loader2 } from "lucide-react";
+import { AlertTriangle, Inbox, Loader2, Skull, UserX } from "lucide-react";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { useVariantsListSuspense } from "@/api/generated/endpoints";
+import type { GameList } from "@/api/generated/endpoints";
 import { useGamesListInfinite } from "@/hooks/useGamesListInfinite";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 
@@ -79,6 +80,39 @@ const getEmptyStateConfig = (status: StatusValue): EmptyStateConfig => {
   }
 };
 
+const ACTIVE_LANES = [
+  {
+    key: "civil_disorder",
+    label: "Civil Disorder — submit to rejoin",
+    icon: UserX,
+    className: "text-red-600",
+  },
+  {
+    key: "nmr",
+    label: "No moves received last phase",
+    icon: AlertTriangle,
+    className: "text-amber-600",
+  },
+  { key: "orders_required", label: "Needs your orders", icon: null, className: "" },
+  {
+    key: "waiting",
+    label: "Waiting on others",
+    icon: null,
+    className: "text-muted-foreground",
+  },
+  { key: "eliminated", label: "Eliminated", icon: Skull, className: "text-muted-foreground" },
+] as const;
+
+const laneForGame = (game: GameList): string => {
+  const member = game.members.find(m => m.isCurrentUser);
+  if (!game.sandbox && member?.eliminated) return "eliminated";
+  const status = game.memberStatus ?? [];
+  if (status.includes("civil_disorder")) return "civil_disorder";
+  if (status.includes("nmr")) return "nmr";
+  if (game.orderStatus === "orders_required") return "orders_required";
+  return "waiting";
+};
+
 interface GameTabContentProps {
   statusFilter: string;
   emptyTitle: string;
@@ -114,39 +148,66 @@ const GameTabContent: React.FC<GameTabContentProps> = ({
     );
   }
 
-  const firstEliminatedIndex =
-    status === "active"
-      ? knownGames.findIndex(game => !game.sandbox && game.members.find(m => m.isCurrentUser)?.eliminated)
-      : -1;
+  const renderCard = (game: GameList, mode: "default" | "active") => (
+    <GameCard
+      key={game.id}
+      game={game}
+      mode={mode}
+      variant={variantMap.get(game.variantId)!}
+      map={
+        <MapView
+          mode="static"
+          variant={variantMap.get(game.variantId)!}
+          phase={game.currentPhase ?? variantMap.get(game.variantId)!.templatePhase}
+          cover
+          className="w-full h-full"
+        />
+      }
+    />
+  );
 
-  return (
-    <div className="space-y-4">
-      {knownGames.map((game, index) => (
-        <Fragment key={game.id}>
-          {index === firstEliminatedIndex && (
-            <h3 className="text-sm font-semibold pt-2">Eliminated</h3>
-          )}
-          <GameCard
-            game={game}
-            variant={variantMap.get(game.variantId)!}
-            map={
-              <MapView
-                mode="static"
-                variant={variantMap.get(game.variantId)!}
-                phase={game.currentPhase ?? variantMap.get(game.variantId)!.templatePhase}
-                cover
-                className="w-full h-full"
-              />
-            }
-          />
-        </Fragment>
-      ))}
+  const loadMore = (
+    <>
       {isFetchingNextPage && (
         <div className="flex justify-center py-4">
           <Loader2 className="animate-spin" />
         </div>
       )}
       <div ref={sentinelRef} />
+    </>
+  );
+
+  if (status === "active") {
+    return (
+      <div className="space-y-4">
+        {ACTIVE_LANES.map(lane => {
+          const laneGames = knownGames.filter(game => laneForGame(game) === lane.key);
+          if (laneGames.length === 0) return null;
+          const Icon = lane.icon;
+          return (
+            <div key={lane.key} className="space-y-4">
+              <div className="flex items-center gap-2 pt-2">
+                {Icon && <Icon className={`size-4 ${lane.className}`} />}
+                <h3 className={`text-sm font-semibold ${lane.className}`}>
+                  {lane.label}
+                </h3>
+                <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-muted text-xs font-medium">
+                  {laneGames.length}
+                </span>
+              </div>
+              {laneGames.map(game => renderCard(game, "active"))}
+            </div>
+          );
+        })}
+        {loadMore}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {knownGames.map(game => renderCard(game, "default"))}
+      {loadMore}
     </div>
   );
 };

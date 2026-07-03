@@ -143,6 +143,90 @@ describe("GameCard", () => {
     });
   });
 
+  describe("active mode", () => {
+    const activePhase = {
+      id: 5,
+      ordinal: 3,
+      season: "Fall",
+      year: 1901,
+      name: "Fall 1901 Movement",
+      type: "Movement",
+      status: "active",
+      scheduledResolution: "2099-01-18T12:00:00Z",
+      remainingTime: 13200,
+      units: [],
+      supplyCenters: [],
+    };
+    const activeGame = {
+      ...mockActiveGames[0],
+      currentPhase: activePhase,
+      isPaused: false,
+    };
+
+    it("shows 'Orders due in' when orders are required", () => {
+      renderGameCard({
+        game: { ...activeGame, orderStatus: "orders_required" },
+        mode: "active",
+        ...defaultProps,
+      });
+      expect(screen.getByText(/Orders due in 3h 40m/)).toBeInTheDocument();
+    });
+
+    it("shows 'Orders not confirmed' when orders are not confirmed", () => {
+      renderGameCard({
+        game: { ...activeGame, orderStatus: "orders_not_confirmed" },
+        mode: "active",
+        ...defaultProps,
+      });
+      expect(
+        screen.getByText(/Orders not confirmed\. Phase resolves in 3h 40m/)
+      ).toBeInTheDocument();
+    });
+
+    it("shows 'Orders confirmed' when orders are submitted", () => {
+      renderGameCard({
+        game: { ...activeGame, orderStatus: "orders_submitted" },
+        mode: "active",
+        ...defaultProps,
+      });
+      expect(
+        screen.getByText(/Orders confirmed\. Phase resolves in 3h 40m/)
+      ).toBeInTheDocument();
+    });
+
+    it("shows 'No orders required' when no orders are required", () => {
+      renderGameCard({
+        game: { ...activeGame, orderStatus: "no_orders_required" },
+        mode: "active",
+        ...defaultProps,
+      });
+      expect(
+        screen.getByText(/No orders required\. Phase resolves in 3h 40m/)
+      ).toBeInTheDocument();
+    });
+
+    it("renders the nation as a floating chip on the map", () => {
+      renderGameCard({
+        game: { ...activeGame, orderStatus: "orders_required" },
+        mode: "active",
+        ...defaultProps,
+      });
+      expect(screen.getByText("Turkey")).toBeInTheDocument();
+    });
+
+    it("shows a paused treatment instead of a countdown when paused", () => {
+      renderGameCard({
+        game: { ...activeGame, orderStatus: "orders_required", isPaused: true },
+        mode: "active",
+        ...defaultProps,
+      });
+      expect(
+        screen.getByText(/Paused — resumes when unpaused/)
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/Orders due in/)).not.toBeInTheDocument();
+    });
+  });
+
   describe("gunboat badge", () => {
     it("shows gunboat badge when pressType is no_press", () => {
       renderGameCard({

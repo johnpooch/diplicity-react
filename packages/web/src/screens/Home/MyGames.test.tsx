@@ -159,6 +159,86 @@ describe("MyGames eliminated games", () => {
   });
 });
 
+describe("MyGames active triage lanes", () => {
+  const setActiveGames = (games: unknown[]) => {
+    mockUseGamesListInfinite.mockReturnValue({
+      data: { pages: [{ results: games, next: null }] },
+      fetchNextPage: vi.fn(),
+      hasNextPage: false,
+      isFetchingNextPage: false,
+    });
+    mockUseVariantsListSuspense.mockReturnValue({ data: mockVariants });
+  };
+
+  it("groups a civil disorder game under the Civil Disorder lane", async () => {
+    const game = { ...mockActiveGames[0], memberStatus: ["civil_disorder"] };
+    setActiveGames([game]);
+
+    renderMyGames();
+
+    expect(
+      await screen.findByRole("heading", {
+        name: /Civil Disorder — submit to rejoin/,
+        level: 3,
+      })
+    ).toBeInTheDocument();
+  });
+
+  it("groups an NMR game under the No moves received lane", async () => {
+    const game = { ...mockActiveGames[0], memberStatus: ["nmr"] };
+    setActiveGames([game]);
+
+    renderMyGames();
+
+    expect(
+      await screen.findByRole("heading", {
+        name: /No moves received last phase/,
+        level: 3,
+      })
+    ).toBeInTheDocument();
+  });
+
+  it("groups an orders-required game under the Needs your orders lane", async () => {
+    const game = {
+      ...mockActiveGames[0],
+      memberStatus: [],
+      orderStatus: "orders_required",
+    };
+    setActiveGames([game]);
+
+    renderMyGames();
+
+    expect(
+      await screen.findByRole("heading", {
+        name: /Needs your orders/,
+        level: 3,
+      })
+    ).toBeInTheDocument();
+  });
+
+  it("prioritises civil disorder over NMR and orders when a game matches several", async () => {
+    const game = {
+      ...mockActiveGames[0],
+      memberStatus: ["civil_disorder", "nmr"],
+      orderStatus: "orders_required",
+    };
+    setActiveGames([game]);
+
+    renderMyGames();
+
+    await screen.findByText(game.name);
+    expect(
+      screen.getByRole("heading", { name: /Civil Disorder/, level: 3 })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: /No moves received/, level: 3 })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: /Needs your orders/, level: 3 })
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe("MyGames phase fetching", () => {
   it("renders without fanning out per-game phase fetches", async () => {
     const game = mockActiveGames[0];

@@ -604,7 +604,7 @@ const buildActiveCivilDisorder = () => {
       "Active game in Spring 1901 where the current user (England) is in civil disorder and cannot submit orders.",
     game: makeGame("active-civil-disorder", "Lost Connection", members, [phase], {
       orderStatus: "no_orders_required",
-      memberStatus: [],
+      memberStatus: ["civil_disorder"],
     }),
     phases: [phase],
     ordersByPhase: { 1001: [] },
