@@ -8,9 +8,9 @@ from phase.models import Phase, PhaseState
 
 from bot.decorators import (
     capture_phase_status,
+    on_human_chat_message,
     on_orders_confirmed,
     on_phase_activated,
-    on_public_chat_message,
     when_humans_confirmed,
     with_bot_channel_members,
     with_bot_members,
@@ -57,11 +57,11 @@ def finalize(sender, instance, phase, bot_phase_states, **kwargs):
 
 
 @receiver(post_save, sender=ChannelMessage)
-@on_public_chat_message
+@on_human_chat_message
 @with_bot_channel_members
 def reply(sender, instance, bot_members, **kwargs):
     logger.info(
-        f"[bot.reply signal] message {instance.id} in public channel {instance.channel_id} "
+        f"[bot.reply signal] message {instance.id} in channel {instance.channel_id} "
         f"(game {instance.channel.game_id})"
     )
     for member in bot_members:
