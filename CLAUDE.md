@@ -92,10 +92,11 @@ python -m pytest -n auto --reuse-db # full suite
    - `npx tsc -b --noEmit` in `packages/web` (required after codegen or type changes)
 4. **Run tests to validate changes** — single file at a time for faster feedback.
 5. **Never suppress lint/type violations** — no `eslint-disable`, `@ts-ignore`, `# noqa`, `pytest.mark.skip`. The only exception is the documented mutation-in-`useEffect` pattern (see the `frontend` skill).
-6. **Prefer derived state over effects** — minimise `useEffect` usage in React.
-7. **Write tests alongside features** — not as an afterthought.
-8. **Self-review non-trivial PRs with `/review-pr`** before requesting human review. Address or explicitly respond to all findings. Trivial PRs (typo fixes, dep bumps, doc-only) are exempt.
-9. **PR description must match the diff** — run `git diff main` and confirm every described change is visible. Do not describe work from a prior PR or session.
+6. **No comments or docstrings** — do not add code comments or docstrings, including in tests; do not annotate assertions to explain their values. The only exceptions are DRF view docstrings (extracted for OpenAPI) and the `eslint-disable` comment on the documented mutation-in-`useEffect` pattern.
+7. **Prefer derived state over effects** — minimise `useEffect` usage in React.
+8. **Write tests alongside features** — not as an afterthought.
+9. **Self-review non-trivial PRs with `/review-pr`** before requesting human review. Address or explicitly respond to all findings. Trivial PRs (typo fixes, dep bumps, doc-only) are exempt.
+10. **PR description must match the diff** — run `git diff main` and confirm every described change is visible. Do not describe work from a prior PR or session.
 
 ---
 
@@ -111,6 +112,9 @@ Before creating an issue where the right approach is unclear, open a [GitHub Dis
 
 ### Issue format
 Three sections (enforced by the `create-issue` skill): **Goal** (always), **Context** (when useful), **Approach** (when discussed). No acceptance criteria, implementation checklists, or sub-issues. If work is too large for one PR, split into two issues.
+
+### PR screenshots
+If a PR changes anything visible in the web app — new screens, layout, styling, copy, empty/error states — you MUST take screenshots of the changed component and embed them in the PR description. This is a completion criterion, not optional polish; the reviewer should see what changed without pulling the branch. See the `frontend` skill for the screenshot and attachment workflow.
 
 ---
 
