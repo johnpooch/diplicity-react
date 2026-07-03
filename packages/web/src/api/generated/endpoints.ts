@@ -644,11 +644,6 @@ export interface OrderResolution {
   by: Province | null;
 }
 
-export interface OrderOption {
-  value: string;
-  label: string;
-}
-
 /**
  * * `Move` - Move
  * `MoveViaConvoy` - Move via Convoy
@@ -708,7 +703,6 @@ export interface Order {
   readonly aux: Province;
   readonly namedCoast: Province;
   readonly resolution: OrderResolution;
-  readonly options: readonly OrderOption[];
   readonly orderType: OrderTypeEnum;
   readonly unitType: UnitTypeEnum;
   readonly nation: Nation;

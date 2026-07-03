@@ -64,7 +64,6 @@ const order = (
   targetCoast: null,
   namedCoast: null as unknown as Order["namedCoast"],
   resolution: { status: "Succeeded", by: null },
-  options: [],
   orderType: "Move",
   unitType: "Army",
   nation: nation("france"),

@@ -215,7 +215,6 @@ export const makeOrder = (spec: OrderSpec): Order => {
             by: spec.failedBy ? province(spec.failedBy) : null,
           }
         : { status: "Succeeded", by: null },
-    options: [],
     orderType: spec.orderType,
     unitType: spec.unitType,
     nation: nation(spec.nationId),

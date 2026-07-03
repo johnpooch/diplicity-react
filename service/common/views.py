@@ -29,7 +29,7 @@ def resolve_phase(request, game_id, phase_id):
         request._phase_cache = cache
     key = (game_id, phase_id)
     if key not in cache:
-        cache[key] = get_object_or_404(Phase, id=phase_id, game_id=game_id)
+        cache[key] = get_object_or_404(Phase.objects.defer("options"), id=phase_id, game_id=game_id)
     return cache[key]
 
 

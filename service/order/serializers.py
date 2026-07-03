@@ -26,11 +26,6 @@ class OrderOptionsResponseSerializer(serializers.Serializer):
     field_order = serializers.DictField(child=serializers.ListField(child=serializers.CharField()))
 
 
-class OrderOptionSerializer(serializers.Serializer):
-    value = serializers.CharField()
-    label = serializers.CharField()
-
-
 class OrderResolutionSerializer(serializers.Serializer):
     status = serializers.CharField(source="get_status_display")
     by = ProvinceSerializer(allow_null=True)
@@ -44,7 +39,6 @@ class OrderSerializer(serializers.Serializer):
     aux = ProvinceSerializer(read_only=True)
     named_coast = ProvinceSerializer(read_only=True)
     resolution = OrderResolutionSerializer(read_only=True)
-    options = OrderOptionSerializer(source="options_display", read_only=True, many=True)
     order_type = serializers.ChoiceField(choices=OrderType.ORDER_TYPE_CHOICES, read_only=True)
     unit_type = serializers.ChoiceField(choices=UnitType.UNIT_TYPE_CHOICES, read_only=True)
     nation = NationSerializer(read_only=True)

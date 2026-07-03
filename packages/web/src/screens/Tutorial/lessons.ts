@@ -124,7 +124,6 @@ function order(variant: Variant, spec: OrderSpec): Order {
     resolution: spec.failed
       ? { status: "Failed", by: spec.failedBy ? p(spec.failedBy) : null }
       : { status: "Succeeded", by: null },
-    options: [],
     orderType: spec.orderType,
     unitType: spec.unitType,
     nation: nationOf(variant, spec.nationId),

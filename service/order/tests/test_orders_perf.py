@@ -118,10 +118,8 @@ def test_list_orders_with_incomplete_orders(
     authenticated_client, game_with_options, primary_user
 ):
     """GET /game/<id>/orders/ with two INCOMPLETE orders (source-only,
-    no order_type yet). This is the scenario the production P99 tail
-    points at: each incomplete order computes options_display, which
-    historically did a variant.provinces.get(province_id=...) per option.
-    Regression guard for the variant.provinces lookup N+1."""
+    no order_type yet). Benchmarks the incomplete-order list path, which
+    still computes each order's step/title/summary."""
     from order.models import Order
     from province.models import Province
 

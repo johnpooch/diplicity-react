@@ -174,10 +174,6 @@ class Order(BaseModel):
         return self.phase_state.phase
 
     @property
-    def options(self):
-        return get_options_for_order(self.phase.transformed_options, self)
-
-    @property
     def source_coast(self):
         if not self.source:
             return None
@@ -220,32 +216,6 @@ class Order(BaseModel):
         if self.phase.type == PhaseType.RETREAT:
             return next((unit for unit in units if unit.dislodged), None) or (units[0] if units else None)
         return units[0] if units else None
-
-    @property
-    def options_display(self):
-        options = self.options
-        if not options:
-            # Complete orders (the common case in list responses) have no
-            # options to display — skip the variant.provinces lookup entirely.
-            return []
-
-        # Build the variant's province lookup once on the variant. Same
-        # variant object is shared across all orders in a list response via
-        # select_related on phase_state__phase__game__variant, so the second
-        # order onward reuses the cached dict.
-        variant = self.variant
-        province_lookup = getattr(variant, "_options_province_lookup", None)
-        if province_lookup is None:
-            province_lookup = {p.province_id: p for p in variant.provinces.all()}
-            variant._options_province_lookup = province_lookup
-
-        return [
-            {
-                "value": opt,
-                "label": (province_lookup[opt].name if opt in province_lookup else opt),
-            }
-            for opt in options
-        ]
 
     @property
     def selected(self):

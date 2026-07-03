@@ -151,6 +151,65 @@ class TestOrderListView:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
+class TestOrderListViewCompletedPhaseCaching:
+
+    @pytest.mark.django_db
+    def test_active_phase_response_is_not_cached(self, authenticated_client, order_active_game):
+        game = order_active_game
+        phase = game.current_phase
+        url = reverse("order-list", args=[game.id, phase.id])
+
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert "ETag" not in response
+        assert "Cache-Control" not in response
+
+    @pytest.mark.django_db
+    def test_completed_phase_response_has_cache_headers(self, authenticated_client, order_active_game):
+        game = order_active_game
+        phase = game.current_phase
+        phase.status = PhaseStatus.COMPLETED
+        phase.save()
+        url = reverse("order-list", args=[game.id, phase.id])
+
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response["ETag"]
+        assert response["Cache-Control"] == "private, max-age=604800"
+
+    @pytest.mark.django_db
+    def test_completed_phase_matching_etag_returns_304(self, authenticated_client, order_active_game):
+        game = order_active_game
+        phase = game.current_phase
+        phase.status = PhaseStatus.COMPLETED
+        phase.save()
+        url = reverse("order-list", args=[game.id, phase.id])
+
+        first = authenticated_client.get(url)
+        etag = first["ETag"]
+
+        second = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+
+        assert second.status_code == status.HTTP_304_NOT_MODIFIED
+        assert second["ETag"] == etag
+        assert second["Cache-Control"] == "private, max-age=604800"
+
+    @pytest.mark.django_db
+    def test_completed_phase_stale_etag_returns_200(self, authenticated_client, order_active_game):
+        game = order_active_game
+        phase = game.current_phase
+        phase.status = PhaseStatus.COMPLETED
+        phase.save()
+        url = reverse("order-list", args=[game.id, phase.id])
+
+        response = authenticated_client.get(url, HTTP_IF_NONE_MATCH='"stale"')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response["ETag"] != '"stale"'
+
+
 class TestOrderCreateView:
 
     @pytest.mark.django_db
@@ -180,11 +239,6 @@ class TestOrderCreateView:
         assert response.data["target"] is None
         assert response.data["aux"] is None
         assert response.data["resolution"] is None
-        assert response.data["options"] == [
-            {"value": "Hold", "label": "Hold"},
-            {"value": "Move", "label": "Move"},
-            {"value": "Support", "label": "Support"},
-        ]
         assert response.data["step"] == OrderCreationStep.SELECT_ORDER_TYPE
         assert response.data["title"] == "Select order type for Budapest"
 
@@ -223,13 +277,6 @@ class TestOrderCreateView:
         assert response.data["target"] is None
         assert response.data["aux"] is None
         assert response.data["resolution"] is None
-        assert response.data["options"] == [
-            {"value": "gal", "label": "Galicia"},
-            {"value": "rum", "label": "Rumania"},
-            {"value": "ser", "label": "Serbia"},
-            {"value": "tri", "label": "Trieste"},
-            {"value": "vie", "label": "Vienna"},
-        ]
         assert response.data["step"] == OrderCreationStep.SELECT_TARGET
         assert response.data["title"] == "Select province to move Budapest to"
 
@@ -252,7 +299,6 @@ class TestOrderCreateView:
         assert response.data["target"]["name"] == "Galicia"
         assert response.data["aux"] is None
         assert response.data["resolution"] is None
-        assert response.data["options"] == []
         assert response.data["step"] == OrderCreationStep.COMPLETED
         assert response.data["title"] == "Budapest will move to Galicia"
 
@@ -281,11 +327,6 @@ class TestOrderCreateView:
         assert response.data["target"] is None
         assert response.data["aux"] is None
         assert response.data["resolution"] is None
-        assert response.data["options"] == [
-            {"value": "sev", "label": "Sevastopol"},
-            {"value": "tri", "label": "Trieste"},
-            {"value": "vie", "label": "Vienna"},
-        ]
         assert response.data["step"] == OrderCreationStep.SELECT_AUX
         assert response.data["title"] == "Select province for Budapest to support"
 
@@ -309,11 +350,6 @@ class TestOrderCreateView:
         assert response.data["aux"]["id"] == "vie"
         assert response.data["aux"]["name"] == "Vienna"
         assert response.data["resolution"] is None
-        assert response.data["options"] == [
-            {"value": "gal", "label": "Galicia"},
-            {"value": "tri", "label": "Trieste"},
-            {"value": "vie", "label": "Vienna"},
-        ]
         assert response.data["step"] == OrderCreationStep.SELECT_TARGET
         assert response.data["title"] == "Select destination for Budapest to support Vienna to"
 
@@ -346,7 +382,6 @@ class TestOrderCreateView:
         assert response.data["aux"]["id"] == "vie"
         assert response.data["aux"]["name"] == "Vienna"
         assert response.data["resolution"] is None
-        assert response.data["options"] == []
         assert response.data["step"] == OrderCreationStep.COMPLETED
         assert response.data["title"] == "Budapest will support Vienna to Trieste"
 
@@ -368,7 +403,6 @@ class TestOrderCreateView:
         assert response.data["target"] is None
         assert response.data["aux"] is None
         assert response.data["resolution"] is None
-        assert response.data["options"] == []
         assert response.data["step"] == OrderCreationStep.COMPLETED
         assert response.data["title"] == "Budapest will hold"
 
@@ -408,10 +442,6 @@ class TestOrderCreateView:
         assert response.data["unit_type"] is None
         assert response.data["target"] is None
         assert response.data["aux"] is None
-        assert response.data["options"] == [
-            {"value": "Army", "label": "Army"},
-            {"value": "Fleet", "label": "Fleet"},
-        ]
         assert response.data["step"] == OrderCreationStep.SELECT_UNIT_TYPE
         assert response.data["title"] == "Select unit type to build in Budapest"
 
@@ -452,7 +482,6 @@ class TestOrderCreateView:
         assert response.data["target"] is None
         assert response.data["aux"] is None
         assert response.data["resolution"] is None
-        assert response.data["options"] == []
         assert response.data["step"] == OrderCreationStep.COMPLETED
         assert response.data["title"] == "Army will be built in Budapest"
 
@@ -483,13 +512,6 @@ class TestOrderCreateView:
         assert response.data["target"] is None
         assert response.data["aux"] is None
         assert response.data["resolution"] is None
-        assert response.data["options"] == [
-            {"value": "gal", "label": "Galicia"},
-            {"value": "rum", "label": "Rumania"},
-            {"value": "ser", "label": "Serbia"},
-            {"value": "tri", "label": "Trieste"},
-            {"value": "vie", "label": "Vienna"},
-        ]
         assert response.data["step"] == OrderCreationStep.SELECT_TARGET
         assert response.data["title"] == "Select province to move Budapest to"
 
@@ -522,7 +544,6 @@ class TestOrderCreateView:
         assert response.data["target"]["name"] == "Galicia"
         assert response.data["aux"] is None
         assert response.data["resolution"] is None
-        assert response.data["options"] == []
         assert response.data["step"] == OrderCreationStep.COMPLETED
         assert response.data["title"] == "Budapest will move via convoy to Galicia"
 
@@ -579,7 +600,6 @@ class TestOrderCreateView:
         assert response.data["target"] is None
         assert response.data["aux"] is None
         assert response.data["resolution"] is None
-        assert response.data["options"] == []
         assert response.data["step"] == OrderCreationStep.COMPLETED
         assert response.data["title"] == "Budapest will be disbanded"
 
@@ -2535,10 +2555,6 @@ class TestOrderNamedCoastCreation:
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["step"] == OrderCreationStep.SELECT_NAMED_COAST
         assert response.data["title"] == "Select which coast of Spain to build a fleet on"
-        assert response.data["options"] == [
-            {"value": "spa/nc", "label": "Spain (NC)"},
-            {"value": "spa/sc", "label": "Spain (SC)"},
-        ]
 
         # Step 4: Select named coast
         data = {"selected": ["spa", "Build", "Fleet", "spa/nc"]}
