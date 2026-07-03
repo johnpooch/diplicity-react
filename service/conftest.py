@@ -784,6 +784,7 @@ def pending_game_factory(db, primary_user, classical_variant):
             name="Test Game with Creator",
             movement_phase_duration=MovementPhaseDuration.TWENTY_FOUR_HOURS,
             created_by=creator,
+            admin=creator,
         )
         game.members.create(user=creator)
         return game
@@ -803,6 +804,7 @@ def active_game_factory(db, primary_user, classical_variant, adjudication_data_c
             nmr_extensions_allowed=nmr_extensions_allowed,
             deadline_mode=DeadlineMode.DURATION,
             created_by=creator,
+            admin=creator,
         )
         game.members.create(user=creator)
 
@@ -842,6 +844,7 @@ def fixed_deadline_game_factory(db, primary_user, classical_variant, adjudicatio
             movement_frequency=movement_frequency,
             retreat_frequency=retreat_frequency,
             created_by=creator,
+            admin=creator,
         )
         game.members.create(user=creator)
 
@@ -898,6 +901,7 @@ def base_active_game_for_primary_user(db, classical_variant):
 def active_game_created_by_primary_user(db, primary_user, base_active_game_for_primary_user, base_active_phase):
     base_active_phase(base_active_game_for_primary_user)
     base_active_game_for_primary_user.created_by = primary_user
+    base_active_game_for_primary_user.admin = primary_user
     base_active_game_for_primary_user.save()
     base_active_game_for_primary_user.members.create(user=primary_user)
     return base_active_game_for_primary_user
@@ -935,6 +939,7 @@ def base_active_game_for_secondary_user(db, classical_variant):
 def active_game_created_by_secondary_user(db, secondary_user, base_active_game_for_secondary_user, base_active_phase):
     base_active_phase(base_active_game_for_secondary_user)
     base_active_game_for_secondary_user.created_by = secondary_user
+    base_active_game_for_secondary_user.admin = secondary_user
     base_active_game_for_secondary_user.save()
     base_active_game_for_secondary_user.members.create(user=secondary_user)
     return base_active_game_for_secondary_user
@@ -1024,6 +1029,7 @@ def pending_game_created_by_secondary_user(
 ):
     base_pending_phase(base_pending_game_for_secondary_user)
     base_pending_game_for_secondary_user.created_by = secondary_user
+    base_pending_game_for_secondary_user.admin = secondary_user
     base_pending_game_for_secondary_user.save()
     base_pending_game_for_secondary_user.members.create(user=secondary_user)
     return base_pending_game_for_secondary_user
@@ -1039,6 +1045,7 @@ def pending_game_created_by_secondary_user_joined_by_primary(db, primary_user, p
 def pending_game_created_by_primary_user(db, primary_user, base_pending_game_for_primary_user, base_pending_phase):
     base_pending_phase(base_pending_game_for_primary_user)
     base_pending_game_for_primary_user.created_by = primary_user
+    base_pending_game_for_primary_user.admin = primary_user
     base_pending_game_for_primary_user.save()
     base_pending_game_for_primary_user.members.create(user=primary_user)
     return base_pending_game_for_primary_user
@@ -1082,6 +1089,7 @@ def active_game(
         variant=classical_variant,
         status=GameStatus.ACTIVE,
         created_by=primary_user,
+        admin=primary_user,
     )
 
     phase = game.phases.create(
@@ -2087,6 +2095,7 @@ def pending_game_with_game_master_factory(db, primary_user, classical_variant, b
             private=True,
             created_by=game_master,
             game_master=game_master,
+            admin=game_master,
         )
         game.channels.create(name="Public Press", private=False)
         return game
@@ -2107,6 +2116,7 @@ def active_game_with_game_master_factory(db, primary_user, classical_variant, ad
             private=True,
             created_by=game_master,
             game_master=game_master,
+            admin=game_master,
         )
         game.channels.create(name="Public Press", private=False)
 
