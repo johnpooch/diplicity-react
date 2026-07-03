@@ -22,11 +22,7 @@ def resolve_game(request, game_id):
 
 
 def resolve_phase(request, game_id, phase_id):
-    """Cache the Phase fetch per request alongside resolve_game.
-
-    The large per-phase ``options`` JSON blob is deferred: views using
-    SelectedPhaseMixin (order list) never read it, and deferring keeps it out of
-    the SELECT while still lazy-loading if a caller ever touches it."""
+    """Cache the Phase fetch per request alongside resolve_game."""
     cache = getattr(request, "_phase_cache", None)
     if cache is None:
         cache = {}
