@@ -1188,7 +1188,10 @@ class TestCreateFromAdjudicationDataPerformance:
 
         query_count = len(connection.queries)
 
-        assert query_count == 15
+        # +1 vs. the pre-cancellation-tracking count: the newly armed resolution
+        # job's id is persisted onto the phase so a stale job can be cancelled
+        # later if the phase resolves early or gets a new deadline.
+        assert query_count == 16
 
     @pytest.mark.django_db
     def test_create_from_adjudication_data_query_count_with_full_game(
