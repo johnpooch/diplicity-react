@@ -898,7 +898,35 @@ def bot_public_channel_factory(bot_game_factory):
     return _create
 
 
+@pytest.fixture
+def bot_private_channel_factory(bot_game_factory):
+    def _create():
+        game = bot_game_factory()
+        channel = game.channels.create(name="Private", private=True)
+        for member in game.members.all():
+            channel.member_channels.create(member=member)
+        return game, channel
+
+    return _create
+
+
 class TestReplyTask:
+
+    @pytest.mark.django_db
+    def test_reply_posts_message_in_private_channel(
+        self, bot_private_channel_factory, in_memory_procrastinate
+    ):
+        game, channel = bot_private_channel_factory()
+        bot_user = get_bot_user()
+        bot_member = game.members.get(user=bot_user)
+        human_member = game.members.get(user=game.created_by)
+        ChannelMessage.objects.create(channel=channel, sender=human_member, body="Just between us")
+
+        with patch("bot.tasks.LLMClient") as mock_llm:
+            mock_llm.return_value.complete.return_value = _reply_response(True, "Understood.")
+            tasks.reply(user_id=bot_user.id, game_id=game.id, channel_id=channel.id)
+
+        assert channel.messages.filter(sender=bot_member, body="Understood.").exists()
 
     @pytest.mark.django_db
     def test_reply_posts_message_when_model_replies(
@@ -1029,7 +1057,7 @@ class TestReplyTrigger:
         assert len(_bot_reply_jobs(in_memory_procrastinate)) == 0
 
     @pytest.mark.django_db
-    def test_private_channel_message_does_not_defer_reply(
+    def test_private_channel_message_defers_reply(
         self, bot_public_channel_factory, in_memory_procrastinate
     ):
         game, _ = bot_public_channel_factory()
@@ -1044,6 +1072,35 @@ class TestReplyTrigger:
         response = human_client.post(
             reverse("channel-message-create", args=[game.id, private.id]),
             {"body": "Just between us"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+
+        jobs = _bot_reply_jobs(in_memory_procrastinate)
+        assert len(jobs) == 1
+        assert jobs[0]["lock"] == f"reply-{response.data['id']}-{bot_member.id}"
+        assert jobs[0]["args"] == {
+            "user_id": get_bot_user().id,
+            "game_id": game.id,
+            "channel_id": private.id,
+        }
+
+    @pytest.mark.django_db
+    def test_private_channel_without_bot_member_does_not_defer_reply(
+        self, bot_public_channel_factory, in_memory_procrastinate, secondary_user
+    ):
+        game, _ = bot_public_channel_factory()
+        human_member = game.members.get(user=game.created_by)
+        other_member = game.members.create(user=secondary_user)
+        private = game.channels.create(name="Private", private=True)
+        private.member_channels.create(member=human_member)
+        private.member_channels.create(member=other_member)
+
+        human_client = APIClient()
+        human_client.force_authenticate(user=game.created_by)
+        response = human_client.post(
+            reverse("channel-message-create", args=[game.id, private.id]),
+            {"body": "No bots here"},
             format="json",
         )
         assert response.status_code == status.HTTP_201_CREATED
