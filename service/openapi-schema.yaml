@@ -2951,11 +2951,6 @@ components:
           allOf:
           - $ref: '#/components/schemas/OrderResolution'
           readOnly: true
-        options:
-          type: array
-          items:
-            $ref: '#/components/schemas/OrderOption'
-          readOnly: true
         orderType:
           allOf:
           - $ref: '#/components/schemas/OrderTypeEnum'
@@ -2999,7 +2994,6 @@ components:
       - isImplicit
       - namedCoast
       - nation
-      - options
       - orderType
       - resolution
       - source
@@ -3010,16 +3004,6 @@ components:
       - targetCoast
       - title
       - unitType
-    OrderOption:
-      type: object
-      properties:
-        value:
-          type: string
-        label:
-          type: string
-      required:
-      - label
-      - value
     OrderOptionsResponse:
       type: object
       properties:

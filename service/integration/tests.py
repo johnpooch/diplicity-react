@@ -240,24 +240,18 @@ def test_active_game_create_orders_and_confirm(
 
     assert create_order_response.status_code == status.HTTP_201_CREATED
     assert create_order_response.data["selected"] == ["kie"]
-    assert create_order_response.data["options"][0] == {"value": "Hold", "label": "Hold"}
-    assert create_order_response.data["options"][1] == {"value": "Move", "label": "Move"}
-    assert create_order_response.data["options"][2] == {"value": "Support", "label": "Support"}
 
     create_order_payload = {"selected": ["kie", "Move"]}
     create_order_response = authenticated_client.post(create_order_url, create_order_payload, format="json")
 
     assert create_order_response.status_code == status.HTTP_201_CREATED
     assert create_order_response.data["selected"] == ["kie", "Move"]
-    assert create_order_response.data["options"][0] == {"value": "bal", "label": "Baltic Sea"}
-    assert create_order_response.data["options"][1] == {"value": "ber", "label": "Berlin"}
 
     create_order_payload = {"selected": ["kie", "Move", "den"]}
     create_order_response = authenticated_client.post(create_order_url, create_order_payload, format="json")
     assert create_order_response.status_code == status.HTTP_201_CREATED
 
     assert create_order_response.data["selected"] == ["kie", "Move", "den"]
-    assert create_order_response.data["options"] == []
     assert create_order_response.data["step"] == OrderCreationStep.COMPLETED
     assert create_order_response.data["title"] == "Kiel will move to Denmark"
 
@@ -269,9 +263,6 @@ def test_active_game_create_orders_and_confirm(
 
     assert create_order_response.status_code == status.HTTP_201_CREATED
     assert create_order_response.data["selected"] == ["ven"]
-    assert create_order_response.data["options"][0] == {"value": "Hold", "label": "Hold"}
-    assert create_order_response.data["options"][1] == {"value": "Move", "label": "Move"}
-    assert create_order_response.data["options"][2] == {"value": "Support", "label": "Support"}
 
     create_order_payload = {"selected": ["ven", "Move"]}
     create_order_response = authenticated_client_for_secondary_user.post(
@@ -279,8 +270,6 @@ def test_active_game_create_orders_and_confirm(
     )
     assert create_order_response.status_code == status.HTTP_201_CREATED
     assert create_order_response.data["selected"] == ["ven", "Move"]
-    assert create_order_response.data["options"][0] == {"value": "apu", "label": "Apulia"}
-    assert create_order_response.data["options"][1] == {"value": "pie", "label": "Piedmont"}
 
     create_order_payload = {"selected": ["ven", "Move", "tri"]}
     create_order_response = authenticated_client_for_secondary_user.post(
@@ -288,7 +277,6 @@ def test_active_game_create_orders_and_confirm(
     )
     assert create_order_response.status_code == status.HTTP_201_CREATED
     assert create_order_response.data["selected"] == ["ven", "Move", "tri"]
-    assert create_order_response.data["options"] == []
     assert create_order_response.data["step"] == OrderCreationStep.COMPLETED
     assert create_order_response.data["title"] == "Venice will move to Trieste"
 

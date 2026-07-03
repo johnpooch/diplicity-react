@@ -48,7 +48,6 @@ const baseOrder: Order = {
   aux: province("lon"),
   namedCoast: province("lon"),
   resolution: { status: "", by: null },
-  options: [],
   orderType: "Hold",
   unitType: "Army",
   nation: nations[0],

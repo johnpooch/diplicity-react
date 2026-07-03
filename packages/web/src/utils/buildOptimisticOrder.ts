@@ -49,7 +49,6 @@ function buildOptimisticOrder(
     namedCoast,
     // "Succeeded" prevents the failure cross from rendering on the pending order
     resolution: { status: "Succeeded", by: null },
-    options: [],
     orderType: orderType as Order["orderType"],
     unitType: (resolvedSelections["unitType"] as Order["unitType"]) ?? "Army",
     nation,

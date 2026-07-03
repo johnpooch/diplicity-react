@@ -713,7 +713,6 @@ export const mockOrders: Order[] = [
     sourceCoast: null,
     targetCoast: null,
     resolution: { status: "Succeeded", by: null },
-    options: [],
     orderType: "Move",
     unitType: "Army",
     nation: mockNations[0], // Austria
@@ -731,7 +730,6 @@ export const mockOrders: Order[] = [
     sourceCoast: null,
     targetCoast: null,
     resolution: { status: "Succeeded", by: null },
-    options: [],
     orderType: "Hold",
     unitType: "Fleet",
     nation: mockNations[1], // England
@@ -749,7 +747,6 @@ export const mockOrders: Order[] = [
     sourceCoast: null,
     targetCoast: null,
     resolution: { status: "Failed", by: mockProvinces[0] },
-    options: [],
     orderType: "Move",
     unitType: "Army",
     nation: mockNations[2], // France
@@ -767,7 +764,6 @@ export const mockOrders: Order[] = [
     sourceCoast: null,
     targetCoast: null,
     resolution: { status: "Succeeded", by: null },
-    options: [],
     orderType: "Move",
     unitType: "Fleet",
     nation: mockNations[6], // Turkey
