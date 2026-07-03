@@ -535,6 +535,7 @@ class GameCreateSerializer(serializers.Serializer):
                 name=validated_data["name"],
                 created_by=request.user,
                 game_master=request.user if with_game_master else None,
+                admin=request.user,
                 nation_assignment=validated_data["nation_assignment"],
                 movement_phase_duration=validated_data["movement_phase_duration"],
                 retreat_phase_duration=validated_data.get("retreat_phase_duration"),

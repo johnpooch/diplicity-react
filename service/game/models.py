@@ -400,6 +400,13 @@ class Game(BaseModel):
         blank=True,
         related_name="game_master_games",
     )
+    admin = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="administered_games",
+    )
     variant = models.ForeignKey("variant.Variant", on_delete=models.CASCADE, related_name="games")
     name = models.CharField(max_length=100)
     status = models.CharField(max_length=20, choices=GameStatus.STATUS_CHOICES, default=GameStatus.PENDING)
@@ -584,14 +591,7 @@ class Game(BaseModel):
 
     def can_manage(self, user):
         with tracer.start_as_current_span("game.models.can_manage"):
-            if self.game_master_id is not None:
-                return self.game_master_id == user.id
-            if self.created_by_id is None or self.created_by_id != user.id:
-                return False
-            return any(
-                member.user_id is not None and member.user_id == user.id
-                for member in self.members.all()
-            )
+            return self.admin_id == user.id
 
     def notification_user_ids(self, exclude_user_id=None):
         user_ids = {
