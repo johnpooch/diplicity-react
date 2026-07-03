@@ -326,6 +326,10 @@ const Router: React.FC<RouterProps> = ({ loggedIn, queryClient }) => {
                 },
               ],
             },
+            {
+              path: "*",
+              loader: () => redirect("/"),
+            },
           ])
         : createBrowserRouter([
             {
