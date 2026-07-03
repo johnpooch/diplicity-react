@@ -2,8 +2,9 @@ import gzip
 import hashlib
 import json
 
+from django.core.cache import cache
 from django.db import transaction
-from django.db.models import Max
+from django.db.models import Max, Q
 from django.http import HttpResponse, HttpResponseNotFound
 from django.views import View
 from rest_framework import generics, permissions, status
@@ -17,6 +18,11 @@ from province.models import Province
 from .models import Variant, VariantSvg
 from .serializers import VariantSerializer, VariantWriteSerializer
 from .utils import variant_to_canonical_dict
+
+# Rendered published-variant lists are cached under a key that encodes the
+# content-version inputs, so entries self-invalidate whenever a variant or flag
+# changes. The timeout only bounds memory for keys that are never re-requested.
+_VARIANTS_LIST_CACHE_TIMEOUT = 60 * 60 * 24
 
 
 class IsOwnedDraftForWrite(permissions.BasePermission):
@@ -32,18 +38,45 @@ class IsOwnedDraftForWrite(permissions.BasePermission):
         )
 
 
-def _variants_list_etag(user):
-    variant_max = Variant.objects.aggregate(Max("updated_at"))["updated_at__max"]
-    flag_max = NationFlag.objects.aggregate(Max("updated_at"))["updated_at__max"]
-    mode = None
+def _colorblind_mode(user):
     if user.is_authenticated:
         profile = getattr(user, "profile", None)
         if profile is not None:
-            mode = profile.colorblind_mode
+            return profile.colorblind_mode
+    return None
+
+
+def _variants_list_cache_inputs(user):
+    variant_max = Variant.objects.aggregate(Max("updated_at"))["updated_at__max"]
+    flag_max = NationFlag.objects.aggregate(Max("updated_at"))["updated_at__max"]
+    return variant_max, flag_max, _colorblind_mode(user)
+
+
+def _variants_list_etag(variant_max, flag_max, user, mode):
     digest = hashlib.sha256(
         f"{variant_max}|{flag_max}|{user.id}|{mode}".encode()
     ).hexdigest()
     return f'"{digest[:32]}"'
+
+
+def _user_sees_only_published_variants(user):
+    """Whether ``visible_to(user)`` returns exactly the published variants.
+
+    True for anonymous users and for authenticated users who neither own a
+    draft nor belong to a game running a non-published variant — the common
+    case, and the only one whose payload can be served from the shared cache.
+    Mirrors the non-published clauses of ``VariantQuerySet.visible_to``.
+    """
+    if not user.is_authenticated:
+        return True
+    return not (
+        Variant.objects.filter(
+            Q(status=VariantStatus.DRAFT, owner=user)
+            | Q(games__members__user=user)
+        )
+        .exclude(status=VariantStatus.PUBLISHED)
+        .exists()
+    )
 
 
 class VariantListCreateView(generics.ListCreateAPIView):
@@ -64,24 +97,35 @@ class VariantListCreateView(generics.ListCreateAPIView):
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        user = self.request.user
-        mode = None
-        if user.is_authenticated:
-            profile = getattr(user, "profile", None)
-            if profile is not None:
-                mode = profile.colorblind_mode
-        context["colorblind_mode"] = mode
+        context["colorblind_mode"] = _colorblind_mode(self.request.user)
         return context
 
     def list(self, request, *args, **kwargs):
-        etag = _variants_list_etag(request.user)
+        variant_max, flag_max, mode = _variants_list_cache_inputs(request.user)
+        etag = _variants_list_etag(variant_max, flag_max, request.user, mode)
         if request.headers.get("If-None-Match") == etag:
             response = Response(status=status.HTTP_304_NOT_MODIFIED)
+        elif _user_sees_only_published_variants(request.user):
+            response = Response(self._published_variants_data(variant_max, flag_max, mode))
         else:
             response = super().list(request, *args, **kwargs)
         response["ETag"] = etag
         response["Cache-Control"] = "private, no-cache"
         return response
+
+    def _published_variants_data(self, variant_max, flag_max, mode):
+        digest = hashlib.sha256(f"{variant_max}|{flag_max}|{mode}".encode()).hexdigest()
+        cache_key = f"variants-list:published:{digest}"
+        data = cache.get(cache_key)
+        if data is None:
+            queryset = Variant.objects.filter(
+                status=VariantStatus.PUBLISHED
+            ).with_related_data()
+            serialized = self.get_serializer(queryset, many=True).data
+            # Strip DRF's request-bound wrappers so the payload pickles cleanly.
+            data = json.loads(json.dumps(serialized))
+            cache.set(cache_key, data, _VARIANTS_LIST_CACHE_TIMEOUT)
+        return data
 
 
 class VariantDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -93,13 +137,7 @@ class VariantDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        user = self.request.user
-        mode = None
-        if user.is_authenticated:
-            profile = getattr(user, "profile", None)
-            if profile is not None:
-                mode = profile.colorblind_mode
-        context["colorblind_mode"] = mode
+        context["colorblind_mode"] = _colorblind_mode(self.request.user)
         return context
 
     def get_serializer_class(self):

@@ -141,8 +141,9 @@ class TestVariantListViewQueryPerformance:
         query_count = len(connection.queries)
 
         # 18 prefetch queries + 2 ETag aggregates (Variant + NationFlag max
-        # updated_at). The ETag is what enables 304 responses on /variants/.
-        assert query_count == 20
+        # updated_at) + 1 published-only gate query (routes the request to the
+        # shared render cache). This is the cache-miss path; hits skip the 18.
+        assert query_count == 21
 
     @pytest.mark.django_db
     def test_list_variants_query_count_with_single_variant(self, authenticated_client, classical_variant):
@@ -177,8 +178,9 @@ class TestVariantListViewQueryPerformance:
         # due to prefetch_related optimization
         query_count = len(connection.queries)
         # 18 prefetch queries + 2 ETag aggregates (Variant + NationFlag max
-        # updated_at). The ETag is what enables 304 responses on /variants/.
-        assert query_count == 20
+        # updated_at) + 1 published-only gate query (routes the request to the
+        # shared render cache). This is the cache-miss path; hits skip the 18.
+        assert query_count == 21
 
 
 class TestPhaseProgressionBackfill:
