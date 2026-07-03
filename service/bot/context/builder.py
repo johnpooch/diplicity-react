@@ -9,8 +9,9 @@ from bot.types import ChannelDict, ChatMessageDict, ContextData, UnitDict
 logger = logging.getLogger(__name__)
 
 
-def _message_role(message: ChatMessageDict) -> str:
-    return "assistant" if message["sender"]["is_current_user"] else "user"
+def _sender_label(message: ChatMessageDict) -> str:
+    nation = (message["sender"].get("nation") or {}).get("name")
+    return nation or "user"
 
 
 def _unit_label(unit: UnitDict) -> str:
@@ -205,9 +206,10 @@ class ContextBuilder:
         return self
 
     def _format_channel(self, channel: ChannelDict) -> str:
-        lines = [f"Channel: {channel.get('name') or channel['id']}"]
+        privacy = "private" if channel.get("private") else "public"
+        lines = [f"Channel: {channel.get('name') or channel['id']} ({privacy})"]
         for message in channel["messages"]:
-            lines.append(f"{_message_role(message)}: {message['body']}")
+            lines.append(f"{_sender_label(message)}: {message['body']}")
         return "\n".join(lines)
 
     def build_shared(self) -> str:
