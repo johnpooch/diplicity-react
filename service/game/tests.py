@@ -1336,8 +1336,6 @@ class TestGameListViewQueryPerformance:
                 for phase in game_obj.phases.all()
             }
 
-        # Only the current phase (ordinal 5) and the latest completed phase
-        # (ordinal 4) carry hydrated phase states; older phases are empty.
         assert states_by_ordinal == {1: 0, 2: 0, 3: 0, 4: 2, 5: 2}
 
 

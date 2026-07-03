@@ -95,10 +95,6 @@ class GameQuerySet(models.QuerySet):
             .distinct("game_id")
             .values("id")
         )
-        # The list serializer only reads phase states for the current phase
-        # (order_status, phase_confirmed) and the latest completed phase
-        # (member_status), so scope the prefetch to those rather than loading
-        # every historical phase's states.
         phase_states_prefetch = Prefetch(
             "phase_states",
             queryset=PhaseState.objects.filter(
@@ -117,9 +113,6 @@ class GameQuerySet(models.QuerySet):
             queryset=SupplyCenter.objects.filter(phase__in=current_phase_ids)
             .select_related("nation", "province"),
         )
-        # The serializer never reads the large per-phase `options` blob on the
-        # list path; restrict the prefetch to the slim fields it does read so
-        # cost no longer grows with game age.
         phases_prefetch = Prefetch(
             "phases",
             queryset=Phase.objects.only(
