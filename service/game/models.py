@@ -447,16 +447,10 @@ class Game(BaseModel):
             if hasattr(self, "active_phases_list"):
                 return self.active_phases_list[-1] if self.active_phases_list else None
 
-            # If phases were prefetched (e.g. the list/retrieve querysets),
-            # read from the cache rather than issuing another query.
             if "phases" in getattr(self, "_prefetched_objects_cache", {}):
                 phases = list(self.phases.all())
                 return phases[-1] if phases else None
 
-            # Non-prefetched path (e.g. CurrentPhaseMixin on order submission,
-            # order options, phase-state confirm): fetch only the latest phase
-            # instead of loading every phase of the game, including each
-            # historical `options` blob.
             return self.phases.order_by("ordinal").last()
 
     @property
