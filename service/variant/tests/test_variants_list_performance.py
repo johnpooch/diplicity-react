@@ -2,14 +2,20 @@ import copy
 import json
 
 import pytest
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connection
 from django.test.utils import override_settings
 from django.urls import reverse
 from rest_framework import status
 
+from common.constants import VariantStatus
 from variant.models import Variant
 from variant.utils import variant_to_canonical_dict
+
+# The session-wide test cache is a no-op DummyCache; opt individual tests into a
+# real backend so the published-list render cache can actually be exercised.
+_LOCMEM_CACHE = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 
 
 @pytest.fixture
@@ -44,7 +50,7 @@ def test_list_variants_baseline_query_count(authenticated_client):
     If this number grows, something added an un-prefetched relation access."""
     query_count, response = _list_query_count(authenticated_client)
     assert len(response.data) >= 2
-    assert query_count <= 20, f"GET /variants/ issued {query_count} queries for {len(response.data)} variants"
+    assert query_count <= 21, f"GET /variants/ issued {query_count} queries for {len(response.data)} variants"
 
 
 @pytest.mark.django_db
@@ -117,3 +123,65 @@ def test_list_variants_etag_changes_when_a_variant_is_uploaded(
     )
     assert after.status_code == status.HTTP_200_OK
     assert after["ETag"] != initial_etag
+
+
+@pytest.mark.django_db
+def test_published_variants_list_served_from_render_cache(authenticated_client):
+    """A second request for the published list skips the heavy prefetch queries
+    and is served from the render cache with byte-identical data."""
+    with override_settings(CACHES=_LOCMEM_CACHE):
+        cache.clear()
+        miss_count, miss_response = _list_query_count(authenticated_client)
+        hit_count, hit_response = _list_query_count(authenticated_client)
+
+    assert hit_response.data == miss_response.data
+    # The hit path runs only the content-version aggregates and the
+    # published-only gate query; the ~18 prefetch queries are skipped.
+    assert hit_count < miss_count
+    assert hit_count <= 5
+
+
+@pytest.mark.django_db
+def test_render_cache_key_isolates_colorblind_mode(user_factory, authenticated_client_factory):
+    """Colorblind and non-colorblind users are published-only, but the cache key
+    encodes the mode so they never receive each other's palette."""
+    normal_user = user_factory()
+    colorblind_user = user_factory()
+    colorblind_user.profile.colorblind_mode = "deuteranopia"
+    colorblind_user.profile.save()
+
+    normal_client = authenticated_client_factory(normal_user)
+    colorblind_client = authenticated_client_factory(colorblind_user)
+
+    with override_settings(CACHES=_LOCMEM_CACHE):
+        cache.clear()
+        normal = normal_client.get(reverse("variant-list"))
+        colorblind = colorblind_client.get(reverse("variant-list"))
+
+    def nation_colors(response):
+        return {nation["color"] for variant in response.data for nation in variant["nations"]}
+
+    assert nation_colors(normal) != nation_colors(colorblind)
+
+
+@pytest.mark.django_db
+def test_draft_owner_is_not_served_published_cache(
+    unauthenticated_client, user_factory, authenticated_client_factory
+):
+    """Warming the shared cache from a published-only request must not cause a
+    draft owner to be served the cached payload in place of their own draft."""
+    owner = user_factory()
+    draft = Variant.objects.create(
+        id="cache-draft", name="Cache Draft", description="",
+        status=VariantStatus.DRAFT, owner=owner,
+    )
+    owner_client = authenticated_client_factory(owner)
+
+    with override_settings(CACHES=_LOCMEM_CACHE):
+        cache.clear()
+        anonymous = unauthenticated_client.get(reverse("variant-list"))
+        assert draft.id not in {v["id"] for v in anonymous.data}
+
+        owned = owner_client.get(reverse("variant-list"))
+
+    assert draft.id in {v["id"] for v in owned.data}
