@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { describe, it, expect, vi } from "vitest";
 import { LLMCallDetailScreen } from "./LLMCallDetail";
@@ -8,6 +9,10 @@ const mockCallData = vi.fn();
 vi.mock("@/api/generated/endpoints", () => ({
   useLlmCallsRetrieveSuspense: () => ({ data: mockCallData() }),
   useUserRetrieveSuspense: () => ({ data: { name: "Reviewer", picture: null } }),
+}));
+
+vi.mock("sonner", () => ({
+  toast: { success: vi.fn(), error: vi.fn() },
 }));
 
 const renderDetail = () =>
@@ -109,5 +114,45 @@ describe("LLMCallDetail", () => {
 
     expect(screen.getByText("Replying to")).toBeInTheDocument();
     expect(screen.getByText("Italy")).toBeInTheDocument();
+  });
+
+  it("copies the full LLM call data to the clipboard", async () => {
+    mockCallData.mockReturnValue({
+      id: 1,
+      createdAt: "2026-05-01T10:00:01Z",
+      stage: "plan",
+      status: "success",
+      model: "claude-haiku",
+      gameId: "active-movement",
+      phaseName: "Spring 1901, Movement",
+      nation: "Germany",
+      channelNations: ["Italy"],
+      totalTokens: 1820,
+      latencyMs: 2400,
+      system: "You are Germany.",
+      userContent: "Current board state",
+      response: "My opening move",
+      inputTokens: 1700,
+      outputTokens: 120,
+      cacheReadTokens: 1500,
+      cacheWriteTokens: 200,
+      errorMessage: "",
+    });
+
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+
+    renderDetail();
+
+    await userEvent.click(screen.getByRole("button", { name: /copy/i }));
+
+    expect(writeText).toHaveBeenCalledTimes(1);
+    const copied = writeText.mock.calls[0][0];
+    expect(copied).toContain("# LLM Call");
+    expect(copied).toContain("Stage: plan");
+    expect(copied).toContain("Replying to: Italy");
+    expect(copied).toContain("## System\n\nYou are Germany.");
+    expect(copied).toContain("## Input\n\nCurrent board state");
+    expect(copied).toContain("## Output\n\nMy opening move");
   });
 });

@@ -1,6 +1,7 @@
 import React, { Suspense } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Copy } from "lucide-react";
+import { toast } from "sonner";
 
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { ScreenHeader } from "@/components/ui/screen-header";
@@ -10,6 +11,53 @@ import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { useRequiredParams } from "@/hooks";
 import { useLlmCallsRetrieveSuspense } from "@/api/generated/endpoints";
 import type { LLMCallDetail as LLMCallDetailType } from "@/api/generated/endpoints";
+
+const formatCallForCopy = (call: LLMCallDetailType): string => {
+  const meta = [
+    `Stage: ${call.stage}`,
+    `Status: ${call.status}`,
+    `Nation: ${call.nation ?? "Unknown"}`,
+    call.channelNations.length > 0
+      ? `Replying to: ${call.channelNations.join(", ")}`
+      : null,
+    `Model: ${call.model}`,
+    `Game: ${call.gameId ?? "—"}`,
+    `Phase: ${call.phaseName}`,
+    `Started: ${new Date(call.createdAt).toLocaleString()}`,
+    `Latency: ${call.latencyMs !== null ? `${call.latencyMs} ms` : "—"}`,
+    `Tokens: ${call.totalTokens} total (${call.inputTokens} in / ${call.outputTokens} out, cache ${call.cacheReadTokens} read / ${call.cacheWriteTokens} write)`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const sections = [
+    `# LLM Call\n\n${meta}`,
+    call.errorMessage ? `## Error\n\n${call.errorMessage}` : null,
+    `## System\n\n${call.system || "(empty)"}`,
+    `## Input\n\n${call.userContent || "(empty)"}`,
+    `## Output\n\n${call.response || "(empty)"}`,
+  ].filter(Boolean);
+
+  return sections.join("\n\n");
+};
+
+const CopyButton: React.FC<{ call: LLMCallDetailType }> = ({ call }) => {
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(formatCallForCopy(call));
+      toast.success("LLM call copied to clipboard");
+    } catch {
+      toast.error("Failed to copy LLM call");
+    }
+  };
+
+  return (
+    <Button variant="outline" size="sm" onClick={handleCopy}>
+      <Copy className="size-4" />
+      Copy
+    </Button>
+  );
+};
 
 const MetaRow: React.FC<{ label: string; value: React.ReactNode }> = ({
   label,
@@ -37,6 +85,9 @@ const LLMCallDetailContent: React.FC<{ call: LLMCallDetailType }> = ({
   call,
 }) => (
   <div className="space-y-6">
+    <div className="flex justify-end">
+      <CopyButton call={call} />
+    </div>
     <div className="space-y-1">
       <MetaRow
         label="Stage"
