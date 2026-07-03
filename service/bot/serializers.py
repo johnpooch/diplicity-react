@@ -51,6 +51,7 @@ class LLMCallSummarySerializer(serializers.Serializer):
     game_id = serializers.CharField(source="phase.game_id", read_only=True, allow_null=True)
     phase_name = serializers.CharField(source="phase.name", read_only=True)
     nation = serializers.SerializerMethodField()
+    channel_nations = serializers.SerializerMethodField()
     total_tokens = serializers.SerializerMethodField()
     latency_ms = serializers.IntegerField(read_only=True, allow_null=True)
 
@@ -59,6 +60,17 @@ class LLMCallSummarySerializer(serializers.Serializer):
         if obj.member is None or obj.member.nation is None:
             return None
         return obj.member.nation.name
+
+    @extend_schema_field(serializers.ListField(child=serializers.CharField()))
+    def get_channel_nations(self, obj):
+        if obj.channel_id is None:
+            return []
+        names = [
+            channel_member.nation.name
+            for channel_member in obj.channel.members.all()
+            if channel_member.id != obj.member_id and channel_member.nation is not None
+        ]
+        return sorted(names)
 
     @extend_schema_field(serializers.IntegerField)
     def get_total_tokens(self, obj):

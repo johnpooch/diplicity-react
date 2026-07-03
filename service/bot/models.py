@@ -45,6 +45,13 @@ class LLMCall(BaseModel):
         blank=True,
         related_name="llm_calls",
     )
+    channel = models.ForeignKey(
+        "channel.Channel",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="llm_calls",
+    )
     stage = models.CharField(max_length=20, choices=LLMCallStage.STAGE_CHOICES)
     status = models.CharField(
         max_length=20,

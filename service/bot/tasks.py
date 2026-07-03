@@ -158,6 +158,7 @@ def reply(user_id, game_id, channel_id):
         user_id=user_id,
         phase_id=data["game"].get("current_phase_id"),
         stage=LLMCallStage.REPLY,
+        channel_id=channel_id,
     )
     try:
         response_text = LLMClient(settings.ANTHROPIC_API_KEY, recorder).complete(

@@ -594,6 +594,7 @@ export interface LLMCallDetail {
   readonly phaseName: string;
   /** @nullable */
   readonly nation: string | null;
+  readonly channelNations: readonly string[];
   readonly totalTokens: number;
   /** @nullable */
   readonly latencyMs: number | null;
@@ -618,6 +619,7 @@ export interface LLMCallSummary {
   readonly phaseName: string;
   /** @nullable */
   readonly nation: string | null;
+  readonly channelNations: readonly string[];
   readonly totalTokens: number;
   /** @nullable */
   readonly latencyMs: number | null;

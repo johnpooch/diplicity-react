@@ -53,6 +53,9 @@ const LLMCallDetailContent: React.FC<{ call: LLMCallDetailType }> = ({
         }
       />
       <MetaRow label="Nation" value={call.nation ?? "Unknown"} />
+      {call.channelNations.length > 0 && (
+        <MetaRow label="Replying to" value={call.channelNations.join(", ")} />
+      )}
       <MetaRow label="Model" value={call.model} />
       <MetaRow label="Game" value={call.gameId ?? "—"} />
       <MetaRow label="Phase" value={call.phaseName} />
