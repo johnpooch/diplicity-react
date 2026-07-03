@@ -10,6 +10,7 @@ from django.db.models import (
     IntegerField,
     OuterRef,
     Prefetch,
+    Q,
     Subquery,
     Value,
 )
@@ -83,16 +84,28 @@ class GameQuerySet(models.QuerySet):
             queryset=Member.objects.select_related("user__profile", "user__bot_profile", "nation"),
         )
 
-        phase_states_prefetch = Prefetch(
-            "phase_states",
-            queryset=PhaseState.objects.select_related("member").annotate(
-                order_count=Count("orders")
-            ),
-        )
         current_phase_ids = (
             Phase.objects.order_by("game_id", "-ordinal")
             .distinct("game_id")
             .values("id")
+        )
+        latest_completed_phase_ids = (
+            Phase.objects.filter(status=PhaseStatus.COMPLETED)
+            .order_by("game_id", "-ordinal")
+            .distinct("game_id")
+            .values("id")
+        )
+        # The list serializer only reads phase states for the current phase
+        # (order_status, phase_confirmed) and the latest completed phase
+        # (member_status), so scope the prefetch to those rather than loading
+        # every historical phase's states.
+        phase_states_prefetch = Prefetch(
+            "phase_states",
+            queryset=PhaseState.objects.filter(
+                Q(phase__in=current_phase_ids) | Q(phase__in=latest_completed_phase_ids)
+            )
+            .select_related("member")
+            .annotate(order_count=Count("orders")),
         )
         current_units_prefetch = Prefetch(
             "units",
@@ -104,9 +117,22 @@ class GameQuerySet(models.QuerySet):
             queryset=SupplyCenter.objects.filter(phase__in=current_phase_ids)
             .select_related("nation", "province"),
         )
+        # The serializer never reads the large per-phase `options` blob on the
+        # list path; restrict the prefetch to the slim fields it does read so
+        # cost no longer grows with game age.
         phases_prefetch = Prefetch(
             "phases",
-            queryset=Phase.objects.prefetch_related(
+            queryset=Phase.objects.only(
+                "id",
+                "ordinal",
+                "season",
+                "year",
+                "type",
+                "status",
+                "scheduled_resolution",
+                "game_id",
+                "variant_id",
+            ).prefetch_related(
                 phase_states_prefetch,
                 current_units_prefetch,
                 current_supply_centers_prefetch,
