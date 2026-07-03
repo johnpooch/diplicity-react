@@ -16,6 +16,8 @@ env:
   DJANGO_SERVICE_ID: 5f342326-a52a-4c40-8bc1-910588628f8a
   POSTGRES_SERVICE_ID: 6ae5f2bc-1398-4ad2-a08f-2151ca1024f2
   WORKER_SERVICE_ID: 54286c74-c5c3-4bcc-95b4-817cb3eeefa8
+  PGWEB_SERVICE_ID: 9474ccf0-c647-4076-852f-3cd513f19096
+  METABASE_SERVICE_ID: 1223c548-4370-4933-9129-c26144c0a209
 
 jobs:
   deploy-staging:
@@ -310,61 +312,84 @@ jobs:
           echo "Waiting 20s for the container to terminate and release connections..."
           sleep 20
 
-      - name: Stop staging worker before clone
+      - name: Stop services not needed during the clone
         env:
           ENV_ID: ${{ steps.create_env.outputs.env_id }}
         run: |
-          # The worker holds a DB connection and crash-loops if the schema is
-          # dropped under it during the clone, so stop it first. Best-effort.
+          # Staging is a fork of production, so it inherits the worker plus the
+          # pgweb and metabase tooling. All three hold a DB connection and
+          # crash-loop when the schema is dropped under them during the clone.
+          # The worker is redeployed after the clone (staging needs it); pgweb
+          # and metabase are never redeployed (staging does not use them), so
+          # stopping them here removes both the crash noise and their compute
+          # cost for the rest of the environment's life.
           if [ "$ENV_ID" = "$PROD_ENV_ID" ]; then
             echo "ERROR: ENV_ID matches PROD_ENV_ID — refusing to stop production deployments."
             exit 1
           fi
 
-          LIST_PAYLOAD=$(jq -n \
-            --arg projectId "$PROJECT_ID" \
-            --arg envId "$ENV_ID" \
-            --arg serviceId "$WORKER_SERVICE_ID" \
-            '{
-              query: "query($input: DeploymentListInput!) { deployments(input: $input, first: 1) { edges { node { id status } } } }",
-              variables: { input: { projectId: $projectId, environmentId: $envId, serviceId: $serviceId } }
-            }')
+          # Wait for a service's latest deployment to reach a stoppable state and
+          # stop it. Railway refuses to stop a deployment that is still building,
+          # so we poll until it is SUCCESS (then stop) or already down. Best-effort:
+          # a service being discarded should never fail the deploy.
+          wait_and_stop() {
+            local SERVICE_ID="$1" SERVICE_NAME="$2"
+            local LIST_PAYLOAD RESULT STATUS DEP_ID STOP_PAYLOAD STOP_RESULT
+            LIST_PAYLOAD=$(jq -n \
+              --arg projectId "$PROJECT_ID" \
+              --arg envId "$ENV_ID" \
+              --arg serviceId "$SERVICE_ID" \
+              '{
+                query: "query($input: DeploymentListInput!) { deployments(input: $input, first: 1) { edges { node { id status } } } }",
+                variables: { input: { projectId: $projectId, environmentId: $envId, serviceId: $serviceId } }
+              }')
 
-          for i in $(seq 1 30); do
-            RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
-              -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "$LIST_PAYLOAD")
-            STATUS=$(echo "$RESULT" | jq -r '.data.deployments.edges[0].node.status // empty')
-            DEP_ID=$(echo "$RESULT" | jq -r '.data.deployments.edges[0].node.id // empty')
+            echo "Stopping $SERVICE_NAME before the clone..."
+            for i in $(seq 1 60); do
+              RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
+                -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d "$LIST_PAYLOAD")
+              STATUS=$(echo "$RESULT" | jq -r '.data.deployments.edges[0].node.status // empty')
+              DEP_ID=$(echo "$RESULT" | jq -r '.data.deployments.edges[0].node.id // empty')
 
-            case "$STATUS" in
-              SUCCESS)
-                STOP_PAYLOAD=$(jq -n --arg id "$DEP_ID" \
-                  '{query: "mutation($id: String!) { deploymentStop(id: $id) }", variables: {id: $id}}')
-                STOP_RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
-                  -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
-                  -H "Content-Type: application/json" \
-                  -d "$STOP_PAYLOAD")
-                echo "Worker stop response: $STOP_RESULT"
-                if [ "$(echo "$STOP_RESULT" | jq -r '.data.deploymentStop // empty')" = "true" ]; then
-                  echo "Worker stopped."
-                  break
-                fi
-                echo "Attempt $i/30: stop not accepted yet, retrying in 10s..."
-                ;;
-              CRASHED|FAILED|REMOVED|REMOVING|SKIPPED|SLEEPING|"")
-                echo "Worker status is '${STATUS:-none}' — nothing to stop."
-                break
-                ;;
-              *)
-                echo "Attempt $i/30: worker status is $STATUS, waiting 10s..."
-                ;;
-            esac
-            sleep 10
-          done
+              case "$STATUS" in
+                SUCCESS)
+                  STOP_PAYLOAD=$(jq -n --arg id "$DEP_ID" \
+                    '{query: "mutation($id: String!) { deploymentStop(id: $id) }", variables: {id: $id}}')
+                  STOP_RESULT=$(curl -s -X POST "$RAILWAY_API_ENDPOINT" \
+                    -H "Authorization: Bearer $RAILWAY_ACCOUNT_TOKEN" \
+                    -H "Content-Type: application/json" \
+                    -d "$STOP_PAYLOAD")
+                  echo "$SERVICE_NAME stop response: $STOP_RESULT"
+                  if [ "$(echo "$STOP_RESULT" | jq -r '.data.deploymentStop // empty')" = "true" ]; then
+                    echo "$SERVICE_NAME stopped."
+                    return 0
+                  fi
+                  echo "Attempt $i/60: $SERVICE_NAME stop not accepted yet, retrying in 10s..."
+                  ;;
+                CRASHED|FAILED|REMOVED|REMOVING|SKIPPED|SLEEPING)
+                  echo "$SERVICE_NAME status is $STATUS — not running, nothing to stop."
+                  return 0
+                  ;;
+                "")
+                  echo "Attempt $i/60: no $SERVICE_NAME deployment yet, waiting 10s..."
+                  ;;
+                *)
+                  echo "Attempt $i/60: $SERVICE_NAME status is $STATUS, waiting 10s..."
+                  ;;
+              esac
+              sleep 10
+            done
+            echo "WARNING: $SERVICE_NAME did not reach a stoppable state in time; continuing."
+            return 0
+          }
 
-          echo "Waiting 15s for the worker to release its connection..."
+          wait_and_stop "$WORKER_SERVICE_ID" "diplicity-worker"
+          wait_and_stop "$PGWEB_SERVICE_ID" "pgweb"
+          wait_and_stop "$METABASE_SERVICE_ID" "metabase"
+
+          echo "Waiting 15s for connections to be released..."
           sleep 15
 
       - name: Find latest DB snapshot
