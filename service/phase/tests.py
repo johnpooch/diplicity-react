@@ -3294,6 +3294,108 @@ class TestCivilDisorderDetection:
 
         mock_send_notification_to_users.assert_not_called()
 
+    @pytest.mark.django_db
+    def test_cd_reassigns_admin_when_admin_enters_civil_disorder(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        primary_user,
+        secondary_user,
+    ):
+        game, italy, germany = self._setup_game_with_two_members(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            primary_user,
+            secondary_user,
+        )
+        game.admin = primary_user
+        game.save()
+
+        phase1 = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Spring", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=1, status=PhaseStatus.COMPLETED,
+        )
+        phase1.phase_states.create(member=italy, has_possible_orders=True)
+        phase1_germany = phase1.phase_states.create(member=germany, has_possible_orders=True)
+        phase1_germany.orders.create(
+            source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
+        )
+        Phase.objects._set_orders_outcome(phase1)
+
+        phase2 = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Fall", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=2, status=PhaseStatus.ACTIVE,
+        )
+        phase2.phase_states.create(member=italy, has_possible_orders=True)
+        phase2_germany = phase2.phase_states.create(member=germany, has_possible_orders=True)
+        phase2_germany.orders.create(
+            source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
+        )
+        Phase.objects._set_orders_outcome(phase2)
+
+        with patch("game.models.send_notification") as mock_send:
+            Phase.objects._check_civil_disorder(phase2)
+
+        game.refresh_from_db()
+        assert game.admin == secondary_user
+        mock_send.defer.assert_called_once()
+
+    @pytest.mark.django_db
+    def test_cd_does_not_reassign_admin_when_non_admin_enters_civil_disorder(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_germany_nation,
+        italy_vs_germany_venice_province,
+        primary_user,
+        secondary_user,
+    ):
+        game, italy, germany = self._setup_game_with_two_members(
+            italy_vs_germany_variant,
+            italy_vs_germany_italy_nation,
+            italy_vs_germany_germany_nation,
+            primary_user,
+            secondary_user,
+        )
+        game.admin = secondary_user
+        game.save()
+
+        phase1 = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Spring", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=1, status=PhaseStatus.COMPLETED,
+        )
+        phase1.phase_states.create(member=italy, has_possible_orders=True)
+        phase1_germany = phase1.phase_states.create(member=germany, has_possible_orders=True)
+        phase1_germany.orders.create(
+            source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
+        )
+        Phase.objects._set_orders_outcome(phase1)
+
+        phase2 = Phase.objects.create(
+            game=game, variant=italy_vs_germany_variant,
+            season="Fall", year=1901, type=PhaseType.MOVEMENT,
+            ordinal=2, status=PhaseStatus.ACTIVE,
+        )
+        phase2.phase_states.create(member=italy, has_possible_orders=True)
+        phase2_germany = phase2.phase_states.create(member=germany, has_possible_orders=True)
+        phase2_germany.orders.create(
+            source=italy_vs_germany_venice_province, order_type=OrderType.HOLD
+        )
+        Phase.objects._set_orders_outcome(phase2)
+
+        with patch("game.models.send_notification") as mock_send:
+            Phase.objects._check_civil_disorder(phase2)
+
+        game.refresh_from_db()
+        assert game.admin == secondary_user
+        mock_send.defer.assert_not_called()
+
 
 class TestCivilDisorderStagingRemoval:
 

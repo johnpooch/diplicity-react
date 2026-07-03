@@ -445,6 +445,9 @@ class PhaseManager(models.Manager):
             m.civil_disorder = True
         Member.objects.bulk_update(newly_cd_members, ["civil_disorder"])
 
+        if any(m.user_id == phase.game.admin_id for m in newly_cd_members):
+            phase.game.reassign_admin()
+
         cd_user_ids = [m.user_id for m in newly_cd_members if m.user_id is not None]
         self._remove_from_staging_games(cd_user_ids)
 

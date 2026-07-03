@@ -29,6 +29,7 @@ from common.constants import (
     duration_to_seconds,
 )
 from common.models import BaseModel
+from notification.tasks import send_notification
 from phase.models import Phase, PhaseState
 from phase.utils import calculate_next_fixed_deadline, FREQUENCY_INTERVALS
 from member.models import Member
@@ -592,6 +593,29 @@ class Game(BaseModel):
     def can_manage(self, user):
         with tracer.start_as_current_span("game.models.can_manage"):
             return self.admin_id == user.id
+
+    def reassign_admin(self):
+        with tracer.start_as_current_span("game.models.reassign_admin"):
+            import random
+
+            candidates = list(
+                self.members.filter(kicked=False, civil_disorder=False, user__isnull=False)
+                .exclude(user_id=self.admin_id)
+            )
+            if not candidates:
+                return
+
+            new_admin = random.choice(candidates).user
+            self.admin = new_admin
+            self.save(update_fields=["admin"])
+
+            send_notification.defer(
+                user_ids=[new_admin.id],
+                title=self.name,
+                body="The previous manager is no longer available, so you are now managing this game.",
+                notification_type="game_admin_reassigned",
+                data={"game_id": str(self.id), "link": f"{settings.FRONTEND_URL}/game/{self.id}"},
+            )
 
     def notification_user_ids(self, exclude_user_id=None):
         user_ids = {
