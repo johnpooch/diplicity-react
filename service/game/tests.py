@@ -361,6 +361,53 @@ class TestGameRetrieveViewQueryPerformance:
         assert query_count == 5
 
 
+class TestGameCurrentPhase:
+
+    @pytest.mark.django_db
+    def test_current_phase_returns_highest_ordinal(self, active_game_with_phase_state):
+        game = active_game_with_phase_state
+        for i in range(3):
+            game.phases.create(
+                game=game,
+                variant=game.variant,
+                season="Fall",
+                year=1901 + i,
+                type="Movement",
+                status=PhaseStatus.COMPLETED,
+                ordinal=2 + i,
+            )
+
+        assert game.current_phase.ordinal == 4
+
+    @pytest.mark.django_db
+    def test_current_phase_fetches_single_row(self, active_game_with_phase_state):
+        """The non-prefetched fallback must not load every phase of the game
+        to return the latest one — it issues a single ORDER BY / LIMIT query
+        regardless of how many phases exist."""
+        game = active_game_with_phase_state
+        for i in range(5):
+            game.phases.create(
+                game=game,
+                variant=game.variant,
+                season="Fall",
+                year=1901 + i,
+                type="Movement",
+                status=PhaseStatus.COMPLETED,
+                ordinal=2 + i,
+            )
+
+        connection.queries_log.clear()
+        with override_settings(DEBUG=True):
+            phase = game.current_phase
+
+        assert phase.ordinal == 6
+        assert len(connection.queries) == 1
+
+    @pytest.mark.django_db
+    def test_current_phase_none_when_no_phases(self, base_active_game_for_primary_user):
+        assert base_active_game_for_primary_user.current_phase is None
+
+
 class TestGameListView:
 
     @pytest.mark.django_db
