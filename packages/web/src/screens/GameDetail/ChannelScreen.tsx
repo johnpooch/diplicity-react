@@ -108,7 +108,7 @@ const ChannelScreen: React.FC = () => {
   const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: channels } = useGamesChannelsListSuspense(gameId, {
     query: {
-      refetchInterval: game.status === "active" ? 5000 : false,
+      refetchInterval: 5000,
     },
   });
   const { data: variants } = useVariantsListSuspense();
