@@ -10,6 +10,7 @@ from django.db.models import (
     IntegerField,
     OuterRef,
     Prefetch,
+    Q,
     Subquery,
     Value,
 )
@@ -130,16 +131,29 @@ class GameQuerySet(models.QuerySet):
             queryset=Member.objects.select_related("user__profile", "user__bot_profile", "nation__flag")
         )
 
+        current_phase_ids = (
+            Phase.objects.order_by("game_id", "-ordinal")
+            .distinct("game_id")
+            .values("id")
+        )
+        latest_completed_phase_ids = (
+            Phase.objects.filter(status=PhaseStatus.COMPLETED)
+            .order_by("game_id", "-ordinal")
+            .distinct("game_id")
+            .values("id")
+        )
         phase_states_prefetch = Prefetch(
             "phase_states",
-            queryset=PhaseState.objects.select_related("member__user").annotate(
+            queryset=PhaseState.objects.filter(
+                Q(phase__in=current_phase_ids) | Q(phase__in=latest_completed_phase_ids)
+            ).select_related("member__user").annotate(
                 order_count=Count("orders")
             )
         )
 
         phases_prefetch = Prefetch(
             "phases",
-            queryset=Phase.objects.prefetch_related(phase_states_prefetch)
+            queryset=Phase.objects.defer("options").prefetch_related(phase_states_prefetch)
         )
 
         return self.select_related("variant", "victory", "game_master__profile").prefetch_related(

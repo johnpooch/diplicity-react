@@ -33,10 +33,13 @@ class GameRetrieveView(generics.RetrieveAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = GameRetrieveSerializer
 
-    queryset = Game.objects.all().with_retrieve_data()
-
     def get_object(self):
-        return get_object_or_404(self.queryset, id=self.kwargs.get("game_id"))
+        queryset = (
+            Game.objects.all()
+            .with_retrieve_data()
+            .with_total_unread_counts(self.request.user)
+        )
+        return get_object_or_404(queryset, id=self.kwargs.get("game_id"))
 
 
 class GameListView(generics.ListAPIView):
