@@ -479,8 +479,11 @@ class Game(BaseModel):
             if hasattr(self, "active_phases_list"):
                 return self.active_phases_list[-1] if self.active_phases_list else None
 
-            phases = list(self.phases.all())
-            return phases[-1] if phases else None
+            if "phases" in getattr(self, "_prefetched_objects_cache", {}):
+                phases = list(self.phases.all())
+                return phases[-1] if phases else None
+
+            return self.phases.order_by("ordinal").last()
 
     @property
     def movement_phase_duration_seconds(self):
