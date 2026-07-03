@@ -38,23 +38,15 @@ class IsOwnedDraftForWrite(permissions.BasePermission):
         )
 
 
-def _colorblind_mode(user):
-    if user.is_authenticated:
-        profile = getattr(user, "profile", None)
-        if profile is not None:
-            return profile.colorblind_mode
-    return None
-
-
-def _variants_list_cache_inputs(user):
+def _variants_list_cache_inputs():
     variant_max = Variant.objects.aggregate(Max("updated_at"))["updated_at__max"]
     flag_max = NationFlag.objects.aggregate(Max("updated_at"))["updated_at__max"]
-    return variant_max, flag_max, _colorblind_mode(user)
+    return variant_max, flag_max
 
 
-def _variants_list_etag(variant_max, flag_max, user, mode):
+def _variants_list_etag(variant_max, flag_max, user):
     digest = hashlib.sha256(
-        f"{variant_max}|{flag_max}|{user.id}|{mode}".encode()
+        f"{variant_max}|{flag_max}|{user.id}".encode()
     ).hexdigest()
     return f'"{digest[:32]}"'
 
@@ -95,26 +87,21 @@ class VariantListCreateView(generics.ListCreateAPIView):
             return VariantWriteSerializer
         return VariantSerializer
 
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context["colorblind_mode"] = _colorblind_mode(self.request.user)
-        return context
-
     def list(self, request, *args, **kwargs):
-        variant_max, flag_max, mode = _variants_list_cache_inputs(request.user)
-        etag = _variants_list_etag(variant_max, flag_max, request.user, mode)
+        variant_max, flag_max = _variants_list_cache_inputs()
+        etag = _variants_list_etag(variant_max, flag_max, request.user)
         if request.headers.get("If-None-Match") == etag:
             response = Response(status=status.HTTP_304_NOT_MODIFIED)
         elif _user_sees_only_published_variants(request.user):
-            response = Response(self._published_variants_data(variant_max, flag_max, mode))
+            response = Response(self._published_variants_data(variant_max, flag_max))
         else:
             response = super().list(request, *args, **kwargs)
         response["ETag"] = etag
-        response["Cache-Control"] = "private, no-cache"
+        response["Cache-Control"] = "private, must-revalidate, max-age=60"
         return response
 
-    def _published_variants_data(self, variant_max, flag_max, mode):
-        digest = hashlib.sha256(f"{variant_max}|{flag_max}|{mode}".encode()).hexdigest()
+    def _published_variants_data(self, variant_max, flag_max):
+        digest = hashlib.sha256(f"{variant_max}|{flag_max}".encode()).hexdigest()
         cache_key = f"variants-list:published:{digest}"
         data = cache.get(cache_key)
         if data is None:
@@ -134,11 +121,6 @@ class VariantDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return Variant.objects.visible_to(self.request.user).with_related_data()
-
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context["colorblind_mode"] = _colorblind_mode(self.request.user)
-        return context
 
     def get_serializer_class(self):
         if self.request.method in ("PUT", "PATCH"):

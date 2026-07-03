@@ -4,7 +4,6 @@ from django.urls import reverse
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from common.colorblind import apply_colorblind_palette
 from .models import Nation, NationFlag
 
 
@@ -17,8 +16,7 @@ class NationSerializer(serializers.Serializer):
 
     @extend_schema_field(serializers.CharField)
     def get_color(self, nation) -> str:
-        mode = self.context.get("colorblind_mode")
-        return apply_colorblind_palette(nation.color, mode)
+        return nation.color
 
     @extend_schema_field(serializers.URLField(allow_null=True))
     def get_flag_url(self, nation) -> Optional[str]:

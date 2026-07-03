@@ -88,7 +88,7 @@ def test_list_variants_returns_etag_and_cache_control(authenticated_client):
     response = authenticated_client.get(reverse("variant-list"))
     assert response.status_code == status.HTTP_200_OK
     assert response["ETag"].startswith('"') and response["ETag"].endswith('"')
-    assert response["Cache-Control"] == "private, no-cache"
+    assert response["Cache-Control"] == "private, must-revalidate, max-age=60"
 
 
 @pytest.mark.django_db
@@ -142,26 +142,24 @@ def test_published_variants_list_served_from_render_cache(authenticated_client):
 
 
 @pytest.mark.django_db
-def test_render_cache_key_isolates_colorblind_mode(user_factory, authenticated_client_factory):
-    """Colorblind and non-colorblind users are published-only, but the cache key
-    encodes the mode so they never receive each other's palette."""
-    normal_user = user_factory()
-    colorblind_user = user_factory()
-    colorblind_user.profile.colorblind_mode = "deuteranopia"
-    colorblind_user.profile.save()
+def test_render_cache_shared_across_users(user_factory, authenticated_client_factory):
+    """The published payload is identical for every user, so two published-only
+    users receive the same colours from the shared render cache."""
+    first_user = user_factory()
+    second_user = user_factory()
 
-    normal_client = authenticated_client_factory(normal_user)
-    colorblind_client = authenticated_client_factory(colorblind_user)
+    first_client = authenticated_client_factory(first_user)
+    second_client = authenticated_client_factory(second_user)
 
     with override_settings(CACHES=_LOCMEM_CACHE):
         cache.clear()
-        normal = normal_client.get(reverse("variant-list"))
-        colorblind = colorblind_client.get(reverse("variant-list"))
+        first = first_client.get(reverse("variant-list"))
+        second = second_client.get(reverse("variant-list"))
 
     def nation_colors(response):
         return {nation["color"] for variant in response.data for nation in variant["nations"]}
 
-    assert nation_colors(normal) != nation_colors(colorblind)
+    assert nation_colors(first) == nation_colors(second)
 
 
 @pytest.mark.django_db

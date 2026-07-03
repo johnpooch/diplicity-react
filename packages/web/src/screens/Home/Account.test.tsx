@@ -10,7 +10,6 @@ const mockUserProfile = {
   email: "player@example.com",
   name: "Test Player",
   picture: null,
-  colorblindMode: null,
 };
 
 const mockSetPreference = vi.fn();
