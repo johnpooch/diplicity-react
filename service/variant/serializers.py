@@ -3,6 +3,7 @@ from typing import Optional
 
 from django.db import IntegrityError, transaction
 from django.urls import reverse
+from drf_spectacular.utils import extend_schema_field, inline_serializer
 from lxml import etree
 from rest_framework import serializers
 from nation.serializers import NationSerializer
@@ -28,7 +29,20 @@ class VictoryConditionsSerializer(serializers.Serializer):
 class VariantProvinceSerializer(serializers.Serializer):
     id = serializers.CharField(source="province_id")
     name = serializers.CharField()
+    type = serializers.CharField()
+    supply_center = serializers.BooleanField()
     parent_id = serializers.CharField(source="parent.province_id", allow_null=True)
+    adjacencies = serializers.SerializerMethodField()
+
+    @extend_schema_field(
+        inline_serializer(
+            name="VariantProvinceAdjacency",
+            fields={"to": serializers.CharField(), "pass": serializers.CharField()},
+            many=True,
+        )
+    )
+    def get_adjacencies(self, obj):
+        return obj.adjacencies
 
 
 class VariantTemplateNationRefSerializer(serializers.Serializer):

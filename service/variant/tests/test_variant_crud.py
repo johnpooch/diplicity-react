@@ -472,6 +472,24 @@ def test_dvar_reupload_drops_flags_for_removed_nations(
 
 
 @pytest.mark.django_db
+def test_retrieve_variant_includes_province_map_data(authenticated_client, classical_variant):
+    response = authenticated_client.get(
+        reverse("variant-detail", kwargs={"pk": "classical"}),
+    )
+    assert response.status_code == status.HTTP_200_OK
+    provinces = {province["id"]: province for province in response.data["provinces"]}
+
+    assert provinces["stp"]["type"] == "coastal"
+    assert provinces["stp"]["supply_center"] is True
+    assert {"to": "mos", "pass": "army"} in provinces["stp"]["adjacencies"]
+
+    assert provinces["stp/nc"]["parent_id"] == "stp"
+    assert {"to": "bar", "pass": "fleet"} in provinces["stp/nc"]["adjacencies"]
+
+    assert provinces["wal"]["supply_center"] is False
+
+
+@pytest.mark.django_db
 def test_sandbox_game_accepts_draft_variant(authenticated_client, classical_dvar, classical_dsvg):
     dvar = copy.deepcopy(classical_dvar)
     dvar["id"] = "draft-for-sandbox"
