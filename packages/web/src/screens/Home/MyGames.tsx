@@ -109,7 +109,11 @@ const laneForGame = (game: GameList): string => {
   const status = game.memberStatus ?? [];
   if (status.includes("civil_disorder")) return "civil_disorder";
   if (status.includes("nmr")) return "nmr";
-  if (game.orderStatus === "orders_required") return "orders_required";
+  if (
+    game.orderStatus === "orders_required" ||
+    game.orderStatus === "orders_not_confirmed"
+  )
+    return "orders_required";
   return "waiting";
 };
 

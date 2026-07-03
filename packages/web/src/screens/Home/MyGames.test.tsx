@@ -216,6 +216,27 @@ describe("MyGames active triage lanes", () => {
     ).toBeInTheDocument();
   });
 
+  it("groups an orders-not-confirmed game under the Needs your orders lane", async () => {
+    const game = {
+      ...mockActiveGames[0],
+      memberStatus: [],
+      orderStatus: "orders_not_confirmed",
+    };
+    setActiveGames([game]);
+
+    renderMyGames();
+
+    expect(
+      await screen.findByRole("heading", {
+        name: /Needs your orders/,
+        level: 3,
+      })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: /Waiting on others/, level: 3 })
+    ).not.toBeInTheDocument();
+  });
+
   it("prioritises civil disorder over NMR and orders when a game matches several", async () => {
     const game = {
       ...mockActiveGames[0],
