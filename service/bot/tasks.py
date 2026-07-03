@@ -24,7 +24,13 @@ def _persona_block(user_id) -> str:
     profile = BotProfile.objects.filter(user_id=user_id).first()
     if profile is None:
         return ""
-    return f"Your persona:\nDisposition: {profile.disposition}\nVoice: {profile.voice}"
+    preamble = load_prompt("persona_system.txt")
+    return (
+        f"{preamble}\n\n"
+        f"Your persona:\n"
+        f"Disposition: {profile.disposition}\n"
+        f"Voice: {profile.voice}"
+    )
 
 
 def _submit_orders_from_context(api, data, game_id, user_id, label, stage, persona=""):

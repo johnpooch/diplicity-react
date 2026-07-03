@@ -726,6 +726,7 @@ class TestReplyTask:
 
         system = mock_llm.return_value.complete.call_args.kwargs["system"]
         assert disposition in system
+        assert "Voice governs how you communicate" in system
 
 
 def _bot_reply_jobs(connector):
