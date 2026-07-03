@@ -106,7 +106,11 @@ const ChannelScreen: React.FC = () => {
   const [, setSearchParams] = useSearchParams();
 
   const { data: game } = useGameRetrieveSuspense(gameId);
-  const { data: channels } = useGamesChannelsListSuspense(gameId);
+  const { data: channels } = useGamesChannelsListSuspense(gameId, {
+    query: {
+      refetchInterval: 5000,
+    },
+  });
   const { data: variants } = useVariantsListSuspense();
   const createMessageMutation = useGamesChannelsMessagesCreateCreate();
   const markReadMutation = useGamesChannelsMarkReadCreate();
