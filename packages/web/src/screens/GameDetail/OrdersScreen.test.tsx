@@ -32,6 +32,7 @@ vi.mock("@/api/generated/endpoints", () => ({
   useGamePhaseRetrieveSuspense: () => ({ data: mockPhaseData() }),
   useGameOrdersListSuspense: () => ({ data: mockOrdersData() }),
   useVariantsListSuspense: () => ({ data: mockVariantsData() }),
+  useVariantsRetrieve: () => ({ data: undefined }),
   useGamePhaseStatesListSuspense: () => ({ data: mockPhaseStatesData() }),
   useGameOrdersDeleteDestroy: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useGameConfirmPhasePartialUpdate: () => ({ mutateAsync: vi.fn(), isPending: false }),

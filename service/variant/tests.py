@@ -69,10 +69,10 @@ def test_list_variants_unauthenticated(unauthenticated_client, classical_variant
 
 
 @pytest.mark.django_db
-def test_list_variants_cache_control_allows_private_caching(authenticated_client):
+def test_list_variants_cache_control_allows_public_caching(authenticated_client):
     response = authenticated_client.get(reverse(viewname))
 
-    assert response["Cache-Control"] == "private, must-revalidate, max-age=60"
+    assert response["Cache-Control"] == "public"
 
 
 @pytest.mark.django_db
@@ -124,9 +124,8 @@ class TestVariantListViewQueryPerformance:
         query_count = len(connection.queries)
 
         # 18 prefetch queries + 2 ETag aggregates (Variant + NationFlag max
-        # updated_at) + 1 published-only gate query (routes the request to the
-        # shared render cache). This is the cache-miss path; hits skip the 18.
-        assert query_count == 21
+        # updated_at). This is the cache-miss path; hits skip the 18.
+        assert query_count == 20
 
     @pytest.mark.django_db
     def test_list_variants_query_count_with_single_variant(self, authenticated_client, classical_variant):
@@ -161,9 +160,8 @@ class TestVariantListViewQueryPerformance:
         # due to prefetch_related optimization
         query_count = len(connection.queries)
         # 18 prefetch queries + 2 ETag aggregates (Variant + NationFlag max
-        # updated_at) + 1 published-only gate query (routes the request to the
-        # shared render cache). This is the cache-miss path; hits skip the 18.
-        assert query_count == 21
+        # updated_at). This is the cache-miss path; hits skip the 18.
+        assert query_count == 20
 
 
 class TestPhaseProgressionBackfill:
@@ -318,7 +316,7 @@ def test_published_variant_visible_to_any_user(authenticated_client):
 
 
 @pytest.mark.django_db
-def test_own_draft_visible_to_owner(user_factory, authenticated_client_factory):
+def test_own_draft_hidden_from_list(user_factory, authenticated_client_factory):
     owner = user_factory()
     owner_client = authenticated_client_factory(owner)
     draft_variant = Variant.objects.create(
@@ -327,7 +325,7 @@ def test_own_draft_visible_to_owner(user_factory, authenticated_client_factory):
     )
     response = owner_client.get(reverse(viewname))
     ids = {v["id"] for v in response.data}
-    assert draft_variant.id in ids
+    assert draft_variant.id not in ids
 
 
 @pytest.mark.django_db
@@ -365,7 +363,7 @@ def test_archived_variant_hidden_from_list(authenticated_client):
 
 
 @pytest.mark.django_db
-def test_member_of_draft_variant_game_can_see_variant(
+def test_member_of_draft_variant_game_does_not_see_variant_in_list(
     user_factory, authenticated_client_factory, game_factory, member_factory
 ):
     owner = user_factory()
@@ -379,7 +377,7 @@ def test_member_of_draft_variant_game_can_see_variant(
     member_factory(game=game, user=other_user)
     response = other_client.get(reverse(viewname))
     ids = {v["id"] for v in response.data}
-    assert draft_variant.id in ids
+    assert draft_variant.id not in ids
 
 
 @pytest.mark.django_db

@@ -31,6 +31,7 @@ vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({ data: mockGameData() }),
   useGamesDrawProposalsListSuspense: () => ({ data: mockProposalsData() }),
   useVariantsListSuspense: () => ({ data: mockVariantsData() }),
+  useVariantsRetrieve: () => ({ data: undefined }),
   useGamesDrawProposalsVotePartialUpdate: () => ({
     mutateAsync: mockVoteMutation,
     isPending: false,

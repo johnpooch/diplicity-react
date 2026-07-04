@@ -33,6 +33,7 @@ vi.mock("@/api/generated/endpoints", () => ({
   }),
   useGamesChannelsListSuspense: () => ({ data: mockChannelsData() }),
   useVariantsListSuspense: () => ({ data: [] }),
+  useVariantsRetrieve: () => ({ data: undefined }),
   useGamesChannelsMessagesCreateCreate: () => ({
     mutateAsync: vi.fn().mockResolvedValue({}),
     isPending: false,

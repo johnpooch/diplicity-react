@@ -25,8 +25,8 @@ import {
   useGameRetrieveSuspense,
   useGamesDrawProposalsCreateCreate,
   getGamesDrawProposalsListQueryKey,
-  useVariantsListSuspense,
 } from "@/api/generated/endpoints";
+import { useGameVariant } from "@/hooks/useGameVariant";
 
 const ProposeDrawScreen: React.FC = () => {
   const { gameId, phaseId } = useRequiredParams<{
@@ -37,10 +37,9 @@ const ProposeDrawScreen: React.FC = () => {
   const queryClient = useQueryClient();
 
   const { data: game } = useGameRetrieveSuspense(gameId);
-  const { data: variants } = useVariantsListSuspense();
+  const variant = useGameVariant(game);
   const createProposalMutation = useGamesDrawProposalsCreateCreate();
 
-  const variant = variants.find(v => v.id === game.variantId);
   const activeMembers = game.members.filter(m => !m.eliminated && !m.kicked);
   const includedMembers = activeMembers.filter(m => !m.civilDisorder);
   const cdMembers = activeMembers.filter(m => m.civilDisorder);

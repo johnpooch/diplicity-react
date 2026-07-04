@@ -898,6 +898,11 @@ export interface VictoryConditions {
   drawAfterYear: number | null;
 }
 
+export interface VariantProvinceAdjacency {
+  to: string;
+  pass: string;
+}
+
 export interface VariantProvince {
   id: string;
   name: string;
@@ -906,11 +911,6 @@ export interface VariantProvince {
   /** @nullable */
   parentId: string | null;
   readonly adjacencies: readonly VariantProvinceAdjacency[];
-}
-
-export interface VariantProvinceAdjacency {
-  to: string;
-  pass: string;
 }
 
 export interface VariantTemplateNationRef {
@@ -10305,6 +10305,254 @@ export const useVariantsNationsFlagDestroy = <
     queryClient
   );
 };
+
+export const variantsMineList = (signal?: AbortSignal) => {
+  return customInstance<Variant[]>({
+    url: `/variants/mine/`,
+    method: "GET",
+    signal,
+  });
+};
+
+export const getVariantsMineListQueryKey = () => {
+  return [`/variants/mine/`] as const;
+};
+
+export const getVariantsMineListQueryOptions = <
+  TData = Awaited<ReturnType<typeof variantsMineList>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof variantsMineList>>, TError, TData>
+  >;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getVariantsMineListQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof variantsMineList>>
+  > = ({ signal }) => variantsMineList(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof variantsMineList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type VariantsMineListQueryResult = NonNullable<
+  Awaited<ReturnType<typeof variantsMineList>>
+>;
+export type VariantsMineListQueryError = unknown;
+
+export function useVariantsMineList<
+  TData = Awaited<ReturnType<typeof variantsMineList>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof variantsMineList>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof variantsMineList>>,
+          TError,
+          Awaited<ReturnType<typeof variantsMineList>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useVariantsMineList<
+  TData = Awaited<ReturnType<typeof variantsMineList>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof variantsMineList>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof variantsMineList>>,
+          TError,
+          Awaited<ReturnType<typeof variantsMineList>>
+        >,
+        "initialData"
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useVariantsMineList<
+  TData = Awaited<ReturnType<typeof variantsMineList>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof variantsMineList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useVariantsMineList<
+  TData = Awaited<ReturnType<typeof variantsMineList>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof variantsMineList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getVariantsMineListQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getVariantsMineListSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof variantsMineList>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<
+    UseSuspenseQueryOptions<
+      Awaited<ReturnType<typeof variantsMineList>>,
+      TError,
+      TData
+    >
+  >;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getVariantsMineListQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof variantsMineList>>
+  > = ({ signal }) => variantsMineList(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof variantsMineList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type VariantsMineListSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof variantsMineList>>
+>;
+export type VariantsMineListSuspenseQueryError = unknown;
+
+export function useVariantsMineListSuspense<
+  TData = Awaited<ReturnType<typeof variantsMineList>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof variantsMineList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useVariantsMineListSuspense<
+  TData = Awaited<ReturnType<typeof variantsMineList>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof variantsMineList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useVariantsMineListSuspense<
+  TData = Awaited<ReturnType<typeof variantsMineList>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof variantsMineList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+
+export function useVariantsMineListSuspense<
+  TData = Awaited<ReturnType<typeof variantsMineList>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof variantsMineList>>,
+        TError,
+        TData
+      >
+    >;
+  },
+  queryClient?: QueryClient
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getVariantsMineListSuspenseQueryOptions(options);
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 export const versionRetrieve = (signal?: AbortSignal) => {
   return customInstance<Version>({ url: `/version/`, method: "GET", signal });

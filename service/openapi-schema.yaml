@@ -1661,6 +1661,22 @@ paths:
       responses:
         '204':
           description: No response body
+  /variants/mine/:
+    get:
+      operationId: variantsMineList
+      tags:
+      - variants
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Variant'
+          description: ''
   /version/:
     get:
       operationId: versionRetrieve

@@ -69,3 +69,14 @@ export const extraVariants: Variant[] = [
 ];
 
 export const allVariants: Variant[] = [classicalVariant, ...extraVariants];
+
+export const draftVariant: Variant = {
+  ...classicalVariant,
+  id: "my-draft",
+  name: "My Draft Variant",
+  status: "draft",
+  official: false,
+  ownerId: 1,
+  ownerUsername: "testuser",
+  canEdit: true,
+};

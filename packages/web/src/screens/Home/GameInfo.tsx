@@ -13,9 +13,9 @@ import {
   useGameJoinCreate,
   useGameLeaveDestroy,
   useUserRetrieveSuspense,
-  useVariantsListSuspense,
   getGameRetrieveQueryKey,
 } from "@/api/generated/endpoints";
+import { useGameVariant } from "@/hooks/useGameVariant";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { ScreenContainer } from "@/components/ui/screen-container";
 import { AddBotSheet } from "@/components/AddBotSheet";
@@ -28,7 +28,7 @@ const GameInfo: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: game } = useGameRetrieveSuspense(gameId);
-  const { data: variants } = useVariantsListSuspense();
+  const variant = useGameVariant(game);
   const { data: userProfile } = useUserRetrieveSuspense();
   const joinGameMutation = useGameJoinCreate();
   const leaveGameMutation = useGameLeaveDestroy();
@@ -76,7 +76,6 @@ const GameInfo: React.FC = () => {
     navigate(`/game-info/${gameId}`);
   };
 
-  const variant = variants.find(v => v.id === game.variantId);
   const playableSeats = variant
     ? variant.nations.filter(n => !n.nonPlayable).length
     : 0;

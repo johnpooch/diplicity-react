@@ -37,6 +37,7 @@ vi.mock("@/api/generated/endpoints", () => ({
   useVariantsListSuspense: () => ({
     data: [],
   }),
+  useVariantsRetrieve: () => ({ data: undefined }),
   useUserRetrieveSuspense: () => ({
     data: { canCreateBotGames: false },
   }),

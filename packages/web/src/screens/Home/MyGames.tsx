@@ -10,8 +10,9 @@ import { Notice } from "@/components/Notice";
 import { Button } from "@/components/ui/button";
 import { Inbox, Loader2 } from "lucide-react";
 import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
-import { useVariantsListSuspense } from "@/api/generated/endpoints";
+import type { GameList } from "@/api/generated/endpoints";
 import { useGamesListInfinite } from "@/hooks/useGamesListInfinite";
+import { useGameVariant } from "@/hooks/useGameVariant";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 
 const statuses = [
@@ -86,6 +87,27 @@ interface GameTabContentProps {
   ordering?: string;
 }
 
+const MyGameCard: React.FC<{ game: GameList }> = ({ game }) => {
+  const variant = useGameVariant(game);
+  if (!variant) return null;
+
+  return (
+    <GameCard
+      game={game}
+      variant={variant}
+      map={
+        <MapView
+          mode="static"
+          variant={variant}
+          phase={game.currentPhase ?? variant.templatePhase}
+          cover
+          className="w-full h-full"
+        />
+      }
+    />
+  );
+};
+
 const GameTabContent: React.FC<GameTabContentProps> = ({
   statusFilter,
   emptyTitle,
@@ -94,7 +116,6 @@ const GameTabContent: React.FC<GameTabContentProps> = ({
 }) => {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useGamesListInfinite({ mine: true, status: statusFilter, ordering });
-  const { data: variants } = useVariantsListSuspense();
 
   const games = data.pages.flatMap(page => page.results);
 
@@ -104,10 +125,7 @@ const GameTabContent: React.FC<GameTabContentProps> = ({
     isFetchingNextPage
   );
 
-  const variantMap = new Map(variants.map(v => [v.id, v]));
-  const knownGames = games.filter(game => variantMap.has(game.variantId));
-
-  if (knownGames.length === 0) {
+  if (games.length === 0) {
     const { message, actions } = getEmptyStateConfig(status);
     return (
       <Notice title={emptyTitle} message={message} icon={Inbox} actions={actions} />
@@ -116,29 +134,17 @@ const GameTabContent: React.FC<GameTabContentProps> = ({
 
   const firstEliminatedIndex =
     status === "active"
-      ? knownGames.findIndex(game => !game.sandbox && game.members.find(m => m.isCurrentUser)?.eliminated)
+      ? games.findIndex(game => !game.sandbox && game.members.find(m => m.isCurrentUser)?.eliminated)
       : -1;
 
   return (
     <div className="space-y-4">
-      {knownGames.map((game, index) => (
+      {games.map((game, index) => (
         <Fragment key={game.id}>
           {index === firstEliminatedIndex && (
             <h3 className="text-sm font-semibold pt-2">Eliminated</h3>
           )}
-          <GameCard
-            game={game}
-            variant={variantMap.get(game.variantId)!}
-            map={
-              <MapView
-                mode="static"
-                variant={variantMap.get(game.variantId)!}
-                phase={game.currentPhase ?? variantMap.get(game.variantId)!.templatePhase}
-                cover
-                className="w-full h-full"
-              />
-            }
-          />
+          <MyGameCard game={game} />
         </Fragment>
       ))}
       {isFetchingNextPage && (
