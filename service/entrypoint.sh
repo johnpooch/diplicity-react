@@ -22,7 +22,21 @@ if [ "$PROCESS_ROLE" = "worker" ]; then
 fi
 
 echo "Running database migrations..."
-if python manage.py migrate; then
+if python manage.py shell << 'EOF'
+from django.core.management import call_command
+from django.db import connection
+
+MIGRATION_LOCK_ID = 727272001
+
+with connection.cursor() as cursor:
+    cursor.execute("SELECT pg_advisory_lock(%s)", [MIGRATION_LOCK_ID])
+try:
+    call_command("migrate")
+finally:
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT pg_advisory_unlock(%s)", [MIGRATION_LOCK_ID])
+EOF
+then
     echo "Migrations completed successfully."
 else
     echo "Migration failed!" >&2
