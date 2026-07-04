@@ -50,8 +50,13 @@ def _variants_list_etag(variant_max, flag_max):
 
 
 def _variant_detail_etag(variant, user):
+    flag_max = NationFlag.objects.filter(nation__variant=variant).aggregate(
+        Max("updated_at")
+    )["updated_at__max"]
     user_id = user.id if user.is_authenticated else "anon"
-    digest = hashlib.sha256(f"{variant.updated_at}|{user_id}".encode()).hexdigest()
+    digest = hashlib.sha256(
+        f"{variant.updated_at}|{flag_max}|{user_id}".encode()
+    ).hexdigest()
     return f'"{digest[:32]}"'
 
 

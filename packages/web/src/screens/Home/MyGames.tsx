@@ -89,7 +89,9 @@ interface GameTabContentProps {
 
 const MyGameCard: React.FC<{ game: GameList }> = ({ game }) => {
   const variant = useGameVariant(game);
-  if (!variant) return null;
+  if (!variant) {
+    return <div className="h-24 rounded-lg bg-muted animate-pulse" />;
+  }
 
   return (
     <GameCard

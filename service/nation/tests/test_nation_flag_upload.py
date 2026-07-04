@@ -144,3 +144,22 @@ def test_unknown_nation_returns_404(
         format="multipart",
     )
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.django_db
+def test_flag_upload_changes_variant_detail_etag(
+    authenticated_client, draft_variant_for_primary, minimal_flag_svg
+):
+    detail_url = reverse("variant-detail", kwargs={"pk": "primary-draft"})
+    before = authenticated_client.get(detail_url)
+    etag = before["ETag"]
+
+    authenticated_client.put(
+        reverse("nation-flag", kwargs={"variant_id": "primary-draft", "nation_id": "reds"}),
+        _flag_upload(minimal_flag_svg),
+        format="multipart",
+    )
+
+    after = authenticated_client.get(detail_url, HTTP_IF_NONE_MATCH=etag)
+    assert after.status_code == status.HTTP_200_OK
+    assert after["ETag"] != etag

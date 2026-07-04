@@ -175,7 +175,13 @@ const OrdersScreen: React.FC = () => {
   const resolvePhaseMutation = useGameResolvePhaseCreate();
   const recoverMutation = useGameRecoverFromCivilDisorderCreate();
 
-  if (!variant) return null;
+  if (!variant) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground"></div>
+      </div>
+    );
+  }
 
   const isActivePhase = phase.status === "active";
   const isGameFinished =

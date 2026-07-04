@@ -24,7 +24,7 @@ const buildVariant = (raw: GodipVariant): Variant =>
     description: raw.description ?? "",
     author: raw.author ?? "",
     rules: "",
-    status: "active",
+    status: "published",
     official: true,
     ownerId: null,
     ownerUsername: null,
