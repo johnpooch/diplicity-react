@@ -135,6 +135,7 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
       enableHover: mode === "interactive" && !isNativePlatform(),
       maxZoomFactor: showFillToggle ? undefined : 4,
       initialFill: showFillToggle,
+      forceCompositeOnBase: isNativePlatform(),
       onClickProvince: (province, position) =>
         onClickRef.current?.(province, position),
       onGesture: handleGesture,
