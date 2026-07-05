@@ -2,6 +2,7 @@ import json
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -28,7 +29,12 @@ from bot.context.map import (
     shortest_distances,
 )
 from bot.context.orders import first_legal_selections, option_to_selected
-from bot.context.parsers import parse_order_selections, parse_reply
+from bot.context.parsers import (
+    ORDER_SELECTION_SCHEMA,
+    REPLY_SCHEMA,
+    parse_order_selections,
+    parse_reply,
+)
 from bot.llm_client import LLMClient, LLMError
 from bot.recorder import LLMCallRecorder
 from bot.utils import get_bot_user
@@ -196,6 +202,54 @@ class TestLLMClient:
         assert kwargs["output_tokens"] == 45
         assert kwargs["cache_read_tokens"] == 80
         assert kwargs["cache_write_tokens"] == 10
+
+    def _mock_response(self):
+        return Mock(
+            content=[Mock(type="text", text="ok")],
+            model="test-model",
+            usage=Mock(
+                input_tokens=1,
+                output_tokens=1,
+                cache_read_input_tokens=0,
+                cache_creation_input_tokens=0,
+            ),
+        )
+
+    @override_settings(BOT_LLM_STRUCTURED_OUTPUTS=True)
+    def test_passes_output_config_when_schema_provided_and_enabled(self):
+        with patch("bot.llm_client.Anthropic") as mock_anthropic:
+            create = mock_anthropic.return_value.messages.create
+            create.return_value = self._mock_response()
+            LLMClient("test-key", Mock()).complete(
+                system="s",
+                messages=[{"role": "user", "content": "x"}],
+                output_schema=ORDER_SELECTION_SCHEMA,
+            )
+        assert create.call_args.kwargs["output_config"] == {
+            "format": {"type": "json_schema", "schema": ORDER_SELECTION_SCHEMA}
+        }
+
+    @override_settings(BOT_LLM_STRUCTURED_OUTPUTS=False)
+    def test_omits_output_config_when_structured_outputs_disabled(self):
+        with patch("bot.llm_client.Anthropic") as mock_anthropic:
+            create = mock_anthropic.return_value.messages.create
+            create.return_value = self._mock_response()
+            LLMClient("test-key", Mock()).complete(
+                system="s",
+                messages=[{"role": "user", "content": "x"}],
+                output_schema=REPLY_SCHEMA,
+            )
+        assert "output_config" not in create.call_args.kwargs
+
+    @override_settings(BOT_LLM_STRUCTURED_OUTPUTS=True)
+    def test_omits_output_config_when_no_schema(self):
+        with patch("bot.llm_client.Anthropic") as mock_anthropic:
+            create = mock_anthropic.return_value.messages.create
+            create.return_value = self._mock_response()
+            LLMClient("test-key", Mock()).complete(
+                system="s", messages=[{"role": "user", "content": "x"}]
+            )
+        assert "output_config" not in create.call_args.kwargs
 
 
 def _map_province(province_id, type="coastal", supply_center=False, parent_id=None, adjacencies=None):

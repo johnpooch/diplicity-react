@@ -11,6 +11,38 @@ from bot.types import OrderOptionDict
 
 logger = logging.getLogger(__name__)
 
+ORDER_SELECTION_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "reasoning": {"type": "string"},
+        "choices": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "source_id": {"type": "string"},
+                    "option_index": {"type": "integer"},
+                },
+                "required": ["source_id", "option_index"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["reasoning", "choices"],
+    "additionalProperties": False,
+}
+
+REPLY_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "reasoning": {"type": "string"},
+        "should_reply": {"type": "boolean"},
+        "message": {"type": "string"},
+    },
+    "required": ["reasoning", "should_reply"],
+    "additionalProperties": False,
+}
+
 
 def _extract_json(response_text: str) -> dict:
     text = response_text.strip()
