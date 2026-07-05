@@ -19,7 +19,7 @@ import {
   useVariantsRetrieveSuspense,
   useVariantsNationsFlagUpdate,
   useVariantsNationsFlagDestroy,
-  getVariantsListQueryKey,
+  getVariantsMineListQueryKey,
   getVariantsRetrieveQueryKey,
   Nation,
   NationFlagUpload,
@@ -174,7 +174,7 @@ const VariantCreate: React.FC = () => {
     });
     toast.success("Draft variant uploaded");
     await queryClient.invalidateQueries({
-      queryKey: getVariantsListQueryKey(),
+      queryKey: getVariantsMineListQueryKey(),
     });
     navigate("/variants");
   };
@@ -302,7 +302,7 @@ const VariantEdit: React.FC<{ variantId: string }> = ({ variantId }) => {
     });
     toast.success(`Updated draft variant '${variantId}'`);
     await queryClient.invalidateQueries({
-      queryKey: getVariantsListQueryKey(),
+      queryKey: getVariantsMineListQueryKey(),
     });
     navigate("/variants");
   };

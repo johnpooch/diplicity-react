@@ -53,7 +53,6 @@ import {
   useGameConfirmPhasePartialUpdate,
   useGameResolvePhaseCreate,
   useGameRetrieveSuspense,
-  useVariantsListSuspense,
   useGamesDrawProposalsListSuspense,
   useGameRecoverFromCivilDisorderCreate,
   getGameRetrieveQueryKey,
@@ -64,6 +63,7 @@ import {
   GameRetrieve,
   Unit,
 } from "@/api/generated/endpoints";
+import { useGameVariant } from "@/hooks/useGameVariant";
 import { cn } from "../../lib/utils";
 
 type NationGroup = {
@@ -167,7 +167,7 @@ const OrdersScreen: React.FC = () => {
   const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: phase } = useGamePhaseRetrieveSuspense(gameId, selectedPhase);
   const { data: orders } = useGameOrdersListSuspense(gameId, selectedPhase);
-  const { data: variants } = useVariantsListSuspense();
+  const variant = useGameVariant(game);
   const { data: phaseStates } = useGamePhaseStatesListSuspense(gameId);
 
   const deleteOrderMutation = useGameOrdersDeleteDestroy();
@@ -175,7 +175,13 @@ const OrdersScreen: React.FC = () => {
   const resolvePhaseMutation = useGameResolvePhaseCreate();
   const recoverMutation = useGameRecoverFromCivilDisorderCreate();
 
-  const variant = variants.find(v => v.id === game.variantId)!;
+  if (!variant) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground"></div>
+      </div>
+    );
+  }
 
   const isActivePhase = phase.status === "active";
   const isGameFinished =

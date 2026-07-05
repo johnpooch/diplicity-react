@@ -22,9 +22,10 @@ import {
 
 import {
   useVariantsListSuspense,
+  useVariantsMineListSuspense,
   useVariantsDestroy,
   useSandboxGameCreate,
-  getVariantsListQueryKey,
+  getVariantsMineListQueryKey,
   Variant,
 } from "@/api/generated/endpoints";
 import { MapView } from "@/components/MapView";
@@ -194,6 +195,7 @@ const VariantsList: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: variants } = useVariantsListSuspense();
+  const { data: myDrafts } = useVariantsMineListSuspense();
   const destroyMutation = useVariantsDestroy();
   const sandboxMutation = useSandboxGameCreate();
 
@@ -206,15 +208,13 @@ const VariantsList: React.FC = () => {
       draft: 0,
       published: 1,
     };
-    return [...variants]
-      .filter((v) => v.status === "published" || v.canEdit)
-      .sort((a, b) => {
-        const statusDiff =
-          (order[a.status] ?? 99) - (order[b.status] ?? 99);
-        if (statusDiff !== 0) return statusDiff;
-        return a.name.localeCompare(b.name);
-      });
-  }, [variants]);
+    return [...myDrafts, ...variants].sort((a, b) => {
+      const statusDiff =
+        (order[a.status] ?? 99) - (order[b.status] ?? 99);
+      if (statusDiff !== 0) return statusDiff;
+      return a.name.localeCompare(b.name);
+    });
+  }, [variants, myDrafts]);
 
   const handleDelete = async () => {
     if (!pendingDeleteId) return;
@@ -222,7 +222,7 @@ const VariantsList: React.FC = () => {
       await destroyMutation.mutateAsync({ id: pendingDeleteId });
       toast.success("Variant deleted");
       await queryClient.invalidateQueries({
-        queryKey: getVariantsListQueryKey(),
+        queryKey: getVariantsMineListQueryKey(),
       });
     } catch {
       toast.error("Failed to delete variant");

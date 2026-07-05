@@ -8,8 +8,8 @@ import { DeadlineSummary } from "@/components/DeadlineSummary";
 import {
   useGameRetrieveSuspense,
   useGamePhaseRetrieve,
-  useVariantsListSuspense,
 } from "@/api/generated/endpoints";
+import { useGameVariant } from "@/hooks/useGameVariant";
 import { getCurrentPhaseId, formatDateTime, formatTimeAgo } from "@/util";
 import { MIN_RELIABILITY_OPTIONS } from "@/constants";
 import { ExpandableMapPreview } from "@/components/ExpandableMapPreview";
@@ -69,7 +69,7 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
   const { gameId } = useRequiredParams<{ gameId: string }>();
 
   const { data: game } = useGameRetrieveSuspense(gameId);
-  const { data: variants } = useVariantsListSuspense();
+  const variant = useGameVariant(game);
 
   const currentPhaseId = getCurrentPhaseId(game);
   const { data: currentPhase } = useGamePhaseRetrieve(
@@ -77,8 +77,6 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
     currentPhaseId ?? 0,
     { query: { enabled: !!currentPhaseId } }
   );
-
-  const variant = variants.find(v => v.id === game.variantId);
 
   return (
     <>

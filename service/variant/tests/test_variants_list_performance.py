@@ -72,7 +72,7 @@ def test_list_variants_no_n_plus_one_when_variant_count_grows(
         format="multipart",
     )
     assert upload_response.status_code == status.HTTP_201_CREATED, upload_response.data
-    assert Variant.objects.filter(id=upload_response.data["id"]).exists()
+    Variant.objects.filter(id=upload_response.data["id"]).update(status=VariantStatus.PUBLISHED)
 
     grown_count, grown_response = _list_query_count(authenticated_client)
     assert len(grown_response.data) == baseline_variant_count + 1
@@ -88,7 +88,7 @@ def test_list_variants_returns_etag_and_cache_control(authenticated_client):
     response = authenticated_client.get(reverse("variant-list"))
     assert response.status_code == status.HTTP_200_OK
     assert response["ETag"].startswith('"') and response["ETag"].endswith('"')
-    assert response["Cache-Control"] == "private, must-revalidate, max-age=60"
+    assert response["Cache-Control"] == "public"
 
 
 @pytest.mark.django_db
@@ -135,8 +135,8 @@ def test_published_variants_list_served_from_render_cache(authenticated_client):
         hit_count, hit_response = _list_query_count(authenticated_client)
 
     assert hit_response.data == miss_response.data
-    # The hit path runs only the content-version aggregates and the
-    # published-only gate query; the ~18 prefetch queries are skipped.
+    # The hit path runs only the content-version aggregates; the ~18
+    # prefetch queries are skipped.
     assert hit_count < miss_count
     assert hit_count <= 5
 
@@ -163,11 +163,9 @@ def test_render_cache_shared_across_users(user_factory, authenticated_client_fac
 
 
 @pytest.mark.django_db
-def test_draft_owner_is_not_served_published_cache(
+def test_draft_variant_never_appears_in_published_list(
     unauthenticated_client, user_factory, authenticated_client_factory
 ):
-    """Warming the shared cache from a published-only request must not cause a
-    draft owner to be served the cached payload in place of their own draft."""
     owner = user_factory()
     draft = Variant.objects.create(
         id="cache-draft", name="Cache Draft", description="",
@@ -178,8 +176,71 @@ def test_draft_owner_is_not_served_published_cache(
     with override_settings(CACHES=_LOCMEM_CACHE):
         cache.clear()
         anonymous = unauthenticated_client.get(reverse("variant-list"))
-        assert draft.id not in {v["id"] for v in anonymous.data}
-
         owned = owner_client.get(reverse("variant-list"))
 
-    assert draft.id in {v["id"] for v in owned.data}
+    assert draft.id not in {v["id"] for v in anonymous.data}
+    assert draft.id not in {v["id"] for v in owned.data}
+
+
+@pytest.mark.django_db
+def test_mine_list_returns_only_own_drafts(user_factory, authenticated_client_factory):
+    owner = user_factory()
+    other = user_factory()
+    own_draft = Variant.objects.create(
+        id="own-draft", name="Own Draft", description="",
+        status=VariantStatus.DRAFT, owner=owner,
+    )
+    Variant.objects.create(
+        id="other-draft", name="Other Draft", description="",
+        status=VariantStatus.DRAFT, owner=other,
+    )
+
+    response = authenticated_client_factory(owner).get(reverse("variant-mine-list"))
+
+    assert response.status_code == status.HTTP_200_OK
+    assert {v["id"] for v in response.data} == {own_draft.id}
+
+
+@pytest.mark.django_db
+def test_mine_list_requires_authentication(unauthenticated_client):
+    response = unauthenticated_client.get(reverse("variant-mine-list"))
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.django_db
+def test_variant_detail_returns_etag_and_cache_control(authenticated_client, classical_variant):
+    response = authenticated_client.get(
+        reverse("variant-detail", kwargs={"pk": classical_variant.id})
+    )
+    assert response.status_code == status.HTTP_200_OK
+    assert response["ETag"].startswith('"') and response["ETag"].endswith('"')
+    assert response["Cache-Control"] == "private, must-revalidate, max-age=60"
+
+
+@pytest.mark.django_db
+def test_variant_detail_returns_304_on_matching_if_none_match(
+    authenticated_client, classical_variant
+):
+    url = reverse("variant-detail", kwargs={"pk": classical_variant.id})
+    first = authenticated_client.get(url)
+    etag = first["ETag"]
+
+    second = authenticated_client.get(url, HTTP_IF_NONE_MATCH=etag)
+    assert second.status_code == status.HTTP_304_NOT_MODIFIED
+    assert second["ETag"] == etag
+
+
+@pytest.mark.django_db
+def test_variant_detail_resolves_a_draft_by_id(user_factory, authenticated_client_factory):
+    owner = user_factory()
+    draft = Variant.objects.create(
+        id="detail-draft", name="Detail Draft", description="",
+        status=VariantStatus.DRAFT, owner=owner,
+    )
+
+    response = authenticated_client_factory(owner).get(
+        reverse("variant-detail", kwargs={"pk": draft.id})
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["id"] == draft.id

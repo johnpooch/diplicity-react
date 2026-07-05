@@ -60,6 +60,7 @@ import {
 } from "@/constants";
 import {
   useVariantsListSuspense,
+  useVariantsRetrieve,
   useUserRetrieveSuspense,
   useGameCreate,
   useSandboxGameCreate,
@@ -1011,10 +1012,6 @@ const CreateGame: React.FC = () => {
   const { data: allVariants } = useVariantsListSuspense();
   const { data: userProfile } = useUserRetrieveSuspense();
   const maxReliability = getMaxReliability(userProfile.reliabilityTier);
-  const publishedVariants = React.useMemo(
-    () => allVariants.filter(v => v.status === "published"),
-    [allVariants]
-  );
 
   const initialVariantId =
     searchParams.get(CREATE_GAME_PARAM.variantId) ?? undefined;
@@ -1022,22 +1019,20 @@ const CreateGame: React.FC = () => {
   const initialMode: GameMode =
     searchParams.get("sandbox") === "true" ? "sandbox" : "standard";
 
-  const initialVariant = React.useMemo(
-    () =>
-      initialVariantId
-        ? allVariants.find(v => v.id === initialVariantId)
-        : undefined,
-    [allVariants, initialVariantId]
+  const initialVariantFromCatalogue = initialVariantId
+    ? allVariants.find(v => v.id === initialVariantId)
+    : undefined;
+  const { data: fetchedInitialVariant } = useVariantsRetrieve(
+    initialVariantId ?? "",
+    { query: { enabled: !!initialVariantId && !initialVariantFromCatalogue } }
   );
+  const initialVariant = initialVariantFromCatalogue ?? fetchedInitialVariant;
   const variants = React.useMemo(() => {
-    if (
-      initialVariant &&
-      !publishedVariants.some(v => v.id === initialVariant.id)
-    ) {
-      return [initialVariant, ...publishedVariants];
+    if (initialVariant && !allVariants.some(v => v.id === initialVariant.id)) {
+      return [initialVariant, ...allVariants];
     }
-    return publishedVariants;
-  }, [publishedVariants, initialVariant]);
+    return allVariants;
+  }, [allVariants, initialVariant]);
   const createGameMutation = useGameCreate();
   const createSandboxGameMutation = useSandboxGameCreate();
   const checkNotificationPermission = useCheckNotificationPermission();

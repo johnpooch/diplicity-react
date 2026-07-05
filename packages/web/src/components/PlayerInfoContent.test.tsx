@@ -15,6 +15,7 @@ const mockKickMutateAsync = vi.fn();
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({ data: mockGameData() }),
   useVariantsListSuspense: () => ({ data: mockVariantsData() }),
+  useVariantsRetrieve: () => ({ data: undefined }),
   useGamePhaseRetrieve: () => ({ data: mockCurrentPhaseData() }),
   useUserRetrieveSuspense: () => ({ data: mockUserProfileData() }),
   useGameKickDestroy: () => ({

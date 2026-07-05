@@ -23,8 +23,8 @@ import {
   useGameRetrieveSuspense,
   useGamesChannelsListSuspense,
   useUserRetrieveSuspense,
-  useVariantsListSuspense,
 } from "@/api/generated/endpoints";
+import { useGameVariant } from "@/hooks/useGameVariant";
 import { getChannelDisplayName, getChannelFlagUrls } from "./channelUtils";
 import { ChannelAvatar } from "./ChannelAvatar";
 
@@ -46,12 +46,12 @@ const ChannelListScreen: React.FC = () => {
   }>();
   const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: channels } = useGamesChannelsListSuspense(gameId);
-  const { data: variants } = useVariantsListSuspense();
+  const variant = useGameVariant(game);
   const { data: profile } = useUserRetrieveSuspense();
 
   const currentNationName =
     game.members.find(m => m.isCurrentUser)?.nation ?? undefined;
-  const variantNations = variants.find(v => v.id === game.variantId)?.nations ?? [];
+  const variantNations = variant?.nations ?? [];
   const isSandboxGame = game.sandbox;
   const isNoPressActiveGame =
     game.pressType === "no_press" &&

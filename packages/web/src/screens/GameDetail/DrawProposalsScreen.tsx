@@ -33,7 +33,6 @@ import {
   useGamesDrawProposalsCancelDestroy,
   getGamesDrawProposalsListQueryKey,
   getGameRetrieveQueryKey,
-  useVariantsListSuspense,
 } from "@/api/generated/endpoints";
 import type {
   DrawProposal,
@@ -41,6 +40,7 @@ import type {
   Member,
   Variant,
 } from "@/api/generated/endpoints";
+import { useGameVariant } from "@/hooks/useGameVariant";
 
 type TabValue = "active" | "rejected";
 
@@ -181,11 +181,10 @@ const DrawProposalsScreen: React.FC = () => {
 
   const { data: game } = useGameRetrieveSuspense(gameId);
   const { data: proposals } = useGamesDrawProposalsListSuspense(gameId);
-  const { data: variants } = useVariantsListSuspense();
+  const variant = useGameVariant(game);
   const voteMutation = useGamesDrawProposalsVotePartialUpdate();
   const cancelMutation = useGamesDrawProposalsCancelDestroy();
 
-  const variant = variants.find(v => v.id === game.variantId);
   const currentMember = game.members.find(m => m.isCurrentUser);
 
   const handleVote = async (proposalId: number, accepted: boolean) => {

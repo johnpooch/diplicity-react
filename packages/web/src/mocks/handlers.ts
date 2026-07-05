@@ -9,6 +9,7 @@ import {
   allVariants,
   botRoster,
   currentUserProfile,
+  draftVariant,
   fixtureByGameId,
   llmCallDetails,
   llmCallSummaries,
@@ -84,10 +85,16 @@ export const handlers = [
     HttpResponse.json({ environment: "mock", version: "mock" } satisfies Version)
   ),
 
-  http.get("*/variants/", () => HttpResponse.json(allVariants)),
+  http.get("*/variants/", () =>
+    HttpResponse.json(allVariants.filter(v => v.status === "published"))
+  ),
+
+  http.get("*/variants/mine/", () => HttpResponse.json([draftVariant])),
 
   http.get("*/variants/:variantId/", ({ params }) => {
-    const variant = allVariants.find(v => v.id === params.variantId);
+    const variant = [...allVariants, draftVariant].find(
+      v => v.id === params.variantId
+    );
     return variant ? HttpResponse.json(variant) : notFound();
   }),
 

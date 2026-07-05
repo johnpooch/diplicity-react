@@ -4,7 +4,7 @@ import json
 
 from django.core.cache import cache
 from django.db import transaction
-from django.db.models import Max, Q
+from django.db.models import Max
 from django.http import HttpResponse, HttpResponseNotFound
 from django.views import View
 from rest_framework import generics, permissions, status
@@ -44,31 +44,20 @@ def _variants_list_cache_inputs():
     return variant_max, flag_max
 
 
-def _variants_list_etag(variant_max, flag_max, user):
-    digest = hashlib.sha256(
-        f"{variant_max}|{flag_max}|{user.id}".encode()
-    ).hexdigest()
+def _variants_list_etag(variant_max, flag_max):
+    digest = hashlib.sha256(f"{variant_max}|{flag_max}".encode()).hexdigest()
     return f'"{digest[:32]}"'
 
 
-def _user_sees_only_published_variants(user):
-    """Whether ``visible_to(user)`` returns exactly the published variants.
-
-    True for anonymous users and for authenticated users who neither own a
-    draft nor belong to a game running a non-published variant — the common
-    case, and the only one whose payload can be served from the shared cache.
-    Mirrors the non-published clauses of ``VariantQuerySet.visible_to``.
-    """
-    if not user.is_authenticated:
-        return True
-    return not (
-        Variant.objects.filter(
-            Q(status=VariantStatus.DRAFT, owner=user)
-            | Q(games__members__user=user)
-        )
-        .exclude(status=VariantStatus.PUBLISHED)
-        .exists()
-    )
+def _variant_detail_etag(variant, user):
+    flag_max = NationFlag.objects.filter(nation__variant=variant).aggregate(
+        Max("updated_at")
+    )["updated_at__max"]
+    user_id = user.id if user.is_authenticated else "anon"
+    digest = hashlib.sha256(
+        f"{variant.updated_at}|{flag_max}|{user_id}".encode()
+    ).hexdigest()
+    return f'"{digest[:32]}"'
 
 
 class VariantListCreateView(generics.ListCreateAPIView):
@@ -80,7 +69,7 @@ class VariantListCreateView(generics.ListCreateAPIView):
         return [AllowAny()]
 
     def get_queryset(self):
-        return Variant.objects.visible_to(self.request.user).with_related_data()
+        return Variant.objects.filter(status=VariantStatus.PUBLISHED).with_related_data()
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -89,15 +78,13 @@ class VariantListCreateView(generics.ListCreateAPIView):
 
     def list(self, request, *args, **kwargs):
         variant_max, flag_max = _variants_list_cache_inputs()
-        etag = _variants_list_etag(variant_max, flag_max, request.user)
+        etag = _variants_list_etag(variant_max, flag_max)
         if request.headers.get("If-None-Match") == etag:
             response = Response(status=status.HTTP_304_NOT_MODIFIED)
-        elif _user_sees_only_published_variants(request.user):
-            response = Response(self._published_variants_data(variant_max, flag_max))
         else:
-            response = super().list(request, *args, **kwargs)
+            response = Response(self._published_variants_data(variant_max, flag_max))
         response["ETag"] = etag
-        response["Cache-Control"] = "private, must-revalidate, max-age=60"
+        response["Cache-Control"] = "public"
         return response
 
     def _published_variants_data(self, variant_max, flag_max):
@@ -105,14 +92,21 @@ class VariantListCreateView(generics.ListCreateAPIView):
         cache_key = f"variants-list:published:{digest}"
         data = cache.get(cache_key)
         if data is None:
-            queryset = Variant.objects.filter(
-                status=VariantStatus.PUBLISHED
-            ).with_related_data()
-            serialized = self.get_serializer(queryset, many=True).data
+            serialized = self.get_serializer(self.get_queryset(), many=True).data
             # Strip DRF's request-bound wrappers so the payload pickles cleanly.
             data = json.loads(json.dumps(serialized))
             cache.set(cache_key, data, _VARIANTS_LIST_CACHE_TIMEOUT)
         return data
+
+
+class VariantMineListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = VariantSerializer
+
+    def get_queryset(self):
+        return Variant.objects.filter(
+            status=VariantStatus.DRAFT, owner=self.request.user
+        ).with_related_data()
 
 
 class VariantDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -126,6 +120,17 @@ class VariantDetailView(generics.RetrieveUpdateDestroyAPIView):
         if self.request.method in ("PUT", "PATCH"):
             return VariantWriteSerializer
         return VariantSerializer
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        etag = _variant_detail_etag(instance, request.user)
+        if request.headers.get("If-None-Match") == etag:
+            response = Response(status=status.HTTP_304_NOT_MODIFIED)
+        else:
+            response = Response(self.get_serializer(instance).data)
+        response["ETag"] = etag
+        response["Cache-Control"] = "private, must-revalidate, max-age=60"
+        return response
 
     def perform_destroy(self, instance):
         with transaction.atomic():

@@ -24,7 +24,7 @@ const buildVariant = (raw: GodipVariant): Variant =>
     description: raw.description ?? "",
     author: raw.author ?? "",
     rules: "",
-    status: "active",
+    status: "published",
     official: true,
     ownerId: null,
     ownerUsername: null,
@@ -69,3 +69,14 @@ export const extraVariants: Variant[] = [
 ];
 
 export const allVariants: Variant[] = [classicalVariant, ...extraVariants];
+
+export const draftVariant: Variant = {
+  ...classicalVariant,
+  id: "my-draft",
+  name: "My Draft Variant",
+  status: "draft",
+  official: false,
+  ownerId: 1,
+  ownerUsername: "testuser",
+  canEdit: true,
+};

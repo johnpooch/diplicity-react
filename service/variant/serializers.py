@@ -194,11 +194,3 @@ class VariantWriteSerializer(serializers.Serializer):
 
     def to_representation(self, instance):
         return VariantSerializer(instance, context=self.context).data
-
-
-class GameListVariantSerializer(serializers.Serializer):
-    id = serializers.CharField()
-    name = serializers.CharField()
-    description = serializers.CharField()
-    author = serializers.CharField(required=False)
-    nations = NationSerializer(many=True)

@@ -18,11 +18,11 @@ import {
   useGamePhaseRetrieve,
   useGameKickDestroy,
   useUserRetrieveSuspense,
-  useVariantsListSuspense,
   getGameAvailableBotsListQueryKey,
   getGameRetrieveQueryKey,
   Member,
 } from "@/api/generated/endpoints";
+import { useGameVariant } from "@/hooks/useGameVariant";
 import { getCurrentPhaseId } from "@/util";
 import { useRequiredParams } from "@/hooks";
 
@@ -31,7 +31,7 @@ export const PlayerInfoContent: React.FC = () => {
   const { phaseId } = useParams<{ phaseId: string }>();
 
   const { data: game } = useGameRetrieveSuspense(gameId);
-  const { data: variants } = useVariantsListSuspense();
+  const variant = useGameVariant(game);
   const { data: userProfile } = useUserRetrieveSuspense();
   const queryClient = useQueryClient();
   const kickMutation = useGameKickDestroy();
@@ -44,8 +44,6 @@ export const PlayerInfoContent: React.FC = () => {
     currentPhaseId ?? 0,
     { query: { enabled: !!currentPhaseId } }
   );
-
-  const variant = variants.find(v => v.id === game.variantId);
 
   const getSupplyCenterCount = (member: Member) => {
     if (!currentPhase) return undefined;

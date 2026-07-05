@@ -9,6 +9,7 @@ import { mockActiveGames, mockPhaseMovement, mockVariants } from "@/mocks/legacy
 const mockUseGamesListInfinite = vi.fn();
 const mockUseGamePhaseRetrieve = vi.fn();
 const mockUseVariantsListSuspense = vi.fn();
+const mockUseVariantsRetrieve = vi.fn();
 
 vi.mock("@/hooks/useGamesListInfinite", () => ({
   useGamesListInfinite: (...args: unknown[]) => mockUseGamesListInfinite(...args),
@@ -19,6 +20,7 @@ vi.mock("@/api/generated/endpoints", async (importOriginal) => {
   return {
     ...(actual as Record<string, unknown>),
     useVariantsListSuspense: () => mockUseVariantsListSuspense(),
+    useVariantsRetrieve: (...args: unknown[]) => mockUseVariantsRetrieve(...args),
     useUserRetrieveSuspense: () => ({
       data: { id: 1, email: "test@example.com", name: "Test", picture: null },
     }),
@@ -66,6 +68,8 @@ beforeEach(() => {
   mockUseGamePhaseRetrieve.mockReturnValue({ data: mockPhaseMovement });
   mockUseVariantsListSuspense.mockReset();
   mockUseVariantsListSuspense.mockReturnValue({ data: [] });
+  mockUseVariantsRetrieve.mockReset();
+  mockUseVariantsRetrieve.mockReturnValue({ data: undefined });
 });
 
 describe("MyGames empty states", () => {
@@ -156,6 +160,25 @@ describe("MyGames eliminated games", () => {
 
     await screen.findByText(game.name);
     expect(screen.queryByRole("heading", { name: "Eliminated", level: 3 })).not.toBeInTheDocument();
+  });
+});
+
+describe("MyGames draft variant fallback", () => {
+  it("renders a game whose variant is a draft not in the published catalogue", async () => {
+    const draftVariant = { ...mockVariants[0], id: "own-draft", status: "draft" };
+    const game = { ...mockActiveGames[0], variantId: draftVariant.id };
+    mockUseGamesListInfinite.mockReturnValue({
+      data: { pages: [{ results: [game], next: null }] },
+      fetchNextPage: vi.fn(),
+      hasNextPage: false,
+      isFetchingNextPage: false,
+    });
+    mockUseVariantsListSuspense.mockReturnValue({ data: mockVariants });
+    mockUseVariantsRetrieve.mockReturnValue({ data: draftVariant });
+
+    renderMyGames();
+
+    expect(await screen.findByText(game.name)).toBeInTheDocument();
   });
 });
 

@@ -28,6 +28,7 @@ const mockCreateMutation = vi.fn();
 vi.mock("@/api/generated/endpoints", () => ({
   useGameRetrieveSuspense: () => ({ data: mockGameData() }),
   useVariantsListSuspense: () => ({ data: mockVariantsData() }),
+  useVariantsRetrieve: () => ({ data: undefined }),
   useGamesDrawProposalsCreateCreate: () => ({
     mutateAsync: mockCreateMutation,
     isPending: false,

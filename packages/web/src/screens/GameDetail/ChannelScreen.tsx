@@ -24,13 +24,13 @@ import { Panel } from "@/components/Panel";
 import {
   useGameRetrieveSuspense,
   useGamesChannelsListSuspense,
-  useVariantsListSuspense,
   useGamesChannelsMessagesCreateCreate,
   useGamesChannelsMarkReadCreate,
   getGamesChannelsListQueryKey,
   getGameRetrieveQueryKey,
   ChannelMessage as ChannelMessageType,
 } from "@/api/generated/endpoints";
+import { useGameVariant } from "@/hooks/useGameVariant";
 
 type MessageDisplayItem = {
   id: number;
@@ -111,7 +111,7 @@ const ChannelScreen: React.FC = () => {
       refetchInterval: 5000,
     },
   });
-  const { data: variants } = useVariantsListSuspense();
+  const variant = useGameVariant(game);
   const createMessageMutation = useGamesChannelsMessagesCreateCreate();
   const markReadMutation = useGamesChannelsMarkReadCreate();
 
@@ -137,7 +137,6 @@ const ChannelScreen: React.FC = () => {
 
   const currentMember = game.members.find(m => m.isCurrentUser);
   const currentNationName = currentMember?.nation ?? undefined;
-  const variant = variants.find(v => v.id === game.variantId);
   const channelDisplayName = getChannelDisplayName(channel, currentNationName);
   const channelFlagUrls = getChannelFlagUrls(
     channel,
