@@ -25,7 +25,7 @@ class LLMClient:
         try:
             message = self._client.messages.create(
                 model=settings.BOT_LLM_MODEL,
-                max_tokens=1024,
+                max_tokens=2048,
                 system=system,
                 messages=messages,
             )
