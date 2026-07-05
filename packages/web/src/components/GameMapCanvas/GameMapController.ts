@@ -51,6 +51,7 @@ type ControllerOptions = {
   enableHover: boolean;
   maxZoomFactor?: number;
   initialFill?: boolean;
+  forceCompositeOnBase?: boolean;
   onClickProvince?: (province: string, position: Point) => void;
   onGesture: (record: GestureRecord) => void;
 };
@@ -102,6 +103,7 @@ export class GameMapController {
   private wheelDelta = 0;
   private wheelPoint: L.Point | null = null;
   private wheelRaf: number | null = null;
+  private compositeRaf: number | null = null;
 
   constructor(container: HTMLElement, options: ControllerOptions) {
     this.options = options;
@@ -302,7 +304,28 @@ export class GameMapController {
     if (!this.baseReady) {
       this.baseReady = true;
       this.map.getPane("overlayMap")!.style.visibility = "";
+      if (this.options.forceCompositeOnBase) {
+        this.nudgeComposite();
+      }
     }
+  }
+
+  // The base raster lands seconds after the map mounts (async SVG->PNG), and
+  // Android's WebView does not always paint a layer mutated that late: the board
+  // stays blank until the user pans or zooms and forces a repaint (reported as a
+  // ~10s white screen that clears on the first touch of the map or zoom button).
+  // Toggling the map pane's visibility for one frame re-rasterises it in place —
+  // the pane is already unpainted, so hiding it is invisible and the show forces
+  // the paint the WebView skipped, without moving the camera. Desktop browsers
+  // repaint on layer insertion, so this is gated to native via the option.
+  private nudgeComposite(): void {
+    const pane = this.map.getPane("mapPane");
+    if (!pane) return;
+    pane.style.visibility = "hidden";
+    this.compositeRaf = requestAnimationFrame(() => {
+      this.compositeRaf = null;
+      pane.style.visibility = "";
+    });
   }
 
   setOverlay(svg: string): void {
@@ -424,6 +447,9 @@ export class GameMapController {
     }
     if (this.wheelRaf !== null) {
       cancelAnimationFrame(this.wheelRaf);
+    }
+    if (this.compositeRaf !== null) {
+      cancelAnimationFrame(this.compositeRaf);
     }
     this.container.removeEventListener("wheel", this.onWheel);
     this.map.remove();
