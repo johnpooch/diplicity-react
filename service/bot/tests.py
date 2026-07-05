@@ -133,6 +133,21 @@ class TestSelectOrders:
             ["edi", OrderType.HOLD],
         ]
 
+    def test_ignores_reasoning_field(self):
+        response_text = json.dumps(
+            {
+                "reasoning": "Hold London and move Edinburgh north.",
+                "choices": [
+                    {"source_id": "lon", "option_index": 0},
+                    {"source_id": "edi", "option_index": 1},
+                ],
+            }
+        )
+        assert parse_order_selections(response_text, self._options()) == [
+            ["lon", OrderType.HOLD],
+            ["edi", OrderType.MOVE, "nwg"],
+        ]
+
     def test_raises_on_unparseable_json(self):
         with pytest.raises(LLMError):
             parse_order_selections("not json at all", self._options())
@@ -579,6 +594,16 @@ class TestComposeReply:
 
     def test_returns_none_for_empty_message(self):
         assert parse_reply(json.dumps({"should_reply": True, "message": "   "})) is None
+
+    def test_ignores_reasoning_field(self):
+        response_text = json.dumps(
+            {
+                "reasoning": "They asked me directly, so I should answer.",
+                "should_reply": True,
+                "message": "Sounds good.",
+            }
+        )
+        assert parse_reply(response_text) == "Sounds good."
 
     def test_raises_on_unparseable_json(self):
         with pytest.raises(LLMError):
