@@ -1,4 +1,5 @@
 from datetime import timedelta
+import random
 import re
 import uuid
 
@@ -596,8 +597,6 @@ class Game(BaseModel):
 
     def reassign_admin(self):
         with tracer.start_as_current_span("game.models.reassign_admin"):
-            import random
-
             candidates = list(
                 self.members.filter(kicked=False, civil_disorder=False, user__isnull=False)
                 .exclude(user_id=self.admin_id)
@@ -662,8 +661,6 @@ class Game(BaseModel):
             nations = [n for n in self.variant.nations.all() if not n.non_playable]
 
             if self.nation_assignment == NationAssignment.RANDOM:
-                import random
-
                 random.shuffle(members)
             elif self.nation_assignment == NationAssignment.ORDERED:
                 members.sort(key=lambda m: m.id)
