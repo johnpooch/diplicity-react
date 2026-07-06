@@ -47,6 +47,8 @@ DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 # as a missed primary trigger and emits a Sentry canary event (seconds).
 RESOLUTION_CANARY_GRACE_SECONDS = int(os.getenv("RESOLUTION_CANARY_GRACE_SECONDS", "300"))
 
+NOTIFICATION_RETENTION_DAYS = int(os.getenv("NOTIFICATION_RETENTION_DAYS", "90"))
+
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,service,192.168.68.50").split(",")
 
 # CSRF Settings
