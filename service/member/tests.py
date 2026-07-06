@@ -5,7 +5,8 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APIClient
 from bot.models import BotProfile
-from channel.models import Channel, ChannelMessage
+from bot.utils import get_bot_user
+from channel.models import Channel, ChannelMember, ChannelMessage
 from game.models import Game
 from phase.models import Phase
 from user_profile.models import UserProfile
@@ -225,6 +226,19 @@ class TestJoinGameIntroMessage:
         assert not ChannelMessage.objects.exists()
 
     @pytest.mark.django_db
+    def test_join_with_whitespace_only_intro_message_creates_no_message(
+        self, authenticated_client, pending_game_created_by_secondary_user
+    ):
+        game = pending_game_created_by_secondary_user
+        Channel.objects.create(game=game, name="Public Press", private=False)
+
+        url = reverse(join_viewname, args=[game.id])
+        response = authenticated_client.post(url, {"intro_message": "   "}, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert not ChannelMessage.objects.exists()
+
+    @pytest.mark.django_db
     def test_join_with_intro_message_no_press_game_creates_no_message(
         self, authenticated_client, classical_variant
     ):
@@ -274,6 +288,27 @@ class TestJoinGameIntroMessage:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert not ChannelMessage.objects.exists()
+
+    @pytest.mark.django_db
+    def test_join_with_intro_message_counts_toward_bot_channel_cap(
+        self, authenticated_client, pending_game_created_by_secondary_user, classical_france_nation, settings
+    ):
+        game = pending_game_created_by_secondary_user
+        public_channel = Channel.objects.create(game=game, name="Public Press", private=False)
+        bot_member = game.members.create(user=get_bot_user(), nation=classical_france_nation)
+        ChannelMember.objects.create(member=bot_member, channel=public_channel)
+
+        url = reverse(join_viewname, args=[game.id])
+        authenticated_client.post(url, {"intro_message": "hi"}, format="json")
+
+        msg_url = reverse("channel-message-create", args=[game.id, public_channel.id])
+        for _ in range(settings.BOT_CHANNEL_MESSAGE_CAP):
+            authenticated_client.post(msg_url, {"body": "hello"}, format="json")
+
+        blocked = authenticated_client.post(msg_url, {"body": "one too many"}, format="json")
+
+        assert blocked.status_code == status.HTTP_400_BAD_REQUEST
+        assert ChannelMessage.objects.filter(channel=public_channel).count() == settings.BOT_CHANNEL_MESSAGE_CAP
 
 
 # Leave/Delete Member Tests

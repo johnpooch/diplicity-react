@@ -18,7 +18,14 @@ import {
 import { Notice } from "@/components/Notice";
 import { NationFlag, findNationFlagUrl } from "@/components/NationFlag";
 import { GameDetailAppBar } from "./AppBar";
-import { getChannelDisplayName, getChannelFlagUrls, brightnessByColor, toHex6 } from "./channelUtils";
+import {
+  getChannelDisplayName,
+  getChannelFlagUrls,
+  getSenderDisplayName,
+  brightnessByColor,
+  toHex6,
+  DEFAULT_NATION_COLOR,
+} from "./channelUtils";
 import { ChannelAvatar } from "./ChannelAvatar";
 import { Panel } from "@/components/Panel";
 import {
@@ -65,16 +72,15 @@ const buildMessageItems = (
     const previousMessage = messages[index - 1];
     const showAvatar =
       index === 0 ||
-      (previousMessage.sender.nation?.name ?? previousMessage.sender.name) !==
-        (msg.sender.nation?.name ?? msg.sender.name);
+      getSenderDisplayName(previousMessage.sender) !== getSenderDisplayName(msg.sender);
 
     return {
       id: msg.id,
       body: msg.body,
       createdAt: msg.createdAt,
       sender: {
-        nationName: msg.sender.nation?.name ?? msg.sender.name,
-        nationColor: msg.sender.nation?.color ?? "#808080",
+        nationName: getSenderDisplayName(msg.sender),
+        nationColor: msg.sender.nation?.color ?? DEFAULT_NATION_COLOR,
         picture: msg.sender.picture,
       },
       isCurrentUser: msg.sender.isCurrentUser,

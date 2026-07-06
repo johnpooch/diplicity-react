@@ -115,11 +115,11 @@ class MemberSerializer(BaseMemberSerializer):
                 [ChannelMember(member=member, channel=ch) for ch in public_channels]
             )
 
-            can_send_intro = not game.sandbox and not game.anonymous and game.press_type != PressType.NO_PRESS
-            public_channel = next((ch for ch in public_channels if ch.name == "Public Press"), None)
-            if intro_message and can_send_intro and public_channel:
-                ChannelMessage.objects.create(
-                    channel=public_channel, sender=member, phase=game.current_phase, body=intro_message
-                )
+            if intro_message and not game.anonymous and game.press_type != PressType.NO_PRESS:
+                public_channel = next(iter(public_channels), None)
+                if public_channel:
+                    ChannelMessage.objects.create(
+                        channel=public_channel, sender=member, phase=game.current_phase, body=intro_message
+                    )
 
         return member

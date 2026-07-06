@@ -104,6 +104,36 @@ describe("ChannelListScreen", () => {
     expect(screen.queryByText("0")).not.toBeInTheDocument();
   });
 
+  it("falls back to sender name in the preview when nation is null", () => {
+    mockChannelsData.mockReturnValue([
+      {
+        id: 1,
+        name: "Public Press",
+        private: false,
+        memberIds: [1, 2],
+        unreadMessageCount: 0,
+        messages: [
+          {
+            id: 1,
+            body: "Hi everyone",
+            sender: {
+              id: 2,
+              name: "Bob",
+              picture: null,
+              nation: null,
+              isCurrentUser: false,
+            },
+            createdAt: "2024-01-15T12:00:00Z",
+          },
+        ],
+      },
+    ]);
+
+    renderChannelList();
+
+    expect(screen.getByText("Bob: Hi everyone")).toBeInTheDocument();
+  });
+
   it("shows multiple badges for multiple channels with unread counts", () => {
     mockChannelsData.mockReturnValue([
       {

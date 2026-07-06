@@ -1,6 +1,9 @@
-import { Channel, Member } from "@/api/generated/endpoints";
+import { Channel, ChannelMember, Member } from "@/api/generated/endpoints";
 
 export type ChannelNation = { flagUrl: string | null; color: string };
+
+// Placeholder for channel members without an assigned nation yet (staging chat).
+export const DEFAULT_NATION_COLOR = "#808080";
 
 // Normalise any hex colour to 6-digit form (#RRGGBB). Falls back to grey for
 // non-hex values (e.g. rgb()) so callers can safely concatenate an alpha byte.
@@ -8,8 +11,12 @@ export const toHex6 = (color: string): string => {
   const short = /^#([0-9a-fA-F])([0-9a-fA-F])([0-9a-fA-F])$/.exec(color);
   if (short) return `#${short[1]}${short[1]}${short[2]}${short[2]}${short[3]}${short[3]}`;
   if (/^#[0-9a-fA-F]{6}$/.test(color)) return color;
-  return "#808080";
+  return DEFAULT_NATION_COLOR;
 };
+
+// Before a game starts, members have no nation yet — fall back to their name.
+export const getSenderDisplayName = (sender: Pick<ChannelMember, "name" | "nation">): string =>
+  sender.nation?.name ?? sender.name;
 
 export const brightnessByColor = (hex: string): number => {
   const match = /^#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/.exec(toHex6(hex));
@@ -46,6 +53,6 @@ export const getChannelFlagUrls = (
         .filter((n): n is string => n !== null);
   return nationNames.map(name => {
     const vn = variantNations.find(n => n.name === name);
-    return { flagUrl: vn?.flagUrl ?? null, color: vn?.color ?? "#808080" };
+    return { flagUrl: vn?.flagUrl ?? null, color: vn?.color ?? DEFAULT_NATION_COLOR };
   });
 };
