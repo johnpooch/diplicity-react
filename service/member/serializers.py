@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.apps import apps
 from django.conf import settings
+from django.db import transaction
 from drf_spectacular.utils import extend_schema_field
 
 from common.constants import GameStatus, PressType
@@ -105,20 +106,22 @@ class MemberSerializer(BaseMemberSerializer):
     def create(self, validated_data):
         game = self.context["game"]
         user = self.context["request"].user
-        member = game.members.create(user=user)
-        public_channels = list(game.channels.filter(private=False))
-        ChannelMember.objects.bulk_create(
-            [ChannelMember(member=member, channel=ch) for ch in public_channels]
-        )
 
-        intro_message = validated_data.get("intro_message")
-        public_channel = public_channels[0] if public_channels else None
-        if intro_message and public_channel is not None and game.press_type != PressType.NO_PRESS and not game.anonymous:
-            ChannelMessage.objects.create(
-                channel=public_channel,
-                sender=member,
-                phase=game.current_phase,
-                body=intro_message,
+        with transaction.atomic():
+            member = game.members.create(user=user)
+            public_channels = list(game.channels.filter(private=False))
+            ChannelMember.objects.bulk_create(
+                [ChannelMember(member=member, channel=ch) for ch in public_channels]
             )
+
+            intro_message = validated_data.get("intro_message")
+            public_channel = public_channels[0] if public_channels else None
+            if intro_message and public_channel is not None and game.press_type != PressType.NO_PRESS and not game.anonymous:
+                ChannelMessage.objects.create(
+                    channel=public_channel,
+                    sender=member,
+                    phase=game.current_phase,
+                    body=intro_message,
+                )
 
         return member
