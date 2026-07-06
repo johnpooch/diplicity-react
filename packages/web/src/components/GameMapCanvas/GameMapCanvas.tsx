@@ -254,7 +254,7 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
       <div
         ref={containerRef}
         data-map-impl="leaflet"
-        style={{ width: "100%", height: "100%", background: "#fff" }}
+        style={{ width: "100%", height: "100%", background: "var(--background)" }}
       />
       {showFillToggle && (
         <Button
