@@ -202,6 +202,8 @@ class PhaseManager(models.Manager):
     def _check_and_apply_nmr_extensions(self, phase):
         not_submitted = phase.phase_states.filter(
             has_possible_orders=True
+        ).exclude(
+            member__civil_disorder=True
         ).annotate(order_count=Count("orders")).filter(order_count=0).select_related('member')
 
         members_with_extensions = [

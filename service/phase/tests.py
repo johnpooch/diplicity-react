@@ -4683,6 +4683,37 @@ class TestNMRExtensionsFixedTime:
         italy.refresh_from_db()
         assert italy.nmr_extensions_remaining == 0
 
+    @pytest.mark.django_db
+    def test_fixed_time_civil_disorder_member_does_not_consume_extension(
+        self,
+        deadline_warning_game_factory,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+    ):
+        now = timezone.now()
+        game, italy, germany, phase = deadline_warning_game_factory(
+            DeadlineMode.FIXED_TIME, now - timedelta(minutes=1)
+        )
+        game.movement_frequency = PhaseFrequency.EVERY_2_DAYS
+        game.fixed_deadline_time = time(12, 0)
+        game.fixed_deadline_timezone = "UTC"
+        game.save()
+        italy.nmr_extensions_remaining = 1
+        italy.civil_disorder = True
+        italy.save()
+        phase.units.create(
+            province=italy_vs_germany_venice_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
+        )
+        phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=True)
+
+        result = Phase.objects._check_and_apply_nmr_extensions(phase)
+
+        assert result is None
+        italy.refresh_from_db()
+        assert italy.nmr_extensions_remaining == 1
+
 
 def _elimination_jobs(connector):
     return [
