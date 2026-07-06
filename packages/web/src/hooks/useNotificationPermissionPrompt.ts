@@ -1,8 +1,7 @@
 import { useEffect, useRef } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/auth";
 import {
-  useGamesList,
   useDevicesList,
   useDevicesCreate,
   getDevicesListQueryKey,
@@ -11,6 +10,7 @@ import { checkPermission } from "@/messaging-native";
 import { isNativePlatform, isIosPlatform } from "@/utils/platform";
 import { requestNotificationPermission } from "@/utils/notificationToken";
 import { useCheckNotificationPermission } from "./useCheckNotificationPermission";
+import { gamesListInfiniteQueryOptions } from "./useGamesListInfinite";
 
 const useNotificationPermissionPrompt = () => {
   const { loggedIn } = useAuth();
@@ -19,10 +19,19 @@ const useNotificationPermissionPrompt = () => {
   const createDeviceMutation = useDevicesCreate();
   const queryClient = useQueryClient();
 
-  const { data: activeGamesData } = useGamesList(
-    { mine: true, status: "active", sandbox: false },
-    { query: { enabled: loggedIn } }
-  );
+  const { data: activeGamesData } = useInfiniteQuery({
+    ...gamesListInfiniteQueryOptions({
+      mine: true,
+      status: "active",
+      ordering: "deadline",
+    }),
+    enabled: loggedIn,
+  });
+
+  const hasActiveNonSandboxGame =
+    activeGamesData?.pages.some(page =>
+      page.results.some(game => !game.sandbox)
+    ) ?? false;
 
   const { data: devicesData, isLoading: devicesLoading } = useDevicesList({
     query: { enabled: loggedIn },
@@ -31,12 +40,11 @@ const useNotificationPermissionPrompt = () => {
   // Prompt for permission when user has active games and hasn't been asked yet
   useEffect(() => {
     if (!loggedIn || hasPromptedRef.current) return;
-    if (activeGamesData === undefined) return;
-    if (activeGamesData.count === 0) return;
+    if (!hasActiveNonSandboxGame) return;
 
     hasPromptedRef.current = true;
     checkNotificationPermission();
-  }, [loggedIn, activeGamesData, checkNotificationPermission]);
+  }, [loggedIn, hasActiveNonSandboxGame, checkNotificationPermission]);
 
   // Silently re-register if permission is already granted but device record is missing
   useEffect(() => {
