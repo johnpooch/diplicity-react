@@ -38,16 +38,16 @@ describe("formatRemainingTime", () => {
 });
 
 describe("getGameLandingPath", () => {
-  it("routes pending games to game-info regardless of viewport", () => {
+  it("routes pending games to the shell game-info tab regardless of viewport", () => {
     const game = { id: "abc-1", status: "pending", currentPhaseId: 5 };
-    expect(getGameLandingPath(game, true)).toBe("/game-info/abc-1");
-    expect(getGameLandingPath(game, false)).toBe("/game-info/abc-1");
+    expect(getGameLandingPath(game, true)).toBe("/game/abc-1/phase/5/game-info");
+    expect(getGameLandingPath(game, false)).toBe("/game/abc-1/phase/5/game-info");
   });
 
-  it("routes pending games to game-info even when currentPhaseId is null", () => {
+  it("routes pending games with no currentPhaseId back to home", () => {
     const game = { id: "abc-2", status: "pending", currentPhaseId: null };
-    expect(getGameLandingPath(game, true)).toBe("/game-info/abc-2");
-    expect(getGameLandingPath(game, false)).toBe("/game-info/abc-2");
+    expect(getGameLandingPath(game, true)).toBe("/");
+    expect(getGameLandingPath(game, false)).toBe("/");
   });
 
   it("routes active games on mobile to the phase index", () => {

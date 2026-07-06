@@ -152,14 +152,6 @@ export const createAuthenticatedRoutes = (
             ),
           },
           {
-            path: "game-info/:gameId",
-            element: (
-              <Suspense fallback={<RouteFallback />}>
-                <Home.GameInfoScreen />
-              </Suspense>
-            ),
-          },
-          {
             path: "player-info/:gameId",
             element: (
               <Suspense fallback={<RouteFallback />}>

@@ -17,9 +17,9 @@ const getGameLandingPath = (
   game: { id: string; status: string; currentPhaseId: number | null },
   isMobile: boolean
 ): string => {
-  if (game.status === StatusEnum.pending) return `/game-info/${game.id}`;
   if (!game.currentPhaseId) return "/";
   const base = `/game/${game.id}/phase/${game.currentPhaseId}`;
+  if (game.status === StatusEnum.pending) return `${base}/game-info`;
   return isMobile ? base : `${base}/orders`;
 };
 

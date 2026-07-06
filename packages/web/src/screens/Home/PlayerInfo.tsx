@@ -20,7 +20,11 @@ const PlayerInfo: React.FC = () => {
   };
 
   const handleGameInfo = () => {
-    navigate(`/game-info/${gameId}`);
+    navigate(
+      game.currentPhaseId
+        ? `/game/${gameId}/phase/${game.currentPhaseId}/game-info`
+        : `/game/${gameId}`
+    );
   };
 
   return (

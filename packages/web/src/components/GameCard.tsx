@@ -102,7 +102,11 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
   };
 
   const handleClickGameInfo = () => {
-    navigate(`/game-info/${game.id}`);
+    navigate(
+      game.currentPhaseId
+        ? `/game/${game.id}/phase/${game.currentPhaseId}/game-info`
+        : `/game/${game.id}`
+    );
   };
 
   const handleClickPlayerInfo = () => {

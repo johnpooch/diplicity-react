@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { useRequiredParams } from "@/hooks";
-import { ArrowLeft, Map, Gavel, MessageCircle } from "lucide-react";
+import { ArrowLeft, Map, Gavel, MessageCircle, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Sidebar,
@@ -20,6 +20,7 @@ const navigationItems = [
   { label: "Map", icon: Map, path: "/game/:gameId/phase/:phaseId" },
   { label: "Orders", icon: Gavel, path: "/game/:gameId/phase/:phaseId/orders" },
   { label: "Chat", icon: MessageCircle, path: "/game/:gameId/phase/:phaseId/chat" },
+  { label: "Game Info", icon: Info, path: "/game/:gameId/phase/:phaseId/game-info" },
 ];
 
 interface GameDetailLayoutProps {
@@ -48,9 +49,12 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
   const [searchParams] = useSearchParams();
 
   const navItems = useMemo(() => {
-    const items = game?.sandbox
-      ? navigationItems.filter(item => item.label !== "Chat")
-      : navigationItems;
+    const items =
+      game?.status === "pending"
+        ? navigationItems.filter(item => item.label === "Game Info")
+        : navigationItems
+            .filter(item => item.label !== "Game Info")
+            .filter(item => !game?.sandbox || item.label !== "Chat");
     const searchParamsStr = searchParams.toString();
     const chatBasePath = `/game/${gameId}/phase/${phaseId}/chat`;
     const isInChatChannel = location.pathname.startsWith(chatBasePath + "/");
@@ -85,7 +89,7 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
         badge,
       };
     });
-  }, [gameId, phaseId, searchParams, location.pathname, game?.totalUnreadMessageCount, game?.sandbox, game?.members]);
+  }, [gameId, phaseId, searchParams, location.pathname, game?.totalUnreadMessageCount, game?.sandbox, game?.status, game?.members]);
 
   // Filter out Map for desktop sidebar since map is already visible in right
   // panel. Unlike the bottom nav, the sidebar Chat icon should return to the
@@ -145,10 +149,12 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
             {children}
           </SidebarInset>
 
-          {/* Right Panel - GameMap (desktop only) */}
-          <div className="hidden md:flex flex-1 border-l overflow-hidden">
-            <GameMap />
-          </div>
+          {/* Right Panel - GameMap (desktop only, not for pending games) */}
+          {game?.status !== "pending" && (
+            <div className="hidden md:flex flex-1 border-l overflow-hidden">
+              <GameMap />
+            </div>
+          )}
         </div>
 
         {/* Bottom Navigation - Mobile only */}

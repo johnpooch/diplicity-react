@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
 import { GameInfoContent } from "@/components/GameInfoContent";
+import { useGameRetrieveSuspense } from "@/api/generated/endpoints";
 import { useRequiredParams } from "@/hooks";
 
 const GameInfoScreen: React.FC = () => {
@@ -11,6 +12,7 @@ const GameInfoScreen: React.FC = () => {
     gameId: string;
     phaseId: string;
   }>();
+  const { data: game } = useGameRetrieveSuspense(gameId);
 
   const handleNavigateToPlayerInfo = () => {
     navigate(`/game/${gameId}/phase/${phaseId}/player-info`);
@@ -20,7 +22,11 @@ const GameInfoScreen: React.FC = () => {
     <div className="flex flex-col flex-1 min-h-0">
       <GameDetailAppBar
         title="Game Info"
-        onNavigateBack={() => navigate(`/game/${gameId}/phase/${phaseId}`)}
+        onNavigateBack={() =>
+          navigate(
+            game.status === "pending" ? "/" : `/game/${gameId}/phase/${phaseId}`
+          )
+        }
         variant="secondary"
       />
       <div className="flex-1 overflow-y-auto">
