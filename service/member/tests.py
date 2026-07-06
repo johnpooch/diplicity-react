@@ -5,10 +5,11 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APIClient
 from bot.models import BotProfile
+from channel.models import Channel, ChannelMessage
 from game.models import Game
 from phase.models import Phase
 from user_profile.models import UserProfile
-from common.constants import GameStatus, NationAssignment, PhaseStatus
+from common.constants import GameStatus, NationAssignment, PhaseStatus, PressType
 
 User = get_user_model()
 
@@ -178,6 +179,101 @@ def test_join_game_max_players(
     url = reverse(join_viewname, args=[game.id])
     response = authenticated_client.post(url)
     assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+class TestJoinGameIntroMessage:
+
+    @pytest.mark.django_db
+    def test_join_with_intro_message_creates_public_press_message(
+        self, authenticated_client, pending_game_created_by_secondary_user, primary_user
+    ):
+        game = pending_game_created_by_secondary_user
+        public_channel = Channel.objects.create(game=game, name="Public Press", private=False)
+
+        url = reverse(join_viewname, args=[game.id])
+        response = authenticated_client.post(url, {"intro_message": "Hi all, excited to play!"}, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        message = ChannelMessage.objects.get(channel=public_channel)
+        assert message.body == "Hi all, excited to play!"
+        assert message.sender.user == primary_user
+
+    @pytest.mark.django_db
+    def test_join_without_intro_message_creates_no_message(
+        self, authenticated_client, pending_game_created_by_secondary_user
+    ):
+        game = pending_game_created_by_secondary_user
+        Channel.objects.create(game=game, name="Public Press", private=False)
+
+        url = reverse(join_viewname, args=[game.id])
+        response = authenticated_client.post(url, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert not ChannelMessage.objects.exists()
+
+    @pytest.mark.django_db
+    def test_join_with_blank_intro_message_creates_no_message(
+        self, authenticated_client, pending_game_created_by_secondary_user
+    ):
+        game = pending_game_created_by_secondary_user
+        Channel.objects.create(game=game, name="Public Press", private=False)
+
+        url = reverse(join_viewname, args=[game.id])
+        response = authenticated_client.post(url, {"intro_message": ""}, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert not ChannelMessage.objects.exists()
+
+    @pytest.mark.django_db
+    def test_join_with_intro_message_no_press_game_creates_no_message(
+        self, authenticated_client, classical_variant
+    ):
+        game = Game.objects.create(
+            name="No Press Pending Game",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+            press_type=PressType.NO_PRESS,
+        )
+        Channel.objects.create(game=game, name="Public Press", private=False)
+
+        url = reverse(join_viewname, args=[game.id])
+        response = authenticated_client.post(url, {"intro_message": "Hello"}, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert not ChannelMessage.objects.exists()
+
+    @pytest.mark.django_db
+    def test_join_with_intro_message_anonymous_game_creates_no_message(
+        self, authenticated_client, classical_variant
+    ):
+        game = Game.objects.create(
+            name="Anonymous Pending Game",
+            variant=classical_variant,
+            status=GameStatus.PENDING,
+            anonymous=True,
+        )
+        Channel.objects.create(game=game, name="Public Press", private=False)
+
+        url = reverse(join_viewname, args=[game.id])
+        response = authenticated_client.post(url, {"intro_message": "Hello"}, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert not ChannelMessage.objects.exists()
+
+    @pytest.mark.django_db
+    def test_join_with_intro_message_over_limit_rejected(
+        self, authenticated_client, pending_game_created_by_secondary_user, settings
+    ):
+        game = pending_game_created_by_secondary_user
+        Channel.objects.create(game=game, name="Public Press", private=False)
+
+        url = reverse(join_viewname, args=[game.id])
+        response = authenticated_client.post(
+            url, {"intro_message": "x" * (settings.CHAT_MESSAGE_MAX_CHARS + 1)}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert not ChannelMessage.objects.exists()
 
 
 # Leave/Delete Member Tests

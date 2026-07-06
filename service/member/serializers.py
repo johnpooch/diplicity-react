@@ -1,10 +1,13 @@
 from rest_framework import serializers
 from django.apps import apps
+from django.conf import settings
+from django.db import transaction
 from drf_spectacular.utils import extend_schema_field
 
-from common.constants import GameStatus
+from common.constants import GameStatus, PressType
 
 ChannelMember = apps.get_model("channel", "ChannelMember")
+ChannelMessage = apps.get_model("channel", "ChannelMessage")
 
 
 class BaseMemberSerializer(serializers.Serializer):
@@ -83,6 +86,15 @@ class MemberSerializer(BaseMemberSerializer):
     civil_disorder = serializers.BooleanField(read_only=True)
     seeking_replacement = serializers.BooleanField(read_only=True)
     replaceable = serializers.BooleanField(read_only=True)
+    intro_message = serializers.CharField(
+        write_only=True,
+        required=False,
+        allow_blank=True,
+        max_length=settings.CHAT_MESSAGE_MAX_CHARS,
+        error_messages={
+            "max_length": f"Messages cannot be longer than {settings.CHAT_MESSAGE_MAX_CHARS} characters."
+        },
+    )
 
     @extend_schema_field(serializers.BooleanField)
     def get_is_game_creator(self, obj):
@@ -94,9 +106,20 @@ class MemberSerializer(BaseMemberSerializer):
     def create(self, validated_data):
         game = self.context["game"]
         user = self.context["request"].user
-        member = game.members.create(user=user)
-        public_channels = game.channels.filter(private=False)
-        ChannelMember.objects.bulk_create(
-            [ChannelMember(member=member, channel=ch) for ch in public_channels]
-        )
+        intro_message = validated_data.get("intro_message")
+
+        with transaction.atomic():
+            member = game.members.create(user=user)
+            public_channels = game.channels.filter(private=False)
+            ChannelMember.objects.bulk_create(
+                [ChannelMember(member=member, channel=ch) for ch in public_channels]
+            )
+
+            can_send_intro = not game.sandbox and not game.anonymous and game.press_type != PressType.NO_PRESS
+            public_channel = next((ch for ch in public_channels if ch.name == "Public Press"), None)
+            if intro_message and can_send_intro and public_channel:
+                ChannelMessage.objects.create(
+                    channel=public_channel, sender=member, phase=game.current_phase, body=intro_message
+                )
+
         return member

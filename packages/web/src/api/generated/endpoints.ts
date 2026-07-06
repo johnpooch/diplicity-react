@@ -100,7 +100,7 @@ export interface ChannelMember {
   readonly picture: string | null;
   readonly isCurrentUser: boolean;
   readonly isBot: boolean;
-  nation: Nation;
+  nation: Nation | null;
 }
 
 export interface ChannelMessage {
@@ -463,6 +463,8 @@ export interface Member {
   readonly civilDisorder: boolean;
   readonly seekingReplacement: boolean;
   readonly replaceable: boolean;
+  /** @maxLength 500 */
+  introMessage?: string;
 }
 
 export interface Victory {

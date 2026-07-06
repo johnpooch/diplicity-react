@@ -1043,6 +1043,7 @@ paths:
       - games
       security:
       - jwtAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -1847,7 +1848,9 @@ components:
           type: boolean
           readOnly: true
         nation:
-          $ref: '#/components/schemas/Nation'
+          allOf:
+          - $ref: '#/components/schemas/Nation'
+          nullable: true
       required:
       - id
       - isBot
@@ -2835,6 +2838,10 @@ components:
         replaceable:
           type: boolean
           readOnly: true
+        introMessage:
+          type: string
+          writeOnly: true
+          maxLength: 500
       required:
       - civilDisorder
       - eliminated
