@@ -35,6 +35,12 @@ from bot.context.parsers import (
     parse_order_selections,
     parse_reply,
 )
+from bot.steps import (
+    build_reply_prompt,
+    build_select_orders_prompt,
+    validate_order_selections,
+    validate_reply,
+)
 from bot.llm_client import LLMClient, LLMError
 from bot.recorder import LLMCallRecorder
 from bot.utils import get_bot_user
@@ -662,6 +668,148 @@ class TestComposeReply:
     def test_raises_on_unparseable_json(self):
         with pytest.raises(LLMError):
             parse_reply("not json at all")
+
+
+class TestValidateOrderSelections:
+
+    def _options(self):
+        return [
+            _option("lon", OrderType.HOLD),
+            _option("lon", OrderType.MOVE, target="nth"),
+            _option("edi", OrderType.HOLD),
+            _option("edi", OrderType.MOVE, target="nwg"),
+        ]
+
+    def _statuses(self, verdict):
+        return {source["source_id"]: source["status"] for source in verdict["sources"]}
+
+    def test_well_formed_reports_valid_per_source(self):
+        response = json.dumps(
+            {"choices": [
+                {"source_id": "lon", "option_index": 1},
+                {"source_id": "edi", "option_index": 0},
+            ]}
+        )
+        verdict = validate_order_selections(response, self._options())
+        assert verdict["parsed"] is True
+        assert verdict["parse_error"] is None
+        assert verdict["choices"] == {"lon": 1, "edi": 0}
+        assert self._statuses(verdict) == {"lon": "valid", "edi": "valid"}
+
+    def test_parse_failure_reports_error_and_no_sources(self):
+        verdict = validate_order_selections("not json at all", self._options())
+        assert verdict["parsed"] is False
+        assert verdict["parse_error"] is not None
+        assert verdict["sources"] == []
+        assert verdict["choices"] == {}
+
+    def test_out_of_range_index_is_reported(self):
+        response = json.dumps({"choices": [{"source_id": "lon", "option_index": 9}]})
+        verdict = validate_order_selections(response, self._options())
+        assert self._statuses(verdict) == {"lon": "out_of_range", "edi": "missing"}
+
+    def test_missing_unit_is_reported(self):
+        response = json.dumps({"choices": [{"source_id": "lon", "option_index": 0}]})
+        verdict = validate_order_selections(response, self._options())
+        assert self._statuses(verdict)["edi"] == "missing"
+
+    def test_duplicate_source_keeps_last_and_records_it(self):
+        response = json.dumps(
+            {"choices": [
+                {"source_id": "lon", "option_index": 0},
+                {"source_id": "lon", "option_index": 1},
+            ]}
+        )
+        verdict = validate_order_selections(response, self._options())
+        assert verdict["duplicate_source_ids"] == ["lon"]
+        assert verdict["choices"]["lon"] == 1
+
+    def test_unknown_source_is_reported(self):
+        response = json.dumps({"choices": [{"source_id": "ber", "option_index": 0}]})
+        verdict = validate_order_selections(response, self._options())
+        assert verdict["unknown_source_ids"] == ["ber"]
+
+    def test_malformed_choice_entries_are_collected(self):
+        response = json.dumps({"choices": ["nonsense", {"source_id": "lon"}]})
+        verdict = validate_order_selections(response, self._options())
+        assert verdict["malformed_choices"] == ["nonsense", {"source_id": "lon"}]
+
+
+class TestValidateReply:
+
+    def test_well_formed_reply(self):
+        verdict = validate_reply(_reply_response(True, "Hello."))
+        assert verdict["parsed"] is True
+        assert verdict["parse_error"] is None
+        assert verdict["should_reply"] is True
+        assert verdict["message"] == "Hello."
+        assert verdict["empty"] is False
+
+    def test_declined_reply(self):
+        verdict = validate_reply(_reply_response(False))
+        assert verdict["should_reply"] is False
+        assert verdict["empty"] is True
+
+    def test_empty_message_is_reported(self):
+        verdict = validate_reply(json.dumps({"should_reply": True, "message": "   "}))
+        assert verdict["should_reply"] is True
+        assert verdict["message"] == ""
+        assert verdict["empty"] is True
+
+    def test_parse_failure_reports_error(self):
+        verdict = validate_reply("not json at all")
+        assert verdict["parsed"] is False
+        assert verdict["parse_error"] is not None
+
+
+class TestBuildPrompts:
+
+    def _data(self, channels=None):
+        return {
+            "orders": [
+                _option("lon", OrderType.HOLD),
+                _option("lon", OrderType.MOVE, target="nth"),
+            ],
+            "phase_states": [{"max_orders": 3, "member": {"nation": "England"}}],
+            "game": {"phase_confirmed": False},
+            "phase": {},
+            "channels": channels or [],
+            "variant": {},
+        }
+
+    def _channels(self):
+        return [
+            {
+                "id": 1,
+                "name": "Public Press",
+                "private": False,
+                "messages": [
+                    {"body": "hi", "sender": {"is_current_user": False, "nation": {"name": "England"}}}
+                ],
+            }
+        ]
+
+    def test_build_select_orders_prompt_is_deterministic(self):
+        data = self._data()
+        assert build_select_orders_prompt(data) == build_select_orders_prompt(data)
+
+    def test_build_select_orders_prompt_returns_system_and_user_message(self):
+        system, messages = build_select_orders_prompt(self._data())
+        assert system
+        assert messages[0]["role"] == "user"
+        assert "Legal orders:" in messages[0]["content"]
+
+    def test_build_select_orders_prompt_appends_persona_to_system(self):
+        system, _ = build_select_orders_prompt(self._data(), persona="PERSONA-BLOCK")
+        assert system.endswith("PERSONA-BLOCK")
+
+    def test_build_reply_prompt_is_deterministic(self):
+        data = self._data(self._channels())
+        assert build_reply_prompt(data, channel_id=1) == build_reply_prompt(data, channel_id=1)
+
+    def test_build_reply_prompt_includes_only_selected_channel(self):
+        _, messages = build_reply_prompt(self._data(self._channels()), channel_id=1)
+        assert "England: hi" in messages[0]["content"]
 
 
 class TestAdjustmentOrderLimit:

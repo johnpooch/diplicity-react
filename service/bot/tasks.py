@@ -5,19 +5,17 @@ from procrastinate.contrib.django import app
 
 from bot.api_client import ApiClient, ApiClientError
 from bot.constants import LLMCallStage
-from bot.context import (
-    ORDER_SELECTION_SCHEMA,
-    REPLY_SCHEMA,
-    ContextBuilder,
-    fetch_context,
-    first_legal_selections,
-    parse_order_selections,
-    parse_reply,
-)
+from bot.context import fetch_context, first_legal_selections
 from bot.llm_client import LLMClient, LLMError
 from bot.models import BotProfile
 from bot.prompts import load_prompt
 from bot.recorder import LLMCallRecorder
+from bot.steps import (
+    reply_from_verdict,
+    run_reply,
+    run_select_orders,
+    selections_from_order_verdict,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -36,23 +34,6 @@ def _persona_block(user_id) -> str:
 
 
 def _submit_orders_from_context(api, data, game_id, user_id, label, stage, persona=""):
-    builder = (
-        ContextBuilder(data)
-        .with_game_state()
-        .with_tactical_annotations()
-        .with_identity()
-        .with_orders()
-        .with_phase_state()
-        .with_conversations()
-    )
-    system = load_prompt("select_orders_system.txt")
-    if persona:
-        system = f"{system}\n\n{persona}"
-    instruction = load_prompt("select_orders_instruction.txt")
-    user_content = "\n\n".join(
-        part for part in [builder.build_shared(), builder.build_private(), instruction] if part
-    )
-
     recorder = LLMCallRecorder(
         game_id=game_id,
         user_id=user_id,
@@ -60,15 +41,18 @@ def _submit_orders_from_context(api, data, game_id, user_id, label, stage, perso
         stage=stage,
     )
     try:
-        response_text = LLMClient(settings.ANTHROPIC_API_KEY, recorder).complete(
-            system=system,
-            messages=[{"role": "user", "content": user_content}],
-            output_schema=ORDER_SELECTION_SCHEMA,
-        )
-        selections = parse_order_selections(response_text, data["orders"])
+        complete = LLMClient(settings.ANTHROPIC_API_KEY, recorder).complete
+        result = run_select_orders(data, persona, complete)
     except LLMError as e:
         logger.info(f"[{label}] {e}; using first-legal selection")
         selections = first_legal_selections(data["orders"])
+    else:
+        verdict = result["verdict"]
+        if verdict["parse_error"] is not None:
+            logger.info(f"[{label}] {verdict['parse_error']}; using first-legal selection")
+            selections = first_legal_selections(data["orders"])
+        else:
+            selections = selections_from_order_verdict(verdict, data["orders"])
 
     phase_states = data["phase_states"]
     max_orders = phase_states[0].get("max_orders") if phase_states else None
@@ -141,22 +125,6 @@ def reply(user_id, game_id, channel_id):
             logger.info(f"[{label}] message cap reached ({count}/{limit}); staying silent")
             return
 
-    builder = (
-        ContextBuilder(data)
-        .with_game_state()
-        .with_tactical_annotations()
-        .with_identity()
-        .with_messages(channel_id=channel_id)
-    )
-    system = load_prompt("reply_system.txt")
-    persona = _persona_block(user_id)
-    if persona:
-        system = f"{system}\n\n{persona}"
-    instruction = load_prompt("reply_instruction.txt")
-    user_content = "\n\n".join(
-        part for part in [builder.build_shared(), builder.build_private(), instruction] if part
-    )
-
     recorder = LLMCallRecorder(
         game_id=game_id,
         user_id=user_id,
@@ -165,16 +133,18 @@ def reply(user_id, game_id, channel_id):
         channel_id=channel_id,
     )
     try:
-        response_text = LLMClient(settings.ANTHROPIC_API_KEY, recorder).complete(
-            system=system,
-            messages=[{"role": "user", "content": user_content}],
-            output_schema=REPLY_SCHEMA,
-        )
-        reply_text = parse_reply(response_text)
+        complete = LLMClient(settings.ANTHROPIC_API_KEY, recorder).complete
+        result = run_reply(data, _persona_block(user_id), channel_id, complete)
     except LLMError as e:
         logger.info(f"[{label}] {e}; staying silent")
         return
 
+    verdict = result["verdict"]
+    if verdict["parse_error"] is not None:
+        logger.info(f"[{label}] {verdict['parse_error']}; staying silent")
+        return
+
+    reply_text = reply_from_verdict(verdict)
     if not reply_text:
         logger.info(f"[{label}] no reply composed; staying silent")
         return
