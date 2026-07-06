@@ -48,6 +48,8 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
 
   const [searchParams] = useSearchParams();
 
+  const showMapPanel = game?.status !== "pending";
+
   const navItems = useMemo(() => {
     const items =
       game?.status === "pending"
@@ -144,13 +146,19 @@ const GameDetailLayout: React.FC<GameDetailLayoutProps> = ({
             </SidebarContent>
           </Sidebar>
 
-          {/* Main Content Area - Fixed width on desktop */}
-          <SidebarInset className="@container flex min-w-0 min-h-0 flex-col md:w-[360px] md:flex-none">
+          {/* Main Content Area - fixed width on desktop when the map panel
+              is shown alongside it, full width when it isn't (pending games) */}
+          <SidebarInset
+            className={cn(
+              "@container flex min-w-0 min-h-0 flex-col",
+              showMapPanel && "md:w-[360px] md:flex-none"
+            )}
+          >
             {children}
           </SidebarInset>
 
           {/* Right Panel - GameMap (desktop only, not for pending games) */}
-          {game?.status !== "pending" && (
+          {showMapPanel && (
             <div className="hidden md:flex flex-1 border-l overflow-hidden">
               <GameMap />
             </div>

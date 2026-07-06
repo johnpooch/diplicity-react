@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { GameDetailAppBar } from "./AppBar";
 import { Panel } from "@/components/Panel";
 import { GameInfoContent } from "@/components/GameInfoContent";
+import { QueryErrorBoundary } from "@/components/QueryErrorBoundary";
 import { useGameRetrieveSuspense } from "@/api/generated/endpoints";
 import { useRequiredParams } from "@/hooks";
 
@@ -41,9 +42,11 @@ const GameInfoScreen: React.FC = () => {
 };
 
 const GameInfoScreenSuspense: React.FC = () => (
-  <Suspense fallback={<div></div>}>
-    <GameInfoScreen />
-  </Suspense>
+  <QueryErrorBoundary>
+    <Suspense fallback={<div></div>}>
+      <GameInfoScreen />
+    </Suspense>
+  </QueryErrorBoundary>
 );
 
 export { GameInfoScreenSuspense as GameInfoScreen };

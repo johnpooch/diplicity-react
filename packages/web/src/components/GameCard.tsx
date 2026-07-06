@@ -35,7 +35,7 @@ import {
   useGameJoinCreate,
   getGamesListQueryKey,
 } from "../api/generated/endpoints";
-import { formatTimeAgo, getGameLandingPath } from "../util";
+import { formatTimeAgo, getGameInfoPath, getGameLandingPath } from "../util";
 import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -102,11 +102,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, variant, map }) => {
   };
 
   const handleClickGameInfo = () => {
-    navigate(
-      game.currentPhaseId
-        ? `/game/${game.id}/phase/${game.currentPhaseId}/game-info`
-        : `/game/${game.id}`
-    );
+    navigate(getGameInfoPath(game));
   };
 
   const handleClickPlayerInfo = () => {

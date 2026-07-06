@@ -40,8 +40,7 @@ const makePendingMembers = (count: number, includeCurrentUser = true): Member[] 
     );
 };
 
-const makePendingPhase = (id: number) =>
-  makePhase(id, 1, { status: "pending", units: [], supplyCenters: [] });
+const makePendingPhase = (id: number) => makePhase(id, 1, { status: "pending" });
 
 const pendingNoPlayersPhase = makePendingPhase(1101);
 export const pendingGameNoPlayers = makeFixture({

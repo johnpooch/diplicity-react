@@ -8,6 +8,7 @@ import { ScreenContainer } from "@/components/ui/screen-container";
 import { GameDropdownMenu } from "@/components/GameDropdownMenu";
 import { useGameRetrieveSuspense } from "@/api/generated/endpoints";
 import { PlayerInfoContent } from "@/components/PlayerInfoContent";
+import { getGameInfoPath } from "@/util";
 
 const PlayerInfo: React.FC = () => {
   const { gameId } = useRequiredParams<{ gameId: string }>();
@@ -20,11 +21,7 @@ const PlayerInfo: React.FC = () => {
   };
 
   const handleGameInfo = () => {
-    navigate(
-      game.currentPhaseId
-        ? `/game/${gameId}/phase/${game.currentPhaseId}/game-info`
-        : `/game/${gameId}`
-    );
+    navigate(getGameInfoPath(game));
   };
 
   return (
