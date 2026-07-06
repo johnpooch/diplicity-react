@@ -313,8 +313,11 @@ class PhaseManager(models.Manager):
                 time_left = format_time_remaining(time_until_deadline)
 
                 units_by_nation = {}
+                dislodged_units_by_nation = {}
                 for unit in phase.prefetched_units:
                     units_by_nation[unit.nation_id] = units_by_nation.get(unit.nation_id, 0) + 1
+                    if unit.dislodged:
+                        dislodged_units_by_nation[unit.nation_id] = dislodged_units_by_nation.get(unit.nation_id, 0) + 1
 
                 sc_by_nation = {}
                 for sc in phase.prefetched_supply_centers:
@@ -334,6 +337,8 @@ class PhaseManager(models.Manager):
                     if phase.type == PhaseType.ADJUSTMENT:
                         sc_count = sc_by_nation.get(nation_id, 0)
                         total_units = abs(sc_count - unit_count)
+                    elif phase.type == PhaseType.RETREAT:
+                        total_units = dislodged_units_by_nation.get(nation_id, 0)
                     else:
                         total_units = unit_count
 
@@ -343,6 +348,7 @@ class PhaseManager(models.Manager):
                     body = build_notification_body(
                         ps.orders_confirmed, is_fixed_time, len(ps.orders.all()), total_units, time_left,
                         ps.member.nmr_extensions_remaining,
+                        is_adjustment=phase.type == PhaseType.ADJUSTMENT,
                     )
                     if body is None:
                         continue

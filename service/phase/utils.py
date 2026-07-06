@@ -26,8 +26,13 @@ def format_deadline(dt, tz_name=None):
     return dt.strftime("%b %d, %Y at %I:%M %p UTC")
 
 
-def build_notification_body(orders_confirmed, is_fixed_time, orders_given, total_units, time_left, extensions_remaining):
-    if extensions_remaining > 0:
+def build_notification_body(
+    orders_confirmed, is_fixed_time, orders_given, total_units, time_left, extensions_remaining,
+    is_adjustment=False,
+):
+    if is_adjustment:
+        nmr_suffix = "If no orders given, adjustments will be made automatically."
+    elif extensions_remaining > 0:
         nmr_suffix = "If no orders given, the deadline will extend, but you'll lose an extension."
     else:
         nmr_suffix = "If no orders given, the game will stop waiting for you for next turns."

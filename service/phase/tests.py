@@ -4591,6 +4591,99 @@ class TestSendDeadlineWarnings:
 
         mock_send_notification_to_users.assert_not_called()
 
+    @pytest.mark.django_db
+    def test_retreat_phase_denominator_is_dislodged_units_not_all_units(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+        italy_vs_germany_rome_province,
+        primary_user,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game = Game.objects.create(
+            name="Retreat Denominator Test",
+            variant=italy_vs_germany_variant,
+            deadline_mode=DeadlineMode.DURATION,
+            movement_phase_duration="24h",
+        )
+        italy = game.members.create(nation=italy_vs_germany_italy_nation, user=primary_user)
+        phase = Phase.objects.create(
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.RETREAT,
+            ordinal=1,
+            status=PhaseStatus.ACTIVE,
+            scheduled_resolution=now + timedelta(minutes=10),
+        )
+        phase.units.create(
+            province=italy_vs_germany_rome_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation
+        )
+        dislodged_unit = phase.units.create(
+            province=italy_vs_germany_venice_province,
+            type=UnitType.ARMY,
+            nation=italy_vs_germany_italy_nation,
+            dislodged=True,
+        )
+        italy_ps = phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
+        italy_ps.orders.create(
+            source=dislodged_unit.province, order_type=OrderType.MOVE, target=italy_vs_germany_rome_province
+        )
+
+        Phase.objects.send_deadline_warnings()
+
+        mock_send_notification_to_users.assert_called_once()
+        call_kwargs = mock_send_notification_to_users.call_args.kwargs
+        assert "orders ready" in call_kwargs["body"]
+        assert "waiting confirmation" in call_kwargs["body"]
+        assert "1/2" not in call_kwargs["body"]
+
+    @pytest.mark.django_db
+    def test_adjustment_phase_no_orders_omits_stop_waiting_framing(
+        self,
+        italy_vs_germany_variant,
+        italy_vs_germany_italy_nation,
+        italy_vs_germany_venice_province,
+        italy_vs_germany_rome_province,
+        primary_user,
+        mock_send_notification_to_users,
+    ):
+        now = timezone.now()
+        game = Game.objects.create(
+            name="Adjustment Optional Build Test",
+            variant=italy_vs_germany_variant,
+            deadline_mode=DeadlineMode.DURATION,
+            movement_phase_duration="24h",
+        )
+        italy = game.members.create(nation=italy_vs_germany_italy_nation, user=primary_user)
+        phase = Phase.objects.create(
+            game=game,
+            variant=italy_vs_germany_variant,
+            season="Fall",
+            year=1901,
+            type=PhaseType.ADJUSTMENT,
+            ordinal=1,
+            status=PhaseStatus.ACTIVE,
+            scheduled_resolution=now + timedelta(minutes=10),
+        )
+        phase.units.create(
+            province=italy_vs_germany_venice_province, type=UnitType.ARMY, nation=italy_vs_germany_italy_nation
+        )
+        phase.supply_centers.create(province=italy_vs_germany_venice_province, nation=italy_vs_germany_italy_nation)
+        phase.supply_centers.create(province=italy_vs_germany_rome_province, nation=italy_vs_germany_italy_nation)
+        phase.phase_states.create(member=italy, has_possible_orders=True, orders_confirmed=False)
+
+        Phase.objects.send_deadline_warnings()
+
+        mock_send_notification_to_users.assert_called_once()
+        call_kwargs = mock_send_notification_to_users.call_args.kwargs
+        assert "no orders given" in call_kwargs["body"]
+        assert "stop waiting for you" not in call_kwargs["body"]
+        assert "adjustments will be made automatically" in call_kwargs["body"]
+
 
 class TestNMRExtensionsFixedTime:
 
