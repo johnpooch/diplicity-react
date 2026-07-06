@@ -13,7 +13,7 @@ Member = apps.get_model("member", "Member")
 
 
 class ChannelMemberSerializer(BaseMemberSerializer):
-    nation = NationSerializer()
+    nation = NationSerializer(allow_null=True)
 
 
 class ChannelMessageSerializer(serializers.Serializer):

@@ -1,10 +1,12 @@
 from rest_framework import serializers
 from django.apps import apps
+from django.conf import settings
 from drf_spectacular.utils import extend_schema_field
 
-from common.constants import GameStatus
+from common.constants import GameStatus, PressType
 
 ChannelMember = apps.get_model("channel", "ChannelMember")
+ChannelMessage = apps.get_model("channel", "ChannelMessage")
 
 
 class BaseMemberSerializer(serializers.Serializer):
@@ -83,6 +85,15 @@ class MemberSerializer(BaseMemberSerializer):
     civil_disorder = serializers.BooleanField(read_only=True)
     seeking_replacement = serializers.BooleanField(read_only=True)
     replaceable = serializers.BooleanField(read_only=True)
+    intro_message = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        write_only=True,
+        max_length=settings.CHAT_MESSAGE_MAX_CHARS,
+        error_messages={
+            "max_length": f"Messages cannot be longer than {settings.CHAT_MESSAGE_MAX_CHARS} characters."
+        },
+    )
 
     @extend_schema_field(serializers.BooleanField)
     def get_is_game_creator(self, obj):
@@ -95,8 +106,19 @@ class MemberSerializer(BaseMemberSerializer):
         game = self.context["game"]
         user = self.context["request"].user
         member = game.members.create(user=user)
-        public_channels = game.channels.filter(private=False)
+        public_channels = list(game.channels.filter(private=False))
         ChannelMember.objects.bulk_create(
             [ChannelMember(member=member, channel=ch) for ch in public_channels]
         )
+
+        intro_message = validated_data.get("intro_message")
+        public_channel = public_channels[0] if public_channels else None
+        if intro_message and public_channel is not None and game.press_type != PressType.NO_PRESS and not game.anonymous:
+            ChannelMessage.objects.create(
+                channel=public_channel,
+                sender=member,
+                phase=game.current_phase,
+                body=intro_message,
+            )
+
         return member
