@@ -6,6 +6,8 @@ from procrastinate.contrib.django import app
 from bot.api_client import ApiClient, ApiClientError
 from bot.constants import LLMCallStage
 from bot.context import (
+    ORDER_SELECTION_SCHEMA,
+    REPLY_SCHEMA,
     ContextBuilder,
     fetch_context,
     first_legal_selections,
@@ -59,7 +61,9 @@ def _submit_orders_from_context(api, data, game_id, user_id, label, stage, perso
     )
     try:
         response_text = LLMClient(settings.ANTHROPIC_API_KEY, recorder).complete(
-            system=system, messages=[{"role": "user", "content": user_content}]
+            system=system,
+            messages=[{"role": "user", "content": user_content}],
+            output_schema=ORDER_SELECTION_SCHEMA,
         )
         selections = parse_order_selections(response_text, data["orders"])
     except LLMError as e:
@@ -162,7 +166,9 @@ def reply(user_id, game_id, channel_id):
     )
     try:
         response_text = LLMClient(settings.ANTHROPIC_API_KEY, recorder).complete(
-            system=system, messages=[{"role": "user", "content": user_content}]
+            system=system,
+            messages=[{"role": "user", "content": user_content}],
+            output_schema=REPLY_SCHEMA,
         )
         reply_text = parse_reply(response_text)
     except LLMError as e:

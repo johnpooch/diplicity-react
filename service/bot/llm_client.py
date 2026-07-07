@@ -18,17 +18,22 @@ class LLMClient:
         self._client = Anthropic(api_key=api_key)
         self._recorder = recorder
 
-    def complete(self, *, system, messages):
+    def complete(self, *, system, messages, output_schema=None):
         logger.info(f"[bot.llm] completing via {settings.BOT_LLM_MODEL}")
         user_content = "\n\n".join(message["content"] for message in messages)
         start = time.monotonic()
+        create_kwargs = dict(
+            model=settings.BOT_LLM_MODEL,
+            max_tokens=2048,
+            system=system,
+            messages=messages,
+        )
+        if output_schema is not None and settings.BOT_LLM_STRUCTURED_OUTPUTS:
+            create_kwargs["output_config"] = {
+                "format": {"type": "json_schema", "schema": output_schema}
+            }
         try:
-            message = self._client.messages.create(
-                model=settings.BOT_LLM_MODEL,
-                max_tokens=1024,
-                system=system,
-                messages=messages,
-            )
+            message = self._client.messages.create(**create_kwargs)
         except Exception as e:
             self._recorder.record_error(
                 model=settings.BOT_LLM_MODEL,
