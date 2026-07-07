@@ -1808,12 +1808,10 @@ def end_game_notification_game_factory(
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture
-def mock_send_notification_to_users():
-    with patch("notification.utils.send_notification_to_users") as mock_fn, patch(
-        "notification.signals.send_notification_to_users", mock_fn
-    ):
-        yield mock_fn
+@pytest.fixture(autouse=True)
+def _neutralize_notification_delivery():
+    with patch("notification.tasks.deliver_notifications.defer"):
+        yield
 
 
 @pytest.fixture

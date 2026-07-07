@@ -1,10 +1,9 @@
-from unittest.mock import patch
-
 import pytest
 from django.urls import reverse
 from rest_framework import status
 
 from game.models import Game
+from notification.testing import assert_notification, assert_no_notification
 
 create_viewname = "game-create"
 leave_viewname = "game-leave"
@@ -53,8 +52,7 @@ class TestGameAdminField:
         game.members.create(user=secondary_user)
 
         api_client.force_authenticate(user=creator)
-        with patch("game.models.send_notification") as mock_send:
-            response = api_client.delete(reverse(leave_viewname, args=[game.id]))
+        response = api_client.delete(reverse(leave_viewname, args=[game.id]))
         assert response.status_code == status.HTTP_204_NO_CONTENT
 
         game.refresh_from_db()
@@ -62,7 +60,7 @@ class TestGameAdminField:
         assert game.admin == secondary_user
         assert game.can_manage(creator) is False
         assert game.can_manage(secondary_user) is True
-        mock_send.defer.assert_called_once()
+        assert_notification("game_admin_reassigned", user_ids={secondary_user.id})
 
     @pytest.mark.django_db
     def test_admin_unchanged_when_leaving_member_is_not_admin(
@@ -73,13 +71,12 @@ class TestGameAdminField:
         game.members.create(user=secondary_user)
 
         api_client.force_authenticate(user=secondary_user)
-        with patch("game.models.send_notification") as mock_send:
-            response = api_client.delete(reverse(leave_viewname, args=[game.id]))
+        response = api_client.delete(reverse(leave_viewname, args=[game.id]))
         assert response.status_code == status.HTTP_204_NO_CONTENT
 
         game.refresh_from_db()
         assert game.admin == creator
-        mock_send.defer.assert_not_called()
+        assert_no_notification("game_admin_reassigned")
 
 
 class TestReassignAdmin:
@@ -89,13 +86,11 @@ class TestReassignAdmin:
         game = pending_game_factory()
         game.members.create(user=secondary_user)
 
-        with patch("game.models.send_notification") as mock_send:
-            game.reassign_admin()
+        game.reassign_admin()
 
         game.refresh_from_db()
         assert game.admin == secondary_user
-        mock_send.defer.assert_called_once()
-        assert mock_send.defer.call_args.kwargs["user_ids"] == [secondary_user.id]
+        assert_notification("game_admin_reassigned", user_ids={secondary_user.id})
 
     @pytest.mark.django_db
     def test_excludes_kicked_and_civil_disorder_members(
@@ -106,8 +101,7 @@ class TestReassignAdmin:
         member_factory(game=game, civil_disorder=True)
         eligible_member = member_factory(game=game)
 
-        with patch("game.models.send_notification"):
-            game.reassign_admin()
+        game.reassign_admin()
 
         game.refresh_from_db()
         assert game.admin == eligible_member.user
@@ -117,9 +111,8 @@ class TestReassignAdmin:
         game = pending_game_factory()
         original_admin = game.admin
 
-        with patch("game.models.send_notification") as mock_send:
-            game.reassign_admin()
+        game.reassign_admin()
 
         game.refresh_from_db()
         assert game.admin == original_admin
-        mock_send.defer.assert_not_called()
+        assert_no_notification("game_admin_reassigned")

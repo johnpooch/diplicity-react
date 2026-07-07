@@ -9,8 +9,7 @@ from email_service.tasks import send_email_notification
 from email_service.templates import notification_email
 from game.models import Game
 from common.constants import GameStatus, PhaseStatus
-from notification.tasks import send_notification
-from notification.utils import send_notification_to_users
+from notification.models import Notification
 from phase.models import Phase
 from victory.models import Victory
 
@@ -49,7 +48,7 @@ def send_draw_proposal_notification(sender, instance, created, **kwargs):
         if phase is not None
         else f"{settings.FRONTEND_URL}/game/{game.id}"
     )
-    send_notification.defer(
+    Notification.objects.broadcast(
         user_ids=user_ids,
         title=game.name,
         body=f"{proposer_name} has proposed a draw. Respond to it now.",
@@ -84,7 +83,7 @@ def send_channel_message_notification(sender, instance, created, **kwargs):
         else f"{settings.FRONTEND_URL}/game/{game.id}"
     )
 
-    send_notification.defer(
+    Notification.objects.broadcast(
         user_ids=user_ids,
         title=game.name,
         body=f"{sender_name}: {_truncate_body(instance.body)}",
@@ -114,7 +113,7 @@ def _send_game_start_notification(instance):
     link = f"{settings.FRONTEND_URL}/game/{instance.id}"
     body = "The game has started. You can now chat with other players and submit your orders. Good luck!"
 
-    send_notification.defer(
+    Notification.objects.broadcast(
         user_ids=user_ids,
         title=instance.name,
         body=body,
@@ -143,7 +142,7 @@ def _send_game_end_notification(game_id, game_name, all_member_user_ids):
 
     if len(victory_members) >= 2:
         names = ", ".join(m.name for m in victory_members)
-        send_notification.defer(
+        Notification.objects.broadcast(
             user_ids=all_member_user_ids,
             title=game_name,
             body=f"The game has ended in a draw, including {names}. Well played!",
@@ -155,7 +154,7 @@ def _send_game_end_notification(game_id, game_name, all_member_user_ids):
         winner_user_ids = [winner.user_id] if winner.user_id is not None else []
         other_user_ids = [uid for uid in all_member_user_ids if uid != winner.user_id]
         if winner_user_ids:
-            send_notification.defer(
+            Notification.objects.broadcast(
                 user_ids=winner_user_ids,
                 title=game_name,
                 body="The game has ended, you achieved a solo win! Congratulations!",
@@ -163,7 +162,7 @@ def _send_game_end_notification(game_id, game_name, all_member_user_ids):
                 data={"game_id": str(game_id), "link": link},
             )
         if other_user_ids:
-            send_notification.defer(
+            Notification.objects.broadcast(
                 user_ids=other_user_ids,
                 title=game_name,
                 body=f"The game has ended, and {winner.name} achieved a solo win! Better luck next time!",
@@ -211,7 +210,7 @@ def send_phase_resolved_notification(sender, instance, created, **kwargs):  # no
             link = f"{settings.FRONTEND_URL}/game/{instance.game.id}"
             body = f"{instance.name} has been resolved"
 
-            send_notification_to_users(
+            Notification.objects.broadcast(
                 user_ids=user_ids,
                 title=instance.game.name,
                 body=body,

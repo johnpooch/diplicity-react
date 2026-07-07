@@ -53,6 +53,22 @@ class DeadlineMode:
     )
 
 
+class NotificationDeliveryStatus:
+    PENDING = "pending"
+    SENT = "sent"
+    NO_DEVICE = "no_device"
+    SKIPPED = "skipped"
+    FAILED = "failed"
+
+    DELIVERY_STATUS_CHOICES = (
+        (PENDING, "Pending"),
+        (SENT, "Sent"),
+        (NO_DEVICE, "No device"),
+        (SKIPPED, "Skipped"),
+        (FAILED, "Failed"),
+    )
+
+
 class PhaseFrequency:
     HOURLY = "hourly"
     DAILY = "daily"

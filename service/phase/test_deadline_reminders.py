@@ -1,10 +1,10 @@
 from datetime import timedelta
-from unittest.mock import patch
 
 import pytest
 from django.utils import timezone
 
 from common.constants import DeadlineMode, GameStatus, UnitType
+from notification.testing import assert_notification, assert_no_notification
 from phase.models import Phase
 
 
@@ -22,13 +22,12 @@ class TestDeadlineReminderGuard:
         )
         phase.units.create(type=UnitType.ARMY, nation=classical_england_nation, province=classical_edinburgh_province)
 
-        with patch("phase.models.notification_utils.send_notification_to_users") as mock_send:
-            first = Phase.objects.send_deadline_warnings()
-            second = Phase.objects.send_deadline_warnings()
+        first = Phase.objects.send_deadline_warnings()
+        second = Phase.objects.send_deadline_warnings()
 
         assert first["notifications_sent"] == 1
         assert second["notifications_sent"] == 0
-        mock_send.assert_called_once()
+        assert_notification("deadline_warning", count=1)
 
         phase_state = phase.phase_states.first()
         phase_state.refresh_from_db()
@@ -46,16 +45,15 @@ class TestDeadlineReminderGuard:
         )
         phase.units.create(type=UnitType.ARMY, nation=classical_england_nation, province=classical_edinburgh_province)
 
-        with patch("phase.models.notification_utils.send_notification_to_users") as mock_send:
-            Phase.objects.send_deadline_warnings()
+        Phase.objects.send_deadline_warnings()
 
-            phase.scheduled_resolution = phase.scheduled_resolution + timedelta(minutes=10)
-            phase.save()
+        phase.scheduled_resolution = phase.scheduled_resolution + timedelta(minutes=10)
+        phase.save()
 
-            third = Phase.objects.send_deadline_warnings()
+        third = Phase.objects.send_deadline_warnings()
 
         assert third["notifications_sent"] == 1
-        assert mock_send.call_count == 2
+        assert_notification("deadline_warning", count=2)
 
     @pytest.mark.django_db
     def test_confirmed_player_not_reminded(
@@ -82,12 +80,10 @@ class TestDeadlineReminderGuard:
         phase.units.create(type=UnitType.ARMY, nation=classical_england_nation, province=classical_edinburgh_province)
         phase.units.create(type=UnitType.ARMY, nation=classical_france_nation, province=classical_paris_province)
 
-        with patch("phase.models.notification_utils.send_notification_to_users") as mock_send:
-            result = Phase.objects.send_deadline_warnings()
+        result = Phase.objects.send_deadline_warnings()
 
         assert result["notifications_sent"] == 1
-        mock_send.assert_called_once()
-        assert mock_send.call_args.kwargs["user_ids"] == [secondary_user.id]
+        assert_notification("deadline_warning", user_ids={secondary_user.id}, count=1)
 
     @pytest.mark.django_db
     def test_eliminated_player_not_reminded(self, phase_factory, classical_england_nation):
@@ -98,11 +94,10 @@ class TestDeadlineReminderGuard:
             ],
         )
 
-        with patch("phase.models.notification_utils.send_notification_to_users") as mock_send:
-            result = Phase.objects.send_deadline_warnings()
+        result = Phase.objects.send_deadline_warnings()
 
         assert result["notifications_sent"] == 0
-        mock_send.assert_not_called()
+        assert_no_notification("deadline_warning")
 
     @pytest.mark.django_db
     def test_fixed_time_game_reminds_players_with_orders(
@@ -125,8 +120,7 @@ class TestDeadlineReminderGuard:
         )
         phase.units.create(type=UnitType.ARMY, nation=classical_england_nation, province=classical_edinburgh_province)
 
-        with patch("phase.models.notification_utils.send_notification_to_users") as mock_send:
-            result = Phase.objects.send_deadline_warnings()
+        result = Phase.objects.send_deadline_warnings()
 
         assert result["notifications_sent"] == 1
-        mock_send.assert_called_once()
+        assert_notification("deadline_warning", count=1)

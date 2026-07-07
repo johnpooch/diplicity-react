@@ -12,10 +12,7 @@ from game.models import Game
 from game.serializers import GameRetrieveSerializer
 
 from common.constants import GameStatus
-
-
-def _notification_jobs(connector):
-    return [j for j in connector.jobs.values() if j["task_name"] == "notification.send_notification"]
+from notification.testing import assert_no_notification, get_notifications
 
 
 class TestChannelCreateView:
@@ -257,7 +254,6 @@ class TestChannelMessageCreateView:
         self,
         authenticated_client,
         active_game_with_private_channel,
-        in_memory_procrastinate,
     ):
         private_channel = Channel.objects.get(game=active_game_with_private_channel, private=True)
         url = reverse("channel-message-create", args=[active_game_with_private_channel.id, private_channel.id])
@@ -266,14 +262,13 @@ class TestChannelMessageCreateView:
 
         assert response.status_code == status.HTTP_201_CREATED
         # Author is the only channel member, so there is no one to notify.
-        assert _notification_jobs(in_memory_procrastinate) == []
+        assert_no_notification("channel_message")
 
     @pytest.mark.django_db
     def test_create_message_in_public_channel_as_member_success(
         self,
         authenticated_client,
         active_game_with_public_channel,
-        in_memory_procrastinate,
     ):
         public_channel = Channel.objects.get(game=active_game_with_public_channel, private=False)
         public_channel.members.add(active_game_with_public_channel.members.first())
@@ -284,11 +279,11 @@ class TestChannelMessageCreateView:
 
         assert response.status_code == status.HTTP_201_CREATED
         # Author is the only game member, so there is no one to notify.
-        assert _notification_jobs(in_memory_procrastinate) == []
+        assert_no_notification("channel_message")
 
     @pytest.mark.django_db
     def test_create_message_in_public_channel_without_explicit_members(
-        self, authenticated_client, game_with_two_members, in_memory_procrastinate
+        self, authenticated_client, game_with_two_members
     ):
         public_channel = Channel.objects.create(game=game_with_two_members, name="Public Press", private=False)
         sender_user_id = game_with_two_members.members.first().user_id
@@ -298,9 +293,8 @@ class TestChannelMessageCreateView:
         response = authenticated_client.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        jobs = _notification_jobs(in_memory_procrastinate)
-        assert len(jobs) == 1
-        user_ids = jobs[0]["args"]["user_ids"]
+        rows = get_notifications("channel_message")
+        user_ids = {row.user_id for row in rows}
         assert len(user_ids) == 1
         assert sender_user_id not in user_ids
 
@@ -309,7 +303,6 @@ class TestChannelMessageCreateView:
         self,
         authenticated_client,
         game_with_two_members,
-        in_memory_procrastinate,
         classical_england_nation,
     ):
         private_channel = Channel.objects.create(game=game_with_two_members, name="Private Channel", private=True)
@@ -322,14 +315,13 @@ class TestChannelMessageCreateView:
 
         assert response.status_code == status.HTTP_201_CREATED
         # The other game member is not in this private channel, so is not notified.
-        assert _notification_jobs(in_memory_procrastinate) == []
+        assert_no_notification("channel_message")
 
     @pytest.mark.django_db
     def test_create_message_in_private_channel_with_multiple_members(
         self,
         authenticated_client,
         game_with_two_members,
-        in_memory_procrastinate,
         classical_england_nation,
         classical_france_nation,
     ):
@@ -343,16 +335,14 @@ class TestChannelMessageCreateView:
         response = authenticated_client.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        jobs = _notification_jobs(in_memory_procrastinate)
-        assert len(jobs) == 1
-        assert jobs[0]["args"]["user_ids"] == [secondary_member.user_id]
+        rows = get_notifications("channel_message")
+        assert {row.user_id for row in rows} == {secondary_member.user_id}
 
     @pytest.mark.django_db
     def test_create_message_in_public_channel_with_explicit_members_still_notifies_all(
         self,
         authenticated_client,
         game_with_two_members,
-        in_memory_procrastinate,
         classical_england_nation,
         classical_france_nation,
     ):
@@ -366,9 +356,8 @@ class TestChannelMessageCreateView:
         response = authenticated_client.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        jobs = _notification_jobs(in_memory_procrastinate)
-        assert len(jobs) == 1
-        assert jobs[0]["args"]["user_ids"] == [secondary_member.user_id]
+        rows = get_notifications("channel_message")
+        assert {row.user_id for row in rows} == {secondary_member.user_id}
 
     @pytest.mark.django_db
     def test_create_message_in_private_channel_as_non_member_fails(
@@ -718,7 +707,7 @@ class TestChannelMessageCharLimit:
 
     @pytest.mark.django_db
     def test_message_over_limit_rejected(
-        self, authenticated_client, active_game_with_private_channel, in_memory_procrastinate, settings
+        self, authenticated_client, active_game_with_private_channel, settings
     ):
         channel = Channel.objects.get(game=active_game_with_private_channel, private=True)
         url = reverse("channel-message-create", args=[active_game_with_private_channel.id, channel.id])
@@ -730,7 +719,7 @@ class TestChannelMessageCharLimit:
 
     @pytest.mark.django_db
     def test_message_at_limit_accepted(
-        self, authenticated_client, active_game_with_private_channel, in_memory_procrastinate, settings
+        self, authenticated_client, active_game_with_private_channel, settings
     ):
         channel = Channel.objects.get(game=active_game_with_private_channel, private=True)
         url = reverse("channel-message-create", args=[active_game_with_private_channel.id, channel.id])
@@ -744,7 +733,7 @@ class TestChannelMessagePhaseStamping:
 
     @pytest.mark.django_db
     def test_message_stamped_with_current_phase(
-        self, authenticated_client, active_game_with_private_channel, in_memory_procrastinate
+        self, authenticated_client, active_game_with_private_channel
     ):
         game = active_game_with_private_channel
         channel = Channel.objects.get(game=game, private=True)
@@ -759,7 +748,7 @@ class TestChannelMessageBotCap:
 
     @pytest.mark.django_db
     def test_cap_enforced_in_bot_channel(
-        self, authenticated_client, active_game_with_bot_channel, in_memory_procrastinate, settings
+        self, authenticated_client, active_game_with_bot_channel, settings
     ):
         game = active_game_with_bot_channel
         channel = Channel.objects.get(game=game, name="Bot Channel")
@@ -775,7 +764,7 @@ class TestChannelMessageBotCap:
 
     @pytest.mark.django_db
     def test_no_cap_in_human_only_channel(
-        self, authenticated_client, active_game_with_private_channel, in_memory_procrastinate, settings
+        self, authenticated_client, active_game_with_private_channel, settings
     ):
         game = active_game_with_private_channel
         channel = Channel.objects.get(game=game, private=True)
@@ -790,7 +779,6 @@ class TestChannelMessageBotCap:
         self,
         authenticated_client,
         active_game_with_bot_channel,
-        in_memory_procrastinate,
         settings,
         phase_factory,
     ):

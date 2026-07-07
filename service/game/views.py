@@ -23,7 +23,7 @@ from common.views import SelectedGameMixin
 from common.serializers import EmptySerializer
 from common.permissions import IsActiveGame, IsGameMember, IsGameManager, CanDeleteGame
 from common.pagination import StandardPageNumberPagination
-from notification.tasks import send_notification
+from notification.models import Notification
 from .filters import GameFilter
 
 tracer = trace.get_tracer(__name__)
@@ -157,7 +157,7 @@ class GameDeleteView(SelectedGameMixin, generics.DestroyAPIView):
         instance.delete()
         if is_game_master_delete and user_ids:
             transaction.on_commit(
-                lambda: send_notification.defer(
+                lambda: Notification.objects.broadcast(
                     user_ids=user_ids,
                     title=game_name,
                     body="The game was deleted by the Game Master.",

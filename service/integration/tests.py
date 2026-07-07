@@ -8,6 +8,7 @@ from unittest.mock import patch
 from rest_framework import status
 from game.models import Game
 from member.models import Member
+from notification.testing import assert_notification
 from victory.models import Victory
 from common.constants import (
     DeadlineMode,
@@ -119,7 +120,6 @@ def test_create_game_with_italy_vs_germany_variant_one_user_joins(
     italy_vs_germany_variant,
     primary_user,
     secondary_user,
-    mock_send_notification_to_users,
     mock_immediate_on_commit,
 ):
     """
@@ -215,7 +215,6 @@ def test_active_game_create_orders_and_confirm(
     authenticated_client,
     authenticated_client_for_secondary_user,
     italy_vs_germany_variant,
-    mock_send_notification_to_users,
     mock_immediate_on_commit,
 ):
     """
@@ -304,17 +303,16 @@ def test_active_game_create_orders_and_confirm(
     assert resolve_response.data["resolved"] >= 1
 
     # Notification is sent to both users
-    notification_call = mock_send_notification_to_users.call_args
-    assert sorted(notification_call.kwargs["user_ids"]) == sorted(
-        [germany_member.user.id, italy_member.user.id]
+    assert_notification(
+        "phase_resolved",
+        user_ids=[germany_member.user.id, italy_member.user.id],
+        title=active_game.name,
+        body=f"{first_phase.name} has been resolved",
+        data={
+            "game_id": str(active_game.id),
+            "link": f"{settings.FRONTEND_URL}/game/{active_game.id}",
+        },
     )
-    assert notification_call.kwargs["title"] == active_game.name
-    assert notification_call.kwargs["body"] == f"{first_phase.name} has been resolved"
-    assert notification_call.kwargs["notification_type"] == "phase_resolved"
-    assert notification_call.kwargs["data"] == {
-        "game_id": str(active_game.id),
-        "link": f"{settings.FRONTEND_URL}/game/{active_game.id}",
-    }
 
     # The empty Spring 1901 Retreat is skipped, so resolving the movement
     # phase lands directly on Fall 1901 Movement.
@@ -339,7 +337,6 @@ def test_scheduled_phase_resolution_after_time_elapsed(
     authenticated_client,
     authenticated_client_for_secondary_user,
     italy_vs_germany_variant,
-    mock_send_notification_to_users,
     mock_immediate_on_commit,
 ):
     """
@@ -388,7 +385,6 @@ def test_active_game_create_move_order_fleet_to_named_coast(
     authenticated_client,
     authenticated_client_for_secondary_user,
     italy_vs_germany_variant,
-    mock_send_notification_to_users,
     mock_immediate_on_commit,
 ):
     active_game = create_active_game(
@@ -507,7 +503,6 @@ def test_dislodged_unit_scenario(
     authenticated_client,
     authenticated_client_for_secondary_user,
     italy_vs_germany_variant,
-    mock_send_notification_to_users,
     mock_immediate_on_commit,
 ):
     """
@@ -666,7 +661,6 @@ def test_empty_retreat_phase_is_skipped(
     authenticated_client,
     authenticated_client_for_secondary_user,
     italy_vs_germany_variant,
-    mock_send_notification_to_users,
     mock_immediate_on_commit,
 ):
     """A movement phase that dislodges no one advances straight to the next
@@ -712,7 +706,6 @@ def test_empty_adjustment_phase_is_skipped(
     authenticated_client,
     authenticated_client_for_secondary_user,
     italy_vs_germany_variant,
-    mock_send_notification_to_users,
     mock_immediate_on_commit,
 ):
     """A Fall movement with no supply-center changes skips both the empty
@@ -758,7 +751,6 @@ def test_cd_only_retreat_phase_is_skipped(
     italy_vs_germany_variant,
     primary_user,
     secondary_user,
-    mock_send_notification_to_users,
     mock_immediate_on_commit,
 ):
     """When the only nation with retreat orders is in Civil Disorder, the
@@ -854,7 +846,6 @@ def test_hundred_variant_movement_phase_resolution_with_errors(
     authenticated_client_for_secondary_user,
     authenticated_client_for_tertiary_user,
     hundred_variant,
-    mock_send_notification_to_users,
     mock_immediate_on_commit,
 ):
     """
@@ -1038,7 +1029,6 @@ def test_hundred_variant_france_solo_victory_after_one_year(
     authenticated_client_for_secondary_user,
     authenticated_client_for_tertiary_user,
     hundred_variant,
-    mock_send_notification_to_users,
     mock_immediate_on_commit,
 ):
     from victory.models import Victory
@@ -1180,7 +1170,6 @@ def test_player_enters_civil_disorder_after_two_movement_phase_nmrs(
     authenticated_client,
     authenticated_client_for_secondary_user,
     italy_vs_germany_variant,
-    mock_send_notification_to_users,
     mock_immediate_on_commit,
 ):
     """
@@ -1249,13 +1238,11 @@ def test_player_enters_civil_disorder_after_two_movement_phase_nmrs(
     germany_member.refresh_from_db()
     assert germany_member.civil_disorder is True
 
-    cd_calls = [
-        c for c in mock_send_notification_to_users.call_args_list
-        if c.kwargs.get("notification_type") == "civil_disorder"
-    ]
-    assert len(cd_calls) == 1
-    assert germany_member.user.id in cd_calls[0].kwargs["user_ids"]
-    assert italy_member.user.id in cd_calls[0].kwargs["user_ids"]
+    assert_notification(
+        "civil_disorder",
+        user_ids=[germany_member.user.id, italy_member.user.id],
+        count=2,
+    )
 
     fall_1902 = resolve_until("Fall", 1902, "Movement")
 
@@ -1279,7 +1266,6 @@ def test_game_becomes_abandoned_when_all_active_members_in_cd(
     authenticated_client,
     authenticated_client_for_secondary_user,
     italy_vs_germany_variant,
-    mock_send_notification_to_users,
     mock_immediate_on_commit,
 ):
     """
@@ -1335,7 +1321,6 @@ def test_dias_draw_proposal_accepted_ends_game_in_draw(
     authenticated_client,
     authenticated_client_for_secondary_user,
     italy_vs_germany_variant,
-    mock_send_notification_to_users,
     mock_immediate_on_commit,
 ):
     """
@@ -1385,7 +1370,6 @@ def test_dias_draw_proposal_rejected_leaves_game_active(
     authenticated_client,
     authenticated_client_for_secondary_user,
     italy_vs_germany_variant,
-    mock_send_notification_to_users,
     mock_immediate_on_commit,
 ):
     """One active player rejects the proposal → status flips to rejected,
@@ -1420,7 +1404,6 @@ def test_cd_member_auto_accepts_dias_draw_and_is_excluded_from_victory(
     italy_vs_germany_variant,
     primary_user,
     secondary_user,
-    mock_send_notification_to_users,
     mock_immediate_on_commit,
 ):
     """

@@ -22,8 +22,7 @@ from victory.utils import check_for_solo_winner
 from victory.models import Victory
 from email_service.tasks import send_email_notification
 from email_service.templates import notification_email
-from notification import utils as notification_utils
-from notification.tasks import send_notification
+from notification.models import Notification
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
@@ -235,7 +234,7 @@ class PhaseManager(models.Manager):
             for member in members_with_extensions:
                 if member.user_id is None:
                     continue
-                notification_utils.send_notification_to_users(
+                Notification.objects.broadcast(
                     user_ids=[member.user_id],
                     title=phase.game.name,
                     body=f"You did not submit orders and used an automatic extension ({member.nmr_extensions_remaining} remaining). The current phase is extended until {deadline_str}.",
@@ -249,7 +248,7 @@ class PhaseManager(models.Manager):
                 if user_id not in extension_ids
             ]
             if other_ids:
-                notification_utils.send_notification_to_users(
+                Notification.objects.broadcast(
                     user_ids=other_ids,
                     title=phase.game.name,
                     body=f"Some player(s) did not submit orders and used an extension. The current phase is extended until {deadline_str}.",
@@ -359,7 +358,7 @@ class PhaseManager(models.Manager):
 
                     link = f"{settings.FRONTEND_URL}/game/{phase.game.id}"
 
-                    notification_utils.send_notification_to_users(
+                    Notification.objects.broadcast(
                         user_ids=[ps.member.user_id],
                         title=phase.game.name,
                         body=body,
@@ -470,7 +469,7 @@ class PhaseManager(models.Manager):
                 link = f"{settings.FRONTEND_URL}/game/{phase.game.id}"
                 body = f"{nation_names} entered civil disorder."
 
-                notification_utils.send_notification_to_users(
+                Notification.objects.broadcast(
                     user_ids=user_ids,
                     title="Civil Disorder",
                     body=body,
@@ -517,7 +516,7 @@ class PhaseManager(models.Manager):
 
         for user_id, games in games_by_user.items():
             game_names = ", ".join(g.name for g in games)
-            send_notification.defer(
+            Notification.objects.broadcast(
                 user_ids=[user_id],
                 title="Removed from staging games",
                 body=f"You were removed from {game_names} because you entered civil disorder in an active game.",
@@ -561,7 +560,7 @@ class PhaseManager(models.Manager):
         for member in newly_eliminated:
             if member.user_id is None:
                 continue
-            send_notification.defer(
+            Notification.objects.broadcast(
                 user_ids=[member.user_id],
                 title=game.name,
                 body="You've been eliminated. You are not required to enter any orders anymore. You can still chat with players. Better luck next time!",

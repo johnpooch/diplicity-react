@@ -10,8 +10,7 @@ from .serializers import MemberSerializer
 from common.serializers import EmptySerializer
 from common.permissions import IsActiveGame, IsGameMember, IsGameManager, IsInCivilDisorder, IsPendingGame, IsNotGameMember, IsNotGameMaster, IsSpaceAvailable, MeetsReliabilityRequirement
 from common.views import SelectedGameMixin
-import notification.utils as notification_utils
-from notification.tasks import send_notification
+from notification.models import Notification
 
 
 class MemberCreateView(SelectedGameMixin, generics.CreateAPIView):
@@ -63,7 +62,7 @@ class MemberKickView(SelectedGameMixin, generics.DestroyAPIView):
         with transaction.atomic():
             instance.delete()
             if user_id and not is_bot:
-                send_notification.defer(
+                Notification.objects.broadcast(
                     user_ids=[user_id],
                     title=game.name,
                     body=f"You were removed from this game by {game.manager_label}.",
@@ -100,7 +99,7 @@ class CivilDisorderRecoveryView(SelectedGameMixin, generics.GenericAPIView):
             nation_name = member.nation.name if member.nation else "A player"
 
             def send_notifications():
-                notification_utils.send_notification_to_users(
+                Notification.objects.broadcast(
                     user_ids=user_ids,
                     title="Player Returned",
                     body=f"{nation_name} has returned from civil disorder.",

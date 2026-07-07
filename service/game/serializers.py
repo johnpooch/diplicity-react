@@ -12,7 +12,7 @@ from user_profile.utils import get_player_stats, tier_allows_min_reliability
 from member.serializers import MemberSerializer
 from unit.models import Unit
 from supply_center.models import SupplyCenter
-from notification import utils as notification_utils
+from notification.models import Notification
 from phase.utils import format_deadline
 
 from victory.serializers import VictorySerializer
@@ -36,7 +36,7 @@ def _phase_state_order_count(phase_state):
 def send_game_management_notification(game, title, body, notification_type, exclude_user_id):
     def _send():
         user_ids = game.notification_user_ids(exclude_user_id=exclude_user_id)
-        notification_utils.send_notification_to_users(
+        Notification.objects.broadcast(
             user_ids=user_ids,
             title=title,
             body=body,

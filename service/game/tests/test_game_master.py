@@ -10,6 +10,8 @@ from rest_framework import status
 from adjudication import service as adjudication_service
 from common.constants import GameStatus, MovementPhaseDuration, PhaseStatus
 from game.models import Game
+from notification.models import Notification
+from notification.testing import get_notifications
 from user_profile.models import UserProfile
 
 User = get_user_model()
@@ -298,20 +300,16 @@ class TestGameMasterDelete:
 
     @pytest.mark.django_db
     def test_delete_pending_game_notifies_members(
-        self, authenticated_client, pending_game_with_game_master_factory, secondary_user, in_memory_procrastinate, mock_immediate_on_commit
+        self, authenticated_client, pending_game_with_game_master_factory, secondary_user, mock_immediate_on_commit
     ):
         game = pending_game_with_game_master_factory()
         game.members.create(user=secondary_user)
         url = reverse(delete_viewname, args=[game.id])
         response = authenticated_client.delete(url)
         assert response.status_code == status.HTTP_204_NO_CONTENT
-        jobs = [
-            j for j in in_memory_procrastinate.jobs.values()
-            if j["task_name"] == "notification.send_notification"
-            and j["args"].get("notification_type") == "game_deleted"
-        ]
-        assert len(jobs) == 1
-        assert set(jobs[0]["args"]["user_ids"]) == {secondary_user.id}
+        rows = get_notifications("game_deleted")
+        assert len(rows) == 1
+        assert rows[0].user_id == secondary_user.id
 
     @pytest.mark.django_db
     def test_sandbox_delete_still_works(self, authenticated_client, sandbox_game_factory):
@@ -371,26 +369,25 @@ class TestGameMasterNotifications:
         authenticated_client,
         active_game_with_game_master_factory,
         primary_user,
-        mock_send_notification_to_users,
         mock_immediate_on_commit,
     ):
         game = active_game_with_game_master_factory()
-        mock_send_notification_to_users.reset_mock()
+        Notification.objects.all().delete()
 
         url = reverse(pause_viewname, args=[game.id])
         response = authenticated_client.patch(url)
         assert response.status_code == status.HTTP_200_OK
 
-        mock_send_notification_to_users.assert_called_once()
-        call_kwargs = mock_send_notification_to_users.call_args[1]
-        assert "Game paused by the Game Master" in call_kwargs["body"]
+        rows = get_notifications("game_paused")
+        assert rows
+        assert "Game paused by the Game Master" in rows[0].body
         member_user_ids = {m.user_id for m in game.members.all()}
-        assert set(call_kwargs["user_ids"]) == member_user_ids
-        assert primary_user.id not in call_kwargs["user_ids"]
+        assert {row.user_id for row in rows} == member_user_ids
+        assert primary_user.id not in {row.user_id for row in rows}
 
     @pytest.mark.django_db
     def test_game_start_notification_includes_game_master(
-        self, pending_game_with_game_master_factory, primary_user, adjudication_data_classical, in_memory_procrastinate
+        self, pending_game_with_game_master_factory, primary_user, adjudication_data_classical
     ):
         game = pending_game_with_game_master_factory()
         for i in range(game.variant.nations.count()):
@@ -401,36 +398,26 @@ class TestGameMasterNotifications:
         with patch.object(adjudication_service, "start", return_value=adjudication_data_classical):
             game.start()
 
-        jobs = [
-            j for j in in_memory_procrastinate.jobs.values()
-            if j["task_name"] == "notification.send_notification"
-            and j["args"].get("notification_type") == "game_start"
-        ]
-        assert len(jobs) == 1
-        assert primary_user.id in jobs[0]["args"]["user_ids"]
+        rows = get_notifications("game_start")
+        assert primary_user.id in {row.user_id for row in rows}
 
     @pytest.mark.django_db
     def test_phase_resolved_notification_includes_game_master(
         self,
         active_game_with_game_master_factory,
         primary_user,
-        mock_send_notification_to_users,
         mock_immediate_on_commit,
-        in_memory_procrastinate,
     ):
         game = active_game_with_game_master_factory()
-        mock_send_notification_to_users.reset_mock()
+        Notification.objects.all().delete()
 
         phase = game.current_phase
         phase.status = PhaseStatus.COMPLETED
         phase.save()
 
-        phase_resolved_calls = [
-            c for c in mock_send_notification_to_users.call_args_list
-            if c[1].get("notification_type") == "phase_resolved"
-        ]
-        assert len(phase_resolved_calls) == 1
-        assert primary_user.id in phase_resolved_calls[0][1]["user_ids"]
+        rows = get_notifications("phase_resolved")
+        assert rows
+        assert primary_user.id in {row.user_id for row in rows}
 
 
 class TestGameMasterQueryCounts:

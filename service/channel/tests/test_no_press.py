@@ -105,7 +105,6 @@ class TestNoPressChannelMessageCreate:
         self,
         authenticated_client,
         no_press_completed_game_with_channel,
-        mock_send_notification_to_users,
         mock_immediate_on_commit,
     ):
         channel = Channel.objects.get(game=no_press_completed_game_with_channel)
@@ -122,7 +121,6 @@ class TestNoPressChannelMessageCreate:
         self,
         authenticated_client,
         active_game_with_private_channel,
-        mock_send_notification_to_users,
         mock_immediate_on_commit,
     ):
         channel = Channel.objects.get(game=active_game_with_private_channel, private=True)

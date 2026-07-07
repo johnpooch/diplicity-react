@@ -9,6 +9,7 @@ from game.models import Game
 from phase.models import Phase
 from user_profile.models import UserProfile
 from common.constants import GameStatus, NationAssignment, PhaseStatus
+from notification.testing import assert_no_notification, assert_notification
 
 User = get_user_model()
 
@@ -552,7 +553,6 @@ class TestCivilDisorderRecovery:
         classical_england_nation,
         classical_france_nation,
         secondary_user,
-        mock_send_notification_to_users,
         mock_immediate_on_commit,
     ):
         game = Game.objects.create(
@@ -589,12 +589,11 @@ class TestCivilDisorderRecovery:
         phase_state = phase.phase_states.get(member=member)
         assert phase_state.orders_confirmed is False
 
-        mock_send_notification_to_users.assert_called_once()
-        call_kwargs = mock_send_notification_to_users.call_args[1]
-        assert call_kwargs["notification_type"] == "civil_disorder_recovery"
-        assert secondary_user.id in call_kwargs["user_ids"]
-        assert primary_user.id not in call_kwargs["user_ids"]
-        assert "England" in call_kwargs["body"]
+        assert_notification(
+            "civil_disorder_recovery",
+            user_ids={secondary_user.id},
+            body_contains="England",
+        )
 
     @pytest.mark.django_db
     def test_recover_fails_if_not_in_civil_disorder(
@@ -879,13 +878,12 @@ class TestKickBotMember:
         game = pending_game_created_by_primary_user
         member = game.members.create(user=roster_bot_user)
 
-        with patch("member.views.send_notification") as mock_send:
-            url = reverse(kick_viewname, args=[game.id, member.id])
-            response = authenticated_client.delete(url)
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        response = authenticated_client.delete(url)
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert not game.members.filter(user=roster_bot_user).exists()
-        mock_send.defer.assert_not_called()
+        assert_no_notification("kicked_from_staging")
 
     @pytest.mark.django_db
     def test_kick_human_sends_notification(
@@ -894,12 +892,11 @@ class TestKickBotMember:
         game = pending_game_created_by_primary_user
         member = game.members.create(user=secondary_user)
 
-        with patch("member.views.send_notification") as mock_send:
-            url = reverse(kick_viewname, args=[game.id, member.id])
-            response = authenticated_client.delete(url)
+        url = reverse(kick_viewname, args=[game.id, member.id])
+        response = authenticated_client.delete(url)
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
-        mock_send.defer.assert_called_once()
+        assert_notification("kicked_from_staging", user_ids={secondary_user.id})
 
 
 @pytest.mark.django_db

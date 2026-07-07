@@ -18,7 +18,6 @@ def test_replay_fixture_01_ivg_draw(
     authenticated_client,
     authenticated_client_for_secondary_user,
     italy_vs_germany_variant,
-    mock_send_notification_to_users,
     mock_immediate_on_commit,
 ):
     fixture = _load_fixture("01_ivg_draw_23p.json")
@@ -41,7 +40,6 @@ def test_replay_fixture_02_classical_solo(
     authenticated_client_for_tertiary_user,
     authenticated_clients_4_through_7,
     classical_variant,
-    mock_send_notification_to_users,
     mock_immediate_on_commit,
 ):
     fixture = _load_fixture("02_classical_solo_35p.json")
@@ -77,7 +75,6 @@ def test_replay_classical_long_solos(
     authenticated_client_for_tertiary_user,
     authenticated_clients_4_through_7,
     classical_variant,
-    mock_send_notification_to_users,
     mock_immediate_on_commit,
 ):
     fixture = _load_fixture(fixture_name)
@@ -104,7 +101,6 @@ def test_replay_fixture_03_hundred_solo(
     authenticated_client_for_secondary_user,
     authenticated_client_for_tertiary_user,
     hundred_variant,
-    mock_send_notification_to_users,
     mock_immediate_on_commit,
 ):
     fixture = _load_fixture("03_hundred_solo_40p.json")

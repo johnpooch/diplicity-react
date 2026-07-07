@@ -30,7 +30,7 @@ from common.constants import (
     duration_to_seconds,
 )
 from common.models import BaseModel
-from notification.tasks import send_notification
+from notification.models import Notification
 from phase.models import Phase, PhaseState
 from phase.utils import calculate_next_fixed_deadline, FREQUENCY_INTERVALS
 from member.models import Member
@@ -608,7 +608,7 @@ class Game(BaseModel):
             self.admin = new_admin
             self.save(update_fields=["admin"])
 
-            send_notification.defer(
+            Notification.objects.broadcast(
                 user_ids=[new_admin.id],
                 title=self.name,
                 body="The previous manager is no longer available, so you are now managing this game.",
