@@ -32,6 +32,10 @@ def parse_order_selections(
 ) -> list[list[str]]:
     data = _extract_json(response_text)
 
+    reasoning = data.get("reasoning")
+    if reasoning:
+        logger.info(f"[bot.llm] order reasoning: {reasoning}")
+
     choices = {}
     for choice in data.get("choices", []):
         if isinstance(choice, dict) and "source_id" in choice and "option_index" in choice:
@@ -56,6 +60,9 @@ def parse_order_selections(
 
 def parse_reply(response_text: str) -> str | None:
     data = _extract_json(response_text)
+    reasoning = data.get("reasoning")
+    if reasoning:
+        logger.info(f"[bot.llm] reply reasoning: {reasoning}")
     if not data.get("should_reply"):
         logger.info("[bot.llm] model declined to reply")
         return None
