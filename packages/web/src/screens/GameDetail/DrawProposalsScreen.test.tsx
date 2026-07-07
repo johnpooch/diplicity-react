@@ -187,4 +187,14 @@ describe("DrawProposalsScreen (secret voting)", () => {
       data: { accepted: true },
     });
   });
+
+  it("does not clamp the participant list", () => {
+    mockProposalsData.mockReturnValue([baseProposal()]);
+
+    renderScreen();
+
+    const description = screen.getByText("England, France");
+    expect(description).toHaveClass("line-clamp-none");
+    expect(description).not.toHaveClass("line-clamp-2");
+  });
 });
