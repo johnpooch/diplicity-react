@@ -200,12 +200,14 @@ class PhaseManager(models.Manager):
         return self.resolve_due_phases(canary=True)
 
     def _check_and_apply_nmr_extensions(self, phase):
-        unconfirmed = phase.phase_states.filter(
-            has_possible_orders=True, orders_confirmed=False
-        ).select_related('member')
+        not_submitted = phase.phase_states.filter(
+            has_possible_orders=True
+        ).exclude(
+            member__civil_disorder=True
+        ).annotate(order_count=Count("orders")).filter(order_count=0).select_related('member')
 
         members_with_extensions = [
-            ps.member for ps in unconfirmed
+            ps.member for ps in not_submitted
             if ps.member.nmr_extensions_remaining > 0
         ]
 
@@ -311,13 +313,17 @@ class PhaseManager(models.Manager):
                 time_left = format_time_remaining(time_until_deadline)
 
                 units_by_nation = {}
+                dislodged_units_by_nation = {}
                 for unit in phase.prefetched_units:
                     units_by_nation[unit.nation_id] = units_by_nation.get(unit.nation_id, 0) + 1
+                    if unit.dislodged:
+                        dislodged_units_by_nation[unit.nation_id] = dislodged_units_by_nation.get(unit.nation_id, 0) + 1
 
                 sc_by_nation = {}
                 for sc in phase.prefetched_supply_centers:
                     sc_by_nation[sc.nation_id] = sc_by_nation.get(sc.nation_id, 0) + 1
 
+                is_adjustment = phase.type == PhaseType.ADJUSTMENT
                 warned_states = []
 
                 for ps in phase.phase_states.all():
@@ -329,9 +335,11 @@ class PhaseManager(models.Manager):
                     nation_id = ps.member.nation_id
                     unit_count = units_by_nation.get(nation_id, 0)
 
-                    if phase.type == PhaseType.ADJUSTMENT:
+                    if is_adjustment:
                         sc_count = sc_by_nation.get(nation_id, 0)
                         total_units = abs(sc_count - unit_count)
+                    elif phase.type == PhaseType.RETREAT:
+                        total_units = dislodged_units_by_nation.get(nation_id, 0)
                     else:
                         total_units = unit_count
 
@@ -341,6 +349,7 @@ class PhaseManager(models.Manager):
                     body = build_notification_body(
                         ps.orders_confirmed, is_fixed_time, len(ps.orders.all()), total_units, time_left,
                         ps.member.nmr_extensions_remaining,
+                        is_adjustment=is_adjustment,
                     )
                     if body is None:
                         continue
@@ -444,6 +453,9 @@ class PhaseManager(models.Manager):
         for m in newly_cd_members:
             m.civil_disorder = True
         Member.objects.bulk_update(newly_cd_members, ["civil_disorder"])
+
+        if any(m.user_id == phase.game.admin_id for m in newly_cd_members):
+            phase.game.reassign_admin()
 
         cd_user_ids = [m.user_id for m in newly_cd_members if m.user_id is not None]
         self._remove_from_staging_games(cd_user_ids)

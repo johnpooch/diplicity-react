@@ -11,6 +11,38 @@ from bot.types import OrderOptionDict
 
 logger = logging.getLogger(__name__)
 
+ORDER_SELECTION_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "reasoning": {"type": "string"},
+        "choices": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "source_id": {"type": "string"},
+                    "option_index": {"type": "integer"},
+                },
+                "required": ["source_id", "option_index"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["reasoning", "choices"],
+    "additionalProperties": False,
+}
+
+REPLY_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "reasoning": {"type": "string"},
+        "should_reply": {"type": "boolean"},
+        "message": {"type": "string"},
+    },
+    "required": ["reasoning", "should_reply"],
+    "additionalProperties": False,
+}
+
 
 def _extract_json(response_text: str) -> dict:
     text = response_text.strip()
@@ -31,6 +63,10 @@ def parse_order_selections(
     response_text: str, options: list[OrderOptionDict]
 ) -> list[list[str]]:
     data = _extract_json(response_text)
+
+    reasoning = data.get("reasoning")
+    if reasoning:
+        logger.info(f"[bot.llm] order reasoning: {reasoning}")
 
     choices = {}
     for choice in data.get("choices", []):
@@ -56,6 +92,9 @@ def parse_order_selections(
 
 def parse_reply(response_text: str) -> str | None:
     data = _extract_json(response_text)
+    reasoning = data.get("reasoning")
+    if reasoning:
+        logger.info(f"[bot.llm] reply reasoning: {reasoning}")
     if not data.get("should_reply"):
         logger.info("[bot.llm] model declined to reply")
         return None

@@ -12,7 +12,11 @@ import type {
 import { parseDsvg } from "../InteractiveMap/dsvgParser";
 import { DiplicityMap } from "../InteractiveMap/mapRenderer";
 import { toRenderState } from "../InteractiveMap/toRenderState";
-import { recordGesture, recordInitialRender } from "../InteractiveMap/mapTelemetry";
+import {
+  recordGesture,
+  recordInitialRender,
+  recordRasterFailure,
+} from "../InteractiveMap/mapTelemetry";
 import { useDsvg } from "../../hooks/useDsvg";
 import { isNativePlatform } from "../../utils/platform";
 import {
@@ -216,8 +220,13 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
           containerRef.current?.setAttribute("data-map-ready", "true");
         }
       })
-      .catch(() => {
-        /* a failed raster leaves the previous base in place */
+      .catch((error) => {
+        // A failed raster leaves the previous base in place.
+        recordRasterFailure({
+          variantId: variantIdRef.current,
+          error,
+          implementation: "leaflet",
+        });
       });
 
     return () => {
@@ -255,7 +264,7 @@ const GameMapCanvas: React.FC<GameMapCanvasProps> = (props) => {
       <div
         ref={containerRef}
         data-map-impl="leaflet"
-        style={{ width: "100%", height: "100%", background: "#fff" }}
+        style={{ width: "100%", height: "100%", background: "var(--background)" }}
       />
       {showFillToggle && (
         <Button
