@@ -20,12 +20,7 @@ import { useGameVariant } from "@/hooks/useGameVariant";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
 import { formatDateTime, formatTimeAgo } from "@/util";
 import { MIN_RELIABILITY_OPTIONS } from "@/constants";
-import { CardTitle } from "@/components/ui/card";
-import {
-  ScreenCard,
-  ScreenCardContent,
-  ScreenCardHeader,
-} from "@/components/ui/screen-card";
+import { ScreenCard, ScreenCardContent } from "@/components/ui/screen-card";
 import { useRequiredParams } from "@/hooks";
 
 interface MetadataRowProps {
@@ -176,9 +171,6 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
     <>
       <GameStatusAlerts game={game} variant={variant} action={pendingAction} />
       <ScreenCard>
-        <ScreenCardHeader>
-          <CardTitle>{game.name}</CardTitle>
-        </ScreenCardHeader>
         <ScreenCardContent>
           <MetadataRow
             icon={<Map className="size-4" />}

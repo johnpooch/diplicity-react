@@ -32,7 +32,7 @@ const GameInfoScreen: React.FC = () => {
           title={
             <div className="flex items-center gap-2">
               <h1 className="flex-1 text-lg font-semibold truncate">
-                Game Info
+                {game.name}
               </h1>
               <GameDropdownMenu
                 game={game}
@@ -45,7 +45,7 @@ const GameInfoScreen: React.FC = () => {
         />
       ) : (
         <GameDetailAppBar
-          title="Game Info"
+          title={game.name}
           onNavigateBack={() => navigate(`/game/${gameId}/phase/${phaseId}`)}
           variant="secondary"
         />
