@@ -52,7 +52,7 @@ const GameInfoScreen: React.FC = () => {
       )}
       <div className="flex-1 overflow-y-auto">
         <Panel>
-          <Panel.Content className="px-4">
+          <Panel.Content className="px-4 pt-2">
             <GameInfoContent onNavigateToPlayerInfo={handleNavigateToPlayerInfo} />
           </Panel.Content>
         </Panel>
