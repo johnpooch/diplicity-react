@@ -130,16 +130,16 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
       <Button
         onClick={handleJoinGame}
         disabled={joinGameMutation.isPending}
-        className="w-full sm:w-auto"
+        className="w-full @[500px]:w-auto"
       >
         Join game
       </Button>
     ) : game.canLeave || canAddBots ? (
-      <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+      <div className="flex flex-wrap gap-2 w-full @[500px]:w-auto">
         {canAddBots && (
           <Button
             onClick={() => setAddBotOpen(true)}
-            className="flex-1 sm:flex-none"
+            className="flex-1 @[500px]:flex-none"
           >
             <Bot className="size-4" />
             Add AI player
@@ -150,19 +150,19 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
             onClick={handleLeaveGame}
             disabled={leaveGameMutation.isPending}
             variant="outline"
-            className="flex-1 sm:flex-none"
+            className="flex-1 @[500px]:flex-none"
           >
             Leave
           </Button>
         )}
-        <Button variant="outline" className="flex-1 sm:flex-none" onClick={handleShare}>
+        <Button variant="outline" className="flex-1 @[500px]:flex-none" onClick={handleShare}>
           <Share className="size-4" />
           Share &amp; invite
         </Button>
       </div>
     ) : game.minReliability !== "open" ? (
-      <div className="flex flex-col gap-1 w-full sm:w-auto">
-        <Button disabled className="w-full sm:w-auto">
+      <div className="flex flex-col gap-1 w-full @[500px]:w-auto">
+        <Button disabled className="w-full @[500px]:w-auto">
           Join game
         </Button>
         <p className="text-xs text-muted-foreground text-center">
