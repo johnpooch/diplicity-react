@@ -13,13 +13,23 @@ const getCurrentPhaseId = (game: GameRetrieve) => {
   return game.phases[game.phases.length - 1];
 };
 
+const getGamePhasePath = (
+  game: { id: string; currentPhaseId: number | null },
+  tab: "game-info" | "player-info"
+): string =>
+  game.currentPhaseId
+    ? `/game/${game.id}/phase/${game.currentPhaseId}/${tab}`
+    : `/game/${game.id}`;
+
 const getGameInfoPath = (game: {
   id: string;
   currentPhaseId: number | null;
-}): string =>
-  game.currentPhaseId
-    ? `/game/${game.id}/phase/${game.currentPhaseId}/game-info`
-    : `/game/${game.id}`;
+}): string => getGamePhasePath(game, "game-info");
+
+const getPlayerInfoPath = (game: {
+  id: string;
+  currentPhaseId: number | null;
+}): string => getGamePhasePath(game, "player-info");
 
 const getGameLandingPath = (
   game: { id: string; status: string; currentPhaseId: number | null },
@@ -181,4 +191,4 @@ function formatTimeAgo(djangoDatetime: string): string {
   return rtf.format(-diffYears, "year");
 }
 
-export { formatDateTime, formatRemainingTime, formatTimeAgo, getCurrentPhaseId, getGameInfoPath, getGameLandingPath };
+export { formatDateTime, formatRemainingTime, formatTimeAgo, getCurrentPhaseId, getGameInfoPath, getGameLandingPath, getPlayerInfoPath };

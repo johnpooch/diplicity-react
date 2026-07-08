@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatRemainingTime, getGameInfoPath, getGameLandingPath } from "./util";
+import { formatRemainingTime, getGameInfoPath, getGameLandingPath, getPlayerInfoPath } from "./util";
 
 describe("formatRemainingTime", () => {
   it("returns 'Deadline passed' for 0 seconds", () => {
@@ -46,6 +46,18 @@ describe("getGameInfoPath", () => {
   it("falls back to the game redirect route when there is no current phase", () => {
     const game = { id: "abc-2", currentPhaseId: null };
     expect(getGameInfoPath(game)).toBe("/game/abc-2");
+  });
+});
+
+describe("getPlayerInfoPath", () => {
+  it("routes to the shell player-info tab when a phase exists", () => {
+    const game = { id: "abc-1", currentPhaseId: 5 };
+    expect(getPlayerInfoPath(game)).toBe("/game/abc-1/phase/5/player-info");
+  });
+
+  it("falls back to the game redirect route when there is no current phase", () => {
+    const game = { id: "abc-2", currentPhaseId: null };
+    expect(getPlayerInfoPath(game)).toBe("/game/abc-2");
   });
 });
 

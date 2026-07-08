@@ -16,7 +16,6 @@ vi.mock("@/api/generated/endpoints", async (importOriginal) => {
     ...(actual as Record<string, unknown>),
     useGameRetrieveSuspense: (...args: unknown[]) =>
       mockUseGameRetrieveSuspense(...args),
-    useGamePhaseRetrieve: () => ({ data: undefined }),
     useGameJoinCreate: () => ({
       mutateAsync: mockJoinMutateAsync,
       isPending: false,

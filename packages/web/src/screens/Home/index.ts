@@ -5,7 +5,6 @@ export const Home = {
   FindGames: lazyScreen(() => import("./FindGames"), "FindGames"),
   CreateGame: lazyScreen(() => import("./CreateGame"), "CreateGame"),
   Account: lazyScreen(() => import("./Account"), "Account"),
-  PlayerInfoScreen: lazyScreen(() => import("./PlayerInfo"), "PlayerInfoScreen"),
   Community: lazyScreen(() => import("./Community"), "Community"),
   DeleteAccount: lazyScreen(() => import("./DeleteAccount"), "DeleteAccount"),
   LearnToPlay: lazyScreen(() => import("./LearnToPlay"), "LearnToPlay"),

@@ -11,7 +11,6 @@ import { DeadlineSummary } from "@/components/DeadlineSummary";
 import { AddBotSheet } from "@/components/AddBotSheet";
 import {
   useGameRetrieveSuspense,
-  useGamePhaseRetrieve,
   useGameJoinCreate,
   useGameLeaveDestroy,
   useUserRetrieveSuspense,
@@ -19,9 +18,8 @@ import {
 } from "@/api/generated/endpoints";
 import { useGameVariant } from "@/hooks/useGameVariant";
 import { useCheckNotificationPermission } from "@/hooks/useCheckNotificationPermission";
-import { getCurrentPhaseId, formatDateTime, formatTimeAgo } from "@/util";
+import { formatDateTime, formatTimeAgo } from "@/util";
 import { MIN_RELIABILITY_OPTIONS } from "@/constants";
-import { ExpandableMapPreview } from "@/components/ExpandableMapPreview";
 import { CardTitle } from "@/components/ui/card";
 import {
   ScreenCard,
@@ -84,13 +82,6 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
   const checkNotificationPermission = useCheckNotificationPermission();
 
   const [addBotOpen, setAddBotOpen] = useState(false);
-
-  const currentPhaseId = getCurrentPhaseId(game);
-  const { data: currentPhase } = useGamePhaseRetrieve(
-    gameId,
-    currentPhaseId ?? 0,
-    { query: { enabled: !!currentPhaseId } }
-  );
 
   const handleJoinGame = async () => {
     try {
@@ -326,17 +317,6 @@ export const GameInfoContent: React.FC<GameInfoContentProps> = ({
               label="Rules"
               text={variant.rules}
             />
-          )}
-          {variant && currentPhase ? (
-            <div className="w-full overflow-hidden rounded-lg">
-              <ExpandableMapPreview
-                variant={variant}
-                phase={currentPhase}
-                style={{ width: "100%" }}
-              />
-            </div>
-          ) : (
-            <Skeleton className="w-full h-64 rounded-lg" />
           )}
         </ScreenCardContent>
       </ScreenCard>
