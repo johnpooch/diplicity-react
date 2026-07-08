@@ -7,7 +7,9 @@ import { PhaseSelect } from "@/components/PhaseSelect";
 import { PhaseGuidance } from "@/components/PhaseGuidance";
 import { GameMap } from "@/components/GameMap";
 import { GameDropdownMenu } from "@/components/GameDropdownMenu";
+import { PendingGameActions } from "@/components/PendingGameActions";
 import { useGameRetrieveSuspense } from "../../api/generated/endpoints";
+import { useGameVariant } from "@/hooks/useGameVariant";
 import { useRequiredParams } from "../../hooks";
 
 const MapScreen: React.FC = () => {
@@ -17,6 +19,8 @@ const MapScreen: React.FC = () => {
     phaseId: string;
   }>();
   const { data: game } = useGameRetrieveSuspense(gameId);
+  const variant = useGameVariant(game);
+  const isPending = game.status === "pending";
 
   const handleNavigateToGameInfo = () => {
     navigate(`/game/${gameId}/phase/${phaseId}/game-info`);
@@ -32,10 +36,18 @@ const MapScreen: React.FC = () => {
         title={
           <div className="flex items-center gap-2">
             <div className="flex-1 flex flex-col items-center gap-0.5">
-              <PhaseSelect />
-              <Suspense fallback={null}>
-                <PhaseGuidance />
-              </Suspense>
+              {isPending ? (
+                <span className="text-sm font-semibold truncate max-w-[70vw]">
+                  {game.name}
+                </span>
+              ) : (
+                <>
+                  <PhaseSelect />
+                  <Suspense fallback={null}>
+                    <PhaseGuidance />
+                  </Suspense>
+                </>
+              )}
             </div>
             <GameDropdownMenu
               game={game}
@@ -46,6 +58,11 @@ const MapScreen: React.FC = () => {
         }
         onNavigateBack={() => navigate("/")}
       />
+      {isPending && (
+        <div className="flex flex-wrap gap-2 p-3 border-b md:hidden">
+          <PendingGameActions game={game} variant={variant} />
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto">
         <Panel>
           <Panel.Content>
