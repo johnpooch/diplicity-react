@@ -487,11 +487,7 @@ class PhaseManager(models.Manager):
         cd_user_ids = [m.user_id for m in newly_cd_members if m.user_id is not None]
         self._remove_from_staging_games(cd_user_ids)
 
-        active_members = phase.game.members.filter(eliminated=False, kicked=False)
-        user_ids = {m.user_id for m in active_members if m.user_id is not None}
-        if phase.game.game_master_id is not None:
-            user_ids.add(phase.game.game_master_id)
-        user_ids = list(user_ids)
+        user_ids = phase.game.notification_user_ids(active_only=True)
 
         nation_names = ", ".join(
             m.nation.name for m in newly_cd_members if m.nation is not None
@@ -618,18 +614,18 @@ class PhaseManager(models.Manager):
             if extension_members:
                 return phase
 
-            self._set_orders_outcome(phase)
-            newly_cd_members = self._check_civil_disorder(phase)
-            adjudication_data = resolve(phase)
-
             with tracer.start_as_current_span("phase.transaction_atomic"):
                 with transaction.atomic():
+                    self._set_orders_outcome(phase)
+                    newly_cd_members = self._check_civil_disorder(phase)
+                    adjudication_data = resolve(phase)
+
                     surviving_cd_members = self._reconcile_civil_disorder_eliminations(
                         newly_cd_members, adjudication_data
                     )
-                    self._notify_civil_disorder(phase, surviving_cd_members)
                     new_phase = self.create_from_adjudication_data(phase, adjudication_data)
                     self._check_eliminations(phase, new_phase)
+                    self._notify_civil_disorder(phase, surviving_cd_members)
 
                     victory = Victory.objects.try_create_victory(new_phase)
 
