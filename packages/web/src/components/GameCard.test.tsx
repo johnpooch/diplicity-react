@@ -159,6 +159,14 @@ describe("GameCard", () => {
       });
       expect(screen.queryByLabelText("Gunboat")).not.toBeInTheDocument();
     });
+
+    it("shows gunboat badge for pending games", () => {
+      renderGameCard({
+        game: { ...mockPendingGames[0], pressType: "no_press" },
+        ...defaultProps,
+      });
+      expect(screen.getByLabelText("Gunboat")).toBeInTheDocument();
+    });
   });
 
   describe("unread message indicator", () => {
